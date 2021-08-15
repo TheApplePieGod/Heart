@@ -1,0 +1,4 @@
+[submodule "Heart/lib/spdlog"]
+	path = Heart/lib/spdlog
+	url = https://github.com/gabime/spdlog.git
+	branch = v1.x
