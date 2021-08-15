@@ -6,10 +6,6 @@
 	path = Heart/lib/GLFW
 	url = https://github.com/glfw/glfw.git
 	branch = master
-[submodule "Heart/lib/imgui"]
-	path = Heart/lib/imgui
-	url = https://github.com/ocornut/imgui.git
-	branch = master
 [submodule "Heart/lib/glm"]
 	path = Heart/lib/glm
 	url = https://github.com/g-truc/glm.git
