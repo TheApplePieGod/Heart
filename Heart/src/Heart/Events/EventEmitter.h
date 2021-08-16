@@ -14,18 +14,38 @@ namespace Heart
         {}
     };
 
+    class EventListener;
     class EventEmitter
     {
     public:
-        u32 Subscribe(const EventCallbackFunction& callback);
-        void Unsubscribe(u32 subscriberId);
+        void Subscribe(EventListener* listener);
+
+        // DO NOT CALL THIS INSIDE THE BODY OF AN EVENT CALLBACK
+        void Unsubscribe(EventListener* listener);
+
+        bool IsSubscribed(const EventListener* listener) const;
 
     protected:
         void Emit(Event& event);
 
     private:
-        std::vector<EventSubscriber> m_Subscribers;
-        u32 m_SubscriberId = 0; 
+        std::unordered_set<EventListener*> m_Subscribers;
+    };
+
+    class EventListener
+    {
+    public:
+        virtual void OnEvent(Event& event) = 0;
+
+        inline void SubscribeToEmitter(EventEmitter* emitter) { emitter->Subscribe(this); }
+
+        // DO NOT CALL THIS INSIDE THE BODY OF AN EVENT CALLBACK
+        inline void UnsubscribeFromEmitter(EventEmitter* emitter) { emitter->Unsubscribe(this); }
+        
+        inline bool IsSubscribedToEmitter(const EventEmitter* emitter) const { return emitter->IsSubscribed(this); }
+
+    private:
 
     };
+
 }

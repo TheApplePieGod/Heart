@@ -10,7 +10,7 @@ extern int main(int argc, char** argv);
 
 namespace Heart
 {
-    class Engine
+    class Engine : public EventListener
     {
     public:
         Engine();
@@ -25,7 +25,7 @@ namespace Heart
     private:
         void Run();
         inline void Stop() { m_Running = false; };
-        void OnWindowEvent(Event& event);
+        void OnEvent(Event& event) override;
         bool OnWindowResize(WindowResizeEvent& event);
 
     private:
@@ -33,7 +33,6 @@ namespace Heart
         Scope<ImGuiInstance> m_ImGuiInstance;
         Scope<Window> m_Window;
         bool m_Running = true;
-        u32 m_WindowSubscribeId;
 
     private:
         static Engine* s_Instance;

@@ -5,34 +5,29 @@ namespace Heart
 {
     using EventCallbackFunction = std::function<void(Event&)>;
 
-    u32 EventEmitter::Subscribe(const EventCallbackFunction& callback)
+    void EventEmitter::Subscribe(EventListener* listener)
     {
-        m_SubscriberId++;
-
-        m_Subscribers.emplace_back(m_SubscriberId, callback);
-
-        return m_SubscriberId;
+        HT_ENGINE_ASSERT(m_Subscribers.find(listener) == m_Subscribers.end(), "Listener is already subscribed to emitter");
+        m_Subscribers.insert(listener);
     }
 
-    void EventEmitter::Unsubscribe(u32 subscriberId)
+    void EventEmitter::Unsubscribe(EventListener* listener)
     {
-        for (size_t i = 0; i < m_Subscribers.size(); i++)
-        {
-            if (m_Subscribers[i].Id == subscriberId)
-            {
-                // TODO: possibly change this so we aren't copying the std::function
-                m_Subscribers[i] = m_Subscribers[m_Subscribers.size() - 1];
-                m_Subscribers.pop_back();
-            }
-        }
+        HT_ENGINE_ASSERT(m_Subscribers.find(listener) != m_Subscribers.end(), "Listener is unsubscribing to emitter but not subscribed");
+        m_Subscribers.erase(listener);
+    }
+
+    bool EventEmitter::IsSubscribed(const EventListener* listener) const
+    {
+        return m_Subscribers.find(const_cast<EventListener*>(listener)) != m_Subscribers.end();
     }
 
     void EventEmitter::Emit(Event& event)
     {
         //HT_ENGINE_LOG_TRACE("Emitting events");
-        for (auto subscriber : m_Subscribers)
+        for (auto listener : m_Subscribers)
         {
-            subscriber.CallbackFunction(event);
+            listener->OnEvent(event);
         }
     }
 }

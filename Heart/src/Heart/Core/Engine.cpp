@@ -12,7 +12,7 @@ namespace Heart
 
         WindowSettings windowSettings = WindowSettings();
         m_Window = Window::Create(windowSettings);
-        m_WindowSubscribeId = m_Window->Subscribe(HT_BIND_EVENT_FN(Engine::OnWindowEvent));
+        SubscribeToEmitter(&GetWindow());
 
         //m_ImGuiInstance = new ImGuiInstance();
 
@@ -21,7 +21,7 @@ namespace Heart
 
     Engine::~Engine()
     {
-        m_Window->Unsubscribe(m_WindowSubscribeId);
+        UnsubscribeFromEmitter(&GetWindow());
     }
 
     void Engine::PushLayer(Layer* layer)
@@ -30,7 +30,7 @@ namespace Heart
         layer->OnAttach();
     }
 
-    void Engine::OnWindowEvent(Event& event)
+    void Engine::OnEvent(Event& event)
     {        
         event.Map<WindowResizeEvent>(HT_BIND_EVENT_FN(Engine::OnWindowResize));
     }
