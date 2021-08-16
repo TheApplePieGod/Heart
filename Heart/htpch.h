@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Heart/Core/PlatformDetection.h"
+
 #ifdef HT_PLATFORM_WINDOWS
 	#ifndef NOMINMAX
 		#define NOMINMAX
@@ -11,6 +13,7 @@
 #include <utility>
 #include <algorithm>
 #include <functional>
+#include <filesystem>
 
 #include <string>
 #include <array>
@@ -19,6 +22,8 @@
 #include <unordered_set>
 
 #include "Heart/Core/Base.h"
+#include "Heart/Core/Log.h"
+#include "Heart/Core/Assert.h"
 
 #ifdef HT_PLATFORM_WINDOWS
 	#include <Windows.h>
