@@ -27,6 +27,7 @@ namespace Heart
         inline void Stop() { m_Running = false; };
         void OnEvent(Event& event) override;
         bool OnWindowResize(WindowResizeEvent& event);
+        bool OnWindowClose(WindowCloseEvent& event);
 
     private:
         std::vector<Layer*> m_Layers;

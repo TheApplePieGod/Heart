@@ -5,12 +5,18 @@ namespace Heart
     enum EventType
     {
         None = 0,
-        WindowResize
+        WindowResize, WindowClose,
+        Key, KeyPressed, KeyReleased
     };
 
     class Event
     {
     public:
+        Event() = default;
+        Event(EventType type)
+            : m_Type(type)
+        {}
+        
         bool Handled = false;
 
     public:

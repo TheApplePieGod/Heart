@@ -9,7 +9,7 @@
 [submodule "Heart/lib/imgui"]
 	path = Heart/lib/imgui
 	url = https://github.com/TheApplePieGod/imgui.git
-	branch = master
+	branch = docking
 [submodule "Heart/lib/glm"]
 	path = Heart/lib/glm
 	url = https://github.com/g-truc/glm.git

@@ -8,13 +8,24 @@ namespace Heart
     {
     public:
         WindowResizeEvent(u32 width, u32 height)
-            : m_Width(width), m_Height(height)
-        { m_Type = EventType::WindowResize; }
+            : Event(EventType::WindowResize), m_Width(width), m_Height(height)
+        {}
 
     public:
         static inline EventType GetStaticType() { return EventType::WindowResize; }
 
     private:
         u32 m_Width, m_Height;
+    };
+
+    class WindowCloseEvent : public Event
+    {
+    public:
+        WindowCloseEvent()
+            : Event(EventType::WindowClose)
+        {}
+
+    public:
+        static inline EventType GetStaticType() { return EventType::WindowClose; }
     };
 }

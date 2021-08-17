@@ -2,6 +2,7 @@
 #include "Window.h"
 
 #include "Heart/Events/WindowEvents.h"
+#include "Heart/Events/KeyboardEvents.h"
 
 namespace Heart
 {
@@ -29,10 +30,16 @@ namespace Heart
         {
             int success = glfwInit();
             HT_ENGINE_ASSERT(success, "Failed to initialize GLFW");
+            glfwSetErrorCallback(GLFWErrorCallback);
         }
+
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+        glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
         m_Window = glfwCreateWindow(settings.Width, settings.Height, settings.Title.c_str(), nullptr, nullptr);
         s_WindowCount++;
+
+        m_GraphicsContext = GraphicsContext::Create(RenderApi::Type::Vulkan, m_Window);
 
         glfwSetWindowUserPointer(m_Window, &m_WindowData);
 
@@ -46,8 +53,37 @@ namespace Heart
 			data.EmitEvent(event);
 		});
 
-        //glfwSetWindowCloseCallback
-        //glfwSetKeyCallback
+        glfwSetKeyCallback(m_Window, [](GLFWwindow* window, int key, int scancode, int action, int mods)
+		{
+			WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
+
+			switch (action)
+			{
+				case GLFW_PRESS:
+				{
+					KeyPressedEvent event(key, false);
+					data.EmitEvent(event);
+				} break;
+				case GLFW_RELEASE:
+				{
+					KeyReleasedEvent event(key);
+					data.EmitEvent(event);
+				} break;
+				case GLFW_REPEAT:
+				{
+					KeyPressedEvent event(key, true);
+					data.EmitEvent(event);
+				} break;
+			}
+		});
+
+        glfwSetWindowCloseCallback(m_Window, [](GLFWwindow* window)
+		{
+			WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
+			WindowCloseEvent event;
+			data.EmitEvent(event);
+		});
+
         //glfwSetCharCallback
         //glfwSetMouseButtonCallback
         //glfwSetScrollCallback

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Heart/Events/EventEmitter.h"
+#include "Heart/Renderer/GraphicsContext.h"
 #include "GLFW/glfw3.h"
 
 namespace Heart
@@ -43,6 +44,7 @@ namespace Heart
         static int s_WindowCount;
 
     private:
+        Scope<GraphicsContext> m_GraphicsContext;
         WindowData m_WindowData;
         GLFWwindow* m_Window;
     };

@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <functional>
 #include <filesystem>
+#include <optional>
 
 #include <string>
 #include <array>
