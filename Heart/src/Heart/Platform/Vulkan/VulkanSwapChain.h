@@ -19,6 +19,9 @@ namespace Heart
     public:
         void Initialize(int width, int height, VkSurfaceKHR surface);
         void Shutdown();
+        void RecreateSwapChain();
+
+        inline u32 GetImageCount() const { return static_cast<u32>(m_SwapChainData.Images.size()); }
 
     private:
         void CreateSwapChain();

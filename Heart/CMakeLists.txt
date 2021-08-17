@@ -29,9 +29,25 @@ set(IMGUI_SOURCES
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp" "src/*.h" "htpch.h")
 add_executable(Engine "${SOURCES}" "${IMGUI_SOURCES}" "src/Heart/Core/EntryPoint.cpp")
 
-# Locate vulkan library
+# Locate vulkansdk libraries
 find_library(vulkan
   NAMES "vulkan-1"
+  PATHS "$ENV{VULKAN_SDK}/Lib"
+)
+find_library(shaderc
+  NAMES "shaderc_shared"
+  PATHS "$ENV{VULKAN_SDK}/Lib"
+)
+find_library(spirvcore
+  NAMES "spirv-cross-core"
+  PATHS "$ENV{VULKAN_SDK}/Lib"
+)
+find_library(spirvhlsl
+  NAMES "spirv-cross-hlsl"
+  PATHS "$ENV{VULKAN_SDK}/Lib"
+)
+find_library(spirvglsl
+  NAMES "spirv-cross-glsl"
   PATHS "$ENV{VULKAN_SDK}/Lib"
 )
 
@@ -41,6 +57,10 @@ target_link_libraries(Engine glm)
 target_link_libraries(Engine imgui)
 target_link_libraries(Engine spdlog)
 target_link_libraries(Engine ${vulkan})
+target_link_libraries(Engine ${shaderc})
+target_link_libraries(Engine ${spirvcore})
+target_link_libraries(Engine ${spirvhlsl})
+target_link_libraries(Engine ${spirvglsl})
 
 target_precompile_headers(Engine
     PUBLIC "htpch.h"

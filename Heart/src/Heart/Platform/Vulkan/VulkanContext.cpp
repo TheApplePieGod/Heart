@@ -1,6 +1,8 @@
 #include "htpch.h"
 #include "VulkanContext.h"
 
+#include "imgui/imgui.h"
+#include "imgui/backends/imgui_impl_vulkan.h"
 #include "GLFW/glfw3.h"
 
 namespace Heart
@@ -149,6 +151,44 @@ namespace Heart
                 HT_VULKAN_CHECK_RESULT(func(s_Instance, &createInfo, nullptr, &s_DebugMessenger));
             }   
         #endif
+    }
+
+    void VulkanContext::InitializeImGui()
+    {
+        ImGui_ImplVulkan_InitInfo info = {};
+        // info.Instance = s_Instance;
+        // info.PhysicalDevice = s_VulkanDevice.PhysicalDevice();
+        // info.Device = s_VulkanDevice.Device();
+        // info.QueueFamily = s_VulkanDevice.PresentQueueIndex();
+        // info.Queue = s_VulkanDevice.PresentQueue();
+        // info.PipelineCache = VK_NULL_HANDLE;
+        // info.DescriptorPool = descriptorPool;
+        // info.Allocator = NULL;
+        // info.MinImageCount = 2;
+        // info.ImageCount = m_VulkanSwapChain.GetImageCount();
+        // info.CheckVkResultFn = NULL;
+        // info.MSAASamples = msaaSamples;
+
+        // ImGui_ImplVulkan_Init(&initInfo, renderPass);
+        // VkCommandBuffer commandBuffer = BeginSingleTimeCommands();
+        // ImGui_ImplVulkan_CreateFontsTexture(commandBuffer);
+        // EndSingleTimeCommands(commandBuffer);
+        // ImGui_ImplVulkan_DestroyFontUploadObjects();
+    }
+
+    void VulkanContext::ImGuiBeginFrame()
+    {
+        ImGui_ImplVulkan_NewFrame();
+    }
+
+    void VulkanContext::ImGuiEndFrame()
+    {
+        //ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), renderPassBuffer);
+    }
+
+    void VulkanContext::ShutdownImGui()
+    {
+        ImGui_ImplVulkan_Shutdown();
     }
 
     std::vector<const char*> VulkanContext::ConfigureValidationLayers()

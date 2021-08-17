@@ -13,13 +13,13 @@ namespace Heart
         HT_ENGINE_ASSERT(!s_Instance, "Engine instance already exists");
         s_Instance = this;
 
+        Renderer::Initialize(RenderApi::Type::Vulkan);
+
         WindowSettings windowSettings = WindowSettings();
         m_Window = Window::Create(windowSettings);
         SubscribeToEmitter(&GetWindow());
 
-        Renderer::Initialize(RenderApi::Type::Vulkan);
-
-        //m_ImGuiInstance = new ImGuiInstance();
+        m_ImGuiInstance = ImGuiInstance::Create(GetWindow());
 
         HT_ENGINE_LOG_INFO("Engine initialized");
     }
@@ -60,6 +60,16 @@ namespace Heart
         while (m_Running)
         {
             m_Window->OnUpdate();
+
+            // Layer update
+            for (auto layer : m_Layers)
+                layer->OnUpdate();
+
+            // ImGui render
+            m_ImGuiInstance->BeginFrame();
+            for (auto layer : m_Layers)
+                layer->OnImGuiRender();
+            m_ImGuiInstance->EndFrame();
         }
     }
 }

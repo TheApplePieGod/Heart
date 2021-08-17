@@ -9,7 +9,12 @@ namespace Heart
     public:
         virtual ~GraphicsContext() = default;
 
-        static Scope<GraphicsContext> Create(RenderApi::Type apiType, void* window);
+        virtual void InitializeImGui() = 0;
+        virtual void ImGuiBeginFrame() = 0;
+        virtual void ImGuiEndFrame() = 0;
+
+    public:
+        static Scope<GraphicsContext> Create(void* window);
 
     private:
 

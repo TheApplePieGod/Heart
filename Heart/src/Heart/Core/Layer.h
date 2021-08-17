@@ -10,6 +10,7 @@ namespace Heart
 
         virtual void OnAttach() {}
         virtual void OnUpdate() {}
+        virtual void OnImGuiRender() {}
         virtual void OnDetach() {}
 
     protected:

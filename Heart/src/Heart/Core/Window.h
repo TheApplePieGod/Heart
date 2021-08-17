@@ -34,6 +34,8 @@ namespace Heart
 
         void OnUpdate();
 
+        GraphicsContext& GetContext() const { return *m_GraphicsContext; }
+        GLFWwindow* GetWindowHandle() const { return m_Window; }
         u32 GetWidth() const { return m_WindowData.Width; }
         u32 GetHeight() const { return m_WindowData.Height; }
 

@@ -11,13 +11,18 @@ namespace Heart
     {
     public:
         VulkanContext(void* window);
-        ~VulkanContext();
+        ~VulkanContext() override;
+
+        void InitializeImGui() override;
+        void ImGuiBeginFrame() override;
+        void ImGuiEndFrame() override;
 
     public:
         inline static VkInstance GetInstance() { return s_Instance; };
         inline static VulkanDevice& GetDevice() { return s_VulkanDevice; };
 
         static std::vector<const char*> ConfigureValidationLayers();
+        static void ShutdownImGui();
     
     private:
         void CreateSurface(VkSurfaceKHR& surface);

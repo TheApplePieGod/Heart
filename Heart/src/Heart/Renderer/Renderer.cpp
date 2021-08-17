@@ -7,13 +7,15 @@
 namespace Heart
 {
     Scope<RenderApi> Renderer::s_RenderApi;
+    RenderApi::Type Renderer::s_RenderApiType;
 
     void Renderer::Initialize(RenderApi::Type apiType)
     {
+        s_RenderApiType = apiType;
         switch (apiType)
         {
             default:
-            { HT_ENGINE_ASSERT(false, "Selected ApiType is not supported"); } break;
+            { HT_ENGINE_ASSERT(false, "Cannot initialize Renderer: selected ApiType is not supported"); } break;
             case RenderApi::Type::Vulkan:
             { s_RenderApi = CreateScope<VulkanRenderApi>(); } break;
         }

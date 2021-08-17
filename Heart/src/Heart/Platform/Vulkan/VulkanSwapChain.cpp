@@ -104,6 +104,11 @@ namespace Heart
         vkDestroySwapchainKHR(device.Device(), m_SwapChain, nullptr);
     }
 
+    void VulkanSwapChain::RecreateSwapChain()
+    {
+        
+    }
+
     VkSurfaceFormatKHR VulkanSwapChain::ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats)
     {
         for (const auto& availableFormat : formats)

@@ -39,7 +39,7 @@ namespace Heart
         m_Window = glfwCreateWindow(settings.Width, settings.Height, settings.Title.c_str(), nullptr, nullptr);
         s_WindowCount++;
 
-        m_GraphicsContext = GraphicsContext::Create(RenderApi::Type::Vulkan, m_Window);
+        m_GraphicsContext = GraphicsContext::Create(m_Window);
 
         glfwSetWindowUserPointer(m_Window, &m_WindowData);
 
