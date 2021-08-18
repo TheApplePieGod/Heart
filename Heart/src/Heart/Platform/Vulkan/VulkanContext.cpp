@@ -159,7 +159,7 @@ namespace Heart
         // info.Instance = s_Instance;
         // info.PhysicalDevice = s_VulkanDevice.PhysicalDevice();
         // info.Device = s_VulkanDevice.Device();
-        // info.QueueFamily = s_VulkanDevice.PresentQueueIndex();
+        // info.QueueFamily = s_VulkanDevice.GraphicsQueueIndex();
         // info.Queue = s_VulkanDevice.PresentQueue();
         // info.PipelineCache = VK_NULL_HANDLE;
         // info.DescriptorPool = descriptorPool;

@@ -161,6 +161,7 @@ namespace Heart
     {
         if (!m_Initialized) return;
 
+        vkDeviceWaitIdle(m_LogicalDevice);
         vkDestroyDevice(m_LogicalDevice, nullptr);
 
         m_Initialized = false;

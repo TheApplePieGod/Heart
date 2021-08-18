@@ -19,6 +19,7 @@ namespace Heart
         inline u32 GraphicsQueueIndex() const { return m_GraphicsQueueIndex; }
         inline u32 PresentQueueIndex() const { return m_PresentQueueIndex; }
         inline u32 ComputeQueueIndex() const { return m_ComputeQueueIndex; }
+        inline VkSampleCountFlagBits MaxMsaaSamples() const { return m_DeviceMaxSampleCount; }
         inline bool IsInitialized() const { return m_Initialized; }
 
     private:
