@@ -9,13 +9,10 @@
 
 namespace Heart
 {
-    Scope<ImGuiInstance> ImGuiInstance::Create(Window& window)
+    void ImGuiInstance::Initialize()
     {
-        return CreateScope<ImGuiInstance>(window);
-    }
+        auto& window = Engine::Get().GetWindow();
 
-    ImGuiInstance::ImGuiInstance(Window& window)
-    {
         IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
 		ImGuiIO& io = ImGui::GetIO(); (void)io;
@@ -50,10 +47,10 @@ namespace Heart
             { ImGui_ImplGlfw_InitForVulkan(window.GetWindowHandle(), true); } break;
         }
 
-        Recreate(window.GetContext());
+        Recreate();
     }
 
-    ImGuiInstance::~ImGuiInstance()
+    void ImGuiInstance::Shutdown()
     {
         Cleanup();
         
@@ -61,12 +58,12 @@ namespace Heart
 	    ImGui::DestroyContext();
     }
 
-    void ImGuiInstance::Recreate(GraphicsContext& context)
+    void ImGuiInstance::Recreate()
     {
         if (m_Initialized)
             Cleanup();
 
-        context.InitializeImGui();
+        Engine::Get().GetWindow().GetContext().InitializeImGui();
 
         m_Initialized = true;
     }
@@ -75,13 +72,7 @@ namespace Heart
     {
         if (!m_Initialized) return;
 
-        switch (Renderer::GetApiType())
-        {
-            default:
-            { HT_ENGINE_ASSERT(false, "Cannot cleanup ImGui: selected ApiType is not supported"); } break;
-            case RenderApi::Type::Vulkan:
-            { VulkanContext::ShutdownImGui(); } break;
-        }
+        Engine::Get().GetWindow().GetContext().ShutdownImGui();
 
         m_Initialized = false;
     }

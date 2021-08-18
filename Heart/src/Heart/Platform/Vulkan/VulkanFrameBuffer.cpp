@@ -165,6 +165,20 @@ namespace Heart
     {
         VulkanDevice& device = VulkanContext::GetDevice();
 
+        vkDestroyFramebuffer(device.Device(), m_FrameBuffer, nullptr);
+
         vkDestroyImageView(device.Device(), m_ColorImageView, nullptr);
+        vkDestroyImageView(device.Device(), m_ResolveImageView, nullptr);
+        vkDestroyImageView(device.Device(), m_DepthImageView, nullptr);
+
+        vkDestroyImage(device.Device(), m_ColorImage, nullptr);
+        vkDestroyImage(device.Device(), m_ResolveImage, nullptr);
+        vkDestroyImage(device.Device(), m_DepthImage, nullptr);
+
+        vkFreeMemory(device.Device(), m_ColorImageMemory, nullptr);
+        vkFreeMemory(device.Device(), m_ResolveImageMemory, nullptr);
+        vkFreeMemory(device.Device(), m_DepthImageMemory, nullptr);
+
+        vkDestroyRenderPass(device.Device(), m_RenderPass, nullptr);
     }
 }

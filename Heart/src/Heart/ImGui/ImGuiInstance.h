@@ -4,20 +4,17 @@
 
 namespace Heart
 {
+    // For now, this class only utilizes the main window & graphics context
     class ImGuiInstance
     {
     public:
-        ImGuiInstance(Window& window);
-        ~ImGuiInstance();
+        void Initialize();
+        void Shutdown();
 
-        void Recreate(GraphicsContext& context);
-
-        // For now, these functions use the Engine's window as opposed to consuming a window, as support for multi windows is likely not needed
+        void Recreate();
+        
         void BeginFrame();
         void EndFrame();
-
-    public:
-        static Scope<ImGuiInstance> Create(Window& window);
 
     private:
         void Cleanup();

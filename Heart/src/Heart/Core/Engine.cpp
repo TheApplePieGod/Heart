@@ -19,7 +19,7 @@ namespace Heart
         m_Window = Window::Create(windowSettings);
         SubscribeToEmitter(&GetWindow());
 
-        m_ImGuiInstance = ImGuiInstance::Create(GetWindow());
+        m_ImGuiInstance.Initialize();
 
         HT_ENGINE_LOG_INFO("Engine initialized");
     }
@@ -27,6 +27,9 @@ namespace Heart
     Engine::~Engine()
     {
         UnsubscribeFromEmitter(&GetWindow());
+
+        m_ImGuiInstance.Shutdown();
+
         Renderer::Shutdown();
     }
 
@@ -66,10 +69,10 @@ namespace Heart
                 layer->OnUpdate();
 
             // ImGui render
-            m_ImGuiInstance->BeginFrame();
+            m_ImGuiInstance.BeginFrame();
             for (auto layer : m_Layers)
                 layer->OnImGuiRender();
-            m_ImGuiInstance->EndFrame();
+            m_ImGuiInstance.EndFrame();
         }
     }
 }

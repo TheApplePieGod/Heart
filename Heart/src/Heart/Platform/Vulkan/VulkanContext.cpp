@@ -11,6 +11,8 @@ namespace Heart
     VkInstance VulkanContext::s_Instance = nullptr;
     VkDebugUtilsMessengerEXT VulkanContext::s_DebugMessenger = nullptr;
     VulkanDevice VulkanContext::s_VulkanDevice;
+    VkCommandPool VulkanContext::s_GraphicsPool;
+    VkCommandPool VulkanContext::s_ComputePool;
 
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
         VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -40,11 +42,13 @@ namespace Heart
         {
             HT_ENGINE_LOG_INFO("Initializing vulkan instance");
             InitializeInstance();
-            
+
             CreateSurface(m_Surface);
 
             HT_ENGINE_LOG_INFO("Initializing vulkan devices");
             s_VulkanDevice.Initialize(m_Surface);
+
+            InitializeCommandPools();
         }
         else
             CreateSurface(m_Surface);
@@ -52,6 +56,8 @@ namespace Heart
         int width, height;
         glfwGetFramebufferSize((GLFWwindow*)window, &width, &height);
         m_VulkanSwapChain.Initialize(width, height, m_Surface);
+
+        CreateImGuiDescriptorPool();
 
         s_ContextCount++;
     }
@@ -64,10 +70,15 @@ namespace Heart
 
         vkDestroySurfaceKHR(s_Instance, m_Surface, nullptr);
 
+        CleanupImGuiDescriptorPool();
+
         s_ContextCount--;
         if (s_ContextCount == 0)
         {
             HT_ENGINE_LOG_INFO("Cleaning up vulkan");
+            vkDestroyCommandPool(s_VulkanDevice.Device(), s_GraphicsPool, nullptr);
+            vkDestroyCommandPool(s_VulkanDevice.Device(), s_ComputePool, nullptr);
+
             s_VulkanDevice.Shutdown();
 
             #if HT_DEBUG
@@ -85,6 +96,27 @@ namespace Heart
     {
         // window pointer should always be a GLFW window (for now)
         HT_VULKAN_CHECK_RESULT(glfwCreateWindowSurface(s_Instance, (GLFWwindow*)m_WindowHandle, nullptr, &surface));
+    }
+
+    void VulkanContext::CreateImGuiDescriptorPool()
+    {
+        std::array<VkDescriptorPoolSize, 1> poolSizes{};
+        poolSizes[0].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        poolSizes[0].descriptorCount = static_cast<u32>(m_VulkanSwapChain.GetImageCount());
+
+        VkDescriptorPoolCreateInfo poolInfo{};
+        poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+        poolInfo.poolSizeCount = static_cast<u32>(poolSizes.size());
+        poolInfo.pPoolSizes = poolSizes.data();
+        poolInfo.maxSets = 1;
+        poolInfo.flags = 0;
+
+        HT_VULKAN_CHECK_RESULT(vkCreateDescriptorPool(s_VulkanDevice.Device(), &poolInfo, nullptr, &m_ImGuiDescriptorPool));
+    }
+
+    void VulkanContext::CleanupImGuiDescriptorPool()
+    {
+        vkDestroyDescriptorPool(s_VulkanDevice.Device(), m_ImGuiDescriptorPool, nullptr);
     }
 
     void VulkanContext::InitializeInstance()
@@ -153,27 +185,42 @@ namespace Heart
         #endif
     }
 
+    void VulkanContext::InitializeCommandPools()
+    {
+        VkCommandPoolCreateInfo poolInfo{};
+        poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+        poolInfo.queueFamilyIndex = s_VulkanDevice.GraphicsQueueIndex();
+        poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT; // allow resetting
+
+        HT_VULKAN_CHECK_RESULT(vkCreateCommandPool(s_VulkanDevice.Device(), &poolInfo, nullptr, &s_GraphicsPool));
+        
+        poolInfo.queueFamilyIndex = s_VulkanDevice.ComputeQueueIndex();
+
+        HT_VULKAN_CHECK_RESULT(vkCreateCommandPool(s_VulkanDevice.Device(), &poolInfo, nullptr, &s_ComputePool));
+    }
+
     void VulkanContext::InitializeImGui()
     {
+        // TODO: variable samples
         ImGui_ImplVulkan_InitInfo info = {};
-        // info.Instance = s_Instance;
-        // info.PhysicalDevice = s_VulkanDevice.PhysicalDevice();
-        // info.Device = s_VulkanDevice.Device();
-        // info.QueueFamily = s_VulkanDevice.GraphicsQueueIndex();
-        // info.Queue = s_VulkanDevice.PresentQueue();
-        // info.PipelineCache = VK_NULL_HANDLE;
-        // info.DescriptorPool = descriptorPool;
-        // info.Allocator = NULL;
-        // info.MinImageCount = 2;
-        // info.ImageCount = m_VulkanSwapChain.GetImageCount();
-        // info.CheckVkResultFn = NULL;
-        // info.MSAASamples = msaaSamples;
+        info.Instance = s_Instance;
+        info.PhysicalDevice = s_VulkanDevice.PhysicalDevice();
+        info.Device = s_VulkanDevice.Device();
+        info.QueueFamily = s_VulkanDevice.GraphicsQueueIndex();
+        info.Queue = s_VulkanDevice.PresentQueue();
+        info.PipelineCache = VK_NULL_HANDLE;
+        info.DescriptorPool = m_ImGuiDescriptorPool;
+        info.Allocator = NULL;
+        info.MinImageCount = 2;
+        info.ImageCount = m_VulkanSwapChain.GetImageCount();
+        info.CheckVkResultFn = NULL;
+        info.MSAASamples = s_VulkanDevice.MaxMsaaSamples();
 
-        // ImGui_ImplVulkan_Init(&initInfo, renderPass);
-        // VkCommandBuffer commandBuffer = BeginSingleTimeCommands();
-        // ImGui_ImplVulkan_CreateFontsTexture(commandBuffer);
-        // EndSingleTimeCommands(commandBuffer);
-        // ImGui_ImplVulkan_DestroyFontUploadObjects();
+        ImGui_ImplVulkan_Init(&info, m_VulkanSwapChain.GetRenderPass());
+        VkCommandBuffer commandBuffer = VulkanCommon::BeginSingleTimeCommands(s_VulkanDevice.Device(), s_GraphicsPool);
+        ImGui_ImplVulkan_CreateFontsTexture(commandBuffer);
+        VulkanCommon::EndSingleTimeCommands(s_VulkanDevice.Device(), s_GraphicsPool, commandBuffer, s_VulkanDevice.GraphicsQueue());
+        ImGui_ImplVulkan_DestroyFontUploadObjects();
     }
 
     void VulkanContext::ImGuiBeginFrame()
@@ -183,7 +230,7 @@ namespace Heart
 
     void VulkanContext::ImGuiEndFrame()
     {
-        //ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), renderPassBuffer);
+        ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), m_VulkanSwapChain.GetCommandBuffer());
     }
 
     void VulkanContext::ShutdownImGui()

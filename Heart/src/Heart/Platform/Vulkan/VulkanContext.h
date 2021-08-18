@@ -14,31 +14,43 @@ namespace Heart
         ~VulkanContext() override;
 
         void InitializeImGui() override;
+        void ShutdownImGui() override;
         void ImGuiBeginFrame() override;
         void ImGuiEndFrame() override;
+
+        inline VkRenderPass GetMainRenderPass() const { return m_VulkanSwapChain.GetRenderPass(); }
+        inline VkCommandBuffer GetMainCommandBuffer() const { return m_VulkanSwapChain.GetCommandBuffer(); }
 
     public:
         inline static VkInstance GetInstance() { return s_Instance; };
         inline static VulkanDevice& GetDevice() { return s_VulkanDevice; };
+        inline static VkCommandPool GetGraphicsPool() { return s_GraphicsPool; }
+        inline static VkCommandPool GetComputePool() { return s_ComputePool; }
 
         static std::vector<const char*> ConfigureValidationLayers();
-        static void ShutdownImGui();
     
     private:
         void CreateSurface(VkSurfaceKHR& surface);
+
+        void CreateImGuiDescriptorPool();
+        void CleanupImGuiDescriptorPool();
 
     private:
         void* m_WindowHandle;
         VkSurfaceKHR m_Surface;
         VulkanSwapChain m_VulkanSwapChain;
+        VkDescriptorPool m_ImGuiDescriptorPool;
 
     private:
         static void InitializeInstance();
+        static void InitializeCommandPools();
 
     private:
         static u32 s_ContextCount;
         static VkInstance s_Instance;
         static VkDebugUtilsMessengerEXT s_DebugMessenger;
         static VulkanDevice s_VulkanDevice;
+        static VkCommandPool s_GraphicsPool;
+        static VkCommandPool s_ComputePool;
     };
 }

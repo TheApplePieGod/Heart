@@ -17,7 +17,7 @@ namespace Heart
         ~Engine();
 
         inline static Engine& Get() { return *s_Instance; }
-        inline ImGuiInstance& GetImGuiInstance() const { return *m_ImGuiInstance; }
+        inline ImGuiInstance& GetImGuiInstance() { return m_ImGuiInstance; }
         inline Window& GetWindow() const { return *m_Window; }
 
         void PushLayer(Layer* layer);
@@ -31,7 +31,7 @@ namespace Heart
 
     private:
         std::vector<Layer*> m_Layers;
-        Scope<ImGuiInstance> m_ImGuiInstance;
+        ImGuiInstance m_ImGuiInstance;
         Scope<Window> m_Window;
         bool m_Running = true;
 
