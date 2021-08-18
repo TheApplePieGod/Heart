@@ -32,7 +32,8 @@ namespace Heart
         Window(const WindowSettings& settings);
         ~Window();
 
-        void OnUpdate();
+        void BeginFrame();
+        void EndFrame();
 
         GraphicsContext& GetContext() const { return *m_GraphicsContext; }
         GLFWwindow* GetWindowHandle() const { return m_Window; }

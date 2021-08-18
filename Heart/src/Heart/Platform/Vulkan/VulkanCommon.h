@@ -2,6 +2,8 @@
 
 #include "vulkan/vulkan.h"
 #include "Heart/Renderer/FrameBuffer.h"
+#include <glm/vec3.hpp>
+#include <glm/vec4.hpp>
 
 namespace Heart
 {

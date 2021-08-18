@@ -15,14 +15,6 @@ namespace Heart
 
         VulkanDevice& device = VulkanContext::GetDevice();
 
-        // allocate the secondary command buffer used for rendering to the swap chain
-        VkCommandBufferAllocateInfo allocInfo{};
-        allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        allocInfo.commandPool = VulkanContext::GetGraphicsPool();
-        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_SECONDARY;
-        allocInfo.commandBufferCount = 1;
-        HT_VULKAN_CHECK_RESULT(vkAllocateCommandBuffers(device.Device(), &allocInfo, &m_CommandBuffer));
-
         CreateSwapChain();
 
         CreateRenderPass();
@@ -33,6 +25,8 @@ namespace Heart
 
         AllocateCommandBuffers();
 
+        CreateSynchronizationObjects();
+
         m_Initialized = true;
     }
 
@@ -40,9 +34,7 @@ namespace Heart
     {
         if (!m_Initialized) return;
 
-        VulkanDevice& device = VulkanContext::GetDevice();
-
-        vkFreeCommandBuffers(device.Device(), VulkanContext::GetGraphicsPool(), 1, &m_CommandBuffer);
+        CleanupSynchronizationObjects();
 
         FreeCommandBuffers();
 
@@ -299,6 +291,7 @@ namespace Heart
     {
         VulkanDevice& device = VulkanContext::GetDevice();
 
+        // primary
         m_SwapChainData.CommandBuffers.resize(m_SwapChainData.FrameBuffers.size());
         VkCommandBufferAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -307,18 +300,64 @@ namespace Heart
         allocInfo.commandBufferCount = static_cast<u32>(m_SwapChainData.CommandBuffers.size());
 
         HT_VULKAN_CHECK_RESULT(vkAllocateCommandBuffers(device.Device(), &allocInfo, m_SwapChainData.CommandBuffers.data()));
+
+        // allocate the secondary command buffer used for rendering to the swap chain
+        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_SECONDARY;
+
+        m_CommandBuffers.resize(m_SwapChainData.CommandBuffers.size());
+        HT_VULKAN_CHECK_RESULT(vkAllocateCommandBuffers(device.Device(), &allocInfo, m_CommandBuffers.data()));
     }
 
     void VulkanSwapChain::FreeCommandBuffers()
     {
         VulkanDevice& device = VulkanContext::GetDevice();
 
+        vkFreeCommandBuffers(device.Device(), VulkanContext::GetGraphicsPool(), static_cast<u32>(m_CommandBuffers.size()), m_CommandBuffers.data());
         vkFreeCommandBuffers(device.Device(), VulkanContext::GetGraphicsPool(), static_cast<u32>(m_SwapChainData.CommandBuffers.size()), m_SwapChainData.CommandBuffers.data());
+    }
+
+    void VulkanSwapChain::CreateSynchronizationObjects()
+    {
+        VulkanDevice& device = VulkanContext::GetDevice();
+
+        VkSemaphoreCreateInfo semaphoreInfo{};
+        semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+        VkFenceCreateInfo fenceInfo{};
+        fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+        fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+        m_ImageAvailableSemaphores.resize(m_MaxFramesInFlight);
+        m_RenderFinishedSemaphores.resize(m_MaxFramesInFlight);
+        m_InFlightFences.resize(m_MaxFramesInFlight);
+        m_ImagesInFlight.resize(m_SwapChainData.Images.size(), VK_NULL_HANDLE);
+        for (u32 i = 0; i < m_MaxFramesInFlight; i++)
+        {
+            HT_VULKAN_CHECK_RESULT(vkCreateSemaphore(device.Device(), &semaphoreInfo, nullptr, &m_ImageAvailableSemaphores[i]));
+            HT_VULKAN_CHECK_RESULT(vkCreateSemaphore(device.Device(), &semaphoreInfo, nullptr, &m_RenderFinishedSemaphores[i]));
+            HT_VULKAN_CHECK_RESULT(vkCreateFence(device.Device(), &fenceInfo, nullptr, &m_InFlightFences[i]));
+        }
+    }
+
+    void VulkanSwapChain::CleanupSynchronizationObjects()
+    {
+        VulkanDevice& device = VulkanContext::GetDevice();
+
+        for (u32 i = 0; i < m_MaxFramesInFlight; i++)
+        {
+            vkDestroySemaphore(device.Device(), m_ImageAvailableSemaphores[i], nullptr);
+            vkDestroySemaphore(device.Device(), m_RenderFinishedSemaphores[i], nullptr);
+            vkDestroyFence(device.Device(), m_InFlightFences[i], nullptr);
+        }
     }
 
     void VulkanSwapChain::RecreateSwapChain()
     {
-        FreeCommandBuffers();
+        VulkanDevice& device = VulkanContext::GetDevice();
+
+        vkDeviceWaitIdle(device.Device());
+
+        //FreeCommandBuffers();
 
         CleanupFrameBuffers();
 
@@ -332,7 +371,154 @@ namespace Heart
 
         CreateFrameBuffers();
 
-        AllocateCommandBuffers();
+        // TODO: look into this
+        // we might not need to reallocate here since the only reason we would need to is if the number if swapchain images changes (which it shouldnt)
+        //AllocateCommandBuffers();
+    }
+
+    void VulkanSwapChain::BeginFrame()
+    {
+        VulkanDevice& device = VulkanContext::GetDevice();
+
+        // get the next image we should present to
+        VkResult result = vkAcquireNextImageKHR(device.Device(), m_SwapChain, UINT64_MAX, m_ImageAvailableSemaphores[m_InFlightFrameIndex], VK_NULL_HANDLE, &m_PresentImageIndex);
+        if (result == VK_ERROR_OUT_OF_DATE_KHR)
+            m_ShouldPresentThisFrame = false;
+        else
+        {
+            HT_ENGINE_ASSERT(result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR);
+            m_ShouldPresentThisFrame = true;
+        }
+
+        // start recording the main secondary command buffer for rendering directly to the screen
+        VkCommandBufferInheritanceInfo inheritanceInfo{};
+        inheritanceInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO;
+        inheritanceInfo.pNext = nullptr;
+        inheritanceInfo.renderPass = m_RenderPass;
+        inheritanceInfo.subpass = 0;
+        inheritanceInfo.framebuffer = VK_NULL_HANDLE;
+
+        VkCommandBufferBeginInfo secondaryBeginInfo{};
+        secondaryBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        secondaryBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT | VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
+        secondaryBeginInfo.pInheritanceInfo = &inheritanceInfo;
+
+        HT_VULKAN_CHECK_RESULT(vkBeginCommandBuffer(GetCommandBuffer(), &secondaryBeginInfo));
+
+        // TODO: paramaterize / generalize
+        VkViewport viewport{};
+        viewport.x = 0.0f;
+        viewport.y = 0.0f;
+        viewport.width = (f32)m_SwapChainData.Extent.width;
+        viewport.height = (f32)m_SwapChainData.Extent.height;
+        viewport.minDepth = 0.0f;
+        viewport.maxDepth = 1.0f;
+        vkCmdSetViewport(GetCommandBuffer(), 0, 1, &viewport);
+        
+        VkRect2D scissor{};
+        scissor.offset = {0, 0};
+        scissor.extent = m_SwapChainData.Extent;
+        vkCmdSetScissor(GetCommandBuffer(), 0, 1, &scissor);
+    }
+
+    void VulkanSwapChain::EndFrame()
+    {
+        // end the main secondary command buffer for this frame
+        HT_VULKAN_CHECK_RESULT(vkEndCommandBuffer(GetCommandBuffer()));
+
+        // start swapchain image primary command buffer and execute the recorded commands in m_CommandBuffer
+        u32 i = m_PresentImageIndex;
+        //for (int i = 0; i < m_SwapChainData.CommandBuffers.size(); i++)
+        {
+            VkCommandBufferBeginInfo beginInfo{};
+            beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+            beginInfo.flags = 0;
+            beginInfo.pInheritanceInfo = nullptr;
+
+            HT_VULKAN_CHECK_RESULT(vkBeginCommandBuffer(m_SwapChainData.CommandBuffers[i], &beginInfo));
+
+            VkRenderPassBeginInfo renderPassInfo{};
+            renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+            renderPassInfo.renderPass = m_RenderPass;
+            renderPassInfo.framebuffer = m_SwapChainData.FrameBuffers[i];
+            renderPassInfo.renderArea.offset = { 0, 0 };
+            renderPassInfo.renderArea.extent = m_SwapChainData.Extent;
+
+            std::array<VkClearValue, 3> clearValues{};
+            clearValues[0].color = { m_ClearColor.r, m_ClearColor.g, m_ClearColor.b, m_ClearColor.a };
+            clearValues[1].color = { m_ClearColor.r, m_ClearColor.g, m_ClearColor.b, m_ClearColor.a };
+            clearValues[2].depthStencil = { 1.f, 0 };
+            renderPassInfo.clearValueCount = 1;
+            renderPassInfo.clearValueCount = static_cast<u32>(clearValues.size());
+            renderPassInfo.pClearValues = clearValues.data();
+
+            vkCmdBeginRenderPass(m_SwapChainData.CommandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
+            
+            vkCmdExecuteCommands(m_SwapChainData.CommandBuffers[i], 1, &m_CommandBuffers[i]);
+
+            vkCmdEndRenderPass(m_SwapChainData.CommandBuffers[i]);
+            
+            HT_VULKAN_CHECK_RESULT(vkEndCommandBuffer(m_SwapChainData.CommandBuffers[i]));
+        }
+
+        if (m_ShouldPresentThisFrame)
+            Present();
+        else
+            RecreateSwapChain();
+
+        m_InFlightFrameIndex = (m_InFlightFrameIndex + 1) % m_MaxFramesInFlight;
+    }
+
+    void VulkanSwapChain::Present()
+    {
+        VulkanDevice& device = VulkanContext::GetDevice();
+
+        vkWaitForFences(device.Device(), 1, &m_InFlightFences[m_InFlightFrameIndex], VK_TRUE, UINT64_MAX);
+
+        // check if a previous frame is using this image (i.e. there is its fence to wait on)
+        if (m_ImagesInFlight[m_PresentImageIndex] != VK_NULL_HANDLE)
+            vkWaitForFences(device.Device(), 1, &m_ImagesInFlight[m_PresentImageIndex], VK_TRUE, UINT64_MAX);
+        m_ImagesInFlight[m_PresentImageIndex] = m_InFlightFences[m_InFlightFrameIndex];
+
+        //UpdatePerFrameBuffer(nextImageIndex);
+
+        // this will change slightly once we implement submitting the commandbuffers of other framebuffers
+        VkSemaphore waitSemaphores[] = { m_ImageAvailableSemaphores[m_InFlightFrameIndex] };
+        VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+        VkSubmitInfo submitInfo{};
+        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submitInfo.waitSemaphoreCount = 1;
+        submitInfo.pWaitSemaphores = waitSemaphores;
+        submitInfo.pWaitDstStageMask = waitStages;
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = &m_SwapChainData.CommandBuffers[m_PresentImageIndex];
+
+        VkSemaphore signalSemaphores[] = { m_RenderFinishedSemaphores[m_InFlightFrameIndex] };
+        submitInfo.signalSemaphoreCount = 1;
+        submitInfo.pSignalSemaphores = signalSemaphores;
+
+        vkResetFences(device.Device(), 1, &m_InFlightFences[m_InFlightFrameIndex]);
+        HT_VULKAN_CHECK_RESULT(vkQueueSubmit(device.GraphicsQueue(), 1, &submitInfo, m_InFlightFences[m_InFlightFrameIndex]));
+
+        VkSwapchainKHR swapChains[] = { m_SwapChain };
+        VkPresentInfoKHR presentInfo{};
+        presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+        presentInfo.waitSemaphoreCount = 1;
+        presentInfo.pWaitSemaphores = signalSemaphores;
+        presentInfo.swapchainCount = 1;
+        presentInfo.pSwapchains = swapChains;
+        presentInfo.pImageIndices = &m_PresentImageIndex;
+
+        VkResult result = vkQueuePresentKHR(device.PresentQueue(), &presentInfo);
+        if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || m_SwapChainInvalid)
+        {
+            m_SwapChainInvalid = false;
+            RecreateSwapChain();
+        }
+        else
+            HT_ENGINE_ASSERT(result == VK_SUCCESS);
+
+        //vkQueueWaitIdle(device.PresentQueue());
     }
 
     VkSurfaceFormatKHR VulkanSwapChain::ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats)

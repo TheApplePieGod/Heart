@@ -14,6 +14,9 @@ namespace Heart
         virtual void ImGuiBeginFrame() = 0;
         virtual void ImGuiEndFrame() = 0;
 
+        virtual void BeginFrame() = 0;
+        virtual void EndFrame() = 0;
+
     public:
         static Scope<GraphicsContext> Create(void* window);
 

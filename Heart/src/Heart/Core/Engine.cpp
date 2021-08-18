@@ -47,7 +47,7 @@ namespace Heart
 
     bool Engine::OnWindowResize(WindowResizeEvent& event)
     {
-        HT_ENGINE_LOG_INFO("Window resized");
+        //HT_ENGINE_LOG_INFO("Window resized");
 
         return false;
     }
@@ -62,7 +62,7 @@ namespace Heart
     {
         while (m_Running)
         {
-            m_Window->OnUpdate();
+            m_Window->BeginFrame();
 
             // Layer update
             for (auto layer : m_Layers)
@@ -73,6 +73,8 @@ namespace Heart
             for (auto layer : m_Layers)
                 layer->OnImGuiRender();
             m_ImGuiInstance.EndFrame();
+
+            m_Window->EndFrame();
         }
     }
 }

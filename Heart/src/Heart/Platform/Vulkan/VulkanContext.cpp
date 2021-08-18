@@ -65,6 +65,7 @@ namespace Heart
     VulkanContext::~VulkanContext()
     {
         HT_ENGINE_LOG_TRACE("Destructing vulkan context");
+        vkDeviceWaitIdle(s_VulkanDevice.Device());
 
         m_VulkanSwapChain.Shutdown();
 
@@ -223,6 +224,12 @@ namespace Heart
         ImGui_ImplVulkan_DestroyFontUploadObjects();
     }
 
+    void VulkanContext::ShutdownImGui()
+    {
+        vkDeviceWaitIdle(s_VulkanDevice.Device());
+        ImGui_ImplVulkan_Shutdown();
+    }
+
     void VulkanContext::ImGuiBeginFrame()
     {
         ImGui_ImplVulkan_NewFrame();
@@ -233,9 +240,14 @@ namespace Heart
         ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), m_VulkanSwapChain.GetCommandBuffer());
     }
 
-    void VulkanContext::ShutdownImGui()
+    void VulkanContext::BeginFrame()
     {
-        ImGui_ImplVulkan_Shutdown();
+        m_VulkanSwapChain.BeginFrame();
+    }
+
+    void VulkanContext::EndFrame()
+    {
+        m_VulkanSwapChain.EndFrame();
     }
 
     std::vector<const char*> VulkanContext::ConfigureValidationLayers()

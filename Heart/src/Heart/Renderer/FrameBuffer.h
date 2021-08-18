@@ -2,6 +2,7 @@
 
 namespace Heart
 {
+    // normal maps should be loaded with the UNORM specifier
     enum class ColorFormat
     {
         R8 = 0,

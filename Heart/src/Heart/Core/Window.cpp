@@ -99,8 +99,14 @@ namespace Heart
             glfwTerminate();
     }
 
-    void Window::OnUpdate()
+    void Window::BeginFrame()
     {
         glfwPollEvents();
+        m_GraphicsContext->BeginFrame();
+    }
+
+    void Window::EndFrame()
+    {
+        m_GraphicsContext->EndFrame();
     }
 }

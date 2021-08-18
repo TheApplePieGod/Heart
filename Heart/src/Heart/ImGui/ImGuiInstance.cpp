@@ -83,6 +83,8 @@ namespace Heart
 
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
+
+        ImGui::ShowDemoWindow();
     }
 
     void ImGuiInstance::EndFrame()
@@ -92,7 +94,7 @@ namespace Heart
 		io.DisplaySize = ImVec2((f32)mainWindow.GetWidth(), (f32)mainWindow.GetHeight());
 
 		ImGui::Render();
-        mainWindow.GetContext().ImGuiBeginFrame();
+        mainWindow.GetContext().ImGuiEndFrame();
 
 		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
 		{

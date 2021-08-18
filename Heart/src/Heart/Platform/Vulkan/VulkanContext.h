@@ -18,6 +18,9 @@ namespace Heart
         void ImGuiBeginFrame() override;
         void ImGuiEndFrame() override;
 
+        void BeginFrame() override;
+        void EndFrame() override;
+
         inline VkRenderPass GetMainRenderPass() const { return m_VulkanSwapChain.GetRenderPass(); }
         inline VkCommandBuffer GetMainCommandBuffer() const { return m_VulkanSwapChain.GetCommandBuffer(); }
 
