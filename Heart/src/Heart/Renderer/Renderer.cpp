@@ -15,7 +15,7 @@ namespace Heart
         switch (apiType)
         {
             default:
-            { HT_ENGINE_ASSERT(false, "Cannot initialize Renderer: selected ApiType is not supported"); } break;
+            { HE_ENGINE_ASSERT(false, "Cannot initialize Renderer: selected ApiType is not supported"); } break;
             case RenderApi::Type::Vulkan:
             { s_RenderApi = CreateScope<VulkanRenderApi>(); } break;
         }

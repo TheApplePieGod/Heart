@@ -8,7 +8,7 @@ namespace Heart
 {
     VulkanRenderApi::VulkanRenderApi()
     {
-        HT_ENGINE_LOG_TRACE("Initializing VulkanRenderApi");
+        HE_ENGINE_LOG_TRACE("Initializing VulkanRenderApi");
 
         
     }

@@ -24,10 +24,10 @@ namespace Heart
         {
             default:
                 break;
-            //case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT: HT_ENGINE_LOG_TRACE("Vulkan Validation: {0}", pCallbackData->pMessage); break;
-            //case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT: HT_ENGINE_LOG_INFO("Vulkan Validation: {0}", pCallbackData->pMessage); break;
-            case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT: HT_ENGINE_LOG_WARN("Vulkan Validation: {0}", pCallbackData->pMessage); break;
-            case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT: HT_ENGINE_LOG_ERROR("Vulkan Validation: {0}", pCallbackData->pMessage); break;
+            //case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT: HE_ENGINE_LOG_TRACE("Vulkan Validation: {0}", pCallbackData->pMessage); break;
+            //case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT: HE_ENGINE_LOG_INFO("Vulkan Validation: {0}", pCallbackData->pMessage); break;
+            case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT: HE_ENGINE_LOG_WARN("Vulkan Validation: {0}", pCallbackData->pMessage); break;
+            case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT: HE_ENGINE_LOG_ERROR("Vulkan Validation: {0}", pCallbackData->pMessage); break;
         }
 
         return VK_FALSE;
@@ -35,17 +35,17 @@ namespace Heart
 
     VulkanContext::VulkanContext(void* window)
     {
-        HT_ENGINE_LOG_TRACE("Initializing new vulkan context");
+        HE_ENGINE_LOG_TRACE("Initializing new vulkan context");
 
         m_WindowHandle = window;
         if (s_ContextCount == 0)
         {
-            HT_ENGINE_LOG_INFO("Initializing vulkan instance");
+            HE_ENGINE_LOG_INFO("Initializing vulkan instance");
             InitializeInstance();
 
             CreateSurface(m_Surface);
 
-            HT_ENGINE_LOG_INFO("Initializing vulkan devices");
+            HE_ENGINE_LOG_INFO("Initializing vulkan devices");
             s_VulkanDevice.Initialize(m_Surface);
 
             InitializeCommandPools();
@@ -64,7 +64,7 @@ namespace Heart
 
     VulkanContext::~VulkanContext()
     {
-        HT_ENGINE_LOG_TRACE("Destructing vulkan context");
+        HE_ENGINE_LOG_TRACE("Destructing vulkan context");
         vkDeviceWaitIdle(s_VulkanDevice.Device());
 
         m_VulkanSwapChain.Shutdown();
@@ -76,16 +76,16 @@ namespace Heart
         s_ContextCount--;
         if (s_ContextCount == 0)
         {
-            HT_ENGINE_LOG_INFO("Cleaning up vulkan");
+            HE_ENGINE_LOG_INFO("Cleaning up vulkan");
             vkDestroyCommandPool(s_VulkanDevice.Device(), s_GraphicsPool, nullptr);
             vkDestroyCommandPool(s_VulkanDevice.Device(), s_ComputePool, nullptr);
 
             s_VulkanDevice.Shutdown();
 
-            #if HT_DEBUG
+            #if HE_DEBUG
                 // find func and destroy debug instance
                 auto destroyDebugUtilsFunc = (PFN_vkDestroyDebugUtilsMessengerEXT) vkGetInstanceProcAddr(s_Instance, "vkDestroyDebugUtilsMessengerEXT");
-                HT_ENGINE_ASSERT(destroyDebugUtilsFunc != nullptr);
+                HE_ENGINE_ASSERT(destroyDebugUtilsFunc != nullptr);
                 destroyDebugUtilsFunc(s_Instance, s_DebugMessenger, nullptr);
             #endif
 
@@ -96,7 +96,7 @@ namespace Heart
     void VulkanContext::CreateSurface(VkSurfaceKHR& surface)
     {
         // window pointer should always be a GLFW window (for now)
-        HT_VULKAN_CHECK_RESULT(glfwCreateWindowSurface(s_Instance, (GLFWwindow*)m_WindowHandle, nullptr, &surface));
+        HE_VULKAN_CHECK_RESULT(glfwCreateWindowSurface(s_Instance, (GLFWwindow*)m_WindowHandle, nullptr, &surface));
     }
 
     void VulkanContext::CreateImGuiDescriptorPool()
@@ -112,7 +112,7 @@ namespace Heart
         poolInfo.maxSets = 1;
         poolInfo.flags = 0;
 
-        HT_VULKAN_CHECK_RESULT(vkCreateDescriptorPool(s_VulkanDevice.Device(), &poolInfo, nullptr, &m_ImGuiDescriptorPool));
+        HE_VULKAN_CHECK_RESULT(vkCreateDescriptorPool(s_VulkanDevice.Device(), &poolInfo, nullptr, &m_ImGuiDescriptorPool));
     }
 
     void VulkanContext::CleanupImGuiDescriptorPool()
@@ -145,7 +145,7 @@ namespace Heart
         // check for compatability
         for (u32 i = 0; i < glfwExtensionCount; i++)
         {
-            HT_ENGINE_ASSERT(std::find_if(supportedExtensions.begin(), supportedExtensions.end(), [&glfwExtensions, &i](const VkExtensionProperties& arg) { return strcmp(arg.extensionName, glfwExtensions[i]); }) != supportedExtensions.end());
+            HE_ENGINE_ASSERT(std::find_if(supportedExtensions.begin(), supportedExtensions.end(), [&glfwExtensions, &i](const VkExtensionProperties& arg) { return strcmp(arg.extensionName, glfwExtensions[i]); }) != supportedExtensions.end());
         }
 
         // create a new extensions array to add debug item
@@ -155,7 +155,7 @@ namespace Heart
         VkInstanceCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
         createInfo.pApplicationInfo = &appInfo;
-        #if HT_DEBUG
+        #if HE_DEBUG
             auto validationLayers = ConfigureValidationLayers();
             createInfo.enabledLayerCount = static_cast<u32>(validationLayers.size());
             createInfo.ppEnabledLayerNames = validationLayers.data();
@@ -166,9 +166,9 @@ namespace Heart
         createInfo.enabledExtensionCount = static_cast<u32>(extensions.size());
         createInfo.ppEnabledExtensionNames = extensions.data();
 
-        HT_VULKAN_CHECK_RESULT(vkCreateInstance(&createInfo, nullptr, &s_Instance));
+        HE_VULKAN_CHECK_RESULT(vkCreateInstance(&createInfo, nullptr, &s_Instance));
 
-        #if HT_DEBUG
+        #if HE_DEBUG
             // setup debug messenger
             {
                 VkDebugUtilsMessengerCreateInfoEXT createInfo{};
@@ -180,8 +180,8 @@ namespace Heart
 
                 // locate extension creation function and run
                 auto func = (PFN_vkCreateDebugUtilsMessengerEXT) vkGetInstanceProcAddr(s_Instance, "vkCreateDebugUtilsMessengerEXT");
-                HT_ENGINE_ASSERT(func != nullptr)
-                HT_VULKAN_CHECK_RESULT(func(s_Instance, &createInfo, nullptr, &s_DebugMessenger));
+                HE_ENGINE_ASSERT(func != nullptr)
+                HE_VULKAN_CHECK_RESULT(func(s_Instance, &createInfo, nullptr, &s_DebugMessenger));
             }   
         #endif
     }
@@ -193,11 +193,11 @@ namespace Heart
         poolInfo.queueFamilyIndex = s_VulkanDevice.GraphicsQueueIndex();
         poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT; // allow resetting
 
-        HT_VULKAN_CHECK_RESULT(vkCreateCommandPool(s_VulkanDevice.Device(), &poolInfo, nullptr, &s_GraphicsPool));
+        HE_VULKAN_CHECK_RESULT(vkCreateCommandPool(s_VulkanDevice.Device(), &poolInfo, nullptr, &s_GraphicsPool));
         
         poolInfo.queueFamilyIndex = s_VulkanDevice.ComputeQueueIndex();
 
-        HT_VULKAN_CHECK_RESULT(vkCreateCommandPool(s_VulkanDevice.Device(), &poolInfo, nullptr, &s_ComputePool));
+        HE_VULKAN_CHECK_RESULT(vkCreateCommandPool(s_VulkanDevice.Device(), &poolInfo, nullptr, &s_ComputePool));
     }
 
     void VulkanContext::InitializeImGui()
@@ -262,7 +262,7 @@ namespace Heart
         // check for compatability
         for (int i = 0; i < validationLayers.size(); i++)
         {
-            HT_ENGINE_ASSERT(std::find_if(supportedLayers.begin(), supportedLayers.end(), [&validationLayers, &i](const VkLayerProperties& arg) { return strcmp(arg.layerName, validationLayers[i]); }) != supportedLayers.end());
+            HE_ENGINE_ASSERT(std::find_if(supportedLayers.begin(), supportedLayers.end(), [&validationLayers, &i](const VkLayerProperties& arg) { return strcmp(arg.layerName, validationLayers[i]); }) != supportedLayers.end());
         }
 
         return validationLayers;

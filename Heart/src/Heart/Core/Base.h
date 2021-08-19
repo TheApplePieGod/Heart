@@ -1,20 +1,20 @@
 #pragma once
 
-#ifdef HT_DEBUG
+#ifdef HE_DEBUG
 	#if defined(HT_PLATFORM_WINDOWS)
-		#define HT_DEBUGBREAK() __debugbreak()
+		#define HE_DEBUGBREAK() __debugbreak()
 	#elif defined(HT_PLATFORM_LINUX)
 		#include <signal.h>
-		#define HT_DEBUGBREAK() raise(SIGTRAP)
+		#define HE_DEBUGBREAK() raise(SIGTRAP)
 	#else
 		#error "Platform doesn't support debugbreak yet!"
 	#endif
-	#define HT_ENABLE_ASSERTS
+	#define HE_ENABLE_ASSERTS
 #else
-	#define HT_DEBUGBREAK()
+	#define HE_DEBUGBREAK()
 #endif
 
-#define HT_EXPAND_ARGS(args) args
+#define HE_EXPAND_ARGS(args) args
 
 #define BIT(x) (1 << x)
 

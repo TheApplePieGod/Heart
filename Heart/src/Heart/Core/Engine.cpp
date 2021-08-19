@@ -10,7 +10,7 @@ namespace Heart
 
     Engine::Engine()
     {
-        HT_ENGINE_ASSERT(!s_Instance, "Engine instance already exists");
+        HE_ENGINE_ASSERT(!s_Instance, "Engine instance already exists");
         s_Instance = this;
 
         Renderer::Initialize(RenderApi::Type::Vulkan);
@@ -21,7 +21,7 @@ namespace Heart
 
         m_ImGuiInstance.Initialize();
 
-        HT_ENGINE_LOG_INFO("Engine initialized");
+        HE_ENGINE_LOG_INFO("Engine initialized");
     }
 
     Engine::~Engine()
@@ -41,8 +41,8 @@ namespace Heart
 
     void Engine::OnEvent(Event& event)
     {        
-        event.Map<WindowResizeEvent>(HT_BIND_EVENT_FN(Engine::OnWindowResize));
-        event.Map<WindowCloseEvent>(HT_BIND_EVENT_FN(Engine::OnWindowClose));
+        event.Map<WindowResizeEvent>(HE_BIND_EVENT_FN(Engine::OnWindowResize));
+        event.Map<WindowCloseEvent>(HE_BIND_EVENT_FN(Engine::OnWindowClose));
     }
 
     bool Engine::OnWindowResize(WindowResizeEvent& event)

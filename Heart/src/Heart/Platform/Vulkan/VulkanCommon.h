@@ -44,4 +44,4 @@ namespace Heart
     };
 }
 
-#define HT_VULKAN_CHECK_RESULT(func) { auto result = func; HT_ENGINE_ASSERT(result == 0, "Vulkan function failed with error {1}", result); }
+#define HE_VULKAN_CHECK_RESULT(func) { auto result = func; HE_ENGINE_ASSERT(result == 0, "Vulkan function failed with error {1}", result); }

@@ -69,7 +69,7 @@ namespace Heart
                 return i;
         }
 
-        HT_ENGINE_ASSERT(false, "Failed to find suitable memory type");
+        HE_ENGINE_ASSERT(false, "Failed to find suitable memory type");
         return 0;
     }
 
@@ -91,7 +91,7 @@ namespace Heart
         imageInfo.samples = numSamples;
         imageInfo.flags = 0; // Optional
 
-        HT_VULKAN_CHECK_RESULT(vkCreateImage(device, &imageInfo, nullptr, &image));
+        HE_VULKAN_CHECK_RESULT(vkCreateImage(device, &imageInfo, nullptr, &image));
 
         VkMemoryRequirements memRequirements;
         vkGetImageMemoryRequirements(device, image, &memRequirements);
@@ -101,7 +101,7 @@ namespace Heart
         allocInfo.allocationSize = memRequirements.size;
         allocInfo.memoryTypeIndex = FindMemoryType(physicalDevice, memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-        HT_VULKAN_CHECK_RESULT(vkAllocateMemory(device, &allocInfo, nullptr, &imageMemory));
+        HE_VULKAN_CHECK_RESULT(vkAllocateMemory(device, &allocInfo, nullptr, &imageMemory));
 
         vkBindImageMemory(device, image, imageMemory, 0);
     }
@@ -120,7 +120,7 @@ namespace Heart
         viewInfo.subresourceRange.layerCount = 1;
 
         VkImageView view;
-        HT_VULKAN_CHECK_RESULT(vkCreateImageView(device, &viewInfo, nullptr, &view));
+        HE_VULKAN_CHECK_RESULT(vkCreateImageView(device, &viewInfo, nullptr, &view));
 
         return view;
     }
@@ -134,27 +134,27 @@ namespace Heart
         allocInfo.commandBufferCount = 1;
 
         VkCommandBuffer commandBuffer;
-        HT_VULKAN_CHECK_RESULT(vkAllocateCommandBuffers(device, &allocInfo, &commandBuffer));
+        HE_VULKAN_CHECK_RESULT(vkAllocateCommandBuffers(device, &allocInfo, &commandBuffer));
 
         VkCommandBufferBeginInfo beginInfo{};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
         beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
-        HT_VULKAN_CHECK_RESULT(vkBeginCommandBuffer(commandBuffer, &beginInfo));
+        HE_VULKAN_CHECK_RESULT(vkBeginCommandBuffer(commandBuffer, &beginInfo));
 
         return commandBuffer;
     }
 
     void VulkanCommon::EndSingleTimeCommands(VkDevice device, VkCommandPool commandPool, VkCommandBuffer commandBuffer, VkQueue submitQueue)
     {
-        HT_VULKAN_CHECK_RESULT(vkEndCommandBuffer(commandBuffer));
+        HE_VULKAN_CHECK_RESULT(vkEndCommandBuffer(commandBuffer));
 
         VkSubmitInfo submitInfo{};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
         submitInfo.commandBufferCount = 1;
         submitInfo.pCommandBuffers = &commandBuffer;
 
-        HT_VULKAN_CHECK_RESULT(vkQueueSubmit(submitQueue, 1, &submitInfo, VK_NULL_HANDLE));
+        HE_VULKAN_CHECK_RESULT(vkQueueSubmit(submitQueue, 1, &submitInfo, VK_NULL_HANDLE));
 
         vkQueueWaitIdle(submitQueue);
 
@@ -167,7 +167,7 @@ namespace Heart
         switch (format)
         {
             default:
-            { HT_ENGINE_ASSERT(false, "Vulkan does not support specified color format"); } break;
+            { HE_ENGINE_ASSERT(false, "Vulkan does not support specified color format"); } break;
             case ColorFormat::R8: return VK_FORMAT_R8_SRGB;
             case ColorFormat::RG8: return VK_FORMAT_R8G8_SRGB;
             case ColorFormat::RGB8: return VK_FORMAT_R8G8B8_SRGB;
@@ -183,7 +183,7 @@ namespace Heart
         switch (sampleCount)
         {
             default:
-            { HT_ENGINE_ASSERT(false, "Vulkan does not support specified sample count"); } break;
+            { HE_ENGINE_ASSERT(false, "Vulkan does not support specified sample count"); } break;
             case MsaaSampleCount::None: return VK_SAMPLE_COUNT_1_BIT;
             case MsaaSampleCount::Two: return VK_SAMPLE_COUNT_2_BIT;
             case MsaaSampleCount::Four: return VK_SAMPLE_COUNT_4_BIT;

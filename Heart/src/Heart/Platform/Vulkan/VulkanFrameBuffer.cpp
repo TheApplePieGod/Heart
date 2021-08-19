@@ -140,7 +140,7 @@ namespace Heart
         renderPassInfo.dependencyCount = 1;
         renderPassInfo.pDependencies = &dependency;
 
-        HT_VULKAN_CHECK_RESULT(vkCreateRenderPass(device.Device(), &renderPassInfo, nullptr, &m_RenderPass));
+        HE_VULKAN_CHECK_RESULT(vkCreateRenderPass(device.Device(), &renderPassInfo, nullptr, &m_RenderPass));
 
         // create the final framebuffer
         std::vector<VkImageView> images = { m_ColorImageView };
@@ -158,7 +158,7 @@ namespace Heart
         framebufferInfo.height = createInfo.Height;
         framebufferInfo.layers = 1;
         
-        HT_VULKAN_CHECK_RESULT(vkCreateFramebuffer(device.Device(), &framebufferInfo, nullptr, &m_FrameBuffer));
+        HE_VULKAN_CHECK_RESULT(vkCreateFramebuffer(device.Device(), &framebufferInfo, nullptr, &m_FrameBuffer));
     }
 
     VulkanFrameBuffer::~VulkanFrameBuffer()

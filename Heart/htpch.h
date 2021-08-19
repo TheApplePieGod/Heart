@@ -2,7 +2,7 @@
 
 #include "Heart/Core/PlatformDetection.h"
 
-#ifdef HT_PLATFORM_WINDOWS
+#ifdef HE_PLATFORM_WINDOWS
 	#ifndef NOMINMAX
 		#define NOMINMAX
 	#endif
@@ -27,6 +27,6 @@
 #include "Heart/Core/Log.h"
 #include "Heart/Core/Assert.h"
 
-#ifdef HT_PLATFORM_WINDOWS
+#ifdef HE_PLATFORM_WINDOWS
 	#include <Windows.h>
 #endif

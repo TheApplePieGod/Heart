@@ -19,7 +19,7 @@ namespace Heart
             // get devices
             u32 deviceCount = 0;
             vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
-            HT_ENGINE_ASSERT(deviceCount != 0);
+            HE_ENGINE_ASSERT(deviceCount != 0);
             std::vector<VkPhysicalDevice> devices(deviceCount);
             vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
 
@@ -34,7 +34,7 @@ namespace Heart
                     break;
                 }
             }
-            HT_ENGINE_ASSERT(m_PhysicalDevice != VK_NULL_HANDLE);
+            HE_ENGINE_ASSERT(m_PhysicalDevice != VK_NULL_HANDLE);
         }
 
         // setup logical device & queues
@@ -79,14 +79,14 @@ namespace Heart
             createInfo.pEnabledFeatures = &deviceFeatures;
             createInfo.enabledExtensionCount = static_cast<u32>(deviceExtensions.size());;
             createInfo.ppEnabledExtensionNames = deviceExtensions.data();
-            #if HT_DEBUG
+            #if HE_DEBUG
                 createInfo.enabledLayerCount = static_cast<u32>(validationLayers.size());
                 createInfo.ppEnabledLayerNames = validationLayers.data();
             #else
                 createInfo.enabledLayerCount = 0;
             #endif
 
-            HT_VULKAN_CHECK_RESULT(vkCreateDevice(m_PhysicalDevice, &createInfo, nullptr, &m_LogicalDevice));
+            HE_VULKAN_CHECK_RESULT(vkCreateDevice(m_PhysicalDevice, &createInfo, nullptr, &m_LogicalDevice));
 
             m_GraphicsQueueIndex = indices.GraphicsFamily.value();
             m_PresentQueueIndex = indices.PresentFamily.value();

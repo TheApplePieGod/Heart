@@ -17,8 +17,8 @@ namespace Heart
     };
 }
 
-#define HT_ENGINE_LOG_TRACE(...) ::Heart::Logger::GetEngineLogger().trace(__VA_ARGS__)
-#define HT_ENGINE_LOG_INFO(...) ::Heart::Logger::GetEngineLogger().info(__VA_ARGS__)
-#define HT_ENGINE_LOG_WARN(...) ::Heart::Logger::GetEngineLogger().warn(__VA_ARGS__)
-#define HT_ENGINE_LOG_ERROR(...) ::Heart::Logger::GetEngineLogger().error(__VA_ARGS__)
-#define HT_ENGINE_LOG_CRITICAL(...) ::Heart::Logger::GetEngineLogger().critical(__VA_ARGS__)
+#define HE_ENGINE_LOG_TRACE(...) ::Heart::Logger::GetEngineLogger().trace(__VA_ARGS__)
+#define HE_ENGINE_LOG_INFO(...) ::Heart::Logger::GetEngineLogger().info(__VA_ARGS__)
+#define HE_ENGINE_LOG_WARN(...) ::Heart::Logger::GetEngineLogger().warn(__VA_ARGS__)
+#define HE_ENGINE_LOG_ERROR(...) ::Heart::Logger::GetEngineLogger().error(__VA_ARGS__)
+#define HE_ENGINE_LOG_CRITICAL(...) ::Heart::Logger::GetEngineLogger().critical(__VA_ARGS__)

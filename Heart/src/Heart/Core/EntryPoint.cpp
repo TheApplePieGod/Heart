@@ -3,7 +3,7 @@
 #include "Heart/Core/Engine.h"
 #include "Heart/Core/Log.h"
 
-#ifdef HT_PLATFORM_WINDOWS
+#ifdef HE_PLATFORM_WINDOWS
 
 int main(int argc, char** argv)
 {

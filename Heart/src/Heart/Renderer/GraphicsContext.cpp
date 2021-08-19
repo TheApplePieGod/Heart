@@ -11,7 +11,7 @@ namespace Heart
         switch (Renderer::GetApiType())
         {
             default:
-            { HT_ENGINE_ASSERT(false, "Cannot create GraphicsContext: selected ApiType is not supported"); return nullptr; }
+            { HE_ENGINE_ASSERT(false, "Cannot create GraphicsContext: selected ApiType is not supported"); return nullptr; }
             case RenderApi::Type::Vulkan:
             { return CreateScope<VulkanContext>(window); }
         }

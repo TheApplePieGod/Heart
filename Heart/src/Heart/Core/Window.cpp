@@ -10,12 +10,12 @@ namespace Heart
 
     static void GLFWErrorCallback(int err, const char* desc)
     {
-        HT_ENGINE_LOG_ERROR("GLFW Error ({0}): {1}", err, desc);
+        HE_ENGINE_LOG_ERROR("GLFW Error ({0}): {1}", err, desc);
     }
 
     Scope<Window> Window::Create(const WindowSettings& settings)
     {
-        HT_ENGINE_LOG_INFO("Creating window ({0}x{1})", settings.Width, settings.Height);
+        HE_ENGINE_LOG_INFO("Creating window ({0}x{1})", settings.Width, settings.Height);
         return CreateScope<Window>(settings);
     }
 
@@ -24,12 +24,12 @@ namespace Heart
         m_WindowData.Title = settings.Title;
         m_WindowData.Width = settings.Width;
         m_WindowData.Height = settings.Height;
-        m_WindowData.EmitEvent = HT_BIND_EVENT_FN(Window::Emit);
+        m_WindowData.EmitEvent = HE_BIND_EVENT_FN(Window::Emit);
 
         if (s_WindowCount == 0)
         {
             int success = glfwInit();
-            HT_ENGINE_ASSERT(success, "Failed to initialize GLFW");
+            HE_ENGINE_ASSERT(success, "Failed to initialize GLFW");
             glfwSetErrorCallback(GLFWErrorCallback);
         }
 

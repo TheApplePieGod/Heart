@@ -96,7 +96,7 @@ namespace Heart
             createInfo.pQueueFamilyIndices = nullptr; // Optional
         }
 
-        HT_VULKAN_CHECK_RESULT(vkCreateSwapchainKHR(device.Device(), &createInfo, nullptr, &m_SwapChain));
+        HE_VULKAN_CHECK_RESULT(vkCreateSwapchainKHR(device.Device(), &createInfo, nullptr, &m_SwapChain));
 
         vkGetSwapchainImagesKHR(device.Device(), m_SwapChain, &imageCount, nullptr);
         m_SwapChainData.Images.resize(imageCount);
@@ -192,7 +192,7 @@ namespace Heart
         renderPassInfo.dependencyCount = 1;
         renderPassInfo.pDependencies = &dependency;
 
-        HT_VULKAN_CHECK_RESULT(vkCreateRenderPass(device.Device(), &renderPassInfo, nullptr, &m_RenderPass));
+        HE_VULKAN_CHECK_RESULT(vkCreateRenderPass(device.Device(), &renderPassInfo, nullptr, &m_RenderPass));
     }
 
     void VulkanSwapChain::CleanupRenderPass()
@@ -273,7 +273,7 @@ namespace Heart
             framebufferInfo.height = m_SwapChainData.Extent.height;
             framebufferInfo.layers = 1;
             
-            HT_VULKAN_CHECK_RESULT(vkCreateFramebuffer(device.Device(), &framebufferInfo, nullptr, &m_SwapChainData.FrameBuffers[i]));
+            HE_VULKAN_CHECK_RESULT(vkCreateFramebuffer(device.Device(), &framebufferInfo, nullptr, &m_SwapChainData.FrameBuffers[i]));
         }
     }
 
@@ -299,13 +299,13 @@ namespace Heart
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
         allocInfo.commandBufferCount = static_cast<u32>(m_SwapChainData.CommandBuffers.size());
 
-        HT_VULKAN_CHECK_RESULT(vkAllocateCommandBuffers(device.Device(), &allocInfo, m_SwapChainData.CommandBuffers.data()));
+        HE_VULKAN_CHECK_RESULT(vkAllocateCommandBuffers(device.Device(), &allocInfo, m_SwapChainData.CommandBuffers.data()));
 
         // allocate the secondary command buffer used for rendering to the swap chain
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_SECONDARY;
 
         m_CommandBuffers.resize(m_SwapChainData.CommandBuffers.size());
-        HT_VULKAN_CHECK_RESULT(vkAllocateCommandBuffers(device.Device(), &allocInfo, m_CommandBuffers.data()));
+        HE_VULKAN_CHECK_RESULT(vkAllocateCommandBuffers(device.Device(), &allocInfo, m_CommandBuffers.data()));
     }
 
     void VulkanSwapChain::FreeCommandBuffers()
@@ -333,9 +333,9 @@ namespace Heart
         m_ImagesInFlight.resize(m_SwapChainData.Images.size(), VK_NULL_HANDLE);
         for (u32 i = 0; i < m_MaxFramesInFlight; i++)
         {
-            HT_VULKAN_CHECK_RESULT(vkCreateSemaphore(device.Device(), &semaphoreInfo, nullptr, &m_ImageAvailableSemaphores[i]));
-            HT_VULKAN_CHECK_RESULT(vkCreateSemaphore(device.Device(), &semaphoreInfo, nullptr, &m_RenderFinishedSemaphores[i]));
-            HT_VULKAN_CHECK_RESULT(vkCreateFence(device.Device(), &fenceInfo, nullptr, &m_InFlightFences[i]));
+            HE_VULKAN_CHECK_RESULT(vkCreateSemaphore(device.Device(), &semaphoreInfo, nullptr, &m_ImageAvailableSemaphores[i]));
+            HE_VULKAN_CHECK_RESULT(vkCreateSemaphore(device.Device(), &semaphoreInfo, nullptr, &m_RenderFinishedSemaphores[i]));
+            HE_VULKAN_CHECK_RESULT(vkCreateFence(device.Device(), &fenceInfo, nullptr, &m_InFlightFences[i]));
         }
     }
 
@@ -386,7 +386,7 @@ namespace Heart
             m_ShouldPresentThisFrame = false;
         else
         {
-            HT_ENGINE_ASSERT(result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR);
+            HE_ENGINE_ASSERT(result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR);
             m_ShouldPresentThisFrame = true;
         }
 
@@ -403,7 +403,7 @@ namespace Heart
         secondaryBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT | VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
         secondaryBeginInfo.pInheritanceInfo = &inheritanceInfo;
 
-        HT_VULKAN_CHECK_RESULT(vkBeginCommandBuffer(GetCommandBuffer(), &secondaryBeginInfo));
+        HE_VULKAN_CHECK_RESULT(vkBeginCommandBuffer(GetCommandBuffer(), &secondaryBeginInfo));
 
         // TODO: paramaterize / generalize
         VkViewport viewport{};
@@ -424,7 +424,7 @@ namespace Heart
     void VulkanSwapChain::EndFrame()
     {
         // end the main secondary command buffer for this frame
-        HT_VULKAN_CHECK_RESULT(vkEndCommandBuffer(GetCommandBuffer()));
+        HE_VULKAN_CHECK_RESULT(vkEndCommandBuffer(GetCommandBuffer()));
 
         // start swapchain image primary command buffer and execute the recorded commands in m_CommandBuffer
         VkCommandBufferBeginInfo beginInfo{};
@@ -432,7 +432,7 @@ namespace Heart
         beginInfo.flags = 0;
         beginInfo.pInheritanceInfo = nullptr;
 
-        HT_VULKAN_CHECK_RESULT(vkBeginCommandBuffer(m_SwapChainData.CommandBuffers[m_PresentImageIndex], &beginInfo));
+        HE_VULKAN_CHECK_RESULT(vkBeginCommandBuffer(m_SwapChainData.CommandBuffers[m_PresentImageIndex], &beginInfo));
 
         VkRenderPassBeginInfo renderPassInfo{};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -455,7 +455,7 @@ namespace Heart
 
         vkCmdEndRenderPass(m_SwapChainData.CommandBuffers[m_PresentImageIndex]);
         
-        HT_VULKAN_CHECK_RESULT(vkEndCommandBuffer(m_SwapChainData.CommandBuffers[m_PresentImageIndex]));
+        HE_VULKAN_CHECK_RESULT(vkEndCommandBuffer(m_SwapChainData.CommandBuffers[m_PresentImageIndex]));
 
         if (m_ShouldPresentThisFrame)
             Present();
@@ -496,7 +496,7 @@ namespace Heart
         submitInfo.pSignalSemaphores = signalSemaphores;
 
         vkResetFences(device.Device(), 1, &m_InFlightFences[m_InFlightFrameIndex]);
-        HT_VULKAN_CHECK_RESULT(vkQueueSubmit(device.GraphicsQueue(), 1, &submitInfo, m_InFlightFences[m_InFlightFrameIndex]));
+        HE_VULKAN_CHECK_RESULT(vkQueueSubmit(device.GraphicsQueue(), 1, &submitInfo, m_InFlightFences[m_InFlightFrameIndex]));
 
         VkSwapchainKHR swapChains[] = { m_SwapChain };
         VkPresentInfoKHR presentInfo{};
@@ -514,7 +514,7 @@ namespace Heart
             RecreateSwapChain();
         }
         else
-            HT_ENGINE_ASSERT(result == VK_SUCCESS);
+            HE_ENGINE_ASSERT(result == VK_SUCCESS);
 
         //vkQueueWaitIdle(device.PresentQueue());
     }

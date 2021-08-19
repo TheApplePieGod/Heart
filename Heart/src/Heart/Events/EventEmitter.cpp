@@ -7,13 +7,13 @@ namespace Heart
 
     void EventEmitter::Subscribe(EventListener* listener)
     {
-        HT_ENGINE_ASSERT(m_Subscribers.find(listener) == m_Subscribers.end(), "Listener is already subscribed to emitter");
+        HE_ENGINE_ASSERT(m_Subscribers.find(listener) == m_Subscribers.end(), "Listener is already subscribed to emitter");
         m_Subscribers.insert(listener);
     }
 
     void EventEmitter::Unsubscribe(EventListener* listener)
     {
-        HT_ENGINE_ASSERT(m_Subscribers.find(listener) != m_Subscribers.end(), "Listener is unsubscribing to emitter but not subscribed");
+        HE_ENGINE_ASSERT(m_Subscribers.find(listener) != m_Subscribers.end(), "Listener is unsubscribing to emitter but not subscribed");
         m_Subscribers.erase(listener);
     }
 

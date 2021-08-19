@@ -20,7 +20,7 @@ namespace Heart
         createInfo.codeSize = compiled.size();
         createInfo.pCode = compiled.data();
 
-        HT_VULKAN_CHECK_RESULT(vkCreateShaderModule(device.Device(), &createInfo, nullptr, &m_ShaderModule));
+        HE_VULKAN_CHECK_RESULT(vkCreateShaderModule(device.Device(), &createInfo, nullptr, &m_ShaderModule));
 
         m_Loaded = true;
     }

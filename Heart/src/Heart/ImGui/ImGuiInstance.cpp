@@ -44,7 +44,7 @@ namespace Heart
         switch (Renderer::GetApiType())
         {
             default:
-            { HT_ENGINE_ASSERT(false, "Cannot cleanup ImGui: selected ApiType is not supported"); } break;
+            { HE_ENGINE_ASSERT(false, "Cannot cleanup ImGui: selected ApiType is not supported"); } break;
             case RenderApi::Type::Vulkan:
             { ImGui_ImplGlfw_InitForVulkan(window.GetWindowHandle(), true); } break;
         }
