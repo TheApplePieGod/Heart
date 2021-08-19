@@ -24,7 +24,8 @@ namespace Heart
         void BeginFrame();
         void EndFrame();
 
-        inline void InvalidateSwapChain() { m_SwapChainInvalid = true; };
+        void InvalidateSwapChain(u32 newWidth, u32 newHeight);
+
         inline u32 GetImageCount() const { return static_cast<u32>(m_SwapChainData.Images.size()); }
         inline VkFormat GetImageFormat() const { return m_SwapChainData.ImageFormat; }
         inline VkRenderPass GetRenderPass() const { return m_RenderPass; }
@@ -62,7 +63,7 @@ namespace Heart
         glm::vec4 m_ClearColor = { 0.f, 0.f, 0.f, 1.f };
 
         bool m_Initialized = false;
-        int m_InitialWidth, m_InitialHeight;
+        int m_Width, m_Height;
         VkSurfaceKHR m_Surface;
         VkSwapchainKHR m_SwapChain;
         SwapChainData m_SwapChainData;

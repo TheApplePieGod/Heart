@@ -11,6 +11,8 @@ namespace Heart
         VulkanRenderApi();
         ~VulkanRenderApi() override;
 
+        void SetViewport(GraphicsContext& context, u32 x, u32 y, u32 width, u32 height) override;
+
     private:
     };
 }

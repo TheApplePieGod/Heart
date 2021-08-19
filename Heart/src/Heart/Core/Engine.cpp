@@ -48,6 +48,13 @@ namespace Heart
     bool Engine::OnWindowResize(WindowResizeEvent& event)
     {
         //HT_ENGINE_LOG_INFO("Window resized");
+        if (event.GetWidth() == 0 || event.GetHeight() == 0)
+        {
+            // TODO: minimized
+            return false;
+        }
+
+        Renderer::OnWindowResize(m_Window->GetContext(), event.GetWidth(), event.GetHeight());
 
         return false;
     }

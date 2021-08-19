@@ -23,6 +23,7 @@ namespace Heart
 
         inline VkRenderPass GetMainRenderPass() const { return m_VulkanSwapChain.GetRenderPass(); }
         inline VkCommandBuffer GetMainCommandBuffer() const { return m_VulkanSwapChain.GetCommandBuffer(); }
+        inline VulkanSwapChain& GetSwapChain() { return m_VulkanSwapChain; };
 
     public:
         inline static VkInstance GetInstance() { return s_Instance; };

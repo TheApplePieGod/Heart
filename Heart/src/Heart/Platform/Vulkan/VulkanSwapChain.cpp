@@ -10,8 +10,8 @@ namespace Heart
     {
         if (m_Initialized) return;
         m_Surface = surface;
-        m_InitialWidth = width;
-        m_InitialHeight = height;
+        m_Width = width;
+        m_Height = height;
 
         VulkanDevice& device = VulkanContext::GetDevice();
 
@@ -427,39 +427,35 @@ namespace Heart
         HT_VULKAN_CHECK_RESULT(vkEndCommandBuffer(GetCommandBuffer()));
 
         // start swapchain image primary command buffer and execute the recorded commands in m_CommandBuffer
-        u32 i = m_PresentImageIndex;
-        //for (int i = 0; i < m_SwapChainData.CommandBuffers.size(); i++)
-        {
-            VkCommandBufferBeginInfo beginInfo{};
-            beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-            beginInfo.flags = 0;
-            beginInfo.pInheritanceInfo = nullptr;
+        VkCommandBufferBeginInfo beginInfo{};
+        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        beginInfo.flags = 0;
+        beginInfo.pInheritanceInfo = nullptr;
 
-            HT_VULKAN_CHECK_RESULT(vkBeginCommandBuffer(m_SwapChainData.CommandBuffers[i], &beginInfo));
+        HT_VULKAN_CHECK_RESULT(vkBeginCommandBuffer(m_SwapChainData.CommandBuffers[m_PresentImageIndex], &beginInfo));
 
-            VkRenderPassBeginInfo renderPassInfo{};
-            renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-            renderPassInfo.renderPass = m_RenderPass;
-            renderPassInfo.framebuffer = m_SwapChainData.FrameBuffers[i];
-            renderPassInfo.renderArea.offset = { 0, 0 };
-            renderPassInfo.renderArea.extent = m_SwapChainData.Extent;
+        VkRenderPassBeginInfo renderPassInfo{};
+        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        renderPassInfo.renderPass = m_RenderPass;
+        renderPassInfo.framebuffer = m_SwapChainData.FrameBuffers[m_PresentImageIndex];
+        renderPassInfo.renderArea.offset = { 0, 0 };
+        renderPassInfo.renderArea.extent = m_SwapChainData.Extent;
 
-            std::array<VkClearValue, 3> clearValues{};
-            clearValues[0].color = { m_ClearColor.r, m_ClearColor.g, m_ClearColor.b, m_ClearColor.a };
-            clearValues[1].color = { m_ClearColor.r, m_ClearColor.g, m_ClearColor.b, m_ClearColor.a };
-            clearValues[2].depthStencil = { 1.f, 0 };
-            renderPassInfo.clearValueCount = 1;
-            renderPassInfo.clearValueCount = static_cast<u32>(clearValues.size());
-            renderPassInfo.pClearValues = clearValues.data();
+        std::array<VkClearValue, 3> clearValues{};
+        clearValues[0].color = { m_ClearColor.r, m_ClearColor.g, m_ClearColor.b, m_ClearColor.a };
+        clearValues[1].color = { m_ClearColor.r, m_ClearColor.g, m_ClearColor.b, m_ClearColor.a };
+        clearValues[2].depthStencil = { 1.f, 0 };
+        renderPassInfo.clearValueCount = 1;
+        renderPassInfo.clearValueCount = static_cast<u32>(clearValues.size());
+        renderPassInfo.pClearValues = clearValues.data();
 
-            vkCmdBeginRenderPass(m_SwapChainData.CommandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
-            
-            vkCmdExecuteCommands(m_SwapChainData.CommandBuffers[i], 1, &m_CommandBuffers[i]);
+        vkCmdBeginRenderPass(m_SwapChainData.CommandBuffers[m_PresentImageIndex], &renderPassInfo, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
+        
+        vkCmdExecuteCommands(m_SwapChainData.CommandBuffers[m_PresentImageIndex], 1, &m_CommandBuffers[m_PresentImageIndex]);
 
-            vkCmdEndRenderPass(m_SwapChainData.CommandBuffers[i]);
-            
-            HT_VULKAN_CHECK_RESULT(vkEndCommandBuffer(m_SwapChainData.CommandBuffers[i]));
-        }
+        vkCmdEndRenderPass(m_SwapChainData.CommandBuffers[m_PresentImageIndex]);
+        
+        HT_VULKAN_CHECK_RESULT(vkEndCommandBuffer(m_SwapChainData.CommandBuffers[m_PresentImageIndex]));
 
         if (m_ShouldPresentThisFrame)
             Present();
@@ -478,6 +474,8 @@ namespace Heart
         // check if a previous frame is using this image (i.e. there is its fence to wait on)
         if (m_ImagesInFlight[m_PresentImageIndex] != VK_NULL_HANDLE)
             vkWaitForFences(device.Device(), 1, &m_ImagesInFlight[m_PresentImageIndex], VK_TRUE, UINT64_MAX);
+
+        // TODO: look at this
         m_ImagesInFlight[m_PresentImageIndex] = m_InFlightFences[m_InFlightFrameIndex];
 
         //UpdatePerFrameBuffer(nextImageIndex);
@@ -521,6 +519,13 @@ namespace Heart
         //vkQueueWaitIdle(device.PresentQueue());
     }
 
+    void VulkanSwapChain::InvalidateSwapChain(u32 newWidth, u32 newHeight)
+    {
+        m_SwapChainInvalid = true;
+        m_Width = newWidth;
+        m_Height = newHeight;
+    }
+
     VkSurfaceFormatKHR VulkanSwapChain::ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats)
     {
         for (const auto& availableFormat : formats)
@@ -550,8 +555,8 @@ namespace Heart
         else
         {
             VkExtent2D actualExtent = {
-                static_cast<u32>(m_InitialWidth),
-                static_cast<u32>(m_InitialWidth)
+                static_cast<u32>(m_Width),
+                static_cast<u32>(m_Height)
             };
 
             actualExtent.width = std::max(capabilities.minImageExtent.width, std::min(capabilities.maxImageExtent.width, actualExtent.width));

@@ -1,7 +1,5 @@
 #pragma once
 
-#include "Heart/Renderer/RenderApi.h"
-
 namespace Heart
 {
     class GraphicsContext

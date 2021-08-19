@@ -18,6 +18,7 @@ namespace Heart
 
     private:
         void Cleanup();
+        void SetThemeColors();
 
     private:
         bool m_Initialized = false;
