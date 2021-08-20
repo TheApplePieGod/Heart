@@ -1,0 +1,7 @@
+#include "htpch.h"
+#include "_CLASS_.h"
+    
+namespace Heart
+{
+    
+}
