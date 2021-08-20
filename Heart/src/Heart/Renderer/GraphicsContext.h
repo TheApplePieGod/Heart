@@ -16,7 +16,7 @@ namespace Heart
         virtual void EndFrame() = 0;
 
     public:
-        static Scope<GraphicsContext> Create(void* window);
+        static Ref<GraphicsContext> Create(void* window);
 
     private:
 

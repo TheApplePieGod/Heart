@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Heart/Renderer/GraphicsContext.h"
+
 namespace Heart
 {
     // normal maps should be loaded with the UNORM specifier
@@ -16,13 +18,22 @@ namespace Heart
         Max = Sixtyfour
     };
 
-    struct FrameBufferCreateInfo
+    struct FrameBufferAttachment
     {
         bool HasDepth = false;
-        bool ForceResolve = false; // the framebuffer will automatically have a resolve if SampleCount is > none
+        bool ForceResolve = false; // the attachment will automatically have a resolve if SampleCount is > none   
         ColorFormat ColorFormat = ColorFormat::RGBA8;
-        u32 Width, Height = 0;
-        u32 ResolveWidth, ResolveHeight = 0;
+        u32 ResolveWidth, ResolveHeight = 0; // keep these at zero to match Width and Height
+    };
+
+    struct FrameBufferCreateInfo
+    {
+        FrameBufferCreateInfo() = default;
+		FrameBufferCreateInfo(std::initializer_list<FrameBufferAttachment> attachments)
+			: Attachments(attachments) {}
+
+        std::vector<FrameBufferAttachment> Attachments;
+        u32 Width, Height = 0; // TODO: set to zero to match screen width and height
         MsaaSampleCount SampleCount = MsaaSampleCount::Max;
     };
 
@@ -34,10 +45,13 @@ namespace Heart
         {}
         virtual ~FrameBuffer() = default;
 
+        virtual void Bind() = 0;
+        virtual void Submit(GraphicsContext& context) = 0;
+
     public:
         static Ref<FrameBuffer> Create(const FrameBufferCreateInfo& createInfo);
 
-    private:
+    protected:
         FrameBufferCreateInfo m_Info;
     };
 }

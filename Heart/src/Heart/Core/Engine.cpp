@@ -3,6 +3,7 @@
 
 #include "Heart/Renderer/RenderApi.h"
 #include "Heart/Renderer/Renderer.h"
+#include "Heart/Renderer/SceneRenderer.h"
 
 namespace Heart
 {
@@ -19,6 +20,8 @@ namespace Heart
         m_Window = Window::Create(windowSettings);
         SubscribeToEmitter(&GetWindow());
 
+        SceneRenderer::Initialize();
+
         m_ImGuiInstance.Initialize();
 
         HE_ENGINE_LOG_INFO("Engine initialized");
@@ -29,6 +32,8 @@ namespace Heart
         UnsubscribeFromEmitter(&GetWindow());
 
         m_ImGuiInstance.Shutdown();
+
+        SceneRenderer::Shutdown();
 
         Renderer::Shutdown();
     }
@@ -75,11 +80,15 @@ namespace Heart
             for (auto layer : m_Layers)
                 layer->OnUpdate();
 
+            SceneRenderer::Bind();
+
             // ImGui render
             m_ImGuiInstance.BeginFrame();
             for (auto layer : m_Layers)
                 layer->OnImGuiRender();
             m_ImGuiInstance.EndFrame();
+
+            SceneRenderer::Render(m_Window->GetContext());
 
             m_Window->EndFrame();
         }

@@ -47,7 +47,7 @@ namespace Heart
         static int s_WindowCount;
 
     private:
-        Scope<GraphicsContext> m_GraphicsContext;
+        Ref<GraphicsContext> m_GraphicsContext;
         WindowData m_WindowData;
         GLFWwindow* m_Window;
     };

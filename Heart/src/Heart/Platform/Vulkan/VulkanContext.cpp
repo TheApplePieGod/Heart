@@ -13,6 +13,7 @@ namespace Heart
     VulkanDevice VulkanContext::s_VulkanDevice;
     VkCommandPool VulkanContext::s_GraphicsPool;
     VkCommandPool VulkanContext::s_ComputePool;
+    VkCommandBuffer VulkanContext::s_BoundCommandBuffer;
 
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
         VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -243,6 +244,9 @@ namespace Heart
     void VulkanContext::BeginFrame()
     {
         m_VulkanSwapChain.BeginFrame();
+
+        // bind the initial commandbuffer to be the main window's
+        SetBoundCommandBuffer(m_VulkanSwapChain.GetCommandBuffer());
     }
 
     void VulkanContext::EndFrame()

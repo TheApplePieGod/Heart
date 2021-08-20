@@ -329,12 +329,14 @@ namespace Heart
 
         m_ImageAvailableSemaphores.resize(m_MaxFramesInFlight);
         m_RenderFinishedSemaphores.resize(m_MaxFramesInFlight);
+        m_AuxiliaryRenderFinishedSemaphores.resize(m_MaxFramesInFlight);
         m_InFlightFences.resize(m_MaxFramesInFlight);
         m_ImagesInFlight.resize(m_SwapChainData.Images.size(), VK_NULL_HANDLE);
         for (u32 i = 0; i < m_MaxFramesInFlight; i++)
         {
             HE_VULKAN_CHECK_RESULT(vkCreateSemaphore(device.Device(), &semaphoreInfo, nullptr, &m_ImageAvailableSemaphores[i]));
             HE_VULKAN_CHECK_RESULT(vkCreateSemaphore(device.Device(), &semaphoreInfo, nullptr, &m_RenderFinishedSemaphores[i]));
+            HE_VULKAN_CHECK_RESULT(vkCreateSemaphore(device.Device(), &semaphoreInfo, nullptr, &m_AuxiliaryRenderFinishedSemaphores[i]));
             HE_VULKAN_CHECK_RESULT(vkCreateFence(device.Device(), &fenceInfo, nullptr, &m_InFlightFences[i]));
         }
     }
@@ -347,6 +349,7 @@ namespace Heart
         {
             vkDestroySemaphore(device.Device(), m_ImageAvailableSemaphores[i], nullptr);
             vkDestroySemaphore(device.Device(), m_RenderFinishedSemaphores[i], nullptr);
+            vkDestroySemaphore(device.Device(), m_AuxiliaryRenderFinishedSemaphores[i], nullptr);
             vkDestroyFence(device.Device(), m_InFlightFences[i], nullptr);
         }
     }
@@ -419,6 +422,9 @@ namespace Heart
         scissor.offset = {0, 0};
         scissor.extent = m_SwapChainData.Extent;
         vkCmdSetScissor(GetCommandBuffer(), 0, 1, &scissor);
+
+        // clear the submitted command buffers from last frame
+        m_AuxiliaryCommandBuffers.clear();
     }
 
     void VulkanSwapChain::EndFrame()
@@ -445,12 +451,11 @@ namespace Heart
         clearValues[0].color = { m_ClearColor.r, m_ClearColor.g, m_ClearColor.b, m_ClearColor.a };
         clearValues[1].color = { m_ClearColor.r, m_ClearColor.g, m_ClearColor.b, m_ClearColor.a };
         clearValues[2].depthStencil = { 1.f, 0 };
-        renderPassInfo.clearValueCount = 1;
         renderPassInfo.clearValueCount = static_cast<u32>(clearValues.size());
         renderPassInfo.pClearValues = clearValues.data();
 
         vkCmdBeginRenderPass(m_SwapChainData.CommandBuffers[m_PresentImageIndex], &renderPassInfo, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
-        
+    
         vkCmdExecuteCommands(m_SwapChainData.CommandBuffers[m_PresentImageIndex], 1, &m_CommandBuffers[m_PresentImageIndex]);
 
         vkCmdEndRenderPass(m_SwapChainData.CommandBuffers[m_PresentImageIndex]);
@@ -480,29 +485,44 @@ namespace Heart
 
         //UpdatePerFrameBuffer(nextImageIndex);
 
-        // this will change slightly once we implement submitting the commandbuffers of other framebuffers
-        VkSemaphore waitSemaphores[] = { m_ImageAvailableSemaphores[m_InFlightFrameIndex] };
-        VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-        VkSubmitInfo submitInfo{};
-        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        submitInfo.waitSemaphoreCount = 1;
-        submitInfo.pWaitSemaphores = waitSemaphores;
-        submitInfo.pWaitDstStageMask = waitStages;
-        submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &m_SwapChainData.CommandBuffers[m_PresentImageIndex];
+        std::array<VkSubmitInfo, 2> submitInfos;
+        // auxiliary framebuffer submissions
+        VkPipelineStageFlags auxWaitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+        submitInfos[0] = {};
+        submitInfos[0].sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submitInfos[0].waitSemaphoreCount = 0;
+        submitInfos[0].pWaitSemaphores = nullptr;
+        submitInfos[0].pWaitDstStageMask = auxWaitStages;
+        submitInfos[0].commandBufferCount = static_cast<u32>(m_AuxiliaryCommandBuffers.size());
+        submitInfos[0].pCommandBuffers = m_AuxiliaryCommandBuffers.data();
 
-        VkSemaphore signalSemaphores[] = { m_RenderFinishedSemaphores[m_InFlightFrameIndex] };
-        submitInfo.signalSemaphoreCount = 1;
-        submitInfo.pSignalSemaphores = signalSemaphores;
+        VkSemaphore auxiliarySignalSemaphores[] = { m_AuxiliaryRenderFinishedSemaphores[m_InFlightFrameIndex] };
+        submitInfos[0].signalSemaphoreCount = 1;
+        submitInfos[0].pSignalSemaphores = auxiliarySignalSemaphores;
+        
+        // final render submission
+        VkSemaphore waitSemaphores[] = { m_ImageAvailableSemaphores[m_InFlightFrameIndex], m_AuxiliaryRenderFinishedSemaphores[m_InFlightFrameIndex] };
+        VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+        submitInfos[1] = {};
+        submitInfos[1].sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submitInfos[1].waitSemaphoreCount = 2;
+        submitInfos[1].pWaitSemaphores = waitSemaphores;
+        submitInfos[1].pWaitDstStageMask = waitStages;
+        submitInfos[1].commandBufferCount = 1;
+        submitInfos[1].pCommandBuffers = &m_SwapChainData.CommandBuffers[m_PresentImageIndex];
+
+        VkSemaphore finalSignalSemaphores[] = { m_RenderFinishedSemaphores[m_InFlightFrameIndex] };
+        submitInfos[1].signalSemaphoreCount = 1;
+        submitInfos[1].pSignalSemaphores = finalSignalSemaphores;
 
         vkResetFences(device.Device(), 1, &m_InFlightFences[m_InFlightFrameIndex]);
-        HE_VULKAN_CHECK_RESULT(vkQueueSubmit(device.GraphicsQueue(), 1, &submitInfo, m_InFlightFences[m_InFlightFrameIndex]));
+        HE_VULKAN_CHECK_RESULT(vkQueueSubmit(device.GraphicsQueue(), static_cast<u32>(submitInfos.size()), submitInfos.data(), m_InFlightFences[m_InFlightFrameIndex]));
 
         VkSwapchainKHR swapChains[] = { m_SwapChain };
         VkPresentInfoKHR presentInfo{};
         presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
         presentInfo.waitSemaphoreCount = 1;
-        presentInfo.pWaitSemaphores = signalSemaphores;
+        presentInfo.pWaitSemaphores = finalSignalSemaphores;
         presentInfo.swapchainCount = 1;
         presentInfo.pSwapchains = swapChains;
         presentInfo.pImageIndices = &m_PresentImageIndex;

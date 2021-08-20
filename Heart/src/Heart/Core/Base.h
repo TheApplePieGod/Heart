@@ -1,7 +1,7 @@
 #pragma once
 
 #ifdef HE_DEBUG
-	#if defined(HT_PLATFORM_WINDOWS)
+	#if defined(HE_PLATFORM_WINDOWS)
 		#define HE_DEBUGBREAK() __debugbreak()
 	#elif defined(HT_PLATFORM_LINUX)
 		#include <signal.h>

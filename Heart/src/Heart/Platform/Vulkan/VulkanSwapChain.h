@@ -30,6 +30,7 @@ namespace Heart
         inline VkFormat GetImageFormat() const { return m_SwapChainData.ImageFormat; }
         inline VkRenderPass GetRenderPass() const { return m_RenderPass; }
         inline VkCommandBuffer GetCommandBuffer() const { return m_CommandBuffers[m_PresentImageIndex]; }
+        inline void SubmitCommandBuffer(VkCommandBuffer buffer) { m_AuxiliaryCommandBuffers.emplace_back(buffer); }
 
     private:
         void CreateSwapChain();
@@ -69,8 +70,10 @@ namespace Heart
         SwapChainData m_SwapChainData;
         VkRenderPass m_RenderPass;
         std::vector<VkCommandBuffer> m_CommandBuffers = {}; // secondary
+        std::vector<VkCommandBuffer> m_AuxiliaryCommandBuffers = {}; // primary submitted from framebuffers
         std::vector<VkSemaphore> m_ImageAvailableSemaphores = {};
         std::vector<VkSemaphore> m_RenderFinishedSemaphores = {};
+        std::vector<VkSemaphore> m_AuxiliaryRenderFinishedSemaphores = {};
         std::vector<VkFence> m_InFlightFences = {};
         std::vector<VkFence> m_ImagesInFlight = {};
         u32 m_PresentImageIndex;

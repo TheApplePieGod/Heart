@@ -6,14 +6,14 @@
 
 namespace Heart
 {
-    Scope<GraphicsContext> GraphicsContext::Create(void* window)
+    Ref<GraphicsContext> GraphicsContext::Create(void* window)
     {
         switch (Renderer::GetApiType())
         {
             default:
             { HE_ENGINE_ASSERT(false, "Cannot create GraphicsContext: selected ApiType is not supported"); return nullptr; }
             case RenderApi::Type::Vulkan:
-            { return CreateScope<VulkanContext>(window); }
+            { return CreateRef<VulkanContext>(window); }
         }
     }
 }

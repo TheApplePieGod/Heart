@@ -30,6 +30,8 @@ namespace Heart
         inline static VulkanDevice& GetDevice() { return s_VulkanDevice; };
         inline static VkCommandPool GetGraphicsPool() { return s_GraphicsPool; }
         inline static VkCommandPool GetComputePool() { return s_ComputePool; }
+        inline static VkCommandBuffer GetBoundCommandBuffer() { return s_BoundCommandBuffer; }
+        inline static void SetBoundCommandBuffer(VkCommandBuffer buffer) { s_BoundCommandBuffer = buffer; }
 
         static std::vector<const char*> ConfigureValidationLayers();
     
@@ -56,5 +58,6 @@ namespace Heart
         static VulkanDevice s_VulkanDevice;
         static VkCommandPool s_GraphicsPool;
         static VkCommandPool s_ComputePool;
+        static VkCommandBuffer s_BoundCommandBuffer;
     };
 }
