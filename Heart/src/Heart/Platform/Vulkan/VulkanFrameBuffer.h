@@ -19,7 +19,7 @@ namespace Heart
 
         inline VkFramebuffer GetFrameBuffer() const { return m_FrameBuffer; }
         inline VkRenderPass GetRenderPass() const { return m_RenderPass; }
-        inline VkCommandBuffer GetCommandBuffer() const { return m_CommandBuffer; }
+        VkCommandBuffer GetCommandBuffer();
 
     protected:
         Ref<GraphicsPipeline> InternalInitializeGraphicsPipeline(const GraphicsPipelineCreateInfo& createInfo) override;
@@ -46,9 +46,8 @@ namespace Heart
     private:
         VkFramebuffer m_FrameBuffer;
         VkRenderPass m_RenderPass;
-        VkCommandBuffer m_CommandBuffer; // one for each swapchainimage
+        std::vector<VkCommandBuffer> m_CommandBuffers; // one for each swapchainimage
         std::vector<VulkanFrameBufferAttachment> m_AttachmentData;
         std::vector<VkClearValue> m_CachedClearValues;
-        std::unordered_map<std::string, Ref<GraphicsPipeline>> m_GraphicsPipelines;
     };
 }

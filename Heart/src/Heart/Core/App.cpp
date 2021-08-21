@@ -27,6 +27,13 @@ namespace Heart
 
     App::~App()
     {
+        for (auto layer : m_Layers)
+        {
+            layer->OnDetach();
+            delete layer;
+        }
+            
+
         UnsubscribeFromEmitter(&GetWindow());
 
         m_ImGuiInstance.Shutdown();

@@ -31,6 +31,7 @@ namespace Heart
         inline VkRenderPass GetRenderPass() const { return m_RenderPass; }
         inline VkCommandBuffer GetCommandBuffer() const { return m_CommandBuffers[m_PresentImageIndex]; }
         inline void SubmitCommandBuffer(VkCommandBuffer buffer) { m_AuxiliaryCommandBuffers.emplace_back(buffer); }
+        inline u32 GetPresentImageIndex() const { return m_PresentImageIndex; }
 
     private:
         void CreateSwapChain();

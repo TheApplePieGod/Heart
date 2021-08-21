@@ -6,7 +6,7 @@ namespace Heart
     {
     public:
         Layer(const std::string& Name = "DefaultLayer");
-        ~Layer() = default;
+        virtual ~Layer() = default;
 
         virtual void OnAttach() {}
         virtual void OnUpdate() {}

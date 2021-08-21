@@ -33,6 +33,7 @@ namespace Heart
         inline static VkCommandBuffer GetBoundCommandBuffer() { return s_BoundCommandBuffer; }
         inline static void SetBoundCommandBuffer(VkCommandBuffer buffer) { s_BoundCommandBuffer = buffer; }
         inline static VkSampler GetDefaultSampler() { return s_DefaultSampler; }
+        inline static void Sync() { vkDeviceWaitIdle(s_VulkanDevice.Device()); };
 
         static std::vector<const char*> ConfigureValidationLayers();
     

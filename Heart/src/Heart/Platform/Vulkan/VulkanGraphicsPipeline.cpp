@@ -180,6 +180,7 @@ namespace Heart
     VulkanGraphicsPipeline::~VulkanGraphicsPipeline()
     {
         VulkanDevice& device = VulkanContext::GetDevice();
+        VulkanContext::Sync();
 
         vkDestroyPipeline(device.Device(), m_Pipeline, nullptr);
         vkDestroyPipelineLayout(device.Device(), m_PipelineLayout, nullptr);

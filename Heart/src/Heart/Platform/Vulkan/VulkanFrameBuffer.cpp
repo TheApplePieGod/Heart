@@ -13,6 +13,8 @@ namespace Heart
     {
         HE_ENGINE_ASSERT(createInfo.Attachments.size() > 0, "Cannot create a framebuffer with zero attachments");
 
+        // get the main context instance here because we need to sync with the swapchain image count
+        VulkanContext& mainContext = static_cast<VulkanContext&>(GraphicsContext::GetMainContext());
         VulkanDevice& device = VulkanContext::GetDevice();
 
         // initialize the main command buffer for this framebuffer
@@ -20,9 +22,10 @@ namespace Heart
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
         allocInfo.commandPool = VulkanContext::GetGraphicsPool();
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        allocInfo.commandBufferCount = 1;
+        allocInfo.commandBufferCount = mainContext.GetSwapChain().GetImageCount();
+        m_CommandBuffers.resize(allocInfo.commandBufferCount);
 
-        HE_VULKAN_CHECK_RESULT(vkAllocateCommandBuffers(device.Device(), &allocInfo, &m_CommandBuffer));
+        HE_VULKAN_CHECK_RESULT(vkAllocateCommandBuffers(device.Device(), &allocInfo, m_CommandBuffers.data()));
 
         u32 attachmentIndex = 0;
         std::vector<VkAttachmentReference> colorAttachmentRefs = {};
@@ -222,13 +225,9 @@ namespace Heart
     VulkanFrameBuffer::~VulkanFrameBuffer()
     {
         VulkanDevice& device = VulkanContext::GetDevice();
+        VulkanContext::Sync();
 
         vkDestroyFramebuffer(device.Device(), m_FrameBuffer, nullptr);
-
-        for (auto& pipeline : m_GraphicsPipelines)
-        {
-            pipeline.second.reset();
-        }
 
         for (auto& attachmentData : m_AttachmentData)
         {
@@ -253,18 +252,20 @@ namespace Heart
 
         vkDestroyRenderPass(device.Device(), m_RenderPass, nullptr);
 
-        vkFreeCommandBuffers(device.Device(), VulkanContext::GetGraphicsPool(), 1, &m_CommandBuffer);
+        vkFreeCommandBuffers(device.Device(), VulkanContext::GetGraphicsPool(), static_cast<u32>(m_CommandBuffers.size()), m_CommandBuffers.data());
     }
 
     void VulkanFrameBuffer::Bind()
     {
-        VulkanContext::SetBoundCommandBuffer(m_CommandBuffer);
+        VkCommandBuffer buffer = GetCommandBuffer();
+
+        VulkanContext::SetBoundCommandBuffer(buffer);
         VkCommandBufferBeginInfo beginInfo{};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
         beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
         beginInfo.pInheritanceInfo = nullptr;
 
-        HE_VULKAN_CHECK_RESULT(vkBeginCommandBuffer(m_CommandBuffer, &beginInfo));
+        HE_VULKAN_CHECK_RESULT(vkBeginCommandBuffer(buffer, &beginInfo));
 
         // TODO: paramaterize / generalize
         VkViewport viewport{};
@@ -274,12 +275,12 @@ namespace Heart
         viewport.height = (f32)m_Info.Height;
         viewport.minDepth = 0.0f;
         viewport.maxDepth = 1.0f;
-        vkCmdSetViewport(m_CommandBuffer, 0, 1, &viewport);
+        vkCmdSetViewport(buffer, 0, 1, &viewport);
         
         VkRect2D scissor{};
         scissor.offset = {0, 0};
         scissor.extent = { m_Info.Width, m_Info.Height };
-        vkCmdSetScissor(m_CommandBuffer, 0, 1, &scissor);
+        vkCmdSetScissor(buffer, 0, 1, &scissor);
 
         VkRenderPassBeginInfo renderPassInfo{};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -291,25 +292,27 @@ namespace Heart
         renderPassInfo.clearValueCount = static_cast<u32>(m_CachedClearValues.size());
         renderPassInfo.pClearValues = m_CachedClearValues.data();
 
-        vkCmdBeginRenderPass(m_CommandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdBeginRenderPass(buffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
     }
 
     void VulkanFrameBuffer::Submit(GraphicsContext& _context)
     {
+        VkCommandBuffer buffer = GetCommandBuffer();
         VulkanContext& context = static_cast<VulkanContext&>(_context);
 
-        vkCmdEndRenderPass(m_CommandBuffer);
+        vkCmdEndRenderPass(buffer);
         
-        HE_VULKAN_CHECK_RESULT(vkEndCommandBuffer(m_CommandBuffer));
+        HE_VULKAN_CHECK_RESULT(vkEndCommandBuffer(buffer));
 
-        context.GetSwapChain().SubmitCommandBuffer(m_CommandBuffer);
+        context.GetSwapChain().SubmitCommandBuffer(buffer);
     }
 
     void VulkanFrameBuffer::BindPipeline(const std::string& name)
     {
+        VkCommandBuffer buffer = GetCommandBuffer();
         auto pipeline = static_cast<VulkanGraphicsPipeline*>(LoadPipeline(name).get());
 
-        vkCmdBindPipeline(m_CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->GetPipeline());
+        vkCmdBindPipeline(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->GetPipeline());
     }
 
     void* VulkanFrameBuffer::GetRawAttachmentImageHandle(u32 attachmentIndex, FrameBufferAttachmentType type)
@@ -328,6 +331,14 @@ namespace Heart
         }
 
         return nullptr;
+    }
+
+    VkCommandBuffer VulkanFrameBuffer::GetCommandBuffer()
+    {
+        // get the main context instance here because we need to sync with the swapchain images
+        VulkanContext& mainContext = static_cast<VulkanContext&>(GraphicsContext::GetMainContext());
+
+        return m_CommandBuffers[mainContext.GetSwapChain().GetPresentImageIndex()];
     }
 
     Ref<GraphicsPipeline> VulkanFrameBuffer::InternalInitializeGraphicsPipeline(const GraphicsPipelineCreateInfo& createInfo)

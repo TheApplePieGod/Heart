@@ -23,6 +23,7 @@ namespace Heart
     VulkanIndexBuffer::~VulkanIndexBuffer()
     {
         VulkanDevice& device = VulkanContext::GetDevice();
+        VulkanContext::Sync();
 
         vkUnmapMemory(device.Device(), m_BufferMemory);
 

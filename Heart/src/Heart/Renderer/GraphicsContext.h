@@ -17,8 +17,9 @@ namespace Heart
 
     public:
         static Ref<GraphicsContext> Create(void* window);
+        static GraphicsContext& GetMainContext() { return *s_MainContext; }
 
     private:
-
+        static Ref<GraphicsContext> s_MainContext;
     };
 }
