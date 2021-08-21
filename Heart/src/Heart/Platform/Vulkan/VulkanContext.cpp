@@ -116,7 +116,7 @@ namespace Heart
         poolInfo.poolSizeCount = static_cast<u32>(poolSizes.size());
         poolInfo.pPoolSizes = poolSizes.data();
         poolInfo.maxSets = 100;
-        poolInfo.flags = 0;
+        poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
 
         HE_VULKAN_CHECK_RESULT(vkCreateDescriptorPool(s_VulkanDevice.Device(), &poolInfo, nullptr, &m_ImGuiDescriptorPool));
     }

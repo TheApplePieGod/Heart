@@ -15,6 +15,11 @@ namespace Heart
         None = 0, Backface = 1, Frontface = 2, Both = 3
     };
 
+    struct AttachmentBlendState
+    {
+        bool BlendEnable;
+    };
+
     struct GraphicsPipelineCreateInfo
     {
         Ref<Shader> VertexShader;
@@ -22,6 +27,8 @@ namespace Heart
 
         VertexTopology VertexTopology;
         BufferLayout VertexLayout;
+
+        std::vector<AttachmentBlendState> BlendStates; // one state is required per framebuffer attachment
 
         bool DepthEnable;
         CullMode CullMode;

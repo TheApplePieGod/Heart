@@ -32,7 +32,7 @@ namespace Heart
     private:
         std::vector<Layer*> m_Layers;
         ImGuiInstance m_ImGuiInstance;
-        Scope<Window> m_Window;
+        Ref<Window> m_Window;
         bool m_Running = true;
         bool m_Minimized = false;
 

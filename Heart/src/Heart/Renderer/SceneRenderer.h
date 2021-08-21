@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Heart/Renderer/FrameBuffer.h"
+#include "Heart/Renderer/Framebuffer.h"
 #include "Heart/Renderer/GraphicsContext.h"
 
 namespace Heart

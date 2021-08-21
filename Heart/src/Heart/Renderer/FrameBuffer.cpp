@@ -1,23 +1,35 @@
 #include "htpch.h"
-#include "FrameBuffer.h"
+#include "Framebuffer.h"
 
 #include "Heart/Renderer/Renderer.h"
-#include "Heart/Platform/Vulkan/VulkanFrameBuffer.h"
+#include "Heart/Platform/Vulkan/VulkanFramebuffer.h"
+#include "Heart/Core/Window.h"
 
 namespace Heart
 {
-    Ref<FrameBuffer> FrameBuffer::Create(const FrameBufferCreateInfo& createInfo)
+    Framebuffer::Framebuffer(const FramebufferCreateInfo& createInfo)
+        : m_Info(createInfo)
+    {
+        SubscribeToEmitter(&Window::GetMainWindow());
+    }
+
+    Framebuffer::~Framebuffer()
+    {
+        UnsubscribeFromEmitter(&Window::GetMainWindow());
+    }
+
+    Ref<Framebuffer> Framebuffer::Create(const FramebufferCreateInfo& createInfo)
     {
         switch (Renderer::GetApiType())
         {
             default:
-            { HE_ENGINE_ASSERT(false, "Cannot create FrameBuffer: selected ApiType is not supported"); return nullptr; }
+            { HE_ENGINE_ASSERT(false, "Cannot create Framebuffer: selected ApiType is not supported"); return nullptr; }
             case RenderApi::Type::Vulkan:
-            { return CreateRef<VulkanFrameBuffer>(createInfo); }
+            { return CreateRef<VulkanFramebuffer>(createInfo); }
         }
     }
 
-    Ref<GraphicsPipeline> FrameBuffer::RegisterGraphicsPipeline(const std::string& name, const GraphicsPipelineCreateInfo& createInfo)
+    Ref<GraphicsPipeline> Framebuffer::RegisterGraphicsPipeline(const std::string& name, const GraphicsPipelineCreateInfo& createInfo)
     {
         if (m_GraphicsPipelines.find(name) != m_GraphicsPipelines.end())
         {
@@ -29,7 +41,7 @@ namespace Heart
         return newPipeline;
     }
 
-    Ref<GraphicsPipeline> FrameBuffer::LoadPipeline(const std::string& name)
+    Ref<GraphicsPipeline> Framebuffer::LoadPipeline(const std::string& name)
     {
         if (m_GraphicsPipelines.find(name) == m_GraphicsPipelines.end())
         {
@@ -37,5 +49,32 @@ namespace Heart
             HE_ENGINE_ASSERT(false);
         }
         return m_GraphicsPipelines[name];
+    }
+
+    void Framebuffer::OnEvent(Event& event)
+    {
+        event.Map<WindowResizeEvent>(HE_BIND_EVENT_FN(Framebuffer::OnWindowResize));
+    }
+
+    bool Framebuffer::OnWindowResize(WindowResizeEvent& event)
+    {
+        //HE_ENGINE_LOG_INFO("FB window resized");
+
+        if (event.GetWidth() == 0 || event.GetHeight() == 0)
+            return false;
+
+        u32 newWidth = m_Info.Width == 0 ? event.GetWidth() : m_Info.Width;
+        u32 newHeight = m_Info.Height == 0 ? event.GetHeight() : m_Info.Height;
+
+        Invalidate(newWidth, newHeight);        
+
+        return false;
+    }
+
+    void Framebuffer::Invalidate(u32 newWidth, u32 newHeight)
+    {
+        m_Valid = false;
+        m_ActualWidth = newWidth;
+        m_ActualHeight = newHeight;
     }
 }

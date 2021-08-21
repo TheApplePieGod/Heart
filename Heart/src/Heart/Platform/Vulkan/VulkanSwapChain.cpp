@@ -19,9 +19,9 @@ namespace Heart
 
         CreateRenderPass();
 
-        CreateFrameBufferImages();
+        CreateFramebufferImages();
 
-        CreateFrameBuffers();
+        CreateFramebuffers();
 
         AllocateCommandBuffers();
 
@@ -38,9 +38,9 @@ namespace Heart
 
         FreeCommandBuffers();
 
-        CleanupFrameBuffers();
+        CleanupFramebuffers();
 
-        CleanupFrameBufferImages();
+        CleanupFramebufferImages();
 
         CleanupRenderPass();
         
@@ -202,7 +202,7 @@ namespace Heart
         vkDestroyRenderPass(device.Device(), m_RenderPass, nullptr);
     }
 
-    void VulkanSwapChain::CreateFrameBufferImages()
+    void VulkanSwapChain::CreateFramebufferImages()
     {
         VulkanDevice& device = VulkanContext::GetDevice();
         VkFormat colorFormat = m_SwapChainData.ImageFormat;
@@ -242,7 +242,7 @@ namespace Heart
         m_DepthImageView = VulkanCommon::CreateImageView(device.Device(), m_DepthImage, depthFormat, 1, VK_IMAGE_ASPECT_DEPTH_BIT);      
     }
 
-    void VulkanSwapChain::CleanupFrameBufferImages()
+    void VulkanSwapChain::CleanupFramebufferImages()
     {
         VulkanDevice& device = VulkanContext::GetDevice();
 
@@ -256,11 +256,11 @@ namespace Heart
         vkFreeMemory(device.Device(), m_DepthImageMemory, nullptr);
     }
 
-    void VulkanSwapChain::CreateFrameBuffers()
+    void VulkanSwapChain::CreateFramebuffers()
     {
         VulkanDevice& device = VulkanContext::GetDevice();
 
-        m_SwapChainData.FrameBuffers.resize(m_SwapChainData.ImageViews.size());
+        m_SwapChainData.Framebuffers.resize(m_SwapChainData.ImageViews.size());
         for (int i = 0; i < m_SwapChainData.ImageViews.size(); i++)
         {
             std::array<VkImageView, 3> attachments = { m_ColorImageView, m_SwapChainData.ImageViews[i], m_DepthImageView };
@@ -273,17 +273,17 @@ namespace Heart
             framebufferInfo.height = m_SwapChainData.Extent.height;
             framebufferInfo.layers = 1;
             
-            HE_VULKAN_CHECK_RESULT(vkCreateFramebuffer(device.Device(), &framebufferInfo, nullptr, &m_SwapChainData.FrameBuffers[i]));
+            HE_VULKAN_CHECK_RESULT(vkCreateFramebuffer(device.Device(), &framebufferInfo, nullptr, &m_SwapChainData.Framebuffers[i]));
         }
     }
 
-    void VulkanSwapChain::CleanupFrameBuffers()
+    void VulkanSwapChain::CleanupFramebuffers()
     {
         VulkanDevice& device = VulkanContext::GetDevice();
 
-        for (int i = 0; i < m_SwapChainData.FrameBuffers.size(); i++)
+        for (int i = 0; i < m_SwapChainData.Framebuffers.size(); i++)
         {
-            vkDestroyFramebuffer(device.Device(), m_SwapChainData.FrameBuffers[i], nullptr);
+            vkDestroyFramebuffer(device.Device(), m_SwapChainData.Framebuffers[i], nullptr);
         }
     }
 
@@ -292,7 +292,7 @@ namespace Heart
         VulkanDevice& device = VulkanContext::GetDevice();
 
         // primary
-        m_SwapChainData.CommandBuffers.resize(m_SwapChainData.FrameBuffers.size());
+        m_SwapChainData.CommandBuffers.resize(m_SwapChainData.Framebuffers.size());
         VkCommandBufferAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
         allocInfo.commandPool = VulkanContext::GetGraphicsPool();
@@ -362,17 +362,17 @@ namespace Heart
 
         //FreeCommandBuffers();
 
-        CleanupFrameBuffers();
+        CleanupFramebuffers();
 
-        CleanupFrameBufferImages();
+        CleanupFramebufferImages();
 
         CleanupSwapChain();
 
         CreateSwapChain();
 
-        CreateFrameBufferImages();
+        CreateFramebufferImages();
 
-        CreateFrameBuffers();
+        CreateFramebuffers();
 
         // TODO: look into this
         // we might not need to reallocate here since the only reason we would need to is if the number if swapchain images changes (which it shouldnt)
@@ -443,7 +443,7 @@ namespace Heart
         VkRenderPassBeginInfo renderPassInfo{};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
         renderPassInfo.renderPass = m_RenderPass;
-        renderPassInfo.framebuffer = m_SwapChainData.FrameBuffers[m_PresentImageIndex];
+        renderPassInfo.framebuffer = m_SwapChainData.Framebuffers[m_PresentImageIndex];
         renderPassInfo.renderArea.offset = { 0, 0 };
         renderPassInfo.renderArea.extent = m_SwapChainData.Extent;
 
@@ -483,7 +483,7 @@ namespace Heart
         // TODO: look at this
         m_ImagesInFlight[m_PresentImageIndex] = m_InFlightFences[m_InFlightFrameIndex];
 
-        //UpdatePerFrameBuffer(nextImageIndex);
+        //UpdatePerFramebuffer(nextImageIndex);
 
         std::array<VkSubmitInfo, 2> submitInfos;
         // auxiliary framebuffer submissions

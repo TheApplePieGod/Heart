@@ -13,7 +13,7 @@ namespace Heart
             VkExtent2D Extent;
             std::vector<VkImage> Images;
             std::vector<VkImageView> ImageViews;
-            std::vector<VkFramebuffer> FrameBuffers;
+            std::vector<VkFramebuffer> Framebuffers;
             std::vector<VkCommandBuffer> CommandBuffers;
         };
 
@@ -41,11 +41,11 @@ namespace Heart
         void CreateRenderPass();
         void CleanupRenderPass();
 
-        void CreateFrameBufferImages();
-        void CleanupFrameBufferImages();
+        void CreateFramebufferImages();
+        void CleanupFramebufferImages();
 
-        void CreateFrameBuffers();
-        void CleanupFrameBuffers();
+        void CreateFramebuffers();
+        void CleanupFramebuffers();
 
         void AllocateCommandBuffers();
         void FreeCommandBuffers();

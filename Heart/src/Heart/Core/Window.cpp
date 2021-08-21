@@ -7,16 +7,23 @@
 namespace Heart
 {
     int Window::s_WindowCount = 0;
+    Ref<Window> Window::s_MainWindow = nullptr;
 
     static void GLFWErrorCallback(int err, const char* desc)
     {
         HE_ENGINE_LOG_ERROR("GLFW Error ({0}): {1}", err, desc);
     }
 
-    Scope<Window> Window::Create(const WindowSettings& settings)
+    Ref<Window> Window::Create(const WindowSettings& settings)
     {
         HE_ENGINE_LOG_INFO("Creating window ({0}x{1})", settings.Width, settings.Height);
-        return CreateScope<Window>(settings);
+        auto newWindow = CreateRef<Window>(settings);
+
+        // first window created will be the main window
+        if (s_MainWindow == nullptr)
+            s_MainWindow = newWindow;
+
+        return newWindow;
     }
 
     Window::Window(const WindowSettings& settings)

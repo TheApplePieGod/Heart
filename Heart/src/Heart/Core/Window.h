@@ -42,10 +42,12 @@ namespace Heart
         u32 GetHeight() const { return m_WindowData.Height; }
 
     public:
-        static Scope<Window> Create(const WindowSettings& settings);
+        static Ref<Window> Create(const WindowSettings& settings);
+        static Window& GetMainWindow() { return *s_MainWindow; }
 
     private:
         static int s_WindowCount;
+        static Ref<Window> s_MainWindow;
 
     private:
         Ref<GraphicsContext> m_GraphicsContext;
