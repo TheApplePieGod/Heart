@@ -12,7 +12,7 @@ namespace Heart
         return Create(indexCount, nullptr);
     }
 
-    Ref<IndexBuffer> IndexBuffer::Create(u32 indexCount, void* initialData)
+    Ref<IndexBuffer> IndexBuffer::Create(u32 indexCount, u32* initialData)
     {
         switch (Renderer::GetApiType())
         {

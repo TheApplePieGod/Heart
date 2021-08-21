@@ -49,7 +49,10 @@ namespace Heart
 
         shaderc::SpvCompilationResult compiled = compiler.CompileGlslToSpv(sourceCode, shaderKind, path.c_str(), options);
         if (compiled.GetCompilationStatus() != shaderc_compilation_status_success)
-            HE_ENGINE_ASSERT(false, "Shader compilation failed: {1}", compiled.GetErrorMessage());
+        {
+            HE_ENGINE_LOG_ERROR("Shader compilation failed: {0}", compiled.GetErrorMessage());
+            HE_ENGINE_ASSERT(false);
+        }
 
         // TODO: reflect shader using spirv-cross
         return std::vector<u32>(compiled.cbegin(), compiled.cend());
@@ -57,7 +60,11 @@ namespace Heart
 
     Ref<Shader> ShaderRegistry::RegisterShader(const std::string& name, const std::string& path, Shader::Type shaderType)
     {
-        HE_ENGINE_ASSERT(m_Shaders.find(name) == m_Shaders.end(), "Cannot register shader, name already exists: {1}", name);
+        if (m_Shaders.find(name) != m_Shaders.end())
+        {
+            HE_ENGINE_LOG_ERROR("Cannot register shader, name already exists: {0}", name);
+            HE_ENGINE_ASSERT(false);
+        }
         Ref<Shader> newShader = Shader::Create(path, shaderType);
         m_Shaders[name] = newShader;
         return newShader;
@@ -65,7 +72,11 @@ namespace Heart
     
     Ref<Shader> ShaderRegistry::LoadShader(const std::string& name)
     {
-        HE_ENGINE_ASSERT(m_Shaders.find(name) != m_Shaders.end(), "Shader not registered: {1}", name);
+        if (m_Shaders.find(name) == m_Shaders.end())
+        {
+            HE_ENGINE_LOG_ERROR("Shader not registered: {0}", name);
+            HE_ENGINE_ASSERT(false);
+        }
         return m_Shaders[name];
     }
 }

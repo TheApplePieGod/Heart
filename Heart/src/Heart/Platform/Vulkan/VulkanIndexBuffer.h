@@ -8,7 +8,7 @@ namespace Heart
     class VulkanIndexBuffer : public IndexBuffer
     {
     public:
-        VulkanIndexBuffer(u32 indexCount, void* initialData);
+        VulkanIndexBuffer(u32 indexCount, u32* initialData);
         ~VulkanIndexBuffer() override;
 
         void SetData(void* data, u32 indexCount, u32 indexOffset) override;

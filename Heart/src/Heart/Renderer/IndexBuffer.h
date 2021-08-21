@@ -19,7 +19,7 @@ namespace Heart
 
     public:
         static Ref<IndexBuffer> Create(u32 indexCount);
-        static Ref<IndexBuffer> Create(u32 indexCount, void* initialData);
+        static Ref<IndexBuffer> Create(u32 indexCount, u32* initialData);
 
     private:
 

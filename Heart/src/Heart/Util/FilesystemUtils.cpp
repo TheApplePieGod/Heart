@@ -6,7 +6,11 @@ namespace Heart
     std::string FilesystemUtils::LoadFile(const std::string& path)
     {
         std::ifstream file(path, std::ios::ate | std::ios::binary);
-        HE_ENGINE_ASSERT(file.is_open(), "Failed to load file ${1}", path);
+        if (!file.is_open())
+        {
+            HE_ENGINE_LOG_ERROR("Failed to load file {0}", path);
+            HE_ENGINE_ASSERT(false);
+        }
         
         u64 fileSize = file.tellg();
         std::vector<char> buffer(fileSize);

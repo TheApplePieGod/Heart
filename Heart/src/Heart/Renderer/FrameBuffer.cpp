@@ -19,7 +19,11 @@ namespace Heart
 
     Ref<GraphicsPipeline> FrameBuffer::RegisterGraphicsPipeline(const std::string& name, const GraphicsPipelineCreateInfo& createInfo)
     {
-        HE_ENGINE_ASSERT(m_GraphicsPipelines.find(name) == m_GraphicsPipelines.end(), "Cannot register graphics pipeline, name already exists: {1}", name);
+        if (m_GraphicsPipelines.find(name) != m_GraphicsPipelines.end())
+        {
+            HE_ENGINE_LOG_ERROR("Cannot register pipeline, name already exists: {0}", name);
+            HE_ENGINE_ASSERT(false);
+        }
         Ref<GraphicsPipeline> newPipeline = InternalInitializeGraphicsPipeline(createInfo);
         m_GraphicsPipelines[name] = newPipeline;
         return newPipeline;
@@ -27,7 +31,11 @@ namespace Heart
 
     Ref<GraphicsPipeline> FrameBuffer::LoadPipeline(const std::string& name)
     {
-        HE_ENGINE_ASSERT(m_GraphicsPipelines.find(name) != m_GraphicsPipelines.end(), "Pipeline not registered: {1}", name);
+        if (m_GraphicsPipelines.find(name) == m_GraphicsPipelines.end())
+        {
+            HE_ENGINE_LOG_ERROR("Pipeline not registered: {0}", name);
+            HE_ENGINE_ASSERT(false);
+        }
         return m_GraphicsPipelines[name];
     }
 }

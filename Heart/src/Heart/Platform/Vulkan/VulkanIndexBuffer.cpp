@@ -6,7 +6,7 @@
 
 namespace Heart
 {
-    VulkanIndexBuffer::VulkanIndexBuffer(u32 indexCount, void* initialData)
+    VulkanIndexBuffer::VulkanIndexBuffer(u32 indexCount, u32* initialData)
         : IndexBuffer(indexCount)
     {
         VulkanDevice& device = VulkanContext::GetDevice();
