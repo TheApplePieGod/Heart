@@ -2,7 +2,7 @@
 
 namespace Heart
 {
-    enum EventType
+    enum class EventType
     {
         None = 0,
         WindowResize, WindowClose,

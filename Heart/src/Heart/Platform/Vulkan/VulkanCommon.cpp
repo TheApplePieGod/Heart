@@ -161,6 +161,41 @@ namespace Heart
         vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
     }
 
+    VkPipelineShaderStageCreateInfo VulkanCommon::DefineShaderStage(VkShaderModule shaderModule, VkShaderStageFlagBits stage, const char* entrypoint)
+    {
+        VkPipelineShaderStageCreateInfo shaderStageInfo{};
+        shaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        shaderStageInfo.stage = stage;
+        shaderStageInfo.module = shaderModule;
+        shaderStageInfo.pName = entrypoint;
+        shaderStageInfo.pSpecializationInfo = nullptr;
+
+        return shaderStageInfo;
+    }
+
+    void VulkanCommon::CreateBuffer(VkDevice device, VkPhysicalDevice physicalDevice, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory)
+    {
+        VkBufferCreateInfo bufferInfo{};
+        bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+        bufferInfo.size = size; // really shouldnt have more vertices than this
+        bufferInfo.usage = usage;
+        bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+        HE_VULKAN_CHECK_RESULT(vkCreateBuffer(device, &bufferInfo, nullptr, &buffer));
+
+        VkMemoryRequirements memRequirements;
+        vkGetBufferMemoryRequirements(device, buffer, &memRequirements);
+
+        VkMemoryAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        allocInfo.allocationSize = memRequirements.size;
+        allocInfo.memoryTypeIndex = FindMemoryType(physicalDevice, memRequirements.memoryTypeBits, properties);
+        
+        HE_VULKAN_CHECK_RESULT(vkAllocateMemory(device, &allocInfo, nullptr, &bufferMemory));
+
+        HE_VULKAN_CHECK_RESULT(vkBindBufferMemory(device, buffer, bufferMemory, 0));
+    }
+
     VkFormat VulkanCommon::ColorFormatToVulkan(ColorFormat format)
     {
         // TODO: make these more robust
@@ -194,5 +229,19 @@ namespace Heart
         }
 
         return VK_SAMPLE_COUNT_1_BIT;
+    }
+
+    VkPrimitiveTopology VulkanCommon::VertexTopologyToVulkan(VertexTopology topology)
+    {
+        switch (topology)
+        {
+            default:
+            { HE_ENGINE_ASSERT(false, "Vulkan does not support specified vertex topology"); } break;
+            case VertexTopology::TriangleList: return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+            case VertexTopology::PointList: return VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
+            case VertexTopology::LineList: return VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+        }
+
+        return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
     }
 }

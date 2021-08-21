@@ -3,6 +3,7 @@
 
 #include "Heart/Platform/Vulkan/VulkanContext.h"
 #include "Heart/Platform/Vulkan/VulkanDevice.h"
+#include "Heart/Platform/Vulkan/VulkanGraphicsPipeline.h"
 
 namespace Heart
 {
@@ -207,6 +208,11 @@ namespace Heart
 
         vkDestroyFramebuffer(device.Device(), m_FrameBuffer, nullptr);
 
+        for (auto& pipeline : m_GraphicsPipelines)
+        {
+            pipeline.second.reset();
+        }
+
         for (auto& attachmentData : m_AttachmentData)
         {
             vkDestroyImageView(device.Device(), attachmentData.ColorImageView, nullptr);
@@ -268,5 +274,10 @@ namespace Heart
         HE_VULKAN_CHECK_RESULT(vkEndCommandBuffer(m_CommandBuffer));
 
         context.GetSwapChain().SubmitCommandBuffer(m_CommandBuffer);
+    }
+
+    Ref<GraphicsPipeline> VulkanFrameBuffer::InternalInitializeGraphicsPipeline(const GraphicsPipelineCreateInfo& createInfo)
+    {
+        return CreateRef<VulkanGraphicsPipeline>(createInfo, m_RenderPass, VulkanCommon::MsaaSampleCountToVulkan(m_Info.SampleCount));
     }
 }

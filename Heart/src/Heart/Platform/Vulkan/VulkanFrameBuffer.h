@@ -18,6 +18,9 @@ namespace Heart
         inline VkRenderPass GetRenderPass() const { return m_RenderPass; }
         inline VkCommandBuffer GetCommandBuffer() const { return m_CommandBuffer; }
 
+    protected:
+        Ref<GraphicsPipeline> InternalInitializeGraphicsPipeline(const GraphicsPipelineCreateInfo& createInfo) override;
+
     private:
         struct VulkanFrameBufferAttachment
         {

@@ -6,7 +6,6 @@ include_directories(".")
 
 # Dependency includes
 include_directories("lib")
-include_directories("lib")
 include_directories("lib/GLFW/include")
 include_directories("lib/glm")
 include_directories("lib/imgui")
@@ -27,7 +26,8 @@ set(IMGUI_SOURCES
 
 # Build main
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp" "src/*.h" "htpch.h")
-add_executable(Engine "${SOURCES}" "${IMGUI_SOURCES}" "src/Heart/Core/EntryPoint.cpp")
+#add_executable(Engine "${SOURCES}" "${IMGUI_SOURCES}" "src/Heart/Core/EntryPoint.cpp")
+add_library(Engine "${SOURCES}" "${IMGUI_SOURCES}")
 
 # Locate vulkansdk libraries
 find_library(vulkan

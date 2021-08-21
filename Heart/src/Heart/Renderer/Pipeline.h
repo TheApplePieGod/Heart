@@ -1,16 +1,27 @@
 #pragma once
 
+#include "Heart/Renderer/Shader.h"
+
 namespace Heart
 {
+    enum class VertexTopology
+    {
+        TriangleList = 0, PointList = 1, LineList = 2
+    };
+
     struct GraphicsPipelineCreateInfo
     {
-        std::string m_VertexShaderName;
-        std::string m_FragmentShaderName;
+        Ref<Shader> VertexShader;
+        Ref<Shader> FragmentShader;
+
+        VertexTopology VertexTopology;
+
+        bool DepthEnable;
     };
 
     struct ComputePipelineCreateInfo
     {
-
+        
     };
 
     class Pipeline
@@ -33,9 +44,6 @@ namespace Heart
         {}
         virtual ~GraphicsPipeline() = default;
 
-    public:
-        static Ref<GraphicsPipeline> Create(const GraphicsPipelineCreateInfo& createInfo);
-
     private:
         GraphicsPipelineCreateInfo m_Info;
     };
@@ -53,16 +61,5 @@ namespace Heart
 
     private:
         ComputePipelineCreateInfo m_Info;
-    };
-
-    class PipelineRegistry
-    {
-    public:
-        Ref<Pipeline> RegisterGraphicsPipeline(const std::string& name, const GraphicsPipelineCreateInfo& createInfo);
-        Ref<Pipeline> RegisterComputePipeline(const std::string& name, const ComputePipelineCreateInfo& createInfo);
-        Ref<Pipeline> LoadPipeline(const std::string& name);
-
-    private:
-        std::unordered_map<std::string, Ref<Pipeline>> m_Pipelines;
     };
 }

@@ -2,6 +2,7 @@
 
 #include "vulkan/vulkan.h"
 #include "Heart/Renderer/FrameBuffer.h"
+#include "Heart/Renderer/Pipeline.h"
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
 
@@ -39,8 +40,12 @@ namespace Heart
         static VkImageView CreateImageView(VkDevice device, VkImage image, VkFormat format, u32 mipLevels, VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT);
         static VkCommandBuffer BeginSingleTimeCommands(VkDevice device, VkCommandPool commandPool);
         static void EndSingleTimeCommands(VkDevice device, VkCommandPool commandPool, VkCommandBuffer commandBuffer, VkQueue submitQueue);
+        static VkPipelineShaderStageCreateInfo DefineShaderStage(VkShaderModule shaderModule, VkShaderStageFlagBits stage, const char* entrypoint = "main");
+        static void CreateBuffer(VkDevice device, VkPhysicalDevice physicalDevice, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
+
         static VkFormat ColorFormatToVulkan(ColorFormat format);
         static VkSampleCountFlagBits MsaaSampleCountToVulkan(MsaaSampleCount sampleCount);
+        static VkPrimitiveTopology VertexTopologyToVulkan(VertexTopology topology);
     };
 }
 

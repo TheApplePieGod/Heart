@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Heart/Renderer/GraphicsContext.h"
+#include "Heart/Renderer/Pipeline.h"
 
 namespace Heart
 {
@@ -48,10 +49,17 @@ namespace Heart
         virtual void Bind() = 0;
         virtual void Submit(GraphicsContext& context) = 0;
 
+        Ref<GraphicsPipeline> RegisterGraphicsPipeline(const std::string& name, const GraphicsPipelineCreateInfo& createInfo);
+        Ref<GraphicsPipeline> LoadPipeline(const std::string& name);
+
     public:
         static Ref<FrameBuffer> Create(const FrameBufferCreateInfo& createInfo);
 
     protected:
+        virtual Ref<GraphicsPipeline> InternalInitializeGraphicsPipeline(const GraphicsPipelineCreateInfo& createInfo) = 0;
+
+    protected:
         FrameBufferCreateInfo m_Info;
+        std::unordered_map<std::string, Ref<GraphicsPipeline>> m_GraphicsPipelines;
     };
 }

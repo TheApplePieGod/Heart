@@ -11,6 +11,8 @@ namespace Heart
         VulkanShader(const std::string& path, Type shaderType);
         ~VulkanShader() override;
 
+        inline VkShaderModule GetShaderModule() const { return m_ShaderModule; }
+
     private:
          
 
