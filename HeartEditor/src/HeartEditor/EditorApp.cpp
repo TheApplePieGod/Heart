@@ -1,11 +1,11 @@
 #include "htpch.h"
-#include "HeartEditor.h"
+#include "EditorApp.h"
 
 #include "HeartEditor/EditorLayer.h"
 
 namespace HeartEditor
 {
-    HeartEditor::HeartEditor()
+    EditorApp::EditorApp()
     {
         PushLayer(new EditorLayer());
     }

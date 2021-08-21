@@ -4,10 +4,10 @@
 
 namespace HeartEditor
 {
-    class HeartEditor : public Heart::App
+    class EditorApp : public Heart::App
     {
     public:
-        HeartEditor();
+        EditorApp();
 
     private:
         
