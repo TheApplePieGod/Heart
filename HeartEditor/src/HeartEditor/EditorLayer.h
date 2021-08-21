@@ -5,7 +5,7 @@
 // Testing
 #include "Heart/Renderer/VertexBuffer.h"
 #include "Heart/Renderer/IndexBuffer.h"
-#include "Heart/Renderer/FrameBuffer.h"
+#include "Heart/Renderer/Framebuffer.h"
 
 namespace HeartEditor
 {
@@ -13,13 +13,15 @@ namespace HeartEditor
     {
         Heart::Ref<Heart::VertexBuffer> VertexBuffer;
         Heart::Ref<Heart::IndexBuffer> IndexBuffer;
-        Heart::Ref<Heart::FrameBuffer> SceneFrameBuffer;
+        Heart::Ref<Heart::Framebuffer> SceneFramebuffer;
         Heart::ShaderRegistry ShaderRegistry;
     };
 
     class EditorLayer : public Heart::Layer
     {
     public:
+        ~EditorLayer() override;
+
         void OnAttach() override;
         void OnUpdate() override;
         void OnImGuiRender() override;

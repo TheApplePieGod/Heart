@@ -41,30 +41,32 @@ namespace HeartEditor
                 m_TestData.ShaderRegistry.LoadShader("frag"),
                 Heart::VertexTopology::TriangleList,
                 vertBufferLayout,
+                { { true }, { true } },
                 true,
                 Heart::CullMode::None
             };
 
             // framebuffer
-            Heart::FrameBufferCreateInfo fbCreateInfo = {
-                { true, Heart::ColorFormat::RGBA8, { 0.f, 1.f, 0.f, 1.f } }
+            Heart::FramebufferCreateInfo fbCreateInfo = {
+                { true, Heart::ColorFormat::RGBA8, { 0.f, 1.f, 0.f, 1.f } },
+                { false, Heart::ColorFormat::RGBA8, { 0.f, 1.f, 0.f, 1.f } }
             };
-            fbCreateInfo.Width = 1920;
-            fbCreateInfo.Height = 1080;
+            fbCreateInfo.Width = 500;
+            fbCreateInfo.Height = 500;
             fbCreateInfo.SampleCount = Heart::MsaaSampleCount::None;
-            m_TestData.SceneFrameBuffer = Heart::FrameBuffer::Create(fbCreateInfo);
-            m_TestData.SceneFrameBuffer->RegisterGraphicsPipeline("main", gpCreateInfo);
+            m_TestData.SceneFramebuffer = Heart::Framebuffer::Create(fbCreateInfo);
+            m_TestData.SceneFramebuffer->RegisterGraphicsPipeline("main", gpCreateInfo);
         }
     }
 
     void EditorLayer::OnUpdate()
     {
-        m_TestData.SceneFrameBuffer->Bind();
+        m_TestData.SceneFramebuffer->Bind();
         
         Heart::Renderer::Api().BindVertexBuffer(*m_TestData.VertexBuffer);
         Heart::Renderer::Api().BindIndexBuffer(*m_TestData.IndexBuffer);
 
-        m_TestData.SceneFrameBuffer->BindPipeline("main");
+        m_TestData.SceneFramebuffer->BindPipeline("main");
 
         Heart::Renderer::Api().DrawIndexed(
             m_TestData.IndexBuffer->GetAllocatedCount(),
@@ -72,7 +74,7 @@ namespace HeartEditor
             0, 0, 1
         );
 
-        m_TestData.SceneFrameBuffer->Submit(EditorApp::Get().GetWindow().GetContext());
+        m_TestData.SceneFramebuffer->Submit(EditorApp::Get().GetWindow().GetContext());
     }
 
     void EditorLayer::OnImGuiRender()
@@ -80,8 +82,8 @@ namespace HeartEditor
         //ImGui::ShowDemoWindow();
         ImGui::Begin("Test");
         ImGui::Image(
-            m_TestData.SceneFrameBuffer->GetRawAttachmentImageHandle(0, Heart::FrameBufferAttachmentType::Color),
-            { 500, 500 }
+            m_TestData.SceneFramebuffer->GetRawAttachmentImageHandle(1, Heart::FramebufferAttachmentType::Color),
+            { (f32)m_TestData.SceneFramebuffer->GetWidth(), (f32)m_TestData.SceneFramebuffer->GetHeight() }
         );
 
         ImGui::End();
@@ -90,5 +92,10 @@ namespace HeartEditor
     void EditorLayer::OnDetach()
     {
 
+    }
+
+    EditorLayer::~EditorLayer()
+    {
+        
     }
 }
