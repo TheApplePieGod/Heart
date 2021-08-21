@@ -8,8 +8,10 @@ namespace Heart
     class VulkanGraphicsPipeline : public GraphicsPipeline
     {
     public:
-        VulkanGraphicsPipeline(const GraphicsPipelineCreateInfo& createInfo, VkRenderPass renderPass, VkSampleCountFlagBits sampleCount);
+        VulkanGraphicsPipeline(const GraphicsPipelineCreateInfo& createInfo, VkRenderPass renderPass, VkSampleCountFlagBits sampleCount, u32 viewportWidth, u32 viewportHeight);
         ~VulkanGraphicsPipeline() override;
+
+        inline VkPipeline GetPipeline() const { return m_Pipeline; }
 
     private:
         VkPipelineLayout m_PipelineLayout;

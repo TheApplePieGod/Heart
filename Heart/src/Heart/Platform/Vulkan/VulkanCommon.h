@@ -46,6 +46,8 @@ namespace Heart
         static VkFormat ColorFormatToVulkan(ColorFormat format);
         static VkSampleCountFlagBits MsaaSampleCountToVulkan(MsaaSampleCount sampleCount);
         static VkPrimitiveTopology VertexTopologyToVulkan(VertexTopology topology);
+        static VkFormat BufferDataTypeToVulkan(BufferDataType type);
+        static VkCullModeFlagBits CullModeToVulkan(CullMode mode);
     };
 }
 

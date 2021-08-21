@@ -2,6 +2,7 @@
 
 #include "Heart/Renderer/GraphicsContext.h"
 #include "Heart/Renderer/Pipeline.h"
+#include "glm/vec4.hpp"
 
 namespace Heart
 {
@@ -19,12 +20,17 @@ namespace Heart
         Max = Sixtyfour
     };
 
+    enum class FrameBufferAttachmentType
+    {
+        None = 0,
+        Color, Depth
+    };
+
     struct FrameBufferAttachment
     {
         bool HasDepth = false;
-        bool ForceResolve = false; // the attachment will automatically have a resolve if SampleCount is > none   
         ColorFormat ColorFormat = ColorFormat::RGBA8;
-        u32 ResolveWidth, ResolveHeight = 0; // keep these at zero to match Width and Height
+        glm::vec4 ClearColor; // TODO: resolve clear color?
     };
 
     struct FrameBufferCreateInfo
@@ -35,7 +41,7 @@ namespace Heart
 
         std::vector<FrameBufferAttachment> Attachments;
         u32 Width, Height = 0; // TODO: set to zero to match screen width and height
-        MsaaSampleCount SampleCount = MsaaSampleCount::Max;
+        MsaaSampleCount SampleCount = MsaaSampleCount::Max; // will be clamped to device max supported sample count
     };
 
     class FrameBuffer
@@ -48,6 +54,10 @@ namespace Heart
 
         virtual void Bind() = 0;
         virtual void Submit(GraphicsContext& context) = 0;
+        virtual void BindPipeline(const std::string& name) = 0;
+        
+        // useful for ImGui
+        virtual void* GetRawAttachmentImageHandle(u32 attachmentIndex, FrameBufferAttachmentType type) = 0;
 
         Ref<GraphicsPipeline> RegisterGraphicsPipeline(const std::string& name, const GraphicsPipelineCreateInfo& createInfo);
         Ref<GraphicsPipeline> LoadPipeline(const std::string& name);

@@ -32,6 +32,7 @@ namespace Heart
         inline static VkCommandPool GetComputePool() { return s_ComputePool; }
         inline static VkCommandBuffer GetBoundCommandBuffer() { return s_BoundCommandBuffer; }
         inline static void SetBoundCommandBuffer(VkCommandBuffer buffer) { s_BoundCommandBuffer = buffer; }
+        inline static VkSampler GetDefaultSampler() { return s_DefaultSampler; }
 
         static std::vector<const char*> ConfigureValidationLayers();
     
@@ -50,6 +51,7 @@ namespace Heart
     private:
         static void InitializeInstance();
         static void InitializeCommandPools();
+        static void CreateDefaultSampler();
 
     private:
         static u32 s_ContextCount;
@@ -59,5 +61,6 @@ namespace Heart
         static VkCommandPool s_GraphicsPool;
         static VkCommandPool s_ComputePool;
         static VkCommandBuffer s_BoundCommandBuffer;
+        static VkSampler s_DefaultSampler;
     };
 }

@@ -13,6 +13,8 @@ namespace Heart
 
         void SetData(void* data, u32 indexCount, u32 indexOffset) override;
 
+        inline VkBuffer GetBuffer() const { return m_Buffer; }
+
     private:
         VkBuffer m_Buffer;
         VkDeviceMemory m_BufferMemory;

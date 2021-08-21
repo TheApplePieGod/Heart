@@ -61,7 +61,7 @@ namespace Heart
         }
 
         inline u32 GetStride() const { return m_CalculatedStride; }
-        inline std::vector<BufferLayoutElement>& GetElements() { return m_Elements; }
+        inline const std::vector<BufferLayoutElement>& GetElements() const { return m_Elements; }
     
     private:
         u32 CalculateStride();

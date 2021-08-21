@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Heart/Renderer/Shader.h"
+#include "Heart/Renderer/Buffer.h"
 
 namespace Heart
 {
@@ -9,14 +10,21 @@ namespace Heart
         TriangleList = 0, PointList = 1, LineList = 2
     };
 
+    enum class CullMode
+    {
+        None = 0, Backface = 1, Frontface = 2, Both = 3
+    };
+
     struct GraphicsPipelineCreateInfo
     {
         Ref<Shader> VertexShader;
         Ref<Shader> FragmentShader;
 
         VertexTopology VertexTopology;
+        BufferLayout VertexLayout;
 
         bool DepthEnable;
+        CullMode CullMode;
     };
 
     struct ComputePipelineCreateInfo

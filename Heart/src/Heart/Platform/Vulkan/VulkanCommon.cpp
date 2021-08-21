@@ -202,7 +202,7 @@ namespace Heart
         switch (format)
         {
             default:
-            { HE_ENGINE_ASSERT(false, "Vulkan does not support specified color format"); } break;
+            { HE_ENGINE_ASSERT(false, "Vulkan does not support specified ColorFormat"); } break;
             case ColorFormat::R8: return VK_FORMAT_R8_SRGB;
             case ColorFormat::RG8: return VK_FORMAT_R8G8_SRGB;
             case ColorFormat::RGB8: return VK_FORMAT_R8G8B8_SRGB;
@@ -210,7 +210,7 @@ namespace Heart
             case ColorFormat::RGBA32: return VK_FORMAT_R32G32B32A32_SFLOAT;
         }
 
-        return VK_FORMAT_R8_SRGB;
+        return VK_FORMAT_UNDEFINED;
     }
 
     VkSampleCountFlagBits VulkanCommon::MsaaSampleCountToVulkan(MsaaSampleCount sampleCount)
@@ -218,7 +218,7 @@ namespace Heart
         switch (sampleCount)
         {
             default:
-            { HE_ENGINE_ASSERT(false, "Vulkan does not support specified sample count"); } break;
+            { HE_ENGINE_ASSERT(false, "Vulkan does not support specified MsaaSampleCount"); } break;
             case MsaaSampleCount::None: return VK_SAMPLE_COUNT_1_BIT;
             case MsaaSampleCount::Two: return VK_SAMPLE_COUNT_2_BIT;
             case MsaaSampleCount::Four: return VK_SAMPLE_COUNT_4_BIT;
@@ -236,12 +236,51 @@ namespace Heart
         switch (topology)
         {
             default:
-            { HE_ENGINE_ASSERT(false, "Vulkan does not support specified vertex topology"); } break;
+            { HE_ENGINE_ASSERT(false, "Vulkan does not support specified VertexTopology"); } break;
             case VertexTopology::TriangleList: return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
             case VertexTopology::PointList: return VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
             case VertexTopology::LineList: return VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
         }
 
         return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    }
+
+    VkFormat VulkanCommon::BufferDataTypeToVulkan(BufferDataType type)
+    {
+        switch (type)
+        {
+            default:
+            { HE_ENGINE_ASSERT(false, "Vulkan does not support specified BufferDataType"); } break;
+            case BufferDataType::Bool: return VK_FORMAT_R32_UINT;
+            case BufferDataType::UInt: return VK_FORMAT_R32_UINT;
+            case BufferDataType::Double: return VK_FORMAT_R64_SFLOAT;
+            case BufferDataType::Int: return VK_FORMAT_R32_SINT;
+            case BufferDataType::Int2: return VK_FORMAT_R32G32_SINT;
+            case BufferDataType::Int3: return VK_FORMAT_R32G32B32_SINT;
+            case BufferDataType::Int4: return VK_FORMAT_R32G32B32A32_SINT;
+            case BufferDataType::Float: return VK_FORMAT_R32_SFLOAT;
+            case BufferDataType::Float2: return VK_FORMAT_R32G32_SFLOAT;
+            case BufferDataType::Float3: return VK_FORMAT_R32G32B32_SFLOAT;
+            case BufferDataType::Float4: return VK_FORMAT_R32G32B32A32_SFLOAT;
+            //case BufferDataType::Mat3: return VK_FORMAT_UNDEFINED;
+            //case BufferDataType::Mat4: return VK_FORMAT_UNDEFINED;
+        }
+
+        return VK_FORMAT_UNDEFINED;
+    }
+
+    VkCullModeFlagBits VulkanCommon::CullModeToVulkan(CullMode mode)
+    {
+        switch (mode)
+        {
+            default:
+            { HE_ENGINE_ASSERT(false, "Vulkan does not support specified CullMode"); } break;
+            case CullMode::None: return VK_CULL_MODE_NONE;
+            case CullMode::Backface: return VK_CULL_MODE_BACK_BIT;
+            case CullMode::Frontface: return VK_CULL_MODE_FRONT_BIT;
+            case CullMode::Both: return VK_CULL_MODE_FRONT_AND_BACK;
+        }
+
+        return VK_CULL_MODE_NONE;
     }
 }

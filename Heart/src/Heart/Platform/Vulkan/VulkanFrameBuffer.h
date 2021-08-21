@@ -13,6 +13,9 @@ namespace Heart
 
         void Bind() override;
         void Submit(GraphicsContext& context) override;
+        void BindPipeline(const std::string& name) override;
+
+        void* GetRawAttachmentImageHandle(u32 attachmentIndex, FrameBufferAttachmentType type) override;
 
         inline VkFramebuffer GetFrameBuffer() const { return m_FrameBuffer; }
         inline VkRenderPass GetRenderPass() const { return m_RenderPass; }
@@ -33,6 +36,9 @@ namespace Heart
             VkImageView ColorImageView;
             VkImageView ResolveImageView;
             VkImageView DepthImageView;
+            void* ColorImageImGuiId;
+            void* ResolveImageImGuiId;
+            void* DepthImageImGuiId;
             bool HasResolve;
             bool HasDepth;
         };
@@ -42,6 +48,7 @@ namespace Heart
         VkRenderPass m_RenderPass;
         VkCommandBuffer m_CommandBuffer; // one for each swapchainimage
         std::vector<VulkanFrameBufferAttachment> m_AttachmentData;
-        
+        std::vector<VkClearValue> m_CachedClearValues;
+        std::unordered_map<std::string, Ref<GraphicsPipeline>> m_GraphicsPipelines;
     };
 }

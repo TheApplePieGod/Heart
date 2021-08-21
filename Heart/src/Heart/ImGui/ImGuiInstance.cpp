@@ -85,8 +85,6 @@ namespace Heart
 
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
-
-        ImGui::ShowDemoWindow();
     }
 
     void ImGuiInstance::EndFrame()

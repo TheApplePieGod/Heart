@@ -13,7 +13,7 @@ namespace Heart
 
         static void OnWindowResize(GraphicsContext& context, u32 width, u32 height);
 
-        static RenderApi& GetApi() { return *s_RenderApi; }
+        static RenderApi& Api() { return *s_RenderApi; }
         static RenderApi::Type GetApiType() { return s_RenderApiType; }
 
     private:

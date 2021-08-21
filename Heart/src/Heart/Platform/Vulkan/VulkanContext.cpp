@@ -14,6 +14,7 @@ namespace Heart
     VkCommandPool VulkanContext::s_GraphicsPool;
     VkCommandPool VulkanContext::s_ComputePool;
     VkCommandBuffer VulkanContext::s_BoundCommandBuffer;
+    VkSampler VulkanContext::s_DefaultSampler;
 
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
         VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -50,6 +51,8 @@ namespace Heart
             s_VulkanDevice.Initialize(m_Surface);
 
             InitializeCommandPools();
+
+            CreateDefaultSampler();
         }
         else
             CreateSurface(m_Surface);
@@ -78,6 +81,8 @@ namespace Heart
         if (s_ContextCount == 0)
         {
             HE_ENGINE_LOG_INFO("Cleaning up vulkan");
+            vkDestroySampler(s_VulkanDevice.Device(), s_DefaultSampler, nullptr);
+
             vkDestroyCommandPool(s_VulkanDevice.Device(), s_GraphicsPool, nullptr);
             vkDestroyCommandPool(s_VulkanDevice.Device(), s_ComputePool, nullptr);
 
@@ -110,7 +115,7 @@ namespace Heart
         poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
         poolInfo.poolSizeCount = static_cast<u32>(poolSizes.size());
         poolInfo.pPoolSizes = poolSizes.data();
-        poolInfo.maxSets = 1;
+        poolInfo.maxSets = 100;
         poolInfo.flags = 0;
 
         HE_VULKAN_CHECK_RESULT(vkCreateDescriptorPool(s_VulkanDevice.Device(), &poolInfo, nullptr, &m_ImGuiDescriptorPool));
@@ -199,6 +204,32 @@ namespace Heart
         poolInfo.queueFamilyIndex = s_VulkanDevice.ComputeQueueIndex();
 
         HE_VULKAN_CHECK_RESULT(vkCreateCommandPool(s_VulkanDevice.Device(), &poolInfo, nullptr, &s_ComputePool));
+    }
+
+    void VulkanContext::CreateDefaultSampler()
+    {
+        VkPhysicalDeviceProperties properties{};
+        vkGetPhysicalDeviceProperties(s_VulkanDevice.PhysicalDevice(), &properties);
+
+        VkSamplerCreateInfo samplerInfo{};
+        samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+        samplerInfo.magFilter = VK_FILTER_LINEAR;
+        samplerInfo.minFilter = VK_FILTER_LINEAR;
+        samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        samplerInfo.anisotropyEnable = VK_TRUE;
+        samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
+        samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+        samplerInfo.unnormalizedCoordinates = VK_FALSE;
+        samplerInfo.compareEnable = VK_FALSE;
+        samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+        samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+        samplerInfo.mipLodBias = 0.0f;
+        samplerInfo.minLod = 0.0f;
+        samplerInfo.maxLod = 0.0f;
+
+        HE_VULKAN_CHECK_RESULT(vkCreateSampler(s_VulkanDevice.Device(), &samplerInfo, nullptr, &s_DefaultSampler));
     }
 
     void VulkanContext::InitializeImGui()
