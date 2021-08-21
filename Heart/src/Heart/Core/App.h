@@ -10,13 +10,13 @@ extern int main(int argc, char** argv);
 
 namespace Heart
 {
-    class Engine : public EventListener
+    class App : public EventListener
     {
     public:
-        Engine();
-        ~Engine();
+        App();
+        ~App();
 
-        inline static Engine& Get() { return *s_Instance; }
+        inline static App& Get() { return *s_Instance; }
         inline ImGuiInstance& GetImGuiInstance() { return m_ImGuiInstance; }
         inline Window& GetWindow() const { return *m_Window; }
 
@@ -36,7 +36,7 @@ namespace Heart
         bool m_Running = true;
 
     private:
-        static Engine* s_Instance;
+        static App* s_Instance;
         friend int ::main(int argc, char** argv);
     };
 }

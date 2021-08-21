@@ -1,5 +1,5 @@
 #include "htpch.h"
-#include "Engine.h"
+#include "App.h"
 
 #include "Heart/Renderer/RenderApi.h"
 #include "Heart/Renderer/Renderer.h"
@@ -7,11 +7,11 @@
 
 namespace Heart
 {
-    Engine* Engine::s_Instance = nullptr;
+    App* App::s_Instance = nullptr;
 
-    Engine::Engine()
+    App::App()
     {
-        HE_ENGINE_ASSERT(!s_Instance, "Engine instance already exists");
+        HE_ENGINE_ASSERT(!s_Instance, "App instance already exists");
         s_Instance = this;
 
         Renderer::Initialize(RenderApi::Type::Vulkan);
@@ -20,37 +20,33 @@ namespace Heart
         m_Window = Window::Create(windowSettings);
         SubscribeToEmitter(&GetWindow());
 
-        SceneRenderer::Initialize();
-
         m_ImGuiInstance.Initialize();
 
-        HE_ENGINE_LOG_INFO("Engine initialized");
+        HE_ENGINE_LOG_INFO("App initialized");
     }
 
-    Engine::~Engine()
+    App::~App()
     {
         UnsubscribeFromEmitter(&GetWindow());
 
         m_ImGuiInstance.Shutdown();
 
-        SceneRenderer::Shutdown();
-
         Renderer::Shutdown();
     }
 
-    void Engine::PushLayer(Layer* layer)
+    void App::PushLayer(Layer* layer)
     {
         m_Layers.push_back(layer);
         layer->OnAttach();
     }
 
-    void Engine::OnEvent(Event& event)
+    void App::OnEvent(Event& event)
     {        
-        event.Map<WindowResizeEvent>(HE_BIND_EVENT_FN(Engine::OnWindowResize));
-        event.Map<WindowCloseEvent>(HE_BIND_EVENT_FN(Engine::OnWindowClose));
+        event.Map<WindowResizeEvent>(HE_BIND_EVENT_FN(App::OnWindowResize));
+        event.Map<WindowCloseEvent>(HE_BIND_EVENT_FN(App::OnWindowClose));
     }
 
-    bool Engine::OnWindowResize(WindowResizeEvent& event)
+    bool App::OnWindowResize(WindowResizeEvent& event)
     {
         //HT_ENGINE_LOG_INFO("Window resized");
         if (event.GetWidth() == 0 || event.GetHeight() == 0)
@@ -64,13 +60,13 @@ namespace Heart
         return false;
     }
 
-    bool Engine::OnWindowClose(WindowCloseEvent& event)
+    bool App::OnWindowClose(WindowCloseEvent& event)
     {
         m_Running = false;
         return true;
     }
 
-    void Engine::Run()
+    void App::Run()
     {
         while (m_Running)
         {
@@ -80,15 +76,11 @@ namespace Heart
             for (auto layer : m_Layers)
                 layer->OnUpdate();
 
-            SceneRenderer::Bind();
-
             // ImGui render
             m_ImGuiInstance.BeginFrame();
             for (auto layer : m_Layers)
                 layer->OnImGuiRender();
             m_ImGuiInstance.EndFrame();
-
-            SceneRenderer::Render(m_Window->GetContext());
 
             m_Window->EndFrame();
         }

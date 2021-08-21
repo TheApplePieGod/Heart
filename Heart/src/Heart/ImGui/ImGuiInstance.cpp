@@ -1,7 +1,7 @@
 #include "htpch.h"
 #include "ImGuiInstance.h"
 
-#include "Heart/Core/Engine.h"
+#include "Heart/Core/App.h"
 #include "imgui/imgui.h"
 #include "Heart/Renderer/Renderer.h"
 #include "Heart/Platform/Vulkan/VulkanContext.h"
@@ -11,7 +11,7 @@ namespace Heart
 {
     void ImGuiInstance::Initialize()
     {
-        auto& window = Engine::Get().GetWindow();
+        auto& window = App::Get().GetWindow();
 
         IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
@@ -65,7 +65,7 @@ namespace Heart
         if (m_Initialized)
             Cleanup();
 
-        Engine::Get().GetWindow().GetContext().InitializeImGui();
+        App::Get().GetWindow().GetContext().InitializeImGui();
 
         m_Initialized = true;
     }
@@ -74,14 +74,14 @@ namespace Heart
     {
         if (!m_Initialized) return;
 
-        Engine::Get().GetWindow().GetContext().ShutdownImGui();
+        App::Get().GetWindow().GetContext().ShutdownImGui();
 
         m_Initialized = false;
     }
 
     void ImGuiInstance::BeginFrame()
     {
-        Engine::Get().GetWindow().GetContext().ImGuiBeginFrame();
+        App::Get().GetWindow().GetContext().ImGuiBeginFrame();
 
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
@@ -92,7 +92,7 @@ namespace Heart
     void ImGuiInstance::EndFrame()
     {  
         ImGuiIO& io = ImGui::GetIO();
-		Window& mainWindow = Engine::Get().GetWindow();
+		Window& mainWindow = App::Get().GetWindow();
 		io.DisplaySize = ImVec2((f32)mainWindow.GetWidth(), (f32)mainWindow.GetHeight());
         
 		ImGui::Render();

@@ -9,4 +9,5 @@ project(
 add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
 add_compile_definitions(HE_DEBUG)
 
+add_subdirectory("HeartEditor")
 add_subdirectory("Heart")
