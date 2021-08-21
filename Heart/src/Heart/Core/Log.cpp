@@ -4,6 +4,7 @@
 namespace Heart
 {
     Ref<spdlog::logger> Logger::s_EngineLogger;
+    Ref<spdlog::logger> Logger::s_ClientLogger;
 
     void Logger::Initialize()
     {
@@ -14,5 +15,10 @@ namespace Heart
         spdlog::register_logger(s_EngineLogger);
         s_EngineLogger->set_level(spdlog::level::trace);
         s_EngineLogger->flush_on(spdlog::level::trace);
+
+        s_ClientLogger = CreateRef<spdlog::logger>("CLIENT", console_sink);
+        spdlog::register_logger(s_ClientLogger);
+        s_ClientLogger->set_level(spdlog::level::trace);
+        s_ClientLogger->flush_on(spdlog::level::trace);
     }
 }
