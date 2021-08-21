@@ -51,11 +51,12 @@ namespace Heart
         //HT_ENGINE_LOG_INFO("Window resized");
         if (event.GetWidth() == 0 || event.GetHeight() == 0)
         {
-            // TODO: minimized
+            m_Minimized = true;
             return false;
         }
 
         Renderer::OnWindowResize(m_Window->GetContext(), event.GetWidth(), event.GetHeight());
+        m_Minimized = false;
 
         return false;
     }
@@ -70,6 +71,11 @@ namespace Heart
     {
         while (m_Running)
         {
+            m_Window->PollEvents();
+
+            if (m_Minimized)
+                continue;
+
             m_Window->BeginFrame();
 
             // Layer update

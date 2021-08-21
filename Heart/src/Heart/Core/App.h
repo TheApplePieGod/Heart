@@ -34,6 +34,7 @@ namespace Heart
         ImGuiInstance m_ImGuiInstance;
         Scope<Window> m_Window;
         bool m_Running = true;
+        bool m_Minimized = false;
 
     private:
         static App* s_Instance;

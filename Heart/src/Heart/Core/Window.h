@@ -33,6 +33,7 @@ namespace Heart
         ~Window();
 
         void BeginFrame();
+        void PollEvents();
         void EndFrame();
 
         GraphicsContext& GetContext() const { return *m_GraphicsContext; }

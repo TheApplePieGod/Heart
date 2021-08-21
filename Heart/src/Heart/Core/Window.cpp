@@ -101,8 +101,12 @@ namespace Heart
 
     void Window::BeginFrame()
     {
-        glfwPollEvents();
         m_GraphicsContext->BeginFrame();
+    }
+
+    void Window::PollEvents()
+    {
+        glfwPollEvents();
     }
 
     void Window::EndFrame()
