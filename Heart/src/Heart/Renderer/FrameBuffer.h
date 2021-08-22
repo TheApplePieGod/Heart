@@ -2,6 +2,7 @@
 
 #include "Heart/Renderer/GraphicsContext.h"
 #include "Heart/Renderer/Pipeline.h"
+#include "Heart/Renderer/ShaderInput.h"
 #include "Heart/Events/EventEmitter.h"
 #include "Heart/Events/WindowEvents.h"
 #include "glm/vec4.hpp"
@@ -53,8 +54,9 @@ namespace Heart
         virtual ~Framebuffer();
 
         virtual void Bind() = 0;
-        virtual void Submit(GraphicsContext& context) = 0;
         virtual void BindPipeline(const std::string& name) = 0;
+        virtual void BindShaderInputSet(ShaderInputBindPoint set, u32 setIndex) = 0; // must be called AFTER bind pipeline
+        virtual void Submit(GraphicsContext& context) = 0;
         
         // useful for ImGui
         virtual void* GetRawAttachmentImageHandle(u32 attachmentIndex, FramebufferAttachmentType type) = 0;

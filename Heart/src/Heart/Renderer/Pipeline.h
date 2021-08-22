@@ -2,6 +2,7 @@
 
 #include "Heart/Renderer/Shader.h"
 #include "Heart/Renderer/Buffer.h"
+#include "Heart/Renderer/ShaderInput.h"
 
 namespace Heart
 {
@@ -29,6 +30,7 @@ namespace Heart
         BufferLayout VertexLayout;
 
         std::vector<AttachmentBlendState> BlendStates; // one state is required per framebuffer attachment
+        std::vector<Ref<ShaderInputSet>> CompatibleInputSets;
 
         bool DepthEnable;
         CullMode CullMode;

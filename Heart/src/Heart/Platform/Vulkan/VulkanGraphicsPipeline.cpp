@@ -3,6 +3,7 @@
 
 #include "Heart/Platform/Vulkan/VulkanShader.h"
 #include "Heart/Platform/Vulkan/VulkanContext.h"
+#include "Heart/Platform/Vulkan/VulkanShaderInput.h"
 
 namespace Heart
 {
@@ -137,12 +138,14 @@ namespace Heart
         // pushConstants.offset = 0;
         // pushConstants.size = sizeof(diamond_object_data);
 
+        std::vector<VkDescriptorSetLayout> layouts;
+        for (auto& inputSet : createInfo.CompatibleInputSets)
+            layouts.emplace_back(static_cast<VulkanShaderInputSet&>(*inputSet).GetLayout());
+
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        //pipelineLayoutInfo.setLayoutCount = 1;
-        //pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
-        pipelineLayoutInfo.setLayoutCount = 0;
-        pipelineLayoutInfo.pSetLayouts = nullptr;
+        pipelineLayoutInfo.setLayoutCount = static_cast<u32>(layouts.size());
+        pipelineLayoutInfo.pSetLayouts = layouts.data();
         pipelineLayoutInfo.pushConstantRangeCount = 0;
         pipelineLayoutInfo.pPushConstantRanges = nullptr;
         HE_VULKAN_CHECK_RESULT(vkCreatePipelineLayout(device.Device(), &pipelineLayoutInfo, nullptr, &m_PipelineLayout));

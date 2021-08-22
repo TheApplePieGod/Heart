@@ -19,6 +19,7 @@ namespace Heart
         inline static App& Get() { return *s_Instance; }
         inline ImGuiInstance& GetImGuiInstance() { return m_ImGuiInstance; }
         inline Window& GetWindow() const { return *m_Window; }
+        inline u64 GetFrameCount() const { return m_FrameCount; }
 
         void PushLayer(Layer* layer);
 
@@ -35,6 +36,7 @@ namespace Heart
         Ref<Window> m_Window;
         bool m_Running = true;
         bool m_Minimized = false;
+        u64 m_FrameCount = 0;
 
     private:
         static App* s_Instance;

@@ -5,6 +5,7 @@
 #include "Heart/Platform/Vulkan/VulkanContext.h"
 #include "Heart/Platform/Vulkan/VulkanDevice.h"
 #include "Heart/Platform/Vulkan/VulkanGraphicsPipeline.h"
+#include "Heart/Core/App.h"
 #include "imgui/backends/imgui_impl_vulkan.h"
 
 namespace Heart
@@ -160,6 +161,8 @@ namespace Heart
 
     void VulkanFramebuffer::Bind()
     {
+        UpdateFrameIndex();
+
         if (!m_Valid)
             Recreate();
 
@@ -211,6 +214,8 @@ namespace Heart
         HE_VULKAN_CHECK_RESULT(vkEndCommandBuffer(buffer));
 
         context.GetSwapChain().SubmitCommandBuffer(buffer);
+
+        m_BoundPipeline = "";
     }
 
     void VulkanFramebuffer::BindPipeline(const std::string& name)
@@ -219,6 +224,18 @@ namespace Heart
         auto pipeline = static_cast<VulkanGraphicsPipeline*>(LoadPipeline(name).get());
 
         vkCmdBindPipeline(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->GetPipeline());
+
+        m_BoundPipeline = name;
+    }
+
+    void VulkanFramebuffer::BindShaderInputSet(ShaderInputBindPoint set, u32 setIndex)
+    {
+        // TODO: don't use string here
+        HE_ENGINE_ASSERT(m_BoundPipeline != "", "Must call BindPipeline before BindShaderInputSets");
+
+        VulkanGraphicsPipeline& boundPipeline = static_cast<VulkanGraphicsPipeline&>(*LoadPipeline(m_BoundPipeline));
+
+        vkCmdBindDescriptorSets(GetCommandBuffer(), VK_PIPELINE_BIND_POINT_GRAPHICS, boundPipeline.GetLayout(), setIndex, 1, &static_cast<VkDescriptorSet>(set), 0, nullptr);
     }
 
     void* VulkanFramebuffer::GetRawAttachmentImageHandle(u32 attachmentIndex, FramebufferAttachmentType type)
@@ -237,14 +254,6 @@ namespace Heart
         }
 
         return nullptr;
-    }
-
-    VkCommandBuffer VulkanFramebuffer::GetCommandBuffer()
-    {
-        // get the main context instance here because we need to sync with the swapchain images
-        VulkanContext& mainContext = static_cast<VulkanContext&>(Window::GetMainWindow().GetContext());
-
-        return m_CommandBuffers[mainContext.GetSwapChain().GetPresentImageIndex()];
     }
 
     Ref<GraphicsPipeline> VulkanFramebuffer::InternalInitializeGraphicsPipeline(const GraphicsPipelineCreateInfo& createInfo)
@@ -271,8 +280,7 @@ namespace Heart
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
         allocInfo.commandPool = VulkanContext::GetGraphicsPool();
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        allocInfo.commandBufferCount = mainContext.GetSwapChain().GetImageCount();
-        m_CommandBuffers.resize(allocInfo.commandBufferCount);
+        allocInfo.commandBufferCount = static_cast<u32>(m_CommandBuffers.size());
 
         HE_VULKAN_CHECK_RESULT(vkAllocateCommandBuffers(device.Device(), &allocInfo, m_CommandBuffers.data()));
     }
@@ -421,13 +429,6 @@ namespace Heart
         VulkanContext& mainContext = static_cast<VulkanContext&>(Window::GetMainWindow().GetContext());
         VulkanContext::Sync();
 
-        // recreate command buffers if for some reason the swap chain image count changes
-        if (mainContext.GetSwapChain().GetImageCount() != static_cast<u32>(m_CommandBuffers.size()))
-        {
-            FreeCommandBuffers();
-            AllocateCommandBuffers();
-        }
-
         CleanupFramebuffer();
         m_CachedImageViews.clear();
 
@@ -440,5 +441,17 @@ namespace Heart
         CreateFramebuffer();
 
         m_Valid = true;
+    }
+
+    void VulkanFramebuffer::UpdateFrameIndex()
+    {
+        if (App::Get().GetFrameCount() != m_LastUpdateFrame)
+        {
+            // it is a new frame so we need to get the new flight frame index
+            VulkanContext& mainContext = static_cast<VulkanContext&>(Window::GetMainWindow().GetContext());
+
+            m_InFlightFrameIndex = mainContext.GetSwapChain().GetInFlightFrameIndex();
+            m_LastUpdateFrame = App::Get().GetFrameCount();
+        }
     }
 }

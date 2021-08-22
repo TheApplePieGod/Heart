@@ -6,6 +6,18 @@
 
 namespace Heart
 {
+    std::array<void*, MAX_FRAMES_IN_FLIGHT>& FrameDataRegistry::RegisterData(u32& outId)
+    {
+        outId = ++m_CurrentId;
+        m_FrameDataRegistry[outId] = std::array<void*, MAX_FRAMES_IN_FLIGHT>();
+        return m_FrameDataRegistry[outId];
+    }
+
+    void FrameDataRegistry::UnregisterData(u32 id)
+    {
+        m_FrameDataRegistry.erase(id);
+    }
+
     void VulkanSwapChain::Initialize(int width, int height, VkSurfaceKHR surface)
     {
         if (m_Initialized) return;
@@ -59,7 +71,7 @@ namespace Heart
         VkPresentModeKHR presentMode = ChooseSwapPresentMode(swapChainSupport.PresentModes);
         VkExtent2D extent = ChooseSwapExtent(swapChainSupport.Capabilities);
 
-        u32 imageCount = swapChainSupport.Capabilities.minImageCount + 1;
+        u32 imageCount = 3; //swapChainSupport.Capabilities.minImageCount + 1;
         if (swapChainSupport.Capabilities.maxImageCount > 0 && imageCount > swapChainSupport.Capabilities.maxImageCount)
             imageCount = swapChainSupport.Capabilities.maxImageCount;
 
@@ -303,8 +315,8 @@ namespace Heart
 
         // allocate the secondary command buffer used for rendering to the swap chain
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_SECONDARY;
+        allocInfo.commandBufferCount = static_cast<u32>(m_CommandBuffers.size());
 
-        m_CommandBuffers.resize(m_SwapChainData.CommandBuffers.size());
         HE_VULKAN_CHECK_RESULT(vkAllocateCommandBuffers(device.Device(), &allocInfo, m_CommandBuffers.data()));
     }
 
@@ -327,12 +339,8 @@ namespace Heart
         fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
         fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-        m_ImageAvailableSemaphores.resize(m_MaxFramesInFlight);
-        m_RenderFinishedSemaphores.resize(m_MaxFramesInFlight);
-        m_AuxiliaryRenderFinishedSemaphores.resize(m_MaxFramesInFlight);
-        m_InFlightFences.resize(m_MaxFramesInFlight);
         m_ImagesInFlight.resize(m_SwapChainData.Images.size(), VK_NULL_HANDLE);
-        for (u32 i = 0; i < m_MaxFramesInFlight; i++)
+        for (u32 i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
         {
             HE_VULKAN_CHECK_RESULT(vkCreateSemaphore(device.Device(), &semaphoreInfo, nullptr, &m_ImageAvailableSemaphores[i]));
             HE_VULKAN_CHECK_RESULT(vkCreateSemaphore(device.Device(), &semaphoreInfo, nullptr, &m_RenderFinishedSemaphores[i]));
@@ -345,7 +353,7 @@ namespace Heart
     {
         VulkanDevice& device = VulkanContext::GetDevice();
 
-        for (u32 i = 0; i < m_MaxFramesInFlight; i++)
+        for (u32 i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
         {
             vkDestroySemaphore(device.Device(), m_ImageAvailableSemaphores[i], nullptr);
             vkDestroySemaphore(device.Device(), m_RenderFinishedSemaphores[i], nullptr);
@@ -360,8 +368,6 @@ namespace Heart
 
         vkDeviceWaitIdle(device.Device());
 
-        //FreeCommandBuffers();
-
         CleanupFramebuffers();
 
         CleanupFramebufferImages();
@@ -374,9 +380,7 @@ namespace Heart
 
         CreateFramebuffers();
 
-        // TODO: look into this
-        // we might not need to reallocate here since the only reason we would need to is if the number if swapchain images changes (which it shouldnt)
-        //AllocateCommandBuffers();
+        m_ImagesInFlight.resize(m_SwapChainData.Images.size(), VK_NULL_HANDLE);
     }
 
     void VulkanSwapChain::BeginFrame()
@@ -392,6 +396,16 @@ namespace Heart
             HE_ENGINE_ASSERT(result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR);
             m_ShouldPresentThisFrame = true;
         }
+
+        // wait for this frame image to complete
+        vkWaitForFences(device.Device(), 1, &m_InFlightFences[m_InFlightFrameIndex], VK_TRUE, UINT64_MAX);
+
+        // check if a previous frame is using this image (i.e. there is its fence to wait on)
+        if (m_ImagesInFlight[m_PresentImageIndex] != VK_NULL_HANDLE)
+            vkWaitForFences(device.Device(), 1, &m_ImagesInFlight[m_PresentImageIndex], VK_TRUE, UINT64_MAX);
+
+        // TODO: look at this
+        m_ImagesInFlight[m_PresentImageIndex] = m_InFlightFences[m_InFlightFrameIndex];
 
         // start recording the main secondary command buffer for rendering directly to the screen
         VkCommandBufferInheritanceInfo inheritanceInfo{};
@@ -456,7 +470,7 @@ namespace Heart
 
         vkCmdBeginRenderPass(m_SwapChainData.CommandBuffers[m_PresentImageIndex], &renderPassInfo, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
     
-        vkCmdExecuteCommands(m_SwapChainData.CommandBuffers[m_PresentImageIndex], 1, &m_CommandBuffers[m_PresentImageIndex]);
+        vkCmdExecuteCommands(m_SwapChainData.CommandBuffers[m_PresentImageIndex], 1, &m_CommandBuffers[m_InFlightFrameIndex]);
 
         vkCmdEndRenderPass(m_SwapChainData.CommandBuffers[m_PresentImageIndex]);
         
@@ -467,21 +481,12 @@ namespace Heart
         else
             RecreateSwapChain();
 
-        m_InFlightFrameIndex = (m_InFlightFrameIndex + 1) % m_MaxFramesInFlight;
+        m_InFlightFrameIndex = (m_InFlightFrameIndex + 1) % MAX_FRAMES_IN_FLIGHT;
     }
 
     void VulkanSwapChain::Present()
     {
         VulkanDevice& device = VulkanContext::GetDevice();
-
-        vkWaitForFences(device.Device(), 1, &m_InFlightFences[m_InFlightFrameIndex], VK_TRUE, UINT64_MAX);
-
-        // check if a previous frame is using this image (i.e. there is its fence to wait on)
-        if (m_ImagesInFlight[m_PresentImageIndex] != VK_NULL_HANDLE)
-            vkWaitForFences(device.Device(), 1, &m_ImagesInFlight[m_PresentImageIndex], VK_TRUE, UINT64_MAX);
-
-        // TODO: look at this
-        m_ImagesInFlight[m_PresentImageIndex] = m_InFlightFences[m_InFlightFrameIndex];
 
         //UpdatePerFramebuffer(nextImageIndex);
 

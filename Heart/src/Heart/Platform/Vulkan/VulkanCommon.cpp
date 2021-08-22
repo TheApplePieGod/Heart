@@ -283,4 +283,32 @@ namespace Heart
 
         return VK_CULL_MODE_NONE;
     }
+
+    VkDescriptorType VulkanCommon::ShaderInputTypeToVulkan(ShaderInputType type)
+    {
+        switch (type)
+        {
+            default:
+            { HE_ENGINE_ASSERT(false, "Vulkan does not support specified ShaderInputType"); } break;
+            case ShaderInputType::Texture : return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            case ShaderInputType::Buffer: return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            case ShaderInputType::BigBuffer: return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        }
+
+        return VK_DESCRIPTOR_TYPE_MAX_ENUM;
+    }
+
+    VkShaderStageFlags VulkanCommon::ShaderBindTypeToVulkan(ShaderBindType type)
+    {
+        switch (type)
+        {
+            default:
+            { HE_ENGINE_ASSERT(false, "Vulkan does not support specified ShaderInputType"); } break;
+            case ShaderBindType::Vertex : return VK_SHADER_STAGE_VERTEX_BIT;
+            case ShaderBindType::Fragment: return VK_SHADER_STAGE_FRAGMENT_BIT;
+            case ShaderBindType::Both: return (VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+        }
+
+        return VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM;
+    }
 }

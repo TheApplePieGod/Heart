@@ -4,6 +4,21 @@
 
 namespace Heart
 {
+    // TODO: make this a parameter?
+    const u32 MAX_FRAMES_IN_FLIGHT = 2;
+
+    class FrameDataRegistry
+    {
+    public:
+        std::array<void*, MAX_FRAMES_IN_FLIGHT>& RegisterData(u32& outId);
+        void UnregisterData(u32 id);
+        inline void* GetCurrentData(u32 id, u32 frameIndex) { return m_FrameDataRegistry[id][frameIndex]; }; // disable checks here for speed
+
+    private:
+        std::unordered_map<u32, std::array<void*, MAX_FRAMES_IN_FLIGHT>> m_FrameDataRegistry;
+        u32 m_CurrentId = 0;
+    };
+
     class VulkanSwapChain
     {
     public:
@@ -29,9 +44,12 @@ namespace Heart
         inline u32 GetImageCount() const { return static_cast<u32>(m_SwapChainData.Images.size()); }
         inline VkFormat GetImageFormat() const { return m_SwapChainData.ImageFormat; }
         inline VkRenderPass GetRenderPass() const { return m_RenderPass; }
-        inline VkCommandBuffer GetCommandBuffer() const { return m_CommandBuffers[m_PresentImageIndex]; }
+        inline VkCommandBuffer GetCommandBuffer() const { return m_CommandBuffers[m_InFlightFrameIndex]; }
         inline void SubmitCommandBuffer(VkCommandBuffer buffer) { m_AuxiliaryCommandBuffers.emplace_back(buffer); }
         inline u32 GetPresentImageIndex() const { return m_PresentImageIndex; }
+        inline u32 GetInFlightFrameIndex() const { return m_InFlightFrameIndex; }
+        inline FrameDataRegistry& GetFrameDataRegistry() { return m_FrameDataRegistry; }
+        inline void* GetFrameData(u32 registryId) { return m_FrameDataRegistry.GetCurrentData(registryId, m_InFlightFrameIndex); };
 
     private:
         void CreateSwapChain();
@@ -60,8 +78,6 @@ namespace Heart
         VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
 
     private:
-        // TODO: make this a parameter?
-        const u32 m_MaxFramesInFlight = 2;
         glm::vec4 m_ClearColor = { 0.f, 0.f, 0.f, 1.f };
 
         bool m_Initialized = false;
@@ -70,17 +86,18 @@ namespace Heart
         VkSwapchainKHR m_SwapChain;
         SwapChainData m_SwapChainData;
         VkRenderPass m_RenderPass;
-        std::vector<VkCommandBuffer> m_CommandBuffers = {}; // secondary
+        std::array<VkCommandBuffer, MAX_FRAMES_IN_FLIGHT> m_CommandBuffers; // secondary
         std::vector<VkCommandBuffer> m_AuxiliaryCommandBuffers = {}; // primary submitted from framebuffers
-        std::vector<VkSemaphore> m_ImageAvailableSemaphores = {};
-        std::vector<VkSemaphore> m_RenderFinishedSemaphores = {};
-        std::vector<VkSemaphore> m_AuxiliaryRenderFinishedSemaphores = {};
-        std::vector<VkFence> m_InFlightFences = {};
+        std::array<VkSemaphore, MAX_FRAMES_IN_FLIGHT> m_ImageAvailableSemaphores;
+        std::array<VkSemaphore, MAX_FRAMES_IN_FLIGHT> m_RenderFinishedSemaphores;
+        std::array<VkSemaphore, MAX_FRAMES_IN_FLIGHT> m_AuxiliaryRenderFinishedSemaphores;
+        std::array<VkFence, MAX_FRAMES_IN_FLIGHT> m_InFlightFences;
         std::vector<VkFence> m_ImagesInFlight = {};
         u32 m_PresentImageIndex;
         bool m_ShouldPresentThisFrame;
         u32 m_InFlightFrameIndex = 0;
         bool m_SwapChainInvalid = false;
+        FrameDataRegistry m_FrameDataRegistry;
 
         VkImage m_ColorImage;
         VkImage m_DepthImage;

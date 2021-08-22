@@ -71,7 +71,7 @@ namespace Heart
         std::vector<BufferLayoutElement> m_Elements;
     };
 
-    class Buffer
+    class Buffer // effectively a uniformbuffer
     {
     public:
         Buffer(const BufferLayout& layout, u32 elementCount)
@@ -80,6 +80,7 @@ namespace Heart
         Buffer(u32 elementCount)
             : m_AllocatedCount(elementCount)
         {}
+        virtual ~Buffer() = default;
 
         virtual void SetData(void* data, u32 elementCount, u32 elementOffset) = 0;
 
@@ -87,8 +88,28 @@ namespace Heart
         inline u32 GetAllocatedSize() const { return m_AllocatedCount * m_Layout.GetStride(); }
         inline u32 GetAllocatedCount() const { return m_AllocatedCount; }
 
+    public:
+        static Ref<Buffer> Create(const BufferLayout& layout, u32 elementCount);
+        static Ref<Buffer> Create(const BufferLayout& layout, u32 elementCount, void* initialData);
+
     protected:
         BufferLayout m_Layout;
         u32 m_AllocatedCount;
+    };
+
+    class BigBuffer : public Buffer // effectively a storagebuffer
+    {
+    public:
+        BigBuffer(const BufferLayout& layout, u32 elementCount)
+            : Buffer(layout, elementCount)
+        {}
+        BigBuffer(u32 elementCount)
+            : Buffer(elementCount)
+        {}
+        virtual ~BigBuffer() = default;
+
+    public:
+        static Ref<Buffer> Create(const BufferLayout& layout, u32 elementCount);
+        static Ref<Buffer> Create(const BufferLayout& layout, u32 elementCount, void* initialData);
     };
 }

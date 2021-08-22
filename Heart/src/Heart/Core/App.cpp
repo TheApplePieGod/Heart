@@ -96,6 +96,7 @@ namespace Heart
             m_ImGuiInstance.EndFrame();
 
             m_Window->EndFrame();
+            m_FrameCount++;
         }
     }
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Heart/Renderer/Framebuffer.h"
+#include "Heart/Platform/Vulkan/VulkanSwapChain.h"
 #include "Heart/Platform/Vulkan/VulkanCommon.h"
 
 namespace Heart
@@ -12,14 +13,15 @@ namespace Heart
         ~VulkanFramebuffer() override;
 
         void Bind() override;
-        void Submit(GraphicsContext& context) override;
         void BindPipeline(const std::string& name) override;
+        void BindShaderInputSet(ShaderInputBindPoint set, u32 setIndex) override;
+        void Submit(GraphicsContext& context) override;
 
         void* GetRawAttachmentImageHandle(u32 attachmentIndex, FramebufferAttachmentType type) override;
 
         inline VkFramebuffer GetFramebuffer() const { return m_Framebuffer; }
         inline VkRenderPass GetRenderPass() const { return m_RenderPass; }
-        VkCommandBuffer GetCommandBuffer();
+        inline VkCommandBuffer GetCommandBuffer() { UpdateFrameIndex(); return m_CommandBuffers[m_InFlightFrameIndex]; } ;
 
     protected:
         Ref<GraphicsPipeline> InternalInitializeGraphicsPipeline(const GraphicsPipelineCreateInfo& createInfo) override;
@@ -57,12 +59,18 @@ namespace Heart
 
         void Recreate();
 
+        void UpdateFrameIndex();
+
     private:
         VkFramebuffer m_Framebuffer;
         VkRenderPass m_RenderPass;
-        std::vector<VkCommandBuffer> m_CommandBuffers; // one for each swapchainimage
+        std::string m_BoundPipeline;
+        std::array<VkCommandBuffer, MAX_FRAMES_IN_FLIGHT> m_CommandBuffers;
         std::vector<VulkanFramebufferAttachment> m_AttachmentData;
         std::vector<VkClearValue> m_CachedClearValues;
         std::vector<VkImageView> m_CachedImageViews;
+
+        u64 m_LastUpdateFrame = 0;
+        u32 m_InFlightFrameIndex = 0;
     };
 }

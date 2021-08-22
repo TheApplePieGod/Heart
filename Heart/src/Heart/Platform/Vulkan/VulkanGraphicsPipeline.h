@@ -12,6 +12,7 @@ namespace Heart
         ~VulkanGraphicsPipeline() override;
 
         inline VkPipeline GetPipeline() const { return m_Pipeline; }
+        inline VkPipelineLayout GetLayout() const { return m_PipelineLayout; }
 
     private:
         VkPipelineLayout m_PipelineLayout;
