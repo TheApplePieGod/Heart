@@ -13,6 +13,7 @@ namespace Heart
     VulkanDevice VulkanContext::s_VulkanDevice;
     VkCommandPool VulkanContext::s_GraphicsPool;
     VkCommandPool VulkanContext::s_ComputePool;
+    VkCommandPool VulkanContext::s_TransferPool;
     VkCommandBuffer VulkanContext::s_BoundCommandBuffer;
     VkSampler VulkanContext::s_DefaultSampler;
 
@@ -85,6 +86,7 @@ namespace Heart
 
             vkDestroyCommandPool(s_VulkanDevice.Device(), s_GraphicsPool, nullptr);
             vkDestroyCommandPool(s_VulkanDevice.Device(), s_ComputePool, nullptr);
+            vkDestroyCommandPool(s_VulkanDevice.Device(), s_TransferPool, nullptr);
 
             s_VulkanDevice.Shutdown();
 
@@ -204,6 +206,10 @@ namespace Heart
         poolInfo.queueFamilyIndex = s_VulkanDevice.ComputeQueueIndex();
 
         HE_VULKAN_CHECK_RESULT(vkCreateCommandPool(s_VulkanDevice.Device(), &poolInfo, nullptr, &s_ComputePool));
+
+        poolInfo.queueFamilyIndex = s_VulkanDevice.TransferQueueIndex();
+
+        HE_VULKAN_CHECK_RESULT(vkCreateCommandPool(s_VulkanDevice.Device(), &poolInfo, nullptr, &s_TransferPool));
     }
 
     void VulkanContext::CreateDefaultSampler()

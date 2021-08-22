@@ -91,9 +91,11 @@ namespace Heart
             m_GraphicsQueueIndex = indices.GraphicsFamily.value();
             m_PresentQueueIndex = indices.PresentFamily.value();
             m_ComputeQueueIndex = indices.ComputeFamily.value();
+            m_TransferQueueIndex = indices.TransferFamily.value();
             vkGetDeviceQueue(m_LogicalDevice, m_GraphicsQueueIndex, 0, &m_GraphicsQueue);
             vkGetDeviceQueue(m_LogicalDevice, m_PresentQueueIndex, 0, &m_PresentQueue);
             vkGetDeviceQueue(m_LogicalDevice, m_ComputeQueueIndex, 0, &m_ComputeQueue);
+            vkGetDeviceQueue(m_LogicalDevice, m_TransferQueueIndex, 0, &m_TransferQueue);
         }
 
         m_Initialized = true;

@@ -24,10 +24,10 @@ namespace Heart
         u32 offset = 0;
         for (size_t i = 0; i < elements.size(); i++)
         {
-            attributeDescriptions[0].binding = 0;
-            attributeDescriptions[0].location = static_cast<u32>(i);
-            attributeDescriptions[0].format = VulkanCommon::BufferDataTypeToVulkan(elements[i].DataType);
-            attributeDescriptions[0].offset = offset;
+            attributeDescriptions[i].binding = 0;
+            attributeDescriptions[i].location = static_cast<u32>(i);
+            attributeDescriptions[i].format = VulkanCommon::BufferDataTypeToVulkan(elements[i].DataType);
+            attributeDescriptions[i].offset = offset;
             offset += elements[i].CalculatedSize;
         }
         

@@ -18,16 +18,17 @@ add_subdirectory("lib/glm")
 add_subdirectory("lib/imgui")
 add_subdirectory("lib/spdlog")
 
-# Include imgui impl sources when building main
-set(IMGUI_SOURCES
+# Include other dependency sources that need to be built
+set(DEPENDENCY_SOURCES
     "lib/imgui/backends/imgui_impl_glfw.cpp"
     "lib/imgui/backends/imgui_impl_vulkan.cpp"
+    "lib/stb_image/stb_image.cpp"
 )
 
 # Build main
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp" "src/*.h" "htpch.h")
-#add_executable(Engine "${SOURCES}" "${IMGUI_SOURCES}" "src/Heart/Core/EntryPoint.cpp")
-add_library(Engine "${SOURCES}" "${IMGUI_SOURCES}")
+#add_executable(Engine "${SOURCES}" "${DEPENDENCY_SOURCES}" "src/Heart/Core/EntryPoint.cpp")
+add_library(Engine "${SOURCES}" "${DEPENDENCY_SOURCES}")
 
 # Locate vulkansdk libraries
 find_library(vulkan

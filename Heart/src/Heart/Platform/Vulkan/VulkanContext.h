@@ -30,6 +30,7 @@ namespace Heart
         inline static VulkanDevice& GetDevice() { return s_VulkanDevice; };
         inline static VkCommandPool GetGraphicsPool() { return s_GraphicsPool; }
         inline static VkCommandPool GetComputePool() { return s_ComputePool; }
+        inline static VkCommandPool GetTransferPool() { return s_TransferPool; }
         inline static VkCommandBuffer GetBoundCommandBuffer() { return s_BoundCommandBuffer; }
         inline static void SetBoundCommandBuffer(VkCommandBuffer buffer) { s_BoundCommandBuffer = buffer; }
         inline static VkSampler GetDefaultSampler() { return s_DefaultSampler; }
@@ -59,8 +60,7 @@ namespace Heart
         static VkInstance s_Instance;
         static VkDebugUtilsMessengerEXT s_DebugMessenger;
         static VulkanDevice s_VulkanDevice;
-        static VkCommandPool s_GraphicsPool;
-        static VkCommandPool s_ComputePool;
+        static VkCommandPool s_GraphicsPool, s_ComputePool, s_TransferPool;
         static VkCommandBuffer s_BoundCommandBuffer;
         static VkSampler s_DefaultSampler;
     };

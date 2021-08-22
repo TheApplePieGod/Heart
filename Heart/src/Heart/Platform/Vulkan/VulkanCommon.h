@@ -9,6 +9,7 @@
 
 namespace Heart
 {
+    enum class ShaderBindType;
     struct VulkanCommon
     {
         struct QueueFamilyIndices
@@ -16,13 +17,15 @@ namespace Heart
             std::optional<u32> GraphicsFamily;
             std::optional<u32> PresentFamily;
             std::optional<u32> ComputeFamily;
+            std::optional<u32> TransferFamily;
             
             bool IsComplete()
             {
                 return (
                     GraphicsFamily.has_value() &&
                     PresentFamily.has_value() &&
-                    ComputeFamily.has_value()
+                    ComputeFamily.has_value() &&
+                    TransferFamily.has_value()
                 );
             }
         };
@@ -43,6 +46,9 @@ namespace Heart
         static void EndSingleTimeCommands(VkDevice device, VkCommandPool commandPool, VkCommandBuffer commandBuffer, VkQueue submitQueue);
         static VkPipelineShaderStageCreateInfo DefineShaderStage(VkShaderModule shaderModule, VkShaderStageFlagBits stage, const char* entrypoint = "main");
         static void CreateBuffer(VkDevice device, VkPhysicalDevice physicalDevice, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
+        static void MapAndWriteBufferMemory(VkDevice device, void* data, u32 dataSize, u32 elementCount, VkDeviceMemory bufferMemory, u32 elementMemoryOffset);
+        static void TransitionImageLayout(VkDevice device, VkCommandPool commandPool, VkQueue transferQueue, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
+        static void CopyBufferToImage(VkDevice device, VkCommandPool commandPool, VkQueue transferQueue, VkBuffer srcBuffer, VkImage dstImage, uint32_t width, uint32_t height);
 
         static VkFormat ColorFormatToVulkan(ColorFormat format);
         static VkSampleCountFlagBits MsaaSampleCountToVulkan(MsaaSampleCount sampleCount);

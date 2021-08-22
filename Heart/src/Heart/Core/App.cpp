@@ -3,7 +3,6 @@
 
 #include "Heart/Renderer/RenderApi.h"
 #include "Heart/Renderer/Renderer.h"
-#include "Heart/Renderer/SceneRenderer.h"
 
 namespace Heart
 {

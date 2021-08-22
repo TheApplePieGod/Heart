@@ -171,13 +171,13 @@ namespace Heart
         VulkanContext::SetBoundCommandBuffer(buffer);
         VkCommandBufferBeginInfo beginInfo{};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
+        beginInfo.flags = 0;
         beginInfo.pInheritanceInfo = nullptr;
 
         HE_VULKAN_CHECK_RESULT(vkBeginCommandBuffer(buffer, &beginInfo));
 
         // TODO: paramaterize / generalize
-        VkViewport viewport{};
+        VkViewport viewport{};s
         viewport.x = 0.0f;
         viewport.y = 0.0f;
         viewport.width = (f32)m_ActualWidth;
@@ -187,7 +187,7 @@ namespace Heart
         vkCmdSetViewport(buffer, 0, 1, &viewport);
         
         VkRect2D scissor{};
-        scissor.offset = {0, 0};
+        scissor.offset = { 0, 0 };
         scissor.extent = { m_ActualWidth, m_ActualHeight };
         vkCmdSetScissor(buffer, 0, 1, &scissor);
 
