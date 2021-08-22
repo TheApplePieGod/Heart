@@ -43,6 +43,7 @@ namespace Heart
         inline void UpdateNearClip(f32 clip) { m_NearClip = clip; UpdateProjectionMatrix(); }
         inline void UpdateFarClip(f32 clip) { m_FarClip = clip; UpdateProjectionMatrix(); }
         inline void UpdateProjectionType(ProjectionType type) { m_ProjectionType = type; UpdateProjectionMatrix(); }
+        inline glm::mat4 GetProjectionMatrix() const { return m_ProjectionMatrix; }
 
     protected:
         void UpdateProjectionMatrix();

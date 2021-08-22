@@ -29,8 +29,8 @@ namespace Heart
         VkDescriptorSetLayout m_DescriptorSetLayout;
         std::vector<VkDescriptorPoolSize> m_CachedPoolSizes;
         std::vector<VkWriteDescriptorSet> m_CachedDescriptorWrites;
-        std::vector<VkDescriptorBufferInfo> m_CachedBufferInfos;
-        std::vector<VkDescriptorImageInfo> m_CachedImageInfos;
+        std::array<VkDescriptorBufferInfo, 100> m_CachedBufferInfos;
+        std::array<VkDescriptorImageInfo, 1000> m_CachedImageInfos;
         std::array<std::vector<VkDescriptorPool>, MAX_FRAMES_IN_FLIGHT> m_DescriptorPools;
         u32 m_FrameDataRegistryId;
         u64 m_LastResetFrame = 0;

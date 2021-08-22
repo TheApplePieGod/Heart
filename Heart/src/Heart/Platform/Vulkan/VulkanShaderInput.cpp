@@ -111,8 +111,7 @@ namespace Heart
             {
                 VulkanBuffer& buffer = static_cast<VulkanBuffer&>(*element.TargetBuffer.get());
 
-                if (bufferIndex >= m_CachedBufferInfos.size())
-                    m_CachedBufferInfos.emplace_back();
+                HE_ENGINE_ASSERT(bufferIndex < m_CachedBufferInfos.size(), "Too many buffers specified for a single descriptor set");
 
                 m_CachedBufferInfos[bufferIndex].buffer = buffer.GetBuffer();
                 m_CachedBufferInfos[bufferIndex].offset = 0;
@@ -127,8 +126,7 @@ namespace Heart
                 size_t imageIndexBegin = imageIndex;
                 for (u32 i = 0; i < m_Elements[index].ArrayCount; i++)
                 {
-                    if (imageIndex >= m_CachedImageInfos.size())
-                        m_CachedImageInfos.emplace_back();
+                    HE_ENGINE_ASSERT(imageIndex < m_CachedImageInfos.size(), "Too many images specified for a single descriptor set");
 
                     // TODO: customizable sampler
                     m_CachedImageInfos[imageIndex].sampler = VulkanContext::GetDefaultSampler();
