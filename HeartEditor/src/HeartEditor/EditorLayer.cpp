@@ -4,12 +4,18 @@
 #include "HeartEditor/EditorApp.h"
 #include "Heart/Renderer/Renderer.h"
 #include "imgui/imgui.h"
+#include "glm/vec4.hpp"
 
 namespace HeartEditor
 {
+    EditorLayer::EditorLayer()
+    {
+        m_EditorCamera = Heart::CreateScope<EditorCamera>(70.f, 0.1f, 1000.f, 1.f);
+    }
+
     void EditorLayer::OnAttach()
     {
-        HE_CLIENT_LOG_WARN("Editor attached");
+        HE_CLIENT_LOG_INFO("Editor attached");
 
         // create a test scene
         {
@@ -35,6 +41,11 @@ namespace HeartEditor
             m_TestData.ShaderRegistry.RegisterShader("vert", "assets/shaders/main.vert", Heart::Shader::Type::Vertex);
             m_TestData.ShaderRegistry.RegisterShader("frag", "assets/shaders/main.frag", Heart::Shader::Type::Fragment);
 
+            // shader input set
+            m_TestData.ShaderInputSet = Heart::ShaderInputSet::Create({
+                { Heart::ShaderInputType::Buffer, Heart::ShaderBindType::Fragment, 0 }
+            });
+
             // graphics pipeline
             Heart::GraphicsPipelineCreateInfo gpCreateInfo = {
                 m_TestData.ShaderRegistry.LoadShader("vert"),
@@ -42,9 +53,19 @@ namespace HeartEditor
                 Heart::VertexTopology::TriangleList,
                 vertBufferLayout,
                 { { true }, { true } },
+                { m_TestData.ShaderInputSet },
                 true,
                 Heart::CullMode::None
             };
+
+            // per frame data buffer layout
+            Heart::BufferLayout frameDataLayout = {
+                { Heart::BufferDataType::Float4 }
+            };
+
+            // per frame data buffer
+            glm::vec4 initialData = { 1.f, 1.f, 0.f, 1.f };
+            m_TestData.FrameDataBuffer = Heart::Buffer::Create(frameDataLayout, 1, &initialData);
 
             // framebuffer
             Heart::FramebufferCreateInfo fbCreateInfo = {
@@ -67,6 +88,17 @@ namespace HeartEditor
         Heart::Renderer::Api().BindIndexBuffer(*m_TestData.IndexBuffer);
 
         m_TestData.SceneFramebuffer->BindPipeline("main");
+
+        for (int i = 0; i < 1; i++)
+        {
+            Heart::ShaderInputBindPoint bindPoint = m_TestData.ShaderInputSet->CreateBindPoint({
+                { m_TestData.FrameDataBuffer, nullptr }
+            });
+            m_TestData.SceneFramebuffer->BindShaderInputSet(bindPoint, 0);
+        }
+
+        glm::vec4 newColor = { rand() % 100 / 100.f, rand() % 100 / 100.f, rand() % 100 / 100.f, 1.f };
+        m_TestData.FrameDataBuffer->SetData(&newColor, 1, 0);
 
         Heart::Renderer::Api().DrawIndexed(
             m_TestData.IndexBuffer->GetAllocatedCount(),
