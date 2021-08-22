@@ -177,7 +177,7 @@ namespace Heart
         HE_VULKAN_CHECK_RESULT(vkBeginCommandBuffer(buffer, &beginInfo));
 
         // TODO: paramaterize / generalize
-        VkViewport viewport{};s
+        VkViewport viewport{};
         viewport.x = 0.0f;
         viewport.y = 0.0f;
         viewport.width = (f32)m_ActualWidth;

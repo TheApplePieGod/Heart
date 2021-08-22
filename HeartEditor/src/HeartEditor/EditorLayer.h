@@ -9,17 +9,25 @@
 #include "Heart/Renderer/Framebuffer.h"
 #include "Heart/Renderer/ShaderInput.h"
 #include "Heart/Renderer/Buffer.h"
+#include "Heart/Renderer/Texture.h"
 
 namespace HeartEditor
 {
     struct TestData
     {
+        struct Vertex
+        {
+            glm::vec3 position;
+            glm::vec2 texCoord;
+        };
+
         Heart::Ref<Heart::VertexBuffer> VertexBuffer;
         Heart::Ref<Heart::IndexBuffer> IndexBuffer;
         Heart::Ref<Heart::Framebuffer> SceneFramebuffer;
         Heart::ShaderRegistry ShaderRegistry;
         Heart::Ref<Heart::ShaderInputSet> ShaderInputSet;
         Heart::Ref<Heart::Buffer> FrameDataBuffer;
+        Heart::TextureRegistry TextureRegistry;
     };
 
     class EditorLayer : public Heart::Layer

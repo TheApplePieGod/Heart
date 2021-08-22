@@ -20,14 +20,15 @@ namespace HeartEditor
         // create a test scene
         {
             // vertex buffer
-            f32 vertexArray[3 * 4] = {
-                -0.5f, -0.5f, 0.f,
-                0.5f, -0.5f, 0.f,
-                0.5f, 0.5f, 0.f,
-                -0.5f, 0.5f, 0.f
+            TestData::Vertex vertexArray[4] = {
+                { { -0.5f, -0.5f, 0.f }, { 0.f, 1.f } },
+                { { 0.5f, -0.5f, 0.f }, { 1.f, 1.f } },
+                { { 0.5f, 0.7f, 0.f }, { 1.f, 0.f } },
+                { { -0.5f, 0.5f, 0.f }, { 0.f, 0.f } }
             };
             Heart::BufferLayout vertBufferLayout = {
-                { Heart::BufferDataType::Float3 }
+                { Heart::BufferDataType::Float3 },
+                { Heart::BufferDataType::Float2 }
             };
             m_TestData.VertexBuffer = Heart::VertexBuffer::Create(vertBufferLayout, 4, vertexArray);
 
@@ -41,9 +42,13 @@ namespace HeartEditor
             m_TestData.ShaderRegistry.RegisterShader("vert", "assets/shaders/main.vert", Heart::Shader::Type::Vertex);
             m_TestData.ShaderRegistry.RegisterShader("frag", "assets/shaders/main.frag", Heart::Shader::Type::Fragment);
 
+            // texture registry
+            m_TestData.TextureRegistry.RegisterTexture("fish", "assets/textures/fish.png");
+
             // shader input set
             m_TestData.ShaderInputSet = Heart::ShaderInputSet::Create({
-                { Heart::ShaderInputType::Buffer, Heart::ShaderBindType::Fragment, 0 }
+                { Heart::ShaderInputType::Buffer, Heart::ShaderBindType::Fragment, 0 },
+                { Heart::ShaderInputType::Texture, Heart::ShaderBindType::Fragment, 1 }
             });
 
             // graphics pipeline
@@ -69,8 +74,8 @@ namespace HeartEditor
 
             // framebuffer
             Heart::FramebufferCreateInfo fbCreateInfo = {
-                { true, Heart::ColorFormat::RGBA8, { 0.f, 1.f, 0.f, 1.f } },
-                { false, Heart::ColorFormat::RGBA8, { 0.f, 1.f, 0.f, 1.f } }
+                { true, Heart::ColorFormat::RGBA8, { 0.f, 0.f, 0.f, 0.f } },
+                { false, Heart::ColorFormat::RGBA8, { 0.f, 0.f, 0.f, 0.f } }
             };
             fbCreateInfo.Width = 500;
             fbCreateInfo.Height = 500;
@@ -79,6 +84,9 @@ namespace HeartEditor
             m_TestData.SceneFramebuffer->RegisterGraphicsPipeline("main", gpCreateInfo);
         }
     }
+
+    // LOOK AT FRAMEBUFFER ATTACHMENT COLOR FORMATS
+    // Framebuffer multiple binds per frame
 
     void EditorLayer::OnUpdate()
     {
@@ -92,13 +100,14 @@ namespace HeartEditor
         for (int i = 0; i < 1; i++)
         {
             Heart::ShaderInputBindPoint bindPoint = m_TestData.ShaderInputSet->CreateBindPoint({
-                { m_TestData.FrameDataBuffer, nullptr }
+                { m_TestData.FrameDataBuffer, nullptr },
+                { nullptr, m_TestData.TextureRegistry.LoadTexture("fish") }
             });
             m_TestData.SceneFramebuffer->BindShaderInputSet(bindPoint, 0);
         }
 
         glm::vec4 newColor = { rand() % 100 / 100.f, rand() % 100 / 100.f, rand() % 100 / 100.f, 1.f };
-        m_TestData.FrameDataBuffer->SetData(&newColor, 1, 0);
+        //m_TestData.FrameDataBuffer->SetData(&newColor, 1, 0);
 
         Heart::Renderer::Api().DrawIndexed(
             m_TestData.IndexBuffer->GetAllocatedCount(),
