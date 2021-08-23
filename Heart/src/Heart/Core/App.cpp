@@ -77,6 +77,10 @@ namespace Heart
     {
         while (m_Running)
         {
+            double currentFrameTime = m_Window->GetWindowTime();
+            Timestep ts = Timestep(currentFrameTime - m_LastFrameTime);
+            m_LastFrameTime = currentFrameTime;
+
             m_Window->PollEvents();
 
             if (m_Minimized)
@@ -86,7 +90,7 @@ namespace Heart
 
             // Layer update
             for (auto layer : m_Layers)
-                layer->OnUpdate();
+                layer->OnUpdate(ts);
 
             // ImGui render
             m_ImGuiInstance.BeginFrame();

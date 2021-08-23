@@ -37,6 +37,7 @@ namespace Heart
         bool m_Running = true;
         bool m_Minimized = false;
         u64 m_FrameCount = 0;
+        double m_LastFrameTime = 0.0;
 
     private:
         static App* s_Instance;

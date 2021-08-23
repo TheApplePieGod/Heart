@@ -36,10 +36,11 @@ namespace Heart
         void PollEvents();
         void EndFrame();
 
-        GraphicsContext& GetContext() const { return *m_GraphicsContext; }
-        GLFWwindow* GetWindowHandle() const { return m_Window; }
-        u32 GetWidth() const { return m_WindowData.Width; }
-        u32 GetHeight() const { return m_WindowData.Height; }
+        inline GraphicsContext& GetContext() const { return *m_GraphicsContext; }
+        inline GLFWwindow* GetWindowHandle() const { return m_Window; }
+        inline u32 GetWidth() const { return m_WindowData.Width; }
+        inline u32 GetHeight() const { return m_WindowData.Height; }
+        inline double GetWindowTime() const { return glfwGetTime(); }
 
     public:
         static Ref<Window> Create(const WindowSettings& settings);
