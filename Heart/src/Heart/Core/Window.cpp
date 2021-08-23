@@ -3,6 +3,7 @@
 
 #include "Heart/Events/WindowEvents.h"
 #include "Heart/Events/KeyboardEvents.h"
+#include "Heart/Input/Input.h"
 
 namespace Heart
 {
@@ -17,13 +18,7 @@ namespace Heart
     Ref<Window> Window::Create(const WindowSettings& settings)
     {
         HE_ENGINE_LOG_INFO("Creating window ({0}x{1})", settings.Width, settings.Height);
-        auto newWindow = CreateRef<Window>(settings);
-
-        // first window created will be the main window
-        if (s_MainWindow == nullptr)
-            s_MainWindow = newWindow;
-
-        return newWindow;
+        return CreateRef<Window>(settings);
     }
 
     Window::Window(const WindowSettings& settings)
@@ -50,6 +45,9 @@ namespace Heart
 
         glfwSetWindowUserPointer(m_Window, &m_WindowData);
 
+        if (glfwRawMouseMotionSupported())
+            glfwSetInputMode(m_Window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+
         glfwSetWindowSizeCallback(m_Window, [](GLFWwindow* window, int width, int height)
 		{
 			WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
@@ -63,22 +61,23 @@ namespace Heart
         glfwSetKeyCallback(m_Window, [](GLFWwindow* window, int key, int scancode, int action, int mods)
 		{
 			WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
+            KeyCode keyCode = static_cast<KeyCode>(key);
 
 			switch (action)
 			{
 				case GLFW_PRESS:
 				{
-					KeyPressedEvent event(key, false);
+					KeyPressedEvent event(keyCode, false);
 					data.EmitEvent(event);
 				} break;
 				case GLFW_RELEASE:
 				{
-					KeyReleasedEvent event(key);
+					KeyReleasedEvent event(keyCode);
 					data.EmitEvent(event);
 				} break;
 				case GLFW_REPEAT:
 				{
-					KeyPressedEvent event(key, true);
+					KeyPressedEvent event(keyCode, true);
 					data.EmitEvent(event);
 				} break;
 			}
@@ -91,10 +90,16 @@ namespace Heart
 			data.EmitEvent(event);
 		});
 
+        glfwSetCursorPosCallback(m_Window, [](GLFWwindow* window, double xPos, double yPos)
+        {
+            WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
+            
+            Input::UpdateMousePosition(xPos, yPos);
+        });
+
         //glfwSetCharCallback
         //glfwSetMouseButtonCallback
         //glfwSetScrollCallback
-        //glfwSetCursorPosCallback
     }
 
     Window::~Window()
@@ -119,5 +124,16 @@ namespace Heart
     void Window::EndFrame()
     {
         m_GraphicsContext->EndFrame();
+        Input::ClearMouseDelta();
+    }
+
+    void Window::DisableCursor()
+    {
+        glfwSetInputMode(m_Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    }
+
+    void Window::EnableCursor()
+    {
+        glfwSetInputMode(m_Window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     }
 }

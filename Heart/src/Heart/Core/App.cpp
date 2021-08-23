@@ -18,6 +18,7 @@ namespace Heart
         WindowSettings windowSettings = WindowSettings();
         m_Window = Window::Create(windowSettings);
         SubscribeToEmitter(&GetWindow());
+        Window::SetMainWindow(m_Window);
 
         m_ImGuiInstance.Initialize();
 
@@ -31,9 +32,9 @@ namespace Heart
             layer->OnDetach();
             delete layer;
         }
-            
 
         UnsubscribeFromEmitter(&GetWindow());
+        Window::SetMainWindow(nullptr);
 
         m_ImGuiInstance.Shutdown();
 
@@ -69,7 +70,7 @@ namespace Heart
 
     bool App::OnWindowClose(WindowCloseEvent& event)
     {
-        m_Running = false;
+        Close();
         return true;
     }
 

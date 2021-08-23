@@ -36,6 +36,9 @@ namespace Heart
         void PollEvents();
         void EndFrame();
 
+        void DisableCursor();
+        void EnableCursor();
+
         inline GraphicsContext& GetContext() const { return *m_GraphicsContext; }
         inline GLFWwindow* GetWindowHandle() const { return m_Window; }
         inline u32 GetWidth() const { return m_WindowData.Width; }
@@ -45,6 +48,7 @@ namespace Heart
     public:
         static Ref<Window> Create(const WindowSettings& settings);
         static Window& GetMainWindow() { return *s_MainWindow; }
+        inline static void SetMainWindow(Ref<Window> newWindow) { s_MainWindow = newWindow; }
 
     private:
         static int s_WindowCount;

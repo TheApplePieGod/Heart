@@ -54,6 +54,7 @@ namespace Heart
         const glm::vec3 m_ZAxis = { 0.f, 0.f, 1.f };
         const glm::vec3 m_UpVector = m_YAxis;
         const glm::vec3 m_DefaultForwardVector = m_ZAxis;
+        const glm::vec3 m_DefaultRightVector = m_XAxis;
 
         f32 m_FOV, m_OrthoWidth, m_OrthoHeight, m_NearClip, m_FarClip, m_AspectRatio;
         ProjectionType m_ProjectionType;

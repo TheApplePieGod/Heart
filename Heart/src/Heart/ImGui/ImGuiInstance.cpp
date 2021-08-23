@@ -54,6 +54,7 @@ namespace Heart
 
     void ImGuiInstance::Shutdown()
     {
+		HE_ENGINE_LOG_INFO("Shutting down ImGui instance");
         Cleanup();
         
         ImGui_ImplGlfw_Shutdown();

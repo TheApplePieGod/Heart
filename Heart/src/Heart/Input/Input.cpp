@@ -6,6 +6,11 @@
 
 namespace Heart
 {
+    double Input::s_MouseDeltaX = 0.0;
+    double Input::s_MouseDeltaY = 0.0;
+    double Input::s_LastMousePosX = 0.0;
+    double Input::s_LastMousePosY = 0.0;
+
     bool Input::IsKeyPressed(KeyCode key)
     {
         GLFWwindow* window = static_cast<GLFWwindow*>(App::Get().GetWindow().GetWindowHandle());
@@ -26,5 +31,13 @@ namespace Heart
 		double xPos, yPos;
 		glfwGetCursorPos(window, &xPos, &yPos);
 		return { (f32)xPos, (f32)yPos };
+    }
+
+    void Input::UpdateMousePosition(double newX, double newY)
+    {
+        s_MouseDeltaX += newX - s_LastMousePosX;
+        s_MouseDeltaY += newY - s_LastMousePosY;
+        s_LastMousePosX = newX;
+        s_LastMousePosY = newY;
     }
 }

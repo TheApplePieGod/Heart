@@ -20,12 +20,12 @@ namespace Heart
         inline ImGuiInstance& GetImGuiInstance() { return m_ImGuiInstance; }
         inline Window& GetWindow() const { return *m_Window; }
         inline u64 GetFrameCount() const { return m_FrameCount; }
+        inline void Close() { m_Running = false; };
 
         void PushLayer(Layer* layer);
 
     private:
-        void Run();
-        inline void Stop() { m_Running = false; };
+        void Run();      
         void OnEvent(Event& event) override;
         bool OnWindowResize(WindowResizeEvent& event);
         bool OnWindowClose(WindowCloseEvent& event);
