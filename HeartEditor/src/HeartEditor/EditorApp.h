@@ -8,6 +8,7 @@ namespace HeartEditor
     {
     public:
         EditorApp();
+        ~EditorApp() = default;
 
     private:
         

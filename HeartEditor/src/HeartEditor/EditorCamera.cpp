@@ -1,8 +1,10 @@
 #include "htpch.h"
 #include "EditorCamera.h"
 
+#include "Heart/Input/Input.h"
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtx/rotate_vector.hpp"
+#include "glm/gtx/quaternion.hpp"
 
 namespace HeartEditor
 {
@@ -12,12 +14,37 @@ namespace HeartEditor
         UpdateViewMatrix();
     }
 
+    void EditorCamera::OnUpdate(Heart::Timestep ts)
+    {
+        f32 moveSpeed = 1.f; // 1 m/s
+        f32 mouseScale = 0.1f;
+        if (Heart::Input::IsKeyPressed(Heart::KeyCode::A))
+            m_Position += (m_RightVector * moveSpeed * static_cast<f32>(ts.StepSeconds()));
+        if (Heart::Input::IsKeyPressed(Heart::KeyCode::D))
+            m_Position -= (m_RightVector * moveSpeed * static_cast<f32>(ts.StepSeconds()));
+        if (Heart::Input::IsKeyPressed(Heart::KeyCode::W))
+            m_Position += (m_ForwardVector * moveSpeed * static_cast<f32>(ts.StepSeconds()));
+        if (Heart::Input::IsKeyPressed(Heart::KeyCode::S))
+            m_Position -= (m_ForwardVector * moveSpeed * static_cast<f32>(ts.StepSeconds()));
+
+        m_XRotation += mouseScale * static_cast<f32>(Heart::Input::GetMouseDeltaX());
+        m_YRotation += -mouseScale * static_cast<f32>(Heart::Input::GetMouseDeltaY());
+
+        UpdateViewMatrix();
+    }
+
     void EditorCamera::UpdateViewMatrix()
     {
-        glm::vec3 lookAtVector = m_Position;
+        glm::quat q = glm::angleAxis(glm::radians(m_XRotation), m_YAxis);
+        q *= glm::angleAxis(glm::radians(-m_YRotation), m_XAxis);
 
-        glm::rotate(lookAtVector, glm::radians(m_XRotation), m_XAxis);
+        glm::vec4 forward = { m_DefaultForwardVector, 1.f };
+        glm::vec3 lookAtVector = glm::mat4_cast(q) * forward;
 
-        m_ViewMatrix = glm::lookAt(m_Position, lookAtVector, m_UpVector);
+        m_ForwardVector = lookAtVector;
+        m_RightVector = glm::cross(m_ForwardVector, m_UpVector);
+
+        m_ViewMatrix = glm::lookAt(m_Position, m_Position + lookAtVector, m_UpVector);
+        //m_ViewMatrix = glm::lookAt(m_Position, m_Position + m_ZAxis, m_UpVector);
     }
 }
