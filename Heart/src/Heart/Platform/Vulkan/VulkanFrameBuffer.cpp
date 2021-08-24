@@ -6,6 +6,7 @@
 #include "Heart/Platform/Vulkan/VulkanDevice.h"
 #include "Heart/Platform/Vulkan/VulkanGraphicsPipeline.h"
 #include "Heart/Core/App.h"
+#include "Heart/Renderer/Renderer.h"
 #include "imgui/backends/imgui_impl_vulkan.h"
 
 namespace Heart
@@ -45,7 +46,7 @@ namespace Heart
             depthAttachment.format = m_DepthFormat;
             depthAttachment.samples = m_ImageSamples;
             depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-            depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+            depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
             depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
             depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
             depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -53,7 +54,7 @@ namespace Heart
             attachmentDescriptions.emplace_back(depthAttachment);
 
             VkClearValue clearValue{};
-            clearValue.depthStencil = { 1.f, 0 };
+            clearValue.depthStencil = { Renderer::IsUsingReverseDepth() ? 0.f : 1.f, 0 };
             m_CachedClearValues.emplace_back(clearValue);
 
             depthAttachmentRef.attachment = 0;

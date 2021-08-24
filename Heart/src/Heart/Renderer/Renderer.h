@@ -15,9 +15,11 @@ namespace Heart
 
         static RenderApi& Api() { return *s_RenderApi; }
         static RenderApi::Type GetApiType() { return s_RenderApiType; }
+        static bool IsUsingReverseDepth() { return s_UseReverseDepth; }
 
     private:
         static Scope<RenderApi> s_RenderApi;
         static RenderApi::Type s_RenderApiType;
+        static bool s_UseReverseDepth;
     };
 }

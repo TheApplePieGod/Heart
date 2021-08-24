@@ -2,6 +2,7 @@
 #include "Camera.h"
 
 #include "glm/gtc/matrix_transform.hpp"
+#include "Heart/Renderer/Renderer.h"
 
 namespace Heart
 {
@@ -23,12 +24,25 @@ namespace Heart
                 f32 fl = 1.f / tan(m_FOV * 0.5f);
                 f32 a = m_AspectRatio;
 
-                m_ProjectionMatrix = glm::mat4(
-                    -fl / a, 0, 0, 0,
-                    0, -fl, 0, 0,
-                    0, 0, f / (n - f), (n * f) / (n - f),
-                    0, 0, -1, 0
-                );
+                if (Renderer::IsUsingReverseDepth())
+                {
+                    m_ProjectionMatrix = glm::mat4(
+                        -fl / a, 0, 0, 0,
+                        0, -fl, 0, 0,
+                        0, 0, n / (f - n), (n * f) / (f - n),
+                        0, 0, -1, 0
+                    );
+                }
+                else
+                {
+                    m_ProjectionMatrix = glm::mat4(
+                        -fl / a, 0, 0, 0,
+                        0, -fl, 0, 0,
+                        0, 0, f / (n - f), (n * f) / (n - f),
+                        0, 0, -1, 0
+                    );
+                }
+
                 m_ProjectionMatrix = glm::transpose(m_ProjectionMatrix);
 
             } break;

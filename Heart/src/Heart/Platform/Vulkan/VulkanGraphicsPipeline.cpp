@@ -4,6 +4,7 @@
 #include "Heart/Platform/Vulkan/VulkanShader.h"
 #include "Heart/Platform/Vulkan/VulkanContext.h"
 #include "Heart/Platform/Vulkan/VulkanShaderInput.h"
+#include "Heart/Renderer/Renderer.h"
 
 namespace Heart
 {
@@ -154,7 +155,7 @@ namespace Heart
         depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
         depthStencil.depthTestEnable = createInfo.DepthEnable;
         depthStencil.depthWriteEnable = createInfo.DepthEnable;
-        depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
+        depthStencil.depthCompareOp = Renderer::IsUsingReverseDepth() ? VK_COMPARE_OP_GREATER_OR_EQUAL : VK_COMPARE_OP_LESS;
         depthStencil.depthBoundsTestEnable = VK_FALSE;
         depthStencil.minDepthBounds = 0.0f; // Optional
         depthStencil.maxDepthBounds = 1.0f; // Optional

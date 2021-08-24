@@ -8,6 +8,7 @@ namespace Heart
 {
     Scope<RenderApi> Renderer::s_RenderApi;
     RenderApi::Type Renderer::s_RenderApiType;
+    bool Renderer::s_UseReverseDepth = true;
 
     void Renderer::Initialize(RenderApi::Type apiType)
     {
