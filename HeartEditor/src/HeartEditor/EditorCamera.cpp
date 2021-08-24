@@ -16,7 +16,7 @@ namespace HeartEditor
 
     void EditorCamera::OnUpdate(Heart::Timestep ts)
     {
-        f32 moveSpeed = 1.f; // 1 m/s
+        f32 moveSpeed = 2.f; // m/s
         f32 mouseScale = 0.1f;
         if (Heart::Input::IsKeyPressed(Heart::KeyCode::A))
             m_Position += (m_RightVector * moveSpeed * static_cast<f32>(ts.StepSeconds()));

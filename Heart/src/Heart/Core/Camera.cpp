@@ -26,7 +26,7 @@ namespace Heart
                 m_ProjectionMatrix = glm::mat4(
                     -fl / a, 0, 0, 0,
                     0, -fl, 0, 0,
-                    0, 0, n / (f - n), (n * f) / (f - n),
+                    0, 0, f / (n - f), (n * f) / (n - f),
                     0, 0, -1, 0
                 );
                 m_ProjectionMatrix = glm::transpose(m_ProjectionMatrix);
