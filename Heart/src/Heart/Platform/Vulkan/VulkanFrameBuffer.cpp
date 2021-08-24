@@ -26,33 +26,58 @@ namespace Heart
         u32 attachmentIndex = 0;
         std::vector<VkAttachmentReference> colorAttachmentRefs = {};
         std::vector<VkAttachmentReference> resolveAttachmentRefs = {};
-        std::vector<VkAttachmentReference> depthAttachmentRefs = {};
         std::vector<VkAttachmentDescription> attachmentDescriptions = {};
 
-        VkSampleCountFlagBits imageSamples = VulkanCommon::MsaaSampleCountToVulkan(createInfo.SampleCount);
-        if (imageSamples > device.MaxMsaaSamples())
-            imageSamples = device.MaxMsaaSamples();
+        m_DepthFormat = VK_FORMAT_D32_SFLOAT;
+        m_ImageSamples = VulkanCommon::MsaaSampleCountToVulkan(createInfo.SampleCount);
+        if (m_ImageSamples > device.MaxMsaaSamples())
+            m_ImageSamples = device.MaxMsaaSamples();
 
+        VkAttachmentReference depthAttachmentRef{};
+        depthAttachmentRef.attachment = VK_ATTACHMENT_UNUSED;
+        depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+        if (createInfo.HasDepth)
+        {
+            CreateDepthAttachment();
+
+            VkAttachmentDescription depthAttachment{};
+            depthAttachment.format = m_DepthFormat;
+            depthAttachment.samples = m_ImageSamples;
+            depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+            depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+            depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+            depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+            depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL; //VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+            attachmentDescriptions.emplace_back(depthAttachment);
+
+            VkClearValue clearValue{};
+            clearValue.depthStencil = { 1.f, 0 };
+            m_CachedClearValues.emplace_back(clearValue);
+
+            depthAttachmentRef.attachment = 0;
+            attachmentIndex++;
+        }
+
+        // TODO: depth resolve (https://github.com/KhronosGroup/Vulkan-Samples/blob/master/samples/performance/msaa/msaa_tutorial.md)
         for (auto& attachment : createInfo.Attachments)
         {
             VkFormat colorFormat = VulkanCommon::ColorFormatToVulkan(attachment.ColorFormat);
-            VkFormat depthFormat = VK_FORMAT_D32_SFLOAT;
             VkClearValue clearValue{};
             clearValue.color = { attachment.ClearColor.r, attachment.ClearColor.g, attachment.ClearColor.b, attachment.ClearColor.a };
 
             VulkanFramebufferAttachment attachmentData = {};
             attachmentData.ColorFormat = colorFormat;
-            attachmentData.DepthFormat = depthFormat;
-            attachmentData.HasResolve = imageSamples > VK_SAMPLE_COUNT_1_BIT;
-            attachmentData.HasDepth = attachment.HasDepth;
+            attachmentData.HasResolve = m_ImageSamples > VK_SAMPLE_COUNT_1_BIT;
 
-            CreateAttachmentImages(attachmentData, colorFormat, depthFormat);
+            CreateAttachmentImages(attachmentData, colorFormat);
 
             // create the associated renderpass
             // TODO: adjustable depth precision
             VkAttachmentDescription colorAttachment{};
             colorAttachment.format = colorFormat;
-            colorAttachment.samples = imageSamples;
+            colorAttachment.samples = m_ImageSamples;
             colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
             colorAttachment.storeOp = (attachmentData.HasResolve ? VK_ATTACHMENT_STORE_OP_DONT_CARE : VK_ATTACHMENT_STORE_OP_STORE);
             colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -79,21 +104,6 @@ namespace Heart
                 m_CachedClearValues.emplace_back(clearValue);
             }
 
-            if (attachmentData.HasDepth)
-            {
-                VkAttachmentDescription depthAttachment{};
-                depthAttachment.format = depthFormat;
-                depthAttachment.samples = imageSamples;
-                depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-                depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-                depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-                depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL; //VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-                attachmentDescriptions.emplace_back(depthAttachment);
-
-                clearValue.depthStencil = { 1.f, 0 };
-                m_CachedClearValues.emplace_back(clearValue);
-            }
-
             VkAttachmentReference colorAttachmentRef{};
             colorAttachmentRef.attachment = attachmentIndex++;
             colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -104,11 +114,6 @@ namespace Heart
             colorAttachmentResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
             resolveAttachmentRefs.emplace_back(colorAttachmentResolveRef);
 
-            VkAttachmentReference depthAttachmentRef{};
-            depthAttachmentRef.attachment = attachmentData.HasDepth ? attachmentIndex++ : VK_ATTACHMENT_UNUSED;
-            depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-            depthAttachmentRefs.emplace_back(depthAttachmentRef);
-
             m_AttachmentData.emplace_back(attachmentData);
         }
 
@@ -117,7 +122,7 @@ namespace Heart
         subpass.colorAttachmentCount = static_cast<u32>(colorAttachmentRefs.size());
         subpass.pColorAttachments = colorAttachmentRefs.data();
         subpass.pResolveAttachments = resolveAttachmentRefs.data();
-        subpass.pDepthStencilAttachment = depthAttachmentRefs.data();
+        subpass.pDepthStencilAttachment = &depthAttachmentRef;
 
         // TODO: subpass dependencies
         VkSubpassDependency dependency{};
@@ -153,6 +158,9 @@ namespace Heart
         {
             CleanupAttachmentImages(attachmentData);
         }
+
+        if (m_Info.HasDepth)
+            CleanupDepthAttachment();
 
         vkDestroyRenderPass(device.Device(), m_RenderPass, nullptr);
 
@@ -238,22 +246,18 @@ namespace Heart
         vkCmdBindDescriptorSets(GetCommandBuffer(), VK_PIPELINE_BIND_POINT_GRAPHICS, boundPipeline.GetLayout(), setIndex, 1, &static_cast<VkDescriptorSet>(set), 0, nullptr);
     }
 
-    void* VulkanFramebuffer::GetRawAttachmentImageHandle(u32 attachmentIndex, FramebufferAttachmentType type)
+    void* VulkanFramebuffer::GetColorAttachmentImGuiHandle(u32 attachmentIndex)
     {
         HE_ENGINE_ASSERT(attachmentIndex < m_AttachmentData.size(), "Attachment access on framebuffer out of range");
+ 
+        return (m_AttachmentData[attachmentIndex].HasResolve ? m_AttachmentData[attachmentIndex].ResolveImageImGuiId : m_AttachmentData[attachmentIndex].ColorImageImGuiId);
+    }
 
-        // TODO: depth resolve (https://github.com/KhronosGroup/Vulkan-Samples/blob/master/samples/performance/msaa/msaa_tutorial.md)
-        switch (type)
-        {
-            default:
-            { HE_ENGINE_ASSERT("Cannot get framebuffer image handle unsupported FramebufferAttachmentType") } break;
-            case FramebufferAttachmentType::Color:
-            { return (m_AttachmentData[attachmentIndex].HasResolve ? m_AttachmentData[attachmentIndex].ResolveImageImGuiId : m_AttachmentData[attachmentIndex].ColorImageImGuiId); }
-            case FramebufferAttachmentType::Depth:
-            { HE_ENGINE_ASSERT(m_Info.SampleCount == MsaaSampleCount::None, "Cannot use a multisampled depth buffer as a texture"); return m_AttachmentData[attachmentIndex].DepthImageImGuiId; }
-        }
-
-        return nullptr;
+    void* VulkanFramebuffer::GetDepthAttachmentImGuiHandle()
+    {
+        HE_ENGINE_ASSERT(m_Info.HasDepth, "Cannot get framebuffer depth attachment handle, HasDepth = false");
+        
+        return m_DepthImageImGuiId;
     }
 
     Ref<GraphicsPipeline> VulkanFramebuffer::InternalInitializeGraphicsPipeline(const GraphicsPipelineCreateInfo& createInfo)
@@ -262,11 +266,7 @@ namespace Heart
 
         VulkanDevice& device = VulkanContext::GetDevice();
 
-        VkSampleCountFlagBits sampleCount = VulkanCommon::MsaaSampleCountToVulkan(m_Info.SampleCount);
-        if (sampleCount > device.MaxMsaaSamples())
-            sampleCount = device.MaxMsaaSamples();
-
-        return CreateRef<VulkanGraphicsPipeline>(createInfo, m_RenderPass, sampleCount, m_Info.Width, m_Info.Height);
+        return CreateRef<VulkanGraphicsPipeline>(createInfo, m_RenderPass, m_ImageSamples, m_Info.Width, m_Info.Height);
     }
 
     void VulkanFramebuffer::AllocateCommandBuffers()
@@ -292,12 +292,9 @@ namespace Heart
         vkFreeCommandBuffers(device.Device(), VulkanContext::GetGraphicsPool(), static_cast<u32>(m_CommandBuffers.size()), m_CommandBuffers.data());
     }
 
-    void VulkanFramebuffer::CreateAttachmentImages(VulkanFramebufferAttachment& attachmentData, VkFormat colorFormat, VkFormat depthFormat)
+    void VulkanFramebuffer::CreateAttachmentImages(VulkanFramebufferAttachment& attachmentData, VkFormat colorFormat)
     {
         VulkanDevice& device = VulkanContext::GetDevice();
-        VkSampleCountFlagBits imageSamples = VulkanCommon::MsaaSampleCountToVulkan(m_Info.SampleCount);
-        if (imageSamples > device.MaxMsaaSamples())
-            imageSamples = device.MaxMsaaSamples();
 
         // create the associated images for the framebuffer
         VulkanCommon::CreateImage(
@@ -307,7 +304,7 @@ namespace Heart
             m_ActualHeight,
             colorFormat,
             1,
-            imageSamples,
+            m_ImageSamples,
             VK_IMAGE_TILING_OPTIMAL,
             VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | (attachmentData.HasResolve ? VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT : 0),
@@ -333,24 +330,6 @@ namespace Heart
             );
         }
 
-        if (attachmentData.HasDepth)
-        {
-            VulkanCommon::CreateImage(
-                device.Device(),
-                device.PhysicalDevice(),
-                m_ActualWidth,
-                m_ActualHeight,
-                depthFormat,
-                1,
-                imageSamples,
-                VK_IMAGE_TILING_OPTIMAL,
-                VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT,
-                attachmentData.DepthImage,
-                attachmentData.DepthImageMemory
-            );
-        }
-
         // create associated image views 
         attachmentData.ColorImageView = VulkanCommon::CreateImageView(device.Device(), attachmentData.ColorImage, colorFormat, 1);
         m_CachedImageViews.emplace_back(attachmentData.ColorImageView);
@@ -361,13 +340,6 @@ namespace Heart
             attachmentData.ResolveImageView = VulkanCommon::CreateImageView(device.Device(), attachmentData.ResolveImage, colorFormat, 1);
             m_CachedImageViews.emplace_back(attachmentData.ResolveImageView);
             attachmentData.ResolveImageImGuiId = ImGui_ImplVulkan_AddTexture(VulkanContext::GetDefaultSampler(), attachmentData.ResolveImageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
-        }
-
-        if (attachmentData.HasDepth)
-        {
-            attachmentData.DepthImageView = VulkanCommon::CreateImageView(device.Device(), attachmentData.DepthImage, depthFormat, 1, VK_IMAGE_ASPECT_DEPTH_BIT);
-            m_CachedImageViews.emplace_back(attachmentData.DepthImageView);
-            attachmentData.DepthImageImGuiId = ImGui_ImplVulkan_AddTexture(VulkanContext::GetDefaultSampler(), attachmentData.DepthImageView, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL);
         }
     }
 
@@ -389,15 +361,41 @@ namespace Heart
             vkDestroyImage(device.Device(), attachmentData.ResolveImage, nullptr);
             vkFreeMemory(device.Device(), attachmentData.ResolveImageMemory, nullptr);
         }
+    }
 
-        if (attachmentData.HasDepth)
-        {
-            ImGui_ImplVulkan_RemoveTexture(attachmentData.DepthImageImGuiId);
+    void VulkanFramebuffer::CreateDepthAttachment()
+    {
+        VulkanDevice& device = VulkanContext::GetDevice();
 
-            vkDestroyImageView(device.Device(), attachmentData.DepthImageView, nullptr);
-            vkDestroyImage(device.Device(), attachmentData.DepthImage, nullptr);
-            vkFreeMemory(device.Device(), attachmentData.DepthImageMemory, nullptr);
-        }
+        VulkanCommon::CreateImage(
+            device.Device(),
+            device.PhysicalDevice(),
+            m_ActualWidth,
+            m_ActualHeight,
+            m_DepthFormat,
+            1,
+            m_ImageSamples,
+            VK_IMAGE_TILING_OPTIMAL,
+            VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT,
+            m_DepthImage,
+            m_DepthImageMemory
+        );
+
+        m_DepthImageView = VulkanCommon::CreateImageView(device.Device(), m_DepthImage, m_DepthFormat, 1, VK_IMAGE_ASPECT_DEPTH_BIT);
+        m_CachedImageViews.emplace_back(m_DepthImageView);
+        m_DepthImageImGuiId = ImGui_ImplVulkan_AddTexture(VulkanContext::GetDefaultSampler(), m_DepthImageView, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL);
+    }
+
+    void VulkanFramebuffer::CleanupDepthAttachment()
+    {
+        VulkanDevice& device = VulkanContext::GetDevice();
+
+        ImGui_ImplVulkan_RemoveTexture(m_DepthImageImGuiId);
+
+        vkDestroyImageView(device.Device(), m_DepthImageView, nullptr);
+        vkDestroyImage(device.Device(), m_DepthImage, nullptr);
+        vkFreeMemory(device.Device(), m_DepthImageMemory, nullptr);
     }
 
     void VulkanFramebuffer::CreateFramebuffer()
@@ -432,10 +430,16 @@ namespace Heart
         CleanupFramebuffer();
         m_CachedImageViews.clear();
 
+        if (m_Info.HasDepth)
+        {
+            CleanupDepthAttachment();
+            CreateDepthAttachment();
+        }
+
         for (auto& attachmentData : m_AttachmentData)
         {
             CleanupAttachmentImages(attachmentData);
-            CreateAttachmentImages(attachmentData, attachmentData.ColorFormat, attachmentData.DepthFormat);
+            CreateAttachmentImages(attachmentData, attachmentData.ColorFormat);
         }
 
         CreateFramebuffer();

@@ -31,7 +31,7 @@ namespace Heart
             default:
             { HE_ENGINE_ASSERT(false, "Cannot create Buffer: selected ApiType is not supported"); return nullptr; }
             case RenderApi::Type::Vulkan:
-            { return CreateRef<VulkanBuffer>(layout, elementCount, initialData); }
+            { return CreateRef<VulkanBuffer>(layout, elementCount, initialData, VulkanBuffer::Type::Uniform); }
         }
     }
 
@@ -47,7 +47,7 @@ namespace Heart
             default:
             { HE_ENGINE_ASSERT(false, "Cannot create Buffer: selected ApiType is not supported"); return nullptr; }
             case RenderApi::Type::Vulkan:
-            { return CreateRef<VulkanBigBuffer>(layout, elementCount, initialData); }
+            { return CreateRef<VulkanBuffer>(layout, elementCount, initialData, VulkanBuffer::Type::Storage); }
         }
     }
 }

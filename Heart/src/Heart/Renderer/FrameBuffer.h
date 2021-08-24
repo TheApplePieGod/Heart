@@ -23,15 +23,8 @@ namespace Heart
         Max = Sixtyfour
     };
 
-    enum class FramebufferAttachmentType
-    {
-        None = 0,
-        Color, Depth
-    };
-
     struct FramebufferAttachment
     {
-        bool HasDepth = false;
         ColorFormat ColorFormat = ColorFormat::RGBA8;
         glm::vec4 ClearColor;
     };
@@ -45,6 +38,7 @@ namespace Heart
         std::vector<FramebufferAttachment> Attachments;
         u32 Width, Height = 0; // set to zero to match screen width and height
         MsaaSampleCount SampleCount = MsaaSampleCount::Max; // will be clamped to device max supported sample count
+        bool HasDepth = false;
     };
 
     class Framebuffer : public EventListener
@@ -58,8 +52,8 @@ namespace Heart
         virtual void BindShaderInputSet(ShaderInputBindPoint set, u32 setIndex) = 0; // must be called AFTER bind pipeline
         virtual void Submit(GraphicsContext& context) = 0;
         
-        // useful for ImGui
-        virtual void* GetRawAttachmentImageHandle(u32 attachmentIndex, FramebufferAttachmentType type) = 0;
+        virtual void* GetColorAttachmentImGuiHandle(u32 attachmentIndex) = 0;
+        virtual void* GetDepthAttachmentImGuiHandle() = 0;
         void OnEvent(Event& event) override;
 
         Ref<GraphicsPipeline> RegisterGraphicsPipeline(const std::string& name, const GraphicsPipelineCreateInfo& createInfo);

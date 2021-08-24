@@ -7,7 +7,7 @@
 
 namespace Heart
 {
-    VulkanBuffer::VulkanBuffer(const BufferLayout& layout, u32 elementCount, void* initialData)
+    VulkanBuffer::VulkanBuffer(const BufferLayout& layout, u32 elementCount, void* initialData, Type type)
         : Buffer(layout, elementCount)
     {
         VulkanDevice& device = VulkanContext::GetDevice();
@@ -15,7 +15,7 @@ namespace Heart
 
         for (size_t i = 0; i < m_Buffers.size(); i++)
         {
-            CreateBuffer(bufferSize, m_Buffers[i], m_BufferMemory[i]);
+            CreateBuffer(bufferSize, m_Buffers[i], m_BufferMemory[i], type);
             vkMapMemory(device.Device(), m_BufferMemory[i], 0, bufferSize, 0, &m_MappedMemory[i]);
 
             if (initialData != nullptr)
@@ -37,16 +37,18 @@ namespace Heart
         }
     }
 
-    void VulkanBuffer::CreateBuffer(VkDeviceSize size, VkBuffer& outBuffer, VkDeviceMemory& outMemory)
+    void VulkanBuffer::CreateBuffer(VkDeviceSize size, VkBuffer& outBuffer, VkDeviceMemory& outMemory, Type type)
     {
         VulkanDevice& device = VulkanContext::GetDevice();
-        VulkanCommon::CreateBuffer(device.Device(), device.PhysicalDevice(), size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, outBuffer, outMemory);
-    }
 
-    void VulkanBigBuffer::CreateBuffer(VkDeviceSize size, VkBuffer& outBuffer, VkDeviceMemory& outMemory)
-    {
-        VulkanDevice& device = VulkanContext::GetDevice();
-        VulkanCommon::CreateBuffer(device.Device(), device.PhysicalDevice(), size, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, outBuffer, outMemory);
+        switch (type)
+        {
+            default: { HE_ENGINE_ASSERT("Failed to create VulkanBuffer of unsupported type") } break;
+            case Type::Uniform:
+            { VulkanCommon::CreateBuffer(device.Device(), device.PhysicalDevice(), size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, outBuffer, outMemory); } break;
+            case Type::Storage:
+            { VulkanCommon::CreateBuffer(device.Device(), device.PhysicalDevice(), size, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, outBuffer, outMemory); } break;
+        }
     }
 
     void VulkanBuffer::SetData(void* data, u32 elementCount, u32 elementOffset)

@@ -17,7 +17,8 @@ namespace Heart
         void BindShaderInputSet(ShaderInputBindPoint set, u32 setIndex) override;
         void Submit(GraphicsContext& context) override;
 
-        void* GetRawAttachmentImageHandle(u32 attachmentIndex, FramebufferAttachmentType type) override;
+        void* GetColorAttachmentImGuiHandle(u32 attachmentIndex) override;
+        void* GetDepthAttachmentImGuiHandle() override;
 
         inline VkFramebuffer GetFramebuffer() const { return m_Framebuffer; }
         inline VkRenderPass GetRenderPass() const { return m_RenderPass; }
@@ -30,29 +31,26 @@ namespace Heart
         struct VulkanFramebufferAttachment
         {
             VkFormat ColorFormat;
-            VkFormat DepthFormat;
             VkImage ColorImage;
             VkImage ResolveImage;
-            VkImage DepthImage;
             VkDeviceMemory ColorImageMemory;
             VkDeviceMemory ResolveImageMemory;
-            VkDeviceMemory DepthImageMemory;
             VkImageView ColorImageView;
             VkImageView ResolveImageView;
-            VkImageView DepthImageView;
             void* ColorImageImGuiId;
             void* ResolveImageImGuiId;
-            void* DepthImageImGuiId;
             bool HasResolve;
-            bool HasDepth;
         };
 
     private:
         void AllocateCommandBuffers();
         void FreeCommandBuffers();
 
-        void CreateAttachmentImages(VulkanFramebufferAttachment& attachmentData, VkFormat colorFormat, VkFormat depthFormat);
+        void CreateAttachmentImages(VulkanFramebufferAttachment& attachmentData, VkFormat colorFormat);
         void CleanupAttachmentImages(VulkanFramebufferAttachment& attachmentData);
+
+        void CreateDepthAttachment();
+        void CleanupDepthAttachment();
 
         void CreateFramebuffer();
         void CleanupFramebuffer();
@@ -72,5 +70,12 @@ namespace Heart
 
         u64 m_LastUpdateFrame = 0;
         u32 m_InFlightFrameIndex = 0;
+        VkSampleCountFlagBits m_ImageSamples;
+
+        VkImage m_DepthImage;
+        VkDeviceMemory m_DepthImageMemory;
+        VkImageView m_DepthImageView;
+        void* m_DepthImageImGuiId;
+        VkFormat m_DepthFormat;
     };
 }
