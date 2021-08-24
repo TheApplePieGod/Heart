@@ -115,7 +115,7 @@ namespace Heart
 
                 m_CachedBufferInfos[bufferIndex].buffer = buffer.GetBuffer();
                 m_CachedBufferInfos[bufferIndex].offset = 0;
-                m_CachedBufferInfos[bufferIndex].range = buffer.GetAllocatedSize();
+                m_CachedBufferInfos[bufferIndex].range = buffer.GetLayout().GetStride(); //buffer.GetAllocatedSize(); // when using dynamic buffers, range is the stride rather than the whole size
 
                 m_CachedDescriptorWrites[index].pBufferInfo = &m_CachedBufferInfos[bufferIndex++];
             }
@@ -142,7 +142,11 @@ namespace Heart
 
         vkUpdateDescriptorSets(device.Device(), static_cast<u32>(m_CachedDescriptorWrites.size()), m_CachedDescriptorWrites.data(), 0, nullptr);
 
-        return static_cast<ShaderInputBindPoint>(set);
+        ShaderInputBindPoint bindPoint = {
+            set, static_cast<u32>(bufferIndex), static_cast<u32>(imageIndex)    
+        };
+
+        return bindPoint;
     }
 
     VkDescriptorPool VulkanShaderInputSet::CreateDescriptorPool()

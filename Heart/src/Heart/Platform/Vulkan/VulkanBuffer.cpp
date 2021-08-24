@@ -58,7 +58,7 @@ namespace Heart
         // TODO: dynamic resizing
         HE_ENGINE_ASSERT(elementCount <= m_AllocatedCount, "Attempting to set data on buffer which is larger than allocated size");
 
-        memcpy(m_MappedMemory[m_InFlightFrameIndex], data, m_Layout.GetStride() * elementCount);
+        memcpy((char*)m_MappedMemory[m_InFlightFrameIndex] + m_Layout.GetStride() * elementOffset, data, m_Layout.GetStride() * elementCount);
     }
 
     void VulkanBuffer::UpdateFrameIndex()

@@ -30,7 +30,12 @@ namespace Heart
         Ref<Texture> TargetTexture = nullptr;
     };
 
-    using ShaderInputBindPoint = void*;
+    struct ShaderInputBindPoint
+    {
+        void* BindData;
+        u32 BufferCount;
+        u32 ImageCount;
+    };
 
     class ShaderInputSet
     {

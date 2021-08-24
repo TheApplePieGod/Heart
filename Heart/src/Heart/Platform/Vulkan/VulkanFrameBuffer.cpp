@@ -237,14 +237,15 @@ namespace Heart
         m_BoundPipeline = name;
     }
 
-    void VulkanFramebuffer::BindShaderInputSet(ShaderInputBindPoint set, u32 setIndex)
+    void VulkanFramebuffer::BindShaderInputSet(const ShaderInputBindPoint& bindPoint, u32 setIndex, const std::vector<u32>& bufferOffsets)
     {
         // TODO: don't use string here
         HE_ENGINE_ASSERT(m_BoundPipeline != "", "Must call BindPipeline before BindShaderInputSets");
+        HE_ENGINE_ASSERT(bufferOffsets.size() == bindPoint.BufferCount, "Must provide a valid element offset for each buffer");
 
         VulkanGraphicsPipeline& boundPipeline = static_cast<VulkanGraphicsPipeline&>(*LoadPipeline(m_BoundPipeline));
 
-        vkCmdBindDescriptorSets(GetCommandBuffer(), VK_PIPELINE_BIND_POINT_GRAPHICS, boundPipeline.GetLayout(), setIndex, 1, &static_cast<VkDescriptorSet>(set), 0, nullptr);
+        vkCmdBindDescriptorSets(GetCommandBuffer(), VK_PIPELINE_BIND_POINT_GRAPHICS, boundPipeline.GetLayout(), setIndex, 1, &static_cast<VkDescriptorSet>(bindPoint.BindData), static_cast<u32>(bufferOffsets.size()), bufferOffsets.data());
     }
 
     void* VulkanFramebuffer::GetColorAttachmentImGuiHandle(u32 attachmentIndex)

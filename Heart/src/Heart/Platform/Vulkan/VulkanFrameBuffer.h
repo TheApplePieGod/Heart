@@ -14,7 +14,7 @@ namespace Heart
 
         void Bind() override;
         void BindPipeline(const std::string& name) override;
-        void BindShaderInputSet(ShaderInputBindPoint set, u32 setIndex) override;
+        void BindShaderInputSet(const ShaderInputBindPoint& bindPoint, u32 setIndex, const std::vector<u32>& bufferOffsets) override;
         void Submit(GraphicsContext& context) override;
 
         void* GetColorAttachmentImGuiHandle(u32 attachmentIndex) override;
