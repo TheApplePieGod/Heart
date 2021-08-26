@@ -45,9 +45,11 @@ namespace Heart
         switch (Renderer::GetApiType())
         {
             default:
-            { HE_ENGINE_ASSERT(false, "Cannot cleanup ImGui: selected ApiType is not supported"); } break;
+            { HE_ENGINE_ASSERT(false, "Cannot initialize ImGui: selected ApiType is not supported"); } break;
             case RenderApi::Type::Vulkan:
             { ImGui_ImplGlfw_InitForVulkan(window.GetWindowHandle(), true); } break;
+			case RenderApi::Type::OpenGL:
+            { ImGui_ImplGlfw_InitForOpenGL(window.GetWindowHandle(), true); } break;
         }
 
         Recreate();

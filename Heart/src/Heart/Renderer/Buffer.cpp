@@ -3,6 +3,7 @@
 
 #include "Heart/Renderer/Renderer.h"
 #include "Heart/Platform/Vulkan/VulkanBuffer.h"
+#include "Heart/Platform/OpenGL/OpenGLBuffer.h"
 
 namespace Heart
 {
@@ -33,6 +34,8 @@ namespace Heart
             { HE_ENGINE_ASSERT(false, "Cannot create Buffer: selected ApiType is not supported"); return nullptr; }
             case RenderApi::Type::Vulkan:
             { return CreateRef<VulkanBuffer>(type, layout, elementCount, initialData); }
+            case RenderApi::Type::OpenGL:
+            { return CreateRef<OpenGLBuffer>(type, layout, elementCount, initialData); }
         }
     }
 

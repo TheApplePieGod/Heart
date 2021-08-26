@@ -37,9 +37,16 @@ namespace Heart
         }
 
         if (Renderer::GetApiType() == RenderApi::Type::Vulkan)
+        {
+            glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
             HE_ENGINE_ASSERT(glfwVulkanSupported(), "Device does not support vulkan rendering");
+        }
 
-        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+        #ifdef HE_DEBUG
+        if (Renderer::GetApiType() == RenderApi::Type::OpenGL)
+            glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
+        #endif
+
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
         m_Window = glfwCreateWindow(settings.Width, settings.Height, settings.Title.c_str(), nullptr, nullptr);

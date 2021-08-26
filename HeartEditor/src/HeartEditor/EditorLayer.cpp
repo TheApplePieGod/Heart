@@ -62,7 +62,7 @@ namespace HeartEditor
                 { Heart::BufferDataType::Float3 },
                 { Heart::BufferDataType::Float2 }
             };
-            m_TestData.VertexBuffer = Heart::VertexBuffer::Create(vertBufferLayout, (u32)vertexArray.size(), vertexArray.data());
+            m_TestData.VertexBuffer = Heart::Buffer::Create(Heart::Buffer::Type::Vertex, vertBufferLayout, (u32)vertexArray.size(), vertexArray.data());
 
             // index buffer
             std::vector<u32> indices = {
@@ -73,7 +73,7 @@ namespace HeartEditor
                 16, 17, 18, 18, 19, 16,
                 20, 23, 22, 22, 21, 20
             };
-            m_TestData.IndexBuffer = Heart::IndexBuffer::Create((u32)indices.size(), indices.data());
+            m_TestData.IndexBuffer = Heart::Buffer::CreateIndexBuffer((u32)indices.size(), indices.data());
 
             // shader registry
             m_TestData.ShaderRegistry.RegisterShader("vert", "assets/shaders/main.vert", Heart::Shader::Type::Vertex);
@@ -114,10 +114,10 @@ namespace HeartEditor
 
             // per frame data buffer
             glm::mat4 initialData = m_EditorCamera->GetProjectionMatrix() * m_EditorCamera->GetViewMatrix();
-            m_TestData.FrameDataBuffer = Heart::Buffer::Create(frameDataLayout, 1, &initialData);
+            m_TestData.FrameDataBuffer = Heart::Buffer::Create(Heart::Buffer::Type::Uniform, frameDataLayout, 1, &initialData);
 
             // object data buffer
-            m_TestData.ObjectDataBuffer = Heart::BigBuffer::Create(objectDataLayout, 1000, nullptr);
+            m_TestData.ObjectDataBuffer = Heart::Buffer::Create(Heart::Buffer::Type::Storage, objectDataLayout, 1000, nullptr);
 
             // framebuffer
             Heart::FramebufferCreateInfo fbCreateInfo = {

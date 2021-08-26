@@ -17,5 +17,8 @@ namespace Heart
 
     public:
         static Ref<GraphicsContext> Create(void* window);
+
+    protected:
+        void* m_WindowHandle;
     };
 }

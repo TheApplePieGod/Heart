@@ -5,8 +5,6 @@
 #include "Heart/Events/KeyboardEvents.h"
 
 // Testing
-#include "Heart/Renderer/VertexBuffer.h"
-#include "Heart/Renderer/IndexBuffer.h"
 #include "Heart/Renderer/Framebuffer.h"
 #include "Heart/Renderer/ShaderInput.h"
 #include "Heart/Renderer/Buffer.h"
@@ -22,8 +20,8 @@ namespace HeartEditor
             glm::vec2 texCoord;
         };
 
-        Heart::Ref<Heart::VertexBuffer> VertexBuffer;
-        Heart::Ref<Heart::IndexBuffer> IndexBuffer;
+        Heart::Ref<Heart::Buffer> VertexBuffer;
+        Heart::Ref<Heart::Buffer> IndexBuffer;
         Heart::Ref<Heart::Framebuffer> SceneFramebuffer;
         Heart::ShaderRegistry ShaderRegistry;
         Heart::Ref<Heart::ShaderInputSet> ShaderInputSet;

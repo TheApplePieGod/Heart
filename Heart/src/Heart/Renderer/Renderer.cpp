@@ -3,6 +3,7 @@
 
 #include "Heart/Renderer/GraphicsContext.h"
 #include "Heart/Platform/Vulkan/VulkanRenderApi.h"
+#include "Heart/Platform/OpenGL/OpenGLRenderApi.h"
 
 namespace Heart
 {
@@ -21,6 +22,8 @@ namespace Heart
             { HE_ENGINE_ASSERT(false, "Cannot initialize Renderer: selected ApiType is not supported"); } break;
             case RenderApi::Type::Vulkan:
             { s_RenderApi = CreateScope<VulkanRenderApi>(); } break;
+            case RenderApi::Type::OpenGL:
+            { s_RenderApi = CreateScope<OpenGLRenderApi>(); } break;
         }
     }
 

@@ -4,6 +4,7 @@
 #include "Heart/Util/FilesystemUtils.h"
 #include "Heart/Renderer/Renderer.h"
 #include "Heart/Platform/Vulkan/VulkanShader.h"
+#include "Heart/Platform/OpenGL/OpenGLShader.h"
 #include "shaderc/shaderc.hpp"
 #include "spirv_cross/spirv_cross.hpp"
 #include "spirv_cross/spirv_glsl.hpp"
@@ -18,6 +19,8 @@ namespace Heart
             { HE_ENGINE_ASSERT(false, "Cannot create shader: selected ApiType is not supported"); return nullptr; }
             case RenderApi::Type::Vulkan:
             { return CreateRef<VulkanShader>(path, shaderType); }
+            case RenderApi::Type::OpenGL:
+            { return CreateRef<OpenGLShader>(path, shaderType); }
         }
     }
 

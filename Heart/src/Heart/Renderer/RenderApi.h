@@ -11,10 +11,10 @@ namespace Heart
     public:
         enum class Type
         {
-            None = 0, Vulkan = 1
+            None = 0, Vulkan = 1, OpenGL = 2
         };
         inline static const char* TypeStrings[] = {
-            "None", "Vulkan"
+            "None", "Vulkan", "OpenGL"
         };
 
     public:
