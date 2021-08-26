@@ -7,7 +7,14 @@ project(
 )
 
 add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
-add_compile_definitions(HT_DEBUG)
-add_compile_definitions(HT_PLATFORM_WINDOWS)
 
+if (${CMAKE_BUILD_TYPE} MATCHES Debug)
+    message("Building HeartEngine in Debug mode")
+    add_compile_definitions(HE_DEBUG)
+else()
+    message("Building HeartEngine in Release mode")
+endif()
+
+
+add_subdirectory("HeartEditor")
 add_subdirectory("Heart")
