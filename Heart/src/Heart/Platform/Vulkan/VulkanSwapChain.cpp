@@ -344,7 +344,6 @@ namespace Heart
         {
             HE_VULKAN_CHECK_RESULT(vkCreateSemaphore(device.Device(), &semaphoreInfo, nullptr, &m_ImageAvailableSemaphores[i]));
             HE_VULKAN_CHECK_RESULT(vkCreateSemaphore(device.Device(), &semaphoreInfo, nullptr, &m_RenderFinishedSemaphores[i]));
-            HE_VULKAN_CHECK_RESULT(vkCreateSemaphore(device.Device(), &semaphoreInfo, nullptr, &m_AuxiliaryRenderFinishedSemaphores[i]));
             HE_VULKAN_CHECK_RESULT(vkCreateFence(device.Device(), &fenceInfo, nullptr, &m_InFlightFences[i]));
         }
     }
@@ -357,9 +356,29 @@ namespace Heart
         {
             vkDestroySemaphore(device.Device(), m_ImageAvailableSemaphores[i], nullptr);
             vkDestroySemaphore(device.Device(), m_RenderFinishedSemaphores[i], nullptr);
-            vkDestroySemaphore(device.Device(), m_AuxiliaryRenderFinishedSemaphores[i], nullptr);
             vkDestroyFence(device.Device(), m_InFlightFences[i], nullptr);
         }
+
+        for (auto semaphore : m_AuxiliaryRenderFinishedSemaphores)
+            vkDestroySemaphore(device.Device(), semaphore, nullptr);
+    }
+
+    VkSemaphore VulkanSwapChain::GetAuxiliaryRenderSemaphore(size_t renderIndex)
+    {
+        VulkanDevice& device = VulkanContext::GetDevice();
+
+        VkSemaphoreCreateInfo semaphoreInfo{};
+        semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+        size_t arrayIndex = renderIndex * MAX_FRAMES_IN_FLIGHT + m_InFlightFrameIndex;
+        while (arrayIndex >= m_AuxiliaryRenderFinishedSemaphores.size())
+        {
+            VkSemaphore semaphore;
+            HE_VULKAN_CHECK_RESULT(vkCreateSemaphore(device.Device(), &semaphoreInfo, nullptr, &semaphore));
+            m_AuxiliaryRenderFinishedSemaphores.push_back(semaphore);
+        }
+
+        return m_AuxiliaryRenderFinishedSemaphores[arrayIndex];
     }
 
     void VulkanSwapChain::RecreateSwapChain()
@@ -439,6 +458,7 @@ namespace Heart
 
         // clear the submitted command buffers from last frame
         m_AuxiliaryCommandBuffers.clear();
+        m_AuxiliaryCommandBufferCounts.clear();
     }
 
     void VulkanSwapChain::EndFrame()
@@ -488,37 +508,43 @@ namespace Heart
     {
         VulkanDevice& device = VulkanContext::GetDevice();
 
-        //UpdatePerFramebuffer(nextImageIndex);
-
-        std::array<VkSubmitInfo, 2> submitInfos;
-        // auxiliary framebuffer submissions
+        std::vector<VkSubmitInfo> submitInfos(m_AuxiliaryCommandBufferCounts.size() + 1);
+        std::vector<VkSemaphore> waitSemaphores(m_AuxiliaryCommandBufferCounts.size());
         VkPipelineStageFlags auxWaitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-        submitInfos[0] = {};
-        submitInfos[0].sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        submitInfos[0].waitSemaphoreCount = 0;
-        submitInfos[0].pWaitSemaphores = nullptr;
-        submitInfos[0].pWaitDstStageMask = auxWaitStages;
-        submitInfos[0].commandBufferCount = static_cast<u32>(m_AuxiliaryCommandBuffers.size());
-        submitInfos[0].pCommandBuffers = m_AuxiliaryCommandBuffers.data();
+        size_t auxiliaryBufferIndex = 0;
+        for (size_t i = 0; i < m_AuxiliaryCommandBufferCounts.size(); i++)
+        {
+            size_t submissionCount = m_AuxiliaryCommandBufferCounts[i];
+            waitSemaphores[i] = GetAuxiliaryRenderSemaphore(i);
 
-        VkSemaphore auxiliarySignalSemaphores[] = { m_AuxiliaryRenderFinishedSemaphores[m_InFlightFrameIndex] };
-        submitInfos[0].signalSemaphoreCount = 1;
-        submitInfos[0].pSignalSemaphores = auxiliarySignalSemaphores;
+            submitInfos[i] = {};
+            submitInfos[i].sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+            submitInfos[i].pWaitDstStageMask = auxWaitStages;
+            submitInfos[i].commandBufferCount = static_cast<u32>(submissionCount);
+            submitInfos[i].pCommandBuffers = m_AuxiliaryCommandBuffers.data() + auxiliaryBufferIndex;
+            submitInfos[i].waitSemaphoreCount = i == 0 ? 0 : 1;
+            submitInfos[i].pWaitSemaphores = i > 0 ? &waitSemaphores[i - 1] : nullptr;
+            submitInfos[i].signalSemaphoreCount = 1;
+            submitInfos[i].pSignalSemaphores = &waitSemaphores[i];
+
+            auxiliaryBufferIndex += submissionCount;
+        }
         
         // final render submission
-        VkSemaphore waitSemaphores[] = { m_ImageAvailableSemaphores[m_InFlightFrameIndex], m_AuxiliaryRenderFinishedSemaphores[m_InFlightFrameIndex] };
+        VkSubmitInfo& finalSubmitInfo = submitInfos.back();
+        VkSemaphore finalWaitSemaphores[] = { m_ImageAvailableSemaphores[m_InFlightFrameIndex], waitSemaphores.empty() ? nullptr : waitSemaphores.back() };
         VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-        submitInfos[1] = {};
-        submitInfos[1].sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        submitInfos[1].waitSemaphoreCount = 2;
-        submitInfos[1].pWaitSemaphores = waitSemaphores;
-        submitInfos[1].pWaitDstStageMask = waitStages;
-        submitInfos[1].commandBufferCount = 1;
-        submitInfos[1].pCommandBuffers = &m_SwapChainData.CommandBuffers[m_PresentImageIndex];
+        finalSubmitInfo = {};
+        finalSubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        finalSubmitInfo.waitSemaphoreCount = waitSemaphores.empty() ? 1 : 2;
+        finalSubmitInfo.pWaitSemaphores = finalWaitSemaphores;
+        finalSubmitInfo.pWaitDstStageMask = waitStages;
+        finalSubmitInfo.commandBufferCount = 1;
+        finalSubmitInfo.pCommandBuffers = &m_SwapChainData.CommandBuffers[m_PresentImageIndex];
 
         VkSemaphore finalSignalSemaphores[] = { m_RenderFinishedSemaphores[m_InFlightFrameIndex] };
-        submitInfos[1].signalSemaphoreCount = 1;
-        submitInfos[1].pSignalSemaphores = finalSignalSemaphores;
+        finalSubmitInfo.signalSemaphoreCount = 1;
+        finalSubmitInfo.pSignalSemaphores = finalSignalSemaphores;
 
         vkResetFences(device.Device(), 1, &m_InFlightFences[m_InFlightFrameIndex]);
         HE_VULKAN_CHECK_RESULT(vkQueueSubmit(device.GraphicsQueue(), static_cast<u32>(submitInfos.size()), submitInfos.data(), m_InFlightFences[m_InFlightFrameIndex]));
@@ -542,6 +568,12 @@ namespace Heart
             HE_ENGINE_ASSERT(result == VK_SUCCESS);
 
         //vkQueueWaitIdle(device.PresentQueue());
+    }
+
+    void VulkanSwapChain::SubmitCommandBuffers(const std::vector<VkCommandBuffer>& buffers)
+    {
+        m_AuxiliaryCommandBufferCounts.emplace_back(buffers.size());
+        m_AuxiliaryCommandBuffers.insert(m_AuxiliaryCommandBuffers.end(), buffers.begin(), buffers.end());
     }
 
     void VulkanSwapChain::InvalidateSwapChain(u32 newWidth, u32 newHeight)

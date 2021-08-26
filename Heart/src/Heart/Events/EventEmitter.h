@@ -23,7 +23,7 @@ namespace Heart
         // DO NOT CALL THIS INSIDE THE BODY OF AN EVENT CALLBACK
         void Unsubscribe(EventListener* listener);
 
-        bool IsSubscribed(const EventListener* listener) const;
+        bool IsSubscribed(EventListener* listener) const;
 
     protected:
         void Emit(Event& event);
@@ -42,7 +42,7 @@ namespace Heart
         // DO NOT CALL THIS INSIDE THE BODY OF AN EVENT CALLBACK
         inline void UnsubscribeFromEmitter(EventEmitter* emitter) { emitter->Unsubscribe(this); }
         
-        inline bool IsSubscribedToEmitter(const EventEmitter* emitter) const { return emitter->IsSubscribed(this); }
+        inline bool IsSubscribedToEmitter(EventEmitter* emitter) { return emitter->IsSubscribed(this); }
 
     private:
 

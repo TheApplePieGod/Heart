@@ -154,25 +154,27 @@ namespace HeartEditor
             { m_TestData.ObjectDataBuffer, nullptr },
             { nullptr, m_TestData.TextureRegistry.LoadTexture("test") }
         });
-        m_TestData.SceneFramebuffer->BindShaderInputSet(bindPoint, 0);
+        
         m_TestData.FrameDataBuffer->SetData(&m_EditorCamera->GetViewProjectionMatrix(), 1, 0);
 
-        std::vector<glm::mat4> objectData;
-        for (int i = 0; i < 5; i++)
+        for (u32 i = 0; i < 50; i++)
         {
+            m_TestData.SceneFramebuffer->BindShaderInputSet(bindPoint, 0, { 0, i * (u32)sizeof(glm::mat4) });
+
             glm::vec3 objectPos = { 0.f, 0.f, 2.f + i + (i * 0.5f) };
             glm::mat4 transformed = glm::translate(glm::mat4(1.f), objectPos)
                                      * glm::scale(glm::mat4(1.f), glm::vec3(1.f, 1.f, 1.f));
-            objectData.emplace_back(transformed);
-        }
-        m_TestData.ObjectDataBuffer->SetData(objectData.data(), (u32)objectData.size(), 0);
-        Heart::Renderer::Api().DrawIndexed(
-            m_TestData.IndexBuffer->GetAllocatedCount(),
-            m_TestData.VertexBuffer->GetAllocatedCount(),
-            0, 0, (u32)objectData.size()
-        );
 
-        m_TestData.SceneFramebuffer->Submit(EditorApp::Get().GetWindow().GetContext());
+            m_TestData.ObjectDataBuffer->SetData(&transformed, 1, i);
+
+            Heart::Renderer::Api().DrawIndexed(
+                m_TestData.IndexBuffer->GetAllocatedCount(),
+                m_TestData.VertexBuffer->GetAllocatedCount(),
+                0, 0, 1
+            );
+        }
+        
+        Heart::Renderer::Api().RenderFramebuffers(EditorApp::Get().GetWindow().GetContext(), { m_TestData.SceneFramebuffer.get() });
     }
 
     void EditorLayer::OnImGuiRender()

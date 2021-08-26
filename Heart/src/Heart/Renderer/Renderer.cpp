@@ -29,6 +29,6 @@ namespace Heart
 
     void Renderer::OnWindowResize(GraphicsContext& context, u32 width, u32 height)
     {
-        s_RenderApi->SetViewport(context, 0, 0, width, height);
+        s_RenderApi->ResizeWindow(context, width, height);
     }
 }

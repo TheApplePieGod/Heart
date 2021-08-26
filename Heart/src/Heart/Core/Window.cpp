@@ -4,6 +4,7 @@
 #include "Heart/Events/WindowEvents.h"
 #include "Heart/Events/KeyboardEvents.h"
 #include "Heart/Input/Input.h"
+#include "Heart/Renderer/Renderer.h"
 
 namespace Heart
 {
@@ -34,6 +35,9 @@ namespace Heart
             HE_ENGINE_ASSERT(success, "Failed to initialize GLFW");
             glfwSetErrorCallback(GLFWErrorCallback);
         }
+
+        if (Renderer::GetApiType() == RenderApi::Type::Vulkan)
+            HE_ENGINE_ASSERT(glfwVulkanSupported(), "Device does not support vulkan rendering");
 
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);

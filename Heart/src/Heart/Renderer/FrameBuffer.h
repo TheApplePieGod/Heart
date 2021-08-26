@@ -50,7 +50,6 @@ namespace Heart
         virtual void Bind() = 0;
         virtual void BindPipeline(const std::string& name) = 0;
         virtual void BindShaderInputSet(const ShaderInputBindPoint& bindPoint, u32 setIndex, const std::vector<u32>& bufferOffsets) = 0; // must be called AFTER bind pipeline
-        virtual void Submit(GraphicsContext& context) = 0;
         
         virtual void* GetColorAttachmentImGuiHandle(u32 attachmentIndex) = 0;
         virtual void* GetDepthAttachmentImGuiHandle() = 0;

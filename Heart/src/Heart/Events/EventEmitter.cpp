@@ -17,9 +17,9 @@ namespace Heart
         m_Subscribers.erase(listener);
     }
 
-    bool EventEmitter::IsSubscribed(const EventListener* listener) const
+    bool EventEmitter::IsSubscribed(EventListener* listener) const
     {
-        return m_Subscribers.find(const_cast<EventListener*>(listener)) != m_Subscribers.end();
+        return m_Subscribers.find(listener) != m_Subscribers.end();
     }
 
     void EventEmitter::Emit(Event& event)

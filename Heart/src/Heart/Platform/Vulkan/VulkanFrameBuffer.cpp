@@ -172,59 +172,67 @@ namespace Heart
     {
         UpdateFrameIndex();
 
-        if (!m_Valid)
-            Recreate();
+        HE_ENGINE_ASSERT(!m_SubmittedThisFrame, "Cannot bind a framebuffer that has already been submitted");
 
         VkCommandBuffer buffer = GetCommandBuffer();
-
         VulkanContext::SetBoundCommandBuffer(buffer);
-        VkCommandBufferBeginInfo beginInfo{};
-        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        beginInfo.flags = 0;
-        beginInfo.pInheritanceInfo = nullptr;
 
-        HE_VULKAN_CHECK_RESULT(vkBeginCommandBuffer(buffer, &beginInfo));
+        if (!m_BoundThisFrame)
+        {
+            m_BoundThisFrame = true;
+            if (!m_Valid)
+                Recreate();
+     
+            VkCommandBufferBeginInfo beginInfo{};
+            beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+            beginInfo.flags = 0;
+            beginInfo.pInheritanceInfo = nullptr;
 
-        // TODO: paramaterize / generalize
-        VkViewport viewport{};
-        viewport.x = 0.0f;
-        viewport.y = 0.0f;
-        viewport.width = (f32)m_ActualWidth;
-        viewport.height = (f32)m_ActualHeight;
-        viewport.minDepth = 0.0f;
-        viewport.maxDepth = 1.0f;
-        vkCmdSetViewport(buffer, 0, 1, &viewport);
-        
-        VkRect2D scissor{};
-        scissor.offset = { 0, 0 };
-        scissor.extent = { m_ActualWidth, m_ActualHeight };
-        vkCmdSetScissor(buffer, 0, 1, &scissor);
+            HE_VULKAN_CHECK_RESULT(vkBeginCommandBuffer(buffer, &beginInfo));
 
-        VkRenderPassBeginInfo renderPassInfo{};
-        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        renderPassInfo.renderPass = m_RenderPass;
-        renderPassInfo.framebuffer = m_Framebuffer;
-        renderPassInfo.renderArea.offset = { 0, 0 };
-        renderPassInfo.renderArea.extent = { m_ActualWidth, m_ActualHeight };
+            // TODO: paramaterize / generalize
+            VkViewport viewport{};
+            viewport.x = 0.0f;
+            viewport.y = 0.0f;
+            viewport.width = (f32)m_ActualWidth;
+            viewport.height = (f32)m_ActualHeight;
+            viewport.minDepth = 0.0f;
+            viewport.maxDepth = 1.0f;
+            vkCmdSetViewport(buffer, 0, 1, &viewport);
+            
+            VkRect2D scissor{};
+            scissor.offset = { 0, 0 };
+            scissor.extent = { m_ActualWidth, m_ActualHeight };
+            vkCmdSetScissor(buffer, 0, 1, &scissor);
 
-        renderPassInfo.clearValueCount = static_cast<u32>(m_CachedClearValues.size());
-        renderPassInfo.pClearValues = m_CachedClearValues.data();
+            VkRenderPassBeginInfo renderPassInfo{};
+            renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+            renderPassInfo.renderPass = m_RenderPass;
+            renderPassInfo.framebuffer = m_Framebuffer;
+            renderPassInfo.renderArea.offset = { 0, 0 };
+            renderPassInfo.renderArea.extent = { m_ActualWidth, m_ActualHeight };
 
-        vkCmdBeginRenderPass(buffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+            renderPassInfo.clearValueCount = static_cast<u32>(m_CachedClearValues.size());
+            renderPassInfo.pClearValues = m_CachedClearValues.data();
+
+            vkCmdBeginRenderPass(buffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+        }
     }
 
-    void VulkanFramebuffer::Submit(GraphicsContext& _context)
+    void VulkanFramebuffer::Submit()
     {
+        HE_ENGINE_ASSERT(!m_SubmittedThisFrame, "Cannot submit framebuffer twice in the same frame");
+        HE_ENGINE_ASSERT(m_BoundThisFrame, "Cannot submit framebuffer that has not been bound this frame");
+
         VkCommandBuffer buffer = GetCommandBuffer();
-        VulkanContext& context = static_cast<VulkanContext&>(_context);
 
         vkCmdEndRenderPass(buffer);
         
         HE_VULKAN_CHECK_RESULT(vkEndCommandBuffer(buffer));
 
-        context.GetSwapChain().SubmitCommandBuffer(buffer);
-
         m_BoundPipeline = "";
+        m_BoundThisFrame = false;
+        m_SubmittedThisFrame = true;
     }
 
     void VulkanFramebuffer::BindPipeline(const std::string& name)
@@ -240,7 +248,7 @@ namespace Heart
     void VulkanFramebuffer::BindShaderInputSet(const ShaderInputBindPoint& bindPoint, u32 setIndex, const std::vector<u32>& bufferOffsets)
     {
         // TODO: don't use string here
-        HE_ENGINE_ASSERT(m_BoundPipeline != "", "Must call BindPipeline before BindShaderInputSets");
+        HE_ENGINE_ASSERT(!m_BoundPipeline.empty(), "Must call BindPipeline before BindShaderInputSets");
         HE_ENGINE_ASSERT(bufferOffsets.size() == bindPoint.BufferCount, "Must provide a valid element offset for each buffer");
 
         VulkanGraphicsPipeline& boundPipeline = static_cast<VulkanGraphicsPipeline&>(*LoadPipeline(m_BoundPipeline));
@@ -458,6 +466,8 @@ namespace Heart
 
             m_InFlightFrameIndex = mainContext.GetSwapChain().GetInFlightFrameIndex();
             m_LastUpdateFrame = App::Get().GetFrameCount();
+
+            m_SubmittedThisFrame = false;
         }
     }
 }

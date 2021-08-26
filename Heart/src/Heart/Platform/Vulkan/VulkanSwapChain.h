@@ -38,6 +38,7 @@ namespace Heart
 
         void BeginFrame();
         void EndFrame();
+        void SubmitCommandBuffers(const std::vector<VkCommandBuffer>& buffers);
 
         void InvalidateSwapChain(u32 newWidth, u32 newHeight);
 
@@ -45,7 +46,6 @@ namespace Heart
         inline VkFormat GetImageFormat() const { return m_SwapChainData.ImageFormat; }
         inline VkRenderPass GetRenderPass() const { return m_RenderPass; }
         inline VkCommandBuffer GetCommandBuffer() const { return m_CommandBuffers[m_InFlightFrameIndex]; }
-        inline void SubmitCommandBuffer(VkCommandBuffer buffer) { m_AuxiliaryCommandBuffers.emplace_back(buffer); }
         inline u32 GetPresentImageIndex() const { return m_PresentImageIndex; }
         inline u32 GetInFlightFrameIndex() const { return m_InFlightFrameIndex; }
         inline FrameDataRegistry& GetFrameDataRegistry() { return m_FrameDataRegistry; }
@@ -71,6 +71,8 @@ namespace Heart
         void CreateSynchronizationObjects();
         void CleanupSynchronizationObjects();
 
+        VkSemaphore GetAuxiliaryRenderSemaphore(size_t renderIndex);
+
         void Present();
 
         VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats);
@@ -87,10 +89,11 @@ namespace Heart
         SwapChainData m_SwapChainData;
         VkRenderPass m_RenderPass;
         std::array<VkCommandBuffer, MAX_FRAMES_IN_FLIGHT> m_CommandBuffers; // secondary
-        std::vector<VkCommandBuffer> m_AuxiliaryCommandBuffers = {}; // primary submitted from framebuffers
+        std::vector<VkCommandBuffer> m_AuxiliaryCommandBuffers = {}; // collection of all submitted primary commandbuffers
+        std::vector<size_t> m_AuxiliaryCommandBufferCounts = {}; // amount of buffers per submit call to create a dependency chain
         std::array<VkSemaphore, MAX_FRAMES_IN_FLIGHT> m_ImageAvailableSemaphores;
         std::array<VkSemaphore, MAX_FRAMES_IN_FLIGHT> m_RenderFinishedSemaphores;
-        std::array<VkSemaphore, MAX_FRAMES_IN_FLIGHT> m_AuxiliaryRenderFinishedSemaphores;
+        std::vector<VkSemaphore> m_AuxiliaryRenderFinishedSemaphores = {};
         std::array<VkFence, MAX_FRAMES_IN_FLIGHT> m_InFlightFences;
         std::vector<VkFence> m_ImagesInFlight = {};
         u32 m_PresentImageIndex;

@@ -15,7 +15,7 @@ namespace Heart
         void Bind() override;
         void BindPipeline(const std::string& name) override;
         void BindShaderInputSet(const ShaderInputBindPoint& bindPoint, u32 setIndex, const std::vector<u32>& bufferOffsets) override;
-        void Submit(GraphicsContext& context) override;
+        void Submit();
 
         void* GetColorAttachmentImGuiHandle(u32 attachmentIndex) override;
         void* GetDepthAttachmentImGuiHandle() override;
@@ -71,6 +71,8 @@ namespace Heart
         u64 m_LastUpdateFrame = 0;
         u32 m_InFlightFrameIndex = 0;
         VkSampleCountFlagBits m_ImageSamples;
+        bool m_SubmittedThisFrame = false;
+        bool m_BoundThisFrame = false;
 
         VkImage m_DepthImage;
         VkDeviceMemory m_DepthImageMemory;
