@@ -182,31 +182,33 @@ namespace HeartEditor
         ImGui::SetNextWindowPos(ImGui::GetMainViewport()->WorkPos);
         ImGui::SetNextWindowSize(ImGui::GetMainViewport()->WorkSize);
 
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+
         ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
         ImGui::Begin("Heart Editor", nullptr, windowFlags);
         
+        ImGui::Spacing();
+
         ImGuiID dockspaceId = ImGui::GetID("EditorDockSpace");
         ImGui::DockSpace(dockspaceId, ImVec2(0.f, 0.f), 0);
 
-        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
         ImGui::Begin("Viewport");
 
-		ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
-		glm::vec2 ViewportSize = { viewportPanelSize.x, viewportPanelSize.y };
+		ImVec2 viewportMin = ImGui::GetWindowContentRegionMin();
+		ImVec2 viewportMax = ImGui::GetWindowContentRegionMax();
+		ImVec2 viewportPos = ImGui::GetWindowPos();
+		glm::vec2 viewportSize = { viewportMax.x - viewportMin.x, viewportMax.y - viewportMin.y };
+        glm::vec2 viewportStart = { viewportMin.x + viewportPos.x, viewportMin.y + viewportPos.y };
+        glm::vec2 viewportEnd = viewportStart + viewportSize;
 
-        m_EditorCamera->UpdateAspectRatio(viewportPanelSize.x / viewportPanelSize.y);
+        m_EditorCamera->UpdateAspectRatio(viewportSize.x / viewportSize.y);
 
-        // ImGui::Image(
-        //     m_TestData.SceneFramebuffer->GetRawAttachmentImageHandle(0, Heart::FramebufferAttachmentType::Color),
-        //     { (f32)m_TestData.SceneFramebuffer->GetWidth(), (f32)m_TestData.SceneFramebuffer->GetHeight() }
-        // );
-        // ImGui::SameLine();
+        ImGui::GetWindowDrawList()->AddRectFilled({ viewportStart.x, viewportStart.y }, { viewportEnd.x, viewportEnd.y }, IM_COL32( 0, 0, 0, 255 )); // viewport background
         ImGui::Image(
             m_TestData.SceneFramebuffer->GetColorAttachmentImGuiHandle(0),
-            { ViewportSize.x, ViewportSize.y },
+            { viewportSize.x, viewportSize.y },
             { 0.f, 0.f }, { 1.f, 1.f }
         );
-        
         if (ImGui::IsItemClicked())
         {
             // disable imgui input & cursor
@@ -214,9 +216,9 @@ namespace HeartEditor
             EditorApp::Get().GetWindow().DisableCursor();
             ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_NoMouse;
         }
+        ImGui::SetItemAllowOverlap();
 
         ImGui::End();
-        ImGui::PopStyleColor();
 
         ImGui::Begin("Content Browser");
         ImGui::End();
@@ -231,6 +233,8 @@ namespace HeartEditor
         ImGui::End();
 
         ImGui::End();
+
+        ImGui::PopStyleVar();
     }
 
     void EditorLayer::OnDetach()
