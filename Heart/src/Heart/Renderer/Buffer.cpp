@@ -19,37 +19,34 @@ namespace Heart
         return stride;
     }
 
-    Ref<Buffer> Buffer::Create(const BufferLayout& layout, u32 elementCount)
+    Ref<Buffer> Buffer::Create(Type type, const BufferLayout& layout, u32 elementCount)
     {
-        return Create(layout, elementCount, nullptr);
+        return Create(type, layout, elementCount, nullptr);
     }
 
-    Ref<Buffer> Buffer::Create(const BufferLayout& layout, u32 elementCount, void* initialData)
+    Ref<Buffer> Buffer::Create(Type type, const BufferLayout& layout, u32 elementCount, void* initialData)
     {
-        HE_ENGINE_LOG_TRACE("Creating buffer with {0} elements and {1}b stride", elementCount, layout.GetStride());
+        HE_ENGINE_LOG_TRACE("Creating {0} buffer with {1} elements and {2}b stride", TypeStrings[static_cast<u16>(type)], elementCount, layout.GetStride());
         switch (Renderer::GetApiType())
         {
             default:
             { HE_ENGINE_ASSERT(false, "Cannot create Buffer: selected ApiType is not supported"); return nullptr; }
             case RenderApi::Type::Vulkan:
-            { return CreateRef<VulkanBuffer>(layout, elementCount, initialData, VulkanBuffer::Type::Uniform); }
+            { return CreateRef<VulkanBuffer>(type, layout, elementCount, initialData); }
         }
     }
 
-    Ref<Buffer> BigBuffer::Create(const BufferLayout& layout, u32 elementCount)
+    Ref<Buffer> Buffer::CreateIndexBuffer(u32 elementCount)
     {
-        return Create(layout, elementCount, nullptr);
+        return CreateIndexBuffer(elementCount, nullptr);
     }
 
-    Ref<Buffer> BigBuffer::Create(const BufferLayout& layout, u32 elementCount, void* initialData)
+    Ref<Buffer> Buffer::CreateIndexBuffer(u32 elementCount, void* initialData)
     {
-        HE_ENGINE_LOG_TRACE("Creating big buffer with {0} elements and {1}b stride", elementCount, layout.GetStride());
-        switch (Renderer::GetApiType())
-        {
-            default:
-            { HE_ENGINE_ASSERT(false, "Cannot create Buffer: selected ApiType is not supported"); return nullptr; }
-            case RenderApi::Type::Vulkan:
-            { return CreateRef<VulkanBuffer>(layout, elementCount, initialData, VulkanBuffer::Type::Storage); }
-        }
+        BufferLayout layout = {
+            { BufferDataType::UInt }
+        };
+
+        return Create(Type::Index, layout, elementCount, initialData);
     }
 }

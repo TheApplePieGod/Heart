@@ -74,11 +74,18 @@ namespace Heart
     class Buffer // effectively a uniformbuffer
     {
     public:
-        Buffer(const BufferLayout& layout, u32 elementCount)
-            : m_Layout(layout), m_AllocatedCount(elementCount)
-        {}
-        Buffer(u32 elementCount)
-            : m_AllocatedCount(elementCount)
+        enum class Type
+        {
+            None = 0,
+            Uniform, Storage, Vertex, Index
+        };
+        inline static const char* TypeStrings[] = {
+            "None", "Uniform", "Storage", "Vertex", "Index"
+        };
+
+    public:
+        Buffer(Type type, const BufferLayout& layout, u32 elementCount)
+            : m_Type(type), m_Layout(layout), m_AllocatedCount(elementCount)
         {}
         virtual ~Buffer() = default;
 
@@ -89,27 +96,16 @@ namespace Heart
         inline u32 GetAllocatedCount() const { return m_AllocatedCount; }
 
     public:
-        static Ref<Buffer> Create(const BufferLayout& layout, u32 elementCount);
-        static Ref<Buffer> Create(const BufferLayout& layout, u32 elementCount, void* initialData);
+        static Ref<Buffer> Create(Type type, const BufferLayout& layout, u32 elementCount);
+        static Ref<Buffer> Create(Type type, const BufferLayout& layout, u32 elementCount, void* initialData);
+
+        // added for convenience
+        static Ref<Buffer> CreateIndexBuffer(u32 elementCount);
+        static Ref<Buffer> CreateIndexBuffer(u32 elementCount, void* initialData);
 
     protected:
         BufferLayout m_Layout;
         u32 m_AllocatedCount;
-    };
-
-    class BigBuffer : public Buffer // effectively a storagebuffer
-    {
-    public:
-        BigBuffer(const BufferLayout& layout, u32 elementCount)
-            : Buffer(layout, elementCount)
-        {}
-        BigBuffer(u32 elementCount)
-            : Buffer(elementCount)
-        {}
-        virtual ~BigBuffer() = default;
-
-    public:
-        static Ref<Buffer> Create(const BufferLayout& layout, u32 elementCount);
-        static Ref<Buffer> Create(const BufferLayout& layout, u32 elementCount, void* initialData);
+        Type m_Type;
     };
 }

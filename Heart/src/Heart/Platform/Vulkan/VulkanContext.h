@@ -45,7 +45,6 @@ namespace Heart
         void CleanupImGuiDescriptorPool();
 
     private:
-        void* m_WindowHandle;
         VkSurfaceKHR m_Surface;
         VulkanSwapChain m_VulkanSwapChain;
         VkDescriptorPool m_ImGuiDescriptorPool;

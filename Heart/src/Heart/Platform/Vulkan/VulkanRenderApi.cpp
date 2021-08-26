@@ -3,9 +3,8 @@
 
 #include "Heart/Core/App.h"
 #include "Heart/Platform/Vulkan/VulkanContext.h"
-#include "Heart/Platform/Vulkan/VulkanVertexBuffer.h"
-#include "Heart/Platform/Vulkan/VulkanIndexBuffer.h"
 #include "Heart/Platform/Vulkan/VulkanFramebuffer.h"
+#include "Heart/Platform/Vulkan/VulkanBuffer.h"
 #include "GLFW/glfw3.h"
 
 namespace Heart
@@ -40,17 +39,17 @@ namespace Heart
         context.GetSwapChain().InvalidateSwapChain(width, height);
     }
 
-    void VulkanRenderApi::BindVertexBuffer(const VertexBuffer& _buffer)
+    void VulkanRenderApi::BindVertexBuffer(Buffer& _buffer)
     {
-        VkBuffer buffer = static_cast<const VulkanVertexBuffer&>(_buffer).GetBuffer();
+        VkBuffer buffer = static_cast<VulkanBuffer&>(_buffer).GetBuffer();
 
         VkDeviceSize offsets[] = { 0 };
         vkCmdBindVertexBuffers(VulkanContext::GetBoundCommandBuffer(), 0, 1, &buffer, offsets);
     }
 
-    void VulkanRenderApi::BindIndexBuffer(const IndexBuffer& _buffer)
+    void VulkanRenderApi::BindIndexBuffer(Buffer& _buffer)
     {
-        VkBuffer buffer = static_cast<const VulkanIndexBuffer&>(_buffer).GetBuffer();
+        VkBuffer buffer = static_cast<VulkanBuffer&>(_buffer).GetBuffer();
 
         VkDeviceSize offsets[] = { 0 };
         vkCmdBindIndexBuffer(VulkanContext::GetBoundCommandBuffer(), buffer, 0, VK_INDEX_TYPE_UINT32);
