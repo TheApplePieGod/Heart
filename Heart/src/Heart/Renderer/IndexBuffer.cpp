@@ -14,6 +14,7 @@ namespace Heart
 
     Ref<IndexBuffer> IndexBuffer::Create(u32 indexCount, u32* initialData)
     {
+        HE_ENGINE_LOG_TRACE("Creating index buffer with {0} indices", indexCount);
         switch (Renderer::GetApiType())
         {
             default:

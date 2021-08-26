@@ -383,6 +383,8 @@ namespace Heart
 
     void VulkanSwapChain::RecreateSwapChain()
     {
+        HE_ENGINE_LOG_TRACE("Recreating vulkan swap chain");
+
         VulkanDevice& device = VulkanContext::GetDevice();
 
         vkDeviceWaitIdle(device.Device());

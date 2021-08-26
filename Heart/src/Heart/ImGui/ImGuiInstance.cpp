@@ -11,6 +11,7 @@ namespace Heart
 {
     void ImGuiInstance::Initialize()
     {
+		HE_ENGINE_LOG_TRACE("Initializing ImGui instance");
         auto& window = App::Get().GetWindow();
 
         IMGUI_CHECKVERSION();
@@ -54,7 +55,7 @@ namespace Heart
 
     void ImGuiInstance::Shutdown()
     {
-		HE_ENGINE_LOG_INFO("Shutting down ImGui instance");
+		HE_ENGINE_LOG_TRACE("Shutting down ImGui instance");
         Cleanup();
         
         ImGui_ImplGlfw_Shutdown();

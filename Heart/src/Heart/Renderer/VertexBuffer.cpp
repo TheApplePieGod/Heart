@@ -14,6 +14,7 @@ namespace Heart
 
     Ref<VertexBuffer> VertexBuffer::Create(const BufferLayout& layout, u32 elementCount, void* initialData)
     {
+        HE_ENGINE_LOG_TRACE("Creating vertex buffer with {0} elements and {1}b stride", elementCount, layout.GetStride());
         switch (Renderer::GetApiType())
         {
             default:

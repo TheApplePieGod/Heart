@@ -8,6 +8,7 @@ namespace Heart
 {
     Ref<ShaderInputSet> ShaderInputSet::Create(std::initializer_list<ShaderInputElement> elements)
     {
+        HE_ENGINE_LOG_TRACE("Creating shader input set with {0} elements", elements.size());
         switch (Renderer::GetApiType())
         {
             default:

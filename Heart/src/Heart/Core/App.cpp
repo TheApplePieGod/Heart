@@ -39,6 +39,8 @@ namespace Heart
         m_ImGuiInstance.Shutdown();
 
         Renderer::Shutdown();
+
+        HE_ENGINE_LOG_INFO("Shutdown complete");
     }
 
     void App::PushLayer(Layer* layer)

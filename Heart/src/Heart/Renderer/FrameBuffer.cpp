@@ -20,6 +20,7 @@ namespace Heart
 
     Ref<Framebuffer> Framebuffer::Create(const FramebufferCreateInfo& createInfo)
     {
+        HE_ENGINE_LOG_TRACE("Creating framebuffer");
         switch (Renderer::GetApiType())
         {
             default:
@@ -36,6 +37,9 @@ namespace Heart
             HE_ENGINE_LOG_ERROR("Cannot register pipeline, name already exists: {0}", name);
             HE_ENGINE_ASSERT(false);
         }
+
+        HE_ENGINE_LOG_TRACE("Registering graphics pipeline '{0}' to framebuffer", name);
+
         Ref<GraphicsPipeline> newPipeline = InternalInitializeGraphicsPipeline(createInfo);
         m_GraphicsPipelines[name] = newPipeline;
         return newPipeline;

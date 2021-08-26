@@ -14,6 +14,9 @@ namespace Heart
         {
             None = 0, Vulkan = 1
         };
+        inline static const char* TypeStrings[] = {
+            "None", "Vulkan"
+        };
 
     public:
         virtual ~RenderApi() = default;

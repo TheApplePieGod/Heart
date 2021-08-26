@@ -12,6 +12,8 @@ namespace Heart
 
     void Renderer::Initialize(RenderApi::Type apiType)
     {
+        HE_ENGINE_LOG_INFO("Initializing Renderer with api type {0}", RenderApi::TypeStrings[static_cast<u16>(apiType)]);
+
         s_RenderApiType = apiType;
         switch (apiType)
         {

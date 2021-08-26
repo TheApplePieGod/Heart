@@ -38,17 +38,16 @@ namespace Heart
 
     VulkanContext::VulkanContext(void* window)
     {
-        HE_ENGINE_LOG_TRACE("Initializing new vulkan context");
-
         m_WindowHandle = window;
         if (s_ContextCount == 0)
         {
-            HE_ENGINE_LOG_INFO("Initializing vulkan instance");
+            HE_ENGINE_LOG_TRACE("VULKAN: Initializing instance");
             InitializeInstance();
 
+            HE_ENGINE_LOG_TRACE("VULKAN: Creating window surface");
             CreateSurface(m_Surface);
 
-            HE_ENGINE_LOG_INFO("Initializing vulkan devices");
+            HE_ENGINE_LOG_TRACE("VULKAN: Initializing devices");
             s_VulkanDevice.Initialize(m_Surface);
 
             InitializeCommandPools();
@@ -60,6 +59,7 @@ namespace Heart
 
         int width, height;
         glfwGetFramebufferSize((GLFWwindow*)window, &width, &height);
+        HE_ENGINE_LOG_TRACE("VULKAN: Creating swapchain");
         m_VulkanSwapChain.Initialize(width, height, m_Surface);
 
         CreateImGuiDescriptorPool();
@@ -69,7 +69,7 @@ namespace Heart
 
     VulkanContext::~VulkanContext()
     {
-        HE_ENGINE_LOG_TRACE("Destructing vulkan context");
+        HE_ENGINE_LOG_TRACE("VULKAN: Destroying context");
         vkDeviceWaitIdle(s_VulkanDevice.Device());
 
         m_VulkanSwapChain.Shutdown();
@@ -81,7 +81,7 @@ namespace Heart
         s_ContextCount--;
         if (s_ContextCount == 0)
         {
-            HE_ENGINE_LOG_INFO("Cleaning up vulkan");
+            HE_ENGINE_LOG_TRACE("VULKAN: No context instances left, shutting down");
             vkDestroySampler(s_VulkanDevice.Device(), s_DefaultSampler, nullptr);
 
             vkDestroyCommandPool(s_VulkanDevice.Device(), s_GraphicsPool, nullptr);

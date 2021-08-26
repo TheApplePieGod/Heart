@@ -24,6 +24,9 @@ namespace Heart
             HE_ENGINE_LOG_ERROR("Cannot register texture, name already exists: {0}", name);
             HE_ENGINE_ASSERT(false);
         }
+
+        HE_ENGINE_LOG_TRACE("Registering texture '{0}' @ '{1}'", name, path);
+
         Ref<Texture> newTexture = Texture::Create(path);
         m_Textures[name] = newTexture;
         return newTexture;

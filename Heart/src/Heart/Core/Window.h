@@ -48,7 +48,7 @@ namespace Heart
     public:
         static Ref<Window> Create(const WindowSettings& settings);
         static Window& GetMainWindow() { return *s_MainWindow; }
-        inline static void SetMainWindow(Ref<Window> newWindow) { s_MainWindow = newWindow; }
+        inline static void SetMainWindow(Ref<Window> newWindow) { HE_ENGINE_LOG_TRACE("Main window object set to {0}", static_cast<void*>(newWindow.get())); s_MainWindow = newWindow; }
 
     private:
         static int s_WindowCount;

@@ -26,6 +26,7 @@ namespace Heart
 
     Ref<Buffer> Buffer::Create(const BufferLayout& layout, u32 elementCount, void* initialData)
     {
+        HE_ENGINE_LOG_TRACE("Creating buffer with {0} elements and {1}b stride", elementCount, layout.GetStride());
         switch (Renderer::GetApiType())
         {
             default:
@@ -42,6 +43,7 @@ namespace Heart
 
     Ref<Buffer> BigBuffer::Create(const BufferLayout& layout, u32 elementCount, void* initialData)
     {
+        HE_ENGINE_LOG_TRACE("Creating big buffer with {0} elements and {1}b stride", elementCount, layout.GetStride());
         switch (Renderer::GetApiType())
         {
             default:

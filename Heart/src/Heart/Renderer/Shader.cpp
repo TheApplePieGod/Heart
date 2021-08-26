@@ -65,6 +65,9 @@ namespace Heart
             HE_ENGINE_LOG_ERROR("Cannot register shader, name already exists: {0}", name);
             HE_ENGINE_ASSERT(false);
         }
+
+        HE_ENGINE_LOG_TRACE("Registering shader '{0}' @ '{1}'", name, path);
+
         Ref<Shader> newShader = Shader::Create(path, shaderType);
         m_Shaders[name] = newShader;
         return newShader;
