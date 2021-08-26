@@ -9,7 +9,10 @@ namespace Heart
         {
             None = 0, Vertex = 1, Fragment = 2
         };
-
+        inline static const char* TypeStrings[] = {
+            "None", "Vertex", "Fragment"
+        };
+        
     public:
         Shader(const std::string& path, Type shaderType)
             : m_Path(path), m_Type(shaderType)
@@ -21,6 +24,7 @@ namespace Heart
 
     protected:
         std::vector<u32> CompileSpirvFromFile(const std::string& path, Type shaderType);
+        void Reflect(Type shaderType, const std::vector<u32>& compiledData);
 
     protected:
         Type m_Type;

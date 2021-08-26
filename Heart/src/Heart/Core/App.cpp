@@ -13,6 +13,12 @@ namespace Heart
         HE_ENGINE_ASSERT(!s_Instance, "App instance already exists");
         s_Instance = this;
 
+        #ifdef HE_DEBUG
+            HE_ENGINE_LOG_INFO("Running Heart in Debug mode");
+        #else
+            HE_ENGINE_LOG_INFO("Running Heart in Release mode");
+        #endif
+
         Renderer::Initialize(RenderApi::Type::Vulkan);
 
         WindowSettings windowSettings = WindowSettings();

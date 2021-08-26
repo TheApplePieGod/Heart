@@ -16,6 +16,7 @@ namespace Heart
             HE_ENGINE_LOG_ERROR("Failed to load image at path {0}", path);
             HE_ENGINE_ASSERT(false);
         }
+        HE_ENGINE_LOG_TRACE("Texture info: {0}x{1} w/ {2} channels", m_Width, m_Height, m_Channels);
         
         CreateTexture(pixels);
 

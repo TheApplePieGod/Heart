@@ -283,12 +283,13 @@ namespace Heart
         m_VulkanSwapChain.BeginFrame();
 
         // bind the initial commandbuffer to be the main window's
-        SetBoundCommandBuffer(m_VulkanSwapChain.GetCommandBuffer());
+        //SetBoundCommandBuffer(m_VulkanSwapChain.GetCommandBuffer());
     }
 
     void VulkanContext::EndFrame()
     {
         m_VulkanSwapChain.EndFrame();
+        s_BoundCommandBuffer = nullptr;
     }
 
     std::vector<const char*> VulkanContext::ConfigureValidationLayers()

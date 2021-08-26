@@ -14,9 +14,6 @@ namespace Heart
         inline VkShaderModule GetShaderModule() const { return m_ShaderModule; }
 
     private:
-         
-
-    private:
         VkShaderModule m_ShaderModule;
 
     };

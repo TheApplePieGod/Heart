@@ -5,6 +5,8 @@
 #include "Heart/Renderer/Renderer.h"
 #include "Heart/Platform/Vulkan/VulkanShader.h"
 #include "shaderc/shaderc.hpp"
+#include "spirv_cross/spirv_cross.hpp"
+#include "spirv_cross/spirv_glsl.hpp"
 
 namespace Heart
 {
@@ -56,6 +58,47 @@ namespace Heart
 
         // TODO: reflect shader using spirv-cross
         return std::vector<u32>(compiled.cbegin(), compiled.cend());
+    }
+
+    void Shader::Reflect(Type shaderType, const std::vector<u32>& compiledData)
+    {
+        spirv_cross::Compiler compiler(compiledData);
+		spirv_cross::ShaderResources resources = compiler.get_shader_resources();
+
+		HE_ENGINE_LOG_TRACE("GLSL {0} shader @ {1}", TypeStrings[static_cast<u16>(shaderType)], m_Path);
+		HE_ENGINE_LOG_TRACE("    {0} uniform buffers", resources.uniform_buffers.size());
+        HE_ENGINE_LOG_TRACE("    {0} storage buffers", resources.storage_buffers.size());
+		HE_ENGINE_LOG_TRACE("    {0} resources", resources.sampled_images.size());
+
+        if (resources.uniform_buffers.size() > 0)
+		    HE_ENGINE_LOG_TRACE("  Uniform buffers:");
+		for (const auto& resource : resources.uniform_buffers)
+		{
+			const auto& bufferType = compiler.get_type(resource.base_type_id);
+			size_t bufferSize = compiler.get_declared_struct_size(bufferType);
+			u32 binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
+			size_t memberCount = bufferType.member_types.size();
+
+			HE_ENGINE_LOG_TRACE("    {0}", resource.name);
+			HE_ENGINE_LOG_TRACE("      Size = {0}", bufferSize);
+			HE_ENGINE_LOG_TRACE("      Binding = {0}", binding);
+			HE_ENGINE_LOG_TRACE("      Members = {0}", memberCount);
+		}
+
+        if (resources.storage_buffers.size() > 0)
+		    HE_ENGINE_LOG_TRACE("  Storage buffers:");
+		for (const auto& resource : resources.storage_buffers)
+		{
+			const auto& bufferType = compiler.get_type(resource.base_type_id);
+			size_t bufferSize = compiler.get_declared_struct_size(bufferType);
+			u32 binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
+			size_t memberCount = bufferType.member_types.size();
+
+			HE_ENGINE_LOG_TRACE("    {0}", resource.name);
+			HE_ENGINE_LOG_TRACE("      Size = {0}", bufferSize);
+			HE_ENGINE_LOG_TRACE("      Binding = {0}", binding);
+			HE_ENGINE_LOG_TRACE("      Members = {0}", memberCount);
+		}
     }
 
     Ref<Shader> ShaderRegistry::RegisterShader(const std::string& name, const std::string& path, Shader::Type shaderType)

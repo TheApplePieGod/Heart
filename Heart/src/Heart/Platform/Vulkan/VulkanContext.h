@@ -31,7 +31,7 @@ namespace Heart
         inline static VkCommandPool GetGraphicsPool() { return s_GraphicsPool; }
         inline static VkCommandPool GetComputePool() { return s_ComputePool; }
         inline static VkCommandPool GetTransferPool() { return s_TransferPool; }
-        inline static VkCommandBuffer GetBoundCommandBuffer() { return s_BoundCommandBuffer; }
+        inline static VkCommandBuffer GetBoundCommandBuffer() { HE_ENGINE_ASSERT(s_BoundCommandBuffer != nullptr, "Cannot send commands to an unbound command buffer (forget to call Framebuffer.Bind()?)"); return s_BoundCommandBuffer; }
         inline static void SetBoundCommandBuffer(VkCommandBuffer buffer) { s_BoundCommandBuffer = buffer; }
         inline static VkSampler GetDefaultSampler() { return s_DefaultSampler; }
         inline static void Sync() { vkDeviceWaitIdle(s_VulkanDevice.Device()); };

@@ -14,6 +14,7 @@ namespace Heart
         VulkanDevice& device = VulkanContext::GetDevice();
 
         std::vector<u32> compiled = CompileSpirvFromFile(path, shaderType);
+        Reflect(shaderType, compiled);
 
         VkShaderModuleCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
