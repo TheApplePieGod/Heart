@@ -96,7 +96,7 @@ namespace Heart
         HE_ENGINE_ASSERT(bufferOffsets.size() == bindPoint.BufferCount, "Must provide a valid element offset for each buffer");
 
         auto bindData = static_cast<OpenGLShaderInputSet::BindData*>(bindPoint.BindData);
-        for (size_t i = 0; i < bindPoint.BufferCount; i++)
+        for (u32 i = 0; i < bindPoint.BufferCount; i++)
         {
             OpenGLBuffer* buffer = bindData->Buffers[i];
 
@@ -119,14 +119,14 @@ namespace Heart
     {
         HE_ENGINE_ASSERT(attachmentIndex < m_ColorAttachmentTextureIds.size(), "Attachment access on framebuffer out of range");
 
-        return (void*)m_ColorAttachmentTextureIds[attachmentIndex];
+        return (void*)static_cast<size_t>(m_ColorAttachmentTextureIds[attachmentIndex]);
     }
 
     void* OpenGLFramebuffer::GetDepthAttachmentImGuiHandle()
     {
         HE_ENGINE_ASSERT(m_Info.HasDepth, "Cannot get framebuffer depth attachment handle, HasDepth = false");
 
-        return (void*)m_DepthAttachmentTextureId;
+        return (void*)static_cast<size_t>(m_DepthAttachmentTextureId);
     }
 
     Ref<GraphicsPipeline> OpenGLFramebuffer::InternalInitializeGraphicsPipeline(const GraphicsPipelineCreateInfo& createInfo)
