@@ -146,15 +146,15 @@ namespace Heart
         // depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         // depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-        VkAttachmentDescription colorAttachment{};
-        colorAttachment.format = m_SwapChainData.ImageFormat;
-        colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT; //device.MaxMsaaSamples();
-        colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        // VkAttachmentDescription colorAttachment{};
+        // colorAttachment.format = m_SwapChainData.ImageFormat;
+        // colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT; //device.MaxMsaaSamples();
+        // colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        // colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        // colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        // colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        // colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        // colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
         VkAttachmentDescription colorAttachmentResolve{};
         colorAttachmentResolve.format = m_SwapChainData.ImageFormat;
@@ -166,12 +166,12 @@ namespace Heart
         colorAttachmentResolve.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         colorAttachmentResolve.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
-        VkAttachmentReference colorAttachmentRef{};
-        colorAttachmentRef.attachment = 0;
-        colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        // VkAttachmentReference colorAttachmentRef{};
+        // colorAttachmentRef.attachment = 0;
+        // colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
         VkAttachmentReference colorAttachmentResolveRef{};
-        colorAttachmentResolveRef.attachment = 1;
+        colorAttachmentResolveRef.attachment = 0; // 1;
         colorAttachmentResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
         // VkAttachmentReference depthAttachmentRef{};
@@ -181,8 +181,8 @@ namespace Heart
         VkSubpassDescription subpass{};
         subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
         subpass.colorAttachmentCount = 1;
-        subpass.pColorAttachments = &colorAttachmentRef;
-        subpass.pResolveAttachments = &colorAttachmentResolveRef;
+        subpass.pColorAttachments = &colorAttachmentResolveRef; // &colorAttachmentRef;
+        //subpass.pResolveAttachments = &colorAttachmentResolveRef;
         //subpass.pDepthStencilAttachment = &depthAttachmentRef;
 
         VkSubpassDependency dependency{};
@@ -193,7 +193,8 @@ namespace Heart
         dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
         dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
-        std::array<VkAttachmentDescription, 2> attachments = { colorAttachment, colorAttachmentResolve };
+        //std::array<VkAttachmentDescription, 3> attachments = { colorAttachment, colorAttachmentResolve, depthAttachment };
+        std::array<VkAttachmentDescription, 1> attachments = { colorAttachmentResolve };
         VkRenderPassCreateInfo renderPassInfo{};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
         renderPassInfo.attachmentCount = static_cast<u32>(attachments.size());
@@ -220,51 +221,51 @@ namespace Heart
         VkFormat depthFormat = VK_FORMAT_D32_SFLOAT;
 
         // TODO: variable samplecount
-        VulkanCommon::CreateImage(
-            device.Device(),
-            device.PhysicalDevice(),
-            m_SwapChainData.Extent.width,
-            m_SwapChainData.Extent.height,
-            colorFormat,
-            1,
-            VK_SAMPLE_COUNT_1_BIT, //device.MaxMsaaSamples(), 
-            VK_IMAGE_TILING_OPTIMAL,
-            VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-            m_ColorImage,
-            m_ColorImageMemory
-        );
-        m_ColorImageView = VulkanCommon::CreateImageView(device.Device(), m_ColorImage, colorFormat, 1);
+        // VulkanCommon::CreateImage(
+        //     device.Device(),
+        //     device.PhysicalDevice(),
+        //     m_SwapChainData.Extent.width,
+        //     m_SwapChainData.Extent.height,
+        //     colorFormat,
+        //     1,
+        //     VK_SAMPLE_COUNT_1_BIT, //device.MaxMsaaSamples(), 
+        //     VK_IMAGE_TILING_OPTIMAL,
+        //     VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+        //     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        //     m_ColorImage,
+        //     m_ColorImageMemory
+        // );
+        // m_ColorImageView = VulkanCommon::CreateImageView(device.Device(), m_ColorImage, colorFormat, 1);
 
-        VulkanCommon::CreateImage(
-            device.Device(),
-            device.PhysicalDevice(),
-            m_SwapChainData.Extent.width,
-            m_SwapChainData.Extent.height,
-            depthFormat,
-            1,
-            VK_SAMPLE_COUNT_1_BIT, //device.MaxMsaaSamples(),
-            VK_IMAGE_TILING_OPTIMAL,
-            VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-            m_DepthImage,
-            m_DepthImageMemory
-        );
-        m_DepthImageView = VulkanCommon::CreateImageView(device.Device(), m_DepthImage, depthFormat, 1, VK_IMAGE_ASPECT_DEPTH_BIT);      
+        // VulkanCommon::CreateImage(
+        //     device.Device(),
+        //     device.PhysicalDevice(),
+        //     m_SwapChainData.Extent.width,
+        //     m_SwapChainData.Extent.height,
+        //     depthFormat,
+        //     1,
+        //     VK_SAMPLE_COUNT_1_BIT, //device.MaxMsaaSamples(),
+        //     VK_IMAGE_TILING_OPTIMAL,
+        //     VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+        //     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        //     m_DepthImage,
+        //     m_DepthImageMemory
+        // );
+        //m_DepthImageView = VulkanCommon::CreateImageView(device.Device(), m_DepthImage, depthFormat, 1, VK_IMAGE_ASPECT_DEPTH_BIT);      
     }
 
     void VulkanSwapChain::CleanupFramebufferImages()
     {
         VulkanDevice& device = VulkanContext::GetDevice();
 
-        vkDestroyImageView(device.Device(), m_ColorImageView, nullptr);
-        vkDestroyImageView(device.Device(), m_DepthImageView, nullptr);
+        // vkDestroyImageView(device.Device(), m_ColorImageView, nullptr);
+        // vkDestroyImageView(device.Device(), m_DepthImageView, nullptr);
 
-        vkDestroyImage(device.Device(), m_ColorImage, nullptr);
-        vkDestroyImage(device.Device(), m_DepthImage, nullptr);
+        // vkDestroyImage(device.Device(), m_ColorImage, nullptr);
+        // vkDestroyImage(device.Device(), m_DepthImage, nullptr);
 
-        vkFreeMemory(device.Device(), m_ColorImageMemory, nullptr);
-        vkFreeMemory(device.Device(), m_DepthImageMemory, nullptr);
+        // vkFreeMemory(device.Device(), m_ColorImageMemory, nullptr);
+        // vkFreeMemory(device.Device(), m_DepthImageMemory, nullptr);
     }
 
     void VulkanSwapChain::CreateFramebuffers()
@@ -274,7 +275,8 @@ namespace Heart
         m_SwapChainData.Framebuffers.resize(m_SwapChainData.ImageViews.size());
         for (int i = 0; i < m_SwapChainData.ImageViews.size(); i++)
         {
-            std::array<VkImageView, 2> attachments = { m_ColorImageView, m_SwapChainData.ImageViews[i] };
+            //std::array<VkImageView, 3> attachments = { m_ColorImageView, m_SwapChainData.ImageViews[i], m_DepthImageView };
+            std::array<VkImageView, 1> attachments = { m_SwapChainData.ImageViews[i] };
             VkFramebufferCreateInfo framebufferInfo{};
             framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
             framebufferInfo.renderPass = m_RenderPass;
