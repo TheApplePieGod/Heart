@@ -38,6 +38,7 @@ namespace Heart
     VulkanGraphicsPipeline::VulkanGraphicsPipeline(const GraphicsPipelineCreateInfo& createInfo, VkRenderPass renderPass, VkSampleCountFlagBits sampleCount, u32 viewportWidth, u32 viewportHeight)
         : GraphicsPipeline(createInfo)
     {
+        HE_ENGINE_ASSERT(createInfo.VertexShader != nullptr && createInfo.FragmentShader != nullptr, "Must specify both vertex and fragment shaders");
         VulkanDevice& device = VulkanContext::GetDevice();
 
         VkPipelineShaderStageCreateInfo shaderStages[] = {

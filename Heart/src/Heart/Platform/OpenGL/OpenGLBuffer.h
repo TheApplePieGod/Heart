@@ -11,5 +11,10 @@ namespace Heart
         ~OpenGLBuffer() override;
 
         void SetData(void* data, u32 elementCount, u32 elementOffset) override;
+
+        inline u32 GetBufferId() const { return m_BufferId; }
+
+    private:
+        u32 m_BufferId;
     };
 }

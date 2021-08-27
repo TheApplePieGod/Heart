@@ -253,7 +253,7 @@ namespace Heart
         info.MinImageCount = 2;
         info.ImageCount = m_VulkanSwapChain.GetImageCount();
         info.CheckVkResultFn = NULL;
-        info.MSAASamples = s_VulkanDevice.MaxMsaaSamples();
+        info.MSAASamples = VK_SAMPLE_COUNT_1_BIT; //s_VulkanDevice.MaxMsaaSamples();
 
         ImGui_ImplVulkan_Init(&info, m_VulkanSwapChain.GetRenderPass());
         VkCommandBuffer commandBuffer = VulkanCommon::BeginSingleTimeCommands(s_VulkanDevice.Device(), s_GraphicsPool);

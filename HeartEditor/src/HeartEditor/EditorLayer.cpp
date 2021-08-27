@@ -98,8 +98,8 @@ namespace HeartEditor
                 vertBufferLayout,
                 { { true }, { true } },
                 { m_TestData.ShaderInputSet },
-                true,
-                Heart::CullMode::Backface
+                false,
+                Heart::CullMode::None
             };
 
             // per frame data buffer layout
@@ -143,11 +143,10 @@ namespace HeartEditor
             m_EditorCamera->OnUpdate(ts);
 
         m_TestData.SceneFramebuffer->Bind();
-        
+        m_TestData.SceneFramebuffer->BindPipeline("main");
+
         Heart::Renderer::Api().BindVertexBuffer(*m_TestData.VertexBuffer);
         Heart::Renderer::Api().BindIndexBuffer(*m_TestData.IndexBuffer);
-
-        m_TestData.SceneFramebuffer->BindPipeline("main");
 
         Heart::ShaderInputBindPoint bindPoint = m_TestData.ShaderInputSet->CreateBindPoint({
             { m_TestData.FrameDataBuffer, nullptr },

@@ -138,10 +138,9 @@ namespace Heart
         VulkanDevice& device = VulkanContext::GetDevice();
 
         // similar to VulkanFramebuffer, create the main renderpass designed to render to the swapchain
-        // TODO: variable samplecount
         VkAttachmentDescription depthAttachment{};
         depthAttachment.format = VK_FORMAT_D32_SFLOAT;
-        depthAttachment.samples = device.MaxMsaaSamples();
+        depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT; //device.MaxMsaaSamples();
         depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
         depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -149,7 +148,7 @@ namespace Heart
 
         VkAttachmentDescription colorAttachment{};
         colorAttachment.format = m_SwapChainData.ImageFormat;
-        colorAttachment.samples = device.MaxMsaaSamples();
+        colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT; //device.MaxMsaaSamples();
         colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
         colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -228,7 +227,7 @@ namespace Heart
             m_SwapChainData.Extent.height,
             colorFormat,
             1,
-            device.MaxMsaaSamples(), 
+            VK_SAMPLE_COUNT_1_BIT, //device.MaxMsaaSamples(), 
             VK_IMAGE_TILING_OPTIMAL,
             VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
@@ -244,7 +243,7 @@ namespace Heart
             m_SwapChainData.Extent.height,
             depthFormat,
             1,
-            device.MaxMsaaSamples(),
+            VK_SAMPLE_COUNT_1_BIT, //device.MaxMsaaSamples(),
             VK_IMAGE_TILING_OPTIMAL,
             VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,

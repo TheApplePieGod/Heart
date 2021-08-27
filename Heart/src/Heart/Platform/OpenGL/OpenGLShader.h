@@ -10,5 +10,9 @@ namespace Heart
         OpenGLShader(const std::string& path, Type shaderType);
         ~OpenGLShader() override;
 
+        inline u32 GetShaderId() const { return m_ShaderId; }
+
+    private:
+        u32 m_ShaderId;
     };
 }

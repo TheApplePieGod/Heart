@@ -61,6 +61,11 @@ namespace Heart
         {}
         virtual ~GraphicsPipeline() = default;
 
+        inline VertexTopology GetVertexTopology() const { return m_Info.VertexTopology; }
+        inline CullMode GetCullMode() const { return m_Info.CullMode; }
+        inline bool IsDepthEnabled() const { return m_Info.DepthEnable; }
+        inline u32 GetVertexLayoutStride() const { return m_Info.VertexLayout.GetStride(); }
+
     private:
         GraphicsPipelineCreateInfo m_Info;
     };

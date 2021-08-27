@@ -33,9 +33,10 @@ namespace Heart
         {
             default:
             { HE_ENGINE_ASSERT(false, "Can't compile shader for unsupported API type"); } break;
-
             case RenderApi::Type::Vulkan:
             { options.SetTargetEnvironment(shaderc_target_env::shaderc_target_env_vulkan, 0); } break;
+            case RenderApi::Type::OpenGL:
+            { options.SetTargetEnvironment(shaderc_target_env::shaderc_target_env_opengl, 0); } break;
         }
         
         // TODO: dynamic option for this

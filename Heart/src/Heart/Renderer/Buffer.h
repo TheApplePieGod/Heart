@@ -37,6 +37,29 @@ namespace Heart
         return 0;
     }
 
+    static u32 BufferDataTypeComponents(BufferDataType type)
+    {
+        switch (type)
+        {
+            case BufferDataType::Bool: return 1;
+            case BufferDataType::UInt: return 1;
+            case BufferDataType::Double: return 1;
+            case BufferDataType::Int: return 4;
+            case BufferDataType::Int2: return 2;
+            case BufferDataType::Int3: return 3;
+            case BufferDataType::Int4: return 4;
+            case BufferDataType::Float: return 1;
+            case BufferDataType::Float2: return 2;
+            case BufferDataType::Float3: return 3;
+            case BufferDataType::Float4: return 4;
+            case BufferDataType::Mat3: return 3;
+            case BufferDataType::Mat4: return 4;
+        }
+
+        HE_ENGINE_ASSERT(false, "BufferDataTypeSize unsupported BufferDataType");
+        return 0;
+    }
+
     struct BufferLayoutElement
     {
         BufferLayoutElement(u32 size) // for padding fields
@@ -48,6 +71,7 @@ namespace Heart
 
         BufferDataType DataType;
         u32 CalculatedSize;
+        u32 Offset;
     };
 
     class BufferLayout
@@ -57,14 +81,14 @@ namespace Heart
         BufferLayout(std::initializer_list<BufferLayoutElement> elements)
             : m_Elements(elements)
         {
-            m_CalculatedStride = CalculateStride();
+            m_CalculatedStride = CalculateStrideAndOffsets();
         }
 
         inline u32 GetStride() const { return m_CalculatedStride; }
         inline const std::vector<BufferLayoutElement>& GetElements() const { return m_Elements; }
     
     private:
-        u32 CalculateStride();
+        u32 CalculateStrideAndOffsets();
 
     private:
         u32 m_CalculatedStride;
