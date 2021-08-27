@@ -6,6 +6,7 @@
 #include "Heart/Renderer/Buffer.h"
 #include "Heart/Renderer/Pipeline.h"
 #include "Heart/Renderer/Framebuffer.h"
+#include "Heart/Renderer/ShaderInput.h"
 
 namespace Heart
 {
@@ -16,5 +17,7 @@ namespace Heart
         static int VertexTopologyToOpenGL(VertexTopology topology);
         static int CullModeToOpenGL(CullMode mode);
         static int MsaaSampleCountToOpenGL(MsaaSampleCount sampleCount);
+        static int ShaderInputTypeToOpenGL(ShaderInputType type);
+        static int BufferTypeToOpenGL(Buffer::Type type);
     };
 }

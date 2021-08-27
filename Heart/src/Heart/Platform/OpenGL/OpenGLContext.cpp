@@ -53,7 +53,6 @@ namespace Heart
 
     void OpenGLContext::ImGuiEndFrame()
     {
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glDisable(GL_DEPTH_TEST);
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     }

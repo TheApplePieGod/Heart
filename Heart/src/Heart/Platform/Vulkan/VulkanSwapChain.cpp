@@ -138,13 +138,13 @@ namespace Heart
         VulkanDevice& device = VulkanContext::GetDevice();
 
         // similar to VulkanFramebuffer, create the main renderpass designed to render to the swapchain
-        VkAttachmentDescription depthAttachment{};
-        depthAttachment.format = VK_FORMAT_D32_SFLOAT;
-        depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT; //device.MaxMsaaSamples();
-        depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        // VkAttachmentDescription depthAttachment{};
+        // depthAttachment.format = VK_FORMAT_D32_SFLOAT;
+        // depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT; //device.MaxMsaaSamples();
+        // depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        // depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        // depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        // depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
         VkAttachmentDescription colorAttachment{};
         colorAttachment.format = m_SwapChainData.ImageFormat;
@@ -174,16 +174,16 @@ namespace Heart
         colorAttachmentResolveRef.attachment = 1;
         colorAttachmentResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-        VkAttachmentReference depthAttachmentRef{};
-        depthAttachmentRef.attachment = 2;
-        depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        // VkAttachmentReference depthAttachmentRef{};
+        // depthAttachmentRef.attachment = 2;
+        // depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
         VkSubpassDescription subpass{};
         subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
         subpass.colorAttachmentCount = 1;
         subpass.pColorAttachments = &colorAttachmentRef;
         subpass.pResolveAttachments = &colorAttachmentResolveRef;
-        subpass.pDepthStencilAttachment = &depthAttachmentRef;
+        //subpass.pDepthStencilAttachment = &depthAttachmentRef;
 
         VkSubpassDependency dependency{};
         dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
@@ -193,7 +193,7 @@ namespace Heart
         dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
         dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
-        std::array<VkAttachmentDescription, 3> attachments = { colorAttachment, colorAttachmentResolve, depthAttachment };
+        std::array<VkAttachmentDescription, 2> attachments = { colorAttachment, colorAttachmentResolve };
         VkRenderPassCreateInfo renderPassInfo{};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
         renderPassInfo.attachmentCount = static_cast<u32>(attachments.size());
@@ -274,7 +274,7 @@ namespace Heart
         m_SwapChainData.Framebuffers.resize(m_SwapChainData.ImageViews.size());
         for (int i = 0; i < m_SwapChainData.ImageViews.size(); i++)
         {
-            std::array<VkImageView, 3> attachments = { m_ColorImageView, m_SwapChainData.ImageViews[i], m_DepthImageView };
+            std::array<VkImageView, 2> attachments = { m_ColorImageView, m_SwapChainData.ImageViews[i] };
             VkFramebufferCreateInfo framebufferInfo{};
             framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
             framebufferInfo.renderPass = m_RenderPass;
@@ -588,7 +588,7 @@ namespace Heart
     {
         for (const auto& availableFormat : formats)
         {
-            if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+            if (availableFormat.format == VK_FORMAT_R8G8B8A8_SRGB && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
                 return availableFormat;
         }
 

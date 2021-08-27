@@ -7,6 +7,7 @@
 #include "Heart/Platform/OpenGL/OpenGLGraphicsPipeline.h"
 #include "Heart/Platform/OpenGL/OpenGLContext.h"
 #include "Heart/Platform/OpenGL/OpenGLCommon.h"
+#include "Heart/Platform/OpenGL/OpenGLShaderInput.h"
 #include "imgui/backends/imgui_impl_opengl3.h"
 
 namespace Heart
@@ -58,14 +59,18 @@ namespace Heart
 
         if (m_Info.HasDepth)
         {
-            f32 clearColor[] = { Renderer::IsUsingReverseDepth() ? 0.f : 1.f, 0.f };
-            glClearTexImage(m_DepthAttachmentTextureId, 0, m_DepthFormat, GL_FLOAT, clearColor);
+            if (Renderer::IsUsingReverseDepth())
+                glClearDepth(0.0f);
+            else
+                glClearDepth(1.0f);
+            glClear(GL_STENCIL_BUFFER_BIT);
+            glClear(GL_DEPTH_BUFFER_BIT);
         }
     }
 
     void OpenGLFramebuffer::Submit()
     {
-
+        
     }
 
     void OpenGLFramebuffer::BindPipeline(const std::string& name)
@@ -87,7 +92,27 @@ namespace Heart
 
     void OpenGLFramebuffer::BindShaderInputSet(const ShaderInputBindPoint& bindPoint, u32 setIndex, const std::vector<u32>& bufferOffsets)
     {
+        // GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT
+        HE_ENGINE_ASSERT(bufferOffsets.size() == bindPoint.BufferCount, "Must provide a valid element offset for each buffer");
 
+        auto bindData = static_cast<OpenGLShaderInputSet::BindData*>(bindPoint.BindData);
+        for (size_t i = 0; i < bindPoint.BufferCount; i++)
+        {
+            OpenGLBuffer* buffer = bindData->Buffers[i];
+
+            glBindBufferBase(OpenGLCommon::BufferTypeToOpenGL(buffer->GetType()), i, buffer->GetBufferId());
+            glBindBufferRange(OpenGLCommon::BufferTypeToOpenGL(buffer->GetType()), i, buffer->GetBufferId(), bufferOffsets[i], buffer->GetAllocatedSize());
+            //glBindBufferBase(bindData->BufferTypes[i], i, bindData->BufferIndices[i]);
+            //glBindBufferRange(bindData->BufferTypes[i], i, bindData->BufferIndices[i], bufferOffsets[i] * )
+        }
+
+        for (size_t i = 0; i < bindPoint.ImageCount; i++)
+        {
+            OpenGLTexture* texture = bindData->Textures[i];
+
+            glActiveTexture(GL_TEXTURE2);
+            glBindTexture(GL_TEXTURE_2D, texture->GetTextureId());
+        }
     }
 
     void* OpenGLFramebuffer::GetColorAttachmentImGuiHandle(u32 attachmentIndex)
@@ -140,7 +165,8 @@ namespace Heart
             if (m_Info.SampleCount != MsaaSampleCount::None)
                 glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, OpenGLCommon::MsaaSampleCountToOpenGL(m_Info.SampleCount), m_DepthFormatInternal, m_ActualWidth, m_ActualHeight, GL_FALSE);
 
-            glTexImage2D(GL_TEXTURE_2D, 0, m_DepthFormatInternal, m_ActualWidth, m_ActualHeight, 0, GL_DEPTH_STENCIL, m_DepthFormat , NULL);
+            //glTexImage2D(GL_TEXTURE_2D, 0, m_DepthFormatInternal, m_ActualWidth, m_ActualHeight, 0, GL_DEPTH_STENCIL, m_DepthFormat , NULL);
+            glTexStorage2D(GL_TEXTURE_2D, 1, m_DepthFormatInternal, m_ActualWidth, m_ActualHeight);
 
             // TODO: dynamic filtering
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);

@@ -19,7 +19,7 @@ namespace Heart
             HE_ENGINE_LOG_INFO("Running Heart in Release mode");
         #endif
 
-        Renderer::Initialize(RenderApi::Type::OpenGL);
+        Renderer::Initialize(RenderApi::Type::Vulkan);
 
         WindowSettings windowSettings = WindowSettings();
         m_Window = Window::Create(windowSettings);

@@ -115,6 +115,7 @@ namespace Heart
 
         virtual void SetData(void* data, u32 elementCount, u32 elementOffset) = 0;
 
+        inline Type GetType() const { return m_Type; }
         inline BufferLayout& GetLayout() { return m_Layout; }
         inline u32 GetAllocatedSize() const { return m_AllocatedCount * m_Layout.GetStride(); }
         inline u32 GetAllocatedCount() const { return m_AllocatedCount; }

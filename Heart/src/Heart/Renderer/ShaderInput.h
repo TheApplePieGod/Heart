@@ -8,7 +8,7 @@ namespace Heart
 {
     enum class ShaderInputType
     {
-        None = 0, Texture, Buffer, BigBuffer
+        None = 0, Texture, UniformBuffer, StorageBuffer
     };
 
     enum class ShaderBindType

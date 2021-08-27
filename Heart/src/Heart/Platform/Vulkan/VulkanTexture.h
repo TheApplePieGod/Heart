@@ -18,7 +18,6 @@ namespace Heart
         void CreateTexture(void* data);
 
     private:
-        const int m_DesiredChannelCount = 4; // all images will load as RGBA
         VkImage m_Image;
         VkImageView m_ImageView;
         VkDeviceMemory m_ImageMemory;

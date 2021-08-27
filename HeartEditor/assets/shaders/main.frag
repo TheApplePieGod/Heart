@@ -8,8 +8,8 @@ layout(location = 1) out vec4 outColor2;
 layout(set = 0, binding = 2) uniform sampler2D samp;
 
 void main() {
-    //outColor = texture(samp, texCoord);
-    //outColor2 = texture(samp, texCoord);
-    outColor = vec4(1.f, 0.f, 0.f, 1.f);
-    outColor2 = vec4(1.f, 0.f, 0.f, 1.f);
+    outColor = texture(samp, texCoord);
+    outColor2 = texture(samp, texCoord);
+    //outColor = vec4(1.f, 0.f, 0.f, 1.f);
+    //outColor2 = vec4(1.f, 0.f, 0.f, 1.f);
 }

@@ -85,8 +85,8 @@ namespace HeartEditor
 
             // shader input set
             m_TestData.ShaderInputSet = Heart::ShaderInputSet::Create({
-                { Heart::ShaderInputType::Buffer, Heart::ShaderBindType::Vertex, 0 },
-                { Heart::ShaderInputType::BigBuffer, Heart::ShaderBindType::Vertex, 1 },
+                { Heart::ShaderInputType::UniformBuffer, Heart::ShaderBindType::Vertex, 0 },
+                { Heart::ShaderInputType::StorageBuffer, Heart::ShaderBindType::Vertex, 1 },
                 { Heart::ShaderInputType::Texture, Heart::ShaderBindType::Fragment, 2 }
             });
 
@@ -98,8 +98,8 @@ namespace HeartEditor
                 vertBufferLayout,
                 { { true }, { true } },
                 { m_TestData.ShaderInputSet },
-                false,
-                Heart::CullMode::None
+                true,
+                Heart::CullMode::Backface
             };
 
             // per frame data buffer layout

@@ -55,7 +55,7 @@ namespace Heart
         m_GraphicsContext = GraphicsContext::Create(m_Window);
 
         glfwSetWindowUserPointer(m_Window, &m_WindowData);
-
+        glfwSwapInterval(0);
         if (glfwRawMouseMotionSupported())
             glfwSetInputMode(m_Window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
 

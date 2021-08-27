@@ -6,6 +6,7 @@
 #include "Heart/Platform/OpenGL/OpenGLContext.h"
 #include "Heart/Platform/OpenGL/OpenGLGraphicsPipeline.h"
 #include "Heart/Platform/OpenGL/OpenGLCommon.h"
+#include "Heart/Platform/OpenGL/OpenGLFramebuffer.h"
 
 namespace Heart
 {
@@ -51,6 +52,6 @@ namespace Heart
 
     void OpenGLRenderApi::RenderFramebuffers(GraphicsContext& _context, const std::vector<Framebuffer*>& framebuffers)
     {
-        
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 }

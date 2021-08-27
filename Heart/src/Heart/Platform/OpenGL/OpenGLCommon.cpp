@@ -88,4 +88,33 @@ namespace Heart
 
         return -1;
     }
+
+    int OpenGLCommon::ShaderInputTypeToOpenGL(ShaderInputType type)
+    {
+        switch (type)
+        {
+            default:
+            { HE_ENGINE_ASSERT(false, "OpenGL does not support specified ShaderInputType"); } break;
+            case ShaderInputType::Texture : return GL_TEXTURE;
+            case ShaderInputType::UniformBuffer: return GL_UNIFORM_BUFFER;
+            case ShaderInputType::StorageBuffer: return GL_SHADER_STORAGE_BUFFER;
+        }
+
+        return -1;
+    }
+
+    int OpenGLCommon::BufferTypeToOpenGL(Buffer::Type type)
+    {
+        switch (type)
+        {
+            default:
+            { HE_ENGINE_ASSERT(false, "OpenGL does not support specified BufferType"); } break;
+            case Buffer::Type::Vertex : return GL_ARRAY_BUFFER;
+            case Buffer::Type::Index: return GL_ELEMENT_ARRAY_BUFFER;
+            case Buffer::Type::Uniform: return GL_UNIFORM_BUFFER;
+            case Buffer::Type::Storage: return GL_SHADER_STORAGE_BUFFER;
+        }
+
+        return -1;
+    }
 }

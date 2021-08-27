@@ -18,7 +18,7 @@ layout(set = 0, binding = 1) readonly buffer ObjectBuffer {
 } objectBuffer;
 
 void main() {
-    //gl_Position = frameData.viewProj * objectBuffer.object.model * vec4(inPosition, 1.0);
-    gl_Position = vec4(inPosition, 1.0);
+    gl_Position = frameData.viewProj * objectBuffer.object.model * vec4(inPosition, 1.0);
+    //gl_Position = vec4(inPosition, 1.0);
     texCoord = inTexCoord;
 }

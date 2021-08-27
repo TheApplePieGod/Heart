@@ -2,6 +2,7 @@
 #include "OpenGLBuffer.h"
 
 #include "glad/glad.h"
+#include "Heart/Platform/OpenGL/OpenGLCommon.h"
 
 namespace Heart
 {
@@ -11,18 +12,12 @@ namespace Heart
     {
         glGenBuffers(1, &m_BufferId);
 
-        switch (m_Type)
-        {
-            default: { HE_ENGINE_ASSERT("Failed to create OpenGLBuffer of unsupported type") } break;
-            case Type::Uniform:
-            {} break;
-            case Type::Storage:
-            {} break;
-            case Type::Vertex:
-            { glBindBuffer(GL_ARRAY_BUFFER, m_BufferId); glBufferData(GL_ARRAY_BUFFER, layout.GetStride() * elementCount, initialData, GL_STATIC_DRAW); } break;
-            case Type::Index:
-            { glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_BufferId); glBufferData(GL_ELEMENT_ARRAY_BUFFER, layout.GetStride() * elementCount, initialData, GL_STATIC_DRAW); } break;
-        }
+        GLenum drawType = GL_DYNAMIC_DRAW;
+        if (m_Type == Type::Vertex || m_Type == Type::Index)
+            drawType = GL_STATIC_DRAW;
+
+        glBindBuffer(OpenGLCommon::BufferTypeToOpenGL(type), m_BufferId);
+        glBufferData(OpenGLCommon::BufferTypeToOpenGL(type), layout.GetStride() * elementCount, initialData, drawType);
     }
 
     OpenGLBuffer::~OpenGLBuffer()
@@ -32,8 +27,7 @@ namespace Heart
 
     void OpenGLBuffer::SetData(void* data, u32 elementCount, u32 elementOffset)
     {
-        //glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
-        
-        // glBufferSubData(GL_ARRAY_BUFFER, 0, size, data);
+        glBindBuffer(OpenGLCommon::BufferTypeToOpenGL(m_Type), m_BufferId);
+        glBufferSubData(OpenGLCommon::BufferTypeToOpenGL(m_Type), m_Layout.GetStride() * elementOffset, m_Layout.GetStride() * elementCount, data);
     }
 }

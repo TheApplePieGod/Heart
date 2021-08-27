@@ -207,7 +207,7 @@ namespace Heart
         vkUnmapMemory(device, bufferMemory);
     }
 
-    void VulkanCommon::TransitionImageLayout(VkDevice device, VkCommandPool commandPool, VkQueue transferQueue, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout)
+    void VulkanCommon::TransitionImageLayout(VkDevice device, VkCommandPool commandPool, VkQueue transferQueue, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout)
     {
         VkCommandBuffer commandBuffer = BeginSingleTimeCommands(device, commandPool);
 
@@ -386,8 +386,8 @@ namespace Heart
             default:
             { HE_ENGINE_ASSERT(false, "Vulkan does not support specified ShaderInputType"); } break;
             case ShaderInputType::Texture : return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            case ShaderInputType::Buffer: return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-            case ShaderInputType::BigBuffer: return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
+            case ShaderInputType::UniformBuffer: return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+            case ShaderInputType::StorageBuffer: return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
         }
 
         return VK_DESCRIPTOR_TYPE_MAX_ENUM;
