@@ -28,26 +28,22 @@ namespace Heart
         glGenFramebuffers(1, &m_FramebufferId);
 
         m_ColorAttachmentTextureIds.resize(createInfo.Attachments.size());
-        glGenTextures(static_cast<int>(m_ColorAttachmentTextureIds.size()), m_ColorAttachmentTextureIds.data());
-
-        if (createInfo.HasDepth)
-            glGenTextures(1, &m_DepthAttachmentTextureId);
 
         CreateTextures();
     }
 
     OpenGLFramebuffer::~OpenGLFramebuffer()
     {
-        glDeleteTextures(static_cast<int>(m_ColorAttachmentTextureIds.size()), m_ColorAttachmentTextureIds.data());
-
-        if (m_Info.HasDepth)
-            glDeleteTextures(1, &m_DepthAttachmentTextureId);
+        CleanupTextures();
 
         glDeleteFramebuffers(1, &m_FramebufferId);
     }
 
     void OpenGLFramebuffer::Bind()
     {
+        if (!m_Valid)
+            Recreate();
+
         glBindFramebuffer(GL_FRAMEBUFFER, m_FramebufferId);
         glViewport(0, 0, m_ActualWidth, m_ActualHeight);
         
@@ -138,6 +134,11 @@ namespace Heart
 
     void OpenGLFramebuffer::CreateTextures()
     {
+        glGenTextures(static_cast<int>(m_ColorAttachmentTextureIds.size()), m_ColorAttachmentTextureIds.data());
+
+        if (m_Info.HasDepth)
+            glGenTextures(1, &m_DepthAttachmentTextureId);
+
         glBindFramebuffer(GL_FRAMEBUFFER, m_FramebufferId);
 
         int index = 0;
@@ -174,5 +175,24 @@ namespace Heart
 
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, m_DepthAttachmentTextureId, 0);  
         }
+    }
+
+    void OpenGLFramebuffer::CleanupTextures()
+    {
+        glDeleteTextures(static_cast<int>(m_ColorAttachmentTextureIds.size()), m_ColorAttachmentTextureIds.data());
+
+        if (m_Info.HasDepth)
+            glDeleteTextures(1, &m_DepthAttachmentTextureId);
+    }
+
+    void OpenGLFramebuffer::Recreate()
+    {
+        glDeleteFramebuffers(1, &m_FramebufferId);
+        glGenFramebuffers(1, &m_FramebufferId);
+
+        CleanupTextures();
+        CreateTextures();
+
+        m_Valid = true;
     }
 }

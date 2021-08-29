@@ -25,6 +25,9 @@ namespace Heart
 
     private:
         void CreateTextures();
+        void CleanupTextures();
+
+        void Recreate();
 
     private:
         u32 m_FramebufferId;

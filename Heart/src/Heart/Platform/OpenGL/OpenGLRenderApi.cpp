@@ -27,7 +27,11 @@ namespace Heart
 
     void OpenGLRenderApi::ResizeWindow(GraphicsContext& _context, u32 width, u32 height)
     {
+        int drawFboId = 0;
+        glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &drawFboId);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glViewport(0, 0, width, height);
+        glBindFramebuffer(GL_FRAMEBUFFER, drawFboId);
     }
 
     void OpenGLRenderApi::BindVertexBuffer(Buffer& _buffer)
