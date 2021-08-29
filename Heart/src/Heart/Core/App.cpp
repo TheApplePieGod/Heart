@@ -8,7 +8,7 @@ namespace Heart
 {
     App* App::s_Instance = nullptr;
 
-    App::App()
+    App::App(const std::string& windowName)
     {
         HE_ENGINE_ASSERT(!s_Instance, "App instance already exists");
         s_Instance = this;
@@ -21,7 +21,7 @@ namespace Heart
 
         Renderer::Initialize(RenderApi::Type::Vulkan);
 
-        WindowSettings windowSettings = WindowSettings();
+        WindowSettings windowSettings = WindowSettings(windowName);
         m_Window = Window::Create(windowSettings);
         SubscribeToEmitter(&GetWindow());
         Window::SetMainWindow(m_Window);

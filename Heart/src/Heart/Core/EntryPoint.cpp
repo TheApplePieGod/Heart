@@ -9,7 +9,7 @@ int main(int argc, char** argv)
 {
     Heart::Logger::Initialize();
 
-    Heart::App* app = new Heart::App();
+    Heart::App* app = new Heart::App("Heart Engine");
     app->Run();
     delete app;
     

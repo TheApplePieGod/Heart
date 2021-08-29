@@ -13,7 +13,7 @@ namespace Heart
     class App : public EventListener
     {
     public:
-        App();
+        App(const std::string& windowName = "Heart Engine");
         ~App();
 
         inline static App& Get() { return *s_Instance; }

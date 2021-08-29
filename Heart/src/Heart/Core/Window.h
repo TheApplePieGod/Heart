@@ -11,7 +11,7 @@ namespace Heart
         std::string Title;
         u32 Width, Height;
 
-        WindowSettings(const std::string& title = "Heart Engine",
+        WindowSettings(const std::string& title = "Window",
 			        u32 width = 1920,
 			        u32 height = 1080)
 			: Title(title), Width(width), Height(height)
