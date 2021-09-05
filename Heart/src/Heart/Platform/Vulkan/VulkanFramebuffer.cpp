@@ -245,9 +245,9 @@ namespace Heart
         m_BoundPipeline = name;
     }
 
-    void VulkanFramebuffer::BindShaderBufferResource(u32 bindingIndex, u32 offset, Buffer* buffer)
+    void VulkanFramebuffer::BindShaderBufferResource(u32 bindingIndex, u32 elementOffset, Buffer* buffer)
     {
-        BindShaderResource(bindingIndex, ShaderResourceType::UniformBuffer, buffer, offset); // uniform vs structured buffer are the doesn't matter here
+        BindShaderResource(bindingIndex, ShaderResourceType::UniformBuffer, buffer, buffer->GetLayout().GetStride() * elementOffset); // uniform vs structured buffer are the doesn't matter here
     }
 
     void VulkanFramebuffer::BindShaderTextureResource(u32 bindingIndex, Texture* texture)

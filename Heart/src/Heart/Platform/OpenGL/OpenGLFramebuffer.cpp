@@ -87,12 +87,12 @@ namespace Heart
             glDepthFunc(GL_LESS);
     }
 
-    void OpenGLFramebuffer::BindShaderBufferResource(u32 bindingIndex, u32 offset, Buffer* _buffer)
+    void OpenGLFramebuffer::BindShaderBufferResource(u32 bindingIndex, u32 elementOffset, Buffer* _buffer)
     {
         OpenGLBuffer& buffer = static_cast<OpenGLBuffer&>(*_buffer);
 
         glBindBufferBase(OpenGLCommon::BufferTypeToOpenGL(buffer.GetType()), bindingIndex, buffer.GetBufferId());
-        glBindBufferRange(OpenGLCommon::BufferTypeToOpenGL(buffer.GetType()), bindingIndex, buffer.GetBufferId(), offset, buffer.GetAllocatedSize());
+        glBindBufferRange(OpenGLCommon::BufferTypeToOpenGL(buffer.GetType()), bindingIndex, buffer.GetBufferId(), elementOffset * buffer.GetLayout().GetStride(), buffer.GetAllocatedSize());
     }
 
     void OpenGLFramebuffer::BindShaderTextureResource(u32 bindingIndex, Texture* _texture)

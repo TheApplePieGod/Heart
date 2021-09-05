@@ -101,7 +101,7 @@ namespace HeartEditor
 
             // per object data buffer layout
             Heart::BufferLayout objectDataLayout = {
-                { Heart::BufferDataType::Mat4 }
+                { Heart::BufferDataType::Mat4 },
             };
 
             // per frame data buffer
@@ -146,7 +146,7 @@ namespace HeartEditor
         m_TestData.SceneFramebuffer->BindShaderTextureResource(2, m_TestData.TextureRegistry.LoadTexture("test").get());
         for (u32 i = 0; i < 50; i++)
         {
-            m_TestData.SceneFramebuffer->BindShaderBufferResource(1, i * (u32)sizeof(glm::mat4), m_TestData.ObjectDataBuffer.get());
+            m_TestData.SceneFramebuffer->BindShaderBufferResource(1, i, m_TestData.ObjectDataBuffer.get());
 
             glm::vec3 objectPos = { 0.f, 0.f, 2.f + i + (i * 0.5f) };
             glm::mat4 transformed = glm::translate(glm::mat4(1.f), objectPos)

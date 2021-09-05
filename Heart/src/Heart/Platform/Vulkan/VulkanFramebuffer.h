@@ -27,7 +27,7 @@ namespace Heart
 
     protected:
         Ref<GraphicsPipeline> InternalInitializeGraphicsPipeline(const GraphicsPipelineCreateInfo& createInfo) override;
-        void BindShaderResource(u32 bindingIndex, ShaderResourceType resourceType, void* resource, u32 offset);
+        void BindShaderResource(u32 bindingIndex, ShaderResourceType resourceType, void* resource, u32 offset); // offset in bytes
 
     private:
         struct VulkanFramebufferAttachment
