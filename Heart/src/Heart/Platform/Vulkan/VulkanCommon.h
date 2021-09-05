@@ -3,13 +3,12 @@
 #include "vulkan/vulkan.h"
 #include "Heart/Renderer/Framebuffer.h"
 #include "Heart/Renderer/Pipeline.h"
-#include "Heart/Renderer/ShaderInput.h"
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
 
 namespace Heart
 {
-    enum class ShaderBindType;
+    enum class ShaderResourceAccessType;
     struct VulkanCommon
     {
         struct QueueFamilyIndices
@@ -55,8 +54,8 @@ namespace Heart
         static VkPrimitiveTopology VertexTopologyToVulkan(VertexTopology topology);
         static VkFormat BufferDataTypeToVulkan(BufferDataType type);
         static VkCullModeFlagBits CullModeToVulkan(CullMode mode);
-        static VkDescriptorType ShaderInputTypeToVulkan(ShaderInputType type);
-        static VkShaderStageFlags ShaderBindTypeToVulkan(ShaderBindType type);
+        static VkDescriptorType ShaderResourceTypeToVulkan(ShaderResourceType type);
+        static VkShaderStageFlags ShaderResourceAccessTypeToVulkan(ShaderResourceAccessType type);
     };
 }
 

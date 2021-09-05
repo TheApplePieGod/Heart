@@ -6,7 +6,6 @@
 
 // Testing
 #include "Heart/Renderer/Framebuffer.h"
-#include "Heart/Renderer/ShaderInput.h"
 #include "Heart/Renderer/Buffer.h"
 #include "Heart/Renderer/Texture.h"
 
@@ -24,7 +23,6 @@ namespace HeartEditor
         Heart::Ref<Heart::Buffer> IndexBuffer;
         Heart::Ref<Heart::Framebuffer> SceneFramebuffer;
         Heart::ShaderRegistry ShaderRegistry;
-        Heart::Ref<Heart::ShaderInputSet> ShaderInputSet;
         Heart::Ref<Heart::Buffer> FrameDataBuffer;
         Heart::Ref<Heart::Buffer> ObjectDataBuffer;
         Heart::TextureRegistry TextureRegistry;

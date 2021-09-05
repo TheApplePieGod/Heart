@@ -6,8 +6,9 @@
 #include "Heart/Renderer/Renderer.h"
 #include "Heart/Platform/OpenGL/OpenGLGraphicsPipeline.h"
 #include "Heart/Platform/OpenGL/OpenGLContext.h"
+#include "Heart/Platform/OpenGL/OpenGLBuffer.h"
+#include "Heart/Platform/OpenGL/OpenGLTexture.h"
 #include "Heart/Platform/OpenGL/OpenGLCommon.h"
-#include "Heart/Platform/OpenGL/OpenGLShaderInput.h"
 #include "imgui/backends/imgui_impl_opengl3.h"
 
 namespace Heart
@@ -86,29 +87,20 @@ namespace Heart
             glDepthFunc(GL_LESS);
     }
 
-    void OpenGLFramebuffer::BindShaderInputSet(const ShaderInputBindPoint& bindPoint, u32 setIndex, const std::vector<u32>& bufferOffsets)
+    void OpenGLFramebuffer::BindShaderBufferResource(u32 bindingIndex, u32 offset, Buffer* _buffer)
     {
-        // GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT
-        HE_ENGINE_ASSERT(bufferOffsets.size() == bindPoint.BufferCount, "Must provide a valid element offset for each buffer");
+        OpenGLBuffer& buffer = static_cast<OpenGLBuffer&>(*_buffer);
 
-        auto bindData = static_cast<OpenGLShaderInputSet::BindData*>(bindPoint.BindData);
-        for (u32 i = 0; i < bindPoint.BufferCount; i++)
-        {
-            OpenGLBuffer* buffer = bindData->Buffers[i];
+        glBindBufferBase(OpenGLCommon::BufferTypeToOpenGL(buffer.GetType()), bindingIndex, buffer.GetBufferId());
+        glBindBufferRange(OpenGLCommon::BufferTypeToOpenGL(buffer.GetType()), bindingIndex, buffer.GetBufferId(), offset, buffer.GetAllocatedSize());
+    }
 
-            glBindBufferBase(OpenGLCommon::BufferTypeToOpenGL(buffer->GetType()), i, buffer->GetBufferId());
-            glBindBufferRange(OpenGLCommon::BufferTypeToOpenGL(buffer->GetType()), i, buffer->GetBufferId(), bufferOffsets[i], buffer->GetAllocatedSize());
-            //glBindBufferBase(bindData->BufferTypes[i], i, bindData->BufferIndices[i]);
-            //glBindBufferRange(bindData->BufferTypes[i], i, bindData->BufferIndices[i], bufferOffsets[i] * )
-        }
+    void OpenGLFramebuffer::BindShaderTextureResource(u32 bindingIndex, Texture* _texture)
+    {
+        OpenGLTexture& texture = static_cast<OpenGLTexture&>(*_texture);
 
-        for (size_t i = 0; i < bindPoint.ImageCount; i++)
-        {
-            OpenGLTexture* texture = bindData->Textures[i];
-
-            glActiveTexture(GL_TEXTURE2);
-            glBindTexture(GL_TEXTURE_2D, texture->GetTextureId());
-        }
+        glActiveTexture(GL_TEXTURE0 + bindingIndex);
+        glBindTexture(GL_TEXTURE_2D, texture.GetTextureId());
     }
 
     void* OpenGLFramebuffer::GetColorAttachmentImGuiHandle(u32 attachmentIndex)

@@ -3,7 +3,6 @@
 
 #include "Heart/Platform/Vulkan/VulkanShader.h"
 #include "Heart/Platform/Vulkan/VulkanContext.h"
-#include "Heart/Platform/Vulkan/VulkanShaderInput.h"
 #include "Heart/Renderer/Renderer.h"
 
 namespace Heart
@@ -38,8 +37,9 @@ namespace Heart
     VulkanGraphicsPipeline::VulkanGraphicsPipeline(const GraphicsPipelineCreateInfo& createInfo, VkRenderPass renderPass, VkSampleCountFlagBits sampleCount, u32 viewportWidth, u32 viewportHeight)
         : GraphicsPipeline(createInfo)
     {
-        HE_ENGINE_ASSERT(createInfo.VertexShader != nullptr && createInfo.FragmentShader != nullptr, "Must specify both vertex and fragment shaders");
         VulkanDevice& device = VulkanContext::GetDevice();
+
+        m_DescriptorSet.Initialize(m_ProgramReflectionData);
 
         VkPipelineShaderStageCreateInfo shaderStages[] = {
             VulkanCommon::DefineShaderStage(static_cast<VulkanShader*>(createInfo.VertexShader.get())->GetShaderModule(), VK_SHADER_STAGE_VERTEX_BIT),
@@ -141,8 +141,7 @@ namespace Heart
         // pushConstants.size = sizeof(diamond_object_data);
 
         std::vector<VkDescriptorSetLayout> layouts;
-        for (auto& inputSet : createInfo.CompatibleInputSets)
-            layouts.emplace_back(static_cast<VulkanShaderInputSet&>(*inputSet).GetLayout());
+        layouts.emplace_back(m_DescriptorSet.GetLayout());
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -191,5 +190,7 @@ namespace Heart
 
         vkDestroyPipeline(device.Device(), m_Pipeline, nullptr);
         vkDestroyPipelineLayout(device.Device(), m_PipelineLayout, nullptr);
+
+        m_DescriptorSet.Shutdown();
     }
 }

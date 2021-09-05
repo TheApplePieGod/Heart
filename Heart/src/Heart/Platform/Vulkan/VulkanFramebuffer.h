@@ -14,7 +14,8 @@ namespace Heart
 
         void Bind() override;
         void BindPipeline(const std::string& name) override;
-        void BindShaderInputSet(const ShaderInputBindPoint& bindPoint, u32 setIndex, const std::vector<u32>& bufferOffsets) override;
+        void BindShaderBufferResource(u32 bindingIndex, u32 offset, Buffer* buffer) override;
+        void BindShaderTextureResource(u32 bindingIndex, Texture* texture) override;
         void Submit();
 
         void* GetColorAttachmentImGuiHandle(u32 attachmentIndex) override;
@@ -26,6 +27,7 @@ namespace Heart
 
     protected:
         Ref<GraphicsPipeline> InternalInitializeGraphicsPipeline(const GraphicsPipelineCreateInfo& createInfo) override;
+        void BindShaderResource(u32 bindingIndex, ShaderResourceType resourceType, void* resource, u32 offset);
 
     private:
         struct VulkanFramebufferAttachment

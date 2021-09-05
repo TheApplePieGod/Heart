@@ -1,5 +1,5 @@
 #include "htpch.h"
-#include "VulkanShaderInput.h"
+#include "VulkanDescriptorSet.h"
 
 #include "Heart/Platform/Vulkan/VulkanContext.h"
 #include "Heart/Platform/Vulkan/VulkanBuffer.h"
@@ -9,21 +9,20 @@
 
 namespace Heart
 {
-    VulkanShaderInputSet::VulkanShaderInputSet(std::initializer_list<ShaderInputElement> elements)
-        : ShaderInputSet(elements)
+    void VulkanDescriptorSet::Initialize(const std::vector<ReflectionDataElement>& reflectionData)
     {
         VulkanDevice& device = VulkanContext::GetDevice();
 
         // create the descriptor set layout and cache the associated poolsizes
         std::vector<VkDescriptorSetLayoutBinding> bindings;
         std::unordered_map<VkDescriptorType, u32> descriptorCounts;
-        for (auto& element : elements)
+        for (auto& element : reflectionData)
         {
             VkDescriptorSetLayoutBinding binding{};
-            binding.binding = element.BindIndex;
-            binding.descriptorType = VulkanCommon::ShaderInputTypeToVulkan(element.InputType);
+            binding.binding = element.BindingIndex;
+            binding.descriptorType = VulkanCommon::ShaderResourceTypeToVulkan(element.ResourceType);
             binding.descriptorCount = element.ArrayCount;
-            binding.stageFlags = VulkanCommon::ShaderBindTypeToVulkan(element.BindType);
+            binding.stageFlags = VulkanCommon::ShaderResourceAccessTypeToVulkan(element.AccessType);
             binding.pImmutableSamplers = nullptr;
 
             bindings.emplace_back(binding);
@@ -36,12 +35,20 @@ namespace Heart
             // populated the cached descriptor writes for updating new sets
             VkWriteDescriptorSet descriptorWrite{};
             descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            descriptorWrite.dstBinding = element.BindIndex;
+            descriptorWrite.dstBinding = element.BindingIndex;
             descriptorWrite.dstArrayElement = 0;
             descriptorWrite.descriptorType = binding.descriptorType;
             descriptorWrite.descriptorCount = element.ArrayCount;
 
+            m_DescriptorWriteMappings[element.BindingIndex] = m_CachedDescriptorWrites.size(); 
             m_CachedDescriptorWrites.emplace_back(descriptorWrite);
+
+            // populate the dynamic offset info if applicable
+            if (element.ResourceType == ShaderResourceType::UniformBuffer || element.ResourceType == ShaderResourceType::StorageBuffer)
+            {
+                m_OffsetMappings[element.BindingIndex] = m_DynamicOffsets.size();
+                m_DynamicOffsets.emplace_back(0);
+            }
         }
 
         VkDescriptorSetLayoutCreateInfo layoutInfo{};
@@ -66,7 +73,7 @@ namespace Heart
             m_DescriptorPools[i].push_back(CreateDescriptorPool());
     }
 
-    VulkanShaderInputSet::~VulkanShaderInputSet()
+    void VulkanDescriptorSet::Shutdown()
     {
         VulkanDevice& device = VulkanContext::GetDevice();
         VulkanContext::Sync();
@@ -82,7 +89,7 @@ namespace Heart
         vkDestroyDescriptorSetLayout(device.Device(), m_DescriptorSetLayout, nullptr);
     }
 
-    ShaderInputBindPoint VulkanShaderInputSet::CreateBindPoint(const std::vector<ShaderInputBindElement>& bindElements)
+    bool VulkanDescriptorSet::UpdateShaderResource(u32 bindingIndex, ShaderResourceType resourceType, void* resource)
     {
         VulkanDevice& device = VulkanContext::GetDevice();
         if (App::Get().GetFrameCount() != m_LastResetFrame)
@@ -90,66 +97,77 @@ namespace Heart
             // it is a new frame so we need to clear out the descriptor pools
             ClearPools();
             m_LastResetFrame = App::Get().GetFrameCount();
+            m_BoundResources.clear();
+            
+            m_WritesReadyCount = 0;
+            for (auto& write : m_CachedDescriptorWrites)
+            {
+                write.pBufferInfo = nullptr;
+                write.pImageInfo = nullptr;
+            }
         }
 
-        if (bindElements.size() != m_Elements.size())
-            HE_ENGINE_LOG_WARN("Binding of size {0} being bound to descriptor set size {1}", bindElements.size(), m_Elements.size());
+        if (m_BoundResources.find(bindingIndex) != m_BoundResources.end() && m_BoundResources[bindingIndex] == resource)
+            return m_WritesReadyCount == m_CachedDescriptorWrites.size();
+        m_BoundResources[bindingIndex] = resource;
 
-        VkDescriptorSet set = AllocateSet();
+        HE_ENGINE_ASSERT(m_DescriptorWriteMappings.find(bindingIndex) != m_DescriptorWriteMappings.end(), "Attempting to update a shader resource binding that doesn't exist");
 
-        size_t index = 0;
-        size_t bufferIndex = 0;
-        size_t imageIndex = 0;
-        for (auto& element : bindElements)
+        u32 bufferInfoBaseIndex = bindingIndex;
+        u32 imageInfoBaseIndex = bindingIndex * MAX_DESCRIPTOR_ARRAY_COUNT;
+        switch (resourceType)
         {
-            if (index >= m_CachedDescriptorWrites.size()) // m_CachedDescriptorWrites should have the same size as m_Elements
-                break;
+            default: { HE_ENGINE_ASSERT(false, "Cannot update VulkanDescriptorSet with selected resource type"); } break;
 
-            m_CachedDescriptorWrites[index].dstSet = set;
-
-            if (element.TargetBuffer != nullptr)
+            case ShaderResourceType::UniformBuffer:
+            case ShaderResourceType::StorageBuffer:
             {
-                VulkanBuffer& buffer = static_cast<VulkanBuffer&>(*element.TargetBuffer.get());
+                VulkanBuffer* buffer = static_cast<VulkanBuffer*>(resource);
+                HE_ENGINE_ASSERT(bindingIndex < m_CachedBufferInfos.size(), "Binding index for buffer resource is too large");
 
-                HE_ENGINE_ASSERT(bufferIndex < m_CachedBufferInfos.size(), "Too many buffers specified for a single descriptor set");
+                m_CachedBufferInfos[bufferInfoBaseIndex].buffer = buffer->GetBuffer();
+                m_CachedBufferInfos[bufferInfoBaseIndex].offset = 0;
+                m_CachedBufferInfos[bufferInfoBaseIndex].range = buffer->GetLayout().GetStride(); //buffer.GetAllocatedSize(); // when using dynamic buffers, range is the stride rather than the whole size
+            } break;
 
-                m_CachedBufferInfos[bufferIndex].buffer = buffer.GetBuffer();
-                m_CachedBufferInfos[bufferIndex].offset = 0;
-                m_CachedBufferInfos[bufferIndex].range = buffer.GetLayout().GetStride(); //buffer.GetAllocatedSize(); // when using dynamic buffers, range is the stride rather than the whole size
-
-                m_CachedDescriptorWrites[index].pBufferInfo = &m_CachedBufferInfos[bufferIndex++];
-            }
-            else if (element.TargetTexture != nullptr)
+            case ShaderResourceType::Texture:
             {
-                VulkanTexture& texture = static_cast<VulkanTexture&>(*element.TargetTexture.get());
+                VulkanTexture* texture = static_cast<VulkanTexture*>(resource);
+                HE_ENGINE_ASSERT(texture->GetArrayCount() <= MAX_DESCRIPTOR_ARRAY_COUNT, "Image array count too large");
 
-                size_t imageIndexBegin = imageIndex;
-                for (u32 i = 0; i < m_Elements[index].ArrayCount; i++)
+                for (u32 i = 0; i < texture->GetArrayCount(); i++)
                 {
-                    HE_ENGINE_ASSERT(imageIndex < m_CachedImageInfos.size(), "Too many images specified for a single descriptor set");
-
                     // TODO: customizable sampler
-                    m_CachedImageInfos[imageIndex].sampler = VulkanContext::GetDefaultSampler();
-                    m_CachedImageInfos[imageIndex].imageLayout = texture.GetCurrentLayout();
-                    m_CachedImageInfos[imageIndex++].imageView = texture.GetImageView();
+                    m_CachedImageInfos[imageInfoBaseIndex + i].sampler = VulkanContext::GetDefaultSampler();
+                    m_CachedImageInfos[imageInfoBaseIndex + i].imageLayout = texture->GetCurrentLayout();
+                    m_CachedImageInfos[imageInfoBaseIndex + i].imageView = texture->GetImageView();
                 }
-
-                m_CachedDescriptorWrites[index].pImageInfo = &m_CachedImageInfos[imageIndexBegin];
-            }
-
-            index++;
+            } break;
         }
 
-        vkUpdateDescriptorSets(device.Device(), static_cast<u32>(m_CachedDescriptorWrites.size()), m_CachedDescriptorWrites.data(), 0, nullptr);
+        VkWriteDescriptorSet& descriptorWrite = m_CachedDescriptorWrites[m_DescriptorWriteMappings[bindingIndex]];
+        if (descriptorWrite.pBufferInfo == nullptr && descriptorWrite.pImageInfo == nullptr)
+            m_WritesReadyCount++;
 
-        ShaderInputBindPoint bindPoint = {
-            set, static_cast<u32>(bufferIndex), static_cast<u32>(imageIndex)    
-        };
+        descriptorWrite.pBufferInfo = &m_CachedBufferInfos[bufferInfoBaseIndex];
+        descriptorWrite.pImageInfo = &m_CachedImageInfos[imageInfoBaseIndex];
 
-        return bindPoint;
+        // in order to keep vulkan happy, we cannot update a descriptor set 
+        if (m_WritesReadyCount == m_CachedDescriptorWrites.size())
+        {
+            m_MostRecentDescriptorSet = AllocateSet();
+            for (auto& write : m_CachedDescriptorWrites)
+                write.dstSet = m_MostRecentDescriptorSet;
+
+            vkUpdateDescriptorSets(device.Device(), static_cast<u32>(m_CachedDescriptorWrites.size()), m_CachedDescriptorWrites.data(), 0, nullptr);
+
+            return true;
+        }
+
+        return false;
     }
 
-    VkDescriptorPool VulkanShaderInputSet::CreateDescriptorPool()
+    VkDescriptorPool VulkanDescriptorSet::CreateDescriptorPool()
     {
         VulkanDevice& device = VulkanContext::GetDevice();
 
@@ -166,7 +184,8 @@ namespace Heart
         return pool;
     }
 
-    VkDescriptorSet VulkanShaderInputSet::AllocateSet()
+    // TODO: last successful index to speed up allocation when searching for a pool
+    VkDescriptorSet VulkanDescriptorSet::AllocateSet()
     {
         size_t poolIndex = m_LastSuccessfulPool;
 
@@ -195,7 +214,7 @@ namespace Heart
         return set;
     }
 
-    void VulkanShaderInputSet::ClearPools()
+    void VulkanDescriptorSet::ClearPools()
     {
         VulkanDevice& device = VulkanContext::GetDevice();
         VulkanContext& mainContext = static_cast<VulkanContext&>(Window::GetMainWindow().GetContext()); // we need the main context here to sync the inflightframeindex

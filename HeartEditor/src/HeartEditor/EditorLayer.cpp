@@ -83,13 +83,6 @@ namespace HeartEditor
             m_TestData.TextureRegistry.RegisterTexture("fish", "assets/textures/fish.png");
             m_TestData.TextureRegistry.RegisterTexture("test", "assets/textures/test.png");
 
-            // shader input set
-            m_TestData.ShaderInputSet = Heart::ShaderInputSet::Create({
-                { Heart::ShaderInputType::UniformBuffer, Heart::ShaderBindType::Vertex, 0 },
-                { Heart::ShaderInputType::StorageBuffer, Heart::ShaderBindType::Vertex, 1 },
-                { Heart::ShaderInputType::Texture, Heart::ShaderBindType::Fragment, 2 }
-            });
-
             // graphics pipeline
             Heart::GraphicsPipelineCreateInfo gpCreateInfo = {
                 m_TestData.ShaderRegistry.LoadShader("vert"),
@@ -97,7 +90,6 @@ namespace HeartEditor
                 Heart::VertexTopology::TriangleList,
                 vertBufferLayout,
                 { { true }, { true } },
-                { m_TestData.ShaderInputSet },
                 true,
                 Heart::CullMode::Backface
             };
@@ -134,7 +126,6 @@ namespace HeartEditor
     }
 
     // LOOK AT FRAMEBUFFER ATTACHMENT COLOR FORMATS
-    // Framebuffer multiple binds per frame
     // Buffer padding VkPhysicalDeviceLimits::minUniformBufferOffsetAlignment
 
     void EditorLayer::OnUpdate(Heart::Timestep ts)
@@ -147,18 +138,15 @@ namespace HeartEditor
 
         Heart::Renderer::Api().BindVertexBuffer(*m_TestData.VertexBuffer);
         Heart::Renderer::Api().BindIndexBuffer(*m_TestData.IndexBuffer);
-
-        Heart::ShaderInputBindPoint bindPoint = m_TestData.ShaderInputSet->CreateBindPoint({
-            { m_TestData.FrameDataBuffer, nullptr },
-            { m_TestData.ObjectDataBuffer, nullptr },
-            { nullptr, m_TestData.TextureRegistry.LoadTexture("test") }
-        });
         
         m_TestData.FrameDataBuffer->SetData(&m_EditorCamera->GetViewProjectionMatrix(), 1, 0);
 
+        // all shader resources must be bound before drawing
+        m_TestData.SceneFramebuffer->BindShaderBufferResource(0, 0, m_TestData.FrameDataBuffer.get());
+        m_TestData.SceneFramebuffer->BindShaderTextureResource(2, m_TestData.TextureRegistry.LoadTexture("test").get());
         for (u32 i = 0; i < 50; i++)
         {
-            m_TestData.SceneFramebuffer->BindShaderInputSet(bindPoint, 0, { 0, i * (u32)sizeof(glm::mat4) });
+            m_TestData.SceneFramebuffer->BindShaderBufferResource(1, i * (u32)sizeof(glm::mat4), m_TestData.ObjectDataBuffer.get());
 
             glm::vec3 objectPos = { 0.f, 0.f, 2.f + i + (i * 0.5f) };
             glm::mat4 transformed = glm::translate(glm::mat4(1.f), objectPos)

@@ -89,15 +89,15 @@ namespace Heart
         return -1;
     }
 
-    int OpenGLCommon::ShaderInputTypeToOpenGL(ShaderInputType type)
+    int OpenGLCommon::ShaderResourceTypeToOpenGL(ShaderResourceType type)
     {
         switch (type)
         {
             default:
-            { HE_ENGINE_ASSERT(false, "OpenGL does not support specified ShaderInputType"); } break;
-            case ShaderInputType::Texture : return GL_TEXTURE;
-            case ShaderInputType::UniformBuffer: return GL_UNIFORM_BUFFER;
-            case ShaderInputType::StorageBuffer: return GL_SHADER_STORAGE_BUFFER;
+            { HE_ENGINE_ASSERT(false, "OpenGL does not support specified ShaderResourceType"); } break;
+            case ShaderResourceType::Texture : return GL_TEXTURE;
+            case ShaderResourceType::UniformBuffer: return GL_UNIFORM_BUFFER;
+            case ShaderResourceType::StorageBuffer: return GL_SHADER_STORAGE_BUFFER;
         }
 
         return -1;

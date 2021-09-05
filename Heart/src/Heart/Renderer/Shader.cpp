@@ -60,14 +60,19 @@ namespace Heart
             HE_ENGINE_ASSERT(false);
         }
 
-        // TODO: reflect shader using spirv-cross
         return std::vector<u32>(compiled.cbegin(), compiled.cend());
     }
 
     void Shader::Reflect(Type shaderType, const std::vector<u32>& compiledData)
     {
+        m_ReflectionData.clear();
+
         spirv_cross::Compiler compiler(compiledData);
 		spirv_cross::ShaderResources resources = compiler.get_shader_resources();
+
+        ShaderResourceAccessType accessType = ShaderResourceAccessType::Vertex;
+        if (shaderType == Type::Fragment)
+            accessType = ShaderResourceAccessType::Fragment;
 
 		HE_ENGINE_LOG_TRACE("GLSL {0} shader @ {1}", TypeStrings[static_cast<u16>(shaderType)], m_Path);
 		HE_ENGINE_LOG_TRACE("    {0} uniform buffers", resources.uniform_buffers.size());
@@ -81,12 +86,18 @@ namespace Heart
 			const auto& bufferType = compiler.get_type(resource.base_type_id);
 			size_t bufferSize = compiler.get_declared_struct_size(bufferType);
 			u32 binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
+            u32 set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
 			size_t memberCount = bufferType.member_types.size();
+
+            m_ReflectionData.emplace_back(resource.id, ShaderResourceType::UniformBuffer, accessType, binding, set, 1);
 
 			HE_ENGINE_LOG_TRACE("    {0}", resource.name);
 			HE_ENGINE_LOG_TRACE("      Size = {0}", bufferSize);
+            HE_ENGINE_LOG_TRACE("      Set = {0}", set);
 			HE_ENGINE_LOG_TRACE("      Binding = {0}", binding);
 			HE_ENGINE_LOG_TRACE("      Members = {0}", memberCount);
+
+            HE_ENGINE_ASSERT(set == 0, "The 'set' glsl qualifier is currently unsupported and must be zero");
 		}
 
         if (resources.storage_buffers.size() > 0)
@@ -96,12 +107,36 @@ namespace Heart
 			const auto& bufferType = compiler.get_type(resource.base_type_id);
 			size_t bufferSize = compiler.get_declared_struct_size(bufferType);
 			u32 binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
+            u32 set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
 			size_t memberCount = bufferType.member_types.size();
+
+            m_ReflectionData.emplace_back(resource.id, ShaderResourceType::StorageBuffer, accessType, binding, set, 1);
 
 			HE_ENGINE_LOG_TRACE("    {0}", resource.name);
 			HE_ENGINE_LOG_TRACE("      Size = {0}", bufferSize);
+            HE_ENGINE_LOG_TRACE("      Set = {0}", set);
 			HE_ENGINE_LOG_TRACE("      Binding = {0}", binding);
 			HE_ENGINE_LOG_TRACE("      Members = {0}", memberCount);
+
+            HE_ENGINE_ASSERT(set == 0, "The 'set' glsl qualifier is currently unsupported and must be zero");
+		}
+
+        if (resources.sampled_images.size() > 0)
+		    HE_ENGINE_LOG_TRACE("  Sampled Images:");
+		for (const auto& resource : resources.sampled_images)
+		{
+            const auto& imageType = compiler.get_type(resource.type_id);
+			u32 binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
+            u32 set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
+            
+            m_ReflectionData.emplace_back(resource.id, ShaderResourceType::Texture, accessType, binding, set, imageType.array.empty() ? 1 : imageType.array[0]);
+
+			HE_ENGINE_LOG_TRACE("    Image", resource.name);
+            HE_ENGINE_LOG_TRACE("      ArrayCount = {0}", imageType.array[0]);
+            HE_ENGINE_LOG_TRACE("      Set = {0}", set);
+			HE_ENGINE_LOG_TRACE("      Binding = {0}", binding);
+
+            HE_ENGINE_ASSERT(set == 0, "The 'set' glsl qualifier is currently unsupported and must be zero");
 		}
     }
 

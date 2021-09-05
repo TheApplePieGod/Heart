@@ -3,7 +3,7 @@
 #ifdef HE_DEBUG
 	#if defined(HE_PLATFORM_WINDOWS)
 		#define HE_DEBUGBREAK() __debugbreak()
-	#elif defined(HT_PLATFORM_LINUX)
+	#elif defined(HE_PLATFORM_LINUX)
 		#include <signal.h>
 		#define HE_DEBUGBREAK() raise(SIGTRAP)
 	#else
@@ -15,20 +15,19 @@
 #endif
 
 #define HE_EXPAND_ARGS(args) args
-
 #define BIT(x) (1 << x)
 
-typedef signed char s8;
-typedef short s16;
-typedef int s32;
-typedef long long s64;
-typedef int b32;
-typedef unsigned char u8;
-typedef unsigned short u16;
-typedef unsigned int u32;
-typedef unsigned long long u64;
-typedef float f32;
-typedef double d64;
+typedef int8_t s8;
+typedef int16_t s16;
+typedef int32_t s32;
+typedef int64_t s64;
+typedef int32_t b32;
+typedef uint8_t u8;
+typedef uint16_t u16;
+typedef uint32_t u32;
+typedef uint64_t u64;
+typedef float_t f32;
+typedef double_t d64;
 
 #define Pi32 3.14159265359f
 #define Tau32 6.28318530717958647692f
@@ -37,8 +36,6 @@ typedef double d64;
 #define Gigabytes(Value) (Megabytes(Value)*1024LL)
 #define Terabytes(Value) (Gigabytes(Value)*1024LL)
 #define DegreesToRadians(Degrees) Degrees*Pi32/180.f
-
-#define ArrayCount(Array) (sizeof(Array) / sizeof((Array)[0]))
 
 namespace Heart
 {
