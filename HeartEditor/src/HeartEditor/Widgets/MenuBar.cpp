@@ -13,6 +13,7 @@ namespace Widgets
     MenuBar::MenuBar()
     {
         // open default windows (todo: save/load)
+        m_WindowStatuses["Viewport"] = true;
         m_WindowStatuses["Content Browser"] = true;
         m_WindowStatuses["Properties Panel"] = true;
         m_WindowStatuses["Scene Hierarchy"] = true;

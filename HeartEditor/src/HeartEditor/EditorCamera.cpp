@@ -29,6 +29,8 @@ namespace HeartEditor
         if (Heart::Input::IsKeyPressed(Heart::KeyCode::S))
             m_Position -= (m_ForwardVector * moveSpeed * static_cast<f32>(ts.StepSeconds()));
 
+        m_Position += static_cast<f32>(Heart::Input::GetScrollOffsetY()) * m_ForwardVector;
+
         m_XRotation += mouseScale * static_cast<f32>(Heart::Input::GetMouseDeltaX());
         m_YRotation += -mouseScale * static_cast<f32>(Heart::Input::GetMouseDeltaY());
 
@@ -47,6 +49,5 @@ namespace HeartEditor
         m_RightVector = glm::cross(m_ForwardVector, m_UpVector);
 
         m_ViewMatrix = glm::lookAt(m_Position, m_Position + lookAtVector, m_UpVector);
-        //m_ViewMatrix = glm::lookAt(m_Position, m_Position + m_ZAxis, m_UpVector);
     }
 }

@@ -190,33 +190,36 @@ namespace HeartEditor
         ImGuiID dockspaceId = ImGui::GetID("EditorDockSpace");
         ImGui::DockSpace(dockspaceId, ImVec2(0.f, 0.f), 0);
 
-        ImGui::Begin("Viewport");
-
-		ImVec2 viewportMin = ImGui::GetWindowContentRegionMin();
-		ImVec2 viewportMax = ImGui::GetWindowContentRegionMax();
-		ImVec2 viewportPos = ImGui::GetWindowPos();
-		glm::vec2 viewportSize = { viewportMax.x - viewportMin.x, viewportMax.y - viewportMin.y };
-        glm::vec2 viewportStart = { viewportMin.x + viewportPos.x, viewportMin.y + viewportPos.y };
-        glm::vec2 viewportEnd = viewportStart + viewportSize;
-
-        m_EditorCamera->UpdateAspectRatio(viewportSize.x / viewportSize.y);
-
-        ImGui::GetWindowDrawList()->AddRectFilled({ viewportStart.x, viewportStart.y }, { viewportEnd.x, viewportEnd.y }, IM_COL32( 0, 0, 0, 255 )); // viewport background
-        ImGui::Image(
-            m_TestData->SceneFramebuffer->GetColorAttachmentImGuiHandle(0),
-            { viewportSize.x, viewportSize.y },
-            { 0.f, 0.f }, { 1.f, 1.f }
-        );
-        if (ImGui::IsItemClicked())
+        if (m_Widgets.MainMenuBar.GetWindowStatus("Viewport"))
         {
-            // disable imgui input & cursor
-            m_ViewportInput = true;
-            EditorApp::Get().GetWindow().DisableCursor();
-            ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_NoMouse;
-        }
-        ImGui::SetItemAllowOverlap();
+            ImGui::Begin("Viewport", m_Widgets.MainMenuBar.GetWindowStatusRef("Viewport"));
 
-        ImGui::End();
+            ImVec2 viewportMin = ImGui::GetWindowContentRegionMin();
+            ImVec2 viewportMax = ImGui::GetWindowContentRegionMax();
+            ImVec2 viewportPos = ImGui::GetWindowPos();
+            glm::vec2 viewportSize = { viewportMax.x - viewportMin.x, viewportMax.y - viewportMin.y };
+            glm::vec2 viewportStart = { viewportMin.x + viewportPos.x, viewportMin.y + viewportPos.y };
+            glm::vec2 viewportEnd = viewportStart + viewportSize;
+
+            m_EditorCamera->UpdateAspectRatio(viewportSize.x / viewportSize.y);
+
+            ImGui::GetWindowDrawList()->AddRectFilled({ viewportStart.x, viewportStart.y }, { viewportEnd.x, viewportEnd.y }, IM_COL32( 0, 0, 0, 255 )); // viewport background
+            ImGui::Image(
+                m_TestData->SceneFramebuffer->GetColorAttachmentImGuiHandle(0),
+                { viewportSize.x, viewportSize.y },
+                { 0.f, 0.f }, { 1.f, 1.f }
+            );
+            if (ImGui::IsItemClicked())
+            {
+                // disable imgui input & cursor
+                m_ViewportInput = true;
+                EditorApp::Get().GetWindow().DisableCursor();
+                ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_NoMouse;
+            }
+            ImGui::SetItemAllowOverlap();
+
+            ImGui::End();
+        }
 
         if (m_Widgets.MainMenuBar.GetWindowStatus("Content Browser"))
         {
@@ -227,25 +230,25 @@ namespace HeartEditor
 
         if (m_Widgets.MainMenuBar.GetWindowStatus("Properties Panel"))
         {
-            ImGui::Begin("Properties Panel");
+            ImGui::Begin("Properties Panel", m_Widgets.MainMenuBar.GetWindowStatusRef("Properties Panel"));
             ImGui::End();
         }
 
         if (m_Widgets.MainMenuBar.GetWindowStatus("Scene Hierarchy"))
         {
-            ImGui::Begin("Scene Hierarchy");
+            ImGui::Begin("Scene Hierarchy", m_Widgets.MainMenuBar.GetWindowStatusRef("Scene Hierarchy"));
             ImGui::End();
         }
 
         if (m_Widgets.MainMenuBar.GetWindowStatus("Settings"))
         {
-            ImGui::Begin("Settings");
+            ImGui::Begin("Settings", m_Widgets.MainMenuBar.GetWindowStatusRef("Settings"));
             ImGui::End();
         }
 
         if (m_Widgets.MainMenuBar.GetWindowStatus("ImGui Demo"))
         {
-            ImGui::ShowDemoWindow();
+            ImGui::ShowDemoWindow(m_Widgets.MainMenuBar.GetWindowStatusRef("ImGui Demo"));
         }
 
         ImGui::End();

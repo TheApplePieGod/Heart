@@ -8,6 +8,8 @@ namespace Heart
 {
     double Input::s_MouseDeltaX = 0.0;
     double Input::s_MouseDeltaY = 0.0;
+    double Input::s_ScrollOffsetX = 0.0;
+    double Input::s_ScrollOffsetY = 0.0;
     double Input::s_LastMousePosX = 0.0;
     double Input::s_LastMousePosY = 0.0;
 
@@ -39,5 +41,19 @@ namespace Heart
         s_MouseDeltaY += newY - s_LastMousePosY;
         s_LastMousePosX = newX;
         s_LastMousePosY = newY;
+    }
+
+    void Input::UpdateScrollOffset(double newX, double newY)
+    {
+        s_ScrollOffsetX += newX;
+        s_ScrollOffsetY += newY;
+    }
+
+    void Input::ClearDeltas()
+    {
+        s_MouseDeltaX = 0.0;
+        s_MouseDeltaY = 0.0;
+        s_ScrollOffsetX = 0.0;
+        s_ScrollOffsetY = 0.0;
     }
 }

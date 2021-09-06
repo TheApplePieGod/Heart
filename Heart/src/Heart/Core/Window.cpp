@@ -3,6 +3,7 @@
 
 #include "Heart/Events/WindowEvents.h"
 #include "Heart/Events/KeyboardEvents.h"
+#include "Heart/Events/MouseEvents.h"
 #include "Heart/Input/Input.h"
 #include "Heart/Renderer/Renderer.h"
 
@@ -106,20 +107,43 @@ namespace Heart
         glfwSetWindowCloseCallback(m_Window, [](GLFWwindow* window)
 		{
 			WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
+
 			WindowCloseEvent event;
 			data.EmitEvent(event);
 		});
 
         glfwSetCursorPosCallback(m_Window, [](GLFWwindow* window, double xPos, double yPos)
         {
-            WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
-            
             Input::UpdateMousePosition(xPos, yPos);
         });
 
+        glfwSetScrollCallback(m_Window, [](GLFWwindow* window, double xOffset, double yOffset)
+        {
+            Input::UpdateScrollOffset(xOffset, yOffset);
+        });
+
+
+        glfwSetMouseButtonCallback(m_Window, [](GLFWwindow* window, int button, int action, int mods)
+        {
+            WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
+            MouseCode mouseCode = static_cast<MouseCode>(button);
+
+			switch (action)
+			{
+				case GLFW_PRESS:
+				{
+					MouseButtonPressedEvent event(mouseCode);
+					data.EmitEvent(event);
+				} break;
+				case GLFW_RELEASE:
+				{
+					MouseButtonReleasedEvent event(mouseCode);
+					data.EmitEvent(event);
+				} break;
+			}
+        });
+
         //glfwSetCharCallback
-        //glfwSetMouseButtonCallback
-        //glfwSetScrollCallback
     }
 
     Window::~Window()
@@ -148,7 +172,7 @@ namespace Heart
     void Window::EndFrame()
     {
         m_GraphicsContext->EndFrame();
-        Input::ClearMouseDelta();
+        Input::ClearDeltas();
     }
 
     void Window::DisableCursor()
