@@ -83,6 +83,7 @@
         "stop_token": "cpp",
         "thread": "cpp",
         "variant": "cpp",
-        "filesystem": "cpp"
+        "filesystem": "cpp",
+        "numeric": "cpp"
     },
 }

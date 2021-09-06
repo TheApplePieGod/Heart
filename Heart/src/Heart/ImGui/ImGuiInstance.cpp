@@ -39,7 +39,7 @@ namespace Heart
 			style.Colors[ImGuiCol_WindowBg].w = 1.0f;
 		}
 
-        //SetThemeColors();
+        SetThemeColors();
 
         // do the Inits here because they don't need to be recalled when recreating the instance
         switch (Renderer::GetApiType())

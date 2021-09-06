@@ -169,14 +169,18 @@ namespace HeartEditor
     void EditorLayer::OnImGuiRender()
     {
         HE_PROFILE_FUNCTION();
-        
+
         ImGui::SetNextWindowPos(ImGui::GetMainViewport()->WorkPos);
         ImGui::SetNextWindowSize(ImGui::GetMainViewport()->WorkSize);
 
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
 
+        std::string mainWindowName = "Heart Editor (";
+        mainWindowName += HE_ENUM_TO_STRING(Heart::RenderApi, Heart::Renderer::GetApiType());
+        mainWindowName += ")";
+
         ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
-        ImGui::Begin("Heart Editor", nullptr, windowFlags);
+        ImGui::Begin(mainWindowName.c_str(), nullptr, windowFlags);
         
         ImGui::Spacing();
 
