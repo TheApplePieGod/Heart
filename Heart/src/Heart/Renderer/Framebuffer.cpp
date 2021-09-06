@@ -3,6 +3,7 @@
 
 #include "Heart/Renderer/Renderer.h"
 #include "Heart/Platform/Vulkan/VulkanFramebuffer.h"
+#include "Heart/Platform/OpenGL/OpenGLFramebuffer.h"
 #include "Heart/Core/Window.h"
 
 namespace Heart
@@ -27,6 +28,8 @@ namespace Heart
             { HE_ENGINE_ASSERT(false, "Cannot create Framebuffer: selected ApiType is not supported"); return nullptr; }
             case RenderApi::Type::Vulkan:
             { return CreateRef<VulkanFramebuffer>(createInfo); }
+            case RenderApi::Type::OpenGL:
+            { return CreateRef<OpenGLFramebuffer>(createInfo); }
         }
     }
 

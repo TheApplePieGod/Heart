@@ -7,8 +7,15 @@ namespace Heart
     class Timer
     {
     public:
-        Timer()
+        Timer(const std::string& name)
+            : m_Name(name)
         { Reset(); }
+
+        ~Timer()
+        {
+            if (!m_Name.empty())
+                HE_ENGINE_LOG_INFO("{0} took {1} ms", m_Name, static_cast<u32>(ElapsedMilliseconds()));
+        }
 
         inline void Reset() { m_Start = std::chrono::high_resolution_clock::now(); }
 
@@ -30,5 +37,6 @@ namespace Heart
 
     private:
         std::chrono::time_point<std::chrono::high_resolution_clock> m_Start;
+        std::string m_Name;
     };
 }

@@ -6,6 +6,7 @@
 namespace HeartEditor
 {
     EditorApp::EditorApp()
+        : App("Heart Editor")
     {
         PushLayer(new EditorLayer());
     }

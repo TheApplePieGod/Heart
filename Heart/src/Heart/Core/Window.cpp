@@ -37,9 +37,16 @@ namespace Heart
         }
 
         if (Renderer::GetApiType() == RenderApi::Type::Vulkan)
+        {
+            glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
             HE_ENGINE_ASSERT(glfwVulkanSupported(), "Device does not support vulkan rendering");
+        }
 
-        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+        #ifdef HE_DEBUG
+        if (Renderer::GetApiType() == RenderApi::Type::OpenGL)
+            glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
+        #endif
+
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
         m_Window = glfwCreateWindow(settings.Width, settings.Height, settings.Title.c_str(), nullptr, nullptr);
@@ -48,9 +55,13 @@ namespace Heart
         m_GraphicsContext = GraphicsContext::Create(m_Window);
 
         glfwSetWindowUserPointer(m_Window, &m_WindowData);
-
+        
         if (glfwRawMouseMotionSupported())
             glfwSetInputMode(m_Window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+
+        // disable vsync permanently (for now)
+        if (Renderer::GetApiType() == RenderApi::Type::OpenGL)
+            glfwSwapInterval(0);
 
         glfwSetWindowSizeCallback(m_Window, [](GLFWwindow* window, int width, int height)
 		{
@@ -117,11 +128,15 @@ namespace Heart
 
     void Window::BeginFrame()
     {
+        HE_PROFILE_FUNCTION();
+
         m_GraphicsContext->BeginFrame();
     }
 
     void Window::PollEvents()
     {
+        HE_PROFILE_FUNCTION();
+        
         glfwPollEvents();
     }
 

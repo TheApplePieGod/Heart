@@ -3,6 +3,7 @@
 
 #include "Heart/Renderer/Renderer.h"
 #include "Heart/Platform/Vulkan/VulkanContext.h"
+#include "Heart/Platform/OpenGL/OpenGLContext.h"
 
 namespace Heart
 {
@@ -16,6 +17,8 @@ namespace Heart
             { HE_ENGINE_ASSERT(false, "Cannot create GraphicsContext: selected ApiType is not supported"); return nullptr; }
             case RenderApi::Type::Vulkan:
             { return CreateRef<VulkanContext>(window); }
+            case RenderApi::Type::OpenGL:
+            { return CreateRef<OpenGLContext>(window); }
         }
     }
 }

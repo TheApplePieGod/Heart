@@ -9,22 +9,15 @@ namespace Heart
     class VulkanBuffer : public Buffer
     {
     public:
-        enum class Type
-        {
-            None = 0,
-            Uniform, Storage
-        };
-
-    public:
-        VulkanBuffer(const BufferLayout& layout, u32 elementCount, void* initialData, Type type);
+        VulkanBuffer(Type type, const BufferLayout& layout, u32 elementCount, void* initialData);
         ~VulkanBuffer() override;
 
         void SetData(void* data, u32 elementCount, u32 elementOffset) override;
 
-        inline VkBuffer GetBuffer() { UpdateFrameIndex(); return m_Buffers[m_InFlightFrameIndex]; };
+        VkBuffer GetBuffer();
 
     protected:
-        void CreateBuffer(VkDeviceSize size, VkBuffer& outBuffer, VkDeviceMemory& outMemory, Type type);
+        void CreateBuffer(VkDeviceSize size, VkBuffer& outBuffer, VkDeviceMemory& outMemory);
         void UpdateFrameIndex();
 
     protected:

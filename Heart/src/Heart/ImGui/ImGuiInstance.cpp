@@ -20,7 +20,7 @@ namespace Heart
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;       // Enable Keyboard Controls
 		//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;           // Enable Docking
-		//io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows (disabling this for now because it's causing a ton of issues with vulkan)
+		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows (disabling this for now because it's causing a ton of issues with vulkan)
 		//io.ConfigFlags |= ImGuiConfigFlags_ViewportsNoTaskBarIcons;
 		//io.ConfigFlags |= ImGuiConfigFlags_ViewportsNoMerge;
 
@@ -45,9 +45,11 @@ namespace Heart
         switch (Renderer::GetApiType())
         {
             default:
-            { HE_ENGINE_ASSERT(false, "Cannot cleanup ImGui: selected ApiType is not supported"); } break;
+            { HE_ENGINE_ASSERT(false, "Cannot initialize ImGui: selected ApiType is not supported"); } break;
             case RenderApi::Type::Vulkan:
             { ImGui_ImplGlfw_InitForVulkan(window.GetWindowHandle(), true); } break;
+			case RenderApi::Type::OpenGL:
+            { ImGui_ImplGlfw_InitForOpenGL(window.GetWindowHandle(), true); } break;
         }
 
         Recreate();
@@ -83,6 +85,8 @@ namespace Heart
 
     void ImGuiInstance::BeginFrame()
     {
+		HE_PROFILE_FUNCTION();
+
         App::Get().GetWindow().GetContext().ImGuiBeginFrame();
 
         ImGui_ImplGlfw_NewFrame();
@@ -91,6 +95,8 @@ namespace Heart
 
     void ImGuiInstance::EndFrame()
     {  
+		HE_PROFILE_FUNCTION();
+		
         ImGuiIO& io = ImGui::GetIO();
 		Window& mainWindow = App::Get().GetWindow();
 		io.DisplaySize = ImVec2((f32)mainWindow.GetWidth(), (f32)mainWindow.GetHeight());

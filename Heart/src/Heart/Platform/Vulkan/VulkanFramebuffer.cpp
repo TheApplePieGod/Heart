@@ -170,6 +170,8 @@ namespace Heart
 
     void VulkanFramebuffer::Bind()
     {
+        HE_PROFILE_FUNCTION();
+
         UpdateFrameIndex();
 
         HE_ENGINE_ASSERT(!m_SubmittedThisFrame, "Cannot bind a framebuffer that has already been submitted");
@@ -221,6 +223,8 @@ namespace Heart
 
     void VulkanFramebuffer::Submit()
     {
+        HE_PROFILE_FUNCTION();
+
         HE_ENGINE_ASSERT(!m_SubmittedThisFrame, "Cannot submit framebuffer twice in the same frame");
         HE_ENGINE_ASSERT(m_BoundThisFrame, "Cannot submit framebuffer that has not been bound this frame");
 
@@ -237,6 +241,8 @@ namespace Heart
 
     void VulkanFramebuffer::BindPipeline(const std::string& name)
     {
+        HE_PROFILE_FUNCTION();
+
         VkCommandBuffer buffer = GetCommandBuffer();
         auto pipeline = static_cast<VulkanGraphicsPipeline*>(LoadPipeline(name).get());
 
@@ -245,15 +251,49 @@ namespace Heart
         m_BoundPipeline = name;
     }
 
-    void VulkanFramebuffer::BindShaderInputSet(const ShaderInputBindPoint& bindPoint, u32 setIndex, const std::vector<u32>& bufferOffsets)
+    void VulkanFramebuffer::BindShaderBufferResource(u32 bindingIndex, u32 elementOffset, Buffer* buffer)
+    {
+        HE_PROFILE_FUNCTION();
+
+        BindShaderResource(bindingIndex, ShaderResourceType::UniformBuffer, buffer, buffer->GetLayout().GetStride() * elementOffset); // uniform vs structured buffer are the doesn't matter here
+    }
+
+    void VulkanFramebuffer::BindShaderTextureResource(u32 bindingIndex, Texture* texture)
+    {
+        HE_PROFILE_FUNCTION();
+        
+        BindShaderResource(bindingIndex, ShaderResourceType::Texture, texture, 0);
+    }
+
+    void VulkanFramebuffer::BindShaderResource(u32 bindingIndex, ShaderResourceType resourceType, void* resource, u32 offset)
     {
         // TODO: don't use string here
-        HE_ENGINE_ASSERT(!m_BoundPipeline.empty(), "Must call BindPipeline before BindShaderInputSets");
-        HE_ENGINE_ASSERT(bufferOffsets.size() == bindPoint.BufferCount, "Must provide a valid element offset for each buffer");
+        HE_ENGINE_ASSERT(!m_BoundPipeline.empty(), "Must call BindPipeline before BindShaderResource");
 
         VulkanGraphicsPipeline& boundPipeline = static_cast<VulkanGraphicsPipeline&>(*LoadPipeline(m_BoundPipeline));
+        VulkanDescriptorSet& descriptorSet = boundPipeline.GetVulkanDescriptorSet();
 
-        vkCmdBindDescriptorSets(GetCommandBuffer(), VK_PIPELINE_BIND_POINT_GRAPHICS, boundPipeline.GetLayout(), setIndex, 1, &static_cast<VkDescriptorSet>(bindPoint.BindData), static_cast<u32>(bufferOffsets.size()), bufferOffsets.data());
+        if (resourceType == ShaderResourceType::UniformBuffer || resourceType == ShaderResourceType::StorageBuffer)
+            descriptorSet.UpdateDynamicOffset(bindingIndex, offset);
+
+        // we only want to bind here if the descriptor set was allocated & updated
+        // this will only occur if the binding resource differs at the same bind index and
+        // only once all bind indexes have been bound with a resource this frame 
+        if (descriptorSet.UpdateShaderResource(bindingIndex, resourceType, resource))
+        {
+            HE_ENGINE_ASSERT(descriptorSet.GetMostRecentDescriptorSet() != nullptr);
+
+            VkDescriptorSet sets[1] = { descriptorSet.GetMostRecentDescriptorSet() };
+            vkCmdBindDescriptorSets(
+                GetCommandBuffer(),
+                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                boundPipeline.GetLayout(),
+                0, 1,
+                sets,
+                static_cast<u32>(descriptorSet.GetDynamicOffsets().size()),
+                descriptorSet.GetDynamicOffsets().data()
+            );
+        }
     }
 
     void* VulkanFramebuffer::GetColorAttachmentImGuiHandle(u32 attachmentIndex)

@@ -253,7 +253,7 @@ namespace Heart
         info.MinImageCount = 2;
         info.ImageCount = m_VulkanSwapChain.GetImageCount();
         info.CheckVkResultFn = NULL;
-        info.MSAASamples = s_VulkanDevice.MaxMsaaSamples();
+        info.MSAASamples = VK_SAMPLE_COUNT_1_BIT; //s_VulkanDevice.MaxMsaaSamples();
 
         ImGui_ImplVulkan_Init(&info, m_VulkanSwapChain.GetRenderPass());
         VkCommandBuffer commandBuffer = VulkanCommon::BeginSingleTimeCommands(s_VulkanDevice.Device(), s_GraphicsPool);
@@ -270,16 +270,22 @@ namespace Heart
 
     void VulkanContext::ImGuiBeginFrame()
     {
+        HE_PROFILE_FUNCTION();
+
         ImGui_ImplVulkan_NewFrame();
     }
 
     void VulkanContext::ImGuiEndFrame()
     {
+        HE_PROFILE_FUNCTION();
+
         ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), m_VulkanSwapChain.GetCommandBuffer());
     }
 
     void VulkanContext::BeginFrame()
     {
+        HE_PROFILE_FUNCTION();
+
         m_VulkanSwapChain.BeginFrame();
 
         // bind the initial commandbuffer to be the main window's
@@ -288,6 +294,8 @@ namespace Heart
 
     void VulkanContext::EndFrame()
     {
+        HE_PROFILE_FUNCTION();
+        
         m_VulkanSwapChain.EndFrame();
         s_BoundCommandBuffer = nullptr;
     }

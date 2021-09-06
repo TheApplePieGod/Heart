@@ -2,7 +2,7 @@
 
 #include "Heart/Renderer/Shader.h"
 #include "Heart/Renderer/Buffer.h"
-#include "Heart/Renderer/ShaderInput.h"
+#include "Heart/Renderer/Texture.h"
 
 namespace Heart
 {
@@ -30,7 +30,6 @@ namespace Heart
         BufferLayout VertexLayout;
 
         std::vector<AttachmentBlendState> BlendStates; // one state is required per framebuffer attachment
-        std::vector<Ref<ShaderInputSet>> CompatibleInputSets;
 
         bool DepthEnable;
         CullMode CullMode;
@@ -58,11 +57,23 @@ namespace Heart
     public:
         GraphicsPipeline(const GraphicsPipelineCreateInfo& createInfo)
             : m_Info(createInfo)
-        {}
+        {
+            HE_ENGINE_ASSERT(createInfo.VertexShader != nullptr && createInfo.FragmentShader != nullptr, "Must specify both vertex and fragment shaders");
+            ConsolidateReflectionData();
+        }
         virtual ~GraphicsPipeline() = default;
 
-    private:
+        inline VertexTopology GetVertexTopology() const { return m_Info.VertexTopology; }
+        inline CullMode GetCullMode() const { return m_Info.CullMode; }
+        inline bool IsDepthEnabled() const { return m_Info.DepthEnable; }
+        inline u32 GetVertexLayoutStride() const { return m_Info.VertexLayout.GetStride(); }
+
+    protected:
         GraphicsPipelineCreateInfo m_Info;
+        std::vector<ReflectionDataElement> m_ProgramReflectionData; // program = vertex+fragment shaders
+
+    private:
+        void ConsolidateReflectionData();
     };
 
     class ComputePipeline : public Pipeline
@@ -76,7 +87,7 @@ namespace Heart
     public:
         static Ref<ComputePipeline> Create(const ComputePipelineCreateInfo& createInfo);
 
-    private:
+    protected:
         ComputePipelineCreateInfo m_Info;
     };
 }

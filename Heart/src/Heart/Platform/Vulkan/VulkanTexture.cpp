@@ -45,18 +45,18 @@ namespace Heart
 
         VulkanCommon::MapAndWriteBufferMemory(device.Device(), data, sizeof(unsigned char), static_cast<u32>(imageSize), stagingBufferMemory, 0);
 
-        VulkanCommon::CreateImage(device.Device(), device.PhysicalDevice(), m_Width, m_Height, VK_FORMAT_R8G8B8A8_SRGB, 1, VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_Image, m_ImageMemory);
+        VulkanCommon::CreateImage(device.Device(), device.PhysicalDevice(), m_Width, m_Height, VK_FORMAT_R8G8B8A8_UNORM, 1, VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_Image, m_ImageMemory);
 
-        VulkanCommon::TransitionImageLayout(device.Device(), VulkanContext::GetTransferPool(), device.TransferQueue(), m_Image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+        VulkanCommon::TransitionImageLayout(device.Device(), VulkanContext::GetTransferPool(), device.TransferQueue(), m_Image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
         VulkanCommon::CopyBufferToImage(device.Device(), VulkanContext::GetTransferPool(), device.TransferQueue(), stagingBuffer, m_Image, static_cast<u32>(m_Width), static_cast<u32>(m_Height));
 
-        VulkanCommon::TransitionImageLayout(device.Device(), VulkanContext::GetTransferPool(), device.TransferQueue(), m_Image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+        VulkanCommon::TransitionImageLayout(device.Device(), VulkanContext::GetTransferPool(), device.TransferQueue(), m_Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
         vkDestroyBuffer(device.Device(), stagingBuffer, nullptr);
         vkFreeMemory(device.Device(), stagingBufferMemory, nullptr);
 
-        m_ImageView = VulkanCommon::CreateImageView(device.Device(), m_Image, VK_FORMAT_R8G8B8A8_SRGB, 1);
+        m_ImageView = VulkanCommon::CreateImageView(device.Device(), m_Image, VK_FORMAT_R8G8B8A8_UNORM, 1);
         m_CurrentLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     }
 }

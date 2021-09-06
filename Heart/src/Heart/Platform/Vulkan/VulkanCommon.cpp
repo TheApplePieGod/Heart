@@ -180,7 +180,7 @@ namespace Heart
     {
         VkBufferCreateInfo bufferInfo{};
         bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-        bufferInfo.size = size; // really shouldnt have more vertices than this
+        bufferInfo.size = size;
         bufferInfo.usage = usage;
         bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
@@ -207,7 +207,7 @@ namespace Heart
         vkUnmapMemory(device, bufferMemory);
     }
 
-    void VulkanCommon::TransitionImageLayout(VkDevice device, VkCommandPool commandPool, VkQueue transferQueue, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout)
+    void VulkanCommon::TransitionImageLayout(VkDevice device, VkCommandPool commandPool, VkQueue transferQueue, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout)
     {
         VkCommandBuffer commandBuffer = BeginSingleTimeCommands(device, commandPool);
 
@@ -379,29 +379,29 @@ namespace Heart
         return VK_CULL_MODE_NONE;
     }
 
-    VkDescriptorType VulkanCommon::ShaderInputTypeToVulkan(ShaderInputType type)
+    VkDescriptorType VulkanCommon::ShaderResourceTypeToVulkan(ShaderResourceType type)
     {
         switch (type)
         {
             default:
-            { HE_ENGINE_ASSERT(false, "Vulkan does not support specified ShaderInputType"); } break;
-            case ShaderInputType::Texture : return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            case ShaderInputType::Buffer: return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-            case ShaderInputType::BigBuffer: return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
+            { HE_ENGINE_ASSERT(false, "Vulkan does not support specified ShaderResourceType"); } break;
+            case ShaderResourceType::Texture : return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            case ShaderResourceType::UniformBuffer: return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+            case ShaderResourceType::StorageBuffer: return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
         }
 
         return VK_DESCRIPTOR_TYPE_MAX_ENUM;
     }
 
-    VkShaderStageFlags VulkanCommon::ShaderBindTypeToVulkan(ShaderBindType type)
+    VkShaderStageFlags VulkanCommon::ShaderResourceAccessTypeToVulkan(ShaderResourceAccessType type)
     {
         switch (type)
         {
             default:
-            { HE_ENGINE_ASSERT(false, "Vulkan does not support specified ShaderInputType"); } break;
-            case ShaderBindType::Vertex : return VK_SHADER_STAGE_VERTEX_BIT;
-            case ShaderBindType::Fragment: return VK_SHADER_STAGE_FRAGMENT_BIT;
-            case ShaderBindType::Both: return (VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+            { HE_ENGINE_ASSERT(false, "Vulkan does not support specified ShaderResourceType"); } break;
+            case ShaderResourceAccessType::Vertex : return VK_SHADER_STAGE_VERTEX_BIT;
+            case ShaderResourceAccessType::Fragment: return VK_SHADER_STAGE_FRAGMENT_BIT;
+            case ShaderResourceAccessType::Both: return (VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
         }
 
         return VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM;

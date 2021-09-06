@@ -2,7 +2,6 @@
 
 #include "Heart/Renderer/GraphicsContext.h"
 #include "Heart/Renderer/Pipeline.h"
-#include "Heart/Renderer/ShaderInput.h"
 #include "Heart/Events/EventEmitter.h"
 #include "Heart/Events/WindowEvents.h"
 #include "glm/vec4.hpp"
@@ -49,7 +48,10 @@ namespace Heart
 
         virtual void Bind() = 0;
         virtual void BindPipeline(const std::string& name) = 0;
-        virtual void BindShaderInputSet(const ShaderInputBindPoint& bindPoint, u32 setIndex, const std::vector<u32>& bufferOffsets) = 0; // must be called AFTER bind pipeline
+
+        // must be called after BindPipeline()
+        virtual void BindShaderBufferResource(u32 bindingIndex, u32 elementOffset, Buffer* buffer) = 0;
+        virtual void BindShaderTextureResource(u32 bindingIndex, Texture* texture) = 0;
         
         virtual void* GetColorAttachmentImGuiHandle(u32 attachmentIndex) = 0;
         virtual void* GetDepthAttachmentImGuiHandle() = 0;

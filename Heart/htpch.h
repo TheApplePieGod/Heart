@@ -26,6 +26,7 @@
 #include "Heart/Core/Base.h"
 #include "Heart/Core/Log.h"
 #include "Heart/Core/Assert.h"
+#include "Heart/Core/Profile.h"
 
 #ifdef HE_PLATFORM_WINDOWS
 	#include <Windows.h>

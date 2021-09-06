@@ -62,7 +62,7 @@ namespace HeartEditor
                 { Heart::BufferDataType::Float3 },
                 { Heart::BufferDataType::Float2 }
             };
-            m_TestData.VertexBuffer = Heart::VertexBuffer::Create(vertBufferLayout, (u32)vertexArray.size(), vertexArray.data());
+            m_TestData.VertexBuffer = Heart::Buffer::Create(Heart::Buffer::Type::Vertex, vertBufferLayout, (u32)vertexArray.size(), vertexArray.data());
 
             // index buffer
             std::vector<u32> indices = {
@@ -73,7 +73,7 @@ namespace HeartEditor
                 16, 17, 18, 18, 19, 16,
                 20, 23, 22, 22, 21, 20
             };
-            m_TestData.IndexBuffer = Heart::IndexBuffer::Create((u32)indices.size(), indices.data());
+            m_TestData.IndexBuffer = Heart::Buffer::CreateIndexBuffer((u32)indices.size(), indices.data());
 
             // shader registry
             m_TestData.ShaderRegistry.RegisterShader("vert", "assets/shaders/main.vert", Heart::Shader::Type::Vertex);
@@ -83,13 +83,6 @@ namespace HeartEditor
             m_TestData.TextureRegistry.RegisterTexture("fish", "assets/textures/fish.png");
             m_TestData.TextureRegistry.RegisterTexture("test", "assets/textures/test.png");
 
-            // shader input set
-            m_TestData.ShaderInputSet = Heart::ShaderInputSet::Create({
-                { Heart::ShaderInputType::Buffer, Heart::ShaderBindType::Vertex, 0 },
-                { Heart::ShaderInputType::BigBuffer, Heart::ShaderBindType::Vertex, 1 },
-                { Heart::ShaderInputType::Texture, Heart::ShaderBindType::Fragment, 2 }
-            });
-
             // graphics pipeline
             Heart::GraphicsPipelineCreateInfo gpCreateInfo = {
                 m_TestData.ShaderRegistry.LoadShader("vert"),
@@ -97,7 +90,6 @@ namespace HeartEditor
                 Heart::VertexTopology::TriangleList,
                 vertBufferLayout,
                 { { true }, { true } },
-                { m_TestData.ShaderInputSet },
                 true,
                 Heart::CullMode::Backface
             };
@@ -109,15 +101,15 @@ namespace HeartEditor
 
             // per object data buffer layout
             Heart::BufferLayout objectDataLayout = {
-                { Heart::BufferDataType::Mat4 }
+                { Heart::BufferDataType::Mat4 },
             };
 
             // per frame data buffer
             glm::mat4 initialData = m_EditorCamera->GetProjectionMatrix() * m_EditorCamera->GetViewMatrix();
-            m_TestData.FrameDataBuffer = Heart::Buffer::Create(frameDataLayout, 1, &initialData);
+            m_TestData.FrameDataBuffer = Heart::Buffer::Create(Heart::Buffer::Type::Uniform, frameDataLayout, 1, &initialData);
 
             // object data buffer
-            m_TestData.ObjectDataBuffer = Heart::BigBuffer::Create(objectDataLayout, 1000, nullptr);
+            m_TestData.ObjectDataBuffer = Heart::Buffer::Create(Heart::Buffer::Type::Storage, objectDataLayout, 1000, nullptr);
 
             // framebuffer
             Heart::FramebufferCreateInfo fbCreateInfo = {
@@ -134,32 +126,29 @@ namespace HeartEditor
     }
 
     // LOOK AT FRAMEBUFFER ATTACHMENT COLOR FORMATS
-    // Framebuffer multiple binds per frame
     // Buffer padding VkPhysicalDeviceLimits::minUniformBufferOffsetAlignment
 
     void EditorLayer::OnUpdate(Heart::Timestep ts)
     {
+        HE_PROFILE_FUNCTION();
+
         if (m_ViewportInput)
             m_EditorCamera->OnUpdate(ts);
 
         m_TestData.SceneFramebuffer->Bind();
-        
-        Heart::Renderer::Api().BindVertexBuffer(*m_TestData.VertexBuffer);
-        Heart::Renderer::Api().BindIndexBuffer(*m_TestData.IndexBuffer);
-
         m_TestData.SceneFramebuffer->BindPipeline("main");
 
-        Heart::ShaderInputBindPoint bindPoint = m_TestData.ShaderInputSet->CreateBindPoint({
-            { m_TestData.FrameDataBuffer, nullptr },
-            { m_TestData.ObjectDataBuffer, nullptr },
-            { nullptr, m_TestData.TextureRegistry.LoadTexture("test") }
-        });
+        Heart::Renderer::Api().BindVertexBuffer(*m_TestData.VertexBuffer);
+        Heart::Renderer::Api().BindIndexBuffer(*m_TestData.IndexBuffer);
         
         m_TestData.FrameDataBuffer->SetData(&m_EditorCamera->GetViewProjectionMatrix(), 1, 0);
 
+        // all shader resources must be bound before drawing
+        m_TestData.SceneFramebuffer->BindShaderBufferResource(0, 0, m_TestData.FrameDataBuffer.get());
+        m_TestData.SceneFramebuffer->BindShaderTextureResource(2, m_TestData.TextureRegistry.LoadTexture("test").get());
         for (u32 i = 0; i < 50; i++)
         {
-            m_TestData.SceneFramebuffer->BindShaderInputSet(bindPoint, 0, { 0, i * (u32)sizeof(glm::mat4) });
+            m_TestData.SceneFramebuffer->BindShaderBufferResource(1, i, m_TestData.ObjectDataBuffer.get());
 
             glm::vec3 objectPos = { 0.f, 0.f, 2.f + i + (i * 0.5f) };
             glm::mat4 transformed = glm::translate(glm::mat4(1.f), objectPos)
@@ -179,34 +168,38 @@ namespace HeartEditor
 
     void EditorLayer::OnImGuiRender()
     {
+        HE_PROFILE_FUNCTION();
+        
         ImGui::SetNextWindowPos(ImGui::GetMainViewport()->WorkPos);
         ImGui::SetNextWindowSize(ImGui::GetMainViewport()->WorkSize);
+
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
 
         ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
         ImGui::Begin("Heart Editor", nullptr, windowFlags);
         
+        ImGui::Spacing();
+
         ImGuiID dockspaceId = ImGui::GetID("EditorDockSpace");
         ImGui::DockSpace(dockspaceId, ImVec2(0.f, 0.f), 0);
 
-        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
         ImGui::Begin("Viewport");
 
-		ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
-		glm::vec2 ViewportSize = { viewportPanelSize.x, viewportPanelSize.y };
+		ImVec2 viewportMin = ImGui::GetWindowContentRegionMin();
+		ImVec2 viewportMax = ImGui::GetWindowContentRegionMax();
+		ImVec2 viewportPos = ImGui::GetWindowPos();
+		glm::vec2 viewportSize = { viewportMax.x - viewportMin.x, viewportMax.y - viewportMin.y };
+        glm::vec2 viewportStart = { viewportMin.x + viewportPos.x, viewportMin.y + viewportPos.y };
+        glm::vec2 viewportEnd = viewportStart + viewportSize;
 
-        m_EditorCamera->UpdateAspectRatio(viewportPanelSize.x / viewportPanelSize.y);
+        m_EditorCamera->UpdateAspectRatio(viewportSize.x / viewportSize.y);
 
-        // ImGui::Image(
-        //     m_TestData.SceneFramebuffer->GetRawAttachmentImageHandle(0, Heart::FramebufferAttachmentType::Color),
-        //     { (f32)m_TestData.SceneFramebuffer->GetWidth(), (f32)m_TestData.SceneFramebuffer->GetHeight() }
-        // );
-        // ImGui::SameLine();
+        ImGui::GetWindowDrawList()->AddRectFilled({ viewportStart.x, viewportStart.y }, { viewportEnd.x, viewportEnd.y }, IM_COL32( 0, 0, 0, 255 )); // viewport background
         ImGui::Image(
             m_TestData.SceneFramebuffer->GetColorAttachmentImGuiHandle(0),
-            { ViewportSize.x, ViewportSize.y },
+            { viewportSize.x, viewportSize.y },
             { 0.f, 0.f }, { 1.f, 1.f }
         );
-        
         if (ImGui::IsItemClicked())
         {
             // disable imgui input & cursor
@@ -214,9 +207,9 @@ namespace HeartEditor
             EditorApp::Get().GetWindow().DisableCursor();
             ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_NoMouse;
         }
+        ImGui::SetItemAllowOverlap();
 
         ImGui::End();
-        ImGui::PopStyleColor();
 
         ImGui::Begin("Content Browser");
         ImGui::End();
@@ -231,6 +224,8 @@ namespace HeartEditor
         ImGui::End();
 
         ImGui::End();
+
+        ImGui::PopStyleVar();
     }
 
     void EditorLayer::OnDetach()

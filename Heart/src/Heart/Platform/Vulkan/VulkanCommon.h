@@ -3,13 +3,12 @@
 #include "vulkan/vulkan.h"
 #include "Heart/Renderer/Framebuffer.h"
 #include "Heart/Renderer/Pipeline.h"
-#include "Heart/Renderer/ShaderInput.h"
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
 
 namespace Heart
 {
-    enum class ShaderBindType;
+    enum class ShaderResourceAccessType;
     struct VulkanCommon
     {
         struct QueueFamilyIndices
@@ -47,7 +46,7 @@ namespace Heart
         static VkPipelineShaderStageCreateInfo DefineShaderStage(VkShaderModule shaderModule, VkShaderStageFlagBits stage, const char* entrypoint = "main");
         static void CreateBuffer(VkDevice device, VkPhysicalDevice physicalDevice, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
         static void MapAndWriteBufferMemory(VkDevice device, void* data, u32 dataSize, u32 elementCount, VkDeviceMemory bufferMemory, u32 elementMemoryOffset);
-        static void TransitionImageLayout(VkDevice device, VkCommandPool commandPool, VkQueue transferQueue, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
+        static void TransitionImageLayout(VkDevice device, VkCommandPool commandPool, VkQueue transferQueue, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout);
         static void CopyBufferToImage(VkDevice device, VkCommandPool commandPool, VkQueue transferQueue, VkBuffer srcBuffer, VkImage dstImage, uint32_t width, uint32_t height);
 
         static VkFormat ColorFormatToVulkan(ColorFormat format);
@@ -55,8 +54,8 @@ namespace Heart
         static VkPrimitiveTopology VertexTopologyToVulkan(VertexTopology topology);
         static VkFormat BufferDataTypeToVulkan(BufferDataType type);
         static VkCullModeFlagBits CullModeToVulkan(CullMode mode);
-        static VkDescriptorType ShaderInputTypeToVulkan(ShaderInputType type);
-        static VkShaderStageFlags ShaderBindTypeToVulkan(ShaderBindType type);
+        static VkDescriptorType ShaderResourceTypeToVulkan(ShaderResourceType type);
+        static VkShaderStageFlags ShaderResourceAccessTypeToVulkan(ShaderResourceAccessType type);
     };
 }
 
