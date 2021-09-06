@@ -28,6 +28,7 @@ typedef double_t d64;
 
 #define HE_ENUM_TO_STRING(class, value) class::TypeStrings[static_cast<u16>(value)]
 #define HE_EXPAND_ARGS(args) args
+#define HE_ARRAY_SIZE(arr) sizeof(arr) / sizeof(arr[0])
 #define BIT(x) (1 << x)
 
 #define Pi32 3.14159265359f

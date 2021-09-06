@@ -4,6 +4,7 @@
 #include "HeartEditor/EditorApp.h"
 #include "Heart/Renderer/Renderer.h"
 #include "imgui/imgui.h"
+#include "imgui/imgui_internal.h"
 #include "glm/vec4.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 
@@ -12,17 +13,20 @@ namespace HeartEditor
     EditorLayer::EditorLayer()
     {
         m_EditorCamera = Heart::CreateScope<EditorCamera>(70.f, 0.1f, 1000.f, 1.f);
-        SubscribeToEmitter(&EditorApp::Get().GetWindow());
     }
 
     EditorLayer::~EditorLayer()
     {
-        UnsubscribeFromEmitter(&EditorApp::Get().GetWindow());
+        
     }
 
     void EditorLayer::OnAttach()
     {
-        HE_CLIENT_LOG_INFO("Editor attached");
+        HE_PROFILE_FUNCTION();
+
+        SubscribeToEmitter(&EditorApp::Get().GetWindow());
+
+        m_TestData = new TestData();
 
         // create a test scene
         {
@@ -62,7 +66,7 @@ namespace HeartEditor
                 { Heart::BufferDataType::Float3 },
                 { Heart::BufferDataType::Float2 }
             };
-            m_TestData.VertexBuffer = Heart::Buffer::Create(Heart::Buffer::Type::Vertex, vertBufferLayout, (u32)vertexArray.size(), vertexArray.data());
+            m_TestData->VertexBuffer = Heart::Buffer::Create(Heart::Buffer::Type::Vertex, vertBufferLayout, (u32)vertexArray.size(), vertexArray.data());
 
             // index buffer
             std::vector<u32> indices = {
@@ -73,20 +77,20 @@ namespace HeartEditor
                 16, 17, 18, 18, 19, 16,
                 20, 23, 22, 22, 21, 20
             };
-            m_TestData.IndexBuffer = Heart::Buffer::CreateIndexBuffer((u32)indices.size(), indices.data());
+            m_TestData->IndexBuffer = Heart::Buffer::CreateIndexBuffer((u32)indices.size(), indices.data());
 
             // shader registry
-            m_TestData.ShaderRegistry.RegisterShader("vert", "assets/shaders/main.vert", Heart::Shader::Type::Vertex);
-            m_TestData.ShaderRegistry.RegisterShader("frag", "assets/shaders/main.frag", Heart::Shader::Type::Fragment);
+            m_TestData->ShaderRegistry.RegisterShader("vert", "assets/shaders/main.vert", Heart::Shader::Type::Vertex);
+            m_TestData->ShaderRegistry.RegisterShader("frag", "assets/shaders/main.frag", Heart::Shader::Type::Fragment);
 
             // texture registry
-            m_TestData.TextureRegistry.RegisterTexture("fish", "assets/textures/fish.png");
-            m_TestData.TextureRegistry.RegisterTexture("test", "assets/textures/test.png");
+            m_TestData->TextureRegistry.RegisterTexture("fish", "assets/textures/fish.png");
+            m_TestData->TextureRegistry.RegisterTexture("test", "assets/textures/test.png");
 
             // graphics pipeline
             Heart::GraphicsPipelineCreateInfo gpCreateInfo = {
-                m_TestData.ShaderRegistry.LoadShader("vert"),
-                m_TestData.ShaderRegistry.LoadShader("frag"),
+                m_TestData->ShaderRegistry.LoadShader("vert"),
+                m_TestData->ShaderRegistry.LoadShader("frag"),
                 Heart::VertexTopology::TriangleList,
                 vertBufferLayout,
                 { { true }, { true } },
@@ -106,10 +110,10 @@ namespace HeartEditor
 
             // per frame data buffer
             glm::mat4 initialData = m_EditorCamera->GetProjectionMatrix() * m_EditorCamera->GetViewMatrix();
-            m_TestData.FrameDataBuffer = Heart::Buffer::Create(Heart::Buffer::Type::Uniform, frameDataLayout, 1, &initialData);
+            m_TestData->FrameDataBuffer = Heart::Buffer::Create(Heart::Buffer::Type::Uniform, frameDataLayout, 1, &initialData);
 
             // object data buffer
-            m_TestData.ObjectDataBuffer = Heart::Buffer::Create(Heart::Buffer::Type::Storage, objectDataLayout, 1000, nullptr);
+            m_TestData->ObjectDataBuffer = Heart::Buffer::Create(Heart::Buffer::Type::Storage, objectDataLayout, 1000, nullptr);
 
             // framebuffer
             Heart::FramebufferCreateInfo fbCreateInfo = {
@@ -120,9 +124,11 @@ namespace HeartEditor
             fbCreateInfo.Height = 0;
             fbCreateInfo.SampleCount = Heart::MsaaSampleCount::None;
             fbCreateInfo.HasDepth = true;
-            m_TestData.SceneFramebuffer = Heart::Framebuffer::Create(fbCreateInfo);
-            m_TestData.SceneFramebuffer->RegisterGraphicsPipeline("main", gpCreateInfo);
+            m_TestData->SceneFramebuffer = Heart::Framebuffer::Create(fbCreateInfo);
+            m_TestData->SceneFramebuffer->RegisterGraphicsPipeline("main", gpCreateInfo);
         }
+
+        HE_CLIENT_LOG_INFO("Editor attached");
     }
 
     // LOOK AT FRAMEBUFFER ATTACHMENT COLOR FORMATS
@@ -135,35 +141,35 @@ namespace HeartEditor
         if (m_ViewportInput)
             m_EditorCamera->OnUpdate(ts);
 
-        m_TestData.SceneFramebuffer->Bind();
-        m_TestData.SceneFramebuffer->BindPipeline("main");
+        m_TestData->SceneFramebuffer->Bind();
+        m_TestData->SceneFramebuffer->BindPipeline("main");
 
-        Heart::Renderer::Api().BindVertexBuffer(*m_TestData.VertexBuffer);
-        Heart::Renderer::Api().BindIndexBuffer(*m_TestData.IndexBuffer);
+        Heart::Renderer::Api().BindVertexBuffer(*m_TestData->VertexBuffer);
+        Heart::Renderer::Api().BindIndexBuffer(*m_TestData->IndexBuffer);
         
-        m_TestData.FrameDataBuffer->SetData(&m_EditorCamera->GetViewProjectionMatrix(), 1, 0);
+        m_TestData->FrameDataBuffer->SetData(&m_EditorCamera->GetViewProjectionMatrix(), 1, 0);
 
         // all shader resources must be bound before drawing
-        m_TestData.SceneFramebuffer->BindShaderBufferResource(0, 0, m_TestData.FrameDataBuffer.get());
-        m_TestData.SceneFramebuffer->BindShaderTextureResource(2, m_TestData.TextureRegistry.LoadTexture("test").get());
+        m_TestData->SceneFramebuffer->BindShaderBufferResource(0, 0, m_TestData->FrameDataBuffer.get());
+        m_TestData->SceneFramebuffer->BindShaderTextureResource(2, m_TestData->TextureRegistry.LoadTexture("test").get());
         for (u32 i = 0; i < 50; i++)
         {
-            m_TestData.SceneFramebuffer->BindShaderBufferResource(1, i, m_TestData.ObjectDataBuffer.get());
+            m_TestData->SceneFramebuffer->BindShaderBufferResource(1, i, m_TestData->ObjectDataBuffer.get());
 
             glm::vec3 objectPos = { 0.f, 0.f, 2.f + i + (i * 0.5f) };
             glm::mat4 transformed = glm::translate(glm::mat4(1.f), objectPos)
                                      * glm::scale(glm::mat4(1.f), glm::vec3(1.f, 1.f, 1.f));
 
-            m_TestData.ObjectDataBuffer->SetData(&transformed, 1, i);
+            m_TestData->ObjectDataBuffer->SetData(&transformed, 1, i);
 
             Heart::Renderer::Api().DrawIndexed(
-                m_TestData.IndexBuffer->GetAllocatedCount(),
-                m_TestData.VertexBuffer->GetAllocatedCount(),
+                m_TestData->IndexBuffer->GetAllocatedCount(),
+                m_TestData->VertexBuffer->GetAllocatedCount(),
                 0, 0, 1
             );
         }
         
-        Heart::Renderer::Api().RenderFramebuffers(EditorApp::Get().GetWindow().GetContext(), { m_TestData.SceneFramebuffer.get() });
+        Heart::Renderer::Api().RenderFramebuffers(EditorApp::Get().GetWindow().GetContext(), { m_TestData->SceneFramebuffer.get() });
     }
 
     void EditorLayer::OnImGuiRender()
@@ -174,15 +180,12 @@ namespace HeartEditor
         ImGui::SetNextWindowSize(ImGui::GetMainViewport()->WorkSize);
 
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
 
-        std::string mainWindowName = "Heart Editor (";
-        mainWindowName += HE_ENUM_TO_STRING(Heart::RenderApi, Heart::Renderer::GetApiType());
-        mainWindowName += ")###mainwindow";
-
-        ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
-        ImGui::Begin(mainWindowName.c_str(), nullptr, windowFlags);
+        ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+        ImGui::Begin("Main Window", nullptr, windowFlags);
         
-        ImGui::Spacing();
+        m_Widgets.MainMenuBar.OnImGuiRender();
 
         ImGuiID dockspaceId = ImGui::GetID("EditorDockSpace");
         ImGui::DockSpace(dockspaceId, ImVec2(0.f, 0.f), 0);
@@ -200,7 +203,7 @@ namespace HeartEditor
 
         ImGui::GetWindowDrawList()->AddRectFilled({ viewportStart.x, viewportStart.y }, { viewportEnd.x, viewportEnd.y }, IM_COL32( 0, 0, 0, 255 )); // viewport background
         ImGui::Image(
-            m_TestData.SceneFramebuffer->GetColorAttachmentImGuiHandle(0),
+            m_TestData->SceneFramebuffer->GetColorAttachmentImGuiHandle(0),
             { viewportSize.x, viewportSize.y },
             { 0.f, 0.f }, { 1.f, 1.f }
         );
@@ -215,26 +218,45 @@ namespace HeartEditor
 
         ImGui::End();
 
-        ImGui::Begin("Content Browser");
+        if (m_Widgets.MainMenuBar.GetWindowStatus("Content Browser"))
+        {
+            ImGui::Begin("Content Browser", m_Widgets.MainMenuBar.GetWindowStatusRef("Content Browser"));
+
+            ImGui::End();
+        }
+
+        if (m_Widgets.MainMenuBar.GetWindowStatus("Properties Panel"))
+        {
+            ImGui::Begin("Properties Panel");
+            ImGui::End();
+        }
+
+        if (m_Widgets.MainMenuBar.GetWindowStatus("Scene Hierarchy"))
+        {
+            ImGui::Begin("Scene Hierarchy");
+            ImGui::End();
+        }
+
+        if (m_Widgets.MainMenuBar.GetWindowStatus("Settings"))
+        {
+            ImGui::Begin("Settings");
+            ImGui::End();
+        }
+
+        if (m_Widgets.MainMenuBar.GetWindowStatus("ImGui Demo"))
+        {
+            ImGui::ShowDemoWindow();
+        }
+
         ImGui::End();
 
-        ImGui::Begin("Properties Panel");
-        ImGui::End();
-
-        ImGui::Begin("Scene Hierarchy");
-        ImGui::End();
-
-        ImGui::Begin("Settings");
-        ImGui::End();
-
-        ImGui::End();
-
-        ImGui::PopStyleVar();
+        ImGui::PopStyleVar(2);
     }
 
     void EditorLayer::OnDetach()
     {
-
+        UnsubscribeFromEmitter(&EditorApp::Get().GetWindow());
+        delete m_TestData;
     }
 
     void EditorLayer::OnEvent(Heart::Event& event)

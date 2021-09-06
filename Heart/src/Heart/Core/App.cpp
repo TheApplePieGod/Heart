@@ -1,8 +1,6 @@
 #include "htpch.h"
 #include "App.h"
 
-#include "Heart/Renderer/RenderApi.h"
-#include "Heart/Renderer/Renderer.h"
 #include "Heart/Core/Timer.h"
 
 namespace Heart
@@ -21,32 +19,15 @@ namespace Heart
             HE_ENGINE_LOG_INFO("Running Heart in Release mode");
         #endif
 
-        Renderer::Initialize(RenderApi::Type::Vulkan);
-
         WindowSettings windowSettings = WindowSettings(windowName);
-        m_Window = Window::Create(windowSettings);
-        SubscribeToEmitter(&GetWindow());
-        Window::SetMainWindow(m_Window);
-
-        m_ImGuiInstance.Initialize();
+        InitializeGraphicsApi(RenderApi::Type::Vulkan, windowSettings);
 
         HE_ENGINE_LOG_INFO("App initialized");
     }
 
     App::~App()
     {
-        for (auto layer : m_Layers)
-        {
-            layer->OnDetach();
-            delete layer;
-        }
-
-        UnsubscribeFromEmitter(&GetWindow());
-        Window::SetMainWindow(nullptr);
-
-        m_ImGuiInstance.Shutdown();
-
-        Renderer::Shutdown();
+        ShutdownGraphicsApi();
 
         HE_ENGINE_LOG_INFO("Shutdown complete");
     }
@@ -55,6 +36,37 @@ namespace Heart
     {
         m_Layers.push_back(layer);
         layer->OnAttach();
+    }
+
+    void App::SwitchGraphicsApi(RenderApi::Type type)
+    {
+        m_SwitchingApi = type;
+    }
+    
+    void App::InitializeGraphicsApi(RenderApi::Type type, const WindowSettings& windowSettings)
+    {
+        Renderer::Initialize(type);
+
+        m_Window = Window::Create(windowSettings);
+        SubscribeToEmitter(&GetWindow());
+        Window::SetMainWindow(m_Window);
+
+        m_ImGuiInstance.Initialize();
+    }
+
+    void App::ShutdownGraphicsApi()
+    {
+        for (auto layer : m_Layers)
+            layer->OnDetach();
+
+        UnsubscribeFromEmitter(&GetWindow());
+        Window::SetMainWindow(nullptr);
+
+        m_ImGuiInstance.Shutdown();
+
+        Renderer::Shutdown();
+
+        m_Window.reset();
     }
 
     void App::OnEvent(Event& event)
@@ -82,6 +94,28 @@ namespace Heart
     {
         Close();
         return true;
+    }
+
+    void App::CheckForGraphicsApiSwitch()
+    {
+        if (m_SwitchingApi != RenderApi::Type::None)
+        {
+            WindowSettings windowSettings = {
+                m_Window->GetTitle(),
+                m_Window->GetWidth(),
+                m_Window->GetHeight()
+            };
+            bool fullscreen = m_Window->IsFullscreen();
+
+            ShutdownGraphicsApi();
+            InitializeGraphicsApi(m_SwitchingApi, windowSettings);
+            m_Window->SetFullscreen(fullscreen);
+
+            for (auto layer : m_Layers)
+                layer->OnAttach();
+
+            m_SwitchingApi = RenderApi::Type::None;
+        }
     }
 
     void App::Run()
@@ -113,6 +147,8 @@ namespace Heart
 
             m_Window->EndFrame();
             m_FrameCount++;
+
+            CheckForGraphicsApiSwitch();
         }
     }
 }

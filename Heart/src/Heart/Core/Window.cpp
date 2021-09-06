@@ -49,7 +49,12 @@ namespace Heart
 
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
-        m_Window = glfwCreateWindow(settings.Width, settings.Height, settings.Title.c_str(), nullptr, nullptr);
+        std::string fullTitle = settings.Title;
+        fullTitle += " (";
+        fullTitle += HE_ENUM_TO_STRING(RenderApi, Renderer::GetApiType());
+        fullTitle += ")";
+
+        m_Window = glfwCreateWindow(settings.Width, settings.Height, fullTitle.c_str(), nullptr, nullptr);
         s_WindowCount++;
 
         m_GraphicsContext = GraphicsContext::Create(m_Window);
@@ -158,7 +163,7 @@ namespace Heart
 
     void Window::SetFullscreen(bool fullscreen)
     {
-        bool fullscreenStatus = glfwGetWindowMonitor(m_Window) != nullptr;
+        bool fullscreenStatus = IsFullscreen();
         if (fullscreenStatus == fullscreen)
             return;
         else
@@ -182,7 +187,6 @@ namespace Heart
 
     void Window::ToggleFullscreen()
     {
-        bool fullscreenStatus = glfwGetWindowMonitor(m_Window) != nullptr;
-        SetFullscreen(!fullscreenStatus);
+        SetFullscreen(!IsFullscreen());
     }
 }

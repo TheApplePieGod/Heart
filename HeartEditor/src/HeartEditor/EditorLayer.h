@@ -4,6 +4,8 @@
 #include "HeartEditor/EditorCamera.h"
 #include "Heart/Events/KeyboardEvents.h"
 
+#include "HeartEditor/Widgets/MenuBar.h"
+
 // Testing
 #include "Heart/Renderer/Framebuffer.h"
 #include "Heart/Renderer/Buffer.h"
@@ -28,6 +30,11 @@ namespace HeartEditor
         Heart::TextureRegistry TextureRegistry;
     };
 
+    struct EditorWidgets
+    {
+        Widgets::MenuBar MainMenuBar;
+    };
+
     class EditorLayer : public Heart::Layer
     {
     public:
@@ -45,7 +52,8 @@ namespace HeartEditor
         bool KeyPressedEvent(Heart::KeyPressedEvent& event);
 
     private:
-        TestData m_TestData;
+        TestData* m_TestData;
+        EditorWidgets m_Widgets;
         Heart::Scope<EditorCamera> m_EditorCamera;
         bool m_ViewportInput = false;
     };

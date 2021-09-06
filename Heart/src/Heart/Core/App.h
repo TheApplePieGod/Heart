@@ -5,6 +5,7 @@
 #include "Heart/Events/Event.h"
 #include "Heart/Events/WindowEvents.h"
 #include "Heart/ImGui/ImGuiInstance.h"
+#include "Heart/Renderer/Renderer.h"
 
 extern int main(int argc, char** argv);
 
@@ -16,16 +17,20 @@ namespace Heart
         App(const std::string& windowName = "Heart Engine");
         ~App();
 
+        void PushLayer(Layer* layer);
+        void SwitchGraphicsApi(RenderApi::Type type);
+
         inline static App& Get() { return *s_Instance; }
         inline ImGuiInstance& GetImGuiInstance() { return m_ImGuiInstance; }
         inline Window& GetWindow() const { return *m_Window; }
         inline u64 GetFrameCount() const { return m_FrameCount; }
         inline void Close() { m_Running = false; };
 
-        void PushLayer(Layer* layer);
-
     private:
-        void Run();      
+        void Run();
+        void InitializeGraphicsApi(RenderApi::Type type, const WindowSettings& windowSettings);
+        void ShutdownGraphicsApi();
+        void CheckForGraphicsApiSwitch();
         void OnEvent(Event& event) override;
         bool OnWindowResize(WindowResizeEvent& event);
         bool OnWindowClose(WindowCloseEvent& event);
@@ -38,6 +43,7 @@ namespace Heart
         bool m_Minimized = false;
         u64 m_FrameCount = 0;
         double m_LastFrameTime = 0.0;
+        RenderApi::Type m_SwitchingApi = RenderApi::Type::None;
 
     private:
         static App* s_Instance;
