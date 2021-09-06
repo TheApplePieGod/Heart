@@ -27,6 +27,8 @@ namespace Heart
 
     void OpenGLBuffer::SetData(void* data, u32 elementCount, u32 elementOffset)
     {
+        HE_PROFILE_FUNCTION();
+        
         glBindBuffer(OpenGLCommon::BufferTypeToOpenGL(m_Type), m_BufferId);
         glBufferSubData(OpenGLCommon::BufferTypeToOpenGL(m_Type), m_Layout.GetStride() * elementOffset, m_Layout.GetStride() * elementCount, data);
     }

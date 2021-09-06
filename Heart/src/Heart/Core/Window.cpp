@@ -128,11 +128,15 @@ namespace Heart
 
     void Window::BeginFrame()
     {
+        HE_PROFILE_FUNCTION();
+
         m_GraphicsContext->BeginFrame();
     }
 
     void Window::PollEvents()
     {
+        HE_PROFILE_FUNCTION();
+        
         glfwPollEvents();
     }
 

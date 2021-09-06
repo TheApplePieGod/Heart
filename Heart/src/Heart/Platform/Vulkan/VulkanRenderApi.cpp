@@ -41,6 +41,8 @@ namespace Heart
 
     void VulkanRenderApi::BindVertexBuffer(Buffer& _buffer)
     {
+        HE_PROFILE_FUNCTION();
+
         VkBuffer buffer = static_cast<VulkanBuffer&>(_buffer).GetBuffer();
 
         VkDeviceSize offsets[] = { 0 };
@@ -49,6 +51,8 @@ namespace Heart
 
     void VulkanRenderApi::BindIndexBuffer(Buffer& _buffer)
     {
+        HE_PROFILE_FUNCTION();
+
         VkBuffer buffer = static_cast<VulkanBuffer&>(_buffer).GetBuffer();
 
         VkDeviceSize offsets[] = { 0 };
@@ -57,11 +61,15 @@ namespace Heart
 
     void VulkanRenderApi::DrawIndexed(u32 indexCount, u32 vertexCount, u32 indexOffset, u32 vertexOffset, u32 instanceCount)
     {
+        HE_PROFILE_FUNCTION();
+
         vkCmdDrawIndexed(VulkanContext::GetBoundCommandBuffer(), indexCount, instanceCount, indexOffset, vertexOffset, 0);
     }
 
     void VulkanRenderApi::RenderFramebuffers(GraphicsContext& _context, const std::vector<Framebuffer*>& framebuffers)
     {
+        HE_PROFILE_FUNCTION();
+        
         VulkanContext& context = static_cast<VulkanContext&>(_context);
 
         std::vector<VkCommandBuffer> submittingBuffers;

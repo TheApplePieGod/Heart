@@ -170,6 +170,8 @@ namespace Heart
 
     void VulkanFramebuffer::Bind()
     {
+        HE_PROFILE_FUNCTION();
+
         UpdateFrameIndex();
 
         HE_ENGINE_ASSERT(!m_SubmittedThisFrame, "Cannot bind a framebuffer that has already been submitted");
@@ -221,6 +223,8 @@ namespace Heart
 
     void VulkanFramebuffer::Submit()
     {
+        HE_PROFILE_FUNCTION();
+
         HE_ENGINE_ASSERT(!m_SubmittedThisFrame, "Cannot submit framebuffer twice in the same frame");
         HE_ENGINE_ASSERT(m_BoundThisFrame, "Cannot submit framebuffer that has not been bound this frame");
 
@@ -237,6 +241,8 @@ namespace Heart
 
     void VulkanFramebuffer::BindPipeline(const std::string& name)
     {
+        HE_PROFILE_FUNCTION();
+
         VkCommandBuffer buffer = GetCommandBuffer();
         auto pipeline = static_cast<VulkanGraphicsPipeline*>(LoadPipeline(name).get());
 
@@ -247,11 +253,15 @@ namespace Heart
 
     void VulkanFramebuffer::BindShaderBufferResource(u32 bindingIndex, u32 elementOffset, Buffer* buffer)
     {
+        HE_PROFILE_FUNCTION();
+
         BindShaderResource(bindingIndex, ShaderResourceType::UniformBuffer, buffer, buffer->GetLayout().GetStride() * elementOffset); // uniform vs structured buffer are the doesn't matter here
     }
 
     void VulkanFramebuffer::BindShaderTextureResource(u32 bindingIndex, Texture* texture)
     {
+        HE_PROFILE_FUNCTION();
+        
         BindShaderResource(bindingIndex, ShaderResourceType::Texture, texture, 0);
     }
 

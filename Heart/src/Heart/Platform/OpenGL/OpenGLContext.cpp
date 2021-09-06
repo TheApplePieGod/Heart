@@ -48,22 +48,28 @@ namespace Heart
 
     void OpenGLContext::ImGuiBeginFrame()
     {
+        HE_PROFILE_FUNCTION();
+        
         ImGui_ImplOpenGL3_NewFrame();
     }
 
     void OpenGLContext::ImGuiEndFrame()
     {
+        HE_PROFILE_FUNCTION();
+
         glDisable(GL_DEPTH_TEST);
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     }
 
     void OpenGLContext::BeginFrame()
     {
-
+        HE_PROFILE_FUNCTION();
     }
 
     void OpenGLContext::EndFrame()
     {
+        HE_PROFILE_FUNCTION();
+
         glfwSwapBuffers((GLFWwindow*)m_WindowHandle);
         s_BoundGraphicsPipeline = nullptr;
     }

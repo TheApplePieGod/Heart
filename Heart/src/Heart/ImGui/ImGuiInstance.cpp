@@ -85,6 +85,8 @@ namespace Heart
 
     void ImGuiInstance::BeginFrame()
     {
+		HE_PROFILE_FUNCTION();
+
         App::Get().GetWindow().GetContext().ImGuiBeginFrame();
 
         ImGui_ImplGlfw_NewFrame();
@@ -93,6 +95,8 @@ namespace Heart
 
     void ImGuiInstance::EndFrame()
     {  
+		HE_PROFILE_FUNCTION();
+		
         ImGuiIO& io = ImGui::GetIO();
 		Window& mainWindow = App::Get().GetWindow();
 		io.DisplaySize = ImVec2((f32)mainWindow.GetWidth(), (f32)mainWindow.GetHeight());

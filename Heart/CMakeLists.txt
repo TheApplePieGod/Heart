@@ -11,6 +11,7 @@ include_directories("lib/glm")
 include_directories("lib/imgui")
 include_directories("lib/spdlog/include")
 include_directories("lib/Glad/include")
+include_directories("lib/optick/src")
 include_directories("$ENV{VULKAN_SDK}/Include")
 
 # Build dependencies
@@ -19,6 +20,7 @@ add_subdirectory("lib/glm")
 add_subdirectory("lib/imgui")
 add_subdirectory("lib/spdlog")
 add_subdirectory("lib/Glad")
+add_subdirectory("lib/optick")
 
 # Include other dependency sources that need to be built
 set(DEPENDENCY_SOURCES
@@ -67,6 +69,7 @@ target_link_libraries(Engine glm)
 target_link_libraries(Engine imgui)
 target_link_libraries(Engine spdlog)
 target_link_libraries(Engine glad)
+target_link_libraries(Engine OptickCore)
 target_link_libraries(Engine ${vulkan})
 target_link_libraries(Engine ${shaderc})
 target_link_libraries(Engine ${spirvglsl})

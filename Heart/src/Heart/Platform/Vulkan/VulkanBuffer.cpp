@@ -60,6 +60,8 @@ namespace Heart
 
     void VulkanBuffer::SetData(void* data, u32 elementCount, u32 elementOffset)
     {
+        HE_PROFILE_FUNCTION();
+        
         // TODO: dynamic resizing
         HE_ENGINE_ASSERT(elementCount <= m_AllocatedCount, "Attempting to set data on buffer which is larger than allocated size");
 

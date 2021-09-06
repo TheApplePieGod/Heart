@@ -16,6 +16,8 @@ namespace HeartEditor
 
     void EditorCamera::OnUpdate(Heart::Timestep ts)
     {
+        HE_PROFILE_FUNCTION();
+        
         f32 moveSpeed = 2.f; // m/s
         f32 mouseScale = 0.1f;
         if (Heart::Input::IsKeyPressed(Heart::KeyCode::A))

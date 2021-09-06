@@ -130,6 +130,8 @@ namespace HeartEditor
 
     void EditorLayer::OnUpdate(Heart::Timestep ts)
     {
+        HE_PROFILE_FUNCTION();
+
         if (m_ViewportInput)
             m_EditorCamera->OnUpdate(ts);
 
@@ -166,6 +168,8 @@ namespace HeartEditor
 
     void EditorLayer::OnImGuiRender()
     {
+        HE_PROFILE_FUNCTION();
+        
         ImGui::SetNextWindowPos(ImGui::GetMainViewport()->WorkPos);
         ImGui::SetNextWindowSize(ImGui::GetMainViewport()->WorkSize);
 

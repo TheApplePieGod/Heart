@@ -407,6 +407,8 @@ namespace Heart
 
     void VulkanSwapChain::BeginFrame()
     {
+        HE_PROFILE_FUNCTION();
+
         VulkanDevice& device = VulkanContext::GetDevice();
 
         // get the next image we should present to
@@ -466,6 +468,8 @@ namespace Heart
 
     void VulkanSwapChain::EndFrame()
     {
+        HE_PROFILE_FUNCTION();
+
         // end the main secondary command buffer for this frame
         HE_VULKAN_CHECK_RESULT(vkEndCommandBuffer(GetCommandBuffer()));
 
@@ -509,6 +513,8 @@ namespace Heart
 
     void VulkanSwapChain::Present()
     {
+        HE_PROFILE_FUNCTION();
+        
         VulkanDevice& device = VulkanContext::GetDevice();
 
         std::vector<VkSubmitInfo> submitInfos(m_AuxiliaryCommandBufferCounts.size() + 1);

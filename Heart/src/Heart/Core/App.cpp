@@ -3,6 +3,7 @@
 
 #include "Heart/Renderer/RenderApi.h"
 #include "Heart/Renderer/Renderer.h"
+#include "Heart/Core/Timer.h"
 
 namespace Heart
 {
@@ -13,6 +14,7 @@ namespace Heart
         HE_ENGINE_ASSERT(!s_Instance, "App instance already exists");
         s_Instance = this;
 
+        Timer timer = Timer("App initialization");
         #ifdef HE_DEBUG
             HE_ENGINE_LOG_INFO("Running Heart in Debug mode");
         #else
@@ -86,6 +88,8 @@ namespace Heart
     {
         while (m_Running)
         {
+            HE_PROFILE_FRAME();
+
             double currentFrameTime = m_Window->GetWindowTime();
             Timestep ts = Timestep(currentFrameTime - m_LastFrameTime);
             m_LastFrameTime = currentFrameTime;

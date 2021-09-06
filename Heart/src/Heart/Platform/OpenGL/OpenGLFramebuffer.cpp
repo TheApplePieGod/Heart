@@ -42,6 +42,8 @@ namespace Heart
 
     void OpenGLFramebuffer::Bind()
     {
+        HE_PROFILE_FUNCTION();
+
         if (!m_Valid)
             Recreate();
 
@@ -72,6 +74,8 @@ namespace Heart
 
     void OpenGLFramebuffer::BindPipeline(const std::string& name)
     {
+        HE_PROFILE_FUNCTION();
+        
         auto pipeline = static_cast<OpenGLGraphicsPipeline*>(LoadPipeline(name).get());
         glUseProgram(pipeline->GetProgramId());
         glBindVertexArray(pipeline->GetVertexArrayId());
@@ -89,6 +93,8 @@ namespace Heart
 
     void OpenGLFramebuffer::BindShaderBufferResource(u32 bindingIndex, u32 elementOffset, Buffer* _buffer)
     {
+        HE_PROFILE_FUNCTION();
+
         OpenGLBuffer& buffer = static_cast<OpenGLBuffer&>(*_buffer);
 
         glBindBufferBase(OpenGLCommon::BufferTypeToOpenGL(buffer.GetType()), bindingIndex, buffer.GetBufferId());
@@ -97,6 +103,8 @@ namespace Heart
 
     void OpenGLFramebuffer::BindShaderTextureResource(u32 bindingIndex, Texture* _texture)
     {
+        HE_PROFILE_FUNCTION();
+
         OpenGLTexture& texture = static_cast<OpenGLTexture&>(*_texture);
 
         glActiveTexture(GL_TEXTURE0 + bindingIndex);
