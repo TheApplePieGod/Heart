@@ -177,7 +177,7 @@ namespace HeartEditor
 
         std::string mainWindowName = "Heart Editor (";
         mainWindowName += HE_ENUM_TO_STRING(Heart::RenderApi, Heart::Renderer::GetApiType());
-        mainWindowName += ")";
+        mainWindowName += ")###mainwindow";
 
         ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
         ImGui::Begin(mainWindowName.c_str(), nullptr, windowFlags);
@@ -256,6 +256,8 @@ namespace HeartEditor
             else
                 EditorApp::Get().Close();
         }
+        else if (event.GetKeyCode() == Heart::KeyCode::F11)
+            EditorApp::Get().GetWindow().ToggleFullscreen();
         
         return true;
     }

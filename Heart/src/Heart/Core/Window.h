@@ -38,6 +38,8 @@ namespace Heart
 
         void DisableCursor();
         void EnableCursor();
+        void SetFullscreen(bool fullscreen);
+        void ToggleFullscreen();
 
         inline GraphicsContext& GetContext() const { return *m_GraphicsContext; }
         inline GLFWwindow* GetWindowHandle() const { return m_Window; }
@@ -56,6 +58,7 @@ namespace Heart
 
     private:
         Ref<GraphicsContext> m_GraphicsContext;
+        int m_SavedWindowSizeAndPosition[4]; // used when toggling fullscreen
         WindowData m_WindowData;
         GLFWwindow* m_Window;
     };

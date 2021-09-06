@@ -155,4 +155,34 @@ namespace Heart
     {
         glfwSetInputMode(m_Window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     }
+
+    void Window::SetFullscreen(bool fullscreen)
+    {
+        bool fullscreenStatus = glfwGetWindowMonitor(m_Window) != nullptr;
+        if (fullscreenStatus == fullscreen)
+            return;
+        else
+        {
+            if (fullscreen)
+            {
+                // backup window position and window size
+                glfwGetWindowPos(m_Window, &m_SavedWindowSizeAndPosition[2], &m_SavedWindowSizeAndPosition[3] );
+                glfwGetWindowSize(m_Window, &m_SavedWindowSizeAndPosition[0], &m_SavedWindowSizeAndPosition[1] );
+
+                // get resolution of monitor
+                const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+
+                // switch to full screen
+                glfwSetWindowMonitor(m_Window, glfwGetPrimaryMonitor(), 0, 0, mode->width, mode->height, GLFW_DONT_CARE);
+            }
+            else
+                glfwSetWindowMonitor(m_Window, nullptr,  m_SavedWindowSizeAndPosition[2], m_SavedWindowSizeAndPosition[3], m_SavedWindowSizeAndPosition[0], m_SavedWindowSizeAndPosition[1], 0 );
+        }
+    }
+
+    void Window::ToggleFullscreen()
+    {
+        bool fullscreenStatus = glfwGetWindowMonitor(m_Window) != nullptr;
+        SetFullscreen(!fullscreenStatus);
+    }
 }
