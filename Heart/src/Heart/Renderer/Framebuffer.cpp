@@ -50,6 +50,8 @@ namespace Heart
 
     Ref<GraphicsPipeline> Framebuffer::LoadPipeline(const std::string& name)
     {
+        HE_PROFILE_FUNCTION()
+
         if (m_GraphicsPipelines.find(name) == m_GraphicsPipelines.end())
         {
             HE_ENGINE_LOG_ERROR("Pipeline not registered: {0}", name);

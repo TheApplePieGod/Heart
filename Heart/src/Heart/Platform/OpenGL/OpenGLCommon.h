@@ -5,12 +5,15 @@
 #include "Heart/Renderer/Shader.h"
 #include "Heart/Renderer/Buffer.h"
 #include "Heart/Renderer/Pipeline.h"
+#include "Heart/Renderer/Texture.h"
 #include "Heart/Renderer/Framebuffer.h"
 
 namespace Heart
 {
     struct OpenGLCommon
     {
+        static int ColorFormatToInternalOpenGL(ColorFormat format);
+        static int ColorFormatToOpenGL(ColorFormat format);
         static int ShaderTypeToOpenGL(Shader::Type type);
         static int BufferDataTypeToBaseOpenGL(BufferDataType type);
         static int VertexTopologyToOpenGL(VertexTopology topology);

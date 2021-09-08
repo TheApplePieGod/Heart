@@ -141,10 +141,9 @@ namespace Heart
 
         glBindFramebuffer(GL_FRAMEBUFFER, m_FramebufferId);
 
-        int index = 0;
-        for (u32 texId : m_ColorAttachmentTextureIds)
+        for (size_t i = 0; i < m_Info.Attachments.size(); i++)
         {
-            glBindTexture(GL_TEXTURE_2D, texId);
+            glBindTexture(GL_TEXTURE_2D, m_ColorAttachmentTextureIds[i]);
 
             if (m_Info.SampleCount != MsaaSampleCount::None)
                 glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, OpenGLCommon::MsaaSampleCountToOpenGL(m_Info.SampleCount), GL_RGBA8, m_ActualWidth, m_ActualHeight, GL_FALSE);
@@ -155,8 +154,7 @@ namespace Heart
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + index, GL_TEXTURE_2D, texId, 0);  
-            index++;
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + static_cast<int>(i), GL_TEXTURE_2D, m_ColorAttachmentTextureIds[i], 0);  
         }
 
         if (m_Info.HasDepth)

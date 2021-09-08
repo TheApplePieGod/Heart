@@ -18,6 +18,7 @@ namespace Widgets
         m_WindowStatuses["Properties Panel"] = true;
         m_WindowStatuses["Scene Hierarchy"] = true;
         m_WindowStatuses["Settings"] = true;
+        m_WindowStatuses["Debug Info"] = true;
     }
 
     void MenuBar::OnImGuiRender()

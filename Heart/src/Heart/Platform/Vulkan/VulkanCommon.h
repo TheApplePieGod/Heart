@@ -1,8 +1,11 @@
 #pragma once
 
 #include "vulkan/vulkan.h"
-#include "Heart/Renderer/Framebuffer.h"
+#include "Heart/Renderer/Shader.h"
+#include "Heart/Renderer/Buffer.h"
 #include "Heart/Renderer/Pipeline.h"
+#include "Heart/Renderer/Texture.h"
+#include "Heart/Renderer/Framebuffer.h"
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
 
@@ -29,6 +32,7 @@ namespace Heart
             }
         };
 
+        // TODO: move to swapchain class
         struct SwapChainSupportDetails
         {
             VkSurfaceCapabilitiesKHR Capabilities;

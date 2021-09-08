@@ -117,8 +117,8 @@ namespace HeartEditor
 
             // framebuffer
             Heart::FramebufferCreateInfo fbCreateInfo = {
-                { Heart::ColorFormat::RGBA8, { 0.f, 0.f, 0.f, 0.f } },
-                { Heart::ColorFormat::RGBA8, { 0.f, 0.f, 0.f, 0.f } }
+                { { 0.f, 0.f, 0.f, 0.f } },
+                { { 0.f, 0.f, 0.f, 0.f } }
             };
             fbCreateInfo.Width = 0;
             fbCreateInfo.Height = 0;
@@ -130,9 +130,6 @@ namespace HeartEditor
 
         HE_CLIENT_LOG_INFO("Editor attached");
     }
-
-    // LOOK AT FRAMEBUFFER ATTACHMENT COLOR FORMATS
-    // Buffer padding VkPhysicalDeviceLimits::minUniformBufferOffsetAlignment
 
     void EditorLayer::OnUpdate(Heart::Timestep ts)
     {
@@ -246,6 +243,12 @@ namespace HeartEditor
             ImGui::End();
         }
 
+        if (m_Widgets.MainMenuBar.GetWindowStatus("Debug Info"))
+        {
+            ImGui::Begin("Debug Info", m_Widgets.MainMenuBar.GetWindowStatusRef("Debug Info"));
+            ImGui::End();
+        }
+
         if (m_Widgets.MainMenuBar.GetWindowStatus("ImGui Demo"))
         {
             ImGui::ShowDemoWindow(m_Widgets.MainMenuBar.GetWindowStatusRef("ImGui Demo"));
@@ -260,6 +263,8 @@ namespace HeartEditor
     {
         UnsubscribeFromEmitter(&EditorApp::Get().GetWindow());
         delete m_TestData;
+
+        HE_CLIENT_LOG_INFO("Editor detached");
     }
 
     void EditorLayer::OnEvent(Heart::Event& event)
