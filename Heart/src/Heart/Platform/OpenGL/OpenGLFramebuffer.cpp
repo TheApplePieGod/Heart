@@ -10,6 +10,7 @@
 #include "Heart/Platform/OpenGL/OpenGLTexture.h"
 #include "Heart/Platform/OpenGL/OpenGLCommon.h"
 #include "imgui/backends/imgui_impl_opengl3.h"
+#include "imgui/imgui.h"
 
 namespace Heart
 {
@@ -27,15 +28,21 @@ namespace Heart
         m_ActualHeight = createInfo.Height == 0 ? mainWindow.GetHeight() : createInfo.Height;
 
         glGenFramebuffers(1, &m_FramebufferId);
-
         m_ColorAttachmentTextureIds.resize(createInfo.Attachments.size());
-
-        CreateTextures();
+        CreateTextures(m_FramebufferId, createInfo.SampleCount, m_ColorAttachmentTextureIds, m_DepthAttachmentTextureId);
+        if (createInfo.SampleCount != MsaaSampleCount::None)
+        {
+            glGenFramebuffers(1, &m_BlitFramebufferId);
+            m_BlitColorAttachmentTextureIds.resize(createInfo.Attachments.size());
+            CreateTextures(m_BlitFramebufferId, MsaaSampleCount::None, m_BlitColorAttachmentTextureIds, m_BlitDepthAttachmentTextureId);
+        }
     }
 
     OpenGLFramebuffer::~OpenGLFramebuffer()
     {
-        CleanupTextures();
+        CleanupTextures(m_ColorAttachmentTextureIds, m_DepthAttachmentTextureId);
+        if (m_Info.SampleCount != MsaaSampleCount::None)
+            CleanupTextures(m_BlitColorAttachmentTextureIds, m_BlitDepthAttachmentTextureId);
 
         glDeleteFramebuffers(1, &m_FramebufferId);
     }
@@ -54,6 +61,8 @@ namespace Heart
         for (size_t i = 0; i < m_Info.Attachments.size(); i++)
         {
             glClearTexImage(m_ColorAttachmentTextureIds[i], 0, GL_RGBA, GL_FLOAT, &m_Info.Attachments[i].ClearColor);
+            //if (m_Info.SampleCount != MsaaSampleCount::None)
+            //    glClearTexImage(m_BlitColorAttachmentTextureIds[i], 0, GL_RGBA, GL_FLOAT, &m_Info.Attachments[i].ClearColor);
         }
 
         if (m_Info.HasDepth)
@@ -69,7 +78,23 @@ namespace Heart
 
     void OpenGLFramebuffer::Submit()
     {
-        
+        // if using a multisampled buffer, perform a framebuffer blit (copy) operation
+        if (m_Info.SampleCount != MsaaSampleCount::None)
+        {
+            glBindFramebuffer(GL_READ_FRAMEBUFFER, m_FramebufferId);
+            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_BlitFramebufferId);
+            glReadBuffer(GL_COLOR_ATTACHMENT0);
+            //glDrawBuffer(GL_COLOR_ATTACHMENT0);
+            //glDrawBuffer(GL_BACK);
+            glBlitFramebuffer(0, 0, m_Info.Width, m_Info.Height, 0, 0, m_Info.Width, m_Info.Height, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+
+            int error = glGetError(); 
+            if (error != 0)
+            {
+                HE_ENGINE_LOG_ERROR("ERROR {0}", error);
+                HE_ENGINE_ASSERT(false);
+            }   
+        }
     }
 
     void OpenGLFramebuffer::BindPipeline(const std::string& name)
@@ -80,11 +105,19 @@ namespace Heart
         glUseProgram(pipeline->GetProgramId());
         glBindVertexArray(pipeline->GetVertexArrayId());
         OpenGLContext::SetBoundGraphicsPipeline(pipeline);
-        glCullFace(OpenGLCommon::CullModeToOpenGL(pipeline->GetCullMode()));
+        if (pipeline->GetCullMode() != CullMode::None)
+        {
+            glEnable(GL_CULL_FACE);
+            glCullFace(OpenGLCommon::CullModeToOpenGL(pipeline->GetCullMode()));
+        }
+        else
+            glDisable(GL_CULL_FACE);
+
         if (pipeline->IsDepthEnabled())
             glEnable(GL_DEPTH_TEST);
         else
             glDisable(GL_DEPTH_TEST);
+            
         if (Renderer::IsUsingReverseDepth())
             glDepthFunc(GL_GEQUAL);
         else
@@ -115,12 +148,13 @@ namespace Heart
     {
         HE_ENGINE_ASSERT(attachmentIndex < m_ColorAttachmentTextureIds.size(), "Attachment access on framebuffer out of range");
 
-        return (void*)static_cast<size_t>(m_ColorAttachmentTextureIds[attachmentIndex]);
+        return (void*)static_cast<size_t>(m_BlitColorAttachmentTextureIds[attachmentIndex]);
     }
 
     void* OpenGLFramebuffer::GetDepthAttachmentImGuiHandle()
     {
         HE_ENGINE_ASSERT(m_Info.HasDepth, "Cannot get framebuffer depth attachment handle, HasDepth = false");
+        HE_ENGINE_ASSERT(m_Info.SampleCount == MsaaSampleCount::None, "Cannot get framebuffer depth attachment handle, SampleCount != None");
 
         return (void*)static_cast<size_t>(m_DepthAttachmentTextureId);
     }
@@ -132,55 +166,70 @@ namespace Heart
         return CreateRef<OpenGLGraphicsPipeline>(createInfo);
     }
 
-    void OpenGLFramebuffer::CreateTextures()
+    void OpenGLFramebuffer::CreateTextures(int framebufferId, MsaaSampleCount sampleCount, std::vector<u32>& attachmentArray, u32& depthAttachment)
     {
-        glGenTextures(static_cast<int>(m_ColorAttachmentTextureIds.size()), m_ColorAttachmentTextureIds.data());
+        int textureTarget = sampleCount != MsaaSampleCount::None ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
 
+        glCreateTextures(textureTarget, static_cast<int>(attachmentArray.size()), attachmentArray.data());
+        
         if (m_Info.HasDepth)
-            glGenTextures(1, &m_DepthAttachmentTextureId);
+            glGenTextures(1, &depthAttachment);
 
-        glBindFramebuffer(GL_FRAMEBUFFER, m_FramebufferId);
+        glBindFramebuffer(GL_FRAMEBUFFER, framebufferId);
+
+        int actualSampleCount = OpenGLCommon::MsaaSampleCountToOpenGL(sampleCount);
+        if (OpenGLContext::MaxMsaaSamples() < actualSampleCount)
+            actualSampleCount = OpenGLContext::MaxMsaaSamples();
 
         for (size_t i = 0; i < m_Info.Attachments.size(); i++)
         {
-            glBindTexture(GL_TEXTURE_2D, m_ColorAttachmentTextureIds[i]);
+            glBindTexture(textureTarget, attachmentArray[i]);
 
-            if (m_Info.SampleCount != MsaaSampleCount::None)
-                glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, OpenGLCommon::MsaaSampleCountToOpenGL(m_Info.SampleCount), GL_RGBA8, m_ActualWidth, m_ActualHeight, GL_FALSE);
+            if (sampleCount != MsaaSampleCount::None)
+                glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, actualSampleCount, GL_RGBA8, m_ActualWidth, m_ActualHeight, GL_FALSE);
+            else
+            {
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, m_ActualWidth, m_ActualHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, m_ActualWidth, m_ActualHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+                // TODO: dynamic filtering
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            }
 
-            // TODO: dynamic filtering
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + static_cast<int>(i), GL_TEXTURE_2D, m_ColorAttachmentTextureIds[i], 0);  
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + static_cast<int>(i), textureTarget, attachmentArray[i], 0);
         }
 
         if (m_Info.HasDepth)
         {
-            glBindTexture(GL_TEXTURE_2D, m_DepthAttachmentTextureId);
+            glBindTexture(textureTarget, depthAttachment);
 
-            if (m_Info.SampleCount != MsaaSampleCount::None)
-                glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, OpenGLCommon::MsaaSampleCountToOpenGL(m_Info.SampleCount), m_DepthFormatInternal, m_ActualWidth, m_ActualHeight, GL_FALSE);
+            if (sampleCount != MsaaSampleCount::None)
+                glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, actualSampleCount, m_DepthFormatInternal, m_ActualWidth, m_ActualHeight, GL_FALSE);
+            else
+            {
+                glTexStorage2D(GL_TEXTURE_2D, 1, m_DepthFormatInternal, m_ActualWidth, m_ActualHeight);
 
-            //glTexImage2D(GL_TEXTURE_2D, 0, m_DepthFormatInternal, m_ActualWidth, m_ActualHeight, 0, GL_DEPTH_STENCIL, m_DepthFormat , NULL);
-            glTexStorage2D(GL_TEXTURE_2D, 1, m_DepthFormatInternal, m_ActualWidth, m_ActualHeight);
+                // TODO: dynamic filtering
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            }
 
-            // TODO: dynamic filtering
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, textureTarget, depthAttachment, 0);  
+        }
 
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, m_DepthAttachmentTextureId, 0);  
+        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        {
+            HE_ENGINE_LOG_CRITICAL("Failed to create OpenGL framebuffer: {0}", glCheckFramebufferStatus(GL_FRAMEBUFFER));
+            HE_ENGINE_ASSERT(false);
         }
     }
 
-    void OpenGLFramebuffer::CleanupTextures()
+    void OpenGLFramebuffer::CleanupTextures(std::vector<u32>& attachmentArray, u32& depthAttachment)
     {
-        glDeleteTextures(static_cast<int>(m_ColorAttachmentTextureIds.size()), m_ColorAttachmentTextureIds.data());
+        glDeleteTextures(static_cast<int>(attachmentArray.size()), attachmentArray.data());
 
         if (m_Info.HasDepth)
-            glDeleteTextures(1, &m_DepthAttachmentTextureId);
+            glDeleteTextures(1, &depthAttachment);
     }
 
     void OpenGLFramebuffer::Recreate()
@@ -188,8 +237,17 @@ namespace Heart
         glDeleteFramebuffers(1, &m_FramebufferId);
         glGenFramebuffers(1, &m_FramebufferId);
 
-        CleanupTextures();
-        CreateTextures();
+        CleanupTextures(m_ColorAttachmentTextureIds, m_DepthAttachmentTextureId);
+        CreateTextures(m_FramebufferId, m_Info.SampleCount, m_ColorAttachmentTextureIds, m_DepthAttachmentTextureId);
+
+        if (m_Info.SampleCount != MsaaSampleCount::None)
+        {
+            glDeleteFramebuffers(1, &m_BlitFramebufferId);
+            glGenFramebuffers(1, &m_BlitFramebufferId);
+
+            CleanupTextures(m_BlitColorAttachmentTextureIds, m_BlitDepthAttachmentTextureId);
+            CreateTextures(m_BlitFramebufferId, MsaaSampleCount::None, m_BlitColorAttachmentTextureIds, m_BlitDepthAttachmentTextureId);
+        }    
 
         m_Valid = true;
     }

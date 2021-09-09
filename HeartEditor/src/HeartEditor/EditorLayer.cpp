@@ -122,7 +122,7 @@ namespace HeartEditor
             };
             fbCreateInfo.Width = 0;
             fbCreateInfo.Height = 0;
-            fbCreateInfo.SampleCount = Heart::MsaaSampleCount::None;
+            fbCreateInfo.SampleCount = Heart::MsaaSampleCount::Max;
             fbCreateInfo.HasDepth = true;
             m_TestData->SceneFramebuffer = Heart::Framebuffer::Create(fbCreateInfo);
             m_TestData->SceneFramebuffer->RegisterGraphicsPipeline("main", gpCreateInfo);

@@ -9,6 +9,7 @@
 namespace Heart
 {
     OpenGLGraphicsPipeline* OpenGLContext::s_BoundGraphicsPipeline = nullptr;
+    int OpenGLContext::s_MsaaMaxSamples = 1;
 
     OpenGLContext::OpenGLContext(void* window)
     {
@@ -28,7 +29,11 @@ namespace Heart
 
         // opengl setup
         glEnable(GL_CULL_FACE);
+        glEnable(GL_MULTISAMPLE);
+        glFrontFace(GL_CCW);
         glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE);
+
+        glGetIntegerv(GL_MAX_SAMPLES, &s_MsaaMaxSamples);
     }
 
     OpenGLContext::~OpenGLContext()

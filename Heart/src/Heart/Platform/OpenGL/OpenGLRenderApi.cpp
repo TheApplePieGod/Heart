@@ -64,6 +64,12 @@ namespace Heart
     {
         HE_PROFILE_FUNCTION();
         
+        for (auto& _buffer : framebuffers)
+        {
+            OpenGLFramebuffer* buffer = static_cast<OpenGLFramebuffer*>(_buffer);
+            buffer->Submit();
+        }
+
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 }

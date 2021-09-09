@@ -11,7 +11,6 @@
 
 namespace Heart
 {
-    enum class ShaderResourceAccessType;
     struct VulkanCommon
     {
         struct QueueFamilyIndices
