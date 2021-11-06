@@ -152,7 +152,7 @@ namespace HeartEditor
         m_TestData->SceneFramebuffer->BindShaderBufferResource(0, 0, m_TestData->FrameDataBuffer.get());
         m_TestData->SceneFramebuffer->BindShaderTextureResource(2, m_TestData->TextureRegistry.LoadTexture("test").get());
 
-        for (u32 i = 0; i < 500; i++)
+        for (u32 i = 0; i < 50; i++)
         {
             m_TestData->SceneFramebuffer->BindShaderBufferResource(1, i, m_TestData->ObjectDataBuffer.get());
 

@@ -16,6 +16,9 @@
 #include <functional>
 #include <filesystem>
 #include <optional>
+#include <chrono>
+#include <mutex>
+#include <shared_mutex>
 
 #include <string>
 #include <array>

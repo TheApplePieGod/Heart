@@ -1,7 +1,5 @@
 #pragma once
 
-#include <chrono>
-
 namespace Heart
 {
     class Timer
@@ -53,11 +51,13 @@ namespace Heart
 
         ~AggregateTimer()
         {
+            std::unique_lock lock(s_Mutex);
             s_AggregateTimes[m_Name] += static_cast<u32>(ElapsedMilliseconds());
         }
 
         inline static u32 GetAggregateTime(const std::string& name)
         {
+            std::shared_lock lock(s_Mutex);
             if (s_AggregateTimes.find(name) != s_AggregateTimes.end())
                 return s_AggregateTimes[name];
             else
@@ -66,20 +66,23 @@ namespace Heart
 
         inline static void ResetAggregateTime(const std::string& name)
         {
+            std::unique_lock lock(s_Mutex);
             if (s_AggregateTimes.find(name) != s_AggregateTimes.end())
                 s_AggregateTimes[name] = 0;
         }
 
         inline static const std::unordered_map<std::string, u32>& GetTimeMap() { return s_AggregateTimes; }
-        inline static void ClearTimeMap() { s_AggregateTimes.clear(); }
+        inline static void ClearTimeMap() { std::unique_lock lock(s_Mutex); s_AggregateTimes.clear(); }
 
         inline static void ResetAggregateTimes()
         {
+            std::unique_lock lock(s_Mutex);
             for (auto& pair : s_AggregateTimes)
                 pair.second = 0;
         }
 
     private:
         static std::unordered_map<std::string, u32> s_AggregateTimes; // stored in millis
+        static std::shared_mutex s_Mutex;
     };
 }
