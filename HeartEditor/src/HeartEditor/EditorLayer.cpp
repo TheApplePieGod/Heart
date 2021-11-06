@@ -135,6 +135,8 @@ namespace HeartEditor
     {
         HE_PROFILE_FUNCTION();
 
+        auto timer = Heart::AggregateTimer("EditorLayer::OnUpdate");
+
         if (m_ViewportInput)
             m_EditorCamera->OnUpdate(ts);
 
@@ -150,7 +152,7 @@ namespace HeartEditor
         m_TestData->SceneFramebuffer->BindShaderBufferResource(0, 0, m_TestData->FrameDataBuffer.get());
         m_TestData->SceneFramebuffer->BindShaderTextureResource(2, m_TestData->TextureRegistry.LoadTexture("test").get());
 
-        for (u32 i = 0; i < 50; i++)
+        for (u32 i = 0; i < 500; i++)
         {
             m_TestData->SceneFramebuffer->BindShaderBufferResource(1, i, m_TestData->ObjectDataBuffer.get());
 
@@ -248,9 +250,16 @@ namespace HeartEditor
 
         if (m_Widgets.MainMenuBar.GetWindowStatus("Debug Info"))
         {
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 5.0f));
             ImGui::Begin("Debug Info", m_Widgets.MainMenuBar.GetWindowStatusRef("Debug Info"));
+
             ImGui::Text("Render Api: %s", HE_ENUM_TO_STRING(Heart::RenderApi, Heart::Renderer::GetApiType()));
+
+            for (auto& pair : Heart::AggregateTimer::GetTimeMap())
+                ImGui::Text("%s: %dms", pair.first.c_str(), pair.second);
+
             ImGui::End();
+            ImGui::PopStyleVar();
         }
 
         if (m_Widgets.MainMenuBar.GetWindowStatus("ImGui Demo"))

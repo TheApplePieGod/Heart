@@ -1,7 +1,7 @@
 #include "htpch.h"
 #include "App.h"
 
-#include "Heart/Core/Timer.h"
+#include "Heart/Core/Timing.h"
 
 namespace Heart
 {
@@ -108,6 +108,8 @@ namespace Heart
             bool fullscreen = m_Window->IsFullscreen();
 
             ShutdownGraphicsApi();
+            AggregateTimer::ClearTimeMap();
+
             InitializeGraphicsApi(m_SwitchingApi, windowSettings);
             m_Window->SetFullscreen(fullscreen);
 
@@ -149,6 +151,7 @@ namespace Heart
             m_FrameCount++;
 
             CheckForGraphicsApiSwitch();
+            AggregateTimer::ResetAggregateTimes();
         }
     }
 }

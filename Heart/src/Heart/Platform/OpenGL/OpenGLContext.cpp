@@ -1,6 +1,7 @@
 #include "htpch.h"
 #include "OpenGLContext.h"
 
+#include "Heart/Core/Timing.h"
 #include "imgui/imgui.h"
 #include "imgui/backends/imgui_impl_opengl3.h"
 #include "glad/glad.h"
@@ -74,6 +75,7 @@ namespace Heart
     void OpenGLContext::EndFrame()
     {
         HE_PROFILE_FUNCTION();
+        auto timer = AggregateTimer("OpenGLContext::EndFrame");
 
         glfwSwapBuffers((GLFWwindow*)m_WindowHandle);
         s_BoundGraphicsPipeline = nullptr;

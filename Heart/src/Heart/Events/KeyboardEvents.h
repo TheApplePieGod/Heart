@@ -18,7 +18,7 @@ namespace Heart
         inline KeyCode GetKeyCode() const { return m_KeyCode; }
 
     public:
-        static inline EventType GetStaticType() { return EventType::Key; }
+        inline static EventType GetStaticType() { return EventType::Key; }
 
     protected:
         KeyCode m_KeyCode;
@@ -34,7 +34,7 @@ namespace Heart
         inline bool IsRepeat() const { return m_Repeat; }
 
     public:
-        static inline EventType GetStaticType() { return EventType::KeyPressed; }
+        inline static EventType GetStaticType() { return EventType::KeyPressed; }
 
     private:
         bool m_Repeat;
@@ -48,6 +48,6 @@ namespace Heart
         {}
 
     public:
-        static inline EventType GetStaticType() { return EventType::KeyReleased; }
+        inline static EventType GetStaticType() { return EventType::KeyReleased; }
     };
 }

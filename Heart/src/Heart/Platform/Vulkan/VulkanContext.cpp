@@ -1,6 +1,7 @@
 #include "htpch.h"
 #include "VulkanContext.h"
 
+#include "Heart/Core/Timing.h"
 #include "imgui/imgui.h"
 #include "imgui/backends/imgui_impl_vulkan.h"
 #include "GLFW/glfw3.h"
@@ -295,6 +296,7 @@ namespace Heart
     void VulkanContext::EndFrame()
     {
         HE_PROFILE_FUNCTION();
+        auto timer = AggregateTimer("VulkanContext::EndFrame");
         
         m_VulkanSwapChain.EndFrame();
         s_BoundCommandBuffer = nullptr;

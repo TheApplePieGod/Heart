@@ -1,7 +1,7 @@
 #include "htpch.h"
 #include "VulkanRenderApi.h"
 
-#include "Heart/Core/App.h"
+#include "Heart/Core/Timing.h"
 #include "Heart/Platform/Vulkan/VulkanContext.h"
 #include "Heart/Platform/Vulkan/VulkanFramebuffer.h"
 #include "Heart/Platform/Vulkan/VulkanBuffer.h"
@@ -62,6 +62,7 @@ namespace Heart
     void VulkanRenderApi::DrawIndexed(u32 indexCount, u32 vertexCount, u32 indexOffset, u32 vertexOffset, u32 instanceCount)
     {
         HE_PROFILE_FUNCTION();
+        auto timer = AggregateTimer("VulkanRenderApi::DrawIndexed");
 
         vkCmdDrawIndexed(VulkanContext::GetBoundCommandBuffer(), indexCount, instanceCount, indexOffset, vertexOffset, 0);
     }
@@ -69,7 +70,8 @@ namespace Heart
     void VulkanRenderApi::RenderFramebuffers(GraphicsContext& _context, const std::vector<Framebuffer*>& framebuffers)
     {
         HE_PROFILE_FUNCTION();
-        
+        auto timer = AggregateTimer("VulkanRenderApi::RenderFramebuffers");
+
         VulkanContext& context = static_cast<VulkanContext&>(_context);
 
         std::vector<VkCommandBuffer> submittingBuffers;

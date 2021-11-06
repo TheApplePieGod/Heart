@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Heart/Core/Layer.h"
+#include "Heart/Core/Timing.h"
 #include "HeartEditor/EditorCamera.h"
 #include "Heart/Events/KeyboardEvents.h"
 
