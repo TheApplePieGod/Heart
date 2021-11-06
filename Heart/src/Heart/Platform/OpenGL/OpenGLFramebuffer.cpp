@@ -83,10 +83,7 @@ namespace Heart
         {
             glBindFramebuffer(GL_READ_FRAMEBUFFER, m_FramebufferId);
             glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_BlitFramebufferId);
-            glReadBuffer(GL_COLOR_ATTACHMENT0);
-            //glDrawBuffer(GL_COLOR_ATTACHMENT0);
-            //glDrawBuffer(GL_BACK);
-            glBlitFramebuffer(0, 0, m_Info.Width, m_Info.Height, 0, 0, m_Info.Width, m_Info.Height, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+            glBlitFramebuffer(0, 0, m_ActualWidth, m_ActualHeight, 0, 0, m_ActualWidth, m_ActualHeight, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 
             int error = glGetError(); 
             if (error != 0)
@@ -148,7 +145,10 @@ namespace Heart
     {
         HE_ENGINE_ASSERT(attachmentIndex < m_ColorAttachmentTextureIds.size(), "Attachment access on framebuffer out of range");
 
-        return (void*)static_cast<size_t>(m_BlitColorAttachmentTextureIds[attachmentIndex]);
+        if (m_Info.SampleCount == MsaaSampleCount::None)
+            return (void*)static_cast<size_t>(m_ColorAttachmentTextureIds[attachmentIndex]);
+        else
+            return (void*)static_cast<size_t>(m_BlitColorAttachmentTextureIds[attachmentIndex]);
     }
 
     void* OpenGLFramebuffer::GetDepthAttachmentImGuiHandle()

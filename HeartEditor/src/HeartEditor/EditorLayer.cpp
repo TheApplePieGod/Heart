@@ -122,7 +122,7 @@ namespace HeartEditor
             };
             fbCreateInfo.Width = 0;
             fbCreateInfo.Height = 0;
-            fbCreateInfo.SampleCount = Heart::MsaaSampleCount::Max;
+            fbCreateInfo.SampleCount = Heart::MsaaSampleCount::None;
             fbCreateInfo.HasDepth = true;
             m_TestData->SceneFramebuffer = Heart::Framebuffer::Create(fbCreateInfo);
             m_TestData->SceneFramebuffer->RegisterGraphicsPipeline("main", gpCreateInfo);
@@ -149,6 +149,7 @@ namespace HeartEditor
         // all shader resources must be bound before drawing
         m_TestData->SceneFramebuffer->BindShaderBufferResource(0, 0, m_TestData->FrameDataBuffer.get());
         m_TestData->SceneFramebuffer->BindShaderTextureResource(2, m_TestData->TextureRegistry.LoadTexture("test").get());
+
         for (u32 i = 0; i < 50; i++)
         {
             m_TestData->SceneFramebuffer->BindShaderBufferResource(1, i, m_TestData->ObjectDataBuffer.get());
@@ -157,8 +158,10 @@ namespace HeartEditor
             glm::mat4 transformed = glm::translate(glm::mat4(1.f), objectPos)
                                      * glm::scale(glm::mat4(1.f), glm::vec3(1.f, 1.f, 1.f));
 
+            // update transform of each cube within the buffer
             m_TestData->ObjectDataBuffer->SetData(&transformed, 1, i);
 
+            // draw
             Heart::Renderer::Api().DrawIndexed(
                 m_TestData->IndexBuffer->GetAllocatedCount(),
                 m_TestData->VertexBuffer->GetAllocatedCount(),
@@ -246,6 +249,7 @@ namespace HeartEditor
         if (m_Widgets.MainMenuBar.GetWindowStatus("Debug Info"))
         {
             ImGui::Begin("Debug Info", m_Widgets.MainMenuBar.GetWindowStatusRef("Debug Info"));
+            ImGui::Text("Render Api: %s", HE_ENUM_TO_STRING(Heart::RenderApi, Heart::Renderer::GetApiType()));
             ImGui::End();
         }
 
