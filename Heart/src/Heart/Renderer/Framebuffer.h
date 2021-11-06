@@ -8,13 +8,6 @@
 
 namespace Heart
 {
-    // normal maps should be loaded with the UNORM specifier
-    enum class ColorFormat
-    {
-        R8 = 0,
-        RG8, RGB8, RGBA8, RGBA32
-    };
-
     enum class MsaaSampleCount
     {
         None = 1,
@@ -24,7 +17,6 @@ namespace Heart
 
     struct FramebufferAttachment
     {
-        ColorFormat ColorFormat = ColorFormat::RGBA8;
         glm::vec4 ClearColor;
     };
 

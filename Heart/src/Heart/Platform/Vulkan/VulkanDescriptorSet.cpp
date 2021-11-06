@@ -24,13 +24,9 @@ namespace Heart
             binding.descriptorCount = element.ArrayCount;
             binding.stageFlags = VulkanCommon::ShaderResourceAccessTypeToVulkan(element.AccessType);
             binding.pImmutableSamplers = nullptr;
-
             bindings.emplace_back(binding);
 
-            if (descriptorCounts.find(binding.descriptorType) == descriptorCounts.end())
-                descriptorCounts[binding.descriptorType] = element.ArrayCount * m_MaxSetsPerPool;
-            else
-                descriptorCounts[binding.descriptorType] += element.ArrayCount * m_MaxSetsPerPool;
+            descriptorCounts[binding.descriptorType] += element.ArrayCount * m_MaxSetsPerPool;
 
             // populated the cached descriptor writes for updating new sets
             VkWriteDescriptorSet descriptorWrite{};
@@ -107,7 +103,7 @@ namespace Heart
             }
         }
 
-        if (m_BoundResources.find(bindingIndex) != m_BoundResources.end() && m_BoundResources[bindingIndex] == resource)
+        if (m_BoundResources[bindingIndex] == resource)
             return m_WritesReadyCount == m_CachedDescriptorWrites.size();
         m_BoundResources[bindingIndex] = resource;
 

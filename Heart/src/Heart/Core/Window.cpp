@@ -3,6 +3,7 @@
 
 #include "Heart/Events/WindowEvents.h"
 #include "Heart/Events/KeyboardEvents.h"
+#include "Heart/Events/MouseEvents.h"
 #include "Heart/Input/Input.h"
 #include "Heart/Renderer/Renderer.h"
 
@@ -49,7 +50,12 @@ namespace Heart
 
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
-        m_Window = glfwCreateWindow(settings.Width, settings.Height, settings.Title.c_str(), nullptr, nullptr);
+        std::string fullTitle = settings.Title;
+        fullTitle += " (";
+        fullTitle += HE_ENUM_TO_STRING(RenderApi, Renderer::GetApiType());
+        fullTitle += ")";
+
+        m_Window = glfwCreateWindow(settings.Width, settings.Height, fullTitle.c_str(), nullptr, nullptr);
         s_WindowCount++;
 
         m_GraphicsContext = GraphicsContext::Create(m_Window);
@@ -101,20 +107,42 @@ namespace Heart
         glfwSetWindowCloseCallback(m_Window, [](GLFWwindow* window)
 		{
 			WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
+
 			WindowCloseEvent event;
 			data.EmitEvent(event);
 		});
 
         glfwSetCursorPosCallback(m_Window, [](GLFWwindow* window, double xPos, double yPos)
         {
-            WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
-            
             Input::UpdateMousePosition(xPos, yPos);
         });
 
+        glfwSetScrollCallback(m_Window, [](GLFWwindow* window, double xOffset, double yOffset)
+        {
+            Input::UpdateScrollOffset(xOffset, yOffset);
+        });
+
+        glfwSetMouseButtonCallback(m_Window, [](GLFWwindow* window, int button, int action, int mods)
+        {
+            WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
+            MouseCode mouseCode = static_cast<MouseCode>(button);
+
+			switch (action)
+			{
+				case GLFW_PRESS:
+				{
+					MouseButtonPressedEvent event(mouseCode);
+					data.EmitEvent(event);
+				} break;
+				case GLFW_RELEASE:
+				{
+					MouseButtonReleasedEvent event(mouseCode);
+					data.EmitEvent(event);
+				} break;
+			}
+        });
+
         //glfwSetCharCallback
-        //glfwSetMouseButtonCallback
-        //glfwSetScrollCallback
     }
 
     Window::~Window()
@@ -143,7 +171,7 @@ namespace Heart
     void Window::EndFrame()
     {
         m_GraphicsContext->EndFrame();
-        Input::ClearMouseDelta();
+        Input::ClearDeltas();
     }
 
     void Window::DisableCursor()
@@ -154,5 +182,34 @@ namespace Heart
     void Window::EnableCursor()
     {
         glfwSetInputMode(m_Window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    }
+
+    void Window::SetFullscreen(bool fullscreen)
+    {
+        bool fullscreenStatus = IsFullscreen();
+        if (fullscreenStatus == fullscreen)
+            return;
+        else
+        {
+            if (fullscreen)
+            {
+                // backup window position and window size
+                glfwGetWindowPos(m_Window, &m_SavedWindowSizeAndPosition[2], &m_SavedWindowSizeAndPosition[3] );
+                glfwGetWindowSize(m_Window, &m_SavedWindowSizeAndPosition[0], &m_SavedWindowSizeAndPosition[1] );
+
+                // get resolution of monitor
+                const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+
+                // switch to full screen
+                glfwSetWindowMonitor(m_Window, glfwGetPrimaryMonitor(), 0, 0, mode->width, mode->height, GLFW_DONT_CARE);
+            }
+            else
+                glfwSetWindowMonitor(m_Window, nullptr,  m_SavedWindowSizeAndPosition[2], m_SavedWindowSizeAndPosition[3], m_SavedWindowSizeAndPosition[0], m_SavedWindowSizeAndPosition[1], 0 );
+        }
+    }
+
+    void Window::ToggleFullscreen()
+    {
+        SetFullscreen(!IsFullscreen());
     }
 }

@@ -64,7 +64,7 @@ namespace Heart
         // TODO: depth resolve (https://github.com/KhronosGroup/Vulkan-Samples/blob/master/samples/performance/msaa/msaa_tutorial.md)
         for (auto& attachment : createInfo.Attachments)
         {
-            VkFormat colorFormat = VulkanCommon::ColorFormatToVulkan(attachment.ColorFormat);
+            VkFormat colorFormat = VK_FORMAT_R8G8B8A8_SRGB;
             VkClearValue clearValue{};
             clearValue.color = { attachment.ClearColor.r, attachment.ClearColor.g, attachment.ClearColor.b, attachment.ClearColor.a };
 
@@ -295,7 +295,7 @@ namespace Heart
             );
         }
     }
-
+    
     void* VulkanFramebuffer::GetColorAttachmentImGuiHandle(u32 attachmentIndex)
     {
         HE_ENGINE_ASSERT(attachmentIndex < m_AttachmentData.size(), "Attachment access on framebuffer out of range");
@@ -306,6 +306,7 @@ namespace Heart
     void* VulkanFramebuffer::GetDepthAttachmentImGuiHandle()
     {
         HE_ENGINE_ASSERT(m_Info.HasDepth, "Cannot get framebuffer depth attachment handle, HasDepth = false");
+        HE_ENGINE_ASSERT(m_Info.SampleCount == MsaaSampleCount::None, "Cannot get framebuffer depth attachment handle, SampleCount != None");
         
         return m_DepthImageImGuiId;
     }

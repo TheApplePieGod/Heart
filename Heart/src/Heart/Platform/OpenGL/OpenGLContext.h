@@ -24,9 +24,11 @@ namespace Heart
 
         inline static void SetBoundGraphicsPipeline(OpenGLGraphicsPipeline* pipeline) { s_BoundGraphicsPipeline = pipeline; }
         inline static OpenGLGraphicsPipeline* GetBoundGraphicsPipeline() { return s_BoundGraphicsPipeline; }
+        inline static int MaxMsaaSamples() { return s_MsaaMaxSamples; }
 
     private:
         static OpenGLGraphicsPipeline* s_BoundGraphicsPipeline;
+        static int s_MsaaMaxSamples;
 
     };
 }
