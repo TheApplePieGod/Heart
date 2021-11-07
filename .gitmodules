@@ -22,3 +22,7 @@
 	path = Heart/lib/entt
 	url = https://github.com/skypjack/entt.git
 	branch = master
+[submodule "Heart/lib/imguizmo"]
+	path = Heart/lib/imguizmo
+	url = https://github.com/TheApplePieGod/ImGuizmo.git
+	branch = master
