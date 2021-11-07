@@ -21,7 +21,7 @@ namespace HeartEditor
 
     private:
         glm::mat4 m_ViewMatrix;
-        glm::vec3 m_Position = { 0.f, 0.f, 0.f };
+        glm::vec3 m_Position = { 0.f, 0.f, -2.f };
         glm::vec3 m_ForwardVector = m_DefaultForwardVector;
         glm::vec3 m_RightVector = m_DefaultRightVector;
         f32 m_XRotation = 0;

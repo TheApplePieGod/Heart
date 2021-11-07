@@ -11,6 +11,8 @@ include_directories("../Heart/lib/GLFW/include")
 include_directories("../Heart/lib/glm")
 include_directories("../Heart/lib/imgui")
 include_directories("../Heart/lib/spdlog/include")
+include_directories("../Heart/lib/optick/src")
+include_directories("../Heart/lib/entt/src")
 
 # Build main
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp" "src/*.h")

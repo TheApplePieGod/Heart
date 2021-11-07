@@ -12,6 +12,7 @@ include_directories("lib/imgui")
 include_directories("lib/spdlog/include")
 include_directories("lib/Glad/include")
 include_directories("lib/optick/src")
+include_directories("lib/entt/src")
 include_directories("$ENV{VULKAN_SDK}/Include")
 
 # Build dependencies
@@ -21,6 +22,7 @@ add_subdirectory("lib/imgui")
 add_subdirectory("lib/spdlog")
 add_subdirectory("lib/Glad")
 add_subdirectory("lib/optick")
+add_subdirectory("lib/entt")
 
 # Include other dependency sources that need to be built
 set(DEPENDENCY_SOURCES

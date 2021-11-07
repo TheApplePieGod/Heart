@@ -4,13 +4,12 @@
 #include "Heart/Core/Timing.h"
 #include "HeartEditor/EditorCamera.h"
 #include "Heart/Events/KeyboardEvents.h"
+#include "Heart/Scene/Scene.h"
+#include "Heart/Renderer/SceneRenderer.h"
 
 #include "HeartEditor/Widgets/MenuBar.h"
-
-// Testing
-#include "Heart/Renderer/Framebuffer.h"
-#include "Heart/Renderer/Buffer.h"
-#include "Heart/Renderer/Texture.h"
+#include "HeartEditor/Widgets/SceneHierarchyPanel.h"
+#include "HeartEditor/Widgets/PropertiesPanel.h"
 
 namespace HeartEditor
 {
@@ -34,6 +33,8 @@ namespace HeartEditor
     struct EditorWidgets
     {
         Widgets::MenuBar MainMenuBar;
+        Widgets::SceneHierarchyPanel SceneHierarchyPanel;
+        Widgets::PropertiesPanel PropertiesPanel;
     };
 
     class EditorLayer : public Heart::Layer
@@ -53,8 +54,9 @@ namespace HeartEditor
         bool KeyPressedEvent(Heart::KeyPressedEvent& event);
 
     private:
-        TestData* m_TestData;
         EditorWidgets m_Widgets;
+        Heart::Ref<Heart::Scene> m_ActiveScene;
+        Heart::Scope<Heart::SceneRenderer> m_SceneRenderer;
         Heart::Scope<EditorCamera> m_EditorCamera;
         bool m_ViewportInput = false;
     };
