@@ -4,6 +4,7 @@
 #include "Heart/Core/Timing.h"
 #include "HeartEditor/EditorCamera.h"
 #include "Heart/Events/KeyboardEvents.h"
+#include "Heart/Events/MouseEvents.h"
 #include "Heart/Scene/Scene.h"
 #include "Heart/Renderer/SceneRenderer.h"
 
@@ -52,6 +53,7 @@ namespace HeartEditor
 
     protected:
         bool KeyPressedEvent(Heart::KeyPressedEvent& event);
+        bool MouseButtonReleasedEvent(Heart::MouseButtonReleasedEvent& event);
 
     private:
         EditorWidgets m_Widgets;

@@ -8,6 +8,9 @@
 #include "imgui/imgui.h"
 #include "imgui/imgui_internal.h"
 #include "glm/vec4.hpp"
+#include "glm/gtc/type_ptr.hpp"
+#include "glm/gtx/matrix_decompose.hpp"
+#include "imguizmo/ImGuizmo.h"
 
 namespace HeartEditor
 {
@@ -51,6 +54,7 @@ namespace HeartEditor
     void EditorLayer::OnImGuiRender()
     {
         HE_PROFILE_FUNCTION();
+        ImGuizmo::BeginFrame();
 
         ImGui::SetNextWindowPos(ImGui::GetMainViewport()->WorkPos);
         ImGui::SetNextWindowSize(ImGui::GetMainViewport()->WorkSize);
@@ -70,22 +74,36 @@ namespace HeartEditor
         {
             ImGui::Begin("Viewport", m_Widgets.MainMenuBar.GetWindowStatusRef("Viewport"));
 
+            // calculate viewport bounds & aspect ratio
             ImVec2 viewportMin = ImGui::GetWindowContentRegionMin();
             ImVec2 viewportMax = ImGui::GetWindowContentRegionMax();
             ImVec2 viewportPos = ImGui::GetWindowPos();
             glm::vec2 viewportSize = { viewportMax.x - viewportMin.x, viewportMax.y - viewportMin.y };
             glm::vec2 viewportStart = { viewportMin.x + viewportPos.x, viewportMin.y + viewportPos.y };
             glm::vec2 viewportEnd = viewportStart + viewportSize;
-
             m_EditorCamera->UpdateAspectRatio(viewportSize.x / viewportSize.y);
 
+            // draw the viewport background
             ImGui::GetWindowDrawList()->AddRectFilled({ viewportStart.x, viewportStart.y }, { viewportEnd.x, viewportEnd.y }, IM_COL32( 0, 0, 0, 255 )); // viewport background
+
+            // initialize imguizmo & draw the grid
+            glm::mat4 view = m_EditorCamera->GetViewMatrixInvertedY();
+            glm::mat4 proj = m_EditorCamera->GetProjectionMatrix();
+            glm::mat4 identity(1.f);
+            ImGuizmo::SetOrthographic(false);
+            ImGuizmo::SetDrawlist();
+            ImGuizmo::SetRect(viewportStart.x, viewportStart.y, viewportSize.x, viewportSize.y);
+            ImGuizmo::DrawGrid(glm::value_ptr(view), glm::value_ptr(proj), glm::value_ptr(identity), 100.f);
+
+            // draw the rendered texture
             ImGui::Image(
                 m_SceneRenderer->GetFinalFramebuffer().GetColorAttachmentImGuiHandle(0),
                 { viewportSize.x, viewportSize.y },
                 { 0.f, 0.f }, { 1.f, 1.f }
             );
-            if (ImGui::IsItemClicked())
+
+            // enable input if the viewport is being right clicked
+            if (ImGui::IsItemHovered() && ImGui::IsMouseDown(1))
             {
                 // disable imgui input & cursor
                 m_ViewportInput = true;
@@ -93,6 +111,33 @@ namespace HeartEditor
                 ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_NoMouse;
             }
             ImGui::SetItemAllowOverlap();
+
+            // draw the imguizmo if an entity is selected
+            if (m_Widgets.SceneHierarchyPanel.GetSelectedEntity().IsValid() && m_Widgets.SceneHierarchyPanel.GetSelectedEntity().HasComponent<Heart::TransformComponent>())
+            {
+                auto& transformComponent = m_Widgets.SceneHierarchyPanel.GetSelectedEntity().GetComponent<Heart::TransformComponent>();
+                glm::mat4 transform = transformComponent.GetTransformMatrix();
+                ImGuizmo::Manipulate(
+                    glm::value_ptr(view),
+                    glm::value_ptr(proj),
+                    ImGuizmo::OPERATION::TRANSLATE,
+                    ImGuizmo::MODE::LOCAL,
+                    glm::value_ptr(transform),
+                    nullptr,
+                    nullptr,
+                    nullptr,
+                    nullptr
+                );
+
+                if (ImGuizmo::IsUsing())
+                {
+                    glm::vec3 skew;
+                    glm::vec4 perspective;
+                    glm::quat rotation;
+                    glm::decompose(transform, transformComponent.Scale, rotation, transformComponent.Translation, skew, perspective);
+                    transformComponent.Rotation = glm::degrees(glm::eulerAngles(rotation));
+                }
+            }
 
             ImGui::End();
         }
@@ -139,6 +184,12 @@ namespace HeartEditor
 
             ImGui::Text("Render Api: %s", HE_ENUM_TO_STRING(Heart::RenderApi, Heart::Renderer::GetApiType()));
 
+            glm::vec3 cameraPos = m_EditorCamera->GetPosition();
+            glm::vec3 cameraFor = m_EditorCamera->GetForwardVector();
+            ImGui::Text("Camera Pos: (%.2f, %.2f, %.2f)", cameraPos.x, cameraPos.y, cameraPos.z);
+            ImGui::Text("Camera Dir: (%.2f, %.2f, %.2f)", cameraFor.x, cameraFor.y, cameraFor.z);
+            ImGui::Text("Camera Rot: (%.2f, %.2f)", m_EditorCamera->GetXRotation(), m_EditorCamera->GetYRotation());
+
             for (auto& pair : Heart::AggregateTimer::GetTimeMap())
                 ImGui::Text("%s: %dms", pair.first.c_str(), pair.second);
 
@@ -168,25 +219,30 @@ namespace HeartEditor
     void EditorLayer::OnEvent(Heart::Event& event)
     {
         event.Map<Heart::KeyPressedEvent>(HE_BIND_EVENT_FN(EditorLayer::KeyPressedEvent));
+        event.Map<Heart::MouseButtonReleasedEvent>(HE_BIND_EVENT_FN(EditorLayer::MouseButtonReleasedEvent));
     }
 
     bool EditorLayer::KeyPressedEvent(Heart::KeyPressedEvent& event)
     {
         if (event.GetKeyCode() == Heart::KeyCode::Escape)
         {
-            if (m_ViewportInput)
-            {
-                // enable imgui input & cursor
-                m_ViewportInput = false;
-                EditorApp::Get().GetWindow().EnableCursor();
-                ImGui::GetIO().ConfigFlags &= ~ImGuiConfigFlags_NoMouse;
-            }
-            else
-                EditorApp::Get().Close();
+            EditorApp::Get().Close();
         }
         else if (event.GetKeyCode() == Heart::KeyCode::F11)
             EditorApp::Get().GetWindow().ToggleFullscreen();
         
+        return true;
+    }
+
+    bool EditorLayer::MouseButtonReleasedEvent(Heart::MouseButtonReleasedEvent& event)
+    {
+        if (event.GetMouseCode() == Heart::MouseCode::RightButton)
+        {
+            m_ViewportInput = false;
+            EditorApp::Get().GetWindow().EnableCursor();
+            ImGui::GetIO().ConfigFlags &= ~ImGuiConfigFlags_NoMouse;
+        }
+
         return true;
     }
 }
