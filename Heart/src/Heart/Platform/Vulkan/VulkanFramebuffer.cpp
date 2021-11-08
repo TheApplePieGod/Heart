@@ -64,7 +64,7 @@ namespace Heart
         // TODO: depth resolve (https://github.com/KhronosGroup/Vulkan-Samples/blob/master/samples/performance/msaa/msaa_tutorial.md)
         for (auto& attachment : createInfo.Attachments)
         {
-            VkFormat colorFormat = VK_FORMAT_R8G8B8A8_SRGB;
+            VkFormat colorFormat = VulkanCommon::ColorFormatToVulkan(attachment.Format);
             VkClearValue clearValue{};
             clearValue.color = { attachment.ClearColor.r, attachment.ClearColor.g, attachment.ClearColor.b, attachment.ClearColor.a };
 

@@ -293,16 +293,15 @@ namespace Heart
 
     VkFormat VulkanCommon::ColorFormatToVulkan(ColorFormat format)
     {
-        // TODO: make these more robust
         switch (format)
         {
             default:
             { HE_ENGINE_ASSERT(false, "Vulkan does not support specified ColorFormat"); } break;
-            case ColorFormat::R8: return VK_FORMAT_R8_SRGB;
-            case ColorFormat::RG8: return VK_FORMAT_R8G8_SRGB;
-            case ColorFormat::RGB8: return VK_FORMAT_R8G8B8_SRGB;
             case ColorFormat::RGBA8: return VK_FORMAT_R8G8B8A8_SRGB;
-            case ColorFormat::RGBA32: return VK_FORMAT_R32G32B32A32_SFLOAT;
+            case ColorFormat::R32F: return VK_FORMAT_R32_SFLOAT;
+            case ColorFormat::RG32F: return VK_FORMAT_R32G32_SFLOAT;
+            case ColorFormat::RGB32F: return VK_FORMAT_R32G32B32_SFLOAT;
+            case ColorFormat::RGBA32F: return VK_FORMAT_R32G32B32A32_SFLOAT;
         }
 
         return VK_FORMAT_UNDEFINED;

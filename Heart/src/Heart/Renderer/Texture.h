@@ -4,8 +4,8 @@ namespace Heart
 {
     enum class ColorFormat
     {
-        R8 = 0,
-        RG8, RGB8, RGBA8, RGBA32
+        RGBA8 = 0,
+        R32F, RG32F, RGB32F, RGBA32F
     };
     
     class Texture

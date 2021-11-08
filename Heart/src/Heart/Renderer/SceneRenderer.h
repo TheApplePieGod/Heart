@@ -19,6 +19,16 @@ namespace Heart
             glm::vec3 position;
             glm::vec2 texCoord;
         };
+        struct FrameData
+        {
+            glm::mat4 viewProj;
+        };
+        struct ObjectData
+        {
+            glm::mat4 model;
+            int entityId = -1;
+            glm::vec3 padding;
+        };
 
     public:
         SceneRenderer();

@@ -7,16 +7,15 @@ namespace Heart
 {
     int OpenGLCommon::ColorFormatToInternalOpenGL(ColorFormat format)
     {
-        // TODO: make these more robust
         switch (format)
         {
             default:
             { HE_ENGINE_ASSERT(false, "OpenGL does not support specified ColorFormat"); } break;
-            case ColorFormat::R8: return GL_R8;
-            case ColorFormat::RG8: return GL_RG8;
-            case ColorFormat::RGB8: return GL_RGB8;
             case ColorFormat::RGBA8: return GL_RGBA8;
-            case ColorFormat::RGBA32: return GL_RGBA32F;
+            case ColorFormat::R32F: return GL_R32F;
+            case ColorFormat::RG32F: return GL_RG32F;
+            case ColorFormat::RGB32F: return GL_RGB32F;
+            case ColorFormat::RGBA32F: return GL_RGBA32F;
         }
 
         return -1;
@@ -24,16 +23,15 @@ namespace Heart
 
     int OpenGLCommon::ColorFormatToOpenGL(ColorFormat format)
     {
-        // TODO: make these more robust
         switch (format)
         {
             default:
             { HE_ENGINE_ASSERT(false, "OpenGL does not support specified ColorFormat"); } break;
-            case ColorFormat::R8: return GL_R;
-            case ColorFormat::RG8: return GL_RG;
-            case ColorFormat::RGB8: return GL_RGB;
             case ColorFormat::RGBA8: return GL_RGBA;
-            case ColorFormat::RGBA32: return GL_RGBA;
+            case ColorFormat::R32F: return GL_R;
+            case ColorFormat::RG32F: return GL_RG;
+            case ColorFormat::RGB32F: return GL_RGB;
+            case ColorFormat::RGBA32F: return GL_RGBA;
         }
 
         return -1;

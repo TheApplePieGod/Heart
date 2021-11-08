@@ -74,7 +74,7 @@ namespace Heart
             m_ShaderRegistry.LoadShader("frag"),
             VertexTopology::TriangleList,
             vertBufferLayout,
-            { { true }, { true } },
+            { { true }, { false } },
             true,
             CullMode::Backface
         };
@@ -86,7 +86,7 @@ namespace Heart
 
         // per object data buffer layout
         BufferLayout objectDataLayout = {
-            { BufferDataType::Mat4 },
+            { BufferDataType::Mat4, BufferDataType::Int, BufferDataType::Float3 },
         };
 
         // per frame data buffer
@@ -97,8 +97,8 @@ namespace Heart
 
         // framebuffer
         FramebufferCreateInfo fbCreateInfo = {
-            { { 0.f, 0.f, 0.f, 0.f } },
-            { { 0.f, 0.f, 0.f, 0.f } }
+            { { 0.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::RGBA8 },
+            { { -1.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::R32F }
         };
         fbCreateInfo.Width = 0;
         fbCreateInfo.Height = 0;
@@ -138,7 +138,8 @@ namespace Heart
             m_FinalFramebuffer->BindShaderBufferResource(1, index, m_ObjectDataBuffer.get());
 
             // update transform of each cube within the buffer
-            m_ObjectDataBuffer->SetData(&transform.GetTransformMatrix(), 1, index);
+            ObjectData objectData = { transform.GetTransformMatrix(), (int)entity, { 0.f, 0.f, 0.f } };
+            m_ObjectDataBuffer->SetData(&objectData, 1, index);
 
             // draw
             Renderer::Api().DrawIndexed(

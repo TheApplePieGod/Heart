@@ -2,6 +2,7 @@
 
 #include "Heart/Renderer/GraphicsContext.h"
 #include "Heart/Renderer/Pipeline.h"
+#include "Heart/Renderer/Texture.h"
 #include "Heart/Events/EventEmitter.h"
 #include "Heart/Events/WindowEvents.h"
 #include "glm/vec4.hpp"
@@ -18,6 +19,7 @@ namespace Heart
     struct FramebufferAttachment
     {
         glm::vec4 ClearColor;
+        ColorFormat Format;
     };
 
     struct FramebufferCreateInfo

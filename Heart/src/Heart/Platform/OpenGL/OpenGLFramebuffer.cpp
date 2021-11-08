@@ -27,6 +27,11 @@ namespace Heart
         m_ActualWidth = createInfo.Width == 0 ? mainWindow.GetWidth() : createInfo.Width;
         m_ActualHeight = createInfo.Height == 0 ? mainWindow.GetHeight() : createInfo.Height;
 
+        // populate cached attachment handles
+        m_CachedAttachmentHandles.resize(createInfo.Attachments.size());
+        for (size_t i = 0; i < createInfo.Attachments.size(); i++)
+            m_CachedAttachmentHandles[i] = GL_COLOR_ATTACHMENT0 + static_cast<int>(i);
+
         glGenFramebuffers(1, &m_FramebufferId);
         m_ColorAttachmentTextureIds.resize(createInfo.Attachments.size());
         CreateTextures(m_FramebufferId, createInfo.SampleCount, m_ColorAttachmentTextureIds, m_DepthAttachmentTextureId);
@@ -60,9 +65,10 @@ namespace Heart
         // clear each attachment with the provided color
         for (size_t i = 0; i < m_Info.Attachments.size(); i++)
         {
-            glClearTexImage(m_ColorAttachmentTextureIds[i], 0, GL_RGBA, GL_FLOAT, &m_Info.Attachments[i].ClearColor);
-            //if (m_Info.SampleCount != MsaaSampleCount::None)
-            //    glClearTexImage(m_BlitColorAttachmentTextureIds[i], 0, GL_RGBA, GL_FLOAT, &m_Info.Attachments[i].ClearColor);
+            int format = OpenGLCommon::ColorFormatToOpenGL(m_Info.Attachments[i].Format);
+            glClearTexImage(m_ColorAttachmentTextureIds[i], 0, format, GL_FLOAT, &m_Info.Attachments[i].ClearColor);
+            if (m_Info.SampleCount != MsaaSampleCount::None)
+                glClearTexImage(m_BlitColorAttachmentTextureIds[i], 0, format, GL_FLOAT, &m_Info.Attachments[i].ClearColor);
         }
 
         if (m_Info.HasDepth)
@@ -74,6 +80,9 @@ namespace Heart
             glClear(GL_STENCIL_BUFFER_BIT);
             glClear(GL_DEPTH_BUFFER_BIT);
         }
+
+        // enable draw for all attachments
+        glDrawBuffers(static_cast<u32>(m_CachedAttachmentHandles.size()), m_CachedAttachmentHandles.data());
     }
 
     void OpenGLFramebuffer::Submit()
@@ -83,7 +92,14 @@ namespace Heart
         {
             glBindFramebuffer(GL_READ_FRAMEBUFFER, m_FramebufferId);
             glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_BlitFramebufferId);
-            glBlitFramebuffer(0, 0, m_ActualWidth, m_ActualHeight, 0, 0, m_ActualWidth, m_ActualHeight, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+
+            // copy all attachments
+            for (size_t i = 0; i < m_CachedAttachmentHandles.size(); i++)
+            {
+                glReadBuffer(m_CachedAttachmentHandles[i]);
+                glDrawBuffer(m_CachedAttachmentHandles[i]);
+                glBlitFramebuffer(0, 0, m_ActualWidth, m_ActualHeight, 0, 0, m_ActualWidth, m_ActualHeight, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+            }
 
             int error = glGetError(); 
             if (error != 0)
@@ -183,13 +199,16 @@ namespace Heart
 
         for (size_t i = 0; i < m_Info.Attachments.size(); i++)
         {
+            int actualFormat = OpenGLCommon::ColorFormatToOpenGL(m_Info.Attachments[i].Format);
+            int actualFormatInternal = OpenGLCommon::ColorFormatToInternalOpenGL(m_Info.Attachments[i].Format);
+
             glBindTexture(textureTarget, attachmentArray[i]);
 
             if (sampleCount != MsaaSampleCount::None)
-                glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, actualSampleCount, GL_RGBA8, m_ActualWidth, m_ActualHeight, GL_FALSE);
+                glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, actualSampleCount, actualFormatInternal, m_ActualWidth, m_ActualHeight, GL_FALSE);
             else
             {
-                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, m_ActualWidth, m_ActualHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+                glTexImage2D(GL_TEXTURE_2D, 0, actualFormatInternal, m_ActualWidth, m_ActualHeight, 0, actualFormat, GL_UNSIGNED_BYTE, NULL);
 
                 // TODO: dynamic filtering
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);

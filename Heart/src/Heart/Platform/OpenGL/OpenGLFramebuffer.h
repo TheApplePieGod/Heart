@@ -38,6 +38,7 @@ namespace Heart
         u32 m_BlitDepthAttachmentTextureId;
         std::vector<u32> m_ColorAttachmentTextureIds;
         std::vector<u32> m_BlitColorAttachmentTextureIds;
+        std::vector<u32> m_CachedAttachmentHandles;
 
         friend class OpenGLRenderApi;
     };

@@ -226,7 +226,8 @@ namespace HeartEditor
     {
         if (event.GetKeyCode() == Heart::KeyCode::Escape)
         {
-            EditorApp::Get().Close();
+            if (!m_ViewportInput)
+                EditorApp::Get().Close();
         }
         else if (event.GetKeyCode() == Heart::KeyCode::F11)
             EditorApp::Get().GetWindow().ToggleFullscreen();

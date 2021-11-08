@@ -58,6 +58,7 @@ namespace Heart
             // enabled device features
             VkPhysicalDeviceFeatures deviceFeatures{};
             deviceFeatures.samplerAnisotropy = VK_TRUE;
+            deviceFeatures.independentBlend = VK_TRUE;
             deviceFeatures.shaderSampledImageArrayDynamicIndexing = VK_TRUE;
             
             VkPhysicalDeviceRobustness2FeaturesEXT robustnessFeatures{};
@@ -139,6 +140,7 @@ namespace Heart
             indices.IsComplete() &&
             swapChainAdequate &&
             deviceFeatures.samplerAnisotropy &&
+            deviceFeatures.independentBlend &&
             deviceFeatures.shaderSampledImageArrayDynamicIndexing &&
             indexingFeatures.descriptorBindingPartiallyBound &&
             indexingFeatures.runtimeDescriptorArray
