@@ -15,6 +15,7 @@ namespace Widgets
         void OnImGuiRender(Heart::Scene* activeScene);
 
         inline Heart::Entity GetSelectedEntity() const { return m_SelectedEntity; }
+        inline void SetSelectedEntity(Heart::Entity entity) { m_SelectedEntity = entity; }
 
     private:
         Heart::Entity m_SelectedEntity;

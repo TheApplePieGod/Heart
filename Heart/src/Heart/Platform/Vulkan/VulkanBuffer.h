@@ -15,6 +15,8 @@ namespace Heart
         void SetData(void* data, u32 elementCount, u32 elementOffset) override;
 
         VkBuffer GetBuffer();
+        VkDeviceMemory GetMemory();
+        void* GetMappedMemory();
 
     protected:
         void CreateBuffer(VkDeviceSize size, VkBuffer& outBuffer, VkDeviceMemory& outMemory);

@@ -3,8 +3,9 @@
 
 #include "HeartEditor/EditorApp.h"
 #include "Heart/Renderer/Renderer.h"
-#include "Heart/Scene/Entity.h"
 #include "Heart/Scene/Components.h"
+#include "Heart/Scene/Entity.h"
+#include "Heart/Input/Input.h"
 #include "imgui/imgui.h"
 #include "imgui/imgui_internal.h"
 #include "glm/vec4.hpp"
@@ -78,10 +79,11 @@ namespace HeartEditor
             ImVec2 viewportMin = ImGui::GetWindowContentRegionMin();
             ImVec2 viewportMax = ImGui::GetWindowContentRegionMax();
             ImVec2 viewportPos = ImGui::GetWindowPos();
-            glm::vec2 viewportSize = { viewportMax.x - viewportMin.x, viewportMax.y - viewportMin.y };
+            m_ViewportSize = { viewportMax.x - viewportMin.x, viewportMax.y - viewportMin.y };
             glm::vec2 viewportStart = { viewportMin.x + viewportPos.x, viewportMin.y + viewportPos.y };
-            glm::vec2 viewportEnd = viewportStart + viewportSize;
-            m_EditorCamera->UpdateAspectRatio(viewportSize.x / viewportSize.y);
+            glm::vec2 viewportEnd = viewportStart + m_ViewportSize;
+            m_EditorCamera->UpdateAspectRatio(m_ViewportSize.x / m_ViewportSize.y);
+            m_ViewportMousePos = glm::vec2(std::clamp(ImGui::GetMousePos().x - viewportStart.x, 0.f, m_ViewportSize.x), std::clamp(ImGui::GetMousePos().y - viewportStart.y, 0.f, m_ViewportSize.y));
 
             // draw the viewport background
             ImGui::GetWindowDrawList()->AddRectFilled({ viewportStart.x, viewportStart.y }, { viewportEnd.x, viewportEnd.y }, IM_COL32( 0, 0, 0, 255 )); // viewport background
@@ -92,17 +94,18 @@ namespace HeartEditor
             glm::mat4 identity(1.f);
             ImGuizmo::SetOrthographic(false);
             ImGuizmo::SetDrawlist();
-            ImGuizmo::SetRect(viewportStart.x, viewportStart.y, viewportSize.x, viewportSize.y);
+            ImGuizmo::SetRect(viewportStart.x, viewportStart.y, m_ViewportSize.x, m_ViewportSize.y);
             ImGuizmo::DrawGrid(glm::value_ptr(view), glm::value_ptr(proj), glm::value_ptr(identity), 100.f);
 
             // draw the rendered texture
             ImGui::Image(
                 m_SceneRenderer->GetFinalFramebuffer().GetColorAttachmentImGuiHandle(0),
-                { viewportSize.x, viewportSize.y },
+                { m_ViewportSize.x, m_ViewportSize.y },
                 { 0.f, 0.f }, { 1.f, 1.f }
             );
 
             // enable input if the viewport is being right clicked
+            m_ViewportHover = ImGui::IsItemHovered();
             if (ImGui::IsItemHovered() && ImGui::IsMouseDown(1))
             {
                 // disable imgui input & cursor
@@ -189,6 +192,8 @@ namespace HeartEditor
             ImGui::Text("Camera Pos: (%.2f, %.2f, %.2f)", cameraPos.x, cameraPos.y, cameraPos.z);
             ImGui::Text("Camera Dir: (%.2f, %.2f, %.2f)", cameraFor.x, cameraFor.y, cameraFor.z);
             ImGui::Text("Camera Rot: (%.2f, %.2f)", m_EditorCamera->GetXRotation(), m_EditorCamera->GetYRotation());
+            ImGui::Text("Mouse Pos: (%.1f, %.1f)", Heart::Input::GetScreenMousePos().x, Heart::Input::GetScreenMousePos().y);
+            ImGui::Text("VP Mouse: (%.1f, %.1f)", m_ViewportMousePos.x, m_ViewportMousePos.y);
 
             for (auto& pair : Heart::AggregateTimer::GetTimeMap())
                 ImGui::Text("%s: %dms", pair.first.c_str(), pair.second);
@@ -219,6 +224,7 @@ namespace HeartEditor
     void EditorLayer::OnEvent(Heart::Event& event)
     {
         event.Map<Heart::KeyPressedEvent>(HE_BIND_EVENT_FN(EditorLayer::KeyPressedEvent));
+        event.Map<Heart::MouseButtonPressedEvent>(HE_BIND_EVENT_FN(EditorLayer::MouseButtonPressedEvent));
         event.Map<Heart::MouseButtonReleasedEvent>(HE_BIND_EVENT_FN(EditorLayer::MouseButtonReleasedEvent));
     }
 
@@ -232,6 +238,23 @@ namespace HeartEditor
         else if (event.GetKeyCode() == Heart::KeyCode::F11)
             EditorApp::Get().GetWindow().ToggleFullscreen();
         
+        return true;
+    }
+
+    bool EditorLayer::MouseButtonPressedEvent(Heart::MouseButtonPressedEvent& event)
+    {
+        // screen picking
+        if (event.GetMouseCode() == Heart::MouseCode::LeftButton && !ImGuizmo::IsOver() && !m_ViewportInput && m_ViewportHover)
+        {
+            // the image is scaled down in the viewport, so we need to adjust what pixel we are sampling from
+            u32 sampleX = static_cast<u32>(m_ViewportMousePos.x / m_ViewportSize.x * m_SceneRenderer->GetFinalFramebuffer().GetWidth());
+            u32 sampleY = static_cast<u32>(m_ViewportMousePos.y / m_ViewportSize.y * m_SceneRenderer->GetFinalFramebuffer().GetHeight());
+
+            f32 entityId = m_SceneRenderer->GetFinalFramebuffer().ReadAttachmentPixel<f32>(1, sampleX, sampleY, 0);
+            Heart::Entity entity = entityId == -1.f ? Heart::Entity() : Heart::Entity(m_ActiveScene.get(), static_cast<u32>(entityId));
+            m_Widgets.SceneHierarchyPanel.SetSelectedEntity(entity);
+        }
+
         return true;
     }
 

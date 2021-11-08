@@ -18,6 +18,8 @@ namespace Heart
         void* GetColorAttachmentImGuiHandle(u32 attachmentIndex) override;
         void* GetDepthAttachmentImGuiHandle() override;
 
+        void* GetAttachmentPixelData(u32 attachmentIndex) override;
+
         inline u32 GetFramebufferId() const { return m_FramebufferId; }
 
     protected:
@@ -39,6 +41,9 @@ namespace Heart
         std::vector<u32> m_ColorAttachmentTextureIds;
         std::vector<u32> m_BlitColorAttachmentTextureIds;
         std::vector<u32> m_CachedAttachmentHandles;
+
+        std::vector<u32> m_AttachmentBufferObjects;
+        std::vector<void*> m_AttachmentBufferMappings;
 
         friend class OpenGLRenderApi;
     };

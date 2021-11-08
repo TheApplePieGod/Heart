@@ -9,6 +9,7 @@ namespace Heart
     {
     public:
         Entity(Scene* scene, entt::entity handle);
+        Entity(Scene* scene, u32 handle);
         Entity() = default;
 
         template<typename Component>

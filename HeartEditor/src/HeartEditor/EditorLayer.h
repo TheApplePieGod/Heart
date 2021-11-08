@@ -53,6 +53,7 @@ namespace HeartEditor
 
     protected:
         bool KeyPressedEvent(Heart::KeyPressedEvent& event);
+        bool MouseButtonPressedEvent(Heart::MouseButtonPressedEvent& event);
         bool MouseButtonReleasedEvent(Heart::MouseButtonReleasedEvent& event);
 
     private:
@@ -60,6 +61,9 @@ namespace HeartEditor
         Heart::Ref<Heart::Scene> m_ActiveScene;
         Heart::Scope<Heart::SceneRenderer> m_SceneRenderer;
         Heart::Scope<EditorCamera> m_EditorCamera;
+        glm::vec2 m_ViewportMousePos; // mouse position relative to the viewport window
+        glm::vec2 m_ViewportSize;
         bool m_ViewportInput = false;
+        bool m_ViewportHover = false;
     };
 }

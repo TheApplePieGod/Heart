@@ -32,6 +32,9 @@ namespace Heart
         for (size_t i = 0; i < createInfo.Attachments.size(); i++)
             m_CachedAttachmentHandles[i] = GL_COLOR_ATTACHMENT0 + static_cast<int>(i);
 
+        m_AttachmentBufferObjects.resize(createInfo.Attachments.size());
+        m_AttachmentBufferMappings.resize(createInfo.Attachments.size());
+
         glGenFramebuffers(1, &m_FramebufferId);
         m_ColorAttachmentTextureIds.resize(createInfo.Attachments.size());
         CreateTextures(m_FramebufferId, createInfo.SampleCount, m_ColorAttachmentTextureIds, m_DepthAttachmentTextureId);
@@ -175,6 +178,14 @@ namespace Heart
         return (void*)static_cast<size_t>(m_DepthAttachmentTextureId);
     }
 
+    void* OpenGLFramebuffer::GetAttachmentPixelData(u32 attachmentIndex)
+    {
+        //void* data;
+        //glReadBuffer(GL_COLOR_ATTACHMENT0 + static_cast<int>(attachmentIndex));
+        //glReadPixels();
+        return m_AttachmentBufferMappings[attachmentIndex];
+    }
+
     Ref<GraphicsPipeline> OpenGLFramebuffer::InternalInitializeGraphicsPipeline(const GraphicsPipelineCreateInfo& createInfo)
     {
         HE_ENGINE_ASSERT(createInfo.BlendStates.size() == m_Info.Attachments.size(), "Graphics pipeline blend state count must match framebuffer attachment count");
@@ -203,6 +214,13 @@ namespace Heart
             int actualFormatInternal = OpenGLCommon::ColorFormatToInternalOpenGL(m_Info.Attachments[i].Format);
 
             glBindTexture(textureTarget, attachmentArray[i]);
+            // if (m_Info.Attachments[i].AllowCPURead)
+            // {
+            //     glGenBuffers(1, &m_AttachmentBufferObjects[i]);
+            //     glBindBuffer(GL_PIXEL_PACK_BUFFER, m_AttachmentBufferObjects[i]);
+            //     m_AttachmentBufferMappings[i] = glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
+            //     glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+            // }
 
             if (sampleCount != MsaaSampleCount::None)
                 glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, actualSampleCount, actualFormatInternal, m_ActualWidth, m_ActualHeight, GL_FALSE);

@@ -20,7 +20,7 @@ namespace Heart
         #endif
 
         WindowSettings windowSettings = WindowSettings(windowName);
-        InitializeGraphicsApi(RenderApi::Type::Vulkan, windowSettings);
+        InitializeGraphicsApi(RenderApi::Type::OpenGL, windowSettings);
 
         HE_ENGINE_LOG_INFO("App initialized");
     }

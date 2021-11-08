@@ -97,12 +97,12 @@ namespace Heart
 
         // framebuffer
         FramebufferCreateInfo fbCreateInfo = {
-            { { 0.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::RGBA8 },
-            { { -1.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::R32F }
+            { { 0.f, 0.f, 0.f, 1.f }, Heart::ColorFormat::RGBA8, false },
+            { { -1.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::R32F, true }
         };
         fbCreateInfo.Width = 0;
         fbCreateInfo.Height = 0;
-        fbCreateInfo.SampleCount = MsaaSampleCount::None;
+        fbCreateInfo.SampleCount = MsaaSampleCount::Max;
         fbCreateInfo.HasDepth = true;
         m_FinalFramebuffer = Framebuffer::Create(fbCreateInfo);
         m_FinalFramebuffer->RegisterGraphicsPipeline("main", gpCreateInfo);

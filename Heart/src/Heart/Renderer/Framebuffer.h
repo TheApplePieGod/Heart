@@ -20,6 +20,7 @@ namespace Heart
     {
         glm::vec4 ClearColor;
         ColorFormat Format;
+        bool AllowCPURead;
     };
 
     struct FramebufferCreateInfo
@@ -49,6 +50,18 @@ namespace Heart
         
         virtual void* GetColorAttachmentImGuiHandle(u32 attachmentIndex) = 0;
         virtual void* GetDepthAttachmentImGuiHandle() = 0;
+
+        // attachment must be created with 'AllowCPURead' enabled
+        virtual void* GetAttachmentPixelData(u32 attachmentIndex) = 0;
+
+        template<typename T>
+        T ReadAttachmentPixel(u32 attachmentIndex, u32 x, u32 y, u32 component)
+        {
+            T* data = (T*)GetAttachmentPixelData(attachmentIndex);
+            u32 index = ColorFormatComponents(m_Info.Attachments[attachmentIndex].Format) * (y * m_ActualWidth + x);
+            return data[index + component];
+        }
+
         void OnEvent(Event& event) override;
 
         Ref<GraphicsPipeline> RegisterGraphicsPipeline(const std::string& name, const GraphicsPipelineCreateInfo& createInfo);

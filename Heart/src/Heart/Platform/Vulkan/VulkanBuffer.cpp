@@ -47,6 +47,8 @@ namespace Heart
         switch (m_Type)
         {
             default: { HE_ENGINE_ASSERT("Failed to create VulkanBuffer of unsupported type") } break;
+            case Type::None:
+            { VulkanCommon::CreateBuffer(device.Device(), device.PhysicalDevice(), size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, outBuffer, outMemory); } break;
             case Type::Uniform:
             { VulkanCommon::CreateBuffer(device.Device(), device.PhysicalDevice(), size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, outBuffer, outMemory); } break;
             case Type::Storage:
@@ -85,6 +87,30 @@ namespace Heart
         }
         
         return m_Buffers[accessingIndex];
+    }
+
+    VkDeviceMemory VulkanBuffer::GetMemory()
+    {
+        u32 accessingIndex = 0;
+        if (m_Type != Type::Vertex && m_Type != Type::Index)
+        {
+            UpdateFrameIndex();
+            accessingIndex = m_InFlightFrameIndex;
+        }
+        
+        return m_BufferMemory[accessingIndex];
+    }
+
+    void* VulkanBuffer::GetMappedMemory()
+    {
+        u32 accessingIndex = 0;
+        if (m_Type != Type::Vertex && m_Type != Type::Index)
+        {
+            UpdateFrameIndex();
+            accessingIndex = m_InFlightFrameIndex;
+        }
+        
+        return m_MappedMemory[accessingIndex];
     }
 
     void VulkanBuffer::UpdateFrameIndex()
