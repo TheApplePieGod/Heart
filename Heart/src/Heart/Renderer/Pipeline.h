@@ -67,6 +67,7 @@ namespace Heart
         inline CullMode GetCullMode() const { return m_Info.CullMode; }
         inline bool IsDepthEnabled() const { return m_Info.DepthEnable; }
         inline u32 GetVertexLayoutStride() const { return m_Info.VertexLayout.GetStride(); }
+        inline const std::vector<AttachmentBlendState>& GetBlendStates() const { return m_Info.BlendStates; }
 
     protected:
         GraphicsPipelineCreateInfo m_Info;

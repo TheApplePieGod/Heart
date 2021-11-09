@@ -167,6 +167,18 @@ namespace Heart
             glDepthFunc(GL_GEQUAL);
         else
             glDepthFunc(GL_LESS);
+
+        for (size_t i = 0; i < m_Info.Attachments.size(); i++)
+        {
+            if (pipeline->GetBlendStates()[i].BlendEnable)
+            {
+                int buffer = static_cast<int>(i);
+                glEnablei(GL_BLEND, buffer);
+                glBlendEquationSeparatei(buffer, GL_FUNC_ADD, GL_FUNC_ADD);
+                glBlendFuncSeparatei(buffer, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
+
+            }
+        }
     }
 
     void OpenGLFramebuffer::BindShaderBufferResource(u32 bindingIndex, u32 elementOffset, Buffer* _buffer)
