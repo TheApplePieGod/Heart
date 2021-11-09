@@ -7,6 +7,8 @@
 #include "Heart/Events/MouseEvents.h"
 #include "Heart/Scene/Scene.h"
 #include "Heart/Renderer/SceneRenderer.h"
+#include "imgui/imgui.h"
+#include "imguizmo/ImGuizmo.h"
 
 #include "HeartEditor/Widgets/MenuBar.h"
 #include "HeartEditor/Widgets/SceneHierarchyPanel.h"
@@ -65,5 +67,6 @@ namespace HeartEditor
         glm::vec2 m_ViewportSize;
         bool m_ViewportInput = false;
         bool m_ViewportHover = false;
+        ImGuizmo::OPERATION m_GizmoOperation = ImGuizmo::OPERATION::TRANSLATE;
     };
 }

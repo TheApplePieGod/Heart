@@ -210,6 +210,7 @@ namespace Heart
     void* OpenGLFramebuffer::GetAttachmentPixelData(u32 attachmentIndex)
     {
         HE_ENGINE_ASSERT(attachmentIndex < m_PixelBufferMappings.size(), "Attachment of pixel read out of range");
+        HE_ENGINE_ASSERT(m_Info.Attachments[attachmentIndex].AllowCPURead, "Cannot read pixel data of attachment that does not have 'AllowCPURead' enabled");
 
         if (m_PixelBufferMappings[attachmentIndex] == nullptr)
             m_PixelBufferMappings[attachmentIndex] = glMapNamedBuffer(m_PixelBufferObjects[attachmentIndex][(App::Get().GetFrameCount() + 1) % 2], GL_READ_ONLY);

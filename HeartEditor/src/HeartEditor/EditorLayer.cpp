@@ -6,12 +6,10 @@
 #include "Heart/Scene/Components.h"
 #include "Heart/Scene/Entity.h"
 #include "Heart/Input/Input.h"
-#include "imgui/imgui.h"
 #include "imgui/imgui_internal.h"
 #include "glm/vec4.hpp"
 #include "glm/gtc/type_ptr.hpp"
 #include "glm/gtx/matrix_decompose.hpp"
-#include "imguizmo/ImGuizmo.h"
 
 namespace HeartEditor
 {
@@ -65,7 +63,7 @@ namespace HeartEditor
         ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
         ImGui::Begin("Main Window", nullptr, windowFlags);
         
-        m_Widgets.MainMenuBar.OnImGuiRender();
+        m_Widgets.MainMenuBar.OnImGuiRender(m_ActiveScene.get());
 
         ImGuiID dockspaceId = ImGui::GetID("EditorDockSpace");
         ImGui::DockSpace(dockspaceId, ImVec2(0.f, 0.f), 0);
@@ -112,7 +110,47 @@ namespace HeartEditor
                 EditorApp::Get().GetWindow().DisableCursor();
                 ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_NoMouse;
             }
-            ImGui::SetItemAllowOverlap();
+
+            // gizmo operation select widgets
+            ImGui::SetCursorPos(viewportMin);
+            ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(0.f, 0.2f));
+            if (ImGui::BeginTable("GizmoOperations", 3, ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingFixedFit))
+            {
+                ImGui::TableNextRow();
+
+                ImGui::TableSetColumnIndex(0);
+                if (ImGui::ImageButton(
+                    m_SceneRenderer->GetTextureRegistry().LoadTexture("pan")->GetImGuiHandle(),
+                    { 25, 25 },
+                    { 0.f, 0.f }, { 1.f, 1.f },
+                    -1, { 0.2f, 0.2f, 0.2f, 0.5f }
+                ))
+                { m_GizmoOperation = ImGuizmo::OPERATION::TRANSLATE; }
+
+                ImGui::TableSetColumnIndex(1);
+                if (ImGui::ImageButton(
+                    m_SceneRenderer->GetTextureRegistry().LoadTexture("rotate")->GetImGuiHandle(),
+                    { 25, 25 },
+                    { 0.f, 0.f }, { 1.f, 1.f },
+                    -1, { 0.2f, 0.2f, 0.2f, 0.5f }
+                ))
+                { m_GizmoOperation = ImGuizmo::OPERATION::ROTATE; }
+
+                ImGui::TableSetColumnIndex(2);
+                if (ImGui::ImageButton(
+                    m_SceneRenderer->GetTextureRegistry().LoadTexture("scale")->GetImGuiHandle(),
+                    { 25, 25 },
+                    { 0.f, 0.f }, { 1.f, 1.f },
+                    -1, { 0.2f, 0.2f, 0.2f, 0.5f }
+                ))
+                { m_GizmoOperation = ImGuizmo::OPERATION::SCALE; }
+
+                ImGui::EndTable();
+            }
+            ImGui::PopStyleVar();
+
+            // hover is false if we are hovering over the buttons
+            m_ViewportHover = m_ViewportHover && !ImGui::IsItemHovered();
 
             // draw the imguizmo if an entity is selected
             if (m_Widgets.SceneHierarchyPanel.GetSelectedEntity().IsValid() && m_Widgets.SceneHierarchyPanel.GetSelectedEntity().HasComponent<Heart::TransformComponent>())
@@ -122,7 +160,7 @@ namespace HeartEditor
                 ImGuizmo::Manipulate(
                     glm::value_ptr(view),
                     glm::value_ptr(proj),
-                    ImGuizmo::OPERATION::TRANSLATE,
+                    m_GizmoOperation,
                     ImGuizmo::MODE::LOCAL,
                     glm::value_ptr(transform),
                     nullptr,
@@ -193,6 +231,7 @@ namespace HeartEditor
             ImGui::Text("Camera Rot: (%.2f, %.2f)", m_EditorCamera->GetXRotation(), m_EditorCamera->GetYRotation());
             ImGui::Text("Mouse Pos: (%.1f, %.1f)", Heart::Input::GetScreenMousePos().x, Heart::Input::GetScreenMousePos().y);
             ImGui::Text("VP Mouse: (%.1f, %.1f)", m_ViewportMousePos.x, m_ViewportMousePos.y);
+            ImGui::Text("VP Hover: %s", m_ViewportHover ? "true" : "false");
 
             for (auto& pair : Heart::AggregateTimer::GetTimeMap())
                 ImGui::Text("%s: %dms", pair.first.c_str(), pair.second);
@@ -202,9 +241,7 @@ namespace HeartEditor
         }
 
         if (m_Widgets.MainMenuBar.GetWindowStatus("ImGui Demo"))
-        {
             ImGui::ShowDemoWindow(m_Widgets.MainMenuBar.GetWindowStatusRef("ImGui Demo"));
-        }
 
         ImGui::End();
 

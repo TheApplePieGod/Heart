@@ -3,9 +3,6 @@
 
 #include "HeartEditor/EditorApp.h"
 #include "Heart/Renderer/Renderer.h"
-#include "Heart/Scene/Components.h"
-#include "Heart/Scene/Entity.h"
-#include "imgui/imgui.h"
 #include "imgui/imgui_internal.h"
 
 namespace HeartEditor
@@ -29,9 +26,6 @@ namespace Widgets
             ImU32 yColor = ImGui::GetColorU32(ImVec4(0.f, 1.0f, 0.0f, 1.f));
             ImU32 zColor = ImGui::GetColorU32(ImVec4(0.f, 0.0f, 1.0f, 1.f));
             ImU32 textColor = ImGui::GetColorU32(ImVec4(0.f, 0.0f, 0.0f, 1.f));
-            
-            //ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, textColor);
-
 
             ImGui::TableSetColumnIndex(0);
             ImGui::Text(name.c_str());
@@ -67,7 +61,7 @@ namespace Widgets
         }
         ImGui::PopStyleVar();
     }
-    
+
     void PropertiesPanel::OnImGuiRender(Heart::Entity selectedEntity)
     {
         if (selectedEntity.IsValid())
@@ -81,7 +75,7 @@ namespace Widgets
                 std::strncpy(buffer, nameComponent.Name.c_str(), sizeof(buffer));
                 if (ImGui::InputText("##Name", buffer, sizeof(buffer)))
                 {
-                    ImGui::SetKeyboardFocusHere(0);
+                    ImGui::SetKeyboardFocusHere(-1);
                     nameComponent.Name = std::string(buffer);
                 }
 
@@ -94,7 +88,7 @@ namespace Widgets
                 {
                     if (ImGui::MenuItem("Mesh Component"))
                     {
-
+                        selectedEntity.AddComponent<Heart::MeshComponent>();
                     }
 
                     ImGui::EndPopup();
@@ -103,7 +97,8 @@ namespace Widgets
 
             if (selectedEntity.HasComponent<Heart::TransformComponent>())
             {
-                if (ImGui::CollapsingHeader("Transform"))
+                bool headerOpen = ImGui::CollapsingHeader("Transform");
+                if (headerOpen)
                 {
                     auto& transformComponent = selectedEntity.GetComponent<Heart::TransformComponent>();
 
@@ -111,7 +106,23 @@ namespace Widgets
                     RenderXYZSlider("Translation  ", &transformComponent.Translation.x, &transformComponent.Translation.y, &transformComponent.Translation.z, -999999.f, 999999.f, 0.1f);
                     RenderXYZSlider("Rotation     ", &transformComponent.Rotation.x, &transformComponent.Rotation.y, &transformComponent.Rotation.z, 0.f, 360.f, 1.f);
                     RenderXYZSlider("Scale        ", &transformComponent.Scale.x, &transformComponent.Scale.y, &transformComponent.Scale.z, 0.f, 999999.f, 0.1f);
+                    ImGui::Unindent();
                 }
+                
+            }
+            if (selectedEntity.HasComponent<Heart::MeshComponent>())
+            {
+                bool headerOpen = ImGui::CollapsingHeader("Mesh");
+                RenderComponentPopup<Heart::MeshComponent>("MeshPopup", selectedEntity);
+                if (headerOpen)
+                {
+                    auto& transformComponent = selectedEntity.GetComponent<Heart::MeshComponent>();
+
+                    ImGui::Indent();
+                    ImGui::Text("Placeholder");
+                    ImGui::Unindent();
+                }
+                
             }
         }
     }

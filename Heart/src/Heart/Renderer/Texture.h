@@ -48,6 +48,7 @@ namespace Heart
         {}
         virtual ~Texture() = default;
 
+        inline void* GetImGuiHandle() const { return m_ImGuiHandle; }
         inline u32 GetArrayCount() const { return m_ArrayCount; }
 
     public:
@@ -58,6 +59,7 @@ namespace Heart
         std::string m_Path;
         int m_Width, m_Height, m_Channels;
         u32 m_ArrayCount = 1;
+        void* m_ImGuiHandle;
     };
 
     class TextureRegistry
