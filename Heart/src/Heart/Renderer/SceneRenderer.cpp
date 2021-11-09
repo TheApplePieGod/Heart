@@ -97,7 +97,7 @@ namespace Heart
 
         // framebuffer
         FramebufferCreateInfo fbCreateInfo = {
-            { { 0.f, 0.f, 0.f, 1.f }, Heart::ColorFormat::RGBA8, false },
+            { { 0.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::RGBA8, false },
             { { -1.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::R32F, true }
         };
         fbCreateInfo.Width = 0;
