@@ -10,7 +10,7 @@ namespace HeartEditor
     public:
         EditorCamera(f32 fov, f32 nearClip, f32 farClip, f32 aspectRatio);
 
-        void OnUpdate(Heart::Timestep ts);
+        void OnUpdate(Heart::Timestep ts, bool viewportFocused, bool viewportHovered);
 
         inline glm::mat4 GetViewMatrix() const { return m_ViewMatrix; }
         inline glm::mat4 GetViewMatrixInvertedY() const { return m_ViewMatrixInvertedY; }

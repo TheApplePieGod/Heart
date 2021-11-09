@@ -46,8 +46,7 @@ namespace HeartEditor
 
         auto timer = Heart::AggregateTimer("EditorLayer::OnUpdate");
 
-        if (m_ViewportInput)
-            m_EditorCamera->OnUpdate(ts);
+        m_EditorCamera->OnUpdate(ts, m_ViewportInput, m_ViewportHover);
 
         m_SceneRenderer->RenderScene(EditorApp::Get().GetWindow().GetContext(), m_ActiveScene.get(), m_EditorCamera->GetViewProjectionMatrix());
     }
