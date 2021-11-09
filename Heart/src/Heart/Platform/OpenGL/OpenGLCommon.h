@@ -14,6 +14,7 @@ namespace Heart
     {
         static int ColorFormatToInternalOpenGL(ColorFormat format);
         static int ColorFormatToOpenGL(ColorFormat format);
+        static int ColorFormatToOpenGLDataType(ColorFormat format);
         static int ShaderTypeToOpenGL(Shader::Type type);
         static int BufferDataTypeToBaseOpenGL(BufferDataType type);
         static int VertexTopologyToOpenGL(VertexTopology topology);

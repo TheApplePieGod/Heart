@@ -2,6 +2,7 @@
 #include "OpenGLFramebuffer.h"
 
 #include "glad/glad.h"
+#include "Heart/Core/App.h"
 #include "Heart/Core/Window.h"
 #include "Heart/Renderer/Renderer.h"
 #include "Heart/Platform/OpenGL/OpenGLGraphicsPipeline.h"
@@ -32,8 +33,8 @@ namespace Heart
         for (size_t i = 0; i < createInfo.Attachments.size(); i++)
             m_CachedAttachmentHandles[i] = GL_COLOR_ATTACHMENT0 + static_cast<int>(i);
 
-        m_AttachmentBufferObjects.resize(createInfo.Attachments.size());
-        m_AttachmentBufferMappings.resize(createInfo.Attachments.size());
+        m_PixelBufferObjects.resize(createInfo.Attachments.size());
+        m_PixelBufferMappings.resize(createInfo.Attachments.size());
 
         glGenFramebuffers(1, &m_FramebufferId);
         m_ColorAttachmentTextureIds.resize(createInfo.Attachments.size());
@@ -44,6 +45,8 @@ namespace Heart
             m_BlitColorAttachmentTextureIds.resize(createInfo.Attachments.size());
             CreateTextures(m_BlitFramebufferId, MsaaSampleCount::None, m_BlitColorAttachmentTextureIds, m_BlitDepthAttachmentTextureId);
         }
+
+        CreatePixelBuffers();
     }
 
     OpenGLFramebuffer::~OpenGLFramebuffer()
@@ -51,6 +54,8 @@ namespace Heart
         CleanupTextures(m_ColorAttachmentTextureIds, m_DepthAttachmentTextureId);
         if (m_Info.SampleCount != MsaaSampleCount::None)
             CleanupTextures(m_BlitColorAttachmentTextureIds, m_BlitDepthAttachmentTextureId);
+
+        CleanupPixelBuffers();
 
         glDeleteFramebuffers(1, &m_FramebufferId);
     }
@@ -65,9 +70,9 @@ namespace Heart
         glBindFramebuffer(GL_FRAMEBUFFER, m_FramebufferId);
         glViewport(0, 0, m_ActualWidth, m_ActualHeight);
         
-        // clear each attachment with the provided color
         for (size_t i = 0; i < m_Info.Attachments.size(); i++)
         {
+            // clear each attachment with the provided color
             int format = OpenGLCommon::ColorFormatToOpenGL(m_Info.Attachments[i].Format);
             glClearTexImage(m_ColorAttachmentTextureIds[i], 0, format, GL_FLOAT, &m_Info.Attachments[i].ClearColor);
             if (m_Info.SampleCount != MsaaSampleCount::None)
@@ -103,14 +108,38 @@ namespace Heart
                 glDrawBuffer(m_CachedAttachmentHandles[i]);
                 glBlitFramebuffer(0, 0, m_ActualWidth, m_ActualHeight, 0, 0, m_ActualWidth, m_ActualHeight, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
             }
-
-            int error = glGetError(); 
-            if (error != 0)
-            {
-                HE_ENGINE_LOG_ERROR("ERROR {0}", error);
-                HE_ENGINE_ASSERT(false);
-            }   
         }
+
+        for (size_t i = 0; i < m_Info.Attachments.size(); i++)
+        {
+            // unmap any buffers that were mapped this frame
+            if (m_Info.Attachments[i].AllowCPURead && m_PixelBufferMappings[i] != nullptr)
+            {
+                glUnmapNamedBuffer(m_PixelBufferObjects[i][(App::Get().GetFrameCount() + 1) % 2]);
+                m_PixelBufferMappings[i] = nullptr;
+            }
+
+            // start the async read for cpu visible attachments
+            if (m_Info.Attachments[i].AllowCPURead)
+            {
+                if (m_Info.SampleCount != MsaaSampleCount::None)
+                    glBindFramebuffer(GL_READ_FRAMEBUFFER, m_BlitFramebufferId);
+                else
+                    glBindFramebuffer(GL_READ_FRAMEBUFFER, m_FramebufferId);
+                glReadBuffer(m_CachedAttachmentHandles[i]);
+                glBindBuffer(GL_PIXEL_PACK_BUFFER, m_PixelBufferObjects[i][App::Get().GetFrameCount() % 2]);
+                glReadPixels(0, 0, m_ActualWidth, m_ActualHeight, OpenGLCommon::ColorFormatToOpenGL(m_Info.Attachments[i].Format), OpenGLCommon::ColorFormatToOpenGLDataType(m_Info.Attachments[i].Format), nullptr);
+            }
+
+            glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+        }
+
+        // int error = glGetError(); 
+        // if (error != 0)
+        // {
+        //     HE_ENGINE_LOG_ERROR("ERROR {0}", error);
+        //     HE_ENGINE_ASSERT(false);
+        // }
     }
 
     void OpenGLFramebuffer::BindPipeline(const std::string& name)
@@ -180,10 +209,12 @@ namespace Heart
 
     void* OpenGLFramebuffer::GetAttachmentPixelData(u32 attachmentIndex)
     {
-        //void* data;
-        //glReadBuffer(GL_COLOR_ATTACHMENT0 + static_cast<int>(attachmentIndex));
-        //glReadPixels();
-        return m_AttachmentBufferMappings[attachmentIndex];
+        HE_ENGINE_ASSERT(attachmentIndex < m_PixelBufferMappings.size(), "Attachment of pixel read out of range");
+
+        if (m_PixelBufferMappings[attachmentIndex] == nullptr)
+            m_PixelBufferMappings[attachmentIndex] = glMapNamedBuffer(m_PixelBufferObjects[attachmentIndex][(App::Get().GetFrameCount() + 1) % 2], GL_READ_ONLY);
+
+        return m_PixelBufferMappings[attachmentIndex];
     }
 
     Ref<GraphicsPipeline> OpenGLFramebuffer::InternalInitializeGraphicsPipeline(const GraphicsPipelineCreateInfo& createInfo)
@@ -214,14 +245,6 @@ namespace Heart
             int actualFormatInternal = OpenGLCommon::ColorFormatToInternalOpenGL(m_Info.Attachments[i].Format);
 
             glBindTexture(textureTarget, attachmentArray[i]);
-            // if (m_Info.Attachments[i].AllowCPURead)
-            // {
-            //     glGenBuffers(1, &m_AttachmentBufferObjects[i]);
-            //     glBindBuffer(GL_PIXEL_PACK_BUFFER, m_AttachmentBufferObjects[i]);
-            //     m_AttachmentBufferMappings[i] = glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
-            //     glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
-            // }
-
             if (sampleCount != MsaaSampleCount::None)
                 glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, actualSampleCount, actualFormatInternal, m_ActualWidth, m_ActualHeight, GL_FALSE);
             else
@@ -269,6 +292,37 @@ namespace Heart
             glDeleteTextures(1, &depthAttachment);
     }
 
+    void OpenGLFramebuffer::CreatePixelBuffers()
+    {
+        for (size_t i = 0; i < m_Info.Attachments.size(); i++)
+        {
+            if (m_Info.Attachments[i].AllowCPURead) // only create the buffers for the no sample count textures
+            {
+                u32 bufferSize = m_ActualWidth * m_ActualHeight * ColorFormatComponents(m_Info.Attachments[i].Format) * BufferDataTypeSize(ColorFormatBufferDataType(m_Info.Attachments[i].Format));
+                glGenBuffers(2, m_PixelBufferObjects[i].data());
+                
+                for (size_t j = 0; j < m_PixelBufferObjects[i].size(); j++)
+                {
+                    glBindBuffer(GL_PIXEL_PACK_BUFFER, m_PixelBufferObjects[i][j]);
+                    glBufferData(GL_PIXEL_PACK_BUFFER, bufferSize, nullptr, GL_STREAM_READ);
+                }
+
+                glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+            }
+        }
+    }
+
+    void OpenGLFramebuffer::CleanupPixelBuffers()
+    {
+        for (size_t i = 0; i < m_Info.Attachments.size(); i++)
+        {
+            if (m_Info.Attachments[i].AllowCPURead)
+            {
+                glDeleteBuffers(2, m_PixelBufferObjects[i].data());
+            }
+        }
+    }
+
     void OpenGLFramebuffer::Recreate()
     {
         glDeleteFramebuffers(1, &m_FramebufferId);
@@ -284,7 +338,10 @@ namespace Heart
 
             CleanupTextures(m_BlitColorAttachmentTextureIds, m_BlitDepthAttachmentTextureId);
             CreateTextures(m_BlitFramebufferId, MsaaSampleCount::None, m_BlitColorAttachmentTextureIds, m_BlitDepthAttachmentTextureId);
-        }    
+        }
+
+        CleanupPixelBuffers();
+        CreatePixelBuffers();
 
         m_Valid = true;
     }

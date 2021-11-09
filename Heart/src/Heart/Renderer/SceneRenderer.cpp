@@ -102,7 +102,7 @@ namespace Heart
         };
         fbCreateInfo.Width = 0;
         fbCreateInfo.Height = 0;
-        fbCreateInfo.SampleCount = MsaaSampleCount::Max;
+        fbCreateInfo.SampleCount = MsaaSampleCount::None;
         fbCreateInfo.HasDepth = true;
         m_FinalFramebuffer = Framebuffer::Create(fbCreateInfo);
         m_FinalFramebuffer->RegisterGraphicsPipeline("main", gpCreateInfo);

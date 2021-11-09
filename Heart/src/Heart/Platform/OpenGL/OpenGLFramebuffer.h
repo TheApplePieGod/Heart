@@ -29,6 +29,9 @@ namespace Heart
         void CreateTextures(int framebufferId, MsaaSampleCount sampleCount, std::vector<u32>& attachmentArray, u32& depthAttachment);
         void CleanupTextures(std::vector<u32>& attachmentArray, u32& depthAttachment);
 
+        void CreatePixelBuffers();
+        void CleanupPixelBuffers();
+
         void Submit();
 
         void Recreate();
@@ -42,8 +45,8 @@ namespace Heart
         std::vector<u32> m_BlitColorAttachmentTextureIds;
         std::vector<u32> m_CachedAttachmentHandles;
 
-        std::vector<u32> m_AttachmentBufferObjects;
-        std::vector<void*> m_AttachmentBufferMappings;
+        std::vector<std::array<u32, 2>> m_PixelBufferObjects;
+        std::vector<void*> m_PixelBufferMappings;
 
         friend class OpenGLRenderApi;
     };
