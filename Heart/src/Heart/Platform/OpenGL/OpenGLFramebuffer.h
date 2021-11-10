@@ -18,6 +18,8 @@ namespace Heart
         void* GetColorAttachmentImGuiHandle(u32 attachmentIndex) override;
         void* GetDepthAttachmentImGuiHandle() override;
 
+        void* GetAttachmentPixelData(u32 attachmentIndex) override;
+
         inline u32 GetFramebufferId() const { return m_FramebufferId; }
 
     protected:
@@ -26,6 +28,9 @@ namespace Heart
     private:
         void CreateTextures(int framebufferId, MsaaSampleCount sampleCount, std::vector<u32>& attachmentArray, u32& depthAttachment);
         void CleanupTextures(std::vector<u32>& attachmentArray, u32& depthAttachment);
+
+        void CreatePixelBuffers();
+        void CleanupPixelBuffers();
 
         void Submit();
 
@@ -38,6 +43,10 @@ namespace Heart
         u32 m_BlitDepthAttachmentTextureId;
         std::vector<u32> m_ColorAttachmentTextureIds;
         std::vector<u32> m_BlitColorAttachmentTextureIds;
+        std::vector<u32> m_CachedAttachmentHandles;
+
+        std::vector<std::array<u32, 2>> m_PixelBufferObjects;
+        std::vector<void*> m_PixelBufferMappings;
 
         friend class OpenGLRenderApi;
     };

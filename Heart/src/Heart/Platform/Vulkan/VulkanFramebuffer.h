@@ -3,6 +3,7 @@
 #include "Heart/Renderer/Framebuffer.h"
 #include "Heart/Platform/Vulkan/VulkanSwapChain.h"
 #include "Heart/Platform/Vulkan/VulkanCommon.h"
+#include "Heart/Platform/Vulkan/VulkanBuffer.h"
 
 namespace Heart
 {
@@ -20,6 +21,8 @@ namespace Heart
         void* GetColorAttachmentImGuiHandle(u32 attachmentIndex) override;
         void* GetDepthAttachmentImGuiHandle() override;
 
+        void* GetAttachmentPixelData(u32 attachmentIndex) override;
+
         inline VkFramebuffer GetFramebuffer() const { return m_Framebuffer; }
         inline VkRenderPass GetRenderPass() const { return m_RenderPass; }
         inline VkCommandBuffer GetCommandBuffer() { UpdateFrameIndex(); return m_CommandBuffers[m_InFlightFrameIndex]; } ;
@@ -31,6 +34,7 @@ namespace Heart
     private:
         struct VulkanFramebufferAttachment
         {
+            ColorFormat GeneralColorFormat;
             VkFormat ColorFormat;
             VkImage ColorImage;
             VkImage ResolveImage;
@@ -41,6 +45,8 @@ namespace Heart
             void* ColorImageImGuiId;
             void* ResolveImageImGuiId;
             bool HasResolve;
+            bool CPUVisible;
+            Ref<Buffer> AttachmentBuffer;
         };
 
     private:

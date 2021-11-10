@@ -4,6 +4,7 @@ layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec2 inTexCoord;
 
 layout(location = 0) out vec2 texCoord;
+layout(location = 1) out int entityId;
 
 layout(binding = 0) uniform FrameBuffer {
     mat4 viewProj;
@@ -11,6 +12,8 @@ layout(binding = 0) uniform FrameBuffer {
 
 struct ObjectData {
     mat4 model;
+    int entityId;
+    vec3 padding;
 };
 
 layout(binding = 1) readonly buffer ObjectBuffer {
@@ -18,7 +21,8 @@ layout(binding = 1) readonly buffer ObjectBuffer {
 } objectBuffer;
 
 void main() {
-    gl_Position = frameData.viewProj * objectBuffer.object.model * vec4(inPosition, 1.0);
     //gl_Position = vec4(inPosition, 1.0);
+    gl_Position = frameData.viewProj * objectBuffer.object.model * vec4(inPosition, 1.0);
     texCoord = inTexCoord;
+    entityId = objectBuffer.object.entityId;
 }

@@ -60,4 +60,9 @@ namespace Heart
 	{
 		return std::make_shared<T>(std::forward<Args>(args)...);
 	}
+
+	// A 'WeakRef' is similar to a 'Ref,' except it will not keep the pointed to object alive
+	// and it must be created from a 'Ref'
+	template<typename T>
+	using WeakRef = std::weak_ptr<T>;
 }

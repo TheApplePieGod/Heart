@@ -2,6 +2,7 @@
 #include "MenuBar.h"
 
 #include "HeartEditor/EditorApp.h"
+#include "Heart/Scene/Entity.h"
 #include "Heart/Renderer/Renderer.h"
 #include "imgui/imgui.h"
 #include "imgui/imgui_internal.h"
@@ -21,7 +22,7 @@ namespace Widgets
         m_WindowStatuses["Debug Info"] = true;
     }
 
-    void MenuBar::OnImGuiRender()
+    void MenuBar::OnImGuiRender(Heart::Scene* activeScene, Heart::Entity& selectedEntity)
     {
         ImGuiViewportP* viewport = (ImGuiViewportP*)(void*)ImGui::GetMainViewport();
         ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_MenuBar;
@@ -36,6 +37,9 @@ namespace Widgets
             {
                 if (ImGui::BeginMenu("File"))
                 {
+                    if (ImGui::MenuItem("Create Entity"))
+                        selectedEntity = activeScene->CreateEntity("New Entity");
+
                     if (ImGui::MenuItem("Toggle Fullscreen", "F11"))
                         EditorApp::Get().GetWindow().ToggleFullscreen();
 

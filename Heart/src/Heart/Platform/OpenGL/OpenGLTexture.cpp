@@ -26,10 +26,12 @@ namespace Heart
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, m_Width, m_Height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_Width, m_Height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
         //glGenerateMipmap(GL_TEXTURE_2D);
 
         stbi_image_free(pixels);
+
+        m_ImGuiHandle = (void*)static_cast<size_t>(m_TextureId);
     }
 
     OpenGLTexture::~OpenGLTexture()

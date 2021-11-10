@@ -1,7 +1,7 @@
 #include "htpch.h"
 #include "App.h"
 
-#include "Heart/Core/Timer.h"
+#include "Heart/Core/Timing.h"
 
 namespace Heart
 {
@@ -108,6 +108,8 @@ namespace Heart
             bool fullscreen = m_Window->IsFullscreen();
 
             ShutdownGraphicsApi();
+            AggregateTimer::ClearTimeMap();
+
             InitializeGraphicsApi(m_SwitchingApi, windowSettings);
             m_Window->SetFullscreen(fullscreen);
 
@@ -125,7 +127,7 @@ namespace Heart
             HE_PROFILE_FRAME();
 
             double currentFrameTime = m_Window->GetWindowTime();
-            Timestep ts = Timestep(currentFrameTime - m_LastFrameTime);
+            m_LastTimestep = Timestep(currentFrameTime - m_LastFrameTime);
             m_LastFrameTime = currentFrameTime;
 
             m_Window->PollEvents();
@@ -137,7 +139,7 @@ namespace Heart
 
             // Layer update
             for (auto layer : m_Layers)
-                layer->OnUpdate(ts);
+                layer->OnUpdate(m_LastTimestep);
 
             // ImGui render
             m_ImGuiInstance.BeginFrame();
@@ -149,6 +151,7 @@ namespace Heart
             m_FrameCount++;
 
             CheckForGraphicsApiSwitch();
+            AggregateTimer::ResetAggregateTimes();
         }
     }
 }

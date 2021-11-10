@@ -4,6 +4,7 @@
 #include "Heart/Platform/Vulkan/VulkanContext.h"
 #include "Heart/Platform/Vulkan/VulkanDevice.h"
 #include "stb_image/stb_image.h"
+#include "imgui/backends/imgui_impl_vulkan.h"
 
 namespace Heart
 {
@@ -27,6 +28,8 @@ namespace Heart
     {
         VulkanDevice& device = VulkanContext::GetDevice();
         VulkanContext::Sync();
+
+        ImGui_ImplVulkan_RemoveTexture(m_ImGuiHandle);
 
         vkDestroyImageView(device.Device(), m_ImageView, nullptr);
         vkDestroyImage(device.Device(), m_Image, nullptr);
@@ -58,5 +61,7 @@ namespace Heart
 
         m_ImageView = VulkanCommon::CreateImageView(device.Device(), m_Image, VK_FORMAT_R8G8B8A8_UNORM, 1);
         m_CurrentLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+        m_ImGuiHandle = ImGui_ImplVulkan_AddTexture(VulkanContext::GetDefaultSampler(), m_ImageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     }
 }

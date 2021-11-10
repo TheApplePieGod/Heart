@@ -18,16 +18,15 @@ namespace Heart
             default: break;
             case ProjectionType::Perspective:
             {
-                //m_ProjectionMatrix = glm::perspective(glm::radians(m_FOV), -m_AspectRatio, m_NearClip, m_FarClip);
                 f32 n = m_NearClip;
                 f32 f = m_FarClip;
-                f32 fl = 1.f / tan(m_FOV * 0.5f);
+                f32 fl = 1.f / tan(glm::radians(m_FOV) * 0.5f);
                 f32 a = m_AspectRatio;
 
                 if (Renderer::IsUsingReverseDepth())
                 {
                     m_ProjectionMatrix = glm::mat4(
-                        -fl / a, 0, 0, 0,
+                        fl / a, 0, 0, 0,
                         0, -fl, 0, 0,
                         0, 0, n / (f - n), (n * f) / (f - n),
                         0, 0, -1, 0
@@ -36,7 +35,7 @@ namespace Heart
                 else
                 {
                     m_ProjectionMatrix = glm::mat4(
-                        -fl / a, 0, 0, 0,
+                        fl / a, 0, 0, 0,
                         0, -fl, 0, 0,
                         0, 0, f / (n - f), (n * f) / (n - f),
                         0, 0, -1, 0
@@ -44,7 +43,6 @@ namespace Heart
                 }
 
                 m_ProjectionMatrix = glm::transpose(m_ProjectionMatrix);
-
             } break;
 
             case ProjectionType::Orthographic:

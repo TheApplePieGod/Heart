@@ -1,15 +1,14 @@
 #version 460
 
 layout(location = 0) in vec2 texCoord;
+layout(location = 1) in flat int entityId;
 
 layout(location = 0) out vec4 outColor;
-layout(location = 1) out vec4 outColor2;
+layout(location = 1) out float outEntityId;
 
-layout(set = 0, binding = 2) uniform sampler2D samp;
+layout(binding = 2) uniform sampler2D samp;
 
 void main() {
     outColor = texture(samp, texCoord);
-    outColor2 = texture(samp, texCoord);
-    //outColor = vec4(1.f, 0.f, 0.f, 1.f);
-    //outColor2 = vec4(1.f, 0.f, 0.f, 1.f);
+    outEntityId = float(entityId);
 }

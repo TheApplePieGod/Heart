@@ -64,13 +64,15 @@ namespace Heart
         // TODO: depth resolve (https://github.com/KhronosGroup/Vulkan-Samples/blob/master/samples/performance/msaa/msaa_tutorial.md)
         for (auto& attachment : createInfo.Attachments)
         {
-            VkFormat colorFormat = VK_FORMAT_R8G8B8A8_SRGB;
+            VkFormat colorFormat = VulkanCommon::ColorFormatToVulkan(attachment.Format);
             VkClearValue clearValue{};
             clearValue.color = { attachment.ClearColor.r, attachment.ClearColor.g, attachment.ClearColor.b, attachment.ClearColor.a };
 
             VulkanFramebufferAttachment attachmentData = {};
+            attachmentData.GeneralColorFormat = attachment.Format;
             attachmentData.ColorFormat = colorFormat;
             attachmentData.HasResolve = m_ImageSamples > VK_SAMPLE_COUNT_1_BIT;
+            attachmentData.CPUVisible = attachment.AllowCPURead;
 
             CreateAttachmentImages(attachmentData, colorFormat);
 
@@ -231,7 +233,30 @@ namespace Heart
         VkCommandBuffer buffer = GetCommandBuffer();
 
         vkCmdEndRenderPass(buffer);
+
+        // copy all CPU visible attachments to their respective buffers
+        VkBufferImageCopy copyData{};
+        copyData.bufferOffset = 0;
+        copyData.imageSubresource.baseArrayLayer = 0;
+        copyData.imageSubresource.layerCount = 1;
+        copyData.imageSubresource.mipLevel = 0;
+        copyData.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        copyData.imageExtent = { m_ActualWidth, m_ActualHeight, 1 };
         
+        for (size_t i = 0; i < m_AttachmentData.size(); i++)
+        {
+            if (!m_AttachmentData[i].CPUVisible)
+                continue;
+
+            VkImage image = m_AttachmentData[i].ColorImage;
+            if (m_AttachmentData[i].HasResolve)
+                image = m_AttachmentData[i].ResolveImage;
+
+            VulkanCommon::TransitionImageLayout(VulkanContext::GetDevice().Device(), buffer, image, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+            vkCmdCopyImageToBuffer(buffer, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, ((VulkanBuffer*)m_AttachmentData[i].AttachmentBuffer.get())->GetBuffer(), 1, &copyData);
+            VulkanCommon::TransitionImageLayout(VulkanContext::GetDevice().Device(), buffer, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+        }
+
         HE_VULKAN_CHECK_RESULT(vkEndCommandBuffer(buffer));
 
         m_BoundPipeline = "";
@@ -311,6 +336,14 @@ namespace Heart
         return m_DepthImageImGuiId;
     }
 
+    void* VulkanFramebuffer::GetAttachmentPixelData(u32 attachmentIndex)
+    {
+        HE_ENGINE_ASSERT(attachmentIndex < m_AttachmentData.size(), "Attachment access on framebuffer out of range");
+        HE_ENGINE_ASSERT(m_AttachmentData[attachmentIndex].CPUVisible, "Cannot read pixel data of attachment that does not have 'AllowCPURead' enabled");
+
+        return ((VulkanBuffer*)m_AttachmentData[attachmentIndex].AttachmentBuffer.get())->GetMappedMemory();
+    }
+
     Ref<GraphicsPipeline> VulkanFramebuffer::InternalInitializeGraphicsPipeline(const GraphicsPipelineCreateInfo& createInfo)
     {
         HE_ENGINE_ASSERT(createInfo.BlendStates.size() == m_Info.Attachments.size(), "Graphics pipeline blend state count must match framebuffer attachment count");
@@ -347,6 +380,8 @@ namespace Heart
     {
         VulkanDevice& device = VulkanContext::GetDevice();
 
+        bool colorTransferSrc = attachmentData.CPUVisible && !attachmentData.HasResolve;
+
         // create the associated images for the framebuffer
         VulkanCommon::CreateImage(
             device.Device(),
@@ -357,8 +392,8 @@ namespace Heart
             1,
             m_ImageSamples,
             VK_IMAGE_TILING_OPTIMAL,
-            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | (attachmentData.HasResolve ? VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT : 0),
+            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | (colorTransferSrc ? VK_IMAGE_USAGE_TRANSFER_SRC_BIT : 0),
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
             attachmentData.ColorImage,
             attachmentData.ColorImageMemory
         );
@@ -374,23 +409,26 @@ namespace Heart
                 1,
                 VK_SAMPLE_COUNT_1_BIT,
                 VK_IMAGE_TILING_OPTIMAL,
-                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | (attachmentData.CPUVisible ? VK_IMAGE_USAGE_TRANSFER_SRC_BIT : 0),
                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                 attachmentData.ResolveImage,
                 attachmentData.ResolveImageMemory
             );
         }
 
+        if (attachmentData.CPUVisible)
+            attachmentData.AttachmentBuffer = VulkanBuffer::Create(Buffer::Type::None, { ColorFormatBufferDataType(attachmentData.GeneralColorFormat) }, m_ActualWidth * m_ActualHeight * ColorFormatComponents(attachmentData.GeneralColorFormat));
+
         // create associated image views 
         attachmentData.ColorImageView = VulkanCommon::CreateImageView(device.Device(), attachmentData.ColorImage, colorFormat, 1);
         m_CachedImageViews.emplace_back(attachmentData.ColorImageView);
-        attachmentData.ColorImageImGuiId = ImGui_ImplVulkan_AddTexture(VulkanContext::GetDefaultSampler(), attachmentData.ColorImageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
+        attachmentData.ColorImageImGuiId = ImGui_ImplVulkan_AddTexture(VulkanContext::GetDefaultSampler(), attachmentData.ColorImageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
         if (attachmentData.HasResolve)
         {
             attachmentData.ResolveImageView = VulkanCommon::CreateImageView(device.Device(), attachmentData.ResolveImage, colorFormat, 1);
             m_CachedImageViews.emplace_back(attachmentData.ResolveImageView);
-            attachmentData.ResolveImageImGuiId = ImGui_ImplVulkan_AddTexture(VulkanContext::GetDefaultSampler(), attachmentData.ResolveImageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
+            attachmentData.ResolveImageImGuiId = ImGui_ImplVulkan_AddTexture(VulkanContext::GetDefaultSampler(), attachmentData.ResolveImageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
         }
     }
 
@@ -412,6 +450,8 @@ namespace Heart
             vkDestroyImage(device.Device(), attachmentData.ResolveImage, nullptr);
             vkFreeMemory(device.Device(), attachmentData.ResolveImageMemory, nullptr);
         }
+
+        attachmentData.AttachmentBuffer.reset();
     }
 
     void VulkanFramebuffer::CreateDepthAttachment()
@@ -428,7 +468,7 @@ namespace Heart
             m_ImageSamples,
             VK_IMAGE_TILING_OPTIMAL,
             VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
             m_DepthImage,
             m_DepthImageMemory
         );

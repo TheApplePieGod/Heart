@@ -6,7 +6,7 @@ namespace Heart
     {
         None = 0,
         Bool,
-        UInt,
+        UInt, UInt8,
         Double,
         Int, Int2, Int3, Int4,
         Float, Float2, Float3, Float4,
@@ -20,6 +20,7 @@ namespace Heart
         {
             case BufferDataType::Bool: return 4;
             case BufferDataType::UInt: return 4;
+            case BufferDataType::UInt8: return 1;
             case BufferDataType::Double: return 8;
             case BufferDataType::Int: return 4;
             case BufferDataType::Int2: return 4 * 2;
@@ -43,6 +44,7 @@ namespace Heart
         {
             case BufferDataType::Bool: return 1;
             case BufferDataType::UInt: return 1;
+            case BufferDataType::UInt8: return 1;
             case BufferDataType::Double: return 1;
             case BufferDataType::Int: return 4;
             case BufferDataType::Int2: return 2;
@@ -56,7 +58,7 @@ namespace Heart
             case BufferDataType::Mat4: return 4;
         }
 
-        HE_ENGINE_ASSERT(false, "BufferDataTypeSize unsupported BufferDataType");
+        HE_ENGINE_ASSERT(false, "BufferDataTypeComponents unsupported BufferDataType");
         return 0;
     }
 

@@ -84,6 +84,7 @@
         "thread": "cpp",
         "variant": "cpp",
         "filesystem": "cpp",
-        "numeric": "cpp"
+        "numeric": "cpp",
+        "shared_mutex": "cpp"
     },
 }

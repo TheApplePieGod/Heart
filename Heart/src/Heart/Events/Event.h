@@ -21,7 +21,7 @@ namespace Heart
         bool Handled = false;
 
     public:
-        static inline EventType GetStaticType() { return EventType::None; }
+        inline static EventType GetStaticType() { return EventType::None; }
 
     public:
         inline EventType GetType() const { return m_Type; }

@@ -14,7 +14,7 @@ namespace Heart
         inline u32 GetHeight() const { return m_Height; }
 
     public:
-        static inline EventType GetStaticType() { return EventType::WindowResize; }
+        inline static EventType GetStaticType() { return EventType::WindowResize; }
 
     private:
         u32 m_Width, m_Height;
@@ -28,6 +28,6 @@ namespace Heart
         {}
 
     public:
-        static inline EventType GetStaticType() { return EventType::WindowClose; }
+        inline static EventType GetStaticType() { return EventType::WindowClose; }
     };
 }

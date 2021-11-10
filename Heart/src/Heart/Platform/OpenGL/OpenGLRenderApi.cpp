@@ -2,6 +2,7 @@
 #include "OpenGLRenderApi.h"
 
 #include "glad/glad.h"
+#include "Heart/Core/Timing.h"
 #include "Heart/Platform/OpenGL/OpenGLBuffer.h"
 #include "Heart/Platform/OpenGL/OpenGLContext.h"
 #include "Heart/Platform/OpenGL/OpenGLGraphicsPipeline.h"
@@ -55,6 +56,7 @@ namespace Heart
     void OpenGLRenderApi::DrawIndexed(u32 indexCount, u32 vertexCount, u32 indexOffset, u32 vertexOffset, u32 instanceCount)
     {
         HE_PROFILE_FUNCTION();
+        auto timer = AggregateTimer("OpenGLRenderApi::DrawIndexed");
 
         HE_ENGINE_ASSERT(OpenGLContext::GetBoundGraphicsPipeline() != nullptr, "Must bind graphics pipeline before calling DrawIndexed");
         glDrawElementsInstancedBaseVertex(OpenGLCommon::VertexTopologyToOpenGL(OpenGLContext::GetBoundGraphicsPipeline()->GetVertexTopology()), indexCount, GL_UNSIGNED_INT, (void*)(indexOffset * sizeof(u32)), instanceCount, vertexOffset);
@@ -63,6 +65,7 @@ namespace Heart
     void OpenGLRenderApi::RenderFramebuffers(GraphicsContext& _context, const std::vector<Framebuffer*>& framebuffers)
     {
         HE_PROFILE_FUNCTION();
+        auto timer = AggregateTimer("OpenGLRenderApi::RenderFramebuffers");
         
         for (auto& _buffer : framebuffers)
         {

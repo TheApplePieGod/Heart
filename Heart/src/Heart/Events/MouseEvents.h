@@ -18,7 +18,7 @@ namespace Heart
         inline MouseCode GetMouseCode() const { return m_MouseCode; }
 
     public:
-        static inline EventType GetStaticType() { return EventType::MouseButton; }
+        inline static EventType GetStaticType() { return EventType::MouseButton; }
 
     protected:
         MouseCode m_MouseCode;
@@ -32,7 +32,7 @@ namespace Heart
         {}
 
     public:
-        static inline EventType GetStaticType() { return EventType::MouseButtonPressed; }
+        inline static EventType GetStaticType() { return EventType::MouseButtonPressed; }
     };
 
     class MouseButtonReleasedEvent : public MouseButtonEvent
@@ -43,6 +43,6 @@ namespace Heart
         {}
 
     public:
-        static inline EventType GetStaticType() { return EventType::MouseButtonReleased; }
+        inline static EventType GetStaticType() { return EventType::MouseButtonReleased; }
     };
 }

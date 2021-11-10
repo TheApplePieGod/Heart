@@ -1,6 +1,7 @@
 #include "htpch.h"
 #include "OpenGLContext.h"
 
+#include "Heart/Core/Timing.h"
 #include "imgui/imgui.h"
 #include "imgui/backends/imgui_impl_opengl3.h"
 #include "glad/glad.h"
@@ -10,6 +11,21 @@ namespace Heart
 {
     OpenGLGraphicsPipeline* OpenGLContext::s_BoundGraphicsPipeline = nullptr;
     int OpenGLContext::s_MsaaMaxSamples = 1;
+
+    static void debugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam)
+    {
+        if (id == 131154) return; // pixel-path performance warning
+
+        switch (severity)
+        {
+            default:
+                break;
+            //case GL_DEBUG_SEVERITY_NOTIFICATION: HE_ENGINE_LOG_TRACE("OpenGL Debug: {0}", message); break;
+            //case GL_DEBUG_SEVERITY_LOW: HE_ENGINE_LOG_INFO("OpenGL Debug: {0}", message); break;
+            case GL_DEBUG_SEVERITY_MEDIUM: HE_ENGINE_LOG_WARN("OpenGL Debug: {0}", message); break;
+            case GL_DEBUG_SEVERITY_HIGH: HE_ENGINE_LOG_ERROR("OpenGL Debug: {0}", message); break;
+        }
+    }
 
     OpenGLContext::OpenGLContext(void* window)
     {
@@ -32,6 +48,11 @@ namespace Heart
         glEnable(GL_MULTISAMPLE);
         glFrontFace(GL_CCW);
         glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE);
+
+        #ifdef HE_DEBUG
+            glEnable(GL_DEBUG_OUTPUT);
+            glDebugMessageCallback(debugCallback, nullptr);
+        #endif
 
         glGetIntegerv(GL_MAX_SAMPLES, &s_MsaaMaxSamples);
     }
@@ -74,6 +95,7 @@ namespace Heart
     void OpenGLContext::EndFrame()
     {
         HE_PROFILE_FUNCTION();
+        auto timer = AggregateTimer("OpenGLContext::EndFrame");
 
         glfwSwapBuffers((GLFWwindow*)m_WindowHandle);
         s_BoundGraphicsPipeline = nullptr;
