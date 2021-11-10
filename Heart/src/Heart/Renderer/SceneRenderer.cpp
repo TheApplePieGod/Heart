@@ -138,7 +138,7 @@ namespace Heart
             m_FinalFramebuffer->BindShaderBufferResource(1, index, m_ObjectDataBuffer.get());
 
             // update transform of each cube within the buffer
-            ObjectData objectData = { transform.GetTransformMatrix(), (int)entity, { 0.f, 0.f, 0.f } };
+            ObjectData objectData = { transform.GetTransformMatrix(), static_cast<int>(entity), { 0.f, 0.f, 0.f } };
             m_ObjectDataBuffer->SetData(&objectData, 1, index);
 
             // draw
