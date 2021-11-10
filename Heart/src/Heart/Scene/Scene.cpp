@@ -26,6 +26,19 @@ namespace Heart
         return entity;
     }
 
+    Entity Scene::DuplicateEntity(Entity source)
+    {
+        auto newEntity = m_Registry.create();
+
+        if (m_Registry.any_of<NameComponent>(source.GetHandle()))
+            m_Registry.emplace<NameComponent>(newEntity, m_Registry.get<NameComponent>(source.GetHandle()).Name + " Copy");
+
+        CopyComponent<TransformComponent>(source.GetHandle(), newEntity);
+        CopyComponent<MeshComponent>(source.GetHandle(), newEntity);
+
+        return { this, newEntity };
+    }
+
     void Scene::DestroyEntity(Entity entity)
     {
         m_Registry.destroy(entity.GetHandle());

@@ -35,6 +35,14 @@ namespace HeartEditor
 
         m_SceneRenderer = Heart::CreateScope<Heart::SceneRenderer>();
 
+        // create editor texture registry
+        m_EditorTextures = Heart::CreateScope<Heart::TextureRegistry>();
+        m_EditorTextures->RegisterTexture("pan", "assets/textures/pan.png");
+        m_EditorTextures->RegisterTexture("rotate", "assets/textures/rotate.png");
+        m_EditorTextures->RegisterTexture("scale", "assets/textures/scale.png");
+        m_EditorTextures->RegisterTexture("object", "assets/textures/object.png");
+        m_EditorTextures->RegisterTexture("world", "assets/textures/world.png");
+
         HE_CLIENT_LOG_INFO("Editor attached");
     }
 
@@ -63,7 +71,7 @@ namespace HeartEditor
         ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
         ImGui::Begin("Main Window", nullptr, windowFlags);
         
-        m_Widgets.MainMenuBar.OnImGuiRender(m_ActiveScene.get());
+        m_Widgets.MainMenuBar.OnImGuiRender(m_ActiveScene.get(), m_Widgets.SceneHierarchyPanel.GetSelectedEntity());
 
         ImGuiID dockspaceId = ImGui::GetID("EditorDockSpace");
         ImGui::DockSpace(dockspaceId, ImVec2(0.f, 0.f), 0);
@@ -72,112 +80,7 @@ namespace HeartEditor
         {
             ImGui::Begin("Viewport", m_Widgets.MainMenuBar.GetWindowStatusRef("Viewport"));
 
-            // calculate viewport bounds & aspect ratio
-            ImVec2 viewportMin = ImGui::GetWindowContentRegionMin();
-            ImVec2 viewportMax = ImGui::GetWindowContentRegionMax();
-            ImVec2 viewportPos = ImGui::GetWindowPos();
-            m_ViewportSize = { viewportMax.x - viewportMin.x, viewportMax.y - viewportMin.y };
-            glm::vec2 viewportStart = { viewportMin.x + viewportPos.x, viewportMin.y + viewportPos.y };
-            glm::vec2 viewportEnd = viewportStart + m_ViewportSize;
-            m_EditorCamera->UpdateAspectRatio(m_ViewportSize.x / m_ViewportSize.y);
-            m_ViewportMousePos = glm::vec2(std::clamp(ImGui::GetMousePos().x - viewportStart.x, 0.f, m_ViewportSize.x), std::clamp(ImGui::GetMousePos().y - viewportStart.y, 0.f, m_ViewportSize.y));
-
-            // draw the viewport background
-            ImGui::GetWindowDrawList()->AddRectFilled({ viewportStart.x, viewportStart.y }, { viewportEnd.x, viewportEnd.y }, IM_COL32( 0, 0, 0, 255 )); // viewport background
-
-            // initialize imguizmo & draw the grid
-            glm::mat4 view = m_EditorCamera->GetViewMatrixInvertedY();
-            glm::mat4 proj = m_EditorCamera->GetProjectionMatrix();
-            glm::mat4 identity(1.f);
-            ImGuizmo::SetOrthographic(false);
-            ImGuizmo::SetDrawlist();
-            ImGuizmo::SetRect(viewportStart.x, viewportStart.y, m_ViewportSize.x, m_ViewportSize.y);
-            ImGuizmo::DrawGrid(glm::value_ptr(view), glm::value_ptr(proj), glm::value_ptr(identity), 100.f);
-
-            // draw the rendered texture
-            ImGui::Image(
-                m_SceneRenderer->GetFinalFramebuffer().GetColorAttachmentImGuiHandle(0),
-                { m_ViewportSize.x, m_ViewportSize.y },
-                { 0.f, 0.f }, { 1.f, 1.f }
-            );
-
-            // enable input if the viewport is being right clicked
-            m_ViewportHover = ImGui::IsItemHovered();
-            if (ImGui::IsItemHovered() && ImGui::IsMouseDown(1))
-            {
-                // disable imgui input & cursor
-                m_ViewportInput = true;
-                EditorApp::Get().GetWindow().DisableCursor();
-                ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_NoMouse;
-            }
-
-            // gizmo operation select widgets
-            ImGui::SetCursorPos(viewportMin);
-            ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(0.f, 0.2f));
-            if (ImGui::BeginTable("GizmoOperations", 3, ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingFixedFit))
-            {
-                ImGui::TableNextRow();
-
-                ImGui::TableSetColumnIndex(0);
-                if (ImGui::ImageButton(
-                    m_SceneRenderer->GetTextureRegistry().LoadTexture("pan")->GetImGuiHandle(),
-                    { 25, 25 },
-                    { 0.f, 0.f }, { 1.f, 1.f },
-                    -1, { 0.2f, 0.2f, 0.2f, 0.5f }
-                ))
-                { m_GizmoOperation = ImGuizmo::OPERATION::TRANSLATE; }
-
-                ImGui::TableSetColumnIndex(1);
-                if (ImGui::ImageButton(
-                    m_SceneRenderer->GetTextureRegistry().LoadTexture("rotate")->GetImGuiHandle(),
-                    { 25, 25 },
-                    { 0.f, 0.f }, { 1.f, 1.f },
-                    -1, { 0.2f, 0.2f, 0.2f, 0.5f }
-                ))
-                { m_GizmoOperation = ImGuizmo::OPERATION::ROTATE; }
-
-                ImGui::TableSetColumnIndex(2);
-                if (ImGui::ImageButton(
-                    m_SceneRenderer->GetTextureRegistry().LoadTexture("scale")->GetImGuiHandle(),
-                    { 25, 25 },
-                    { 0.f, 0.f }, { 1.f, 1.f },
-                    -1, { 0.2f, 0.2f, 0.2f, 0.5f }
-                ))
-                { m_GizmoOperation = ImGuizmo::OPERATION::SCALE; }
-
-                ImGui::EndTable();
-            }
-            ImGui::PopStyleVar();
-
-            // hover is false if we are hovering over the buttons
-            m_ViewportHover = m_ViewportHover && !ImGui::IsItemHovered();
-
-            // draw the imguizmo if an entity is selected
-            if (m_Widgets.SceneHierarchyPanel.GetSelectedEntity().IsValid() && m_Widgets.SceneHierarchyPanel.GetSelectedEntity().HasComponent<Heart::TransformComponent>())
-            {
-                auto& transformComponent = m_Widgets.SceneHierarchyPanel.GetSelectedEntity().GetComponent<Heart::TransformComponent>();
-                glm::mat4 transform = transformComponent.GetTransformMatrix();
-                ImGuizmo::Manipulate(
-                    glm::value_ptr(view),
-                    glm::value_ptr(proj),
-                    m_GizmoOperation,
-                    ImGuizmo::MODE::LOCAL,
-                    glm::value_ptr(transform),
-                    nullptr,
-                    nullptr,
-                    nullptr,
-                    nullptr
-                );
-
-                if (ImGuizmo::IsUsing())
-                {
-                    glm::vec3 skew;
-                    glm::vec4 perspective;
-                    glm::quat rotation;
-                    glm::decompose(transform, transformComponent.Scale, rotation, transformComponent.Translation, skew, perspective);
-                    transformComponent.Rotation = glm::degrees(glm::eulerAngles(rotation));
-                }
-            }
+            RenderViewport();
 
             ImGui::End();
         }
@@ -248,11 +151,128 @@ namespace HeartEditor
         ImGui::PopStyleVar(2);
     }
 
+    void EditorLayer::RenderViewport()
+    {
+        // calculate viewport bounds & aspect ratio
+        ImVec2 viewportMin = ImGui::GetWindowContentRegionMin();
+        ImVec2 viewportMax = ImGui::GetWindowContentRegionMax();
+        ImVec2 viewportPos = ImGui::GetWindowPos();
+        m_ViewportSize = { viewportMax.x - viewportMin.x, viewportMax.y - viewportMin.y };
+        glm::vec2 viewportStart = { viewportMin.x + viewportPos.x, viewportMin.y + viewportPos.y };
+        glm::vec2 viewportEnd = viewportStart + m_ViewportSize;
+        m_EditorCamera->UpdateAspectRatio(m_ViewportSize.x / m_ViewportSize.y);
+        m_ViewportMousePos = glm::vec2(std::clamp(ImGui::GetMousePos().x - viewportStart.x, 0.f, m_ViewportSize.x), std::clamp(ImGui::GetMousePos().y - viewportStart.y, 0.f, m_ViewportSize.y));
+
+        // draw the viewport background
+        ImGui::GetWindowDrawList()->AddRectFilled({ viewportStart.x, viewportStart.y }, { viewportEnd.x, viewportEnd.y }, IM_COL32( 0, 0, 0, 255 )); // viewport background
+
+        // initialize imguizmo & draw the grid
+        glm::mat4 view = m_EditorCamera->GetViewMatrixInvertedY();
+        glm::mat4 proj = m_EditorCamera->GetProjectionMatrix();
+        glm::mat4 identity(1.f);
+        ImGuizmo::SetOrthographic(false);
+        ImGuizmo::SetDrawlist();
+        ImGuizmo::SetRect(viewportStart.x, viewportStart.y, m_ViewportSize.x, m_ViewportSize.y);
+        ImGuizmo::DrawGrid(glm::value_ptr(view), glm::value_ptr(proj), glm::value_ptr(identity), 100.f);
+
+        // draw the rendered texture
+        ImGui::Image(
+            m_SceneRenderer->GetFinalFramebuffer().GetColorAttachmentImGuiHandle(0),
+            { m_ViewportSize.x, m_ViewportSize.y }
+        );
+
+        // enable input if the viewport is being right clicked
+        m_ViewportHover = ImGui::IsItemHovered();
+        if (ImGui::IsItemHovered() && ImGui::IsMouseDown(1))
+        {
+            // disable imgui input & cursor
+            m_ViewportInput = true;
+            EditorApp::Get().GetWindow().DisableCursor();
+            ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_NoMouse;
+            ImGui::SetWindowFocus();
+        }
+
+        // on-screen buttons
+        ImGui::SetCursorPos(viewportMin);
+        ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(0.f, 0.f));
+        if (ImGui::BeginTable("GizmoOperations", 5, ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingFixedFit))
+        {
+            ImGui::TableNextRow();
+
+            //ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, ImGui::GetColorU32(ImVec4(0.2f, 0.2f, 0.2f, 0.5f)));
+
+            ImGui::TableSetColumnIndex(0);
+            if (ImGui::ImageButton(
+                m_EditorTextures->LoadTexture("pan")->GetImGuiHandle(),
+                { 25, 25 }
+            ))
+            { m_GizmoOperation = ImGuizmo::OPERATION::TRANSLATE; }
+
+            ImGui::TableSetColumnIndex(1);
+            if (ImGui::ImageButton(
+                m_EditorTextures->LoadTexture("rotate")->GetImGuiHandle(),
+                { 25, 25 }
+            ))
+            { m_GizmoOperation = ImGuizmo::OPERATION::ROTATE; }
+
+            ImGui::TableSetColumnIndex(2);
+            if (ImGui::ImageButton(
+                m_EditorTextures->LoadTexture("scale")->GetImGuiHandle(),
+                { 25, 25 }
+            ))
+            { m_GizmoOperation = ImGuizmo::OPERATION::SCALE; }
+
+            ImGui::TableSetColumnIndex(3);
+            ImGui::Dummy({ 15.f, 0.f });
+
+            ImGui::TableSetColumnIndex(4);
+            if (ImGui::ImageButton(
+                m_EditorTextures->LoadTexture(m_GizmoMode ? "world" : "object")->GetImGuiHandle(),
+                { 25, 25 }
+            ))
+            { m_GizmoMode = (ImGuizmo::MODE)(!m_GizmoMode); }
+
+            ImGui::EndTable();
+        }
+        ImGui::PopStyleVar();
+
+        // hover is false if we are hovering over the buttons
+        m_ViewportHover = m_ViewportHover && !ImGui::IsItemHovered();
+
+        // draw the imguizmo if an entity is selected
+        if (m_Widgets.SceneHierarchyPanel.GetSelectedEntity().IsValid() && m_Widgets.SceneHierarchyPanel.GetSelectedEntity().HasComponent<Heart::TransformComponent>())
+        {
+            auto& transformComponent = m_Widgets.SceneHierarchyPanel.GetSelectedEntity().GetComponent<Heart::TransformComponent>();
+            glm::mat4 transform = transformComponent.GetTransformMatrix();
+            ImGuizmo::Manipulate(
+                glm::value_ptr(view),
+                glm::value_ptr(proj),
+                m_GizmoOperation,
+                m_GizmoMode,
+                glm::value_ptr(transform),
+                nullptr,
+                nullptr,
+                nullptr,
+                nullptr
+            );
+
+            if (ImGuizmo::IsUsing())
+            {
+                glm::vec3 skew;
+                glm::vec4 perspective;
+                glm::quat rotation;
+                glm::decompose(transform, transformComponent.Scale, rotation, transformComponent.Translation, skew, perspective);
+                transformComponent.Rotation = glm::degrees(glm::eulerAngles(rotation));
+            }
+        }
+    }
+
     void EditorLayer::OnDetach()
     {
         UnsubscribeFromEmitter(&EditorApp::Get().GetWindow());
         
         m_SceneRenderer.reset();
+        m_EditorTextures.reset();
 
         HE_CLIENT_LOG_INFO("Editor detached");
     }

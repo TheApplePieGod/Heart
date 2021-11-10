@@ -16,23 +16,6 @@
 
 namespace HeartEditor
 {
-    struct TestData
-    {
-        struct Vertex
-        {
-            glm::vec3 position;
-            glm::vec2 texCoord;
-        };
-
-        Heart::Ref<Heart::Buffer> VertexBuffer;
-        Heart::Ref<Heart::Buffer> IndexBuffer;
-        Heart::Ref<Heart::Framebuffer> SceneFramebuffer;
-        Heart::ShaderRegistry ShaderRegistry;
-        Heart::Ref<Heart::Buffer> FrameDataBuffer;
-        Heart::Ref<Heart::Buffer> ObjectDataBuffer;
-        Heart::TextureRegistry TextureRegistry;
-    };
-
     struct EditorWidgets
     {
         Widgets::MenuBar MainMenuBar;
@@ -51,6 +34,8 @@ namespace HeartEditor
         void OnImGuiRender() override;
         void OnDetach() override;
 
+        void RenderViewport();
+
         void OnEvent(Heart::Event& event) override;
 
     protected:
@@ -67,6 +52,8 @@ namespace HeartEditor
         glm::vec2 m_ViewportSize;
         bool m_ViewportInput = false;
         bool m_ViewportHover = false;
+        ImGuizmo::MODE m_GizmoMode = ImGuizmo::MODE::LOCAL;
         ImGuizmo::OPERATION m_GizmoOperation = ImGuizmo::OPERATION::TRANSLATE;
+        Heart::Scope<Heart::TextureRegistry> m_EditorTextures;
     };
 }

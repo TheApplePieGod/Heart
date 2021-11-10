@@ -50,6 +50,10 @@ namespace Heart
 
         inline void* GetImGuiHandle() const { return m_ImGuiHandle; }
         inline u32 GetArrayCount() const { return m_ArrayCount; }
+        inline int GetWidth() const { return m_Width; }
+        inline int GetHeight() const { return m_Height; }
+        inline int GetChannels() const { return m_Channels; }
+        inline const std::string& GetFilePath() const { return m_Path; }
 
     public:
         static Ref<Texture> Create(const std::string& path);

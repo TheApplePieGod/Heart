@@ -67,9 +67,6 @@ namespace Heart
         // texture registry
         m_TextureRegistry.RegisterTexture("fish", "assets/textures/fish.png");
         m_TextureRegistry.RegisterTexture("test", "assets/textures/test.png");
-        m_TextureRegistry.RegisterTexture("pan", "assets/textures/pan.png");
-        m_TextureRegistry.RegisterTexture("rotate", "assets/textures/rotate.png");
-        m_TextureRegistry.RegisterTexture("scale", "assets/textures/scale.png");
 
         // graphics pipeline
         GraphicsPipelineCreateInfo gpCreateInfo = {

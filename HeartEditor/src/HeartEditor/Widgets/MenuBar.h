@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Heart/Scene/Scene.h"
+#include "Heart/Scene/Entity.h"
 
 namespace HeartEditor
 {
@@ -11,7 +12,7 @@ namespace Widgets
     public:
         MenuBar();
 
-        void OnImGuiRender(Heart::Scene* activeScene);
+        void OnImGuiRender(Heart::Scene* activeScene, Heart::Entity& selectedEntity);
 
         inline bool* GetWindowStatusRef(const std::string& name) { return &m_WindowStatuses[name]; }
         inline bool GetWindowStatus(const std::string& name) { return m_WindowStatuses[name]; }

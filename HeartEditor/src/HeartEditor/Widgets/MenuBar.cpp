@@ -22,7 +22,7 @@ namespace Widgets
         m_WindowStatuses["Debug Info"] = true;
     }
 
-    void MenuBar::OnImGuiRender(Heart::Scene* activeScene)
+    void MenuBar::OnImGuiRender(Heart::Scene* activeScene, Heart::Entity& selectedEntity)
     {
         ImGuiViewportP* viewport = (ImGuiViewportP*)(void*)ImGui::GetMainViewport();
         ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_MenuBar;
@@ -38,7 +38,7 @@ namespace Widgets
                 if (ImGui::BeginMenu("File"))
                 {
                     if (ImGui::MenuItem("Create Entity"))
-                        activeScene->CreateEntity("New Entity");
+                        selectedEntity = activeScene->CreateEntity("New Entity");
 
                     if (ImGui::MenuItem("Toggle Fullscreen", "F11"))
                         EditorApp::Get().GetWindow().ToggleFullscreen();
