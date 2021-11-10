@@ -127,7 +127,7 @@ namespace Heart
             HE_PROFILE_FRAME();
 
             double currentFrameTime = m_Window->GetWindowTime();
-            Timestep ts = Timestep(currentFrameTime - m_LastFrameTime);
+            m_LastTimestep = Timestep(currentFrameTime - m_LastFrameTime);
             m_LastFrameTime = currentFrameTime;
 
             m_Window->PollEvents();
@@ -139,7 +139,7 @@ namespace Heart
 
             // Layer update
             for (auto layer : m_Layers)
-                layer->OnUpdate(ts);
+                layer->OnUpdate(m_LastTimestep);
 
             // ImGui render
             m_ImGuiInstance.BeginFrame();

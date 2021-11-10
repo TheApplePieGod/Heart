@@ -34,14 +34,17 @@ namespace HeartEditor
         void OnImGuiRender() override;
         void OnDetach() override;
 
-        void RenderViewport();
-
         void OnEvent(Heart::Event& event) override;
 
     protected:
         bool KeyPressedEvent(Heart::KeyPressedEvent& event);
         bool MouseButtonPressedEvent(Heart::MouseButtonPressedEvent& event);
         bool MouseButtonReleasedEvent(Heart::MouseButtonReleasedEvent& event);
+
+    private:
+        void RenderViewport();
+        void RenderDebugInfo();
+        void RenderTooltip(const std::string& text);
 
     private:
         EditorWidgets m_Widgets;

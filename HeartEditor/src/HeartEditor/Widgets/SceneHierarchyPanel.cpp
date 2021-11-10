@@ -43,7 +43,7 @@ namespace Widgets
             }
             if (open)
             {
-                ImGui::Text("Blah blah\nBlah Blah");
+                //ImGui::Text("Blah blah\nBlah Blah");
                 ImGui::TreePop();
             }
         }

@@ -125,19 +125,7 @@ namespace HeartEditor
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 5.0f));
             ImGui::Begin("Debug Info", m_Widgets.MainMenuBar.GetWindowStatusRef("Debug Info"));
 
-            ImGui::Text("Render Api: %s", HE_ENUM_TO_STRING(Heart::RenderApi, Heart::Renderer::GetApiType()));
-
-            glm::vec3 cameraPos = m_EditorCamera->GetPosition();
-            glm::vec3 cameraFor = m_EditorCamera->GetForwardVector();
-            ImGui::Text("Camera Pos: (%.2f, %.2f, %.2f)", cameraPos.x, cameraPos.y, cameraPos.z);
-            ImGui::Text("Camera Dir: (%.2f, %.2f, %.2f)", cameraFor.x, cameraFor.y, cameraFor.z);
-            ImGui::Text("Camera Rot: (%.2f, %.2f)", m_EditorCamera->GetXRotation(), m_EditorCamera->GetYRotation());
-            ImGui::Text("Mouse Pos: (%.1f, %.1f)", Heart::Input::GetScreenMousePos().x, Heart::Input::GetScreenMousePos().y);
-            ImGui::Text("VP Mouse: (%.1f, %.1f)", m_ViewportMousePos.x, m_ViewportMousePos.y);
-            ImGui::Text("VP Hover: %s", m_ViewportHover ? "true" : "false");
-
-            for (auto& pair : Heart::AggregateTimer::GetTimeMap())
-                ImGui::Text("%s: %dms", pair.first.c_str(), pair.second);
+            RenderDebugInfo();
 
             ImGui::End();
             ImGui::PopStyleVar();
@@ -207,6 +195,7 @@ namespace HeartEditor
                 { 25, 25 }
             ))
             { m_GizmoOperation = ImGuizmo::OPERATION::TRANSLATE; }
+            RenderTooltip("Change gizmo to translate mode");
 
             ImGui::TableSetColumnIndex(1);
             if (ImGui::ImageButton(
@@ -214,6 +203,7 @@ namespace HeartEditor
                 { 25, 25 }
             ))
             { m_GizmoOperation = ImGuizmo::OPERATION::ROTATE; }
+            RenderTooltip("Change gizmo to rotate mode");
 
             ImGui::TableSetColumnIndex(2);
             if (ImGui::ImageButton(
@@ -221,6 +211,7 @@ namespace HeartEditor
                 { 25, 25 }
             ))
             { m_GizmoOperation = ImGuizmo::OPERATION::SCALE; }
+            RenderTooltip("Change gizmo to scale mode");
 
             ImGui::TableSetColumnIndex(3);
             ImGui::Dummy({ 15.f, 0.f });
@@ -231,6 +222,7 @@ namespace HeartEditor
                 { 25, 25 }
             ))
             { m_GizmoMode = (ImGuizmo::MODE)(!m_GizmoMode); }
+            RenderTooltip(m_GizmoMode ? "Change gizmo to operate in local space" : "Change gizmo to operate in world space");
 
             ImGui::EndTable();
         }
@@ -264,6 +256,42 @@ namespace HeartEditor
                 glm::decompose(transform, transformComponent.Scale, rotation, transformComponent.Translation, skew, perspective);
                 transformComponent.Rotation = glm::degrees(glm::eulerAngles(rotation));
             }
+        }
+    }
+
+    void EditorLayer::RenderDebugInfo()
+    {
+        double stepMs = EditorApp::Get().GetLastTimestep().StepMilliseconds();
+        ImGui::Text("Render Api: %s", HE_ENUM_TO_STRING(Heart::RenderApi, Heart::Renderer::GetApiType()));
+        ImGui::Text("Frametime: %.1fms", stepMs);
+        ImGui::Text("Framerate: %d FPS", static_cast<u32>(1000.0 / stepMs));
+
+        ImGui::Separator();
+
+        glm::vec3 cameraPos = m_EditorCamera->GetPosition();
+        glm::vec3 cameraFor = m_EditorCamera->GetForwardVector();
+        ImGui::Text("Camera Pos: (%.2f, %.2f, %.2f)", cameraPos.x, cameraPos.y, cameraPos.z);
+        ImGui::Text("Camera Dir: (%.2f, %.2f, %.2f)", cameraFor.x, cameraFor.y, cameraFor.z);
+        ImGui::Text("Camera Rot: (%.2f, %.2f)", m_EditorCamera->GetXRotation(), m_EditorCamera->GetYRotation());
+        ImGui::Text("Mouse Pos: (%.1f, %.1f)", Heart::Input::GetScreenMousePos().x, Heart::Input::GetScreenMousePos().y);
+        ImGui::Text("VP Mouse: (%.1f, %.1f)", m_ViewportMousePos.x, m_ViewportMousePos.y);
+        ImGui::Text("VP Hover: %s", m_ViewportHover ? "true" : "false");
+
+        for (auto& pair : Heart::AggregateTimer::GetTimeMap())
+            ImGui::Text("%s: %dms", pair.first.c_str(), pair.second);
+    }
+
+    void EditorLayer::RenderTooltip(const std::string& text)
+    {
+        if (ImGui::IsItemHovered())
+        {
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 5.f, 5.f} );
+            ImGui::BeginTooltip();
+            ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+            ImGui::TextUnformatted(text.c_str());
+            ImGui::PopTextWrapPos();
+            ImGui::EndTooltip();
+            ImGui::PopStyleVar();
         }
     }
 

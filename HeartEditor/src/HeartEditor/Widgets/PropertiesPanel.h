@@ -20,14 +20,18 @@ namespace Widgets
         void RenderXYZSlider(const std::string& name, f32* x, f32* y, f32* z, f32 min, f32 max, f32 step);
 
         template<typename Component>
-        void RenderComponentPopup(const std::string& popupName, Heart::Entity selectedEntity)
+        void RenderComponentPopup(const std::string& popupName, Heart::Entity selectedEntity, bool canRemove = true)
         {
             if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1))
                 ImGui::OpenPopup(popupName.c_str());
             if (ImGui::BeginPopup(popupName.c_str()))
             {
+                if (!canRemove)
+                    ImGui::BeginDisabled();
                 if (ImGui::Button("Remove Component"))
                     selectedEntity.RemoveComponent<Component>();
+                if (!canRemove)
+                    ImGui::EndDisabled();
                 ImGui::EndPopup();
             }
         }

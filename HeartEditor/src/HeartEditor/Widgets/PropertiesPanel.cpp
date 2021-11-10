@@ -98,6 +98,7 @@ namespace Widgets
             if (selectedEntity.HasComponent<Heart::TransformComponent>())
             {
                 bool headerOpen = ImGui::CollapsingHeader("Transform");
+                RenderComponentPopup<Heart::MeshComponent>("TransformPopup", selectedEntity, false);
                 if (headerOpen)
                 {
                     auto& transformComponent = selectedEntity.GetComponent<Heart::TransformComponent>();

@@ -24,6 +24,7 @@ namespace Heart
         inline ImGuiInstance& GetImGuiInstance() { return m_ImGuiInstance; }
         inline Window& GetWindow() const { return *m_Window; }
         inline u64 GetFrameCount() const { return m_FrameCount; }
+        inline Timestep GetLastTimestep() const { return m_LastTimestep; }
         inline void Close() { m_Running = false; };
 
     private:
@@ -44,6 +45,7 @@ namespace Heart
         u64 m_FrameCount = 0;
         double m_LastFrameTime = 0.0;
         RenderApi::Type m_SwitchingApi = RenderApi::Type::None;
+        Timestep m_LastTimestep;
 
     private:
         static App* s_Instance;
