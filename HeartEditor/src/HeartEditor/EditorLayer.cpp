@@ -43,13 +43,14 @@ namespace HeartEditor
         m_EditorTextures->RegisterTexture("object", "assets/textures/object.png");
         m_EditorTextures->RegisterTexture("world", "assets/textures/world.png");
 
+        m_Widgets.ContentBrowser.InitializeTextureReistry();
+
         HE_CLIENT_LOG_INFO("Editor attached");
     }
 
     void EditorLayer::OnUpdate(Heart::Timestep ts)
     {
         HE_PROFILE_FUNCTION();
-
         auto timer = Heart::AggregateTimer("EditorLayer::OnUpdate");
 
         m_EditorCamera->OnUpdate(ts, m_ViewportInput, m_ViewportHover);
@@ -60,6 +61,7 @@ namespace HeartEditor
     void EditorLayer::OnImGuiRender()
     {
         HE_PROFILE_FUNCTION();
+        auto timer = Heart::AggregateTimer("EditorLayer::OnImGuiRender");
         ImGuizmo::BeginFrame();
 
         ImGui::SetNextWindowPos(ImGui::GetMainViewport()->WorkPos);
@@ -87,9 +89,13 @@ namespace HeartEditor
 
         if (m_Widgets.MainMenuBar.GetWindowStatus("Content Browser"))
         {
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 5.0f));
             ImGui::Begin("Content Browser", m_Widgets.MainMenuBar.GetWindowStatusRef("Content Browser"));
 
+            m_Widgets.ContentBrowser.OnImGuiRender();
+
             ImGui::End();
+            ImGui::PopStyleVar();
         }
 
         if (m_Widgets.MainMenuBar.GetWindowStatus("Scene Hierarchy"))
@@ -301,6 +307,8 @@ namespace HeartEditor
         
         m_SceneRenderer.reset();
         m_EditorTextures.reset();
+
+        m_Widgets.ContentBrowser.ShutdownTextureRegistry();
 
         HE_CLIENT_LOG_INFO("Editor detached");
     }

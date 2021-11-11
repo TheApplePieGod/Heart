@@ -13,6 +13,7 @@
 #include "HeartEditor/Widgets/MenuBar.h"
 #include "HeartEditor/Widgets/SceneHierarchyPanel.h"
 #include "HeartEditor/Widgets/PropertiesPanel.h"
+#include "HeartEditor/Widgets/ContentBrowser.h"
 
 namespace HeartEditor
 {
@@ -21,6 +22,7 @@ namespace HeartEditor
         Widgets::MenuBar MainMenuBar;
         Widgets::SceneHierarchyPanel SceneHierarchyPanel;
         Widgets::PropertiesPanel PropertiesPanel;
+        Widgets::ContentBrowser ContentBrowser;
     };
 
     class EditorLayer : public Heart::Layer
