@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Heart/Renderer/Framebuffer.h"
+#include "Heart/Platform/OpenGL/OpenGLBuffer.h"
 
 namespace Heart
 {
@@ -45,7 +46,7 @@ namespace Heart
         std::vector<u32> m_BlitColorAttachmentTextureIds;
         std::vector<u32> m_CachedAttachmentHandles;
 
-        std::vector<std::array<u32, 2>> m_PixelBufferObjects;
+        std::vector<std::array<Ref<OpenGLBuffer>, 2>> m_PixelBufferObjects;
         std::vector<void*> m_PixelBufferMappings;
 
         friend class OpenGLRenderApi;

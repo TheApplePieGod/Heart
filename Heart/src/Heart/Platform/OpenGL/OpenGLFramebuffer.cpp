@@ -115,7 +115,7 @@ namespace Heart
             // unmap any buffers that were mapped this frame
             if (m_Info.Attachments[i].AllowCPURead && m_PixelBufferMappings[i] != nullptr)
             {
-                glUnmapNamedBuffer(m_PixelBufferObjects[i][(App::Get().GetFrameCount() + 1) % 2]);
+                glUnmapNamedBuffer(m_PixelBufferObjects[i][(App::Get().GetFrameCount() + 1) % 2]->GetBufferId());
                 m_PixelBufferMappings[i] = nullptr;
             }
 
@@ -127,7 +127,7 @@ namespace Heart
                 else
                     glBindFramebuffer(GL_READ_FRAMEBUFFER, m_FramebufferId);
                 glReadBuffer(m_CachedAttachmentHandles[i]);
-                glBindBuffer(GL_PIXEL_PACK_BUFFER, m_PixelBufferObjects[i][App::Get().GetFrameCount() % 2]);
+                glBindBuffer(GL_PIXEL_PACK_BUFFER, m_PixelBufferObjects[i][App::Get().GetFrameCount() % 2]->GetBufferId());
                 glReadPixels(0, 0, m_ActualWidth, m_ActualHeight, OpenGLCommon::ColorFormatToOpenGL(m_Info.Attachments[i].Format), OpenGLCommon::ColorFormatToOpenGLDataType(m_Info.Attachments[i].Format), nullptr);
             }
 
@@ -226,7 +226,7 @@ namespace Heart
         HE_ENGINE_ASSERT(m_Info.Attachments[attachmentIndex].AllowCPURead, "Cannot read pixel data of attachment that does not have 'AllowCPURead' enabled");
 
         if (m_PixelBufferMappings[attachmentIndex] == nullptr)
-            m_PixelBufferMappings[attachmentIndex] = glMapNamedBuffer(m_PixelBufferObjects[attachmentIndex][(App::Get().GetFrameCount() + 1) % 2], GL_READ_ONLY);
+            m_PixelBufferMappings[attachmentIndex] = glMapNamedBuffer(m_PixelBufferObjects[attachmentIndex][(App::Get().GetFrameCount() + 1) % 2]->GetBufferId(), GL_READ_ONLY);
 
         return m_PixelBufferMappings[attachmentIndex];
     }
@@ -312,16 +312,14 @@ namespace Heart
         {
             if (m_Info.Attachments[i].AllowCPURead) // only create the buffers for the no sample count textures
             {
-                u32 bufferSize = m_ActualWidth * m_ActualHeight * ColorFormatComponents(m_Info.Attachments[i].Format) * BufferDataTypeSize(ColorFormatBufferDataType(m_Info.Attachments[i].Format));
-                glGenBuffers(2, m_PixelBufferObjects[i].data());
-                
-                for (size_t j = 0; j < m_PixelBufferObjects[i].size(); j++)
+                for (size_t j = 0; j < m_PixelBufferObjects.size(); j++)
                 {
-                    glBindBuffer(GL_PIXEL_PACK_BUFFER, m_PixelBufferObjects[i][j]);
-                    glBufferData(GL_PIXEL_PACK_BUFFER, bufferSize, nullptr, GL_STREAM_READ);
+                    m_PixelBufferObjects[i][j] = std::dynamic_pointer_cast<OpenGLBuffer>(OpenGLBuffer::Create(
+                        Buffer::Type::Pixel,
+                        { ColorFormatBufferDataType(m_Info.Attachments[i].Format) },
+                        m_ActualWidth * m_ActualHeight * ColorFormatComponents(m_Info.Attachments[i].Format)
+                    ));
                 }
-
-                glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
             }
         }
     }
@@ -332,7 +330,10 @@ namespace Heart
         {
             if (m_Info.Attachments[i].AllowCPURead)
             {
-                glDeleteBuffers(2, m_PixelBufferObjects[i].data());
+                for (size_t j = 0; j < m_PixelBufferObjects.size(); j++)
+                {
+                    m_PixelBufferObjects[i][j].reset();
+                }
             }
         }
     }

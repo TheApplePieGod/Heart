@@ -46,7 +46,7 @@ namespace Heart
             void* ResolveImageImGuiId;
             bool HasResolve;
             bool CPUVisible;
-            Ref<Buffer> AttachmentBuffer;
+            Ref<VulkanBuffer> AttachmentBuffer;
         };
 
     private:

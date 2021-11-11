@@ -253,7 +253,7 @@ namespace Heart
                 image = m_AttachmentData[i].ResolveImage;
 
             VulkanCommon::TransitionImageLayout(VulkanContext::GetDevice().Device(), buffer, image, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
-            vkCmdCopyImageToBuffer(buffer, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, ((VulkanBuffer*)m_AttachmentData[i].AttachmentBuffer.get())->GetBuffer(), 1, &copyData);
+            vkCmdCopyImageToBuffer(buffer, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, m_AttachmentData[i].AttachmentBuffer->GetBuffer(), 1, &copyData);
             VulkanCommon::TransitionImageLayout(VulkanContext::GetDevice().Device(), buffer, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
         }
 
@@ -341,7 +341,7 @@ namespace Heart
         HE_ENGINE_ASSERT(attachmentIndex < m_AttachmentData.size(), "Attachment access on framebuffer out of range");
         HE_ENGINE_ASSERT(m_AttachmentData[attachmentIndex].CPUVisible, "Cannot read pixel data of attachment that does not have 'AllowCPURead' enabled");
 
-        return ((VulkanBuffer*)m_AttachmentData[attachmentIndex].AttachmentBuffer.get())->GetMappedMemory();
+        return m_AttachmentData[attachmentIndex].AttachmentBuffer->GetMappedMemory();
     }
 
     Ref<GraphicsPipeline> VulkanFramebuffer::InternalInitializeGraphicsPipeline(const GraphicsPipelineCreateInfo& createInfo)
@@ -417,7 +417,11 @@ namespace Heart
         }
 
         if (attachmentData.CPUVisible)
-            attachmentData.AttachmentBuffer = VulkanBuffer::Create(Buffer::Type::None, { ColorFormatBufferDataType(attachmentData.GeneralColorFormat) }, m_ActualWidth * m_ActualHeight * ColorFormatComponents(attachmentData.GeneralColorFormat));
+            attachmentData.AttachmentBuffer = std::dynamic_pointer_cast<VulkanBuffer>(VulkanBuffer::Create(
+                Buffer::Type::Pixel,
+                { ColorFormatBufferDataType(attachmentData.GeneralColorFormat) },
+                m_ActualWidth * m_ActualHeight * ColorFormatComponents(attachmentData.GeneralColorFormat)
+            ));
 
         // create associated image views 
         attachmentData.ColorImageView = VulkanCommon::CreateImageView(device.Device(), attachmentData.ColorImage, colorFormat, 1);

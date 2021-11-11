@@ -103,10 +103,10 @@ namespace Heart
         enum class Type
         {
             None = 0,
-            Uniform, Storage, Vertex, Index
+            Uniform, Storage, Vertex, Index, Pixel
         };
         inline static const char* TypeStrings[] = {
-            "None", "Uniform", "Storage", "Vertex", "Index"
+            "None", "Uniform", "Storage", "Vertex", "Index", "Pixel"
         };
 
     public:

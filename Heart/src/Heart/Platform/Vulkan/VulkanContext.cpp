@@ -165,6 +165,7 @@ namespace Heart
         createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
         createInfo.pApplicationInfo = &appInfo;
         #if HE_DEBUG
+            HE_ENGINE_LOG_TRACE("VULKAN: Configuring validation layers");
             auto validationLayers = ConfigureValidationLayers();
             createInfo.enabledLayerCount = static_cast<u32>(validationLayers.size());
             createInfo.ppEnabledLayerNames = validationLayers.data();

@@ -18,6 +18,7 @@ namespace Heart
 
         glBindBuffer(OpenGLCommon::BufferTypeToOpenGL(type), m_BufferId);
         glBufferData(OpenGLCommon::BufferTypeToOpenGL(type), layout.GetStride() * elementCount, initialData, drawType);
+        glBindBuffer(OpenGLCommon::BufferTypeToOpenGL(type), 0);
     }
 
     OpenGLBuffer::~OpenGLBuffer()
@@ -31,5 +32,6 @@ namespace Heart
         
         glBindBuffer(OpenGLCommon::BufferTypeToOpenGL(m_Type), m_BufferId);
         glBufferSubData(OpenGLCommon::BufferTypeToOpenGL(m_Type), m_Layout.GetStride() * elementOffset, m_Layout.GetStride() * elementCount, data);
+        glBindBuffer(OpenGLCommon::BufferTypeToOpenGL(m_Type), 0);
     }
 }
