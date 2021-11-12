@@ -18,6 +18,9 @@ namespace Widgets
         inline void SetSelectedEntity(Heart::Entity entity) { m_SelectedEntity = entity; }
 
     private:
+        void RenderEntity(Heart::Scene* activeScene, entt::entity entity);
+
+    private:
         Heart::Entity m_SelectedEntity;
     };
 }

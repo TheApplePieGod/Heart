@@ -2,6 +2,7 @@
 #include "Entity.h"
 
 #include "Heart/Scene/Scene.h"
+#include "Heart/Scene/Components.h"
 
 namespace Heart
 {
@@ -12,6 +13,11 @@ namespace Heart
     Entity::Entity(Scene* scene, u32 handle)
         : m_Scene(scene), m_EntityHandle(static_cast<entt::entity>(handle))
     {}
+
+    UUID Entity::GetUUID()
+    {
+        return GetComponent<IdComponent>().UUID;
+    }
 
     bool Entity::IsValid()
     {

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Heart/Core/UUID.h"
 #include "entt/entt.hpp"
 
 namespace Heart
@@ -12,8 +13,11 @@ namespace Heart
         ~Scene();
 
         Entity CreateEntity(const std::string& name);
+        Entity CreateEntityWithUUID(const std::string& name, UUID uuid);
         Entity DuplicateEntity(Entity source);
         void DestroyEntity(Entity entity);
+        void AssignRelationship(Entity parent, Entity child);
+        void UnparentEntity(Entity child);
 
         template<typename Component>
         void ClearComponent()
@@ -24,6 +28,7 @@ namespace Heart
         void ClearScene();
 
         entt::registry& GetRegistry() { return m_Registry; }
+        Entity GetEntityFromUUID(UUID uuid);
 
     private:
         template<typename Component>
@@ -33,7 +38,10 @@ namespace Heart
                 m_Registry.emplace<Component>(dst, m_Registry.get<Component>(src));
         }
 
+        void RemoveChild(entt::entity parent, UUID childUUID);
+
     private:
         entt::registry m_Registry;
+        std::unordered_map<UUID, entt::entity> m_UUIDMap;
     };
 }

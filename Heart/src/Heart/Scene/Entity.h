@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Heart/Core/UUID.h"
 #include "entt/entt.hpp"
 
 namespace Heart
@@ -39,6 +40,7 @@ namespace Heart
             return m_Scene->GetRegistry().get<Component>(m_EntityHandle);
         }
 
+        UUID GetUUID();
         bool IsValid();
 
         inline Scene* GetScene() { return m_Scene; }

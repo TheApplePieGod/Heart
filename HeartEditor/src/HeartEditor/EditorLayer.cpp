@@ -18,8 +18,25 @@ namespace HeartEditor
         m_EditorCamera = Heart::CreateScope<EditorCamera>(70.f, 0.1f, 1000.f, 1.f);
         m_ActiveScene = Heart::CreateRef<Heart::Scene>();
 
-        auto entity = m_ActiveScene->CreateEntity("Test Entity");
-        entity.AddComponent<Heart::MeshComponent>();
+        // auto entity = m_ActiveScene->CreateEntity("Test Entity");
+        // entity.AddComponent<Heart::MeshComponent>();
+
+        std::string parentString = "Parent Entity ";
+        std::string childString = "Child Entity ";
+        for (int i = 0; i < 10; i++)
+        {
+            Heart::Entity parentEntity = m_ActiveScene->CreateEntity(parentString + std::to_string(i));
+            Heart::Entity childEntity;
+            parentEntity.AddComponent<Heart::MeshComponent>();
+        
+            for (int j = 0; j < 10; j++)
+            {
+                Heart::Entity childEntity = m_ActiveScene->CreateEntity(childString + std::to_string(j));
+                //childEntity.AddComponent<Heart::MeshComponent>();
+                m_ActiveScene->AssignRelationship(parentEntity, childEntity);
+                parentEntity = childEntity;
+            }
+        }
     }
 
     EditorLayer::~EditorLayer()

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Heart/Core/UUID.h"
 #include "glm/vec3.hpp"
 #include "glm/vec4.hpp"
 #include "glm/mat4x4.hpp"
@@ -8,9 +9,24 @@
 
 namespace Heart
 {
+    struct IdComponent
+    {
+        UUID UUID;
+    };
+
     struct NameComponent
     {
         std::string Name;
+    };
+
+    struct ParentComponent
+    {
+        UUID ParentUUID;
+    };
+
+    struct ChildComponent
+    {
+        std::vector<UUID> Children;
     };
 
     struct TransformComponent
