@@ -64,6 +64,8 @@ namespace Widgets
 
     void PropertiesPanel::OnImGuiRender(Heart::Entity selectedEntity)
     {
+        HE_PROFILE_FUNCTION();
+
         if (selectedEntity.IsValid())
         {
             if (selectedEntity.HasComponent<Heart::NameComponent>())
@@ -108,6 +110,8 @@ namespace Widgets
                     RenderXYZSlider("Rotation     ", &transformComponent.Rotation.x, &transformComponent.Rotation.y, &transformComponent.Rotation.z, 0.f, 360.f, 1.f);
                     RenderXYZSlider("Scale        ", &transformComponent.Scale.x, &transformComponent.Scale.y, &transformComponent.Scale.z, 0.f, 999999.f, 0.1f);
                     ImGui::Unindent();
+
+                    selectedEntity.GetScene()->CacheEntityTransform(selectedEntity);
                 }
                 
             }
