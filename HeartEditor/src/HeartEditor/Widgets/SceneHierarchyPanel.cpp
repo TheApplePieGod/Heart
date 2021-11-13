@@ -19,6 +19,8 @@ namespace Widgets
 
     void SceneHierarchyPanel::OnImGuiRender(Heart::Scene* activeScene, Heart::Entity& selectedEntity)
     {
+        HE_PROFILE_FUNCTION();
+        
         // only top level components
         auto view = activeScene->GetRegistry().view<Heart::NameComponent>(entt::exclude<Heart::ParentComponent>);
 

@@ -3,6 +3,8 @@
 
 #include "Heart/Platform/Vulkan/VulkanShader.h"
 #include "Heart/Platform/Vulkan/VulkanContext.h"
+#include "Heart/Asset/AssetManager.h"
+#include "Heart/Asset/ShaderAsset.h"
 #include "Heart/Renderer/Renderer.h"
 
 namespace Heart
@@ -41,9 +43,11 @@ namespace Heart
 
         m_DescriptorSet.Initialize(m_ProgramReflectionData);
 
+        auto vertShader = AssetManager::RetrieveAsset<ShaderAsset>(createInfo.VertexShaderPath)->GetShader();
+        auto fragShader = AssetManager::RetrieveAsset<ShaderAsset>(createInfo.FragmentShaderPath)->GetShader();
         VkPipelineShaderStageCreateInfo shaderStages[] = {
-            VulkanCommon::DefineShaderStage(static_cast<VulkanShader*>(createInfo.VertexShader.get())->GetShaderModule(), VK_SHADER_STAGE_VERTEX_BIT),
-            VulkanCommon::DefineShaderStage(static_cast<VulkanShader*>(createInfo.FragmentShader.get())->GetShaderModule(), VK_SHADER_STAGE_FRAGMENT_BIT)
+            VulkanCommon::DefineShaderStage(static_cast<VulkanShader*>(vertShader)->GetShaderModule(), VK_SHADER_STAGE_VERTEX_BIT),
+            VulkanCommon::DefineShaderStage(static_cast<VulkanShader*>(fragShader)->GetShaderModule(), VK_SHADER_STAGE_FRAGMENT_BIT)
         };
 
         auto bindingDescription = GenerateVertexBindingDescription(createInfo.VertexLayout);

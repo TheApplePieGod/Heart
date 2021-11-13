@@ -2,6 +2,8 @@
 #include "ContentBrowser.h"
 
 #include "HeartEditor/EditorApp.h"
+#include "Heart/Asset/AssetManager.h"
+#include "Heart/Asset/TextureAsset.h"
 #include "imgui/imgui.h"
 #include "imgui/imgui_internal.h"
 
@@ -14,19 +16,12 @@ namespace Widgets
         ScanDirectory();
     }
 
-    void ContentBrowser::InitializeTextureReistry()
-    {
-        m_CBTextures = Heart::CreateScope<Heart::TextureRegistry>();
-        m_CBTextures->RegisterTexture("folder", "assets/textures/folder.png");
-        m_CBTextures->RegisterTexture("file", "assets/textures/file.png");
-    }
-
     void ContentBrowser::OnImGuiRender()
     {
+        HE_PROFILE_FUNCTION();
+        
         if (m_ShouldRescan)
             ScanDirectory();
-
-        ImGui::Text("test");
 
         f32 windowWidth = ImGui::GetWindowContentRegionMax().x - ImGui::GetWindowContentRegionMin().x;
         f32 windowHeight = ImGui::GetContentRegionAvail().y;
@@ -47,13 +42,34 @@ namespace Widgets
         // tree
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.f, 0.f));
         ImGui::BeginChild("cbtree", ImVec2(m_WindowSizes.x, windowHeight), false);
-
+        RenderDirectoryNode(m_DirectoryStack[0]);
         ImGui::EndChild();
-
+        
         ImGui::SameLine(0.f, 10.f);
 
-        // file list (jank)
         ImGui::BeginChild("cbfiles", ImVec2(m_WindowSizes.y, windowHeight), false);
+        // file list navigation
+        if (ImGui::Button("<##back"))
+        {
+            if (--m_DirectoryStackIndex < 0)
+                m_DirectoryStackIndex++;
+            else
+                m_ShouldRescan = true;
+        }
+        ImGui::SameLine(0.f, 5.f);
+        if (ImGui::Button(">##forwards"))
+        {
+            if (++m_DirectoryStackIndex >= m_DirectoryStack.size())
+                m_DirectoryStackIndex--;
+            else
+                m_ShouldRescan = true;
+        }
+        ImGui::SameLine(0.f, 10.f);
+        if (ImGui::Button("Refresh"))
+            m_ShouldRescan = true;
+
+        // file list (jank)
+        ImGui::BeginChild("cbfileslist", ImVec2(m_WindowSizes.y, ImGui::GetContentRegionAvail().y));
         f32 currentExtent = 999999.f; // to prevent SameLine spacing in first row
         for (const auto& entry : m_DirectoryList)
         {
@@ -69,15 +85,57 @@ namespace Widgets
             currentExtent += m_CardSize.x;
         }
         ImGui::EndChild();
+
+        ImGui::EndChild();
         ImGui::PopStyleVar();
     }
 
     void ContentBrowser::ScanDirectory()
     {
         m_DirectoryList.clear();
-        for (const auto& entry : std::filesystem::directory_iterator(m_DefaultAssetDirectory))
-            m_DirectoryList.push_back(entry);
-        m_ShouldRescan = false;
+        try
+        {
+            m_ShouldRescan = false;
+            for (const auto& entry : std::filesystem::directory_iterator(m_DirectoryStack[m_DirectoryStackIndex]))
+                m_DirectoryList.push_back(entry);
+        }
+        catch (std::exception e) // likely failed to open directory so just reset
+        {
+            m_DirectoryStack.resize(1);
+            m_DirectoryStackIndex = 0;
+        }  
+    }
+
+    void ContentBrowser::PushDirectoryStack(const std::string& entry)
+    {
+        m_DirectoryStack.push_back(entry);
+        m_DirectoryStackIndex++;
+        m_ShouldRescan = true;
+    }
+
+    void ContentBrowser::RenderDirectoryNode(const std::string& path)
+    {
+        std::vector<std::filesystem::directory_entry> directories;
+        for (const auto& entry : std::filesystem::directory_iterator(path))
+            if (entry.is_directory())
+                directories.push_back(entry);
+
+        bool selected = path == m_DirectoryStack[m_DirectoryStackIndex];
+        ImGuiTreeNodeFlags node_flags = (directories.size() > 0 ? 0 : ImGuiTreeNodeFlags_Leaf) | ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | (selected ? ImGuiTreeNodeFlags_Selected : 0);
+        bool open = ImGui::TreeNodeEx(path.c_str(), node_flags, std::filesystem::path(path).filename().generic_u8string().c_str());
+        if (!selected && ImGui::IsItemClicked())
+            PushDirectoryStack(path.c_str());
+        
+        if (open)
+        {
+            for (auto& entry : directories)
+            {
+                ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.f, 0.f));
+                RenderDirectoryNode(entry.path().generic_u8string().c_str());
+                ImGui::PopStyleVar();
+            }
+            ImGui::TreePop();
+        }
     }
 
     void ContentBrowser::RenderFileCard(const std::filesystem::directory_entry& entry)
@@ -86,14 +144,32 @@ namespace Widgets
         auto entryName = entry.path().filename().generic_u8string();
 
         ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.f, 0.f, 0.f, 0.f));
+        std::string texturePath = "assets/textures/folder.png";
+        if (!entry.is_directory())
+        {
+            if (Heart::AssetManager::IsAssetRegistered(Heart::Asset::Type::Texture, entry.path().generic_u8string()))
+                texturePath = entry.path().generic_u8string();
+            else
+                texturePath = "assets/textures/file.png";
+        }
         ImGui::ImageButton(
-            m_CBTextures->LoadTexture(entry.is_directory() ? "folder" : "file")->GetImGuiHandle(),
+            Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>(texturePath.c_str())->GetTexture()->GetImGuiHandle(),
             { m_CardSize.x, m_CardSize.y }
         );
         if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0))
         {
-            m_DefaultAssetDirectory = std::filesystem::path(m_DefaultAssetDirectory).append(entryName).generic_u8string();
-            m_ShouldRescan = true;
+            if (entry.is_directory())
+            {
+                // make the current location the front of the stack
+                m_DirectoryStack.resize(m_DirectoryStackIndex + 1);
+
+                // push new directory to the stack
+                PushDirectoryStack(std::filesystem::path(m_DirectoryStack[m_DirectoryStackIndex]).append(entryName).generic_u8string());
+            }
+            else
+            {
+
+            }
         }
         ImGui::PopStyleColor();
 

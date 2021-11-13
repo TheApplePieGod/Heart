@@ -8,7 +8,7 @@ namespace Heart
     class VulkanTexture : public Texture
     {
     public:
-        VulkanTexture(const std::string& path);
+        VulkanTexture(const std::string& path, int width, int height, int channels, void* data);
         ~VulkanTexture() override;
 
         inline VkImageView GetImageView() const { return m_ImageView; }

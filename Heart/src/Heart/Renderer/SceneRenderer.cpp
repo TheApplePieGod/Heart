@@ -4,6 +4,9 @@
 #include "Heart/Renderer/Renderer.h"
 #include "Heart/Scene/Components.h"
 #include "Heart/Scene/Entity.h"
+#include "Heart/Asset/AssetManager.h"
+#include "Heart/Asset/TextureAsset.h"
+#include "Heart/Asset/ShaderAsset.h"
 #include "glm/gtc/matrix_transform.hpp"
 
 namespace Heart
@@ -60,18 +63,18 @@ namespace Heart
         };
         m_IndexBuffer = Buffer::CreateIndexBuffer((u32)indices.size(), indices.data());
 
-        // shader registry
-        m_ShaderRegistry.RegisterShader("vert", "assets/shaders/main.vert", Shader::Type::Vertex);
-        m_ShaderRegistry.RegisterShader("frag", "assets/shaders/main.frag", Shader::Type::Fragment);
+        // register default shaders
+        AssetManager::RegisterAsset(Asset::Type::Shader, "assets/shaders/main.vert");
+        AssetManager::RegisterAsset(Asset::Type::Shader, "assets/shaders/main.frag");
 
-        // texture registry
-        m_TextureRegistry.RegisterTexture("fish", "assets/textures/fish.png");
-        m_TextureRegistry.RegisterTexture("test", "assets/textures/test.png");
+        // register testing textures
+        AssetManager::RegisterAsset(Asset::Type::Texture, "assets/textures/fish.png");
+        AssetManager::RegisterAsset(Asset::Type::Texture, "assets/textures/test.png");
 
         // graphics pipeline
         GraphicsPipelineCreateInfo gpCreateInfo = {
-            m_ShaderRegistry.LoadShader("vert"),
-            m_ShaderRegistry.LoadShader("frag"),
+            "assets/shaders/main.vert",
+            "assets/shaders/main.frag",
             VertexTopology::TriangleList,
             vertBufferLayout,
             { { true }, { false } },
@@ -93,7 +96,7 @@ namespace Heart
         m_FrameDataBuffer = Buffer::Create(Buffer::Type::Uniform, frameDataLayout, 1, nullptr);
 
         // object data buffer
-        m_ObjectDataBuffer = Buffer::Create(Buffer::Type::Storage, objectDataLayout, 1000, nullptr);
+        m_ObjectDataBuffer = Buffer::Create(Buffer::Type::Storage, objectDataLayout, 2000, nullptr);
 
         // framebuffer
         FramebufferCreateInfo fbCreateInfo = {
@@ -115,6 +118,8 @@ namespace Heart
 
     void SceneRenderer::RenderScene(GraphicsContext& context, Scene* scene, glm::mat4 viewProjection)
     {
+        HE_PROFILE_FUNCTION();
+
         HE_ENGINE_ASSERT(scene, "Scene cannot be nullptr");
 
         m_FinalFramebuffer->Bind();
@@ -127,7 +132,7 @@ namespace Heart
 
         // all shader resources must be bound before drawing
         m_FinalFramebuffer->BindShaderBufferResource(0, 0, m_FrameDataBuffer.get());
-        m_FinalFramebuffer->BindShaderTextureResource(2, m_TextureRegistry.LoadTexture("test").get());
+        m_FinalFramebuffer->BindShaderTextureResource(2, AssetManager::RetrieveAsset<TextureAsset>("assets/textures/test.png")->GetTexture());
 
         auto group = scene->GetRegistry().group<TransformComponent, MeshComponent>();
         u32 index = 0;

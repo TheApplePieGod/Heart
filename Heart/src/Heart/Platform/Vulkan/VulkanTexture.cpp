@@ -8,20 +8,25 @@
 
 namespace Heart
 {
-    VulkanTexture::VulkanTexture(const std::string& path)
-        : Texture(path)
+    VulkanTexture::VulkanTexture(const std::string& path, int width, int height, int channels, void* data)
+        : Texture(path, width, height, channels)
     {
-        unsigned char* pixels = stbi_load(path.c_str(), &m_Width, &m_Height, &m_Channels, m_DesiredChannelCount);
-        if (pixels == nullptr)
+        bool load = data == nullptr;
+        if (load)
         {
-            HE_ENGINE_LOG_ERROR("Failed to load image at path {0}", path);
-            HE_ENGINE_ASSERT(false);
+            data = stbi_load(path.c_str(), &m_Width, &m_Height, &m_Channels, m_DesiredChannelCount);
+            if (data == nullptr)
+            {
+                HE_ENGINE_LOG_ERROR("Failed to load image at path {0}", path);
+                HE_ENGINE_ASSERT(false);
+            }
+            HE_ENGINE_LOG_TRACE("Texture info: {0}x{1} w/ {2} channels", m_Width, m_Height, m_Channels);
         }
-        HE_ENGINE_LOG_TRACE("Texture info: {0}x{1} w/ {2} channels", m_Width, m_Height, m_Channels);
         
-        CreateTexture(pixels);
+        CreateTexture(data);
 
-        stbi_image_free(pixels);
+        if (load)
+            stbi_image_free(data);
     }
 
     VulkanTexture::~VulkanTexture()

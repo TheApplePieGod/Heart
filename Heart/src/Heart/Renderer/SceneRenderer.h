@@ -37,15 +37,12 @@ namespace Heart
         void RenderScene(GraphicsContext& context, Scene* scene, glm::mat4 viewProjection);
 
         inline Framebuffer& GetFinalFramebuffer() { return *m_FinalFramebuffer; }
-        inline TextureRegistry& GetTextureRegistry() { return m_TextureRegistry; }
 
     private:
         Ref<Buffer> m_VertexBuffer;
         Ref<Buffer> m_IndexBuffer;
         Ref<Framebuffer> m_FinalFramebuffer;
-        ShaderRegistry m_ShaderRegistry;
         Ref<Buffer> m_FrameDataBuffer;
         Ref<Buffer> m_ObjectDataBuffer;
-        TextureRegistry m_TextureRegistry;
     };
 }

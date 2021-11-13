@@ -2,6 +2,7 @@
 #include "App.h"
 
 #include "Heart/Core/Timing.h"
+#include "Heart/Asset/AssetManager.h"
 
 namespace Heart
 {
@@ -22,11 +23,15 @@ namespace Heart
         WindowSettings windowSettings = WindowSettings(windowName);
         InitializeGraphicsApi(RenderApi::Type::Vulkan, windowSettings);
 
+        AssetManager::Initialize();
+
         HE_ENGINE_LOG_INFO("App initialized");
     }
 
     App::~App()
     {
+        AssetManager::Shutdown();
+
         ShutdownGraphicsApi();
 
         HE_ENGINE_LOG_INFO("Shutdown complete");
@@ -107,6 +112,8 @@ namespace Heart
             };
             bool fullscreen = m_Window->IsFullscreen();
 
+            AssetManager::UnloadAllAssets();
+
             ShutdownGraphicsApi();
             AggregateTimer::ClearTimeMap();
 
@@ -134,6 +141,8 @@ namespace Heart
 
             if (m_Minimized)
                 continue;
+
+            AssetManager::OnUpdate();
 
             m_Window->BeginFrame();
 

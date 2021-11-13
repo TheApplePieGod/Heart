@@ -60,14 +60,4 @@ namespace Heart
         bool m_Loaded;
         std::vector<ReflectionDataElement> m_ReflectionData;
     };
-
-    class ShaderRegistry
-    {
-    public:
-        Ref<Shader> RegisterShader(const std::string& name, const std::string& path, Shader::Type shaderType);
-        Ref<Shader> LoadShader(const std::string& name);
-
-    private:
-        std::unordered_map<std::string, Ref<Shader>> m_Shaders;
-    };
 }

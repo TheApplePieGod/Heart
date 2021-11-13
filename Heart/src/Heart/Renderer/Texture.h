@@ -46,6 +46,9 @@ namespace Heart
         Texture(const std::string& path)
             : m_Path(path)
         {}
+        Texture(const std::string& path, int width, int height, int channels)
+            : m_Path(path), m_Width(width), m_Height(height), m_Channels(channels)
+        {}
         virtual ~Texture() = default;
 
         inline void* GetImGuiHandle() const { return m_ImGuiHandle; }
@@ -56,7 +59,7 @@ namespace Heart
         inline const std::string& GetFilePath() const { return m_Path; }
 
     public:
-        static Ref<Texture> Create(const std::string& path);
+        static Ref<Texture> Create(const std::string& path, int width = 0, int height = 0, int channels = 0, void* data = nullptr);
 
     protected:
         const int m_DesiredChannelCount = 4; // all images will load as RGBA
@@ -64,15 +67,5 @@ namespace Heart
         int m_Width, m_Height, m_Channels;
         u32 m_ArrayCount = 1;
         void* m_ImGuiHandle;
-    };
-
-    class TextureRegistry
-    {
-    public:
-        Ref<Texture> RegisterTexture(const std::string& name, const std::string& path);
-        Ref<Texture> LoadTexture(const std::string& name);
-
-    private:
-        std::unordered_map<std::string, Ref<Texture>> m_Textures;
     };
 }

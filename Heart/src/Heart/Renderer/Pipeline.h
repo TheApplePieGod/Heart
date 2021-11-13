@@ -23,8 +23,8 @@ namespace Heart
 
     struct GraphicsPipelineCreateInfo
     {
-        Ref<Shader> VertexShader;
-        Ref<Shader> FragmentShader;
+        std::string VertexShaderPath;
+        std::string FragmentShaderPath;
 
         VertexTopology VertexTopology;
         BufferLayout VertexLayout;
@@ -58,7 +58,7 @@ namespace Heart
         GraphicsPipeline(const GraphicsPipelineCreateInfo& createInfo)
             : m_Info(createInfo)
         {
-            HE_ENGINE_ASSERT(createInfo.VertexShader != nullptr && createInfo.FragmentShader != nullptr, "Must specify both vertex and fragment shaders");
+            HE_ENGINE_ASSERT(createInfo.VertexShaderPath != "" && createInfo.FragmentShaderPath != "", "Must specify both vertex and fragment shaders");
             ConsolidateReflectionData();
         }
         virtual ~GraphicsPipeline() = default;

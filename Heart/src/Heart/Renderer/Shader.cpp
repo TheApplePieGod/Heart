@@ -139,29 +139,4 @@ namespace Heart
             HE_ENGINE_ASSERT(set == 0, "The 'set' glsl qualifier is currently unsupported and must be zero");
 		}
     }
-
-    Ref<Shader> ShaderRegistry::RegisterShader(const std::string& name, const std::string& path, Shader::Type shaderType)
-    {
-        if (m_Shaders.find(name) != m_Shaders.end())
-        {
-            HE_ENGINE_LOG_ERROR("Cannot register shader, name already exists: {0}", name);
-            HE_ENGINE_ASSERT(false);
-        }
-
-        HE_ENGINE_LOG_TRACE("Registering shader '{0}' @ '{1}'", name, path);
-
-        Ref<Shader> newShader = Shader::Create(path, shaderType);
-        m_Shaders[name] = newShader;
-        return newShader;
-    }
-    
-    Ref<Shader> ShaderRegistry::LoadShader(const std::string& name)
-    {
-        if (m_Shaders.find(name) == m_Shaders.end())
-        {
-            HE_ENGINE_LOG_ERROR("Shader not registered: {0}", name);
-            HE_ENGINE_ASSERT(false);
-        }
-        return m_Shaders[name];
-    }
 }

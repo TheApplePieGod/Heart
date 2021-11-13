@@ -2,6 +2,8 @@
 #include "OpenGLGraphicsPipeline.h"
 
 #include "glad/glad.h"
+#include "Heart/Asset/AssetManager.h"
+#include "Heart/Asset/ShaderAsset.h"
 #include "Heart/Platform/OpenGL/OpenGLShader.h"
 #include "Heart/Platform/OpenGL/OpenGLCommon.h"
 
@@ -10,13 +12,13 @@ namespace Heart
     OpenGLGraphicsPipeline::OpenGLGraphicsPipeline(const GraphicsPipelineCreateInfo& createInfo)
         : GraphicsPipeline(createInfo)
     {
-        HE_ENGINE_ASSERT(createInfo.VertexShader != nullptr && createInfo.FragmentShader != nullptr, "Must specify both vertex and fragment shaders");
-
         // create the shader program
         m_ProgramId = glCreateProgram();
 
-        glAttachShader(m_ProgramId, static_cast<OpenGLShader*>(createInfo.VertexShader.get())->GetShaderId());
-        glAttachShader(m_ProgramId, static_cast<OpenGLShader*>(createInfo.FragmentShader.get())->GetShaderId());
+        auto vertShader = AssetManager::RetrieveAsset<ShaderAsset>(createInfo.VertexShaderPath)->GetShader();
+        auto fragShader = AssetManager::RetrieveAsset<ShaderAsset>(createInfo.FragmentShaderPath)->GetShader();
+        glAttachShader(m_ProgramId, static_cast<OpenGLShader*>(vertShader)->GetShaderId());
+        glAttachShader(m_ProgramId, static_cast<OpenGLShader*>(fragShader)->GetShaderId());
 
         glLinkProgram(m_ProgramId);
 

@@ -61,6 +61,5 @@ namespace HeartEditor
         Heart::Entity m_SelectedEntity;
         ImGuizmo::MODE m_GizmoMode = ImGuizmo::MODE::LOCAL;
         ImGuizmo::OPERATION m_GizmoOperation = ImGuizmo::OPERATION::TRANSLATE;
-        Heart::Scope<Heart::TextureRegistry> m_EditorTextures;
     };
 }
