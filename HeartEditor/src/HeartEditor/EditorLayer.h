@@ -6,6 +6,7 @@
 #include "Heart/Events/KeyboardEvents.h"
 #include "Heart/Events/MouseEvents.h"
 #include "Heart/Scene/Scene.h"
+#include "Heart/Scene/Entity.h"
 #include "Heart/Renderer/SceneRenderer.h"
 #include "imgui/imgui.h"
 #include "imguizmo/ImGuizmo.h"
@@ -57,6 +58,7 @@ namespace HeartEditor
         glm::vec2 m_ViewportSize;
         bool m_ViewportInput = false;
         bool m_ViewportHover = false;
+        Heart::Entity m_SelectedEntity;
         ImGuizmo::MODE m_GizmoMode = ImGuizmo::MODE::LOCAL;
         ImGuizmo::OPERATION m_GizmoOperation = ImGuizmo::OPERATION::TRANSLATE;
         Heart::Scope<Heart::TextureRegistry> m_EditorTextures;

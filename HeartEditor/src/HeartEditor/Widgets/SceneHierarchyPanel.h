@@ -12,16 +12,10 @@ namespace Widgets
     public:
         SceneHierarchyPanel();
 
-        void OnImGuiRender(Heart::Scene* activeScene);
-
-        inline Heart::Entity& GetSelectedEntity() { return m_SelectedEntity; }
-        inline void SetSelectedEntity(Heart::Entity entity) { m_SelectedEntity = entity; }
+        void OnImGuiRender(Heart::Scene* activeScene, Heart::Entity& selectedEntity);
 
     private:
-        void RenderEntity(Heart::Scene* activeScene, entt::entity entity);
-
-    private:
-        Heart::Entity m_SelectedEntity;
+        void RenderEntity(Heart::Scene* activeScene, entt::entity entity, Heart::Entity& selectedEntity);
     };
 }
 }

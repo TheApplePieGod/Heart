@@ -42,6 +42,7 @@ namespace Heart
 
         UUID GetUUID();
         bool IsValid();
+        void Destroy();
 
         inline Scene* GetScene() { return m_Scene; }
         inline entt::entity GetHandle() { return m_EntityHandle; }

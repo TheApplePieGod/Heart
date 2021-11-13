@@ -23,4 +23,9 @@ namespace Heart
     {
         return m_Scene && m_Scene->GetRegistry().valid(m_EntityHandle);
     }
+
+    void Entity::Destroy()
+    {
+        m_Scene->GetRegistry().destroy(m_EntityHandle);
+    }
 }

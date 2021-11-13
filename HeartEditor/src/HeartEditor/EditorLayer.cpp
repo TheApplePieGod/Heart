@@ -29,10 +29,10 @@ namespace HeartEditor
             Heart::Entity childEntity;
             parentEntity.AddComponent<Heart::MeshComponent>();
         
-            for (int j = 0; j < 10; j++)
+            for (int j = 0; j < 2; j++)
             {
                 Heart::Entity childEntity = m_ActiveScene->CreateEntity(childString + std::to_string(j));
-                //childEntity.AddComponent<Heart::MeshComponent>();
+                childEntity.AddComponent<Heart::MeshComponent>();
                 m_ActiveScene->AssignRelationship(parentEntity, childEntity);
                 parentEntity = childEntity;
             }
@@ -90,7 +90,7 @@ namespace HeartEditor
         ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
         ImGui::Begin("Main Window", nullptr, windowFlags);
         
-        m_Widgets.MainMenuBar.OnImGuiRender(m_ActiveScene.get(), m_Widgets.SceneHierarchyPanel.GetSelectedEntity());
+        m_Widgets.MainMenuBar.OnImGuiRender(m_ActiveScene.get(), m_SelectedEntity);
 
         ImGuiID dockspaceId = ImGui::GetID("EditorDockSpace");
         ImGui::DockSpace(dockspaceId, ImVec2(0.f, 0.f), 0);
@@ -120,7 +120,7 @@ namespace HeartEditor
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 5.0f));
             ImGui::Begin("Scene Hierarchy", m_Widgets.MainMenuBar.GetWindowStatusRef("Scene Hierarchy"));
 
-            m_Widgets.SceneHierarchyPanel.OnImGuiRender(m_ActiveScene.get());
+            m_Widgets.SceneHierarchyPanel.OnImGuiRender(m_ActiveScene.get(), m_SelectedEntity);
 
             ImGui::End();
             ImGui::PopStyleVar();
@@ -131,7 +131,7 @@ namespace HeartEditor
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 5.0f));
             ImGui::Begin("Properties", m_Widgets.MainMenuBar.GetWindowStatusRef("Properties Panel"));
 
-            m_Widgets.PropertiesPanel.OnImGuiRender(m_Widgets.SceneHierarchyPanel.GetSelectedEntity());
+            m_Widgets.PropertiesPanel.OnImGuiRender(m_SelectedEntity);
 
             ImGui::End();
             ImGui::PopStyleVar();
@@ -255,10 +255,12 @@ namespace HeartEditor
         m_ViewportHover = m_ViewportHover && !ImGui::IsItemHovered();
 
         // draw the imguizmo if an entity is selected
-        if (m_Widgets.SceneHierarchyPanel.GetSelectedEntity().IsValid() && m_Widgets.SceneHierarchyPanel.GetSelectedEntity().HasComponent<Heart::TransformComponent>())
+        if (m_SelectedEntity.IsValid() && m_SelectedEntity.HasComponent<Heart::TransformComponent>())
         {
-            auto& transformComponent = m_Widgets.SceneHierarchyPanel.GetSelectedEntity().GetComponent<Heart::TransformComponent>();
-            glm::mat4 transform = transformComponent.GetTransformMatrix();
+            auto& transformComponent = m_SelectedEntity.GetComponent<Heart::TransformComponent>();
+            glm::mat4 parentTransform;
+            glm::mat4 transform = m_ActiveScene->CalculateEntityTransform(m_SelectedEntity, &parentTransform);
+
             ImGuizmo::Manipulate(
                 glm::value_ptr(view),
                 glm::value_ptr(proj),
@@ -273,11 +275,15 @@ namespace HeartEditor
 
             if (ImGuizmo::IsUsing())
             {
-                glm::vec3 skew;
-                glm::vec4 perspective;
-                glm::quat rotation;
-                glm::decompose(transform, transformComponent.Scale, rotation, transformComponent.Translation, skew, perspective);
-                transformComponent.Rotation = glm::degrees(glm::eulerAngles(rotation));
+                glm::vec3 invskew;
+                glm::vec4 invperspective;
+                glm::quat invrotation;
+            
+                // convert the word space transform to local space by multiplying it by the inverse of the parent transform
+                glm::decompose(glm::inverse(parentTransform) * transform, transformComponent.Scale, invrotation, transformComponent.Translation, invskew, invperspective);
+                transformComponent.Rotation = glm::degrees(glm::eulerAngles(invrotation));
+
+                m_ActiveScene->CacheEntityTransform(m_SelectedEntity);
             }
         }
     }
@@ -353,15 +359,14 @@ namespace HeartEditor
     bool EditorLayer::MouseButtonPressedEvent(Heart::MouseButtonPressedEvent& event)
     {
         // screen picking
-        if (event.GetMouseCode() == Heart::MouseCode::LeftButton && !ImGuizmo::IsOver() && !m_ViewportInput && m_ViewportHover)
+        if (event.GetMouseCode() == Heart::MouseCode::LeftButton && (!ImGuizmo::IsOver() || !m_SelectedEntity.IsValid()) && !m_ViewportInput && m_ViewportHover)
         {
             // the image is scaled down in the viewport, so we need to adjust what pixel we are sampling from
             u32 sampleX = static_cast<u32>(m_ViewportMousePos.x / m_ViewportSize.x * m_SceneRenderer->GetFinalFramebuffer().GetWidth());
             u32 sampleY = static_cast<u32>(m_ViewportMousePos.y / m_ViewportSize.y * m_SceneRenderer->GetFinalFramebuffer().GetHeight());
 
             f32 entityId = m_SceneRenderer->GetFinalFramebuffer().ReadAttachmentPixel<f32>(1, sampleX, sampleY, 0);
-            Heart::Entity entity = entityId == -1.f ? Heart::Entity() : Heart::Entity(m_ActiveScene.get(), static_cast<u32>(entityId));
-            m_Widgets.SceneHierarchyPanel.SetSelectedEntity(entity);
+            m_SelectedEntity = entityId == -1.f ? Heart::Entity() : Heart::Entity(m_ActiveScene.get(), static_cast<u32>(entityId));
         }
 
         return true;
