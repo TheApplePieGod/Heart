@@ -29,41 +29,43 @@ namespace HeartEditor
         m_EditorCamera = Heart::CreateScope<EditorCamera>(70.f, 0.1f, 1000.f, 1.f);
         m_ActiveScene = Heart::CreateRef<Heart::Scene>();
 
-        // auto entity = m_ActiveScene->CreateEntity("Test Entity");
-        // entity.AddComponent<Heart::MeshComponent>();
+        auto entity = m_ActiveScene->CreateEntity("Test Entity");
+        entity.AddComponent<Heart::MeshComponent>();
+        entity.GetComponent<Heart::TransformComponent>().Scale = { 0.01f, 0.01f, 0.01f };
+        m_ActiveScene->CacheEntityTransform(entity);
 
         // parenting testing
-        std::string parentString = "Parent Entity ";
-        std::string childString = "Child Entity ";
-        int max = 25;
-        int scaleMax = 2;
-        for (int i = 0; i < 50; i++)
-        {
-            Heart::Entity parentEntity = m_ActiveScene->CreateEntity(parentString + std::to_string(i));
-            Heart::Entity childEntity;
-            parentEntity.AddComponent<Heart::MeshComponent>();
+        // std::string parentString = "Parent Entity ";
+        // std::string childString = "Child Entity ";
+        // int max = 25;
+        // int scaleMax = 2;
+        // for (int i = 0; i < 50; i++)
+        // {
+        //     Heart::Entity parentEntity = m_ActiveScene->CreateEntity(parentString + std::to_string(i));
+        //     Heart::Entity childEntity;
+        //     parentEntity.AddComponent<Heart::MeshComponent>();
 
-            auto& transformComp = parentEntity.GetComponent<Heart::TransformComponent>();
-            transformComp.Translation += glm::vec3(rand() % (max * 2) - max, rand() % (max * 2) - max, rand() % (max * 2) - max);
-            transformComp.Rotation += glm::vec3(rand() % (180 * 2) - 180, rand() % (180 * 2) - 180, rand() % (180 * 2) - 180);
-            //transformComp.Scale += glm::vec3(rand() % scaleMax, rand() % scaleMax, rand() % scaleMax);
-            m_ActiveScene->CacheEntityTransform(parentEntity);
+        //     auto& transformComp = parentEntity.GetComponent<Heart::TransformComponent>();
+        //     transformComp.Translation += glm::vec3(rand() % (max * 2) - max, rand() % (max * 2) - max, rand() % (max * 2) - max);
+        //     transformComp.Rotation += glm::vec3(rand() % (180 * 2) - 180, rand() % (180 * 2) - 180, rand() % (180 * 2) - 180);
+        //     //transformComp.Scale += glm::vec3(rand() % scaleMax, rand() % scaleMax, rand() % scaleMax);
+        //     m_ActiveScene->CacheEntityTransform(parentEntity);
 
-            for (int j = 0; j < 10; j++)
-            {
-                Heart::Entity childEntity = m_ActiveScene->CreateEntity(childString + std::to_string(j));
-                childEntity.AddComponent<Heart::MeshComponent>();
-                m_ActiveScene->AssignRelationship(parentEntity, childEntity);
+        //     for (int j = 0; j < 10; j++)
+        //     {
+        //         Heart::Entity childEntity = m_ActiveScene->CreateEntity(childString + std::to_string(j));
+        //         childEntity.AddComponent<Heart::MeshComponent>();
+        //         m_ActiveScene->AssignRelationship(parentEntity, childEntity);
                 
-                auto& transformComp = childEntity.GetComponent<Heart::TransformComponent>();
-                transformComp.Translation += glm::vec3(rand() % (max * 2) - max, rand() % (max * 2) - max, rand() % (max * 2) - max);
-                transformComp.Rotation += glm::vec3(rand() % (180 * 2) - 180, rand() % (180 * 2) - 180, rand() % (180 * 2) - 180);
-                //transformComp.Scale += glm::vec3(rand() % scaleMax, rand() % scaleMax, rand() % scaleMax);
-                m_ActiveScene->CacheEntityTransform(childEntity);
+        //         auto& transformComp = childEntity.GetComponent<Heart::TransformComponent>();
+        //         transformComp.Translation += glm::vec3(rand() % (max * 2) - max, rand() % (max * 2) - max, rand() % (max * 2) - max);
+        //         transformComp.Rotation += glm::vec3(rand() % (180 * 2) - 180, rand() % (180 * 2) - 180, rand() % (180 * 2) - 180);
+        //         //transformComp.Scale += glm::vec3(rand() % scaleMax, rand() % scaleMax, rand() % scaleMax);
+        //         m_ActiveScene->CacheEntityTransform(childEntity);
 
-                parentEntity = childEntity;
-            }
-        }
+        //         parentEntity = childEntity;
+        //     }
+        // }
     }
 
     EditorLayer::~EditorLayer()

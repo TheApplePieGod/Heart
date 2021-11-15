@@ -4,6 +4,7 @@
 #include "HeartEditor/EditorApp.h"
 #include "Heart/Renderer/Renderer.h"
 #include "imgui/imgui_internal.h"
+#include "glm/gtc/type_ptr.hpp"
 
 namespace HeartEditor
 {
@@ -100,15 +101,14 @@ namespace Widgets
             if (selectedEntity.HasComponent<Heart::TransformComponent>())
             {
                 bool headerOpen = ImGui::CollapsingHeader("Transform");
-                RenderComponentPopup<Heart::MeshComponent>("TransformPopup", selectedEntity, false);
-                if (headerOpen)
+                if (!RenderComponentPopup<Heart::MeshComponent>("TransformPopup", selectedEntity, false) && headerOpen)
                 {
-                    auto& transformComponent = selectedEntity.GetComponent<Heart::TransformComponent>();
+                    auto& transformComp = selectedEntity.GetComponent<Heart::TransformComponent>();
 
                     ImGui::Indent();
-                    RenderXYZSlider("Translation  ", &transformComponent.Translation.x, &transformComponent.Translation.y, &transformComponent.Translation.z, -999999.f, 999999.f, 0.1f);
-                    RenderXYZSlider("Rotation     ", &transformComponent.Rotation.x, &transformComponent.Rotation.y, &transformComponent.Rotation.z, 0.f, 360.f, 1.f);
-                    RenderXYZSlider("Scale        ", &transformComponent.Scale.x, &transformComponent.Scale.y, &transformComponent.Scale.z, 0.f, 999999.f, 0.1f);
+                    RenderXYZSlider("Translation  ", &transformComp.Translation.x, &transformComp.Translation.y, &transformComp.Translation.z, -999999.f, 999999.f, 0.1f);
+                    RenderXYZSlider("Rotation     ", &transformComp.Rotation.x, &transformComp.Rotation.y, &transformComp.Rotation.z, 0.f, 360.f, 1.f);
+                    RenderXYZSlider("Scale        ", &transformComp.Scale.x, &transformComp.Scale.y, &transformComp.Scale.z, 0.f, 999999.f, 0.1f);
                     ImGui::Unindent();
 
                     selectedEntity.GetScene()->CacheEntityTransform(selectedEntity);
@@ -117,17 +117,30 @@ namespace Widgets
             }
             if (selectedEntity.HasComponent<Heart::MeshComponent>())
             {
-                bool headerOpen = ImGui::CollapsingHeader("Mesh");
-                RenderComponentPopup<Heart::MeshComponent>("MeshPopup", selectedEntity);
-                if (headerOpen)
+                bool headerOpen = ImGui::CollapsingHeader("Mesh"); 
+                if (!RenderComponentPopup<Heart::MeshComponent>("MeshPopup", selectedEntity) && headerOpen)
                 {
-                    auto& transformComponent = selectedEntity.GetComponent<Heart::MeshComponent>();
+                    auto& meshComp = selectedEntity.GetComponent<Heart::MeshComponent>();
 
                     ImGui::Indent();
-                    ImGui::Text("Placeholder");
+
+                    char buffer[128];
+                    std::strncpy(buffer, meshComp.TexturePath.c_str(), sizeof(buffer));
+                    if (ImGui::InputText("Texture Path", buffer, sizeof(buffer)))
+                    {
+                        ImGui::SetKeyboardFocusHere(-1);
+                        meshComp.TexturePath = std::string(buffer);
+                    }
+                    std::strncpy(buffer, meshComp.MeshPath.c_str(), sizeof(buffer));
+                    if (ImGui::InputText("Mesh Path", buffer, sizeof(buffer)))
+                    {
+                        ImGui::SetKeyboardFocusHere(-1);
+                        meshComp.MeshPath = std::string(buffer);
+                    }
+
+                    ImGui::ColorEdit4("Tint", glm::value_ptr(meshComp.TintColor), ImGuiColorEditFlags_AlphaPreviewHalf | ImGuiColorEditFlags_AlphaBar);
                     ImGui::Unindent();
                 }
-                
             }
         }
     }

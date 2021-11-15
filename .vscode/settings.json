@@ -115,6 +115,8 @@
         "__tree": "cpp",
         "__tuple": "cpp",
         "string_view": "cpp",
-        "*.ipp": "cpp"
+        "*.ipp": "cpp",
+        "csignal": "cpp",
+        "span": "cpp"
     },
 }

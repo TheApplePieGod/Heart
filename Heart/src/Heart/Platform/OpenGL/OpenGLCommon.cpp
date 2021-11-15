@@ -97,8 +97,11 @@ namespace Heart
             default:
             { HE_ENGINE_ASSERT(false, "OpenGL does not support specified VertexTopology"); } break;
             case VertexTopology::TriangleList: return GL_TRIANGLES;
+            case VertexTopology::TriangleStrip: return GL_TRIANGLE_STRIP;
+            case VertexTopology::TriangleFan: return GL_TRIANGLE_FAN;
             case VertexTopology::PointList: return GL_POINTS;
             case VertexTopology::LineList: return GL_LINES;
+            case VertexTopology::LineStrip: return GL_LINE_STRIP;
         }
 
         return -1;
@@ -113,7 +116,21 @@ namespace Heart
             case CullMode::None: return GL_NONE;
             case CullMode::Backface: return GL_BACK;
             case CullMode::Frontface: return GL_FRONT;
-            case CullMode::Both: return GL_FRONT_AND_BACK;
+            case CullMode::BackAndFront: return GL_FRONT_AND_BACK;
+        }
+
+        return -1;
+    }
+
+    int OpenGLCommon::WindingOrderToOpenGL(WindingOrder order)
+    {
+        // they are flipped in opengl for some reason (likely due to the coordinate system)
+        switch (order)
+        {
+            default:
+            { HE_ENGINE_ASSERT(false, "OpenGL does not support specified WindingOrder"); } break;
+            case WindingOrder::Clockwise: return GL_CCW;
+            case WindingOrder::CounterClockwise: return GL_CW;
         }
 
         return -1;

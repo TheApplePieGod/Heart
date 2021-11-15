@@ -3,6 +3,7 @@
 
 #include "Heart/Asset/TextureAsset.h"
 #include "Heart/Asset/ShaderAsset.h"
+#include "Heart/Asset/MeshAsset.h"
 
 namespace Heart
 {
@@ -34,6 +35,8 @@ namespace Heart
             { return CreateRef<TextureAsset>(path); }
             case Asset::Type::Shader:
             { return CreateRef<ShaderAsset>(path); }
+            case Asset::Type::Mesh:
+            { return CreateRef<MeshAsset>(path); }
         }
     }
 }

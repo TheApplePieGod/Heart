@@ -378,8 +378,11 @@ namespace Heart
             default:
             { HE_ENGINE_ASSERT(false, "Vulkan does not support specified VertexTopology"); } break;
             case VertexTopology::TriangleList: return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+            case VertexTopology::TriangleStrip: return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+            case VertexTopology::TriangleFan: return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN;
             case VertexTopology::PointList: return VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
             case VertexTopology::LineList: return VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+            case VertexTopology::LineStrip: return VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
         }
 
         return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
@@ -418,10 +421,23 @@ namespace Heart
             case CullMode::None: return VK_CULL_MODE_NONE;
             case CullMode::Backface: return VK_CULL_MODE_BACK_BIT;
             case CullMode::Frontface: return VK_CULL_MODE_FRONT_BIT;
-            case CullMode::Both: return VK_CULL_MODE_FRONT_AND_BACK;
+            case CullMode::BackAndFront: return VK_CULL_MODE_FRONT_AND_BACK;
         }
 
         return VK_CULL_MODE_NONE;
+    }
+
+    VkFrontFace VulkanCommon::WindingOrderToVulkan(WindingOrder order)
+    {
+        switch (order)
+        {
+            default:
+            { HE_ENGINE_ASSERT(false, "Vulkan does not support specified WindingOrder"); } break;
+            case WindingOrder::Clockwise: return VK_FRONT_FACE_CLOCKWISE;
+            case WindingOrder::CounterClockwise: return VK_FRONT_FACE_COUNTER_CLOCKWISE;
+        }
+
+        return VK_FRONT_FACE_MAX_ENUM;
     }
 
     VkDescriptorType VulkanCommon::ShaderResourceTypeToVulkan(ShaderResourceType type)

@@ -26,3 +26,7 @@
 	path = Heart/lib/imguizmo
 	url = https://github.com/TheApplePieGod/ImGuizmo.git
 	branch = master
+[submodule "Heart/lib/json"]
+	path = Heart/lib/json
+	url = https://github.com/nlohmann/json.git
+	branch = develop

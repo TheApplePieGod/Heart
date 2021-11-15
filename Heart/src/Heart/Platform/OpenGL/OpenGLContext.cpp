@@ -15,6 +15,7 @@ namespace Heart
     static void debugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam)
     {
         if (id == 131154) return; // pixel-path performance warning
+        if (id == 131186) return; // buffer gpu->cpu transfer performance warning
 
         switch (severity)
         {
@@ -44,9 +45,7 @@ namespace Heart
 		HE_ENGINE_ASSERT(GLVersion.major > 4 || (GLVersion.major == 4 && GLVersion.minor >= 5), "Heart requires at least OpenGL version 4.5");
 
         // opengl setup
-        glEnable(GL_CULL_FACE);
         glEnable(GL_MULTISAMPLE);
-        glFrontFace(GL_CCW);
         glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE);
 
         #ifdef HE_DEBUG

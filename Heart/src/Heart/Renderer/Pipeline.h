@@ -8,12 +8,20 @@ namespace Heart
 {
     enum class VertexTopology
     {
-        TriangleList = 0, PointList = 1, LineList = 2
+        None = 0,
+        TriangleList, TriangleStrip, TriangleFan, PointList, LineList, LineStrip
     };
 
     enum class CullMode
     {
-        None = 0, Backface = 1, Frontface = 2, Both = 3
+        None = 0,
+        Backface, Frontface, BackAndFront
+    };
+
+    enum class WindingOrder
+    {
+        None = 0,
+        Clockwise, CounterClockwise
     };
 
     struct AttachmentBlendState
@@ -33,6 +41,7 @@ namespace Heart
 
         bool DepthEnable;
         CullMode CullMode;
+        WindingOrder WindingOrder;
     };
 
     struct ComputePipelineCreateInfo
@@ -65,6 +74,7 @@ namespace Heart
 
         inline VertexTopology GetVertexTopology() const { return m_Info.VertexTopology; }
         inline CullMode GetCullMode() const { return m_Info.CullMode; }
+        inline WindingOrder GetWindingOrder() const { return m_Info.WindingOrder; }
         inline bool IsDepthEnabled() const { return m_Info.DepthEnable; }
         inline u32 GetVertexLayoutStride() const { return m_Info.VertexLayout.GetStride(); }
         inline const std::vector<AttachmentBlendState>& GetBlendStates() const { return m_Info.BlendStates; }

@@ -7,79 +7,33 @@
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/TextureAsset.h"
 #include "Heart/Asset/ShaderAsset.h"
+#include "Heart/Asset/MeshAsset.h"
 #include "glm/gtc/matrix_transform.hpp"
 
 namespace Heart
 {
     SceneRenderer::SceneRenderer()
     {
-        // vertex buffer
-        std::vector<Vertex> vertexArray = {
-            { { -0.5f, -0.5f, -0.5f }, { 0.f, 1.f } }, // -Z
-            { { 0.5f, -0.5f, -0.5f }, { 1.f, 1.f } },
-            { { 0.5f, 0.5f, -0.5f }, { 1.f, 0.f } },
-            { { -0.5f, 0.5f, -0.5f }, { 0.f, 0.f } },
-
-            { { -0.5f, -0.5f, 0.5f }, { 0.f, 1.f } }, // +Z
-            { { 0.5f, -0.5f, 0.5f }, { 1.f, 1.f } },
-            { { 0.5f, 0.5f, 0.5f }, { 1.f, 0.f } },
-            { { -0.5f, 0.5f, 0.5f }, { 0.f, 0.f } },
-
-            { { 0.5f, -0.5f, -0.5f }, { 0.f, 1.f } }, // +X
-            { { 0.5f, -0.5f, 0.5f }, { 1.f, 1.f } },
-            { { 0.5f, 0.5f, 0.5f }, { 1.f, 0.f } },
-            { { 0.5f, 0.5f, -0.5f }, { 0.f, 0.f } },
-
-            { { -0.5f, -0.5f, -0.5f }, { 0.f, 1.f } }, // -X
-            { { -0.5f, -0.5f, 0.5f }, { 1.f, 1.f } },
-            { { -0.5f, 0.5f, 0.5f }, { 1.f, 0.f } },
-            { { -0.5f, 0.5f, -0.5f }, { 0.f, 0.f } },
-
-            { { -0.5f, 0.5f, -0.5f }, { 0.f, 1.f } }, // +Y
-            { { -0.5f, 0.5f, 0.5f }, { 0.f, 0.f } },
-            { { 0.5f, 0.5f, 0.5f }, { 1.f, 0.f } },
-            { { 0.5f, 0.5f, -0.5f }, { 1.f, 1.f } },
-
-            { { -0.5f, -0.5f, -0.5f }, { 0.f, 1.f } }, // -Y
-            { { -0.5f, -0.5f, 0.5f }, { 0.f, 0.f } },
-            { { 0.5f, -0.5f, 0.5f }, { 1.f, 0.f } },
-            { { 0.5f, -0.5f, -0.5f }, { 1.f, 1.f } }
-        };
-
-        BufferLayout vertBufferLayout = {
-            { BufferDataType::Float3 },
-            { BufferDataType::Float2 }
-        };
-        m_VertexBuffer = Buffer::Create(Buffer::Type::Vertex, vertBufferLayout, (u32)vertexArray.size(), vertexArray.data());
-
-        // index buffer
-        std::vector<u32> indices = {
-            0, 3, 2, 2, 1, 0, // -Z
-            4, 5, 6, 6, 7, 4, // +Z
-            8, 11, 10, 10, 9, 8, // +X
-            12, 13, 14, 14, 15, 12, // -X
-            16, 17, 18, 18, 19, 16,
-            20, 23, 22, 22, 21, 20
-        };
-        m_IndexBuffer = Buffer::CreateIndexBuffer((u32)indices.size(), indices.data());
-
         // register default shaders
         AssetManager::RegisterAsset(Asset::Type::Shader, "assets/shaders/main.vert");
         AssetManager::RegisterAsset(Asset::Type::Shader, "assets/shaders/main.frag");
 
-        // register testing textures
+        // register testing assets
         AssetManager::RegisterAsset(Asset::Type::Texture, "assets/textures/fish.png");
         AssetManager::RegisterAsset(Asset::Type::Texture, "assets/textures/test.png");
+        AssetManager::RegisterAsset(Asset::Type::Mesh, "assets/meshes/cube.gltf");
+        AssetManager::RegisterAsset(Asset::Type::Mesh, "assets/meshes/sponza/sponza.gltf");
 
         // graphics pipeline
         GraphicsPipelineCreateInfo gpCreateInfo = {
             "assets/shaders/main.vert",
             "assets/shaders/main.frag",
             VertexTopology::TriangleList,
-            vertBufferLayout,
+            Heart::Mesh::GetVertexLayout(),
             { { true }, { false } },
             true,
-            CullMode::Backface
+            CullMode::Backface,
+            WindingOrder::Clockwise
         };
 
         // per frame data buffer layout
@@ -125,9 +79,10 @@ namespace Heart
         m_FinalFramebuffer->Bind();
         m_FinalFramebuffer->BindPipeline("main");
 
-        Renderer::Api().BindVertexBuffer(*m_VertexBuffer);
-        Renderer::Api().BindIndexBuffer(*m_IndexBuffer);
-        
+        auto& meshAsset = AssetManager::RetrieveAsset<MeshAsset>("assets/meshes/sponza/sponza.gltf")->GetSubmesh(0);
+        Renderer::Api().BindVertexBuffer(*meshAsset.GetVertexBuffer());
+        Renderer::Api().BindIndexBuffer(*meshAsset.GetIndexBuffer());
+
         m_FrameDataBuffer->SetData(&viewProjection, 1, 0);
 
         // all shader resources must be bound before drawing
@@ -148,8 +103,8 @@ namespace Heart
 
             // draw
             Renderer::Api().DrawIndexed(
-                m_IndexBuffer->GetAllocatedCount(),
-                m_VertexBuffer->GetAllocatedCount(),
+                meshAsset.GetIndexBuffer()->GetAllocatedCount(),
+                meshAsset.GetVertexBuffer()->GetAllocatedCount(),
                 0, 0, 1
             );
 

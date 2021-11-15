@@ -8,10 +8,10 @@ namespace Heart
         enum class Type
         {
             None = 0,
-            Texture, Shader
+            Texture, Shader, Mesh
         };
         inline static const char* TypeStrings[] = {
-            "None", "Texture", "Shader"
+            "None", "Texture", "Shader", "Mesh"
         };
 
     public:

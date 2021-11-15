@@ -42,7 +42,12 @@ namespace Heart
         // TODO: dynamic option for this
         options.SetOptimizationLevel(shaderc_optimization_level_performance);
 
-        std::string sourceCode = FilesystemUtils::LoadFile(path);
+        std::string sourceCode = FilesystemUtils::ReadFileToString(path);
+        if (sourceCode == "")
+        {
+            HE_ENGINE_LOG_ERROR("Failed to load file {0}", path);
+            HE_ENGINE_ASSERT(false);
+        }
 
         shaderc_shader_kind shaderKind = shaderc_glsl_vertex_shader;
         switch (shaderType)

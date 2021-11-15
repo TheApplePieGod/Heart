@@ -19,8 +19,9 @@ namespace Widgets
     private:
         void RenderXYZSlider(const std::string& name, f32* x, f32* y, f32* z, f32 min, f32 max, f32 step);
 
+        // returns true if the component was deleted
         template<typename Component>
-        void RenderComponentPopup(const std::string& popupName, Heart::Entity selectedEntity, bool canRemove = true)
+        bool RenderComponentPopup(const std::string& popupName, Heart::Entity selectedEntity, bool canRemove = true)
         {
             if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1))
                 ImGui::OpenPopup(popupName.c_str());
@@ -29,11 +30,16 @@ namespace Widgets
                 if (!canRemove)
                     ImGui::BeginDisabled();
                 if (ImGui::Button("Remove Component"))
+                {
                     selectedEntity.RemoveComponent<Component>();
+                    ImGui::EndPopup();
+                    return true;
+                }
                 if (!canRemove)
                     ImGui::EndDisabled();
                 ImGui::EndPopup();
             }
+            return false;
         }
     };
 }

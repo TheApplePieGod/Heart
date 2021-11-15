@@ -39,8 +39,6 @@ namespace Heart
         inline Framebuffer& GetFinalFramebuffer() { return *m_FinalFramebuffer; }
 
     private:
-        Ref<Buffer> m_VertexBuffer;
-        Ref<Buffer> m_IndexBuffer;
         Ref<Framebuffer> m_FinalFramebuffer;
         Ref<Buffer> m_FrameDataBuffer;
         Ref<Buffer> m_ObjectDataBuffer;

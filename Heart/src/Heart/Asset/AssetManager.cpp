@@ -9,17 +9,7 @@ namespace Heart
 
     void AssetManager::Initialize()
     {
-        ReloadMetadata();
-    }
-
-    void AssetManager::ReloadMetadata()
-    {
-
-    }
-
-    void AssetManager::SaveMetadata()
-    {
-
+        
     }
 
     void AssetManager::Shutdown()

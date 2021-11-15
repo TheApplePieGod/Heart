@@ -58,6 +58,7 @@ namespace Heart
         static VkPrimitiveTopology VertexTopologyToVulkan(VertexTopology topology);
         static VkFormat BufferDataTypeToVulkan(BufferDataType type);
         static VkCullModeFlagBits CullModeToVulkan(CullMode mode);
+        static VkFrontFace WindingOrderToVulkan(WindingOrder order);
         static VkDescriptorType ShaderResourceTypeToVulkan(ShaderResourceType type);
         static VkShaderStageFlags ShaderResourceAccessTypeToVulkan(ShaderResourceAccessType type);
     };

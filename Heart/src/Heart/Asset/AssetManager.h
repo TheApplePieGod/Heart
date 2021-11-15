@@ -9,8 +9,6 @@ namespace Heart
     {
     public:
         static void Initialize();
-        static void ReloadMetadata();
-        static void SaveMetadata();
         static void Shutdown();
         static void UnloadAllAssets();
         static void LoadAllAssets();
