@@ -183,4 +183,17 @@ namespace Heart
 
         return -1;
     }
+
+    int OpenGLCommon::BufferUsageTypeToOpenGL(BufferUsageType type)
+    {
+        switch (type)
+        {
+            default:
+            { HE_ENGINE_ASSERT(false, "OpenGL does not support specified BufferUsageType"); } break;
+            case BufferUsageType::Static : return GL_STATIC_DRAW;
+            case BufferUsageType::Dynamic: return GL_DYNAMIC_DRAW;
+        }
+
+        return -1;
+    }
 }

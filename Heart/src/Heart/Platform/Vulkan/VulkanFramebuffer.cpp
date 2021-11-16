@@ -417,8 +417,9 @@ namespace Heart
         }
 
         if (attachmentData.CPUVisible)
-            attachmentData.AttachmentBuffer = std::dynamic_pointer_cast<VulkanBuffer>(VulkanBuffer::Create(
+            attachmentData.AttachmentBuffer = std::dynamic_pointer_cast<VulkanBuffer>(Buffer::Create(
                 Buffer::Type::Pixel,
+                BufferUsageType::Dynamic,
                 { ColorFormatBufferDataType(attachmentData.GeneralColorFormat) },
                 m_ActualWidth * m_ActualHeight * ColorFormatComponents(attachmentData.GeneralColorFormat)
             ));

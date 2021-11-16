@@ -316,8 +316,9 @@ namespace Heart
             {
                 for (size_t j = 0; j < m_PixelBufferObjects.size(); j++)
                 {
-                    m_PixelBufferObjects[i][j] = std::dynamic_pointer_cast<OpenGLBuffer>(OpenGLBuffer::Create(
+                    m_PixelBufferObjects[i][j] = std::dynamic_pointer_cast<OpenGLBuffer>(Buffer::Create(
                         Buffer::Type::Pixel,
+                        BufferUsageType::Dynamic,
                         { ColorFormatBufferDataType(m_Info.Attachments[i].Format) },
                         m_ActualWidth * m_ActualHeight * ColorFormatComponents(m_Info.Attachments[i].Format)
                     ));

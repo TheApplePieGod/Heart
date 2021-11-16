@@ -23,5 +23,6 @@ namespace Heart
         static int MsaaSampleCountToOpenGL(MsaaSampleCount sampleCount);
         static int ShaderResourceTypeToOpenGL(ShaderResourceType type);
         static int BufferTypeToOpenGL(Buffer::Type type);
+        static int BufferUsageTypeToOpenGL(BufferUsageType type);
     };
 }

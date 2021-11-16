@@ -47,10 +47,10 @@ namespace Heart
         };
 
         // per frame data buffer
-        m_FrameDataBuffer = Buffer::Create(Buffer::Type::Uniform, frameDataLayout, 1, nullptr);
+        m_FrameDataBuffer = Buffer::Create(Buffer::Type::Uniform, BufferUsageType::Dynamic, frameDataLayout, 1, nullptr);
 
         // object data buffer
-        m_ObjectDataBuffer = Buffer::Create(Buffer::Type::Storage, objectDataLayout, 2000, nullptr);
+        m_ObjectDataBuffer = Buffer::Create(Buffer::Type::Storage, BufferUsageType::Dynamic, objectDataLayout, 2000, nullptr);
 
         // framebuffer
         FramebufferCreateInfo fbCreateInfo = {

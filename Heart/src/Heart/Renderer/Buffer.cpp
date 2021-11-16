@@ -23,12 +23,12 @@ namespace Heart
         return stride;
     }
 
-    Ref<Buffer> Buffer::Create(Type type, const BufferLayout& layout, u32 elementCount)
+    Ref<Buffer> Buffer::Create(Type type, BufferUsageType usage, const BufferLayout& layout, u32 elementCount)
     {
-        return Create(type, layout, elementCount, nullptr);
+        return Create(type, usage, layout, elementCount, nullptr);
     }
 
-    Ref<Buffer> Buffer::Create(Type type, const BufferLayout& layout, u32 elementCount, void* initialData)
+    Ref<Buffer> Buffer::Create(Type type, BufferUsageType usage, const BufferLayout& layout, u32 elementCount, void* initialData)
     {
         HE_ENGINE_LOG_TRACE("Creating {0} buffer with {1} elements and {2}b stride", TypeStrings[static_cast<u16>(type)], elementCount, layout.GetStride());
         switch (Renderer::GetApiType())
@@ -36,23 +36,23 @@ namespace Heart
             default:
             { HE_ENGINE_ASSERT(false, "Cannot create Buffer: selected ApiType is not supported"); return nullptr; }
             case RenderApi::Type::Vulkan:
-            { return CreateRef<VulkanBuffer>(type, layout, elementCount, initialData); }
+            { return CreateRef<VulkanBuffer>(type, usage, layout, elementCount, initialData); }
             case RenderApi::Type::OpenGL:
-            { return CreateRef<OpenGLBuffer>(type, layout, elementCount, initialData); }
+            { return CreateRef<OpenGLBuffer>(type, usage, layout, elementCount, initialData); }
         }
     }
 
-    Ref<Buffer> Buffer::CreateIndexBuffer(u32 elementCount)
+    Ref<Buffer> Buffer::CreateIndexBuffer(BufferUsageType usage, u32 elementCount)
     {
-        return CreateIndexBuffer(elementCount, nullptr);
+        return CreateIndexBuffer(usage, elementCount, nullptr);
     }
 
-    Ref<Buffer> Buffer::CreateIndexBuffer(u32 elementCount, void* initialData)
+    Ref<Buffer> Buffer::CreateIndexBuffer(BufferUsageType usage, u32 elementCount, void* initialData)
     {
         BufferLayout layout = {
             { BufferDataType::UInt }
         };
 
-        return Create(Type::Index, layout, elementCount, initialData);
+        return Create(Type::Index, usage, layout, elementCount, initialData);
     }
 }
