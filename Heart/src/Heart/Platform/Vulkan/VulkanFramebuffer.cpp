@@ -252,9 +252,41 @@ namespace Heart
             if (m_AttachmentData[i].HasResolve)
                 image = m_AttachmentData[i].ResolveImage;
 
-            VulkanCommon::TransitionImageLayout(VulkanContext::GetDevice().Device(), buffer, image, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+            // copy it to the device local staging buffer
+            //VulkanCommon::TransitionImageLayout(VulkanContext::GetDevice().Device(), buffer, image, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+            VkImageMemoryBarrier imageBarrier = {};
+
+            imageBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+            imageBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            imageBarrier.subresourceRange.levelCount = 1;
+            imageBarrier.subresourceRange.layerCount = 1;
+
+            imageBarrier.oldLayout       = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            imageBarrier.newLayout       = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+            imageBarrier.srcAccessMask   = 0;
+            imageBarrier.dstAccessMask   = VK_ACCESS_TRANSFER_READ_BIT;
+            imageBarrier.image           = image;
+
+            VkBufferMemoryBarrier bufferBarrier = {};
+
+            bufferBarrier.sType           = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+            bufferBarrier.srcAccessMask   = 0;
+            bufferBarrier.dstAccessMask   = VK_ACCESS_TRANSFER_WRITE_BIT;
+            bufferBarrier.buffer          = m_AttachmentData[i].AttachmentBuffer->GetBuffer();
+            bufferBarrier.size            = m_AttachmentData[i].AttachmentBuffer->GetAllocatedSize();
+
+            vkCmdPipelineBarrier(buffer,
+                VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                VK_PIPELINE_STAGE_TRANSFER_BIT,
+                0,
+                0,
+                nullptr,
+                1,
+                &bufferBarrier,
+                1,
+                &imageBarrier);
             vkCmdCopyImageToBuffer(buffer, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, m_AttachmentData[i].AttachmentBuffer->GetBuffer(), 1, &copyData);
-            VulkanCommon::TransitionImageLayout(VulkanContext::GetDevice().Device(), buffer, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+            //VulkanCommon::TransitionImageLayout(VulkanContext::GetDevice().Device(), buffer, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
         }
 
         HE_VULKAN_CHECK_RESULT(vkEndCommandBuffer(buffer));
@@ -417,12 +449,15 @@ namespace Heart
         }
 
         if (attachmentData.CPUVisible)
+        {
             attachmentData.AttachmentBuffer = std::dynamic_pointer_cast<VulkanBuffer>(Buffer::Create(
                 Buffer::Type::Pixel,
                 BufferUsageType::Dynamic,
                 { ColorFormatBufferDataType(attachmentData.GeneralColorFormat) },
                 m_ActualWidth * m_ActualHeight * ColorFormatComponents(attachmentData.GeneralColorFormat)
             ));
+            m_AsyncTransfers.emplace_back(attachmentData.AttachmentBuffer->GetStagingBuffer(), attachmentData.AttachmentBuffer->GetBuffer(), attachmentData.AttachmentBuffer->GetAllocatedSize());
+        }
 
         // create associated image views 
         attachmentData.ColorImageView = VulkanCommon::CreateImageView(device.Device(), attachmentData.ColorImage, colorFormat, 1);
@@ -457,6 +492,7 @@ namespace Heart
         }
 
         attachmentData.AttachmentBuffer.reset();
+        m_AsyncTransfers.clear();
     }
 
     void VulkanFramebuffer::CreateDepthAttachment()

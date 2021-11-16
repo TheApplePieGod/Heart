@@ -15,15 +15,25 @@ namespace Heart
         void SetData(void* data, u32 elementCount, u32 elementOffset) override;
 
         VkBuffer GetBuffer();
+        VkBuffer GetStagingBuffer();
         VkDeviceMemory GetMemory();
+        VkDeviceMemory GetStagingMemory();
         void* GetMappedMemory();
 
-    protected:
+    private:
+        enum class StagingDirection
+        {
+            CPUToGPU = 0,
+            GPUToCPU
+        };
+
+    private:
         void CreateBuffer(VkDeviceSize size, VkBuffer& outBuffer, VkDeviceMemory& outMemory, VkBuffer& outStagingBuffer, VkDeviceMemory& outStagingMemory);
         void UpdateFrameIndex();
         void FlushWrites(VkBuffer src, VkBuffer dst);
+        u32 GetAccessingIndex();
 
-    protected:
+    private:
         std::array<VkBuffer, MAX_FRAMES_IN_FLIGHT> m_Buffers;
         std::array<VkDeviceMemory, MAX_FRAMES_IN_FLIGHT> m_BufferMemory;
         std::array<VkBuffer, MAX_FRAMES_IN_FLIGHT> m_StagingBuffers;
@@ -32,5 +42,6 @@ namespace Heart
         u64 m_LastUpdateFrame = 0;
         u32 m_InFlightFrameIndex = 0;
         bool m_UsesStaging = false;
+        StagingDirection m_StagingDirection = StagingDirection::CPUToGPU;
     };
 }

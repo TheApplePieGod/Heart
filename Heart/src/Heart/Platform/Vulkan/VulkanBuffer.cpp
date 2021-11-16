@@ -12,7 +12,21 @@ namespace Heart
     {
         VulkanDevice& device = VulkanContext::GetDevice();
         VkDeviceSize bufferSize = layout.GetStride() * elementCount;
-        m_UsesStaging = type == Type::Vertex || type == Type::Index;
+
+        switch (type)
+        {
+            default: break;
+            case Type::Uniform:
+            case Type::Storage:
+            case Type::Pixel:
+            { m_UsesStaging = false; } break;
+            case Type::Vertex:
+            case Type::Index:
+            {
+                m_UsesStaging = true;
+                m_StagingDirection = StagingDirection::CPUToGPU;
+            } break;
+        }
 
         HE_ENGINE_ASSERT(usage == BufferUsageType::Static || usage == BufferUsageType::Dynamic, "Vulkan does not support specified BufferUsageType");
 
@@ -22,7 +36,7 @@ namespace Heart
         {
             CreateBuffer(bufferSize, m_Buffers[i], m_BufferMemory[i], m_StagingBuffers[i], m_StagingBufferMemory[i]);
 
-            if (m_UsesStaging)
+            if (m_UsesStaging && m_StagingDirection == StagingDirection::CPUToGPU)
                 vkMapMemory(device.Device(), m_StagingBufferMemory[i], 0, bufferSize, 0, &m_MappedMemory[i]);
             else
                 vkMapMemory(device.Device(), m_BufferMemory[i], 0, bufferSize, 0, &m_MappedMemory[i]);
@@ -57,17 +71,19 @@ namespace Heart
         size_t bufferCount = m_Usage == BufferUsageType::Static ? 1 : m_Buffers.size();
         for (size_t i = 0; i < bufferCount; i++)
         {
-            if (m_UsesStaging)
+            if (m_UsesStaging && m_StagingDirection == StagingDirection::CPUToGPU)
             {
-                if (m_Usage == BufferUsageType::Dynamic) // statc should already have the staging buffer destroyed
-                {
+                if (m_Usage == BufferUsageType::Dynamic)
                     vkUnmapMemory(device.Device(), m_StagingBufferMemory[i]);
-                    vkDestroyBuffer(device.Device(), m_StagingBuffers[i], nullptr);
-                    vkFreeMemory(device.Device(), m_StagingBufferMemory[i], nullptr);
-                }
             }
             else
                 vkUnmapMemory(device.Device(), m_BufferMemory[i]);
+                
+            if (m_UsesStaging && m_Usage == BufferUsageType::Dynamic) // statc should already have the staging buffer destroyed
+            {
+                vkDestroyBuffer(device.Device(), m_StagingBuffers[i], nullptr);
+                vkFreeMemory(device.Device(), m_StagingBufferMemory[i], nullptr);
+            }     
             
             vkDestroyBuffer(device.Device(), m_Buffers[i], nullptr);
             vkFreeMemory(device.Device(), m_BufferMemory[i], nullptr);  
@@ -86,7 +102,7 @@ namespace Heart
             case Type::Storage:
             { VulkanCommon::CreateBuffer(device.Device(), device.PhysicalDevice(), size, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, outBuffer, outMemory); } break;
             case Type::Pixel:
-            { VulkanCommon::CreateBuffer(device.Device(), device.PhysicalDevice(), size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, outBuffer, outMemory); } break;
+            { VulkanCommon::CreateBuffer(device.Device(), device.PhysicalDevice(), size, VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, outBuffer, outMemory); } break;
             case Type::Vertex:
             {
                 VulkanCommon::CreateBuffer(device.Device(), device.PhysicalDevice(), size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, outStagingBuffer, outStagingMemory);
@@ -100,6 +116,17 @@ namespace Heart
         }
     }
 
+    u32 VulkanBuffer::GetAccessingIndex()
+    {
+        u32 accessingIndex = 0;
+        if (m_Usage == BufferUsageType::Dynamic)
+        {
+            UpdateFrameIndex();
+            accessingIndex = m_InFlightFrameIndex;
+        }
+        return accessingIndex;
+    }
+
     void VulkanBuffer::SetData(void* data, u32 elementCount, u32 elementOffset)
     {
         HE_PROFILE_FUNCTION();
@@ -111,13 +138,13 @@ namespace Heart
             HE_ENGINE_LOG_WARN("Attemting to update buffer that is marked as static");
             return;
         }
-
-        u32 accessingIndex = 0;
-        if (m_Usage == BufferUsageType::Dynamic)
+        if (m_StagingDirection == StagingDirection::GPUToCPU)
         {
-            UpdateFrameIndex();
-            accessingIndex = m_InFlightFrameIndex;
+            HE_ENGINE_LOG_WARN("Attemting to update buffer that retrieves data from the GPU");
+            return;
         }
+
+        u32 accessingIndex = GetAccessingIndex();
 
         memcpy((char*)m_MappedMemory[accessingIndex] + m_Layout.GetStride() * elementOffset, data, m_Layout.GetStride() * elementCount);
 
@@ -127,37 +154,36 @@ namespace Heart
 
     VkBuffer VulkanBuffer::GetBuffer()
     {
-        u32 accessingIndex = 0;
-        if (m_Usage == BufferUsageType::Dynamic)
-        {
-            UpdateFrameIndex();
-            accessingIndex = m_InFlightFrameIndex;
-        }
-        
+        u32 accessingIndex = GetAccessingIndex();
+
         return m_Buffers[accessingIndex];
+    }
+
+    VkBuffer VulkanBuffer::GetStagingBuffer()
+    {
+        u32 accessingIndex = GetAccessingIndex();
+
+        return m_StagingBuffers[accessingIndex];
     }
 
     VkDeviceMemory VulkanBuffer::GetMemory()
     {
-        u32 accessingIndex = 0;
-        if (m_Usage == BufferUsageType::Dynamic)
-        {
-            UpdateFrameIndex();
-            accessingIndex = m_InFlightFrameIndex;
-        }
-        
+        u32 accessingIndex = GetAccessingIndex();
+
         return m_BufferMemory[accessingIndex];
+    }
+
+    VkDeviceMemory VulkanBuffer::GetStagingMemory()
+    {
+        u32 accessingIndex = GetAccessingIndex();
+
+        return m_StagingBufferMemory[accessingIndex];
     }
 
     void* VulkanBuffer::GetMappedMemory()
     {
-        u32 accessingIndex = 0;
-        if (m_Usage == BufferUsageType::Dynamic)
-        {
-            UpdateFrameIndex();
-            accessingIndex = m_InFlightFrameIndex;
-        }
-        
+        u32 accessingIndex = GetAccessingIndex();
+
         return m_MappedMemory[accessingIndex];
     }
 

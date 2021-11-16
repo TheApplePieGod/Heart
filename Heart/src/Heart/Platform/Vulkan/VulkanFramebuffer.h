@@ -76,6 +76,7 @@ namespace Heart
         std::vector<VulkanFramebufferAttachment> m_AttachmentData;
         std::vector<VkClearValue> m_CachedClearValues;
         std::vector<VkImageView> m_CachedImageViews;
+        std::vector<AsyncTransfer> m_AsyncTransfers;
 
         u64 m_LastUpdateFrame = 0;
         u32 m_InFlightFrameIndex = 0;
@@ -90,5 +91,6 @@ namespace Heart
         VkFormat m_DepthFormat;
 
         friend class VulkanRenderApi;
+        friend class VulkanSwapChain;
     };
 }

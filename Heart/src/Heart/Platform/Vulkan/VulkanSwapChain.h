@@ -7,16 +7,15 @@ namespace Heart
     // TODO: make this a parameter?
     const u32 MAX_FRAMES_IN_FLIGHT = 2;
 
-    class FrameDataRegistry
+    struct AsyncTransfer
     {
-    public:
-        std::array<void*, MAX_FRAMES_IN_FLIGHT>& RegisterData(u32& outId);
-        void UnregisterData(u32 id);
-        inline void* GetCurrentData(u32 id, u32 frameIndex) { return m_FrameDataRegistry[id][frameIndex]; }; // disable checks here for speed
+        AsyncTransfer(VkBuffer source, VkBuffer dest, u32 size)
+            : Source(source), Destination(dest), Size(size)
+        {}
 
-    private:
-        std::unordered_map<u32, std::array<void*, MAX_FRAMES_IN_FLIGHT>> m_FrameDataRegistry;
-        u32 m_CurrentId = 0;
+        VkBuffer Source;
+        VkBuffer Destination;
+        u32 Size;
     };
 
     class VulkanSwapChain
@@ -39,6 +38,7 @@ namespace Heart
         void BeginFrame();
         void EndFrame();
         void SubmitCommandBuffers(const std::vector<VkCommandBuffer>& buffers);
+        void SubmitAsyncTransfers(const std::vector<AsyncTransfer>& asyncTransfers);
 
         void InvalidateSwapChain(u32 newWidth, u32 newHeight);
 
@@ -48,8 +48,6 @@ namespace Heart
         inline VkCommandBuffer GetCommandBuffer() const { return m_CommandBuffers[m_InFlightFrameIndex]; }
         inline u32 GetPresentImageIndex() const { return m_PresentImageIndex; }
         inline u32 GetInFlightFrameIndex() const { return m_InFlightFrameIndex; }
-        inline FrameDataRegistry& GetFrameDataRegistry() { return m_FrameDataRegistry; }
-        inline void* GetFrameData(u32 registryId) { return m_FrameDataRegistry.GetCurrentData(registryId, m_InFlightFrameIndex); };
 
     private:
         void CreateSwapChain();
@@ -91,6 +89,7 @@ namespace Heart
         std::array<VkCommandBuffer, MAX_FRAMES_IN_FLIGHT> m_CommandBuffers; // secondary
         std::vector<VkCommandBuffer> m_AuxiliaryCommandBuffers = {}; // collection of all submitted primary commandbuffers
         std::vector<size_t> m_AuxiliaryCommandBufferCounts = {}; // amount of buffers per submit call to create a dependency chain
+        std::vector<AsyncTransfer> m_AsyncTransfers = {}; // collection of all transfers that are not tied to rendering
         std::array<VkSemaphore, MAX_FRAMES_IN_FLIGHT> m_ImageAvailableSemaphores;
         std::array<VkSemaphore, MAX_FRAMES_IN_FLIGHT> m_RenderFinishedSemaphores;
         std::vector<VkSemaphore> m_AuxiliaryRenderFinishedSemaphores = {};
@@ -100,7 +99,6 @@ namespace Heart
         bool m_ShouldPresentThisFrame;
         u32 m_InFlightFrameIndex = 0;
         bool m_SwapChainInvalid = false;
-        FrameDataRegistry m_FrameDataRegistry;
 
         VkImage m_ColorImage;
         VkImage m_DepthImage;
