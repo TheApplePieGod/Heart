@@ -87,6 +87,8 @@ namespace Heart
 
     bool VulkanDescriptorSet::UpdateShaderResource(u32 bindingIndex, ShaderResourceType resourceType, void* resource)
     {
+        HE_PROFILE_FUNCTION();
+
         VulkanDevice& device = VulkanContext::GetDevice();
         if (App::Get().GetFrameCount() != m_LastResetFrame)
         {

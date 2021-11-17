@@ -2,6 +2,7 @@
 #include "MeshAsset.h"
 
 #include "Heart/Util/FilesystemUtils.h"
+#include "Heart/Asset/AssetManager.h"
 #include "nlohmann/json.hpp"
 
 namespace Heart
@@ -27,6 +28,7 @@ namespace Heart
         if (!m_Loaded) return;
 
         m_Submeshes.clear();
+        m_DefaultTexturePaths.clear();
         m_Loaded = false;
     }
 
@@ -60,7 +62,7 @@ namespace Heart
         std::vector<BufferView> bufferViews;
         for (auto& view : j["bufferViews"])
         {
-            bufferViews.emplace_back(view["buffer"], view["byteLength"], view["byteOffset"]);
+            bufferViews.emplace_back(view["buffer"], view["byteLength"], view.contains("byteOffset") ? view["byteOffset"] : 0);
         }
 
         // parse accessors
@@ -71,24 +73,74 @@ namespace Heart
             accessors.emplace_back(accessor["bufferView"], byteOffset, accessor["count"], accessor["componentType"]);
         }
 
-        // parse meshes
-        std::vector<Mesh::Vertex> vertices;
-        std::vector<u32> indices;
+        // parse texture sources
+        auto parentPath = std::filesystem::path(m_Path).parent_path();
+        std::vector<std::string> texturePaths;
+        if (j.contains("images"))
+        {
+            for (auto& image : j["images"])
+            {
+                std::string uri = image["uri"];
+                if (uri.find("base64") != std::string::npos)
+                {
+                    HE_ENGINE_ASSERT(false, "Loading inline textures is not supported yet");
+                    //std::string base64 = uri.substr(uri.find(',') + 1);
+                    //buffers.emplace_back(Base64Decode(base64));
+                }
+                else
+                {
+                    auto finalPath = parentPath.append(uri).generic_u8string();
+                    texturePaths.emplace_back(finalPath);
+                    AssetManager::RegisterAsset(Asset::Type::Texture, finalPath);
+                    parentPath = parentPath.parent_path();
+                }
+            }
+        }
+
+        // parse textures
+        std::vector<TextureView> textureViews;
+        if (j.contains("textures"))
+        {
+            for (auto& texture : j["textures"])
+            {
+                textureViews.emplace_back(texture["sampler"], texture["source"]);
+            }
+        }
+
+        // parse materials
+        if (j.contains("materials"))
+        {
+            for (auto& material : j["materials"])
+            {
+                // TODO: color materials
+                if (material["pbrMetallicRoughness"].contains("baseColorTexture"))
+                {
+                    u32 texIndex = material["pbrMetallicRoughness"]["baseColorTexture"]["index"];
+                    m_DefaultTexturePaths.emplace_back(texturePaths[textureViews[texIndex].SourceIndex]);
+                }
+                else
+                    m_DefaultTexturePaths.emplace_back("");
+            }
+        }
+        else
+            m_DefaultTexturePaths.emplace_back(""); // should always have one material
+
+        // parse meshes and create submeshes based on material
+        std::unordered_map<u32, SubmeshParseData> parseData; // keyed by material id
         for (auto& mesh : j["meshes"])
         {
-            vertices.clear();
-            indices.clear();
-            
-            u32 primitiveVertexOffset = 0;
-            u32 primitiveIndexOffset = 0;
             for (auto& primitive : mesh["primitives"])
             {
+                u32 materialIndex = primitive.contains("material") ? primitive["material"] : 0;
+                if (parseData.find(materialIndex) == parseData.end())
+                    parseData[materialIndex] = SubmeshParseData();
+
+                auto& smData = parseData[materialIndex];
+
                 // Points = 0, Lines, LineLoop, LineStrip, Triangles, TriangleStrip, TriangleFan
                 if (primitive.contains("mode"))
                 { HE_ENGINE_ASSERT(primitive["mode"] == 4, "Cannot load GLTF mesh that uses an unsupported primitive mode"); } // TODO: support all modes
                 HE_ENGINE_ASSERT(primitive.contains("indices"), "Cannot load GLTF mesh that does not use indexed geometry");
-
-                u32 materialIndex = primitive.contains("material") ? primitive["material"] : 0;
 
                 // parse indices
                 {
@@ -96,27 +148,27 @@ namespace Heart
                     auto& bufferView = bufferViews[accessor.BufferViewIndex];
                     auto& buffer = buffers[bufferView.BufferIndex];
 
-                    if (accessor.Count + primitiveIndexOffset > indices.size())
-                        indices.resize(accessor.Count + indices.size());
+                    if (accessor.Count + smData.IndexOffset > smData.Indices.size())
+                        smData.Indices.resize(accessor.Count + smData.Indices.size());
 
                     u32 offset = 0; // bytes
-                    for (u32 i = primitiveIndexOffset; i < primitiveIndexOffset + accessor.Count; i++)
+                    for (u32 i = smData.IndexOffset; i < smData.IndexOffset + accessor.Count; i++)
                     {
                         if (accessor.ComponentType == 5123) // unsigned short
                         {
-                            indices[i] = *(u16*)(&buffer[bufferView.ByteOffset + accessor.ByteOffset + offset]) + primitiveVertexOffset;
+                            smData.Indices[i] = *(u16*)(&buffer[bufferView.ByteOffset + accessor.ByteOffset + offset]) + smData.VertexOffset;
                             offset += 2;
                         }
                         else if (accessor.ComponentType == 5125) // unsigned int
                         {
-                            indices[i] = *(u32*)(&buffer[bufferView.ByteOffset + accessor.ByteOffset + offset]) + primitiveVertexOffset;
+                            smData.Indices[i] = *(u32*)(&buffer[bufferView.ByteOffset + accessor.ByteOffset + offset]) + smData.VertexOffset;
                             offset += 4;
                         }
                         else
                         { HE_ENGINE_ASSERT(false, "Cannot load GLTF mesh that has indices with an unsupported data type"); }
                     }
 
-                    primitiveIndexOffset += accessor.Count;
+                    smData.IndexOffset += accessor.Count;
                 }
 
                 u32 lastCount = 0;
@@ -126,43 +178,44 @@ namespace Heart
                     auto& bufferView = bufferViews[accessor.BufferViewIndex];
                     auto& buffer = buffers[bufferView.BufferIndex];
 
-                    if (accessor.Count + primitiveVertexOffset > vertices.size())
-                        vertices.resize(accessor.Count + vertices.size());
+                    if (accessor.Count + smData.VertexOffset > smData.Vertices.size())
+                        smData.Vertices.resize(accessor.Count + smData.Vertices.size());
 
                     // parse vertex data
                     u32 offset = 0; // bytes
-                    for (u32 i = primitiveVertexOffset; i < primitiveVertexOffset + accessor.Count; i++)
+                    for (u32 i = smData.VertexOffset; i < smData.VertexOffset + accessor.Count; i++)
                     {
                         if (attribute.key() == "POSITION")
                         {
-                            vertices[i].Position = *(glm::vec3*)(&buffer[bufferView.ByteOffset + accessor.ByteOffset + offset]);
+                            smData.Vertices[i].Position = *(glm::vec3*)(&buffer[bufferView.ByteOffset + accessor.ByteOffset + offset]);
                             offset += 12;
                         }
                         else if (attribute.key() == "TEXCOORD_0")
                         {
-                            vertices[i].UV = *(glm::vec2*)(&buffer[bufferView.ByteOffset + accessor.ByteOffset + offset]);
+                            smData.Vertices[i].UV = *(glm::vec2*)(&buffer[bufferView.ByteOffset + accessor.ByteOffset + offset]);
                             offset += 8;
                         }
                         else if (attribute.key() == "NORMAL")
                         {
-                            vertices[i].Normal = *(glm::vec3*)(&buffer[bufferView.ByteOffset + accessor.ByteOffset + offset]);
+                            smData.Vertices[i].Normal = *(glm::vec3*)(&buffer[bufferView.ByteOffset + accessor.ByteOffset + offset]);
                             offset += 12;
                         }
                         else if (attribute.key() == "TANGENT")
                         {
-                            vertices[i].Tangent = *(glm::vec4*)(&buffer[bufferView.ByteOffset + accessor.ByteOffset + offset]);
+                            smData.Vertices[i].Tangent = *(glm::vec4*)(&buffer[bufferView.ByteOffset + accessor.ByteOffset + offset]);
                             offset += 16;
                         }
-                        vertices[i].MaterialIndex = materialIndex;
                     }
 
                     lastCount = accessor.Count;
                 }
-                primitiveVertexOffset += lastCount;
+                smData.VertexOffset += lastCount;
             }
-
-            m_Submeshes.emplace_back(mesh.contains("name") ? mesh["name"] : "Mesh", vertices, indices); 
         }
+
+        // populate submeshes with parsed data
+        for (auto& pair : parseData)
+            m_Submeshes.emplace_back(pair.second.Vertices, pair.second.Indices, pair.first); 
     }
 
     // adapted from https://stackoverflow.com/questions/180947/base64-decode-snippet-in-c

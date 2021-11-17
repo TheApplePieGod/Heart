@@ -21,6 +21,8 @@ namespace Heart
 
         void* GetAttachmentPixelData(u32 attachmentIndex) override;
 
+        void StartNextSubpass() override;
+
         inline u32 GetFramebufferId() const { return m_FramebufferId; }
 
     protected:

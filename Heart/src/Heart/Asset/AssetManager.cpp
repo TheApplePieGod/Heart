@@ -76,6 +76,8 @@ namespace Heart
 
     Ref<Asset> AssetManager::RegisterAsset(Asset::Type type, const std::string& path)
     {
+        HE_ENGINE_ASSERT(!path.empty(), "Cannot register asset with an empty path");
+
         if (s_Registry.find(path) == s_Registry.end())
         {
             HE_ENGINE_LOG_TRACE("Registering {0} asset @ {1}", HE_ENUM_TO_STRING(Asset, type), path);
@@ -87,7 +89,9 @@ namespace Heart
 
     Asset* AssetManager::RetrieveAsset(const std::string& path)
     {
-        HE_ENGINE_ASSERT(s_Registry.find(path) != s_Registry.end(), "Cannot retrieve asset that has not been registered");
+        if (path.empty()) return nullptr;
+        if (s_Registry.find(path) == s_Registry.end()) return nullptr;
+
         auto& entry = s_Registry[path];
         LoadAsset(entry);
         return entry.Asset.get();

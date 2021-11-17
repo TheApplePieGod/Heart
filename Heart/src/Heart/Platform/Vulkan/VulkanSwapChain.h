@@ -7,17 +7,6 @@ namespace Heart
     // TODO: make this a parameter?
     const u32 MAX_FRAMES_IN_FLIGHT = 2;
 
-    struct AsyncTransfer
-    {
-        AsyncTransfer(VkBuffer source, VkBuffer dest, u32 size)
-            : Source(source), Destination(dest), Size(size)
-        {}
-
-        VkBuffer Source;
-        VkBuffer Destination;
-        u32 Size;
-    };
-
     class VulkanSwapChain
     {
     public:
@@ -38,7 +27,6 @@ namespace Heart
         void BeginFrame();
         void EndFrame();
         void SubmitCommandBuffers(const std::vector<VkCommandBuffer>& buffers);
-        void SubmitAsyncTransfers(const std::vector<AsyncTransfer>& asyncTransfers);
 
         void InvalidateSwapChain(u32 newWidth, u32 newHeight);
 
@@ -89,7 +77,6 @@ namespace Heart
         std::array<VkCommandBuffer, MAX_FRAMES_IN_FLIGHT> m_CommandBuffers; // secondary
         std::vector<VkCommandBuffer> m_AuxiliaryCommandBuffers = {}; // collection of all submitted primary commandbuffers
         std::vector<size_t> m_AuxiliaryCommandBufferCounts = {}; // amount of buffers per submit call to create a dependency chain
-        std::vector<AsyncTransfer> m_AsyncTransfers = {}; // collection of all transfers that are not tied to rendering
         std::array<VkSemaphore, MAX_FRAMES_IN_FLIGHT> m_ImageAvailableSemaphores;
         std::array<VkSemaphore, MAX_FRAMES_IN_FLIGHT> m_RenderFinishedSemaphores;
         std::vector<VkSemaphore> m_AuxiliaryRenderFinishedSemaphores = {};

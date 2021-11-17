@@ -6,7 +6,6 @@ layout(location = 2) in vec3 inNormal;
 layout(location = 3) in vec4 inTangent;
 
 layout(location = 0) out vec2 texCoord;
-layout(location = 1) out int entityId;
 
 layout(binding = 0) uniform FrameBuffer {
     mat4 viewProj;
@@ -23,8 +22,6 @@ layout(binding = 1) readonly buffer ObjectBuffer {
 } objectBuffer;
 
 void main() {
-    //gl_Position = vec4(inPosition, 1.0);
     gl_Position = frameData.viewProj * objectBuffer.object.model * vec4(inPosition, 1.0);
     texCoord = inTexCoord;
-    entityId = objectBuffer.object.entityId;
 }

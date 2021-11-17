@@ -107,11 +107,13 @@ namespace Heart
                 m_CachedClearValues.emplace_back(clearValue);
             }
 
+            attachmentData.ColorImageAttachmentIndex = attachmentIndex;
             VkAttachmentReference colorAttachmentRef{};
             colorAttachmentRef.attachment = attachmentIndex++;
             colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
             colorAttachmentRefs.emplace_back(colorAttachmentRef);
 
+            attachmentData.ResolveImageAttachmentIndex = attachmentIndex;
             VkAttachmentReference colorAttachmentResolveRef{};
             colorAttachmentResolveRef.attachment = attachmentData.HasResolve ? attachmentIndex++ : VK_ATTACHMENT_UNUSED;
             colorAttachmentResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -120,31 +122,88 @@ namespace Heart
             m_AttachmentData.emplace_back(attachmentData);
         }
 
-        VkSubpassDescription subpass{};
-        subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-        subpass.colorAttachmentCount = static_cast<u32>(colorAttachmentRefs.size());
-        subpass.pColorAttachments = colorAttachmentRefs.data();
-        subpass.pResolveAttachments = resolveAttachmentRefs.data();
-        subpass.pDepthStencilAttachment = &depthAttachmentRef;
+        std::vector<VkSubpassDescription> subpasses(createInfo.Subpasses.size());
+        std::vector<VkSubpassDependency> dependencies(createInfo.Subpasses.size());
+        std::vector<VkAttachmentReference> inputAttachmentRefs;
+        std::vector<VkAttachmentReference> outputAttachmentRefs;
+        std::vector<VkAttachmentReference> outputResolveAttachmentRefs;
+        for (size_t i = 0; i < subpasses.size(); i++)
+        {
+            inputAttachmentRefs.resize(createInfo.Subpasses[i].InputAttachmentIndexes.size());
+            outputAttachmentRefs.resize(createInfo.Subpasses[i].OutputAttachmentIndexes.size());
+            outputResolveAttachmentRefs.resize(createInfo.Subpasses[i].OutputAttachmentIndexes.size());
 
-        // TODO: subpass dependencies
-        VkSubpassDependency dependency{};
-        dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-        dependency.dstSubpass = 0;
-        dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-        dependency.srcAccessMask = 0;
-        dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-        dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+            HE_ENGINE_ASSERT(i != 0 || inputAttachmentRefs.size() == 0, "Subpass 0 cannot have input attachments");
+
+            for (size_t j = 0; j < createInfo.Subpasses[i].InputAttachmentIndexes.size(); j++)
+                inputAttachmentRefs[j] = { m_AttachmentData[createInfo.Subpasses[i].InputAttachmentIndexes[j]].ColorImageAttachmentIndex, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
+            for (size_t j = 0; j < createInfo.Subpasses[i].OutputAttachmentIndexes.size(); j++)
+                outputAttachmentRefs[j] = { m_AttachmentData[createInfo.Subpasses[i].OutputAttachmentIndexes[j]].ColorImageAttachmentIndex, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
+            for (size_t j = 0; j < createInfo.Subpasses[i].OutputAttachmentIndexes.size(); j++)
+                outputResolveAttachmentRefs[j] = { m_AttachmentData[createInfo.Subpasses[i].OutputAttachmentIndexes[j]].HasResolve ? m_AttachmentData[createInfo.Subpasses[i].OutputAttachmentIndexes[j]].ResolveImageAttachmentIndex : VK_ATTACHMENT_UNUSED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
+
+            subpasses[i] = {};
+            subpasses[i].pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+            subpasses[i].colorAttachmentCount = static_cast<u32>(outputAttachmentRefs.size());
+            subpasses[i].pColorAttachments = outputAttachmentRefs.data();
+            subpasses[i].pResolveAttachments = outputResolveAttachmentRefs.data();
+            subpasses[i].pDepthStencilAttachment = &depthAttachmentRef;
+            subpasses[i].inputAttachmentCount = static_cast<u32>(inputAttachmentRefs.size());
+            subpasses[i].pInputAttachments = inputAttachmentRefs.data();
+
+            dependencies[i] = {};
+            dependencies[i].srcSubpass = static_cast<u32>(i - 1);
+            dependencies[i].dstSubpass = static_cast<u32>(i);
+            dependencies[i].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+            dependencies[i].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+            dependencies[i].dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+            dependencies[i].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+            dependencies[i].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+            if (i == 0)
+            {
+                dependencies[i].srcSubpass = VK_SUBPASS_EXTERNAL;
+                dependencies[i].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+                dependencies[i].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+                dependencies[i].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+                dependencies[i].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT; //| VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+            }
+            if (i == subpasses.size() - 1)
+            {
+                // if (i == 0)
+                //     dependencies[i].dstSubpass = 0;
+                // else
+                //     dependencies[i].dstSubpass = VK_SUBPASS_EXTERNAL;
+                dependencies[i].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT; //| VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+                dependencies[i].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+                dependencies[i].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+            }
+        }
+
+        // subpasses[0] = {};
+        // subpasses[0].pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+        // subpasses[0].colorAttachmentCount = static_cast<u32>(colorAttachmentRefs.size());
+        // subpasses[0].pColorAttachments = colorAttachmentRefs.data();
+        // subpasses[0].pResolveAttachments = resolveAttachmentRefs.data();
+        // subpasses[0].pDepthStencilAttachment = &depthAttachmentRef;
+
+        // dependencies[0] = {};
+        // dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
+        // dependencies[0].dstSubpass = 0;
+        // dependencies[0].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+        // dependencies[0].srcAccessMask = 0;
+        // dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+        // dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
         VkRenderPassCreateInfo renderPassInfo{};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
         renderPassInfo.attachmentCount = static_cast<u32>(attachmentDescriptions.size());
         renderPassInfo.pAttachments = attachmentDescriptions.data();
-        renderPassInfo.subpassCount = 1;
-        renderPassInfo.pSubpasses = &subpass;
-        renderPassInfo.dependencyCount = 1;
-        renderPassInfo.pDependencies = &dependency;
-
+        renderPassInfo.subpassCount = static_cast<u32>(subpasses.size());
+        renderPassInfo.pSubpasses = subpasses.data();
+        renderPassInfo.dependencyCount = static_cast<u32>(dependencies.size());;
+        renderPassInfo.pDependencies = dependencies.data();
+          
         HE_VULKAN_CHECK_RESULT(vkCreateRenderPass(device.Device(), &renderPassInfo, nullptr, &m_RenderPass));
 
         CreateFramebuffer();
@@ -376,6 +435,11 @@ namespace Heart
         return m_AttachmentData[attachmentIndex].AttachmentBuffer->GetMappedMemory();
     }
 
+    void VulkanFramebuffer::StartNextSubpass()
+    {
+        vkCmdNextSubpass(GetCommandBuffer(), VK_SUBPASS_CONTENTS_INLINE);
+    }
+
     Ref<GraphicsPipeline> VulkanFramebuffer::InternalInitializeGraphicsPipeline(const GraphicsPipelineCreateInfo& createInfo)
     {
         HE_ENGINE_ASSERT(createInfo.BlendStates.size() == m_Info.Attachments.size(), "Graphics pipeline blend state count must match framebuffer attachment count");
@@ -456,7 +520,6 @@ namespace Heart
                 { ColorFormatBufferDataType(attachmentData.GeneralColorFormat) },
                 m_ActualWidth * m_ActualHeight * ColorFormatComponents(attachmentData.GeneralColorFormat)
             ));
-            m_AsyncTransfers.emplace_back(attachmentData.AttachmentBuffer->GetStagingBuffer(), attachmentData.AttachmentBuffer->GetBuffer(), attachmentData.AttachmentBuffer->GetAllocatedSize());
         }
 
         // create associated image views 
@@ -492,7 +555,6 @@ namespace Heart
         }
 
         attachmentData.AttachmentBuffer.reset();
-        m_AsyncTransfers.clear();
     }
 
     void VulkanFramebuffer::CreateDepthAttachment()

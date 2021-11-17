@@ -233,6 +233,11 @@ namespace Heart
         return m_PixelBufferMappings[attachmentIndex];
     }
 
+    void OpenGLFramebuffer::StartNextSubpass()
+    {
+        
+    }
+
     Ref<GraphicsPipeline> OpenGLFramebuffer::InternalInitializeGraphicsPipeline(const GraphicsPipelineCreateInfo& createInfo)
     {
         HE_ENGINE_ASSERT(createInfo.BlendStates.size() == m_Info.Attachments.size(), "Graphics pipeline blend state count must match framebuffer attachment count");

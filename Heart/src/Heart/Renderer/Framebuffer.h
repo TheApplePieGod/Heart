@@ -16,6 +16,12 @@ namespace Heart
         Max = Sixtyfour
     };
 
+    struct Subpass
+    {
+        std::vector<u32> InputAttachmentIndexes;
+        std::vector<u32> OutputAttachmentIndexes;
+    };
+
     struct FramebufferAttachment
     {
         glm::vec4 ClearColor;
@@ -26,10 +32,9 @@ namespace Heart
     struct FramebufferCreateInfo
     {
         FramebufferCreateInfo() = default;
-		FramebufferCreateInfo(std::initializer_list<FramebufferAttachment> attachments)
-			: Attachments(attachments) {}
 
         std::vector<FramebufferAttachment> Attachments;
+        std::vector<Subpass> Subpasses; // leave empty for no 
         u32 Width, Height = 0; // set to zero to match screen width and height
         MsaaSampleCount SampleCount = MsaaSampleCount::Max; // will be clamped to device max supported sample count
         bool HasDepth = false;
@@ -53,6 +58,8 @@ namespace Heart
 
         // attachment must be created with 'AllowCPURead' enabled
         virtual void* GetAttachmentPixelData(u32 attachmentIndex) = 0;
+
+        virtual void StartNextSubpass() = 0;
 
         template<typename T>
         T ReadAttachmentPixel(u32 attachmentIndex, u32 x, u32 y, u32 component)

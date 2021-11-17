@@ -16,16 +16,16 @@ namespace Heart
             glm::vec2 UV = { 0.f, 0.f };
             glm::vec3 Normal = { 0.f, 0.f, 0.f };
             glm::vec4 Tangent = { 0.f, 0.f, 0.f, 1.f };
-            u32 MaterialIndex = 0;  
         };
 
     public:
-        Mesh(const std::string& name, const std::vector<Vertex>& vertices, const std::vector<u32>& indices);
+        Mesh(const std::vector<Vertex>& vertices, const std::vector<u32>& indices, u32 materialIndex);
+        Mesh() = default;
 
         const std::vector<Vertex>& GetVertices() const { return m_Vertices; }
-        const std::string& GetName() const { return m_Name; }
         Buffer* GetVertexBuffer() { return m_VertexBuffer.get(); }
         Buffer* GetIndexBuffer() { return m_IndexBuffer.get(); }
+        u32 GetMaterialIndex() const { return m_MaterialIndex; }
 
     public:
         static const BufferLayout& GetVertexLayout() { return s_VertexLayout; }
@@ -35,14 +35,13 @@ namespace Heart
             { BufferDataType::Float3 },
             { BufferDataType::Float2 },
             { BufferDataType::Float3 },
-            { BufferDataType::Float4 },
-            { BufferDataType::UInt }
+            { BufferDataType::Float4 }
         };
 
     private:
         std::vector<Vertex> m_Vertices;
         std::vector<u32> m_Indices;
-        std::string m_Name;
+        u32 m_MaterialIndex;
         Ref<Buffer> m_VertexBuffer;
         Ref<Buffer> m_IndexBuffer;
     };

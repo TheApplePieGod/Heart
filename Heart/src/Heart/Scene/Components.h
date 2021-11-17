@@ -46,7 +46,7 @@ namespace Heart
     struct MeshComponent
     {
         glm::vec4 TintColor = { 1.0f, 1.0f, 1.0f, 1.0f };
-        std::string TexturePath;
         std::string MeshPath;
+        std::vector<std::string> TexturePaths;
     };
 }

@@ -545,18 +545,6 @@ namespace Heart
 
         vkResetFences(device.Device(), 1, &m_InFlightFences[m_InFlightFrameIndex]);
         HE_VULKAN_CHECK_RESULT(vkQueueSubmit(device.GraphicsQueue(), static_cast<u32>(submitInfos.size()), submitInfos.data(), m_InFlightFences[m_InFlightFrameIndex]));
-        
-        // auto cmd = VulkanCommon::BeginSingleTimeCommands(device.Device(), VulkanContext::GetTransferPool());
-        // for (size_t i = 0; i < m_AsyncTransfers.size(); i++)
-        // {
-        //     VkBufferCopy copy{};
-        //     copy.srcOffset = 0;
-        //     copy.dstOffset = 0;
-        //     copy.size = m_AsyncTransfers[i].Size;
-
-        //     vkCmdCopyBuffer(cmd, m_AsyncTransfers[i].Source, m_AsyncTransfers[i].Destination, 1, &copy);
-        // }
-        // VulkanCommon::EndSingleTimeCommands(device.Device(), VulkanContext::GetTransferPool(), cmd, device.TransferQueue());
 
         VkSwapchainKHR swapChains[] = { m_SwapChain };
         VkPresentInfoKHR presentInfo{};
@@ -583,11 +571,6 @@ namespace Heart
     {
         m_AuxiliaryCommandBufferCounts.emplace_back(buffers.size());
         m_AuxiliaryCommandBuffers.insert(m_AuxiliaryCommandBuffers.end(), buffers.begin(), buffers.end());
-    }
-
-    void VulkanSwapChain::SubmitAsyncTransfers(const std::vector<AsyncTransfer>& asyncTransfers)
-    {
-        m_AsyncTransfers.insert(m_AsyncTransfers.end(), asyncTransfers.begin(), asyncTransfers.end());
     }
 
     void VulkanSwapChain::InvalidateSwapChain(u32 newWidth, u32 newHeight)

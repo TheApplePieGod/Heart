@@ -2,6 +2,8 @@
 #include "PropertiesPanel.h"
 
 #include "HeartEditor/EditorApp.h"
+#include "Heart/Asset/AssetManager.h"
+#include "Heart/Asset/MeshAsset.h"
 #include "Heart/Renderer/Renderer.h"
 #include "imgui/imgui_internal.h"
 #include "glm/gtc/type_ptr.hpp"
@@ -124,13 +126,9 @@ namespace Widgets
 
                     ImGui::Indent();
 
+                    ImGui::ColorEdit4("Tint", glm::value_ptr(meshComp.TintColor), ImGuiColorEditFlags_AlphaPreviewHalf | ImGuiColorEditFlags_AlphaBar);
+
                     char buffer[128];
-                    std::strncpy(buffer, meshComp.TexturePath.c_str(), sizeof(buffer));
-                    if (ImGui::InputText("Texture Path", buffer, sizeof(buffer)))
-                    {
-                        ImGui::SetKeyboardFocusHere(-1);
-                        meshComp.TexturePath = std::string(buffer);
-                    }
                     std::strncpy(buffer, meshComp.MeshPath.c_str(), sizeof(buffer));
                     if (ImGui::InputText("Mesh Path", buffer, sizeof(buffer)))
                     {
@@ -138,7 +136,24 @@ namespace Widgets
                         meshComp.MeshPath = std::string(buffer);
                     }
 
-                    ImGui::ColorEdit4("Tint", glm::value_ptr(meshComp.TintColor), ImGuiColorEditFlags_AlphaPreviewHalf | ImGuiColorEditFlags_AlphaBar);
+                    if (ImGui::Button("Populate Default Textures"))
+                    {
+                        meshComp.TexturePaths = Heart::AssetManager::RetrieveAsset<Heart::MeshAsset>(meshComp.MeshPath.c_str())->GetDefaultTexturePaths();
+                    }
+                    
+                    std::string label = "Texture Path ";
+                    u32 index = 0;
+                    for (auto& path : meshComp.TexturePaths)
+                    {
+                        std::strncpy(buffer, path.c_str(), sizeof(buffer));
+                        if (ImGui::InputText((label + std::to_string(index)).c_str(), buffer, sizeof(buffer)))
+                        {
+                            ImGui::SetKeyboardFocusHere(-1);
+                            path = std::string(buffer);
+                        }
+                        index++;
+                    }
+                    
                     ImGui::Unindent();
                 }
             }

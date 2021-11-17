@@ -28,7 +28,7 @@ namespace Heart
         unsigned char* buffer = new unsigned char[fileSize + 1];
         file.seekg(0, std::ios::beg);
         file.read((char*)buffer, fileSize);
-        buffer[fileSize - 1] = 0;
+        buffer[fileSize] = 0;
         file.close();
 
         outLength = fileSize;

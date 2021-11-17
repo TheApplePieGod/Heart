@@ -23,6 +23,8 @@ namespace Heart
 
         void* GetAttachmentPixelData(u32 attachmentIndex) override;
 
+        void StartNextSubpass() override;
+
         inline VkFramebuffer GetFramebuffer() const { return m_Framebuffer; }
         inline VkRenderPass GetRenderPass() const { return m_RenderPass; }
         inline VkCommandBuffer GetCommandBuffer() { UpdateFrameIndex(); return m_CommandBuffers[m_InFlightFrameIndex]; } ;
@@ -42,6 +44,8 @@ namespace Heart
             VkDeviceMemory ResolveImageMemory;
             VkImageView ColorImageView;
             VkImageView ResolveImageView;
+            u32 ColorImageAttachmentIndex;
+            u32 ResolveImageAttachmentIndex;
             void* ColorImageImGuiId;
             void* ResolveImageImGuiId;
             bool HasResolve;
@@ -76,7 +80,6 @@ namespace Heart
         std::vector<VulkanFramebufferAttachment> m_AttachmentData;
         std::vector<VkClearValue> m_CachedClearValues;
         std::vector<VkImageView> m_CachedImageViews;
-        std::vector<AsyncTransfer> m_AsyncTransfers;
 
         u64 m_LastUpdateFrame = 0;
         u32 m_InFlightFrameIndex = 0;

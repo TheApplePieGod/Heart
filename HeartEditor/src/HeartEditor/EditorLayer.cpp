@@ -31,8 +31,14 @@ namespace HeartEditor
 
         auto entity = m_ActiveScene->CreateEntity("Test Entity");
         entity.AddComponent<Heart::MeshComponent>();
+        entity.GetComponent<Heart::MeshComponent>().MeshPath = "assets/meshes/Sponza/glTF/Sponza.gltf";
         entity.GetComponent<Heart::TransformComponent>().Scale = { 0.01f, 0.01f, 0.01f };
         m_ActiveScene->CacheEntityTransform(entity);
+
+        entity = m_ActiveScene->CreateEntity("Cube Entity");
+        entity.AddComponent<Heart::MeshComponent>();
+        entity.GetComponent<Heart::MeshComponent>().MeshPath = "assets/meshes/cube.gltf";
+        entity.GetComponent<Heart::MeshComponent>().TexturePaths.emplace_back("assets/meshes/Sponza/glTF/5061699253647017043.png");
 
         // parenting testing
         // std::string parentString = "Parent Entity ";
