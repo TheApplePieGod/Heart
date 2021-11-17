@@ -17,9 +17,10 @@ namespace Heart
         void BindShaderTextureResource(u32 bindingIndex, Texture* texture) override;
 
         void* GetColorAttachmentImGuiHandle(u32 attachmentIndex) override;
-        void* GetDepthAttachmentImGuiHandle() override;
+        void* GetDepthAttachmentImGuiHandle(u32 attachmentIndex) override;
 
-        void* GetAttachmentPixelData(u32 attachmentIndex) override;
+        void* GetColorAttachmentPixelData(u32 attachmentIndex) override;
+        void* GetDepthAttachmentPixelData(u32 attachmentIndex) override;
 
         void StartNextSubpass() override;
 

@@ -16,16 +16,33 @@ namespace Heart
         Max = Sixtyfour
     };
 
-    struct Subpass
+    enum class SubpassAttachmentType
     {
-        std::vector<u32> InputAttachmentIndexes;
-        std::vector<u32> OutputAttachmentIndexes;
+        None = 0,
+        ColorAttachment, DepthAttachment
     };
 
-    struct FramebufferAttachment
+    struct SubpassAttachment
+    {
+        SubpassAttachmentType Type;
+        u32 AttachmentIndex;
+    };
+
+    struct Subpass
+    {
+        std::vector<SubpassAttachment> InputAttachments;
+        std::vector<SubpassAttachment> OutputAttachments;
+    };
+
+    struct FramebufferColorAttachment
     {
         glm::vec4 ClearColor;
         ColorFormat Format;
+        bool AllowCPURead;
+    };
+
+    struct FramebufferDepthAttachment
+    {
         bool AllowCPURead;
     };
 
@@ -33,11 +50,11 @@ namespace Heart
     {
         FramebufferCreateInfo() = default;
 
-        std::vector<FramebufferAttachment> Attachments;
+        std::vector<FramebufferColorAttachment> ColorAttachments;
+        std::vector<FramebufferDepthAttachment> DepthAttachments;
         std::vector<Subpass> Subpasses; // leave empty for no 
         u32 Width, Height = 0; // set to zero to match screen width and height
-        MsaaSampleCount SampleCount = MsaaSampleCount::Max; // will be clamped to device max supported sample count
-        bool HasDepth = false;
+        MsaaSampleCount SampleCount = MsaaSampleCount::None; // will be clamped to device max supported sample count
     };
 
     class Framebuffer : public EventListener
@@ -54,18 +71,19 @@ namespace Heart
         virtual void BindShaderTextureResource(u32 bindingIndex, Texture* texture) = 0;
         
         virtual void* GetColorAttachmentImGuiHandle(u32 attachmentIndex) = 0;
-        virtual void* GetDepthAttachmentImGuiHandle() = 0;
+        virtual void* GetDepthAttachmentImGuiHandle(u32 attachmentIndex) = 0;
 
         // attachment must be created with 'AllowCPURead' enabled
-        virtual void* GetAttachmentPixelData(u32 attachmentIndex) = 0;
+        virtual void* GetColorAttachmentPixelData(u32 attachmentIndex) = 0;
+        virtual void* GetDepthAttachmentPixelData(u32 attachmentIndex) = 0;
 
         virtual void StartNextSubpass() = 0;
 
         template<typename T>
         T ReadAttachmentPixel(u32 attachmentIndex, u32 x, u32 y, u32 component)
         {
-            T* data = (T*)GetAttachmentPixelData(attachmentIndex);
-            u32 index = ColorFormatComponents(m_Info.Attachments[attachmentIndex].Format) * (y * m_ActualWidth + x);
+            T* data = (T*)GetColorAttachmentPixelData(attachmentIndex);
+            u32 index = ColorFormatComponents(m_Info.ColorAttachments[attachmentIndex].Format) * (y * m_ActualWidth + x);
             return data[index + component];
         }
 

@@ -14,7 +14,7 @@ namespace Heart
     VulkanFramebuffer::VulkanFramebuffer(const FramebufferCreateInfo& createInfo)
         : Framebuffer(createInfo)
     {
-        HE_ENGINE_ASSERT(createInfo.Attachments.size() > 0, "Cannot create a framebuffer with zero attachments");
+        HE_ENGINE_ASSERT(createInfo.ColorAttachments.size() > 0, "Cannot create a framebuffer with zero color attachments");
 
         VulkanDevice& device = VulkanContext::GetDevice();
         Window& mainWindow = Window::GetMainWindow();
@@ -29,21 +29,25 @@ namespace Heart
         std::vector<VkAttachmentReference> resolveAttachmentRefs = {};
         std::vector<VkAttachmentDescription> attachmentDescriptions = {};
 
-        m_DepthFormat = VK_FORMAT_D32_SFLOAT;
+        VkFormat depthFormat = VK_FORMAT_D32_SFLOAT;
+        ColorFormat generalDepthFormat = ColorFormat::R32F;
         m_ImageSamples = VulkanCommon::MsaaSampleCountToVulkan(createInfo.SampleCount);
         if (m_ImageSamples > device.MaxMsaaSamples())
             m_ImageSamples = device.MaxMsaaSamples();
 
-        VkAttachmentReference depthAttachmentRef{};
-        depthAttachmentRef.attachment = VK_ATTACHMENT_UNUSED;
-        depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-        if (createInfo.HasDepth)
+        for (auto& attachment : createInfo.DepthAttachments)
         {
-            CreateDepthAttachment();
+            VulkanFramebufferAttachment attachmentData = {};
+            attachmentData.GeneralColorFormat = generalDepthFormat;
+            attachmentData.ColorFormat = depthFormat;
+            attachmentData.HasResolve = false; //m_ImageSamples > VK_SAMPLE_COUNT_1_BIT;
+            attachmentData.CPUVisible = attachment.AllowCPURead;
+            attachmentData.IsDepthAttachment = true;
+
+            CreateAttachmentImages(attachmentData, depthFormat);
 
             VkAttachmentDescription depthAttachment{};
-            depthAttachment.format = m_DepthFormat;
+            depthAttachment.format = depthFormat;
             depthAttachment.samples = m_ImageSamples;
             depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
             depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -57,12 +61,13 @@ namespace Heart
             clearValue.depthStencil = { Renderer::IsUsingReverseDepth() ? 0.f : 1.f, 0 };
             m_CachedClearValues.emplace_back(clearValue);
 
-            depthAttachmentRef.attachment = 0;
-            attachmentIndex++;
+            attachmentData.ImageAttachmentIndex = attachmentIndex++;
+
+            m_DepthAttachmentData.emplace_back(attachmentData);
         }
 
         // TODO: depth resolve (https://github.com/KhronosGroup/Vulkan-Samples/blob/master/samples/performance/msaa/msaa_tutorial.md)
-        for (auto& attachment : createInfo.Attachments)
+        for (auto& attachment : createInfo.ColorAttachments)
         {
             VkFormat colorFormat = VulkanCommon::ColorFormatToVulkan(attachment.Format);
             VkClearValue clearValue{};
@@ -73,6 +78,7 @@ namespace Heart
             attachmentData.ColorFormat = colorFormat;
             attachmentData.HasResolve = m_ImageSamples > VK_SAMPLE_COUNT_1_BIT;
             attachmentData.CPUVisible = attachment.AllowCPURead;
+            attachmentData.IsDepthAttachment = false;
 
             CreateAttachmentImages(attachmentData, colorFormat);
 
@@ -107,7 +113,7 @@ namespace Heart
                 m_CachedClearValues.emplace_back(clearValue);
             }
 
-            attachmentData.ColorImageAttachmentIndex = attachmentIndex;
+            attachmentData.ImageAttachmentIndex = attachmentIndex;
             VkAttachmentReference colorAttachmentRef{};
             colorAttachmentRef.attachment = attachmentIndex++;
             colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -127,29 +133,49 @@ namespace Heart
         std::vector<VkAttachmentReference> inputAttachmentRefs;
         std::vector<VkAttachmentReference> outputAttachmentRefs;
         std::vector<VkAttachmentReference> outputResolveAttachmentRefs;
+        std::vector<VkAttachmentReference> depthAttachmentRefs;
         for (size_t i = 0; i < subpasses.size(); i++)
         {
-            inputAttachmentRefs.resize(createInfo.Subpasses[i].InputAttachmentIndexes.size());
-            outputAttachmentRefs.resize(createInfo.Subpasses[i].OutputAttachmentIndexes.size());
-            outputResolveAttachmentRefs.resize(createInfo.Subpasses[i].OutputAttachmentIndexes.size());
-
             HE_ENGINE_ASSERT(i != 0 || inputAttachmentRefs.size() == 0, "Subpass 0 cannot have input attachments");
 
-            for (size_t j = 0; j < createInfo.Subpasses[i].InputAttachmentIndexes.size(); j++)
-                inputAttachmentRefs[j] = { m_AttachmentData[createInfo.Subpasses[i].InputAttachmentIndexes[j]].ColorImageAttachmentIndex, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
-            for (size_t j = 0; j < createInfo.Subpasses[i].OutputAttachmentIndexes.size(); j++)
-                outputAttachmentRefs[j] = { m_AttachmentData[createInfo.Subpasses[i].OutputAttachmentIndexes[j]].ColorImageAttachmentIndex, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
-            for (size_t j = 0; j < createInfo.Subpasses[i].OutputAttachmentIndexes.size(); j++)
-                outputResolveAttachmentRefs[j] = { m_AttachmentData[createInfo.Subpasses[i].OutputAttachmentIndexes[j]].HasResolve ? m_AttachmentData[createInfo.Subpasses[i].OutputAttachmentIndexes[j]].ResolveImageAttachmentIndex : VK_ATTACHMENT_UNUSED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
+            depthAttachmentRefs.push_back({ VK_ATTACHMENT_UNUSED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL });
+
+            u32 inputAttachmentCount = 0;
+            u32 outputAttachmentCount = 0;
+            for (size_t j = 0; j < createInfo.Subpasses[i].InputAttachments.size(); j++)
+            {
+                auto& attachment = createInfo.Subpasses[i].InputAttachments[j];
+                if (attachment.Type == SubpassAttachmentType::ColorAttachment)
+                    inputAttachmentRefs.push_back({ m_AttachmentData[attachment.AttachmentIndex].ImageAttachmentIndex, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL });
+                else
+                    inputAttachmentRefs.push_back({ m_DepthAttachmentData[attachment.AttachmentIndex].ImageAttachmentIndex, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL });
+                inputAttachmentCount++;
+            }
+            for (size_t j = 0; j < createInfo.Subpasses[i].OutputAttachments.size(); j++)
+            {
+                auto& attachment = createInfo.Subpasses[i].OutputAttachments[j];
+                if (attachment.Type == SubpassAttachmentType::DepthAttachment)
+                {
+                    HE_ENGINE_ASSERT(depthAttachmentRefs[i].attachment == VK_ATTACHMENT_UNUSED, "Cannot bind more than one depth attachment to the output of a subpass");
+                    depthAttachmentRefs[i].attachment = m_DepthAttachmentData[attachment.AttachmentIndex].ImageAttachmentIndex;
+                }
+                else
+                {
+                    outputAttachmentRefs.push_back({ m_AttachmentData[attachment.AttachmentIndex].ImageAttachmentIndex, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
+                    outputResolveAttachmentRefs.push_back({ m_AttachmentData[attachment.AttachmentIndex].HasResolve ? m_AttachmentData[attachment.AttachmentIndex].ResolveImageAttachmentIndex : VK_ATTACHMENT_UNUSED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
+                    outputAttachmentCount++;
+                }
+
+            }
 
             subpasses[i] = {};
             subpasses[i].pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-            subpasses[i].colorAttachmentCount = static_cast<u32>(outputAttachmentRefs.size());
-            subpasses[i].pColorAttachments = outputAttachmentRefs.data();
+            subpasses[i].colorAttachmentCount = outputAttachmentCount;
+            subpasses[i].pColorAttachments = outputAttachmentRefs.data() + outputAttachmentRefs.size() - outputAttachmentCount;
             subpasses[i].pResolveAttachments = outputResolveAttachmentRefs.data();
-            subpasses[i].pDepthStencilAttachment = &depthAttachmentRef;
-            subpasses[i].inputAttachmentCount = static_cast<u32>(inputAttachmentRefs.size());
-            subpasses[i].pInputAttachments = inputAttachmentRefs.data();
+            subpasses[i].pDepthStencilAttachment = depthAttachmentRefs.data() + i;
+            subpasses[i].inputAttachmentCount = inputAttachmentCount;
+            subpasses[i].pInputAttachments = inputAttachmentRefs.data() + inputAttachmentRefs.size() - inputAttachmentCount;
 
             dependencies[i] = {};
             dependencies[i].srcSubpass = static_cast<u32>(i - 1);
@@ -217,12 +243,9 @@ namespace Heart
         CleanupFramebuffer();
 
         for (auto& attachmentData : m_AttachmentData)
-        {
             CleanupAttachmentImages(attachmentData);
-        }
-
-        if (m_Info.HasDepth)
-            CleanupDepthAttachment();
+        for (auto& attachmentData : m_DepthAttachmentData)
+            CleanupAttachmentImages(attachmentData);
 
         vkDestroyRenderPass(device.Device(), m_RenderPass, nullptr);
 
@@ -293,66 +316,73 @@ namespace Heart
 
         vkCmdEndRenderPass(buffer);
 
-        // copy all CPU visible attachments to their respective buffers
-        VkBufferImageCopy copyData{};
-        copyData.bufferOffset = 0;
-        copyData.imageSubresource.baseArrayLayer = 0;
-        copyData.imageSubresource.layerCount = 1;
-        copyData.imageSubresource.mipLevel = 0;
-        copyData.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        copyData.imageExtent = { m_ActualWidth, m_ActualHeight, 1 };
-        
-        for (size_t i = 0; i < m_AttachmentData.size(); i++)
-        {
-            if (!m_AttachmentData[i].CPUVisible)
-                continue;
-
-            VkImage image = m_AttachmentData[i].ColorImage;
-            if (m_AttachmentData[i].HasResolve)
-                image = m_AttachmentData[i].ResolveImage;
-
-            // copy it to the device local staging buffer
-            //VulkanCommon::TransitionImageLayout(VulkanContext::GetDevice().Device(), buffer, image, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
-            VkImageMemoryBarrier imageBarrier = {};
-
-            imageBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-            imageBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            imageBarrier.subresourceRange.levelCount = 1;
-            imageBarrier.subresourceRange.layerCount = 1;
-
-            imageBarrier.oldLayout       = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            imageBarrier.newLayout       = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-            imageBarrier.srcAccessMask   = 0;
-            imageBarrier.dstAccessMask   = VK_ACCESS_TRANSFER_READ_BIT;
-            imageBarrier.image           = image;
-
-            VkBufferMemoryBarrier bufferBarrier = {};
-
-            bufferBarrier.sType           = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
-            bufferBarrier.srcAccessMask   = 0;
-            bufferBarrier.dstAccessMask   = VK_ACCESS_TRANSFER_WRITE_BIT;
-            bufferBarrier.buffer          = m_AttachmentData[i].AttachmentBuffer->GetBuffer();
-            bufferBarrier.size            = m_AttachmentData[i].AttachmentBuffer->GetAllocatedSize();
-
-            vkCmdPipelineBarrier(buffer,
-                VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-                VK_PIPELINE_STAGE_TRANSFER_BIT,
-                0,
-                0,
-                nullptr,
-                1,
-                &bufferBarrier,
-                1,
-                &imageBarrier);
-            vkCmdCopyImageToBuffer(buffer, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, m_AttachmentData[i].AttachmentBuffer->GetBuffer(), 1, &copyData);
-            //VulkanCommon::TransitionImageLayout(VulkanContext::GetDevice().Device(), buffer, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-        }
+        // copy all CPU visible attachments to their respective buffers        
+        for (auto& attachment : m_AttachmentData)
+            CopyAttachmentToBuffer(attachment);
+        for (auto& attachment : m_DepthAttachmentData)
+            CopyAttachmentToBuffer(attachment);
 
         HE_VULKAN_CHECK_RESULT(vkEndCommandBuffer(buffer));
 
         m_BoundPipeline = "";
         m_BoundThisFrame = false;
         m_SubmittedThisFrame = true;
+    }
+
+    void VulkanFramebuffer::CopyAttachmentToBuffer(VulkanFramebufferAttachment& attachmentData)
+    {
+        if (!attachmentData.CPUVisible)
+            return;
+
+        VkCommandBuffer buffer = GetCommandBuffer();
+
+        VkBufferImageCopy copyData{};
+        copyData.bufferOffset = 0;
+        copyData.imageSubresource.baseArrayLayer = 0;
+        copyData.imageSubresource.layerCount = 1;
+        copyData.imageSubresource.mipLevel = 0;
+        copyData.imageSubresource.aspectMask = attachmentData.IsDepthAttachment ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+        copyData.imageExtent = { m_ActualWidth, m_ActualHeight, 1 };
+
+        VkImage image = attachmentData.Image;
+        if (attachmentData.HasResolve)
+            image = attachmentData.ResolveImage;
+
+        // copy it to the device local staging buffer
+        //VulkanCommon::TransitionImageLayout(VulkanContext::GetDevice().Device(), buffer, image, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+        VkImageMemoryBarrier imageBarrier = {};
+
+        imageBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        imageBarrier.subresourceRange.aspectMask = attachmentData.IsDepthAttachment ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+        imageBarrier.subresourceRange.levelCount = 1;
+        imageBarrier.subresourceRange.layerCount = 1;
+
+        imageBarrier.oldLayout       = attachmentData.IsDepthAttachment ? VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        imageBarrier.newLayout       = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+        imageBarrier.srcAccessMask   = 0;
+        imageBarrier.dstAccessMask   = VK_ACCESS_TRANSFER_READ_BIT;
+        imageBarrier.image           = image;
+
+        VkBufferMemoryBarrier bufferBarrier = {};
+
+        bufferBarrier.sType           = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+        bufferBarrier.srcAccessMask   = 0;
+        bufferBarrier.dstAccessMask   = VK_ACCESS_TRANSFER_WRITE_BIT;
+        bufferBarrier.buffer          = attachmentData.AttachmentBuffer->GetBuffer();
+        bufferBarrier.size            = attachmentData.AttachmentBuffer->GetAllocatedSize();
+
+        vkCmdPipelineBarrier(buffer,
+            VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+            VK_PIPELINE_STAGE_TRANSFER_BIT,
+            0,
+            0,
+            nullptr,
+            1,
+            &bufferBarrier,
+            1,
+            &imageBarrier);
+        vkCmdCopyImageToBuffer(buffer, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, attachmentData.AttachmentBuffer->GetBuffer(), 1, &copyData);
+        //VulkanCommon::TransitionImageLayout(VulkanContext::GetDevice().Device(), buffer, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     }
 
     void VulkanFramebuffer::BindPipeline(const std::string& name)
@@ -414,25 +444,33 @@ namespace Heart
     
     void* VulkanFramebuffer::GetColorAttachmentImGuiHandle(u32 attachmentIndex)
     {
-        HE_ENGINE_ASSERT(attachmentIndex < m_AttachmentData.size(), "Attachment access on framebuffer out of range");
+        HE_ENGINE_ASSERT(attachmentIndex < m_AttachmentData.size(), "Color attachment access on framebuffer out of range");
  
-        return (m_AttachmentData[attachmentIndex].HasResolve ? m_AttachmentData[attachmentIndex].ResolveImageImGuiId : m_AttachmentData[attachmentIndex].ColorImageImGuiId);
+        return (m_AttachmentData[attachmentIndex].HasResolve ? m_AttachmentData[attachmentIndex].ResolveImageImGuiId : m_AttachmentData[attachmentIndex].ImageImGuiId);
     }
 
-    void* VulkanFramebuffer::GetDepthAttachmentImGuiHandle()
+    void* VulkanFramebuffer::GetDepthAttachmentImGuiHandle(u32 attachmentIndex)
     {
-        HE_ENGINE_ASSERT(m_Info.HasDepth, "Cannot get framebuffer depth attachment handle, HasDepth = false");
         HE_ENGINE_ASSERT(m_Info.SampleCount == MsaaSampleCount::None, "Cannot get framebuffer depth attachment handle, SampleCount != None");
-        
-        return m_DepthImageImGuiId;
+        HE_ENGINE_ASSERT(attachmentIndex < m_DepthAttachmentData.size(), "Depth attachment access on framebuffer out of range");
+ 
+        return (m_DepthAttachmentData[attachmentIndex].HasResolve ? m_DepthAttachmentData[attachmentIndex].ResolveImageImGuiId : m_DepthAttachmentData[attachmentIndex].ImageImGuiId);
     }
 
-    void* VulkanFramebuffer::GetAttachmentPixelData(u32 attachmentIndex)
+    void* VulkanFramebuffer::GetColorAttachmentPixelData(u32 attachmentIndex)
     {
-        HE_ENGINE_ASSERT(attachmentIndex < m_AttachmentData.size(), "Attachment access on framebuffer out of range");
-        HE_ENGINE_ASSERT(m_AttachmentData[attachmentIndex].CPUVisible, "Cannot read pixel data of attachment that does not have 'AllowCPURead' enabled");
+        HE_ENGINE_ASSERT(attachmentIndex < m_AttachmentData.size(), "Color attachment access on framebuffer out of range");
+        HE_ENGINE_ASSERT(m_AttachmentData[attachmentIndex].CPUVisible, "Cannot read pixel data of color attachment that does not have 'AllowCPURead' enabled");
 
         return m_AttachmentData[attachmentIndex].AttachmentBuffer->GetMappedMemory();
+    }
+
+    void* VulkanFramebuffer::GetDepthAttachmentPixelData(u32 attachmentIndex)
+    {
+        HE_ENGINE_ASSERT(attachmentIndex < m_DepthAttachmentData.size(), "Depth attachment access on framebuffer out of range");
+        HE_ENGINE_ASSERT(m_DepthAttachmentData[attachmentIndex].CPUVisible, "Cannot read pixel data of depth attachment that does not have 'AllowCPURead' enabled");
+
+        return m_DepthAttachmentData[attachmentIndex].AttachmentBuffer->GetMappedMemory();
     }
 
     void VulkanFramebuffer::StartNextSubpass()
@@ -442,7 +480,7 @@ namespace Heart
 
     Ref<GraphicsPipeline> VulkanFramebuffer::InternalInitializeGraphicsPipeline(const GraphicsPipelineCreateInfo& createInfo)
     {
-        HE_ENGINE_ASSERT(createInfo.BlendStates.size() == m_Info.Attachments.size(), "Graphics pipeline blend state count must match framebuffer attachment count");
+        HE_ENGINE_ASSERT(createInfo.BlendStates.size() == m_Info.ColorAttachments.size(), "Graphics pipeline blend state count must match framebuffer color attachment count");
 
         VulkanDevice& device = VulkanContext::GetDevice();
 
@@ -488,10 +526,10 @@ namespace Heart
             1,
             m_ImageSamples,
             VK_IMAGE_TILING_OPTIMAL,
-            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | (colorTransferSrc ? VK_IMAGE_USAGE_TRANSFER_SRC_BIT : 0),
+            (attachmentData.IsDepthAttachment ? VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT : VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) | VK_IMAGE_USAGE_SAMPLED_BIT | (colorTransferSrc ? VK_IMAGE_USAGE_TRANSFER_SRC_BIT : 0),
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-            attachmentData.ColorImage,
-            attachmentData.ColorImageMemory
+            attachmentData.Image,
+            attachmentData.ImageMemory
         );
 
         if (attachmentData.HasResolve)
@@ -505,7 +543,7 @@ namespace Heart
                 1,
                 VK_SAMPLE_COUNT_1_BIT,
                 VK_IMAGE_TILING_OPTIMAL,
-                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | (attachmentData.CPUVisible ? VK_IMAGE_USAGE_TRANSFER_SRC_BIT : 0),
+                (attachmentData.IsDepthAttachment ? VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT : VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) | VK_IMAGE_USAGE_SAMPLED_BIT | (attachmentData.CPUVisible ? VK_IMAGE_USAGE_TRANSFER_SRC_BIT : 0),
                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                 attachmentData.ResolveImage,
                 attachmentData.ResolveImageMemory
@@ -523,15 +561,15 @@ namespace Heart
         }
 
         // create associated image views 
-        attachmentData.ColorImageView = VulkanCommon::CreateImageView(device.Device(), attachmentData.ColorImage, colorFormat, 1);
-        m_CachedImageViews.emplace_back(attachmentData.ColorImageView);
-        attachmentData.ColorImageImGuiId = ImGui_ImplVulkan_AddTexture(VulkanContext::GetDefaultSampler(), attachmentData.ColorImageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+        attachmentData.ImageView = VulkanCommon::CreateImageView(device.Device(), attachmentData.Image, colorFormat, 1, attachmentData.IsDepthAttachment ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT);
+        m_CachedImageViews.emplace_back(attachmentData.ImageView);
+        attachmentData.ImageImGuiId = ImGui_ImplVulkan_AddTexture(VulkanContext::GetDefaultSampler(), attachmentData.ImageView, attachmentData.IsDepthAttachment ? VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
         if (attachmentData.HasResolve)
         {
-            attachmentData.ResolveImageView = VulkanCommon::CreateImageView(device.Device(), attachmentData.ResolveImage, colorFormat, 1);
+            attachmentData.ResolveImageView = VulkanCommon::CreateImageView(device.Device(), attachmentData.ResolveImage, colorFormat, 1, attachmentData.IsDepthAttachment ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT);
             m_CachedImageViews.emplace_back(attachmentData.ResolveImageView);
-            attachmentData.ResolveImageImGuiId = ImGui_ImplVulkan_AddTexture(VulkanContext::GetDefaultSampler(), attachmentData.ResolveImageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+            attachmentData.ResolveImageImGuiId = ImGui_ImplVulkan_AddTexture(VulkanContext::GetDefaultSampler(), attachmentData.ResolveImageView, attachmentData.IsDepthAttachment ? VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
         }
     }
 
@@ -539,11 +577,11 @@ namespace Heart
     {
         VulkanDevice& device = VulkanContext::GetDevice();
 
-        ImGui_ImplVulkan_RemoveTexture(attachmentData.ColorImageImGuiId);
+        ImGui_ImplVulkan_RemoveTexture(attachmentData.ImageImGuiId);
             
-        vkDestroyImageView(device.Device(), attachmentData.ColorImageView, nullptr);
-        vkDestroyImage(device.Device(), attachmentData.ColorImage, nullptr);
-        vkFreeMemory(device.Device(), attachmentData.ColorImageMemory, nullptr);
+        vkDestroyImageView(device.Device(), attachmentData.ImageView, nullptr);
+        vkDestroyImage(device.Device(), attachmentData.Image, nullptr);
+        vkFreeMemory(device.Device(), attachmentData.ImageMemory, nullptr);
 
         if (attachmentData.HasResolve)
         {
@@ -555,41 +593,6 @@ namespace Heart
         }
 
         attachmentData.AttachmentBuffer.reset();
-    }
-
-    void VulkanFramebuffer::CreateDepthAttachment()
-    {
-        VulkanDevice& device = VulkanContext::GetDevice();
-
-        VulkanCommon::CreateImage(
-            device.Device(),
-            device.PhysicalDevice(),
-            m_ActualWidth,
-            m_ActualHeight,
-            m_DepthFormat,
-            1,
-            m_ImageSamples,
-            VK_IMAGE_TILING_OPTIMAL,
-            VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-            m_DepthImage,
-            m_DepthImageMemory
-        );
-
-        m_DepthImageView = VulkanCommon::CreateImageView(device.Device(), m_DepthImage, m_DepthFormat, 1, VK_IMAGE_ASPECT_DEPTH_BIT);
-        m_CachedImageViews.emplace_back(m_DepthImageView);
-        m_DepthImageImGuiId = ImGui_ImplVulkan_AddTexture(VulkanContext::GetDefaultSampler(), m_DepthImageView, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL);
-    }
-
-    void VulkanFramebuffer::CleanupDepthAttachment()
-    {
-        VulkanDevice& device = VulkanContext::GetDevice();
-
-        ImGui_ImplVulkan_RemoveTexture(m_DepthImageImGuiId);
-
-        vkDestroyImageView(device.Device(), m_DepthImageView, nullptr);
-        vkDestroyImage(device.Device(), m_DepthImage, nullptr);
-        vkFreeMemory(device.Device(), m_DepthImageMemory, nullptr);
     }
 
     void VulkanFramebuffer::CreateFramebuffer()
@@ -624,13 +627,13 @@ namespace Heart
         CleanupFramebuffer();
         m_CachedImageViews.clear();
 
-        if (m_Info.HasDepth)
+        for (auto& attachmentData : m_AttachmentData)
         {
-            CleanupDepthAttachment();
-            CreateDepthAttachment();
+            CleanupAttachmentImages(attachmentData);
+            CreateAttachmentImages(attachmentData, attachmentData.ColorFormat);
         }
 
-        for (auto& attachmentData : m_AttachmentData)
+        for (auto& attachmentData : m_DepthAttachmentData)
         {
             CleanupAttachmentImages(attachmentData);
             CreateAttachmentImages(attachmentData, attachmentData.ColorFormat);

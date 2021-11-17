@@ -64,15 +64,20 @@ namespace Heart
             {
                 { { 0.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::RGBA8, false },
                 { { -1.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::R32F, true },
-                { { 0.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::R32F, false },
                 { { 0.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::RGBA32F, false }
             },
-            { { {}, { 0, 1, 2 } }, { { 2 }, { 0 } } }
+            {
+                { false }, { false }
+            },
+            {
+                { {}, { { SubpassAttachmentType::DepthAttachment, 0 }, { SubpassAttachmentType::ColorAttachment, 0 }, { SubpassAttachmentType::ColorAttachment, 1 }, { SubpassAttachmentType::ColorAttachment, 2 } } }
+                //{ { 2 }, { 0 } }
+            }
         };
         fbCreateInfo.Width = 0;
         fbCreateInfo.Height = 0;
         fbCreateInfo.SampleCount = MsaaSampleCount::None;
-        fbCreateInfo.HasDepth = true;
+        //fbCreateInfo.HasDepth = true;
         m_FinalFramebuffer = Framebuffer::Create(fbCreateInfo);
         m_FinalFramebuffer->RegisterGraphicsPipeline("main", gpCreateInfo);
     }
@@ -139,7 +144,7 @@ namespace Heart
             index++;
         }
         
-        m_FinalFramebuffer->StartNextSubpass();
+        //m_FinalFramebuffer->StartNextSubpass();
 
         Renderer::Api().RenderFramebuffers(context, { m_FinalFramebuffer.get() });
     }

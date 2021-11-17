@@ -5,8 +5,7 @@ layout(location = 1) in flat int entityId;
 
 layout(location = 0) out vec4 outColor;
 layout(location = 1) out float outEntityId;
-layout(location = 2) out float outDepth;
-layout(location = 3) out vec4 outAlbedo;
+layout(location = 2) out vec4 outPeel;
 
 layout(binding = 2) uniform sampler2D samp;
 
@@ -23,8 +22,7 @@ void main() {
     //outColor = texture(samp, texCoord);
     //if (outColor.a < 0.01)
     //    discard;
-    outColor = vec4(0.f);
-    outAlbedo = texture(samp, texCoord);
-    outDepth = linearDepth(gl_FragCoord.z);
+    outPeel = texture(samp, texCoord);
+    outColor = outPeel;
     outEntityId = float(entityId);
 }
