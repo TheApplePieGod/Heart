@@ -203,7 +203,7 @@ namespace Heart
     VkDescriptorSet VulkanDescriptorSet::AllocateSet()
     {
         // generate if we go over the size limit or if this is the first allocation of the frame
-        if (m_AvailablePoolIndex == 0 || m_AvailableSetIndex > m_AvailableSets.size())
+        if (m_AvailablePoolIndex == 0 || m_AvailableSetIndex >= m_AvailableSets.size())
         {
             m_AvailableSetIndex = 0;
 
