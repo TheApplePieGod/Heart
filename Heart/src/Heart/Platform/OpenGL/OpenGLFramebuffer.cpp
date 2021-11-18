@@ -44,7 +44,7 @@ namespace Heart
             attachmentData.ColorFormat = m_DepthFormat;
             attachmentData.ColorFormatInternal = m_DepthFormatInternal;
             attachmentData.HasResolve = m_ImageSamples > 1; // createInfo.SampleCount != MsaaSampleCount::None;
-            attachmentData.CPUVisible = attachment.AllowCPURead;
+            attachmentData.CPUVisible = false;
             attachmentData.IsDepthAttachment = true;
 
             CreateAttachmentTextures(attachmentData);
@@ -235,17 +235,6 @@ namespace Heart
             return (void*)static_cast<size_t>(m_AttachmentData[attachmentIndex].BlitImage);
     }
 
-    void* OpenGLFramebuffer::GetDepthAttachmentImGuiHandle(u32 attachmentIndex)
-    {
-        HE_ENGINE_ASSERT(attachmentIndex < m_DepthAttachmentData.size(), "Depth attachment access on framebuffer out of range");
-        HE_ENGINE_ASSERT(m_Info.SampleCount == MsaaSampleCount::None, "Cannot get framebuffer depth attachment handle, SampleCount != None");
-
-        if (m_Info.SampleCount == MsaaSampleCount::None)
-            return (void*)static_cast<size_t>(m_DepthAttachmentData[attachmentIndex].Image);
-        else
-            return (void*)static_cast<size_t>(m_DepthAttachmentData[attachmentIndex].BlitImage);
-    }
-
     void* OpenGLFramebuffer::GetColorAttachmentPixelData(u32 attachmentIndex)
     {
         HE_ENGINE_ASSERT(attachmentIndex < m_AttachmentData.size(), "Color attachment of pixel read out of range");
@@ -255,17 +244,6 @@ namespace Heart
             m_AttachmentData[attachmentIndex].PixelBufferMapping = glMapNamedBuffer(m_AttachmentData[attachmentIndex].PixelBuffers[(App::Get().GetFrameCount() + 1) % 2]->GetBufferId(), GL_READ_ONLY);
 
         return m_AttachmentData[attachmentIndex].PixelBufferMapping;
-    }
-
-    void* OpenGLFramebuffer::GetDepthAttachmentPixelData(u32 attachmentIndex)
-    {
-        HE_ENGINE_ASSERT(attachmentIndex < m_DepthAttachmentData.size(), "depth attachment of pixel read out of range");
-        HE_ENGINE_ASSERT(m_DepthAttachmentData[attachmentIndex].CPUVisible, "Cannot read pixel data of attachment that does not have 'AllowCPURead' enabled");
-
-        if (m_DepthAttachmentData[attachmentIndex].PixelBufferMapping == nullptr)
-            m_DepthAttachmentData[attachmentIndex].PixelBufferMapping = glMapNamedBuffer(m_DepthAttachmentData[attachmentIndex].PixelBuffers[(App::Get().GetFrameCount() + 1) % 2]->GetBufferId(), GL_READ_ONLY);
-
-        return m_DepthAttachmentData[attachmentIndex].PixelBufferMapping;
     }
 
     void OpenGLFramebuffer::ClearOutputAttachment(u32 outputAttachmentIndex, bool clearDepth)

@@ -99,7 +99,7 @@ namespace Heart
                 { { 1.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::R32F, false }
             },
             {
-                { false }
+                {}
             },
             {
                 { {}, { { SubpassAttachmentType::Depth, 0 }, { SubpassAttachmentType::Color, 0 }, { SubpassAttachmentType::Color, 1 } } }, // opaque

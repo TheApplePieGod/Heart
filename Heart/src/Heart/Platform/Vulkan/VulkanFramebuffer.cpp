@@ -41,7 +41,7 @@ namespace Heart
             attachmentData.GeneralColorFormat = generalDepthFormat;
             attachmentData.ColorFormat = depthFormat;
             attachmentData.HasResolve = false; //m_ImageSamples > VK_SAMPLE_COUNT_1_BIT;
-            attachmentData.CPUVisible = attachment.AllowCPURead;
+            attachmentData.CPUVisible = false;
             attachmentData.IsDepthAttachment = true;
 
             CreateAttachmentImages(attachmentData);
@@ -464,28 +464,12 @@ namespace Heart
         return (m_AttachmentData[attachmentIndex].HasResolve ? m_AttachmentData[attachmentIndex].ResolveImageImGuiId : m_AttachmentData[attachmentIndex].ImageImGuiId);
     }
 
-    void* VulkanFramebuffer::GetDepthAttachmentImGuiHandle(u32 attachmentIndex)
-    {
-        HE_ENGINE_ASSERT(m_Info.SampleCount == MsaaSampleCount::None, "Cannot get framebuffer depth attachment handle, SampleCount != None");
-        HE_ENGINE_ASSERT(attachmentIndex < m_DepthAttachmentData.size(), "Depth attachment access on framebuffer out of range");
- 
-        return (m_DepthAttachmentData[attachmentIndex].HasResolve ? m_DepthAttachmentData[attachmentIndex].ResolveImageImGuiId : m_DepthAttachmentData[attachmentIndex].ImageImGuiId);
-    }
-
     void* VulkanFramebuffer::GetColorAttachmentPixelData(u32 attachmentIndex)
     {
         HE_ENGINE_ASSERT(attachmentIndex < m_AttachmentData.size(), "Color attachment access on framebuffer out of range");
         HE_ENGINE_ASSERT(m_AttachmentData[attachmentIndex].CPUVisible, "Cannot read pixel data of color attachment that does not have 'AllowCPURead' enabled");
 
         return m_AttachmentData[attachmentIndex].AttachmentBuffer->GetMappedMemory();
-    }
-
-    void* VulkanFramebuffer::GetDepthAttachmentPixelData(u32 attachmentIndex)
-    {
-        HE_ENGINE_ASSERT(attachmentIndex < m_DepthAttachmentData.size(), "Depth attachment access on framebuffer out of range");
-        HE_ENGINE_ASSERT(m_DepthAttachmentData[attachmentIndex].CPUVisible, "Cannot read pixel data of depth attachment that does not have 'AllowCPURead' enabled");
-
-        return m_DepthAttachmentData[attachmentIndex].AttachmentBuffer->GetMappedMemory();
     }
 
     void VulkanFramebuffer::StartNextSubpass()

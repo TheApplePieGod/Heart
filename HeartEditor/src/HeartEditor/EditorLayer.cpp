@@ -389,7 +389,7 @@ namespace HeartEditor
             u32 sampleX = static_cast<u32>(m_ViewportMousePos.x / m_ViewportSize.x * m_SceneRenderer->GetFinalFramebuffer().GetWidth());
             u32 sampleY = static_cast<u32>(m_ViewportMousePos.y / m_ViewportSize.y * m_SceneRenderer->GetFinalFramebuffer().GetHeight());
 
-            f32 entityId = m_SceneRenderer->GetFinalFramebuffer().ReadAttachmentPixel<f32>(1, sampleX, sampleY, 0);
+            f32 entityId = m_SceneRenderer->GetFinalFramebuffer().ReadColorAttachmentPixel<f32>(1, sampleX, sampleY, 0);
             m_SelectedEntity = entityId == -1.f ? Heart::Entity() : Heart::Entity(m_ActiveScene.get(), static_cast<u32>(entityId));
         }
 

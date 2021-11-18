@@ -43,9 +43,7 @@ namespace Heart
     };
 
     struct FramebufferDepthAttachment
-    {
-        bool AllowCPURead;
-    };
+    {};
 
     struct FramebufferCreateInfo
     {
@@ -73,17 +71,15 @@ namespace Heart
         virtual void BindSubpassInputAttachment(u32 bindingIndex, SubpassAttachment attachment) = 0;
 
         virtual void* GetColorAttachmentImGuiHandle(u32 attachmentIndex) = 0;
-        virtual void* GetDepthAttachmentImGuiHandle(u32 attachmentIndex) = 0;
 
         // attachment must be created with 'AllowCPURead' enabled
         virtual void* GetColorAttachmentPixelData(u32 attachmentIndex) = 0;
-        virtual void* GetDepthAttachmentPixelData(u32 attachmentIndex) = 0;
 
         virtual void ClearOutputAttachment(u32 outputAttachmentIndex, bool clearDepth) = 0;
         virtual void StartNextSubpass() = 0;
 
         template<typename T>
-        T ReadAttachmentPixel(u32 attachmentIndex, u32 x, u32 y, u32 component)
+        T ReadColorAttachmentPixel(u32 attachmentIndex, u32 x, u32 y, u32 component)
         {
             T* data = (T*)GetColorAttachmentPixelData(attachmentIndex);
             u32 index = ColorFormatComponents(m_Info.ColorAttachments[attachmentIndex].Format) * (y * m_ActualWidth + x);

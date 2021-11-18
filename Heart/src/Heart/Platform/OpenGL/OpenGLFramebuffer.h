@@ -18,10 +18,7 @@ namespace Heart
         void BindSubpassInputAttachment(u32 bindingIndex, SubpassAttachment attachment) override;
 
         void* GetColorAttachmentImGuiHandle(u32 attachmentIndex) override;
-        void* GetDepthAttachmentImGuiHandle(u32 attachmentIndex) override;
-
         void* GetColorAttachmentPixelData(u32 attachmentIndex) override;
-        void* GetDepthAttachmentPixelData(u32 attachmentIndex) override;
 
         void ClearOutputAttachment(u32 outputAttachmentIndex, bool clearDepth) override;
         void StartNextSubpass() override;
