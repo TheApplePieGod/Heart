@@ -55,6 +55,10 @@ namespace Heart
 
         HE_VULKAN_CHECK_RESULT(vkCreateDescriptorSetLayout(device.Device(), &layoutInfo, nullptr, &m_DescriptorSetLayout));
 
+        // populate cached layouts because one is needed for each allocation
+        for (u32 i = 0; i < m_MaxSetsPerPool; i++)
+            m_CachedSetLayouts.emplace_back(m_DescriptorSetLayout);
+
         // populate the cached pool sizes
         for (auto& element : descriptorCounts)
         {
@@ -64,6 +68,8 @@ namespace Heart
 
             m_CachedPoolSizes.emplace_back(poolSize);
         }
+
+        m_AvailableSets.resize(m_MaxSetsPerPool);
 
         // create the initial descriptor pools per frame
         for (size_t i = 0; i < m_DescriptorPools.size(); i++)
@@ -196,31 +202,24 @@ namespace Heart
     // TODO: last successful index to speed up allocation when searching for a pool
     VkDescriptorSet VulkanDescriptorSet::AllocateSet()
     {
-        size_t poolIndex = m_LastSuccessfulPool;
-
-        VulkanDevice& device = VulkanContext::GetDevice();
-        VkDescriptorSet set;
-        VkDescriptorSetAllocateInfo allocInfo{};
-        allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        allocInfo.descriptorPool = m_DescriptorPools[m_InFlightFrameIndex][poolIndex++];
-        allocInfo.descriptorSetCount = 1;
-        allocInfo.pSetLayouts = &m_DescriptorSetLayout;
-
-        VkResult result = vkAllocateDescriptorSets(device.Device(), &allocInfo, &set);
-
-        // TODO: possible infinite loop checking?
-        while (result != VK_SUCCESS)
+        // generate if we go over the size limit or if this is the first allocation of the frame
+        if (m_AvailablePoolIndex == 0 || m_AvailableSetIndex > m_AvailableSets.size())
         {
-            if (poolIndex >= m_DescriptorPools[m_InFlightFrameIndex].size())
+            m_AvailableSetIndex = 0;
+
+            if (m_AvailablePoolIndex >= m_DescriptorPools[m_InFlightFrameIndex].size())
                 PushDescriptorPool();
 
-            allocInfo.descriptorPool = m_DescriptorPools[m_InFlightFrameIndex][poolIndex++];
+            VulkanDevice& device = VulkanContext::GetDevice();
+            VkDescriptorSetAllocateInfo allocInfo{};
+            allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+            allocInfo.descriptorPool = m_DescriptorPools[m_InFlightFrameIndex][m_AvailablePoolIndex++];
+            allocInfo.descriptorSetCount = m_MaxSetsPerPool;
+            allocInfo.pSetLayouts = m_CachedSetLayouts.data();
 
-            result = vkAllocateDescriptorSets(device.Device(), &allocInfo, &set);
+            VkResult result = vkAllocateDescriptorSets(device.Device(), &allocInfo, m_AvailableSets.data());
         }
-
-        m_LastSuccessfulPool = poolIndex - 1;
-        return set;
+        return m_AvailableSets[m_AvailableSetIndex++];
     }
 
     void VulkanDescriptorSet::ClearPools()
@@ -229,7 +228,8 @@ namespace Heart
         VulkanContext& mainContext = static_cast<VulkanContext&>(Window::GetMainWindow().GetContext()); // we need the main context here to sync the inflightframeindex
 
         m_InFlightFrameIndex = mainContext.GetSwapChain().GetInFlightFrameIndex();
-        m_LastSuccessfulPool = 0;
+        m_AvailableSetIndex = 0;
+        m_AvailablePoolIndex = 0;
 
         for (auto& pool : m_DescriptorPools[m_InFlightFrameIndex])
             vkResetDescriptorPool(device.Device(), pool, 0);
