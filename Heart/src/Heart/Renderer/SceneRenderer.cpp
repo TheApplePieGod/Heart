@@ -74,7 +74,9 @@ namespace Heart
         // per frame data buffer layout
         BufferLayout frameDataLayout = {
             { BufferDataType::Mat4 },
-            { BufferDataType::Mat4 }
+            { BufferDataType::Mat4 },
+            { BufferDataType::Float2 },
+            { BufferDataType::Float2 }
         };
 
         // per object data buffer layout
@@ -100,8 +102,8 @@ namespace Heart
                 { false }
             },
             {
-                { {}, { { SubpassAttachmentType::Depth, 0 }, { SubpassAttachmentType::Color, 0 }, { SubpassAttachmentType::Color, 1 } } }, // color
-                { {}, { { SubpassAttachmentType::Depth, 0 }, { SubpassAttachmentType::Color, 1 }, { SubpassAttachmentType::Color, 2 }, { SubpassAttachmentType::Color, 3 } } }, // color
+                { {}, { { SubpassAttachmentType::Depth, 0 }, { SubpassAttachmentType::Color, 0 }, { SubpassAttachmentType::Color, 1 } } }, // opaque
+                { {}, { { SubpassAttachmentType::Depth, 0 }, { SubpassAttachmentType::Color, 1 }, { SubpassAttachmentType::Color, 2 }, { SubpassAttachmentType::Color, 3 } } }, // transparent color
                 { { { SubpassAttachmentType::Color, 2 }, { SubpassAttachmentType::Color, 3 } }, { { SubpassAttachmentType::Depth, 0 }, { SubpassAttachmentType::Color, 0 } } } // composite
             }
         };
@@ -128,7 +130,7 @@ namespace Heart
         m_FinalFramebuffer->Bind();
         m_FinalFramebuffer->BindPipeline("main");
 
-        FrameData frameData = { viewProjection, view };
+        FrameData frameData = { viewProjection, view, m_FinalFramebuffer->GetSize(), { 0.f, 0.f } };
         m_FrameDataBuffer->SetData(&frameData, 1, 0);
 
         // all shader resources must be bound before drawing
@@ -220,8 +222,11 @@ namespace Heart
         
         m_FinalFramebuffer->StartNextSubpass();
         m_FinalFramebuffer->BindPipeline("tpComposite");
-        m_FinalFramebuffer->BindSubpassInputAttachment(2, { SubpassAttachmentType::Color, 2 });
-        m_FinalFramebuffer->BindSubpassInputAttachment(3, { SubpassAttachmentType::Color, 3 });
+
+        m_FinalFramebuffer->BindShaderBufferResource(0, 0, m_FrameDataBuffer.get());
+        m_FinalFramebuffer->BindSubpassInputAttachment(1, { SubpassAttachmentType::Color, 2 });
+        m_FinalFramebuffer->BindSubpassInputAttachment(2, { SubpassAttachmentType::Color, 3 });
+
         Renderer::Api().Draw(3, 0, 1);
 
         Renderer::Api().RenderFramebuffers(context, { m_FinalFramebuffer.get() });

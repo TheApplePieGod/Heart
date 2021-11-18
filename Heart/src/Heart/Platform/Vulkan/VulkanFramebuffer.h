@@ -32,14 +32,6 @@ namespace Heart
         inline VkFramebuffer GetFramebuffer() const { return m_Framebuffer; }
         inline VkRenderPass GetRenderPass() const { return m_RenderPass; }
         inline VkCommandBuffer GetCommandBuffer() { UpdateFrameIndex(); return m_CommandBuffers[m_InFlightFrameIndex]; } ;
-        inline u32 GetSubpassOutputColorAttachmentCount(u32 subpassIndex) const
-        { 
-            u32 count = 0;
-            for (auto& attachment : m_Info.Subpasses[subpassIndex].OutputAttachments)
-                if (attachment.Type == SubpassAttachmentType::Color)
-                    count++;
-            return count;
-        }
 
     protected:
         Ref<GraphicsPipeline> InternalInitializeGraphicsPipeline(const GraphicsPipelineCreateInfo& createInfo) override;
@@ -70,7 +62,7 @@ namespace Heart
         void AllocateCommandBuffers();
         void FreeCommandBuffers();
 
-        void CreateAttachmentImages(VulkanFramebufferAttachment& attachmentData, VkFormat colorFormat);
+        void CreateAttachmentImages(VulkanFramebufferAttachment& attachmentData);
         void CleanupAttachmentImages(VulkanFramebufferAttachment& attachmentData);
 
         void CreateFramebuffer();

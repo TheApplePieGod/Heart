@@ -23,6 +23,8 @@ namespace Heart
         {
             glm::mat4 viewProj;
             glm::mat4 view;
+            glm::vec2 screenSize;
+            glm::vec2 padding;
         };
         struct ObjectData
         {

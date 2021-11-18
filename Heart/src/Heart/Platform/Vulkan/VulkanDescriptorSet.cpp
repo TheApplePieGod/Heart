@@ -110,7 +110,7 @@ namespace Heart
             return m_WritesReadyCount == m_CachedDescriptorWrites.size();
         m_BoundResources[bindingIndex] = resource;
 
-        HE_ENGINE_ASSERT(m_DescriptorWriteMappings.find(bindingIndex) != m_DescriptorWriteMappings.end(), "Attempting to update a shader resource binding that doesn't exist");
+        //HE_ENGINE_ASSERT(m_DescriptorWriteMappings.find(bindingIndex) != m_DescriptorWriteMappings.end(), "Attempting to update a shader resource binding that doesn't exist");
 
         u32 bufferInfoBaseIndex = bindingIndex;
         u32 imageInfoBaseIndex = bindingIndex * MAX_DESCRIPTOR_ARRAY_COUNT;

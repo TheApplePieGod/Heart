@@ -196,4 +196,43 @@ namespace Heart
 
         return -1;
     }
+
+    int OpenGLCommon::BlendFactorToOpenGL(BlendFactor factor)
+    {
+        switch (factor)
+        {
+            default:
+            { HE_ENGINE_ASSERT(false, "OpenGL does not support specified BlendFactor"); } break;
+            case BlendFactor::Zero: return GL_ZERO;
+            case BlendFactor::One: return GL_ONE;
+
+            case BlendFactor::SrcColor: return GL_SRC_COLOR;
+            case BlendFactor::OneMinusSrcColor: return GL_ONE_MINUS_SRC_COLOR;
+            case BlendFactor::DstColor: return GL_DST_COLOR;
+            case BlendFactor::OneMinusDstColor: return GL_ONE_MINUS_DST_COLOR;
+
+            case BlendFactor::SrcAlpha: return GL_SRC_ALPHA;
+            case BlendFactor::OneMinusSrcAlpha: return GL_ONE_MINUS_SRC_ALPHA;
+            case BlendFactor::DstAlpha: return GL_DST_ALPHA;
+            case BlendFactor::OneMinusDstAlpha: return GL_ONE_MINUS_DST_ALPHA;
+        }
+
+        return -1;
+    }
+
+    int OpenGLCommon::BlendOperationToOpenGL(BlendOperation op)
+    {
+        switch (op)
+        {
+            default:
+            { HE_ENGINE_ASSERT(false, "OpenGL does not support specified BlendOperation"); } break;
+            case BlendOperation::Add: return GL_FUNC_ADD;
+            case BlendOperation::Subtract: return GL_FUNC_SUBTRACT;
+            case BlendOperation::ReverseSubtract: return GL_FUNC_REVERSE_SUBTRACT;
+            case BlendOperation::Min: return GL_MIN;
+            case BlendOperation::Max: return GL_MAX;
+        }
+
+        return -1;
+    }
 }

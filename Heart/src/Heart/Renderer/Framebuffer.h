@@ -6,6 +6,7 @@
 #include "Heart/Events/EventEmitter.h"
 #include "Heart/Events/WindowEvents.h"
 #include "glm/vec4.hpp"
+#include "glm/vec2.hpp"
 
 namespace Heart
 {
@@ -79,7 +80,6 @@ namespace Heart
         virtual void* GetDepthAttachmentPixelData(u32 attachmentIndex) = 0;
 
         virtual void ClearOutputAttachment(u32 outputAttachmentIndex, bool clearDepth) = 0;
-
         virtual void StartNextSubpass() = 0;
 
         template<typename T>
@@ -97,6 +97,24 @@ namespace Heart
 
         inline u32 GetWidth() const { return m_ActualWidth; }
         inline u32 GetHeight() const { return m_ActualHeight; }
+        inline glm::vec2 GetSize() const { return { m_ActualWidth, m_ActualHeight }; }
+
+        u32 GetSubpassOutputColorAttachmentCount(u32 subpassIndex) const
+        { 
+            u32 count = 0;
+            for (auto& attachment : m_Info.Subpasses[subpassIndex].OutputAttachments)
+                if (attachment.Type == SubpassAttachmentType::Color)
+                    count++;
+            return count;
+        }
+        bool HasOutputDepthAttachment(u32 subpassIndex) const
+        { 
+            u32 count = 0;
+            for (auto& attachment : m_Info.Subpasses[subpassIndex].OutputAttachments)
+                if (attachment.Type == SubpassAttachmentType::Depth)
+                    return true;
+            return false;
+        }
 
     public:
         static Ref<Framebuffer> Create(const FramebufferCreateInfo& createInfo);

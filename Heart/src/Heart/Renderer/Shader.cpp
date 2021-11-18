@@ -41,7 +41,6 @@ namespace Heart
         
         // TODO: dynamic option for this
         options.SetOptimizationLevel(shaderc_optimization_level_performance);
-
         std::string sourceCode = FilesystemUtils::ReadFileToString(path);
         if (sourceCode == "")
         {

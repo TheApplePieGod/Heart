@@ -22,6 +22,7 @@ namespace Heart
         inline VkDescriptorSet GetMostRecentDescriptorSet() const { return m_MostRecentDescriptorSet; }
         inline void UpdateDynamicOffset(u32 bindingIndex, u32 offset) { m_DynamicOffsets[m_OffsetMappings[bindingIndex]] = offset; }
         inline const std::vector<u32>& GetDynamicOffsets() const { return m_DynamicOffsets; }
+        inline bool DoesBindingExist(u32 bindingIndex) const { return m_DescriptorWriteMappings.find(bindingIndex) != m_DescriptorWriteMappings.end(); }
 
     private:
         VkDescriptorPool CreateDescriptorPool();

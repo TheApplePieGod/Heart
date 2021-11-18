@@ -44,7 +44,7 @@ namespace Heart
             attachmentData.CPUVisible = attachment.AllowCPURead;
             attachmentData.IsDepthAttachment = true;
 
-            CreateAttachmentImages(attachmentData, depthFormat);
+            CreateAttachmentImages(attachmentData);
 
             VkAttachmentDescription depthAttachment{};
             depthAttachment.format = depthFormat;
@@ -80,7 +80,7 @@ namespace Heart
             attachmentData.CPUVisible = attachment.AllowCPURead;
             attachmentData.IsDepthAttachment = false;
 
-            CreateAttachmentImages(attachmentData, colorFormat);
+            CreateAttachmentImages(attachmentData);
 
             // create the associated renderpass
             // TODO: adjustable depth precision
@@ -431,6 +431,9 @@ namespace Heart
         VulkanGraphicsPipeline& boundPipeline = static_cast<VulkanGraphicsPipeline&>(*LoadPipeline(m_BoundPipeline));
         VulkanDescriptorSet& descriptorSet = boundPipeline.GetVulkanDescriptorSet();
 
+        if (!descriptorSet.DoesBindingExist(bindingIndex))
+            return; // silently ignore, TODO: warning once in the console when this happens
+
         if (resourceType == ShaderResourceType::UniformBuffer || resourceType == ShaderResourceType::StorageBuffer)
             descriptorSet.UpdateDynamicOffset(bindingIndex, offset);
 
@@ -545,7 +548,7 @@ namespace Heart
         vkFreeCommandBuffers(device.Device(), VulkanContext::GetGraphicsPool(), static_cast<u32>(m_CommandBuffers.size()), m_CommandBuffers.data());
     }
 
-    void VulkanFramebuffer::CreateAttachmentImages(VulkanFramebufferAttachment& attachmentData, VkFormat colorFormat)
+    void VulkanFramebuffer::CreateAttachmentImages(VulkanFramebufferAttachment& attachmentData)
     {
         VulkanDevice& device = VulkanContext::GetDevice();
 
@@ -557,7 +560,7 @@ namespace Heart
             device.PhysicalDevice(),
             m_ActualWidth,
             m_ActualHeight,
-            colorFormat,
+            attachmentData.ColorFormat,
             1,
             m_ImageSamples,
             VK_IMAGE_TILING_OPTIMAL,
@@ -574,7 +577,7 @@ namespace Heart
                 device.PhysicalDevice(),
                 m_ActualWidth,
                 m_ActualHeight,
-                colorFormat,
+                attachmentData.ColorFormat,
                 1,
                 VK_SAMPLE_COUNT_1_BIT,
                 VK_IMAGE_TILING_OPTIMAL,
@@ -596,13 +599,13 @@ namespace Heart
         }
 
         // create associated image views 
-        attachmentData.ImageView = VulkanCommon::CreateImageView(device.Device(), attachmentData.Image, colorFormat, 1, attachmentData.IsDepthAttachment ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT);
+        attachmentData.ImageView = VulkanCommon::CreateImageView(device.Device(), attachmentData.Image, attachmentData.ColorFormat, 1, attachmentData.IsDepthAttachment ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT);
         m_CachedImageViews.emplace_back(attachmentData.ImageView);
         attachmentData.ImageImGuiId = ImGui_ImplVulkan_AddTexture(VulkanContext::GetDefaultSampler(), attachmentData.ImageView, attachmentData.IsDepthAttachment ? VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
         if (attachmentData.HasResolve)
         {
-            attachmentData.ResolveImageView = VulkanCommon::CreateImageView(device.Device(), attachmentData.ResolveImage, colorFormat, 1, attachmentData.IsDepthAttachment ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT);
+            attachmentData.ResolveImageView = VulkanCommon::CreateImageView(device.Device(), attachmentData.ResolveImage, attachmentData.ColorFormat, 1, attachmentData.IsDepthAttachment ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT);
             m_CachedImageViews.emplace_back(attachmentData.ResolveImageView);
             attachmentData.ResolveImageImGuiId = ImGui_ImplVulkan_AddTexture(VulkanContext::GetDefaultSampler(), attachmentData.ResolveImageView, attachmentData.IsDepthAttachment ? VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
         }
@@ -665,12 +668,12 @@ namespace Heart
         for (auto& attachmentData : m_DepthAttachmentData)
         {
             CleanupAttachmentImages(attachmentData);
-            CreateAttachmentImages(attachmentData, attachmentData.ColorFormat);
+            CreateAttachmentImages(attachmentData);
         }
         for (auto& attachmentData : m_AttachmentData)
         {
             CleanupAttachmentImages(attachmentData);
-            CreateAttachmentImages(attachmentData, attachmentData.ColorFormat);
+            CreateAttachmentImages(attachmentData);
         }
 
         CreateFramebuffer();

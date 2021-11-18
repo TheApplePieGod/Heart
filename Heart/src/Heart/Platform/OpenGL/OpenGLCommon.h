@@ -24,5 +24,7 @@ namespace Heart
         static int ShaderResourceTypeToOpenGL(ShaderResourceType type);
         static int BufferTypeToOpenGL(Buffer::Type type);
         static int BufferUsageTypeToOpenGL(BufferUsageType type);
+        static int BlendFactorToOpenGL(BlendFactor factor);
+        static int BlendOperationToOpenGL(BlendOperation op);
     };
 }
