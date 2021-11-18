@@ -6,6 +6,7 @@
 namespace Heart
 {
     std::unordered_map<std::string, AssetManager::AssetEntry> AssetManager::s_Registry;
+    std::string AssetManager::s_AssetsDirectory = "D:/Projects/Heart/HeartEditor";
 
     void AssetManager::Initialize()
     {
@@ -25,6 +26,8 @@ namespace Heart
         u64 loadLimit = 1000;
         for (auto& pair : s_Registry)
         {
+            if (pair.second.Persistent) continue;
+
             if (App::Get().GetFrameCount() > pair.second.LoadedFrame + loadLimit)
             {
                 UnloadAsset(pair.second);
@@ -74,14 +77,15 @@ namespace Heart
         return false;
     }
 
-    Ref<Asset> AssetManager::RegisterAsset(Asset::Type type, const std::string& path)
+    Ref<Asset> AssetManager::RegisterAsset(Asset::Type type, const std::string& path, bool persistent, bool isResource)
     {
         HE_ENGINE_ASSERT(!path.empty(), "Cannot register asset with an empty path");
 
         if (s_Registry.find(path) == s_Registry.end())
         {
             HE_ENGINE_LOG_TRACE("Registering {0} asset @ {1}", HE_ENUM_TO_STRING(Asset, type), path);
-            s_Registry[path] = { Asset::Create(type, path), std::numeric_limits<u64>::max() - s_AssetFrameLimit };
+            std::string absolutePath = std::filesystem::path(isResource ? s_ResourcesDirectory : s_AssetsDirectory).append(path).generic_u8string();
+            s_Registry[path] = { Asset::Create(type, path, absolutePath), std::numeric_limits<u64>::max() - s_AssetFrameLimit, persistent };
         }
 
         return s_Registry[path].Asset;

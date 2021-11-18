@@ -8,8 +8,8 @@ namespace Heart
     class TextureAsset : public Asset
     {
     public:
-        TextureAsset(const std::string& path)
-            : Asset(path)
+        TextureAsset(const std::string& path, const std::string& absolutePath)
+            : Asset(path, absolutePath)
         { m_Type = Type::Texture; }
 
         void Load() override;

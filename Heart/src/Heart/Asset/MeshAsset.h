@@ -8,8 +8,8 @@ namespace Heart
     class MeshAsset : public Asset
     {
     public:
-        MeshAsset(const std::string& path)
-            : Asset(path)
+        MeshAsset(const std::string& path, const std::string& absolutePath)
+            : Asset(path, absolutePath)
         { m_Type = Type::Mesh; }
 
         void Load() override;
@@ -64,18 +64,8 @@ namespace Heart
 
     private:
         void ParseGLTF(unsigned char* data);
-        std::vector<unsigned char> Base64Decode(const std::string& encoded);
-
-        inline bool IsBase64(unsigned char c)
-        {
-            return (isalnum(c) || (c == '+') || (c == '/'));
-        }
 
     private:
-        static inline const std::string s_Base64Chars =
-            "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-            "abcdefghijklmnopqrstuvwxyz"
-            "0123456789+/";
         std::vector<Mesh> m_Submeshes;
         std::vector<std::string> m_DefaultTexturePaths;
     };

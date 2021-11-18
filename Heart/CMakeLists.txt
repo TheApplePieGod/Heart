@@ -36,6 +36,12 @@ set(DEPENDENCY_SOURCES
     "lib/stb_image/stb_image.cpp"
 )
 
+# Copy engine resources
+add_custom_target(CopyEngineResources ALL
+  COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/resources ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${CMAKE_BUILD_TYPE}/resources
+  DEPENDS Engine
+)
+
 # Build main
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp" "src/*.h" "htpch.h")
 #add_executable(Engine "${SOURCES}" "${DEPENDENCY_SOURCES}" "src/Heart/Core/EntryPoint.cpp")

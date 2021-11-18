@@ -11,7 +11,7 @@
             "program": "${command:cmake.launchTargetPath}",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/HeartEditor",
+            "cwd": "${command:cmake.launchTargetPath}/..",
             "environment": [],
             "console": "integratedTerminal"
         }

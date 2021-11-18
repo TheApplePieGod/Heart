@@ -9,16 +9,18 @@ namespace Heart
     {
         if (m_Loaded) return;
 
-        unsigned char* pixels = stbi_load(m_Path.c_str(), &m_Width, &m_Height, &m_Channels, m_DesiredChannelCount);
+        unsigned char* pixels = stbi_load(m_AbsolutePath.c_str(), &m_Width, &m_Height, &m_Channels, m_DesiredChannelCount);
         if (pixels == nullptr)
         {
-            HE_ENGINE_LOG_ERROR("Failed to load texture at path {0}", m_Path);
-            HE_ENGINE_ASSERT(false);
+            HE_ENGINE_LOG_ERROR("Failed to load texture at path {0}", m_AbsolutePath);
+            m_Loaded = true;
+            return;
         }
 
-        m_Texture = Texture::Create(m_Path, m_Width, m_Height, m_Channels, pixels);
+        m_Texture = Texture::Create(m_AbsolutePath, m_Width, m_Height, m_Channels, pixels);
 
         m_Data = pixels;
+        m_Valid = true;
         m_Loaded = true;
     }
 
@@ -29,6 +31,7 @@ namespace Heart
         m_Texture.reset();
         delete[] m_Data;
         m_Data = nullptr;
+        m_Valid = false;
         m_Loaded = false;
     }
 }

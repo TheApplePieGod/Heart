@@ -14,6 +14,9 @@ namespace Heart
 {
     SceneRenderer::SceneRenderer()
     {
+        // register resources
+        AssetManager::RegisterAsset(Asset::Type::Texture, "DefaultTexture.png", true, true);
+
         // register default shaders
         AssetManager::RegisterAsset(Asset::Type::Shader, "assets/shaders/main.vert");
         AssetManager::RegisterAsset(Asset::Type::Shader, "assets/shaders/main.frag");
@@ -133,11 +136,7 @@ namespace Heart
         FrameData frameData = { viewProjection, view, m_FinalFramebuffer->GetSize(), Renderer::IsUsingReverseDepth() };
         m_FrameDataBuffer->SetData(&frameData, 1, 0);
 
-        // all shader resources must be bound before drawing
         m_FinalFramebuffer->BindShaderBufferResource(0, 0, m_FrameDataBuffer.get());
-
-        // bind default texture
-        m_FinalFramebuffer->BindShaderTextureResource(2, AssetManager::RetrieveAsset<TextureAsset>("assets/textures/test.png")->GetTexture());
 
         std::vector<CachedRender> transparentMeshes;
         auto group = scene->GetRegistry().group<TransformComponent, MeshComponent>();
@@ -147,7 +146,7 @@ namespace Heart
             auto [transform, mesh] = group.get<TransformComponent, MeshComponent>(entity);
 
             auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>(mesh.MeshPath);
-            if (!meshAsset) continue;
+            if (!meshAsset || !meshAsset->IsValid()) continue;
 
             m_FinalFramebuffer->BindShaderBufferResource(1, index, m_ObjectDataBuffer.get());
 
@@ -164,7 +163,7 @@ namespace Heart
                     finalTexturePath = mesh.TexturePaths[meshData.GetMaterialIndex()];
 
                 auto textureAsset = AssetManager::RetrieveAsset<TextureAsset>(finalTexturePath);
-                if (textureAsset)
+                if (textureAsset && textureAsset->IsValid())
                 {
                     if (textureAsset->GetTexture()->HasTransparency())
                     {
@@ -173,6 +172,8 @@ namespace Heart
                     }
                     m_FinalFramebuffer->BindShaderTextureResource(2, textureAsset->GetTexture());
                 }
+                else // bind default texture
+                    m_FinalFramebuffer->BindShaderTextureResource(2, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png")->GetTexture());
 
                 Renderer::Api().BindVertexBuffer(*meshData.GetVertexBuffer());
                 Renderer::Api().BindIndexBuffer(*meshData.GetIndexBuffer());

@@ -3,8 +3,8 @@
 
 namespace Heart
 {
-    ShaderAsset::ShaderAsset(const std::string& path)
-        : Asset(path)
+    ShaderAsset::ShaderAsset(const std::string& path, const std::string& absolutePath)
+        : Asset(path, absolutePath)
     {
         m_Type = Type::Shader;
         
@@ -19,10 +19,11 @@ namespace Heart
     {
         if (m_Loaded) return;
 
-        m_Shader = Shader::Create(m_Path, m_ShaderType);
+        m_Shader = Shader::Create(m_AbsolutePath, m_ShaderType);
 
         m_Data = nullptr;
         m_Loaded = true;
+        m_Valid = true;
     }
 
     void ShaderAsset::Unload()
@@ -33,5 +34,6 @@ namespace Heart
         //delete[] m_Data;
         m_Data = nullptr;
         m_Loaded = false;
+        m_Valid = false;
     }
 }

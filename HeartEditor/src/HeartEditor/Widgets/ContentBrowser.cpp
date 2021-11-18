@@ -116,7 +116,7 @@ namespace Widgets
     void ContentBrowser::RenderDirectoryNode(const std::string& path)
     {
         std::vector<std::filesystem::directory_entry> directories;
-        for (const auto& entry : std::filesystem::directory_iterator(path))
+        for (const auto& entry : std::filesystem::directory_iterator(std::filesystem::path(Heart::AssetManager::GetAssetsDirectory()).append(path)))
             if (entry.is_directory())
                 directories.push_back(entry);
 

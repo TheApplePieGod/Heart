@@ -12,15 +12,23 @@ namespace Heart
         if (m_Loaded) return;
 
         u32 fileLength;
-        unsigned char* data = FilesystemUtils::ReadFile(m_Path, fileLength);
+        unsigned char* data = nullptr;
 
-        if (/*m_Extension == ".glb" ||*/ m_Extension == ".gltf") // TODO: glb support
-            ParseGLTF(data);
-        else
-        { HE_ENGINE_ASSERT(false, "Unsupported mesh type"); }
+        try
+        {
+            data = FilesystemUtils::ReadFile(m_AbsolutePath, fileLength);
+            if (/*m_Extension == ".glb" ||*/ m_Extension == ".gltf") // TODO: glb support
+                ParseGLTF(data);
+        }
+        catch (std::exception e)
+        {
+            m_Loaded = true;
+            return;
+        }
 
         delete[] data;
         m_Loaded = true;
+        m_Valid = true;
     }
 
     void MeshAsset::Unload()
@@ -30,6 +38,7 @@ namespace Heart
         m_Submeshes.clear();
         m_DefaultTexturePaths.clear();
         m_Loaded = false;
+        m_Valid = false;
     }
 
     void MeshAsset::ParseGLTF(unsigned char* data)
@@ -49,7 +58,7 @@ namespace Heart
             else if (uri.find(".bin") != std::string::npos)
             {
                 u32 fileLength;
-                std::string binPath = std::filesystem::path(m_Path).parent_path().append(uri).generic_u8string();
+                std::string binPath = std::filesystem::path(m_AbsolutePath).parent_path().append(uri).generic_u8string();
                 unsigned char* bin = FilesystemUtils::ReadFile(binPath, fileLength);
                 buffers.emplace_back();
                 buffers.back().assign(bin, bin + fileLength);
@@ -216,52 +225,5 @@ namespace Heart
         // populate submeshes with parsed data
         for (auto& pair : parseData)
             m_Submeshes.emplace_back(pair.second.Vertices, pair.second.Indices, pair.first); 
-    }
-
-    // adapted from https://stackoverflow.com/questions/180947/base64-decode-snippet-in-c
-    std::vector<unsigned char> MeshAsset::Base64Decode(const std::string& encoded)
-    {
-        int in_len = static_cast<int>(encoded.size());
-        int i = 0;
-        int j = 0;
-        int in_ = 0;
-        unsigned char char_array_4[4], char_array_3[3];
-        std::vector<unsigned char> ret;
-
-        while (in_len-- && ( encoded[in_] != '=') && IsBase64(encoded[in_]))
-        {
-            char_array_4[i++] = encoded[in_]; in_++;
-            if (i ==4)
-            {
-                for (i = 0; i <4; i++)
-                    char_array_4[i] = static_cast<unsigned char>(s_Base64Chars.find(char_array_4[i]));
-
-                char_array_3[0] = (char_array_4[0] << 2) + ((char_array_4[1] & 0x30) >> 4);
-                char_array_3[1] = ((char_array_4[1] & 0xf) << 4) + ((char_array_4[2] & 0x3c) >> 2);
-                char_array_3[2] = ((char_array_4[2] & 0x3) << 6) + char_array_4[3];
-
-                for (i = 0; (i < 3); i++)
-                    ret.push_back(char_array_3[i]);
-                i = 0;
-            }
-        }
-
-        if (i)
-        {
-            for (j = i; j <4; j++)
-                char_array_4[j] = 0;
-
-            for (j = 0; j <4; j++)
-                char_array_4[j] = static_cast<unsigned char>(s_Base64Chars.find(char_array_4[j]));
-
-            char_array_3[0] = (char_array_4[0] << 2) + ((char_array_4[1] & 0x30) >> 4);
-            char_array_3[1] = ((char_array_4[1] & 0xf) << 4) + ((char_array_4[2] & 0x3c) >> 2);
-            char_array_3[2] = ((char_array_4[2] & 0x3) << 6) + char_array_4[3];
-
-            for (j = 0; (j < i - 1); j++)
-                ret.push_back(char_array_3[j]);
-        }
-
-        return ret;
     }
 }

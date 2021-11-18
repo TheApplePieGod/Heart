@@ -8,7 +8,7 @@ namespace Heart
     class ShaderAsset : public Asset
     {
     public:
-        ShaderAsset(const std::string& path);
+        ShaderAsset(const std::string& path, const std::string& absolutePath);
 
         void Load() override;
         void Unload() override;
