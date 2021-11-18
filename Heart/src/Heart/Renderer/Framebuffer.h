@@ -19,7 +19,7 @@ namespace Heart
     enum class SubpassAttachmentType
     {
         None = 0,
-        ColorAttachment, DepthAttachment
+        Color, Depth
     };
 
     struct SubpassAttachment
@@ -69,13 +69,16 @@ namespace Heart
         // must be called after BindPipeline()
         virtual void BindShaderBufferResource(u32 bindingIndex, u32 elementOffset, Buffer* buffer) = 0;
         virtual void BindShaderTextureResource(u32 bindingIndex, Texture* texture) = 0;
-        
+        virtual void BindSubpassInputAttachment(u32 bindingIndex, SubpassAttachment attachment) = 0;
+
         virtual void* GetColorAttachmentImGuiHandle(u32 attachmentIndex) = 0;
         virtual void* GetDepthAttachmentImGuiHandle(u32 attachmentIndex) = 0;
 
         // attachment must be created with 'AllowCPURead' enabled
         virtual void* GetColorAttachmentPixelData(u32 attachmentIndex) = 0;
         virtual void* GetDepthAttachmentPixelData(u32 attachmentIndex) = 0;
+
+        virtual void ClearOutputAttachment(u32 outputAttachmentIndex, bool clearDepth) = 0;
 
         virtual void StartNextSubpass() = 0;
 

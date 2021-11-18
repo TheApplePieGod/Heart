@@ -61,6 +61,8 @@ namespace Heart
         static VkFrontFace WindingOrderToVulkan(WindingOrder order);
         static VkDescriptorType ShaderResourceTypeToVulkan(ShaderResourceType type);
         static VkShaderStageFlags ShaderResourceAccessTypeToVulkan(ShaderResourceAccessType type);
+        static VkBlendFactor BlendFactorToVulkan(BlendFactor factor);
+        static VkBlendOp BlendOperationToVulkan(BlendOperation op);
     };
 }
 

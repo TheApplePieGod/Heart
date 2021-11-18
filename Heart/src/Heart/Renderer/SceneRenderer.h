@@ -22,6 +22,7 @@ namespace Heart
         struct FrameData
         {
             glm::mat4 viewProj;
+            glm::mat4 view;
         };
         struct ObjectData
         {
@@ -34,9 +35,22 @@ namespace Heart
         SceneRenderer();
         ~SceneRenderer();
 
-        void RenderScene(GraphicsContext& context, Scene* scene, glm::mat4 viewProjection);
+        void RenderScene(GraphicsContext& context, Scene* scene, glm::mat4 view, glm::mat4 viewProjection);
 
         inline Framebuffer& GetFinalFramebuffer() { return *m_FinalFramebuffer; }
+
+    private:
+        struct CachedRender
+        {
+            CachedRender(const std::string& texPath, const std::string& meshPath, u32 submeshIndex, const ObjectData& objData)
+                : TexturePath(texPath), MeshPath(meshPath), SubmeshIndex(submeshIndex), ObjectData(objData)
+            {}
+
+            std::string TexturePath;
+            std::string MeshPath;
+            u32 SubmeshIndex;
+            ObjectData ObjectData;
+        };
 
     private:
         Ref<Framebuffer> m_FinalFramebuffer;

@@ -24,9 +24,29 @@ namespace Heart
         Clockwise, CounterClockwise
     };
 
+    enum class BlendFactor
+    {
+        Zero = 0,
+        One,
+        SrcColor, OneMinusSrcColor, DstColor, OneMinusDstColor,
+        SrcAlpha, OneMinusSrcAlpha, DstAlpha, OneMinusDstAlpha
+    };
+
+    enum class BlendOperation
+    {
+        Add = 0,
+        Subtract, ReverseSubtract, Min, Max
+    };
+
     struct AttachmentBlendState
     {
         bool BlendEnable;
+        BlendFactor SrcColorBlendFactor = BlendFactor::SrcAlpha;
+        BlendFactor DstColorBlendFactor = BlendFactor::OneMinusSrcAlpha;
+        BlendFactor SrcAlphaBlendFactor = BlendFactor::One;
+        BlendFactor DstAlphaBlendFactor = BlendFactor::Zero;
+        BlendOperation ColorBlendOperation = BlendOperation::Add;
+        BlendOperation AlphaBlendOperation = BlendOperation::Add;
     };
 
     struct GraphicsPipelineCreateInfo
@@ -34,14 +54,17 @@ namespace Heart
         std::string VertexShaderPath;
         std::string FragmentShaderPath;
 
+        bool VertexInput;
         VertexTopology VertexTopology;
         BufferLayout VertexLayout;
 
         std::vector<AttachmentBlendState> BlendStates; // one state is required per framebuffer attachment
 
-        bool DepthEnable;
+        bool DepthTest;
+        bool DepthWrite;
         CullMode CullMode;
         WindingOrder WindingOrder;
+        u32 SubpassIndex;
     };
 
     struct ComputePipelineCreateInfo
@@ -75,7 +98,8 @@ namespace Heart
         inline VertexTopology GetVertexTopology() const { return m_Info.VertexTopology; }
         inline CullMode GetCullMode() const { return m_Info.CullMode; }
         inline WindingOrder GetWindingOrder() const { return m_Info.WindingOrder; }
-        inline bool IsDepthEnabled() const { return m_Info.DepthEnable; }
+        inline bool IsDepthTestEnabled() const { return m_Info.DepthTest; }
+        inline bool IsDepthWriteEnabled() const { return m_Info.DepthWrite; }
         inline u32 GetVertexLayoutStride() const { return m_Info.VertexLayout.GetStride(); }
         inline const std::vector<AttachmentBlendState>& GetBlendStates() const { return m_Info.BlendStates; }
 

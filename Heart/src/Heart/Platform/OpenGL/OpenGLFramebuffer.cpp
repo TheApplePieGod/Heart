@@ -159,7 +159,7 @@ namespace Heart
 
         glFrontFace(OpenGLCommon::WindingOrderToOpenGL(pipeline->GetWindingOrder()));
 
-        if (pipeline->IsDepthEnabled())
+        if (pipeline->IsDepthTestEnabled())
             glEnable(GL_DEPTH_TEST);
         else
             glDisable(GL_DEPTH_TEST);

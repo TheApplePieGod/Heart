@@ -19,4 +19,18 @@ namespace Heart
             { return CreateRef<OpenGLTexture>(path, width, height, channels, data); }
         }
     }
+
+    void Texture::ScanForTransparency(int width, int height, int channels, void* data)
+    {
+        unsigned char* pixels = (unsigned char*)data;
+        int size = width * height * channels;
+        for (int i = 3; i < size; i += 4)
+        {
+            if (pixels[i] < 250)
+            {
+                m_HasTransparency = true;
+                return;
+            }
+        }
+    }
 }

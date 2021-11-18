@@ -134,19 +134,24 @@ namespace Heart
         std::vector<VkAttachmentReference> outputAttachmentRefs;
         std::vector<VkAttachmentReference> outputResolveAttachmentRefs;
         std::vector<VkAttachmentReference> depthAttachmentRefs;
+
+        inputAttachmentRefs.reserve(25);
+        outputAttachmentRefs.reserve(25);
+        outputResolveAttachmentRefs.reserve(25);
+        depthAttachmentRefs.reserve(createInfo.Subpasses.size());
         for (size_t i = 0; i < subpasses.size(); i++)
         {
             HE_ENGINE_ASSERT(i != 0 || inputAttachmentRefs.size() == 0, "Subpass 0 cannot have input attachments");
 
-            depthAttachmentRefs.push_back({ VK_ATTACHMENT_UNUSED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL });
+            depthAttachmentRefs.push_back({ VK_ATTACHMENT_UNUSED, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL });
 
             u32 inputAttachmentCount = 0;
             u32 outputAttachmentCount = 0;
             for (size_t j = 0; j < createInfo.Subpasses[i].InputAttachments.size(); j++)
             {
                 auto& attachment = createInfo.Subpasses[i].InputAttachments[j];
-                if (attachment.Type == SubpassAttachmentType::ColorAttachment)
-                    inputAttachmentRefs.push_back({ m_AttachmentData[attachment.AttachmentIndex].ImageAttachmentIndex, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL });
+                if (attachment.Type == SubpassAttachmentType::Color)
+                    inputAttachmentRefs.push_back({ m_AttachmentData[attachment.AttachmentIndex].HasResolve ? m_AttachmentData[attachment.AttachmentIndex].ResolveImageAttachmentIndex : m_AttachmentData[attachment.AttachmentIndex].ImageAttachmentIndex, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL });
                 else
                     inputAttachmentRefs.push_back({ m_DepthAttachmentData[attachment.AttachmentIndex].ImageAttachmentIndex, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL });
                 inputAttachmentCount++;
@@ -154,15 +159,15 @@ namespace Heart
             for (size_t j = 0; j < createInfo.Subpasses[i].OutputAttachments.size(); j++)
             {
                 auto& attachment = createInfo.Subpasses[i].OutputAttachments[j];
-                if (attachment.Type == SubpassAttachmentType::DepthAttachment)
+                if (attachment.Type == SubpassAttachmentType::Depth)
                 {
                     HE_ENGINE_ASSERT(depthAttachmentRefs[i].attachment == VK_ATTACHMENT_UNUSED, "Cannot bind more than one depth attachment to the output of a subpass");
                     depthAttachmentRefs[i].attachment = m_DepthAttachmentData[attachment.AttachmentIndex].ImageAttachmentIndex;
                 }
                 else
                 {
-                    outputAttachmentRefs.push_back({ m_AttachmentData[attachment.AttachmentIndex].ImageAttachmentIndex, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
-                    outputResolveAttachmentRefs.push_back({ m_AttachmentData[attachment.AttachmentIndex].HasResolve ? m_AttachmentData[attachment.AttachmentIndex].ResolveImageAttachmentIndex : VK_ATTACHMENT_UNUSED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
+                    outputAttachmentRefs.push_back({ m_AttachmentData[attachment.AttachmentIndex].ImageAttachmentIndex, VK_IMAGE_LAYOUT_GENERAL });
+                    outputResolveAttachmentRefs.push_back({ m_AttachmentData[attachment.AttachmentIndex].HasResolve ? m_AttachmentData[attachment.AttachmentIndex].ResolveImageAttachmentIndex : VK_ATTACHMENT_UNUSED, VK_IMAGE_LAYOUT_GENERAL });
                     outputAttachmentCount++;
                 }
 
@@ -172,7 +177,7 @@ namespace Heart
             subpasses[i].pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
             subpasses[i].colorAttachmentCount = outputAttachmentCount;
             subpasses[i].pColorAttachments = outputAttachmentRefs.data() + outputAttachmentRefs.size() - outputAttachmentCount;
-            subpasses[i].pResolveAttachments = outputResolveAttachmentRefs.data();
+            subpasses[i].pResolveAttachments = outputResolveAttachmentRefs.data() + outputResolveAttachmentRefs.size() - outputAttachmentCount;
             subpasses[i].pDepthStencilAttachment = depthAttachmentRefs.data() + i;
             subpasses[i].inputAttachmentCount = inputAttachmentCount;
             subpasses[i].pInputAttachments = inputAttachmentRefs.data() + inputAttachmentRefs.size() - inputAttachmentCount;
@@ -411,6 +416,13 @@ namespace Heart
         BindShaderResource(bindingIndex, ShaderResourceType::Texture, texture, 0);
     }
 
+    void VulkanFramebuffer::BindSubpassInputAttachment(u32 bindingIndex, SubpassAttachment attachment)
+    {
+        HE_PROFILE_FUNCTION();
+
+        BindShaderResource(bindingIndex, ShaderResourceType::SubpassInput, attachment.Type == SubpassAttachmentType::Depth ? &m_DepthAttachmentData[attachment.AttachmentIndex] : &m_AttachmentData[attachment.AttachmentIndex], 0);
+    }
+
     void VulkanFramebuffer::BindShaderResource(u32 bindingIndex, ShaderResourceType resourceType, void* resource, u32 offset)
     {
         // TODO: don't use string here
@@ -478,9 +490,32 @@ namespace Heart
         vkCmdNextSubpass(GetCommandBuffer(), VK_SUBPASS_CONTENTS_INLINE);
     }
 
+    void VulkanFramebuffer::ClearOutputAttachment(u32 outputAttachmentIndex, bool clearDepth)
+    {
+        VkClearAttachment clear[2];
+        clear[0].aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        clear[0].clearValue.color.float32[0] = 0.0f;
+        clear[0].clearValue.color.float32[1] = 0.0f;
+        clear[0].clearValue.color.float32[2] = 0.0f;
+        clear[0].clearValue.color.float32[3] = 0.0f;
+        clear[0].colorAttachment = outputAttachmentIndex;
+        clear[1].aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+        clear[1].clearValue.depthStencil.depth = Renderer::IsUsingReverseDepth() ? 0.f : 1.0f;
+        clear[1].clearValue.depthStencil.stencil = 0;
+        VkClearRect clearRect;
+        clearRect.baseArrayLayer = 0;
+        clearRect.layerCount = 1;
+        clearRect.rect.extent.height = m_ActualHeight;
+        clearRect.rect.extent.width = m_ActualWidth;
+        clearRect.rect.offset.x = 0;
+        clearRect.rect.offset.y = 0;
+        vkCmdClearAttachments(GetCommandBuffer(), clearDepth ? 2 : 1, clear, 1, &clearRect);
+    }
+
     Ref<GraphicsPipeline> VulkanFramebuffer::InternalInitializeGraphicsPipeline(const GraphicsPipelineCreateInfo& createInfo)
     {
-        HE_ENGINE_ASSERT(createInfo.BlendStates.size() == m_Info.ColorAttachments.size(), "Graphics pipeline blend state count must match framebuffer color attachment count");
+        HE_ENGINE_ASSERT(createInfo.SubpassIndex >= 0 && createInfo.SubpassIndex < m_Info.Subpasses.size(), "Graphics pipeline subpass index is out of range");
+        HE_ENGINE_ASSERT(createInfo.BlendStates.size() == GetSubpassOutputColorAttachmentCount(createInfo.SubpassIndex), "Graphics pipeline blend state count must match subpass color attachment output count");
 
         VulkanDevice& device = VulkanContext::GetDevice();
 
@@ -526,7 +561,7 @@ namespace Heart
             1,
             m_ImageSamples,
             VK_IMAGE_TILING_OPTIMAL,
-            (attachmentData.IsDepthAttachment ? VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT : VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) | VK_IMAGE_USAGE_SAMPLED_BIT | (colorTransferSrc ? VK_IMAGE_USAGE_TRANSFER_SRC_BIT : 0),
+            (attachmentData.IsDepthAttachment ? VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT : VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | (colorTransferSrc ? VK_IMAGE_USAGE_TRANSFER_SRC_BIT : 0),
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
             attachmentData.Image,
             attachmentData.ImageMemory
@@ -543,7 +578,7 @@ namespace Heart
                 1,
                 VK_SAMPLE_COUNT_1_BIT,
                 VK_IMAGE_TILING_OPTIMAL,
-                (attachmentData.IsDepthAttachment ? VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT : VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) | VK_IMAGE_USAGE_SAMPLED_BIT | (attachmentData.CPUVisible ? VK_IMAGE_USAGE_TRANSFER_SRC_BIT : 0),
+                (attachmentData.IsDepthAttachment ? VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT : VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | (attachmentData.CPUVisible ? VK_IMAGE_USAGE_TRANSFER_SRC_BIT : 0),
                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                 attachmentData.ResolveImage,
                 attachmentData.ResolveImageMemory
@@ -627,13 +662,12 @@ namespace Heart
         CleanupFramebuffer();
         m_CachedImageViews.clear();
 
-        for (auto& attachmentData : m_AttachmentData)
+        for (auto& attachmentData : m_DepthAttachmentData)
         {
             CleanupAttachmentImages(attachmentData);
             CreateAttachmentImages(attachmentData, attachmentData.ColorFormat);
         }
-
-        for (auto& attachmentData : m_DepthAttachmentData)
+        for (auto& attachmentData : m_AttachmentData)
         {
             CleanupAttachmentImages(attachmentData);
             CreateAttachmentImages(attachmentData, attachmentData.ColorFormat);

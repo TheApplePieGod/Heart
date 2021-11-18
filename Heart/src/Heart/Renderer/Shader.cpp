@@ -143,5 +143,24 @@ namespace Heart
 
             HE_ENGINE_ASSERT(set == 0, "The 'set' glsl qualifier is currently unsupported and must be zero");
 		}
+
+        if (resources.subpass_inputs.size() > 0)
+		    HE_ENGINE_LOG_TRACE("  Subpass Inputs:");
+		for (const auto& resource : resources.subpass_inputs)
+		{
+            const auto& subpassType = compiler.get_type(resource.type_id);
+			u32 binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
+            u32 set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
+            u32 attachmentIndex = compiler.get_decoration(resource.id, spv::DecorationInputAttachmentIndex);
+            
+            m_ReflectionData.emplace_back(resource.id, ShaderResourceType::SubpassInput, accessType, binding, set, 1);
+
+			HE_ENGINE_LOG_TRACE("    Input", resource.name);
+            HE_ENGINE_LOG_TRACE("      Set = {0}", set);
+			HE_ENGINE_LOG_TRACE("      Binding = {0}", binding);
+            HE_ENGINE_LOG_TRACE("      AttachmentIndex = {0}", attachmentIndex);
+
+            HE_ENGINE_ASSERT(set == 0, "The 'set' glsl qualifier is currently unsupported and must be zero");
+		}
     }
 }

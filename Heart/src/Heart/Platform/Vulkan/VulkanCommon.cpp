@@ -446,9 +446,10 @@ namespace Heart
         {
             default:
             { HE_ENGINE_ASSERT(false, "Vulkan does not support specified ShaderResourceType"); } break;
-            case ShaderResourceType::Texture : return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            case ShaderResourceType::Texture: return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
             case ShaderResourceType::UniformBuffer: return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
             case ShaderResourceType::StorageBuffer: return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
+            case ShaderResourceType::SubpassInput: return VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
         }
 
         return VK_DESCRIPTOR_TYPE_MAX_ENUM;
@@ -460,11 +461,50 @@ namespace Heart
         {
             default:
             { HE_ENGINE_ASSERT(false, "Vulkan does not support specified ShaderResourceType"); } break;
-            case ShaderResourceAccessType::Vertex : return VK_SHADER_STAGE_VERTEX_BIT;
+            case ShaderResourceAccessType::Vertex: return VK_SHADER_STAGE_VERTEX_BIT;
             case ShaderResourceAccessType::Fragment: return VK_SHADER_STAGE_FRAGMENT_BIT;
             case ShaderResourceAccessType::Both: return (VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
         }
 
         return VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM;
+    }
+
+    VkBlendFactor VulkanCommon::BlendFactorToVulkan(BlendFactor factor)
+    {
+        switch (factor)
+        {
+            default:
+            { HE_ENGINE_ASSERT(false, "Vulkan does not support specified BlendFactor"); } break;
+            case BlendFactor::Zero: return VK_BLEND_FACTOR_ZERO;
+            case BlendFactor::One: return VK_BLEND_FACTOR_ONE;
+
+            case BlendFactor::SrcColor: return VK_BLEND_FACTOR_SRC_COLOR;
+            case BlendFactor::OneMinusSrcColor: return VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR;
+            case BlendFactor::DstColor: return VK_BLEND_FACTOR_DST_COLOR;
+            case BlendFactor::OneMinusDstColor: return VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR;
+
+            case BlendFactor::SrcAlpha: return VK_BLEND_FACTOR_SRC_ALPHA;
+            case BlendFactor::OneMinusSrcAlpha: return VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+            case BlendFactor::DstAlpha: return VK_BLEND_FACTOR_DST_ALPHA;
+            case BlendFactor::OneMinusDstAlpha: return VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA;
+        }
+
+        return VK_BLEND_FACTOR_MAX_ENUM;
+    }
+
+    VkBlendOp VulkanCommon::BlendOperationToVulkan(BlendOperation op)
+    {
+        switch (op)
+        {
+            default:
+            { HE_ENGINE_ASSERT(false, "Vulkan does not support specified BlendOperation"); } break;
+            case BlendOperation::Add: return VK_BLEND_OP_ADD;
+            case BlendOperation::Subtract: return VK_BLEND_OP_SUBTRACT;
+            case BlendOperation::ReverseSubtract: return VK_BLEND_OP_REVERSE_SUBTRACT;
+            case BlendOperation::Min: return VK_BLEND_OP_MIN;
+            case BlendOperation::Max: return VK_BLEND_OP_MAX;
+        }
+
+        return VK_BLEND_OP_MAX_ENUM;
     }
 }

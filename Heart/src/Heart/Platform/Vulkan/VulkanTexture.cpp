@@ -23,6 +23,7 @@ namespace Heart
             HE_ENGINE_LOG_TRACE("Texture info: {0}x{1} w/ {2} channels", m_Width, m_Height, m_Channels);
         }
         
+        ScanForTransparency(width, height, channels, data);
         CreateTexture(data);
 
         if (load)

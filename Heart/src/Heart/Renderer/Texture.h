@@ -43,9 +43,6 @@ namespace Heart
     class Texture
     {
     public:
-        Texture(const std::string& path)
-            : m_Path(path)
-        {}
         Texture(const std::string& path, int width, int height, int channels)
             : m_Path(path), m_Width(width), m_Height(height), m_Channels(channels)
         {}
@@ -57,9 +54,13 @@ namespace Heart
         inline int GetHeight() const { return m_Height; }
         inline int GetChannels() const { return m_Channels; }
         inline const std::string& GetFilePath() const { return m_Path; }
+        inline bool HasTransparency() const { return m_HasTransparency; }
 
     public:
         static Ref<Texture> Create(const std::string& path, int width = 0, int height = 0, int channels = 0, void* data = nullptr);
+
+    protected:
+        void ScanForTransparency(int width, int height, int channels, void* data);
 
     protected:
         const int m_DesiredChannelCount = 4; // all images will load as RGBA
@@ -67,5 +68,6 @@ namespace Heart
         int m_Width, m_Height, m_Channels;
         u32 m_ArrayCount = 1;
         void* m_ImGuiHandle;
+        bool m_HasTransparency = false;
     };
 }

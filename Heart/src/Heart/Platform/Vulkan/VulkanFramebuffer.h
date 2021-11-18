@@ -17,6 +17,7 @@ namespace Heart
         void BindPipeline(const std::string& name) override;
         void BindShaderBufferResource(u32 bindingIndex, u32 offset, Buffer* buffer) override;
         void BindShaderTextureResource(u32 bindingIndex, Texture* texture) override;
+        void BindSubpassInputAttachment(u32 bindingIndex, SubpassAttachment attachment) override;
 
         void* GetColorAttachmentImGuiHandle(u32 attachmentIndex) override;
         void* GetDepthAttachmentImGuiHandle(u32 attachmentIndex) override;
@@ -24,11 +25,21 @@ namespace Heart
         void* GetColorAttachmentPixelData(u32 attachmentIndex) override;
         void* GetDepthAttachmentPixelData(u32 attachmentIndex) override;
 
+        void ClearOutputAttachment(u32 outputAttachmentIndex, bool clearDepth) override;
+
         void StartNextSubpass() override;
 
         inline VkFramebuffer GetFramebuffer() const { return m_Framebuffer; }
         inline VkRenderPass GetRenderPass() const { return m_RenderPass; }
         inline VkCommandBuffer GetCommandBuffer() { UpdateFrameIndex(); return m_CommandBuffers[m_InFlightFrameIndex]; } ;
+        inline u32 GetSubpassOutputColorAttachmentCount(u32 subpassIndex) const
+        { 
+            u32 count = 0;
+            for (auto& attachment : m_Info.Subpasses[subpassIndex].OutputAttachments)
+                if (attachment.Type == SubpassAttachmentType::Color)
+                    count++;
+            return count;
+        }
 
     protected:
         Ref<GraphicsPipeline> InternalInitializeGraphicsPipeline(const GraphicsPipelineCreateInfo& createInfo) override;
@@ -89,5 +100,6 @@ namespace Heart
 
         friend class VulkanRenderApi;
         friend class VulkanSwapChain;
+        friend class VulkanDescriptorSet;
     };
 }

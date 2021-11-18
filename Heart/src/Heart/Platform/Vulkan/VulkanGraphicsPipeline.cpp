@@ -55,9 +55,9 @@ namespace Heart
 
         VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
         vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-        vertexInputInfo.vertexBindingDescriptionCount = 1;
+        vertexInputInfo.vertexBindingDescriptionCount = createInfo.VertexInput ? 1 : 0;
         vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
-        vertexInputInfo.vertexAttributeDescriptionCount = static_cast<u32>(attributeDescriptions.size());
+        vertexInputInfo.vertexAttributeDescriptionCount = createInfo.VertexInput ? static_cast<u32>(attributeDescriptions.size()) : 0;
         vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
         
         VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
@@ -111,12 +111,12 @@ namespace Heart
         {
             colorBlendAttachments[i].colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
             colorBlendAttachments[i].blendEnable = createInfo.BlendStates[i].BlendEnable;
-            colorBlendAttachments[i].srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-            colorBlendAttachments[i].dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-            colorBlendAttachments[i].colorBlendOp = VK_BLEND_OP_ADD;
-            colorBlendAttachments[i].srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-            colorBlendAttachments[i].dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-            colorBlendAttachments[i].alphaBlendOp = VK_BLEND_OP_ADD;
+            colorBlendAttachments[i].srcColorBlendFactor = VulkanCommon::BlendFactorToVulkan(createInfo.BlendStates[i].SrcColorBlendFactor);
+            colorBlendAttachments[i].dstColorBlendFactor = VulkanCommon::BlendFactorToVulkan(createInfo.BlendStates[i].DstColorBlendFactor);
+            colorBlendAttachments[i].colorBlendOp = VulkanCommon::BlendOperationToVulkan(createInfo.BlendStates[i].ColorBlendOperation);
+            colorBlendAttachments[i].srcAlphaBlendFactor = VulkanCommon::BlendFactorToVulkan(createInfo.BlendStates[i].SrcAlphaBlendFactor);
+            colorBlendAttachments[i].dstAlphaBlendFactor = VulkanCommon::BlendFactorToVulkan(createInfo.BlendStates[i].DstAlphaBlendFactor);
+            colorBlendAttachments[i].alphaBlendOp = VulkanCommon::BlendOperationToVulkan(createInfo.BlendStates[i].AlphaBlendOperation);
         }
 
         VkPipelineColorBlendStateCreateInfo colorBlending{};
@@ -157,8 +157,8 @@ namespace Heart
 
         VkPipelineDepthStencilStateCreateInfo depthStencil{};
         depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-        depthStencil.depthTestEnable = createInfo.DepthEnable;
-        depthStencil.depthWriteEnable = createInfo.DepthEnable;
+        depthStencil.depthTestEnable = createInfo.DepthTest;
+        depthStencil.depthWriteEnable = createInfo.DepthWrite;
         depthStencil.depthCompareOp = Renderer::IsUsingReverseDepth() ? VK_COMPARE_OP_GREATER_OR_EQUAL : VK_COMPARE_OP_LESS;
         depthStencil.depthBoundsTestEnable = VK_FALSE;
         depthStencil.minDepthBounds = 0.0f; // Optional
@@ -181,7 +181,7 @@ namespace Heart
         pipelineInfo.pDynamicState = &dynamicState; // Optional
         pipelineInfo.layout = m_PipelineLayout;
         pipelineInfo.renderPass = renderPass;
-        pipelineInfo.subpass = 0;
+        pipelineInfo.subpass = createInfo.SubpassIndex;
         pipelineInfo.basePipelineHandle = VK_NULL_HANDLE; // Optional
         pipelineInfo.basePipelineIndex = -1; // Optional
         HE_VULKAN_CHECK_RESULT(vkCreateGraphicsPipelines(device.Device(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_Pipeline));

@@ -15,12 +15,15 @@ namespace Heart
         void BindPipeline(const std::string& name) override;
         void BindShaderBufferResource(u32 bindingIndex, u32 offset, Buffer* buffer) override;
         void BindShaderTextureResource(u32 bindingIndex, Texture* texture) override;
+        void BindSubpassInputAttachment(u32 bindingIndex, SubpassAttachment attachment) override {}
 
         void* GetColorAttachmentImGuiHandle(u32 attachmentIndex) override;
         void* GetDepthAttachmentImGuiHandle(u32 attachmentIndex) override;
 
         void* GetColorAttachmentPixelData(u32 attachmentIndex) override;
         void* GetDepthAttachmentPixelData(u32 attachmentIndex) override;
+
+        void ClearOutputAttachment(u32 outputAttachmentIndex, bool clearDepth) override {}
 
         void StartNextSubpass() override;
 

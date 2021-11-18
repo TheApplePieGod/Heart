@@ -4,6 +4,7 @@
 #include "Heart/Platform/Vulkan/VulkanContext.h"
 #include "Heart/Platform/Vulkan/VulkanBuffer.h"
 #include "Heart/Platform/Vulkan/VulkanTexture.h"
+#include "Heart/Platform/Vulkan/VulkanFramebuffer.h"
 #include "Heart/Core/Window.h"
 #include "Heart/Core/App.h"
 
@@ -140,6 +141,16 @@ namespace Heart
                     m_CachedImageInfos[imageInfoBaseIndex + i].imageLayout = texture->GetCurrentLayout();
                     m_CachedImageInfos[imageInfoBaseIndex + i].imageView = texture->GetImageView();
                 }
+            } break;
+
+            case ShaderResourceType::SubpassInput:
+            {
+                VulkanFramebuffer::VulkanFramebufferAttachment* attachment = static_cast<VulkanFramebuffer::VulkanFramebufferAttachment*>(resource);
+                HE_ENGINE_ASSERT(bindingIndex < m_CachedImageInfos.size(), "Binding index for subpass input is too large");
+
+                m_CachedImageInfos[imageInfoBaseIndex].sampler = NULL;
+                m_CachedImageInfos[imageInfoBaseIndex].imageLayout = attachment->IsDepthAttachment ? VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                m_CachedImageInfos[imageInfoBaseIndex].imageView = attachment->HasResolve ? attachment->ResolveImageView : attachment->ImageView;
             } break;
         }
 

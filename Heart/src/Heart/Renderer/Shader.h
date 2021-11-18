@@ -5,7 +5,7 @@ namespace Heart
     enum class ShaderResourceType
     {
         None = 0,
-        UniformBuffer, StorageBuffer, Texture
+        UniformBuffer, StorageBuffer, Texture, SubpassInput
     };
 
     enum class ShaderResourceAccessType
