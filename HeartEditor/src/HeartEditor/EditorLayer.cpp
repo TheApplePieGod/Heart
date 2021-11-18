@@ -211,7 +211,7 @@ namespace HeartEditor
         ImGuizmo::SetOrthographic(false);
         ImGuizmo::SetDrawlist();
         ImGuizmo::SetRect(viewportStart.x, viewportStart.y, m_ViewportSize.x, m_ViewportSize.y);
-        ImGuizmo::DrawGrid(glm::value_ptr(view), glm::value_ptr(proj), glm::value_ptr(identity), 100.f);
+        //ImGuizmo::DrawGrid(glm::value_ptr(view), glm::value_ptr(proj), glm::value_ptr(identity), 100.f);
 
         // draw the rendered texture
         ImGui::Image(

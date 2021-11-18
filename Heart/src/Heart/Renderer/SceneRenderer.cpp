@@ -52,7 +52,7 @@ namespace Heart
             Heart::Mesh::GetVertexLayout(),
             { { false }, { true, BlendFactor::One, BlendFactor::One, BlendFactor::One, BlendFactor::One }, { true, BlendFactor::Zero, BlendFactor::OneMinusSrcColor, BlendFactor::Zero, BlendFactor::OneMinusSrcAlpha } },
             true,
-            false,
+            true,
             CullMode::None,
             WindingOrder::Clockwise,
             1
