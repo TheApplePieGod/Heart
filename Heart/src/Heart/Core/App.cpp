@@ -21,7 +21,7 @@ namespace Heart
         #endif
 
         WindowSettings windowSettings = WindowSettings(windowName);
-        InitializeGraphicsApi(RenderApi::Type::OpenGL, windowSettings);
+        InitializeGraphicsApi(RenderApi::Type::Vulkan, windowSettings);
 
         AssetManager::Initialize();
 

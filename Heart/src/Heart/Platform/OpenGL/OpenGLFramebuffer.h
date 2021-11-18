@@ -40,31 +40,34 @@ namespace Heart
             bool HasResolve;
             bool CPUVisible;
             bool IsDepthAttachment;
+            std::array<Ref<OpenGLBuffer>, 2> PixelBuffers;
+            void* PixelBufferMapping = nullptr;
+            u32 PBOFramebufferAttachment;
         };
 
     private:
         void CreateAttachmentTextures(OpenGLFramebufferAttachment& attachment);
         void CleanupAttachmentTextures(OpenGLFramebufferAttachment& attachment);
 
+        void PopulatePixelBuffer(OpenGLFramebufferAttachment& attachment);
+
         void CreateFramebuffers();
         void CleanupFramebuffers();
 
-        void CreatePixelBuffers();
-        void CleanupPixelBuffers();
+        void CreatePixelBuffers(OpenGLFramebufferAttachment& attachment);
+        void CleanupPixelBuffers(OpenGLFramebufferAttachment& attachment);
 
         void Submit();
         void Recreate();
         void BlitFramebuffers(int subpassIndex);
 
     private:
+        u32 m_PBOFramebuffer;
         std::vector<u32> m_Framebuffers;
         std::vector<u32> m_BlitFramebuffers;
         std::vector<OpenGLFramebufferAttachment> m_AttachmentData;
         std::vector<OpenGLFramebufferAttachment> m_DepthAttachmentData;
         std::vector<u32> m_CachedAttachmentHandles;
-
-        std::vector<std::array<Ref<OpenGLBuffer>, 2>> m_PixelBufferObjects;
-        std::vector<void*> m_PixelBufferMappings;
 
         int m_ImageSamples = 1;
         int m_CurrentSubpass = -1;

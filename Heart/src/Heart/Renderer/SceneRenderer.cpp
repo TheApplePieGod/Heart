@@ -193,7 +193,6 @@ namespace Heart
         
         m_FinalFramebuffer->BindShaderBufferResource(0, 0, m_FrameDataBuffer.get());
 
-        index = 0;
         for (auto& mesh : transparentMeshes)
         {
             auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>(mesh.MeshPath);
