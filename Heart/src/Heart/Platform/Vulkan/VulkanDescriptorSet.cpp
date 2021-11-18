@@ -143,7 +143,7 @@ namespace Heart
                 for (u32 i = 0; i < texture->GetArrayCount(); i++)
                 {
                     // TODO: customizable sampler
-                    m_CachedImageInfos[imageInfoBaseIndex + i].sampler = VulkanContext::GetDefaultSampler();
+                    m_CachedImageInfos[imageInfoBaseIndex + i].sampler = texture->GetSampler();
                     m_CachedImageInfos[imageInfoBaseIndex + i].imageLayout = texture->GetCurrentLayout();
                     m_CachedImageInfos[imageInfoBaseIndex + i].imageView = texture->GetImageView();
                 }

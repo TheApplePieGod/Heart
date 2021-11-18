@@ -235,4 +235,45 @@ namespace Heart
 
         return -1;
     }
+
+    int OpenGLCommon::SamplerFilterToOpenGL(SamplerFilter filter)
+    {
+        switch (filter)
+        {
+            default:
+            { HE_ENGINE_ASSERT(false, "OpenGL does not support specified SamplerFilter"); } break;
+            case SamplerFilter::Linear: return GL_LINEAR;
+            case SamplerFilter::Nearest: return GL_NEAREST;
+        }
+
+        return -1;
+    }
+
+    int OpenGLCommon::SamplerFilterToOpenGLWithMipmap(SamplerFilter filter)
+    {
+        switch (filter)
+        {
+            default:
+            { HE_ENGINE_ASSERT(false, "OpenGL does not support specified SamplerFilter"); } break;
+            case SamplerFilter::Linear: return GL_LINEAR_MIPMAP_LINEAR;
+            case SamplerFilter::Nearest: return GL_NEAREST_MIPMAP_NEAREST;
+        }
+
+        return -1;
+    }
+
+    int OpenGLCommon::SamplerWrapModeToOpenGL(SamplerWrapMode mode)
+    {
+        switch (mode)
+        {
+            default:
+            { HE_ENGINE_ASSERT(false, "OpenGL does not support specified SamplerWrapMode"); } break;
+            case SamplerWrapMode::ClampToBorder: return GL_CLAMP_TO_BORDER;
+            case SamplerWrapMode::ClampToEdge: return GL_CLAMP_TO_EDGE;
+            case SamplerWrapMode::Repeat: return GL_REPEAT;
+            case SamplerWrapMode::MirroredRepeat: return GL_MIRRORED_REPEAT;
+        }
+
+        return -1;
+    }
 }

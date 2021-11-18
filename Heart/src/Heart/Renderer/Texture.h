@@ -9,6 +9,30 @@ namespace Heart
         RGBA8 = 0,
         R32F, RG32F, RGB32F, RGBA32F
     };
+
+    enum class SamplerFilter
+    {
+        None = 0,
+        Linear, Nearest
+    };
+
+    enum class SamplerWrapMode
+    {
+        None = 0,
+        ClampToBorder,
+        ClampToEdge,
+        Repeat,
+        MirroredRepeat
+    };
+
+    struct TextureSamplerState
+    {
+        SamplerFilter MinFilter = SamplerFilter::Linear;
+        SamplerFilter MagFilter = SamplerFilter::Linear;
+        std::array<SamplerWrapMode, 2> UVWrap = { SamplerWrapMode::Repeat, SamplerWrapMode::Repeat };
+        bool AnisotropyEnable = true;
+        u32 MaxAnisotropy = 8;
+    };
     
     static u32 ColorFormatComponents(ColorFormat format)
     {
@@ -55,6 +79,7 @@ namespace Heart
         inline int GetChannels() const { return m_Channels; }
         inline const std::string& GetFilePath() const { return m_Path; }
         inline bool HasTransparency() const { return m_HasTransparency; }
+        inline const TextureSamplerState& GetSamplerState() const { return m_SamplerState; }
 
     public:
         static Ref<Texture> Create(const std::string& path, int width = 0, int height = 0, int channels = 0, void* data = nullptr);
@@ -69,5 +94,6 @@ namespace Heart
         u32 m_ArrayCount = 1;
         void* m_ImGuiHandle;
         bool m_HasTransparency = false;
+        TextureSamplerState m_SamplerState;
     };
 }

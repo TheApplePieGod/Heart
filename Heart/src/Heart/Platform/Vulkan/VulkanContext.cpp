@@ -218,7 +218,7 @@ namespace Heart
     {
         VkPhysicalDeviceProperties properties{};
         vkGetPhysicalDeviceProperties(s_VulkanDevice.PhysicalDevice(), &properties);
-
+        
         VkSamplerCreateInfo samplerInfo{};
         samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
         samplerInfo.magFilter = VK_FILTER_LINEAR;
