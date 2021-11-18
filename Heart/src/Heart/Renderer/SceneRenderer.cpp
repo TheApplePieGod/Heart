@@ -130,7 +130,7 @@ namespace Heart
         m_FinalFramebuffer->Bind();
         m_FinalFramebuffer->BindPipeline("main");
 
-        FrameData frameData = { viewProjection, view, m_FinalFramebuffer->GetSize(), { 0.f, 0.f } };
+        FrameData frameData = { viewProjection, view, m_FinalFramebuffer->GetSize(), Renderer::IsUsingReverseDepth() };
         m_FrameDataBuffer->SetData(&frameData, 1, 0);
 
         // all shader resources must be bound before drawing
@@ -152,7 +152,7 @@ namespace Heart
             m_FinalFramebuffer->BindShaderBufferResource(1, index, m_ObjectDataBuffer.get());
 
             // store transform at offset in buffer
-            ObjectData objectData = { scene->GetEntityCachedTransform({ scene, entity }), static_cast<int>(entity), { 0.f, 0.f, 0.f } };
+            ObjectData objectData = { scene->GetEntityCachedTransform({ scene, entity }), static_cast<int>(entity) };
             m_ObjectDataBuffer->SetData(&objectData, 1, index);
 
             for (u32 i = 0; i < meshAsset->GetSubmeshCount(); i++)

@@ -102,9 +102,8 @@ namespace Heart
             for (size_t i = 0; i < m_AttachmentData.size(); i++)
                 glClearTexImage(m_AttachmentData[i].Image, 0, m_AttachmentData[i].ColorFormat, GL_FLOAT, &m_Info.ColorAttachments[i].ClearColor);
 
-            // kindof a hack
+            // sorta jank
             // in order to clear all the depth buffers we will bind every framebuffer and clear them through there
-            float clearColor = Renderer::IsUsingReverseDepth() ? 0.f : 1.f;
             glDepthMask(GL_TRUE);
             if (Renderer::IsUsingReverseDepth())
                 glClearDepth(0.f);

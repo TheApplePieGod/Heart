@@ -14,23 +14,19 @@ namespace Heart
     class SceneRenderer
     {
     public:
-        struct Vertex
-        {
-            glm::vec3 position;
-            glm::vec2 texCoord;
-        };
         struct FrameData
         {
-            glm::mat4 viewProj;
-            glm::mat4 view;
-            glm::vec2 screenSize;
-            glm::vec2 padding;
+            glm::mat4 ViewProj;
+            glm::mat4 View;
+            glm::vec2 ScreenSize;
+            bool ReverseDepth;
+            bool Padding;
         };
         struct ObjectData
         {
-            glm::mat4 model;
-            int entityId = -1;
-            glm::vec3 padding;
+            glm::mat4 Model;
+            int EntityId = -1;
+            glm::vec3 Padding;
         };
 
     public:

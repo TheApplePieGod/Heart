@@ -13,7 +13,8 @@ layout(binding = 0) uniform FrameBuffer {
     mat4 viewProj;
     mat4 view;
     vec2 screenSize;
-    vec2 padding;
+    bool reverseDepth;
+    bool padding;
 } frameData;
 
 struct ObjectData {
