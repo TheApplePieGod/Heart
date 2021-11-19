@@ -3,36 +3,69 @@
 #include "Heart/Renderer/Shader.h"
 #include "Heart/Renderer/Buffer.h"
 #include "Heart/Renderer/Texture.h"
+#include "Heart/Core/UUID.h"
 
 namespace Heart
 {
     enum class VertexTopology
     {
-        TriangleList = 0, PointList = 1, LineList = 2
+        None = 0,
+        TriangleList, TriangleStrip, TriangleFan, PointList, LineList, LineStrip
     };
 
     enum class CullMode
     {
-        None = 0, Backface = 1, Frontface = 2, Both = 3
+        None = 0,
+        Backface, Frontface, BackAndFront
+    };
+
+    enum class WindingOrder
+    {
+        None = 0,
+        Clockwise, CounterClockwise
+    };
+
+    enum class BlendFactor
+    {
+        Zero = 0,
+        One,
+        SrcColor, OneMinusSrcColor, DstColor, OneMinusDstColor,
+        SrcAlpha, OneMinusSrcAlpha, DstAlpha, OneMinusDstAlpha
+    };
+
+    enum class BlendOperation
+    {
+        Add = 0,
+        Subtract, ReverseSubtract, Min, Max
     };
 
     struct AttachmentBlendState
     {
         bool BlendEnable;
+        BlendFactor SrcColorBlendFactor = BlendFactor::SrcAlpha;
+        BlendFactor DstColorBlendFactor = BlendFactor::OneMinusSrcAlpha;
+        BlendFactor SrcAlphaBlendFactor = BlendFactor::One;
+        BlendFactor DstAlphaBlendFactor = BlendFactor::Zero;
+        BlendOperation ColorBlendOperation = BlendOperation::Add;
+        BlendOperation AlphaBlendOperation = BlendOperation::Add;
     };
 
     struct GraphicsPipelineCreateInfo
     {
-        Ref<Shader> VertexShader;
-        Ref<Shader> FragmentShader;
+        UUID VertexShaderAsset;
+        UUID FragmentShaderAsset;
 
+        bool VertexInput;
         VertexTopology VertexTopology;
         BufferLayout VertexLayout;
 
         std::vector<AttachmentBlendState> BlendStates; // one state is required per framebuffer attachment
 
-        bool DepthEnable;
+        bool DepthTest;
+        bool DepthWrite;
         CullMode CullMode;
+        WindingOrder WindingOrder;
+        u32 SubpassIndex;
     };
 
     struct ComputePipelineCreateInfo
@@ -58,14 +91,16 @@ namespace Heart
         GraphicsPipeline(const GraphicsPipelineCreateInfo& createInfo)
             : m_Info(createInfo)
         {
-            HE_ENGINE_ASSERT(createInfo.VertexShader != nullptr && createInfo.FragmentShader != nullptr, "Must specify both vertex and fragment shaders");
+            HE_ENGINE_ASSERT(createInfo.VertexShaderAsset != 0 && createInfo.FragmentShaderAsset != 0, "Must specify both vertex and fragment shaders");
             ConsolidateReflectionData();
         }
         virtual ~GraphicsPipeline() = default;
 
         inline VertexTopology GetVertexTopology() const { return m_Info.VertexTopology; }
         inline CullMode GetCullMode() const { return m_Info.CullMode; }
-        inline bool IsDepthEnabled() const { return m_Info.DepthEnable; }
+        inline WindingOrder GetWindingOrder() const { return m_Info.WindingOrder; }
+        inline bool IsDepthTestEnabled() const { return m_Info.DepthTest; }
+        inline bool IsDepthWriteEnabled() const { return m_Info.DepthWrite; }
         inline u32 GetVertexLayoutStride() const { return m_Info.VertexLayout.GetStride(); }
         inline const std::vector<AttachmentBlendState>& GetBlendStates() const { return m_Info.BlendStates; }
 

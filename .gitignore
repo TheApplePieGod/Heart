@@ -4,3 +4,5 @@ build/*
 !.vscode/tasks.json
 !.vscode/settings.json
 emsdk/*
+HeartEditor/assets/*
+!HeartEditor/assets/shaders

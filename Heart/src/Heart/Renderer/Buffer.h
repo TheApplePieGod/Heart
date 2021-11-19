@@ -13,6 +13,13 @@ namespace Heart
         Mat3, Mat4  
     };
 
+    // static should be used for anything that has completely unchanging data and dynamic should be used if otherwise
+    enum class BufferUsageType
+    {
+        None = 0,
+        Static, Dynamic
+    };
+
     // returns the size in bytes
     static u32 BufferDataTypeSize(BufferDataType type)
     {
@@ -103,15 +110,15 @@ namespace Heart
         enum class Type
         {
             None = 0,
-            Uniform, Storage, Vertex, Index
+            Uniform, Storage, Vertex, Index, Pixel
         };
         inline static const char* TypeStrings[] = {
-            "None", "Uniform", "Storage", "Vertex", "Index"
+            "None", "Uniform", "Storage", "Vertex", "Index", "Pixel"
         };
 
     public:
-        Buffer(Type type, const BufferLayout& layout, u32 elementCount)
-            : m_Type(type), m_Layout(layout), m_AllocatedCount(elementCount)
+        Buffer(Type type, BufferUsageType usage, const BufferLayout& layout, u32 elementCount)
+            : m_Type(type), m_Usage(usage), m_Layout(layout), m_AllocatedCount(elementCount)
         {}
         virtual ~Buffer() = default;
 
@@ -123,15 +130,16 @@ namespace Heart
         inline u32 GetAllocatedCount() const { return m_AllocatedCount; }
 
     public:
-        static Ref<Buffer> Create(Type type, const BufferLayout& layout, u32 elementCount);
-        static Ref<Buffer> Create(Type type, const BufferLayout& layout, u32 elementCount, void* initialData);
+        static Ref<Buffer> Create(Type type, BufferUsageType usage, const BufferLayout& layout, u32 elementCount);
+        static Ref<Buffer> Create(Type type, BufferUsageType usage, const BufferLayout& layout, u32 elementCount, void* initialData);
 
         // added for convenience
-        static Ref<Buffer> CreateIndexBuffer(u32 elementCount);
-        static Ref<Buffer> CreateIndexBuffer(u32 elementCount, void* initialData);
+        static Ref<Buffer> CreateIndexBuffer(BufferUsageType usage, u32 elementCount);
+        static Ref<Buffer> CreateIndexBuffer(BufferUsageType usage, u32 elementCount, void* initialData);
 
     protected:
         BufferLayout m_Layout;
+        BufferUsageType m_Usage;
         u32 m_AllocatedCount;
         Type m_Type;
     };

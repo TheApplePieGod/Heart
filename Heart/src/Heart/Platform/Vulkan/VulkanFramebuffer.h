@@ -17,11 +17,14 @@ namespace Heart
         void BindPipeline(const std::string& name) override;
         void BindShaderBufferResource(u32 bindingIndex, u32 offset, Buffer* buffer) override;
         void BindShaderTextureResource(u32 bindingIndex, Texture* texture) override;
+        void BindSubpassInputAttachment(u32 bindingIndex, SubpassAttachment attachment) override;
 
         void* GetColorAttachmentImGuiHandle(u32 attachmentIndex) override;
-        void* GetDepthAttachmentImGuiHandle() override;
+        void* GetColorAttachmentPixelData(u32 attachmentIndex) override;
 
-        void* GetAttachmentPixelData(u32 attachmentIndex) override;
+        void ClearOutputAttachment(u32 outputAttachmentIndex, bool clearDepth) override;
+
+        void StartNextSubpass() override;
 
         inline VkFramebuffer GetFramebuffer() const { return m_Framebuffer; }
         inline VkRenderPass GetRenderPass() const { return m_RenderPass; }
@@ -36,28 +39,28 @@ namespace Heart
         {
             ColorFormat GeneralColorFormat;
             VkFormat ColorFormat;
-            VkImage ColorImage;
+            VkImage Image;
             VkImage ResolveImage;
-            VkDeviceMemory ColorImageMemory;
+            VkDeviceMemory ImageMemory;
             VkDeviceMemory ResolveImageMemory;
-            VkImageView ColorImageView;
+            VkImageView ImageView;
             VkImageView ResolveImageView;
-            void* ColorImageImGuiId;
+            u32 ImageAttachmentIndex;
+            u32 ResolveImageAttachmentIndex;
+            void* ImageImGuiId;
             void* ResolveImageImGuiId;
             bool HasResolve;
             bool CPUVisible;
-            Ref<Buffer> AttachmentBuffer;
+            bool IsDepthAttachment;
+            Ref<VulkanBuffer> AttachmentBuffer;
         };
 
     private:
         void AllocateCommandBuffers();
         void FreeCommandBuffers();
 
-        void CreateAttachmentImages(VulkanFramebufferAttachment& attachmentData, VkFormat colorFormat);
+        void CreateAttachmentImages(VulkanFramebufferAttachment& attachmentData);
         void CleanupAttachmentImages(VulkanFramebufferAttachment& attachmentData);
-
-        void CreateDepthAttachment();
-        void CleanupDepthAttachment();
 
         void CreateFramebuffer();
         void CleanupFramebuffer();
@@ -65,8 +68,8 @@ namespace Heart
         void Recreate();
 
         void UpdateFrameIndex();
-
         void Submit();
+        void CopyAttachmentToBuffer(VulkanFramebufferAttachment& attachmentData);
 
     private:
         VkFramebuffer m_Framebuffer;
@@ -74,6 +77,7 @@ namespace Heart
         std::string m_BoundPipeline;
         std::array<VkCommandBuffer, MAX_FRAMES_IN_FLIGHT> m_CommandBuffers;
         std::vector<VulkanFramebufferAttachment> m_AttachmentData;
+        std::vector<VulkanFramebufferAttachment> m_DepthAttachmentData;
         std::vector<VkClearValue> m_CachedClearValues;
         std::vector<VkImageView> m_CachedImageViews;
 
@@ -83,12 +87,8 @@ namespace Heart
         bool m_SubmittedThisFrame = false;
         bool m_BoundThisFrame = false;
 
-        VkImage m_DepthImage;
-        VkDeviceMemory m_DepthImageMemory;
-        VkImageView m_DepthImageView;
-        void* m_DepthImageImGuiId;
-        VkFormat m_DepthFormat;
-
         friend class VulkanRenderApi;
+        friend class VulkanSwapChain;
+        friend class VulkanDescriptorSet;
     };
 }

@@ -49,17 +49,23 @@ namespace Heart
         static VkPipelineShaderStageCreateInfo DefineShaderStage(VkShaderModule shaderModule, VkShaderStageFlagBits stage, const char* entrypoint = "main");
         static void CreateBuffer(VkDevice device, VkPhysicalDevice physicalDevice, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
         static void MapAndWriteBufferMemory(VkDevice device, void* data, u32 dataSize, u32 elementCount, VkDeviceMemory bufferMemory, u32 elementMemoryOffset);
-        static void TransitionImageLayout(VkDevice device, VkCommandPool commandPool, VkQueue transferQueue, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout);
-        static void TransitionImageLayout(VkDevice device, VkCommandBuffer buffer, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout);
+        static void TransitionImageLayout(VkDevice device, VkCommandPool commandPool, VkQueue transferQueue, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout, u32 mipLevels);
+        static void TransitionImageLayout(VkDevice device, VkCommandBuffer buffer, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout, u32 mipLevels);
         static void CopyBufferToImage(VkDevice device, VkCommandPool commandPool, VkQueue transferQueue, VkBuffer srcBuffer, VkImage dstImage, uint32_t width, uint32_t height);
+        static void GenerateMipmaps(VkDevice device, VkPhysicalDevice physicalDevice, VkCommandPool commandPool, VkQueue submitQueue, VkImage image, VkFormat imageFormat, u32 width, u32 height, u32 mipLevels);
 
         static VkFormat ColorFormatToVulkan(ColorFormat format);
         static VkSampleCountFlagBits MsaaSampleCountToVulkan(MsaaSampleCount sampleCount);
         static VkPrimitiveTopology VertexTopologyToVulkan(VertexTopology topology);
         static VkFormat BufferDataTypeToVulkan(BufferDataType type);
         static VkCullModeFlagBits CullModeToVulkan(CullMode mode);
+        static VkFrontFace WindingOrderToVulkan(WindingOrder order);
         static VkDescriptorType ShaderResourceTypeToVulkan(ShaderResourceType type);
         static VkShaderStageFlags ShaderResourceAccessTypeToVulkan(ShaderResourceAccessType type);
+        static VkBlendFactor BlendFactorToVulkan(BlendFactor factor);
+        static VkBlendOp BlendOperationToVulkan(BlendOperation op);
+        static VkFilter SamplerFilterToVulkan(SamplerFilter filter);
+        static VkSamplerAddressMode SamplerWrapModeToVulkan(SamplerWrapMode mode);
     };
 }
 

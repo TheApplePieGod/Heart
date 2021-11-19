@@ -165,6 +165,7 @@ namespace Heart
         createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
         createInfo.pApplicationInfo = &appInfo;
         #if HE_DEBUG
+            HE_ENGINE_LOG_TRACE("VULKAN: Configuring validation layers");
             auto validationLayers = ConfigureValidationLayers();
             createInfo.enabledLayerCount = static_cast<u32>(validationLayers.size());
             createInfo.ppEnabledLayerNames = validationLayers.data();
@@ -217,7 +218,7 @@ namespace Heart
     {
         VkPhysicalDeviceProperties properties{};
         vkGetPhysicalDeviceProperties(s_VulkanDevice.PhysicalDevice(), &properties);
-
+        
         VkSamplerCreateInfo samplerInfo{};
         samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
         samplerInfo.magFilter = VK_FILTER_LINEAR;

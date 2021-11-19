@@ -62,6 +62,15 @@ namespace Heart
         glDrawElementsInstancedBaseVertex(OpenGLCommon::VertexTopologyToOpenGL(OpenGLContext::GetBoundGraphicsPipeline()->GetVertexTopology()), indexCount, GL_UNSIGNED_INT, (void*)(indexOffset * sizeof(u32)), instanceCount, vertexOffset);
     }
 
+    void OpenGLRenderApi::Draw(u32 vertexCount, u32 vertexOffset, u32 instanceCount)
+    {
+        HE_PROFILE_FUNCTION();
+        auto timer = AggregateTimer("OpenGLRenderApi::Draw");
+
+        HE_ENGINE_ASSERT(OpenGLContext::GetBoundGraphicsPipeline() != nullptr, "Must bind graphics pipeline before calling Draw");
+        glDrawArraysInstancedBaseInstance(OpenGLCommon::VertexTopologyToOpenGL(OpenGLContext::GetBoundGraphicsPipeline()->GetVertexTopology()), vertexOffset, vertexCount, instanceCount, 0);
+    }
+
     void OpenGLRenderApi::RenderFramebuffers(GraphicsContext& _context, const std::vector<Framebuffer*>& framebuffers)
     {
         HE_PROFILE_FUNCTION();

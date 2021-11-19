@@ -27,7 +27,7 @@ namespace HeartEditor
     private:
         glm::mat4 m_ViewMatrix;
         glm::mat4 m_ViewMatrixInvertedY; // used for ImGuizmo
-        glm::vec3 m_Position = { 0.f, 0.f, -2.f };
+        glm::vec3 m_Position = { 0.f, 1.f, 0.f };
         glm::vec3 m_ForwardVector = m_DefaultForwardVector;
         glm::vec3 m_RightVector = m_DefaultRightVector;
         glm::vec3 m_UpVector = m_DefaultUpVector;

@@ -1,9 +1,9 @@
 #include "htpch.h"
 #include "Pipeline.h"
 
-#include <algorithm>
-
 #include "Heart/Renderer/Renderer.h"
+#include "Heart/Asset/AssetManager.h"
+#include "Heart/Asset/ShaderAsset.h"
 #include "Heart/Platform/Vulkan/VulkanGraphicsPipeline.h"
 
 namespace Heart
@@ -21,11 +21,13 @@ namespace Heart
 
     void GraphicsPipeline::ConsolidateReflectionData()
     {
+        auto vertShader = AssetManager::RetrieveAsset<ShaderAsset>(m_Info.VertexShaderAsset)->GetShader();
+        auto fragShader = AssetManager::RetrieveAsset<ShaderAsset>(m_Info.FragmentShaderAsset)->GetShader();
+
         m_ProgramReflectionData.clear();
+        m_ProgramReflectionData.insert(m_ProgramReflectionData.end(), vertShader->GetReflectionData().begin(), vertShader->GetReflectionData().end());
 
-        m_ProgramReflectionData.insert(m_ProgramReflectionData.end(), m_Info.VertexShader->GetReflectionData().begin(), m_Info.VertexShader->GetReflectionData().end());
-
-        for (auto& fragData : m_Info.FragmentShader->GetReflectionData())
+        for (auto& fragData : fragShader->GetReflectionData())
         {
             for (auto& vertData : m_ProgramReflectionData)
             {

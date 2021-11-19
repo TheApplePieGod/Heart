@@ -207,7 +207,7 @@ namespace Heart
         vkUnmapMemory(device, bufferMemory);
     }
 
-    void VulkanCommon::TransitionImageLayout(VkDevice device, VkCommandPool commandPool, VkQueue transferQueue, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout)
+    void VulkanCommon::TransitionImageLayout(VkDevice device, VkCommandPool commandPool, VkQueue transferQueue, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout, u32 mipLevels)
     {
         VkCommandBuffer commandBuffer = BeginSingleTimeCommands(device, commandPool);
 
@@ -220,7 +220,7 @@ namespace Heart
         barrier.image = image;
         barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
         barrier.subresourceRange.baseMipLevel = 0;
-        barrier.subresourceRange.levelCount = 1;
+        barrier.subresourceRange.levelCount = mipLevels;
         barrier.subresourceRange.baseArrayLayer = 0;
         barrier.subresourceRange.layerCount = 1;
 
@@ -270,7 +270,7 @@ namespace Heart
         EndSingleTimeCommands(device, commandPool, commandBuffer, transferQueue);
     }
 
-    void VulkanCommon::TransitionImageLayout(VkDevice device, VkCommandBuffer buffer, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout)
+    void VulkanCommon::TransitionImageLayout(VkDevice device, VkCommandBuffer buffer, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout, u32 mipLevels)
     {
         VkImageMemoryBarrier barrier{};
         barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -281,7 +281,7 @@ namespace Heart
         barrier.image = image;
         barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
         barrier.subresourceRange.baseMipLevel = 0;
-        barrier.subresourceRange.levelCount = 1;
+        barrier.subresourceRange.levelCount = mipLevels;
         barrier.subresourceRange.baseArrayLayer = 0;
         barrier.subresourceRange.layerCount = 1;
 
@@ -336,6 +336,97 @@ namespace Heart
         EndSingleTimeCommands(device, commandPool, commandBuffer, transferQueue);
     }
 
+    void VulkanCommon::GenerateMipmaps(VkDevice device, VkPhysicalDevice physicalDevice, VkCommandPool commandPool, VkQueue submitQueue, VkImage image, VkFormat imageFormat, u32 width, u32 height, u32 mipLevels)
+    {
+        // Check if image format supports linear blitting
+        VkFormatProperties formatProperties;
+        vkGetPhysicalDeviceFormatProperties(physicalDevice, imageFormat, &formatProperties);
+
+        // TODO: store these somewhere or create them using STB
+        HE_ENGINE_ASSERT(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT, "Texture image format does not support linear blitting");
+
+        VkCommandBuffer commandBuffer = BeginSingleTimeCommands(device, commandPool);
+
+        VkImageMemoryBarrier barrier{};
+        barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        barrier.image = image;
+        barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        barrier.subresourceRange.baseArrayLayer = 0;
+        barrier.subresourceRange.layerCount = 1;
+        barrier.subresourceRange.levelCount = 1;
+
+        int mipWidth = static_cast<int>(width);
+        int mipHeight = static_cast<int>(height);
+
+        for (u32 i = 1; i < mipLevels; i++)
+        {
+            barrier.subresourceRange.baseMipLevel = i - 1;
+            barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+            barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+            barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+            barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+
+            vkCmdPipelineBarrier(commandBuffer,
+                VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
+                0, nullptr,
+                0, nullptr,
+                1, &barrier
+            );
+
+            VkImageBlit blit{};
+            blit.srcOffsets[0] = { 0, 0, 0 };
+            blit.srcOffsets[1] = { mipWidth, mipHeight, 1 };
+            blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            blit.srcSubresource.mipLevel = i - 1;
+            blit.srcSubresource.baseArrayLayer = 0;
+            blit.srcSubresource.layerCount = 1;
+            blit.dstOffsets[0] = { 0, 0, 0 };
+            blit.dstOffsets[1] = { mipWidth > 1 ? mipWidth / 2 : 1, mipHeight > 1 ? mipHeight / 2 : 1, 1 };
+            blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            blit.dstSubresource.mipLevel = i;
+            blit.dstSubresource.baseArrayLayer = 0;
+            blit.dstSubresource.layerCount = 1;
+
+            vkCmdBlitImage(commandBuffer,
+                image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                1, &blit,
+                VK_FILTER_LINEAR
+            );
+
+            barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+            barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+            barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+            vkCmdPipelineBarrier(commandBuffer,
+                VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
+                0, nullptr,
+                0, nullptr,
+                1, &barrier
+            );
+
+            if (mipWidth > 1) mipWidth /= 2;
+            if (mipHeight > 1) mipHeight /= 2;
+        }
+
+        barrier.subresourceRange.baseMipLevel = mipLevels - 1;
+        barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+        barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+        barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+        vkCmdPipelineBarrier(commandBuffer,
+            VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
+            0, nullptr,
+            0, nullptr,
+            1, &barrier
+        );
+
+        EndSingleTimeCommands(device, commandPool, commandBuffer, submitQueue);
+    }
 
     VkFormat VulkanCommon::ColorFormatToVulkan(ColorFormat format)
     {
@@ -378,8 +469,11 @@ namespace Heart
             default:
             { HE_ENGINE_ASSERT(false, "Vulkan does not support specified VertexTopology"); } break;
             case VertexTopology::TriangleList: return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+            case VertexTopology::TriangleStrip: return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+            case VertexTopology::TriangleFan: return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN;
             case VertexTopology::PointList: return VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
             case VertexTopology::LineList: return VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+            case VertexTopology::LineStrip: return VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
         }
 
         return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
@@ -418,10 +512,23 @@ namespace Heart
             case CullMode::None: return VK_CULL_MODE_NONE;
             case CullMode::Backface: return VK_CULL_MODE_BACK_BIT;
             case CullMode::Frontface: return VK_CULL_MODE_FRONT_BIT;
-            case CullMode::Both: return VK_CULL_MODE_FRONT_AND_BACK;
+            case CullMode::BackAndFront: return VK_CULL_MODE_FRONT_AND_BACK;
         }
 
         return VK_CULL_MODE_NONE;
+    }
+
+    VkFrontFace VulkanCommon::WindingOrderToVulkan(WindingOrder order)
+    {
+        switch (order)
+        {
+            default:
+            { HE_ENGINE_ASSERT(false, "Vulkan does not support specified WindingOrder"); } break;
+            case WindingOrder::Clockwise: return VK_FRONT_FACE_CLOCKWISE;
+            case WindingOrder::CounterClockwise: return VK_FRONT_FACE_COUNTER_CLOCKWISE;
+        }
+
+        return VK_FRONT_FACE_MAX_ENUM;
     }
 
     VkDescriptorType VulkanCommon::ShaderResourceTypeToVulkan(ShaderResourceType type)
@@ -430,9 +537,10 @@ namespace Heart
         {
             default:
             { HE_ENGINE_ASSERT(false, "Vulkan does not support specified ShaderResourceType"); } break;
-            case ShaderResourceType::Texture : return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            case ShaderResourceType::Texture: return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
             case ShaderResourceType::UniformBuffer: return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
             case ShaderResourceType::StorageBuffer: return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
+            case ShaderResourceType::SubpassInput: return VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
         }
 
         return VK_DESCRIPTOR_TYPE_MAX_ENUM;
@@ -444,11 +552,78 @@ namespace Heart
         {
             default:
             { HE_ENGINE_ASSERT(false, "Vulkan does not support specified ShaderResourceType"); } break;
-            case ShaderResourceAccessType::Vertex : return VK_SHADER_STAGE_VERTEX_BIT;
+            case ShaderResourceAccessType::Vertex: return VK_SHADER_STAGE_VERTEX_BIT;
             case ShaderResourceAccessType::Fragment: return VK_SHADER_STAGE_FRAGMENT_BIT;
             case ShaderResourceAccessType::Both: return (VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
         }
 
         return VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM;
+    }
+
+    VkBlendFactor VulkanCommon::BlendFactorToVulkan(BlendFactor factor)
+    {
+        switch (factor)
+        {
+            default:
+            { HE_ENGINE_ASSERT(false, "Vulkan does not support specified BlendFactor"); } break;
+            case BlendFactor::Zero: return VK_BLEND_FACTOR_ZERO;
+            case BlendFactor::One: return VK_BLEND_FACTOR_ONE;
+
+            case BlendFactor::SrcColor: return VK_BLEND_FACTOR_SRC_COLOR;
+            case BlendFactor::OneMinusSrcColor: return VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR;
+            case BlendFactor::DstColor: return VK_BLEND_FACTOR_DST_COLOR;
+            case BlendFactor::OneMinusDstColor: return VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR;
+
+            case BlendFactor::SrcAlpha: return VK_BLEND_FACTOR_SRC_ALPHA;
+            case BlendFactor::OneMinusSrcAlpha: return VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+            case BlendFactor::DstAlpha: return VK_BLEND_FACTOR_DST_ALPHA;
+            case BlendFactor::OneMinusDstAlpha: return VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA;
+        }
+
+        return VK_BLEND_FACTOR_MAX_ENUM;
+    }
+
+    VkBlendOp VulkanCommon::BlendOperationToVulkan(BlendOperation op)
+    {
+        switch (op)
+        {
+            default:
+            { HE_ENGINE_ASSERT(false, "Vulkan does not support specified BlendOperation"); } break;
+            case BlendOperation::Add: return VK_BLEND_OP_ADD;
+            case BlendOperation::Subtract: return VK_BLEND_OP_SUBTRACT;
+            case BlendOperation::ReverseSubtract: return VK_BLEND_OP_REVERSE_SUBTRACT;
+            case BlendOperation::Min: return VK_BLEND_OP_MIN;
+            case BlendOperation::Max: return VK_BLEND_OP_MAX;
+        }
+
+        return VK_BLEND_OP_MAX_ENUM;
+    }
+
+    VkFilter VulkanCommon::SamplerFilterToVulkan(SamplerFilter filter)
+    {
+        switch (filter)
+        {
+            default:
+            { HE_ENGINE_ASSERT(false, "Vulkan does not support specified SamplerFilter"); } break;
+            case SamplerFilter::Linear: return VK_FILTER_LINEAR;
+            case SamplerFilter::Nearest: return VK_FILTER_NEAREST;
+        }
+
+        return VK_FILTER_MAX_ENUM;
+    }
+
+    VkSamplerAddressMode VulkanCommon::SamplerWrapModeToVulkan(SamplerWrapMode mode)
+    {
+        switch (mode)
+        {
+            default:
+            { HE_ENGINE_ASSERT(false, "Vulkan does not support specified SamplerWrapMode"); } break;
+            case SamplerWrapMode::ClampToBorder: return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+            case SamplerWrapMode::ClampToEdge: return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+            case SamplerWrapMode::Repeat: return VK_SAMPLER_ADDRESS_MODE_REPEAT;
+            case SamplerWrapMode::MirroredRepeat: return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+        }
+
+        return VK_SAMPLER_ADDRESS_MODE_MAX_ENUM;
     }
 }

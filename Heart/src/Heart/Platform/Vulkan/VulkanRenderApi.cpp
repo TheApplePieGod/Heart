@@ -67,6 +67,14 @@ namespace Heart
         vkCmdDrawIndexed(VulkanContext::GetBoundCommandBuffer(), indexCount, instanceCount, indexOffset, vertexOffset, 0);
     }
 
+    void VulkanRenderApi::Draw(u32 vertexCount, u32 vertexOffset, u32 instanceCount)
+    {
+        HE_PROFILE_FUNCTION();
+        auto timer = AggregateTimer("VulkanRenderApi::Draw");
+
+        vkCmdDraw(VulkanContext::GetBoundCommandBuffer(), vertexCount, instanceCount, vertexOffset, 0);
+    }
+
     void VulkanRenderApi::RenderFramebuffers(GraphicsContext& _context, const std::vector<Framebuffer*>& framebuffers)
     {
         HE_PROFILE_FUNCTION();

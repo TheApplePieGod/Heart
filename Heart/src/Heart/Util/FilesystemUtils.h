@@ -4,6 +4,7 @@ namespace Heart
 {
     struct FilesystemUtils
     {
-        static std::string LoadFile(const std::string& path);
+        static std::string ReadFileToString(const std::string& path);
+        static unsigned char* ReadFile(const std::string& path, u32& outLength);
     };
 }

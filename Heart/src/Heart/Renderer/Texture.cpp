@@ -7,41 +7,30 @@
 
 namespace Heart
 {
-    Ref<Texture> Texture::Create(const std::string& path)
+    Ref<Texture> Texture::Create(const std::string& path, int width, int height, int channels, void* data)
     {
         switch (Renderer::GetApiType())
         {
             default:
             { HE_ENGINE_ASSERT(false, "Cannot create texture: selected ApiType is not supported"); return nullptr; }
             case RenderApi::Type::Vulkan:
-            { return CreateRef<VulkanTexture>(path); }
+            { return CreateRef<VulkanTexture>(path, width, height, channels, data); }
             case RenderApi::Type::OpenGL:
-            { return CreateRef<OpenGLTexture>(path); }
+            { return CreateRef<OpenGLTexture>(path, width, height, channels, data); }
         }
     }
 
-    Ref<Texture> TextureRegistry::RegisterTexture(const std::string& name, const std::string& path)
+    void Texture::ScanForTransparency(int width, int height, int channels, void* data)
     {
-        if (m_Textures.find(name) != m_Textures.end())
+        unsigned char* pixels = (unsigned char*)data;
+        int size = width * height * channels;
+        for (int i = 3; i < size; i += 4)
         {
-            HE_ENGINE_LOG_ERROR("Cannot register texture, name already exists: {0}", name);
-            HE_ENGINE_ASSERT(false);
+            if (pixels[i] < 250)
+            {
+                m_HasTransparency = true;
+                return;
+            }
         }
-
-        HE_ENGINE_LOG_TRACE("Registering texture '{0}' @ '{1}'", name, path);
-
-        Ref<Texture> newTexture = Texture::Create(path);
-        m_Textures[name] = newTexture;
-        return newTexture;
-    }
-    
-    Ref<Texture> TextureRegistry::LoadTexture(const std::string& name)
-    {
-        if (m_Textures.find(name) == m_Textures.end())
-        {
-            HE_ENGINE_LOG_ERROR("Texture not registered: {0}", name);
-            HE_ENGINE_ASSERT(false);
-        }
-        return m_Textures[name];
     }
 }

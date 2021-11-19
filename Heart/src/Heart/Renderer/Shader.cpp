@@ -11,6 +11,49 @@
 
 namespace Heart
 {
+    class ShaderIncluder : public shaderc::CompileOptions::IncluderInterface
+    {
+    public:
+        ShaderIncluder(const std::string& basePath)
+            : m_BasePath(basePath)
+        {}
+
+        shaderc_include_result* GetInclude (
+            const char* requestedSource,
+            shaderc_include_type type,
+            const char* requestingSource,
+            size_t includeDepth)
+        {
+            std::string name(requestedSource);
+            std::string contents = FilesystemUtils::ReadFileToString(std::filesystem::path(m_BasePath).append(requestedSource).generic_u8string());
+
+            auto container = new std::array<std::string, 2>;
+            (*container)[0] = name;
+            (*container)[1] = contents;
+
+            auto data = new shaderc_include_result;
+
+            data->user_data = container;
+
+            data->source_name = (*container)[0].data();
+            data->source_name_length = (*container)[0].size();
+
+            data->content = (*container)[1].data();
+            data->content_length = (*container)[1].size();
+
+            return data;
+        };
+
+        void ReleaseInclude(shaderc_include_result* data) override
+        {
+            delete static_cast<std::array<std::string, 2>*>(data->user_data);
+            delete data;
+        };
+
+    private:
+        std::string m_BasePath;
+    };
+
     Ref<Shader> Shader::Create(const std::string& path, Type shaderType)
     {
         switch (Renderer::GetApiType())
@@ -39,10 +82,17 @@ namespace Heart
             { options.SetTargetEnvironment(shaderc_target_env::shaderc_target_env_opengl, 0); } break;
         }
         
+        std::string basePath = std::filesystem::path(path).parent_path().generic_u8string();
+        options.SetIncluder(CreateScope<ShaderIncluder>(basePath));
+
         // TODO: dynamic option for this
         options.SetOptimizationLevel(shaderc_optimization_level_performance);
-
-        std::string sourceCode = FilesystemUtils::LoadFile(path);
+        std::string sourceCode = FilesystemUtils::ReadFileToString(path);
+        if (sourceCode == "")
+        {
+            HE_ENGINE_LOG_ERROR("Failed to load file {0}", path);
+            HE_ENGINE_ASSERT(false);
+        }
 
         shaderc_shader_kind shaderKind = shaderc_glsl_vertex_shader;
         switch (shaderType)
@@ -53,7 +103,16 @@ namespace Heart
             case Type::Fragment: { shaderKind = shaderc_glsl_fragment_shader; } break;
         }
 
-        shaderc::SpvCompilationResult compiled = compiler.CompileGlslToSpv(sourceCode, shaderKind, path.c_str(), options);
+        shaderc::PreprocessedSourceCompilationResult preprocessed = compiler.PreprocessGlsl(sourceCode, shaderKind, path.c_str(), options);
+        if (preprocessed.GetCompilationStatus() != shaderc_compilation_status_success)
+        {
+            HE_ENGINE_LOG_ERROR("Shader preprocessing failed: {0}", preprocessed.GetErrorMessage());
+            HE_ENGINE_ASSERT(false);
+        }
+
+        std::string preprocessedSource(preprocessed.begin());
+
+        shaderc::SpvCompilationResult compiled = compiler.CompileGlslToSpv(preprocessedSource, shaderKind, path.c_str(), options);
         if (compiled.GetCompilationStatus() != shaderc_compilation_status_success)
         {
             HE_ENGINE_LOG_ERROR("Shader compilation failed: {0}", compiled.GetErrorMessage());
@@ -138,30 +197,24 @@ namespace Heart
 
             HE_ENGINE_ASSERT(set == 0, "The 'set' glsl qualifier is currently unsupported and must be zero");
 		}
-    }
 
-    Ref<Shader> ShaderRegistry::RegisterShader(const std::string& name, const std::string& path, Shader::Type shaderType)
-    {
-        if (m_Shaders.find(name) != m_Shaders.end())
-        {
-            HE_ENGINE_LOG_ERROR("Cannot register shader, name already exists: {0}", name);
-            HE_ENGINE_ASSERT(false);
-        }
+        if (resources.subpass_inputs.size() > 0)
+		    HE_ENGINE_LOG_TRACE("  Subpass Inputs:");
+		for (const auto& resource : resources.subpass_inputs)
+		{
+            const auto& subpassType = compiler.get_type(resource.type_id);
+			u32 binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
+            u32 set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
+            u32 attachmentIndex = compiler.get_decoration(resource.id, spv::DecorationInputAttachmentIndex);
+            
+            m_ReflectionData.emplace_back(resource.id, ShaderResourceType::SubpassInput, accessType, binding, set, 1);
 
-        HE_ENGINE_LOG_TRACE("Registering shader '{0}' @ '{1}'", name, path);
+			HE_ENGINE_LOG_TRACE("    Input", resource.name);
+            HE_ENGINE_LOG_TRACE("      Set = {0}", set);
+			HE_ENGINE_LOG_TRACE("      Binding = {0}", binding);
+            HE_ENGINE_LOG_TRACE("      AttachmentIndex = {0}", attachmentIndex);
 
-        Ref<Shader> newShader = Shader::Create(path, shaderType);
-        m_Shaders[name] = newShader;
-        return newShader;
-    }
-    
-    Ref<Shader> ShaderRegistry::LoadShader(const std::string& name)
-    {
-        if (m_Shaders.find(name) == m_Shaders.end())
-        {
-            HE_ENGINE_LOG_ERROR("Shader not registered: {0}", name);
-            HE_ENGINE_ASSERT(false);
-        }
-        return m_Shaders[name];
+            HE_ENGINE_ASSERT(set == 0, "The 'set' glsl qualifier is currently unsupported and must be zero");
+		}
     }
 }

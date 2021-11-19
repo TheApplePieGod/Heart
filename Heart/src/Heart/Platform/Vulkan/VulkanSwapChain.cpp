@@ -6,18 +6,6 @@
 
 namespace Heart
 {
-    std::array<void*, MAX_FRAMES_IN_FLIGHT>& FrameDataRegistry::RegisterData(u32& outId)
-    {
-        outId = ++m_CurrentId;
-        m_FrameDataRegistry[outId] = std::array<void*, MAX_FRAMES_IN_FLIGHT>();
-        return m_FrameDataRegistry[outId];
-    }
-
-    void FrameDataRegistry::UnregisterData(u32 id)
-    {
-        m_FrameDataRegistry.erase(id);
-    }
-
     void VulkanSwapChain::Initialize(int width, int height, VkSurfaceKHR surface)
     {
         if (m_Initialized) return;

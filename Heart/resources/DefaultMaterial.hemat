@@ -1,0 +1,18 @@
+{
+    "data": {
+        "baseColor": [1, 0, 0, 1],
+        "roughness": 0.5,
+        "metalness": 0.5,
+        "texCoordScale": [1, 1],
+        "texCoordOffset": [0, 0]
+    },
+    "metadata": {
+        "transparent": false
+    },
+    "textures": {
+        "albedo": "",
+        "roughness": "",
+        "metalness": "",
+        "normal": ""
+    }
+}

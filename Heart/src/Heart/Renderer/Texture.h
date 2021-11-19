@@ -9,6 +9,30 @@ namespace Heart
         RGBA8 = 0,
         R32F, RG32F, RGB32F, RGBA32F
     };
+
+    enum class SamplerFilter
+    {
+        None = 0,
+        Linear, Nearest
+    };
+
+    enum class SamplerWrapMode
+    {
+        None = 0,
+        ClampToBorder,
+        ClampToEdge,
+        Repeat,
+        MirroredRepeat
+    };
+
+    struct TextureSamplerState
+    {
+        SamplerFilter MinFilter = SamplerFilter::Linear;
+        SamplerFilter MagFilter = SamplerFilter::Linear;
+        std::array<SamplerWrapMode, 2> UVWrap = { SamplerWrapMode::Repeat, SamplerWrapMode::Repeat };
+        bool AnisotropyEnable = true;
+        u32 MaxAnisotropy = 8;
+    };
     
     static u32 ColorFormatComponents(ColorFormat format)
     {
@@ -43,8 +67,8 @@ namespace Heart
     class Texture
     {
     public:
-        Texture(const std::string& path)
-            : m_Path(path)
+        Texture(const std::string& path, int width, int height, int channels)
+            : m_Path(path), m_Width(width), m_Height(height), m_Channels(channels)
         {}
         virtual ~Texture() = default;
 
@@ -54,9 +78,14 @@ namespace Heart
         inline int GetHeight() const { return m_Height; }
         inline int GetChannels() const { return m_Channels; }
         inline const std::string& GetFilePath() const { return m_Path; }
+        inline bool HasTransparency() const { return m_HasTransparency; }
+        inline const TextureSamplerState& GetSamplerState() const { return m_SamplerState; }
 
     public:
-        static Ref<Texture> Create(const std::string& path);
+        static Ref<Texture> Create(const std::string& path, int width = 0, int height = 0, int channels = 0, void* data = nullptr);
+
+    protected:
+        void ScanForTransparency(int width, int height, int channels, void* data);
 
     protected:
         const int m_DesiredChannelCount = 4; // all images will load as RGBA
@@ -64,15 +93,7 @@ namespace Heart
         int m_Width, m_Height, m_Channels;
         u32 m_ArrayCount = 1;
         void* m_ImGuiHandle;
-    };
-
-    class TextureRegistry
-    {
-    public:
-        Ref<Texture> RegisterTexture(const std::string& name, const std::string& path);
-        Ref<Texture> LoadTexture(const std::string& name);
-
-    private:
-        std::unordered_map<std::string, Ref<Texture>> m_Textures;
+        bool m_HasTransparency = false;
+        TextureSamplerState m_SamplerState;
     };
 }

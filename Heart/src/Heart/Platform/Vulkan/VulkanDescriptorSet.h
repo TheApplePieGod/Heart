@@ -22,6 +22,7 @@ namespace Heart
         inline VkDescriptorSet GetMostRecentDescriptorSet() const { return m_MostRecentDescriptorSet; }
         inline void UpdateDynamicOffset(u32 bindingIndex, u32 offset) { m_DynamicOffsets[m_OffsetMappings[bindingIndex]] = offset; }
         inline const std::vector<u32>& GetDynamicOffsets() const { return m_DynamicOffsets; }
+        inline bool DoesBindingExist(u32 bindingIndex) const { return m_DescriptorWriteMappings.find(bindingIndex) != m_DescriptorWriteMappings.end(); }
 
     private:
         VkDescriptorPool CreateDescriptorPool();
@@ -34,9 +35,11 @@ namespace Heart
         const u32 m_MaxSetsPerPool = 50;
 
         VkDescriptorSetLayout m_DescriptorSetLayout;
+        std::vector<VkDescriptorSetLayout> m_CachedSetLayouts;
         std::array<std::vector<VkDescriptorPool>, MAX_FRAMES_IN_FLIGHT> m_DescriptorPools;
         VkDescriptorSet m_MostRecentDescriptorSet;
 
+        std::vector<VkDescriptorSet> m_AvailableSets;
         std::vector<VkDescriptorPoolSize> m_CachedPoolSizes;
         std::vector<VkWriteDescriptorSet> m_CachedDescriptorWrites;
         std::array<VkDescriptorBufferInfo, MAX_UNIQUE_DESCRIPTORS> m_CachedBufferInfos;
@@ -46,8 +49,9 @@ namespace Heart
         u32 m_FrameDataRegistryId;
         u64 m_LastResetFrame = 0;
         u32 m_InFlightFrameIndex = 0;
-        size_t m_LastSuccessfulPool = 0;
         size_t m_WritesReadyCount = 0;
+        size_t m_AvailableSetIndex = 0;
+        size_t m_AvailablePoolIndex = 0;
 
         std::unordered_map<u32, void*> m_BoundResources;
 

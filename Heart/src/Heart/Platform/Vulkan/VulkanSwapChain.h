@@ -5,19 +5,7 @@
 namespace Heart
 {
     // TODO: make this a parameter?
-    const u32 MAX_FRAMES_IN_FLIGHT = 2;
-
-    class FrameDataRegistry
-    {
-    public:
-        std::array<void*, MAX_FRAMES_IN_FLIGHT>& RegisterData(u32& outId);
-        void UnregisterData(u32 id);
-        inline void* GetCurrentData(u32 id, u32 frameIndex) { return m_FrameDataRegistry[id][frameIndex]; }; // disable checks here for speed
-
-    private:
-        std::unordered_map<u32, std::array<void*, MAX_FRAMES_IN_FLIGHT>> m_FrameDataRegistry;
-        u32 m_CurrentId = 0;
-    };
+    const u32 MAX_FRAMES_IN_FLIGHT = 3;
 
     class VulkanSwapChain
     {
@@ -48,8 +36,6 @@ namespace Heart
         inline VkCommandBuffer GetCommandBuffer() const { return m_CommandBuffers[m_InFlightFrameIndex]; }
         inline u32 GetPresentImageIndex() const { return m_PresentImageIndex; }
         inline u32 GetInFlightFrameIndex() const { return m_InFlightFrameIndex; }
-        inline FrameDataRegistry& GetFrameDataRegistry() { return m_FrameDataRegistry; }
-        inline void* GetFrameData(u32 registryId) { return m_FrameDataRegistry.GetCurrentData(registryId, m_InFlightFrameIndex); };
 
     private:
         void CreateSwapChain();
@@ -100,7 +86,6 @@ namespace Heart
         bool m_ShouldPresentThisFrame;
         u32 m_InFlightFrameIndex = 0;
         bool m_SwapChainInvalid = false;
-        FrameDataRegistry m_FrameDataRegistry;
 
         VkImage m_ColorImage;
         VkImage m_DepthImage;
