@@ -8,10 +8,10 @@ namespace Heart
         enum class Type
         {
             None = 0,
-            Texture, Shader, Mesh
+            Texture, Shader, Mesh, Material
         };
         inline static const char* TypeStrings[] = {
-            "None", "Texture", "Shader", "Mesh"
+            "None", "Texture", "Shader", "Mesh", "Material"
         };
 
     public:
@@ -38,6 +38,7 @@ namespace Heart
     protected:
         std::string m_Path;
         std::string m_AbsolutePath;
+        std::string m_ParentPath;
         std::string m_Filename;
         std::string m_Extension;
         void* m_Data = nullptr;

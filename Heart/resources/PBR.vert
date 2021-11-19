@@ -28,7 +28,6 @@ layout(binding = 1) readonly buffer ObjectBuffer {
 } objectBuffer;
 
 void main() {
-    //gl_Position = vec4(inPosition, 1.0);
     gl_Position = frameData.viewProj * objectBuffer.object.model * vec4(inPosition, 1.0);
     depth = (frameData.view * objectBuffer.object.model * vec4(inPosition, 1.0)).z;
     texCoord = inTexCoord;

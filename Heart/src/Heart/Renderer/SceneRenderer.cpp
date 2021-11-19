@@ -6,6 +6,7 @@
 #include "Heart/Scene/Entity.h"
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/TextureAsset.h"
+#include "Heart/Asset/MaterialAsset.h"
 #include "Heart/Asset/ShaderAsset.h"
 #include "Heart/Asset/MeshAsset.h"
 #include "glm/gtc/matrix_transform.hpp"
@@ -16,6 +17,12 @@ namespace Heart
     {
         // register resources
         AssetManager::RegisterAsset(Asset::Type::Texture, "DefaultTexture.png", true, true);
+        AssetManager::RegisterAsset(Asset::Type::Material, "DefaultMaterial.hemat", true, true);
+        AssetManager::RegisterAsset(Asset::Type::Shader, "PBR.vert", false, true);
+        AssetManager::RegisterAsset(Asset::Type::Shader, "PBR.frag", false, true);
+        AssetManager::RegisterAsset(Asset::Type::Shader, "FullscreenTriangle.vert", false, true);
+        AssetManager::RegisterAsset(Asset::Type::Shader, "PBRTransparentColor.frag", false, true);
+        AssetManager::RegisterAsset(Asset::Type::Shader, "TransparentComposite.frag", false, true);
 
         // register default shaders
         AssetManager::RegisterAsset(Asset::Type::Shader, "assets/shaders/main.vert");
@@ -24,19 +31,10 @@ namespace Heart
         AssetManager::RegisterAsset(Asset::Type::Shader, "assets/shaders/composite.frag");
         AssetManager::RegisterAsset(Asset::Type::Shader, "assets/shaders/fulltriangle.vert");
 
-        // register testing assets
-        AssetManager::RegisterAsset(Asset::Type::Texture, "assets/textures/fish.png");
-        AssetManager::RegisterAsset(Asset::Type::Texture, "assets/textures/test.png");
-        AssetManager::RegisterAsset(Asset::Type::Mesh, "assets/meshes/cube.gltf");
-        AssetManager::RegisterAsset(Asset::Type::Mesh, "assets/meshes/Sponza/glTF/Sponza.gltf");
-        AssetManager::RegisterAsset(Asset::Type::Mesh, "assets/meshes/Buggy/glTF/Buggy.gltf");
-        AssetManager::RegisterAsset(Asset::Type::Mesh, "assets/meshes/Duck/glTF/Duck.gltf");
-        AssetManager::RegisterAsset(Asset::Type::Mesh, "assets/meshes/IridescentDishWithOlives/glTF/IridescentDishWithOlives.gltf");
-
         // graphics pipeline
-        GraphicsPipelineCreateInfo mainPipeline = {
-            "assets/shaders/main.vert",
-            "assets/shaders/main.frag",
+        GraphicsPipelineCreateInfo pbrPipeline = {
+            AssetManager::GetAssetUUID("PBR.vert", true),
+            AssetManager::GetAssetUUID("PBR.frag", true),
             true,
             VertexTopology::TriangleList,
             Heart::Mesh::GetVertexLayout(),
@@ -48,8 +46,8 @@ namespace Heart
             0
         };
         GraphicsPipelineCreateInfo transparencyColorPipeline = {
-            "assets/shaders/main.vert",
-            "assets/shaders/color.frag",
+            AssetManager::GetAssetUUID("PBR.vert", true),
+            AssetManager::GetAssetUUID("PBRTransparentColor.frag", true),
             true,
             VertexTopology::TriangleList,
             Heart::Mesh::GetVertexLayout(),
@@ -61,8 +59,8 @@ namespace Heart
             1
         };
         GraphicsPipelineCreateInfo transparencyCompositePipeline = {
-            "assets/shaders/fulltriangle.vert",
-            "assets/shaders/composite.frag",
+            AssetManager::GetAssetUUID("FullscreenTriangle.vert", true),
+            AssetManager::GetAssetUUID("TransparentComposite.frag", true),
             false,
             VertexTopology::TriangleList,
             Heart::Mesh::GetVertexLayout(),
@@ -84,14 +82,27 @@ namespace Heart
 
         // per object data buffer layout
         BufferLayout objectDataLayout = {
-            { BufferDataType::Mat4, BufferDataType::Int, BufferDataType::Float3 },
+            { BufferDataType::Mat4 }, // transform
+            { BufferDataType::Int }, // entityId
+            { BufferDataType::Float3 } // padding
         };
 
-        // per frame data buffer
-        m_FrameDataBuffer = Buffer::Create(Buffer::Type::Uniform, BufferUsageType::Dynamic, frameDataLayout, 1, nullptr);
+        BufferLayout materialDataLayout = {
+            { BufferDataType::Float4 }, // material: baseColor
+            { BufferDataType::Float }, // material: roughness
+            { BufferDataType::Float }, // material: metalness
+            { BufferDataType::Float2 }, // material: texCoordScale
+            { BufferDataType::Float2 }, // material: texCoordOffset
+            { BufferDataType::Bool }, // material: hasAlbedo
+            { BufferDataType::Bool }, // material: hasRoughness
+            { BufferDataType::Bool }, // material: hasMetalness
+            { BufferDataType::Bool }, // material: hasNormal
+            { BufferDataType::Float2 } // material: padding
+        };
 
-        // object data buffer
+        m_FrameDataBuffer = Buffer::Create(Buffer::Type::Uniform, BufferUsageType::Dynamic, frameDataLayout, 1, nullptr);
         m_ObjectDataBuffer = Buffer::Create(Buffer::Type::Storage, BufferUsageType::Dynamic, objectDataLayout, 2000, nullptr);
+        m_MaterialDataBuffer = Buffer::Create(Buffer::Type::Storage, BufferUsageType::Dynamic, materialDataLayout, 2000, nullptr);
 
         // framebuffer
         FramebufferCreateInfo fbCreateInfo = {
@@ -114,8 +125,8 @@ namespace Heart
         fbCreateInfo.Height = 0;
         fbCreateInfo.SampleCount = MsaaSampleCount::None;
         m_FinalFramebuffer = Framebuffer::Create(fbCreateInfo);
-        m_FinalFramebuffer->RegisterGraphicsPipeline("main", mainPipeline);
-        m_FinalFramebuffer->RegisterGraphicsPipeline("tpColor", transparencyColorPipeline);
+        m_FinalFramebuffer->RegisterGraphicsPipeline("pbr", pbrPipeline);
+        m_FinalFramebuffer->RegisterGraphicsPipeline("pbrTpColor", transparencyColorPipeline);
         m_FinalFramebuffer->RegisterGraphicsPipeline("tpComposite", transparencyCompositePipeline);
     }
 
@@ -131,49 +142,63 @@ namespace Heart
         HE_ENGINE_ASSERT(scene, "Scene cannot be nullptr");
 
         m_FinalFramebuffer->Bind();
-        m_FinalFramebuffer->BindPipeline("main");
+        m_FinalFramebuffer->BindPipeline("pbr");
 
         FrameData frameData = { viewProjection, view, m_FinalFramebuffer->GetSize(), Renderer::IsUsingReverseDepth() };
         m_FrameDataBuffer->SetData(&frameData, 1, 0);
 
         m_FinalFramebuffer->BindShaderBufferResource(0, 0, m_FrameDataBuffer.get());
 
+        // default texture binds
+        m_FinalFramebuffer->BindShaderTextureResource(3, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
+
         std::vector<CachedRender> transparentMeshes;
         auto group = scene->GetRegistry().group<TransformComponent, MeshComponent>();
-        u32 index = 0;
+        u32 objectIndex = 0;
+        u32 materialIndex = 0;
         for (auto entity : group)
         {
             auto [transform, mesh] = group.get<TransformComponent, MeshComponent>(entity);
 
-            auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>(mesh.MeshPath);
+            auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>(mesh.Mesh);
             if (!meshAsset || !meshAsset->IsValid()) continue;
 
-            m_FinalFramebuffer->BindShaderBufferResource(1, index, m_ObjectDataBuffer.get());
+            m_FinalFramebuffer->BindShaderBufferResource(1, objectIndex, m_ObjectDataBuffer.get());
 
             // store transform at offset in buffer
             ObjectData objectData = { scene->GetEntityCachedTransform({ scene, entity }), static_cast<int>(entity) };
-            m_ObjectDataBuffer->SetData(&objectData, 1, index);
+            m_ObjectDataBuffer->SetData(&objectData, 1, objectIndex);
 
             for (u32 i = 0; i < meshAsset->GetSubmeshCount(); i++)
             {
                 auto& meshData = meshAsset->GetSubmesh(i);
 
-                std::string finalTexturePath = meshAsset->GetDefaultTexturePaths()[meshData.GetMaterialIndex()];
-                if (mesh.TexturePaths.size() > meshData.GetMaterialIndex())
-                    finalTexturePath = mesh.TexturePaths[meshData.GetMaterialIndex()];
+                UUID finalMaterialId = meshAsset->GetDefaultMaterials()[meshData.GetMaterialIndex()];
+                if (mesh.Materials.size() > meshData.GetMaterialIndex())
+                    finalMaterialId = mesh.Materials[meshData.GetMaterialIndex()];
 
-                auto textureAsset = AssetManager::RetrieveAsset<TextureAsset>(finalTexturePath);
-                if (textureAsset && textureAsset->IsValid())
+                auto materialAsset = AssetManager::RetrieveAsset<MaterialAsset>(finalMaterialId);
+                if (materialAsset && materialAsset->IsValid())
                 {
-                    if (textureAsset->GetTexture()->HasTransparency())
+                    if (materialAsset->GetMaterial().IsTransparent())
                     {
-                        transparentMeshes.emplace_back(finalTexturePath, mesh.MeshPath, i, objectData);
+                        transparentMeshes.emplace_back(finalMaterialId, mesh.Mesh, i, objectData);
                         continue;
                     }
-                    m_FinalFramebuffer->BindShaderTextureResource(2, textureAsset->GetTexture());
+
+                    auto& materialData = materialAsset->GetMaterial().GetMaterialData();
+
+                    auto albedoAsset = AssetManager::RetrieveAsset<TextureAsset>(materialAsset->GetMaterial().GetAlbedoTexture());
+                    materialData.HasAlbedo = albedoAsset && albedoAsset->IsValid();
+                    if (materialData.HasAlbedo)
+                        m_FinalFramebuffer->BindShaderTextureResource(3, albedoAsset->GetTexture());
+
+                    m_MaterialDataBuffer->SetData(&materialData, 1, materialIndex);
                 }
-                else // bind default texture
-                    m_FinalFramebuffer->BindShaderTextureResource(2, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png")->GetTexture());
+                else // default material
+                    m_MaterialDataBuffer->SetData(&AssetManager::RetrieveAsset<MaterialAsset>("DefaultMaterial.hemat", true)->GetMaterial().GetMaterialData(), 1, materialIndex);
+
+                m_FinalFramebuffer->BindShaderBufferResource(2, materialIndex, m_MaterialDataBuffer.get());
 
                 Renderer::Api().BindVertexBuffer(*meshData.GetVertexBuffer());
                 Renderer::Api().BindIndexBuffer(*meshData.GetIndexBuffer());
@@ -184,31 +209,41 @@ namespace Heart
                     meshData.GetVertexBuffer()->GetAllocatedCount(),
                     0, 0, 1
                 );
+
+                materialIndex++;
             }
 
-            index++;
+            objectIndex++;
         }
 
         m_FinalFramebuffer->StartNextSubpass();
-        m_FinalFramebuffer->BindPipeline("tpColor");
+        m_FinalFramebuffer->BindPipeline("pbrTpColor");
         
+        // default texture binds
+        m_FinalFramebuffer->BindShaderTextureResource(3, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
+
         m_FinalFramebuffer->BindShaderBufferResource(0, 0, m_FrameDataBuffer.get());
 
         for (auto& mesh : transparentMeshes)
         {
-            auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>(mesh.MeshPath);
+            auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>(mesh.Mesh);
             auto& meshData = meshAsset->GetSubmesh(mesh.SubmeshIndex);
-            auto textureAsset = AssetManager::RetrieveAsset<TextureAsset>(mesh.TexturePath);
+            auto materialAsset = AssetManager::RetrieveAsset<MaterialAsset>(mesh.Material);
+            auto& materialData = materialAsset->GetMaterial().GetMaterialData();
 
-            m_FinalFramebuffer->BindShaderTextureResource(2, textureAsset->GetTexture());
+            auto albedoAsset = AssetManager::RetrieveAsset<TextureAsset>(materialAsset->GetMaterial().GetAlbedoTexture());
+            materialData.HasAlbedo = albedoAsset && albedoAsset->IsValid();
+            if (materialData.HasAlbedo)
+                m_FinalFramebuffer->BindShaderTextureResource(3, albedoAsset->GetTexture());
+
+            m_FinalFramebuffer->BindShaderBufferResource(1, objectIndex, m_ObjectDataBuffer.get());
+            m_ObjectDataBuffer->SetData(&mesh.ObjectData, 1, objectIndex);
+
+            m_FinalFramebuffer->BindShaderBufferResource(2, materialIndex, m_MaterialDataBuffer.get());
+            m_MaterialDataBuffer->SetData(&materialData, 1, materialIndex);
 
             Renderer::Api().BindVertexBuffer(*meshData.GetVertexBuffer());
             Renderer::Api().BindIndexBuffer(*meshData.GetIndexBuffer());
-
-            m_FinalFramebuffer->BindShaderBufferResource(1, index, m_ObjectDataBuffer.get());
-
-            // update transform of each cube within the buffer
-            m_ObjectDataBuffer->SetData(&mesh.ObjectData, 1, index);
 
             // draw
             Renderer::Api().DrawIndexed(
@@ -217,7 +252,8 @@ namespace Heart
                 0, 0, 1
             );
 
-            index++;
+            objectIndex++;
+            materialIndex++;
         }
         
         m_FinalFramebuffer->StartNextSubpass();

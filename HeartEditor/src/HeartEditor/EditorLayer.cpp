@@ -26,19 +26,29 @@ namespace HeartEditor
         Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Texture, "assets/textures/folder.png");
         Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Texture, "assets/textures/file.png");
 
+        // register testing assets
+        Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Material, "assets/materials/TestMaterial.hemat");
+        Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Texture, "assets/textures/fish.png");
+        Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Texture, "assets/textures/test.png");
+        Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Mesh, "assets/meshes/cube.gltf");
+        Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Mesh, "assets/meshes/Sponza/glTF/Sponza.gltf");
+        Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Mesh, "assets/meshes/Buggy/glTF/Buggy.gltf");
+        Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Mesh, "assets/meshes/Duck/glTF/Duck.gltf");
+        Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Mesh, "assets/meshes/IridescentDishWithOlives/glTF/IridescentDishWithOlives.gltf");
+
         m_EditorCamera = Heart::CreateScope<EditorCamera>(70.f, 0.1f, 500.f, 1.f);
         m_ActiveScene = Heart::CreateRef<Heart::Scene>();
 
         auto entity = m_ActiveScene->CreateEntity("Test Entity");
         entity.AddComponent<Heart::MeshComponent>();
-        entity.GetComponent<Heart::MeshComponent>().MeshPath = "assets/meshes/Sponza/glTF/Sponza.gltf";
+        entity.GetComponent<Heart::MeshComponent>().Mesh = Heart::AssetManager::GetAssetUUID("assets/meshes/Sponza/glTF/Sponza.gltf");
         entity.GetComponent<Heart::TransformComponent>().Scale = { 0.01f, 0.01f, 0.01f };
         m_ActiveScene->CacheEntityTransform(entity);
 
         entity = m_ActiveScene->CreateEntity("Cube Entity");
         entity.AddComponent<Heart::MeshComponent>();
-        entity.GetComponent<Heart::MeshComponent>().MeshPath = "assets/meshes/cube.gltf";
-        entity.GetComponent<Heart::MeshComponent>().TexturePaths.emplace_back("assets/meshes/Sponza/glTF/8006627369776289000.png");
+        entity.GetComponent<Heart::MeshComponent>().Mesh = Heart::AssetManager::GetAssetUUID("assets/meshes/cube.gltf");
+        //entity.GetComponent<Heart::MeshComponent>().TexturePaths.emplace_back("assets/meshes/Sponza/glTF/8006627369776289000.png");
 
         // parenting testing
         // std::string parentString = "Parent Entity ";

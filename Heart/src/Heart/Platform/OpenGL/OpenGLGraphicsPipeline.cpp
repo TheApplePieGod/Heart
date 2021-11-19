@@ -15,8 +15,8 @@ namespace Heart
         // create the shader program
         m_ProgramId = glCreateProgram();
 
-        auto vertShader = AssetManager::RetrieveAsset<ShaderAsset>(createInfo.VertexShaderPath)->GetShader();
-        auto fragShader = AssetManager::RetrieveAsset<ShaderAsset>(createInfo.FragmentShaderPath)->GetShader();
+        auto vertShader = AssetManager::RetrieveAsset<ShaderAsset>(createInfo.VertexShaderAsset)->GetShader();
+        auto fragShader = AssetManager::RetrieveAsset<ShaderAsset>(createInfo.FragmentShaderAsset)->GetShader();
         glAttachShader(m_ProgramId, static_cast<OpenGLShader*>(vertShader)->GetShaderId());
         glAttachShader(m_ProgramId, static_cast<OpenGLShader*>(fragShader)->GetShaderId());
 

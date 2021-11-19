@@ -126,30 +126,36 @@ namespace Widgets
 
                     ImGui::Indent();
 
-                    ImGui::ColorEdit4("Tint", glm::value_ptr(meshComp.TintColor), ImGuiColorEditFlags_AlphaPreviewHalf | ImGuiColorEditFlags_AlphaBar);
-
                     char buffer[128];
-                    std::strncpy(buffer, meshComp.MeshPath.c_str(), sizeof(buffer));
+                    std::strncpy(buffer, Heart::AssetManager::GetPathFromUUID(meshComp.Mesh).c_str(), sizeof(buffer));
                     if (ImGui::InputText("Mesh Path", buffer, sizeof(buffer)))
                     {
                         ImGui::SetKeyboardFocusHere(-1);
-                        meshComp.MeshPath = std::string(buffer);
+                        meshComp.Mesh = Heart::AssetManager::GetAssetUUID(buffer);
                     }
 
-                    if (ImGui::Button("Populate Default Textures"))
+                    if (ImGui::Button("Populate Default Materials"))
                     {
-                        meshComp.TexturePaths = Heart::AssetManager::RetrieveAsset<Heart::MeshAsset>(meshComp.MeshPath.c_str())->GetDefaultTexturePaths();
+                        auto meshAsset = Heart::AssetManager::RetrieveAsset<Heart::MeshAsset>(buffer);
+                        if (meshAsset && meshAsset->IsValid())
+                            meshComp.Materials = meshAsset->GetDefaultMaterials();
                     }
                     
-                    std::string label = "Texture Path ";
+                    ImGui::Separator();
+
+                    std::string label = "Material ";
                     u32 index = 0;
-                    for (auto& path : meshComp.TexturePaths)
+                    for (auto& materialId : meshComp.Materials)
                     {
-                        std::strncpy(buffer, path.c_str(), sizeof(buffer));
-                        if (ImGui::InputText((label + std::to_string(index)).c_str(), buffer, sizeof(buffer)))
+                        if (ImGui::TreeNode((label + std::to_string(index)).c_str()))
                         {
-                            ImGui::SetKeyboardFocusHere(-1);
-                            path = std::string(buffer);
+                            std::strncpy(buffer, Heart::AssetManager::GetPathFromUUID(materialId).c_str(), sizeof(buffer));
+                            if (ImGui::InputText("Path", buffer, sizeof(buffer)))
+                            {
+                                ImGui::SetKeyboardFocusHere(-1);
+                                materialId = Heart::AssetManager::GetAssetUUID(buffer);
+                            }
+                            ImGui::TreePop();
                         }
                         index++;
                     }

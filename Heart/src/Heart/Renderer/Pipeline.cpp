@@ -21,8 +21,8 @@ namespace Heart
 
     void GraphicsPipeline::ConsolidateReflectionData()
     {
-        auto vertShader = AssetManager::RetrieveAsset<ShaderAsset>(m_Info.VertexShaderPath)->GetShader();
-        auto fragShader = AssetManager::RetrieveAsset<ShaderAsset>(m_Info.FragmentShaderPath)->GetShader();
+        auto vertShader = AssetManager::RetrieveAsset<ShaderAsset>(m_Info.VertexShaderAsset)->GetShader();
+        auto fragShader = AssetManager::RetrieveAsset<ShaderAsset>(m_Info.FragmentShaderAsset)->GetShader();
 
         m_ProgramReflectionData.clear();
         m_ProgramReflectionData.insert(m_ProgramReflectionData.end(), vertShader->GetReflectionData().begin(), vertShader->GetReflectionData().end());

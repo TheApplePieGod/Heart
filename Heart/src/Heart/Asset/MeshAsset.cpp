@@ -3,6 +3,8 @@
 
 #include "Heart/Util/FilesystemUtils.h"
 #include "Heart/Asset/AssetManager.h"
+#include "Heart/Asset/MaterialAsset.h"
+#include "Heart/Asset/TextureAsset.h"
 #include "nlohmann/json.hpp"
 
 namespace Heart
@@ -22,6 +24,7 @@ namespace Heart
         }
         catch (std::exception e)
         {
+            HE_ENGINE_LOG_ERROR("Failed to load mesh at path {0}", m_AbsolutePath);
             m_Loaded = true;
             return;
         }
@@ -36,7 +39,7 @@ namespace Heart
         if (!m_Loaded) return;
 
         m_Submeshes.clear();
-        m_DefaultTexturePaths.clear();
+        m_DefaultMaterials.clear();
         m_Loaded = false;
         m_Valid = false;
     }
@@ -83,8 +86,7 @@ namespace Heart
         }
 
         // parse texture sources
-        auto parentPath = std::filesystem::path(m_Path).parent_path();
-        std::vector<std::string> texturePaths;
+        std::vector<TextureSource> textureSources;
         if (j.contains("images"))
         {
             for (auto& image : j["images"])
@@ -98,10 +100,8 @@ namespace Heart
                 }
                 else
                 {
-                    auto finalPath = parentPath.append(uri).generic_u8string();
-                    texturePaths.emplace_back(finalPath);
-                    AssetManager::RegisterAsset(Asset::Type::Texture, finalPath);
-                    parentPath = parentPath.parent_path();
+                    std::string finalPath = std::filesystem::path(m_ParentPath).append(uri).generic_u8string();
+                    textureSources.emplace_back(finalPath, AssetManager::RegisterAsset(Asset::Type::Texture, finalPath));
                 }
             }
         }
@@ -117,22 +117,44 @@ namespace Heart
         }
 
         // parse materials
+        std::string materialFilenameStart = "material";
+        std::string materialFilenameEnd = ".hemat";
         if (j.contains("materials"))
         {
+            u32 materialIndex = 0;
             for (auto& material : j["materials"])
             {
-                // TODO: color materials
-                if (material["pbrMetallicRoughness"].contains("baseColorTexture"))
+                auto& pbrField = material["pbrMetallicRoughness"];
+                Material parsingMaterial;
+
+                if (pbrField.contains("baseColorFactor"))
+                    parsingMaterial.m_MaterialData.BaseColor = { pbrField["baseColorFactor"][0], pbrField["baseColorFactor"][1], pbrField["baseColorFactor"][2], pbrField["baseColorFactor"][3] };
+                if (pbrField.contains("baseColorTexture"))
                 {
                     u32 texIndex = material["pbrMetallicRoughness"]["baseColorTexture"]["index"];
-                    m_DefaultTexturePaths.emplace_back(texturePaths[textureViews[texIndex].SourceIndex]);
+                    parsingMaterial.m_AlbedoTextureAsset = textureSources[textureViews[texIndex].SourceIndex].AssetId;
+
+                    // TODO: change this possibly
+                    auto texAsset = AssetManager::RetrieveAsset<TextureAsset>(parsingMaterial.m_AlbedoTextureAsset);
+                    if (texAsset && texAsset->IsValid())
+                        parsingMaterial.m_Transparent = texAsset->GetTexture()->HasTransparency();
                 }
-                else
-                    m_DefaultTexturePaths.emplace_back("");
+
+                std::string localPath = std::filesystem::path(m_ParentPath).append(materialFilenameStart + std::to_string(materialIndex) + materialFilenameEnd).generic_u8string();
+                std::string finalPath = std::filesystem::path(AssetManager::GetAssetsDirectory()).append(localPath).generic_u8string();
+                MaterialAsset::SerializeMaterial(finalPath, parsingMaterial);
+                m_DefaultMaterials.emplace_back(AssetManager::RegisterAsset(Asset::Type::Material, localPath));
+                materialIndex++;
             }
         }
-        else
-            m_DefaultTexturePaths.emplace_back(""); // should always have one material
+        else // should always have one material
+        {
+            Material genericMaterial;
+            std::string localPath = std::filesystem::path(m_ParentPath).append(materialFilenameStart + "0" + materialFilenameEnd).generic_u8string();
+            std::string finalPath = std::filesystem::path(AssetManager::GetAssetsDirectory()).append(localPath).generic_u8string();
+            MaterialAsset::SerializeMaterial(finalPath, genericMaterial);
+            m_DefaultMaterials.emplace_back(AssetManager::RegisterAsset(Asset::Type::Material, finalPath));
+        }
 
         // parse meshes and create submeshes based on material
         std::unordered_map<u32, SubmeshParseData> parseData; // keyed by material id

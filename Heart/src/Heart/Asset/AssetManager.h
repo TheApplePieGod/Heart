@@ -19,12 +19,23 @@ namespace Heart
         static const std::string& GetAssetsDirectory() { return s_AssetsDirectory; }
         static bool IsAssetRegistered(const std::string& path);
         static bool IsAssetRegistered(Asset::Type type, const std::string& path);
-        static Ref<Asset> RegisterAsset(Asset::Type type, const std::string& path, bool persistent = false, bool isResource = false);    
-        static Asset* RetrieveAsset(const std::string& path);
+        static UUID RegisterAsset(Asset::Type type, const std::string& path, bool persistent = false, bool isResource = false);
+
+        static UUID GetAssetUUID(const std::string& path, bool isResource = false);
+        static std::string GetPathFromUUID(UUID uuid);
+
+        static Asset* RetrieveAsset(const std::string& path, bool isResource = false);
         template<typename T>
-        static T* RetrieveAsset(const std::string& path)
+        static T* RetrieveAsset(const std::string& path, bool isResource = false)
         {
-            return static_cast<T*>(RetrieveAsset(path));
+            return static_cast<T*>(RetrieveAsset(path, isResource));
+        }
+
+        static Asset* RetrieveAsset(UUID uuid);
+        template<typename T>
+        static T* RetrieveAsset(UUID uuid)
+        {
+            return static_cast<T*>(RetrieveAsset(uuid));
         }
 
     private:
@@ -34,6 +45,11 @@ namespace Heart
             u64 LoadedFrame;
             bool Persistent;
         };
+        struct UUIDEntry
+        {
+            std::string Path;
+            bool IsResource;
+        };
 
     private:
         static void LoadAsset(AssetEntry& entry);
@@ -42,7 +58,9 @@ namespace Heart
     private:
         static inline const u64 s_AssetFrameLimit = 1000;
         static inline const std::string s_ResourcesDirectory = "resources"; 
+        static std::unordered_map<UUID, UUIDEntry> s_UUIDs;
         static std::unordered_map<std::string, AssetEntry> s_Registry;
+        static std::unordered_map<std::string, AssetEntry> s_Resources;
         static std::string s_AssetsDirectory;
     };
 }

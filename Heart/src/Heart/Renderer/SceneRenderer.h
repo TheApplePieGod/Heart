@@ -5,6 +5,7 @@
 #include "Heart/Renderer/Framebuffer.h"
 #include "Heart/Renderer/Buffer.h"
 #include "Heart/Renderer/Texture.h"
+#include "Heart/Renderer/Material.h"
 #include "glm/vec2.hpp"
 #include "glm/vec3.hpp"
 #include "glm/mat4x4.hpp"
@@ -40,12 +41,12 @@ namespace Heart
     private:
         struct CachedRender
         {
-            CachedRender(const std::string& texPath, const std::string& meshPath, u32 submeshIndex, const ObjectData& objData)
-                : TexturePath(texPath), MeshPath(meshPath), SubmeshIndex(submeshIndex), ObjectData(objData)
+            CachedRender(UUID material, UUID mesh, u32 submeshIndex, const ObjectData& objData)
+                : Material(material), Mesh(mesh), SubmeshIndex(submeshIndex), ObjectData(objData)
             {}
 
-            std::string TexturePath;
-            std::string MeshPath;
+            UUID Material;
+            UUID Mesh;
             u32 SubmeshIndex;
             ObjectData ObjectData;
         };
@@ -54,5 +55,6 @@ namespace Heart
         Ref<Framebuffer> m_FinalFramebuffer;
         Ref<Buffer> m_FrameDataBuffer;
         Ref<Buffer> m_ObjectDataBuffer;
+        Ref<Buffer> m_MaterialDataBuffer;
     };
 }

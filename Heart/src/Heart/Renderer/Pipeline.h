@@ -3,6 +3,7 @@
 #include "Heart/Renderer/Shader.h"
 #include "Heart/Renderer/Buffer.h"
 #include "Heart/Renderer/Texture.h"
+#include "Heart/Core/UUID.h"
 
 namespace Heart
 {
@@ -51,8 +52,8 @@ namespace Heart
 
     struct GraphicsPipelineCreateInfo
     {
-        std::string VertexShaderPath;
-        std::string FragmentShaderPath;
+        UUID VertexShaderAsset;
+        UUID FragmentShaderAsset;
 
         bool VertexInput;
         VertexTopology VertexTopology;
@@ -90,7 +91,7 @@ namespace Heart
         GraphicsPipeline(const GraphicsPipelineCreateInfo& createInfo)
             : m_Info(createInfo)
         {
-            HE_ENGINE_ASSERT(createInfo.VertexShaderPath != "" && createInfo.FragmentShaderPath != "", "Must specify both vertex and fragment shaders");
+            HE_ENGINE_ASSERT(createInfo.VertexShaderAsset != 0 && createInfo.FragmentShaderAsset != 0, "Must specify both vertex and fragment shaders");
             ConsolidateReflectionData();
         }
         virtual ~GraphicsPipeline() = default;

@@ -4,6 +4,7 @@
 #include "Heart/Asset/TextureAsset.h"
 #include "Heart/Asset/ShaderAsset.h"
 #include "Heart/Asset/MeshAsset.h"
+#include "Heart/Asset/MaterialAsset.h"
 
 namespace Heart
 {
@@ -13,6 +14,7 @@ namespace Heart
         auto entry = std::filesystem::path(path);
         m_Filename = entry.filename().generic_u8string();
         m_Extension = entry.extension().generic_u8string();
+        m_ParentPath = entry.parent_path().generic_u8string();
 
         // convert the extension to lowercase
         std::transform(m_Extension.begin(), m_Extension.end(), m_Extension.begin(), [](unsigned char c) { return std::tolower(c); });
@@ -37,6 +39,8 @@ namespace Heart
             { return CreateRef<ShaderAsset>(path, absolutePath); }
             case Asset::Type::Mesh:
             { return CreateRef<MeshAsset>(path, absolutePath); }
+            case Asset::Type::Material:
+            { return CreateRef<MaterialAsset>(path, absolutePath); }
         }
     }
 

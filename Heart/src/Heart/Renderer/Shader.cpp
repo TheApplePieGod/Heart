@@ -11,6 +11,49 @@
 
 namespace Heart
 {
+    class ShaderIncluder : public shaderc::CompileOptions::IncluderInterface
+    {
+    public:
+        ShaderIncluder(const std::string& basePath)
+            : m_BasePath(basePath)
+        {}
+
+        shaderc_include_result* GetInclude (
+            const char* requestedSource,
+            shaderc_include_type type,
+            const char* requestingSource,
+            size_t includeDepth)
+        {
+            std::string name(requestedSource);
+            std::string contents = FilesystemUtils::ReadFileToString(std::filesystem::path(m_BasePath).append(requestedSource).generic_u8string());
+
+            auto container = new std::array<std::string, 2>;
+            (*container)[0] = name;
+            (*container)[1] = contents;
+
+            auto data = new shaderc_include_result;
+
+            data->user_data = container;
+
+            data->source_name = (*container)[0].data();
+            data->source_name_length = (*container)[0].size();
+
+            data->content = (*container)[1].data();
+            data->content_length = (*container)[1].size();
+
+            return data;
+        };
+
+        void ReleaseInclude(shaderc_include_result* data) override
+        {
+            delete static_cast<std::array<std::string, 2>*>(data->user_data);
+            delete data;
+        };
+
+    private:
+        std::string m_BasePath;
+    };
+
     Ref<Shader> Shader::Create(const std::string& path, Type shaderType)
     {
         switch (Renderer::GetApiType())
@@ -39,6 +82,9 @@ namespace Heart
             { options.SetTargetEnvironment(shaderc_target_env::shaderc_target_env_opengl, 0); } break;
         }
         
+        std::string basePath = std::filesystem::path(path).parent_path().generic_u8string();
+        options.SetIncluder(CreateScope<ShaderIncluder>(basePath));
+
         // TODO: dynamic option for this
         options.SetOptimizationLevel(shaderc_optimization_level_performance);
         std::string sourceCode = FilesystemUtils::ReadFileToString(path);
@@ -57,7 +103,16 @@ namespace Heart
             case Type::Fragment: { shaderKind = shaderc_glsl_fragment_shader; } break;
         }
 
-        shaderc::SpvCompilationResult compiled = compiler.CompileGlslToSpv(sourceCode, shaderKind, path.c_str(), options);
+        shaderc::PreprocessedSourceCompilationResult preprocessed = compiler.PreprocessGlsl(sourceCode, shaderKind, path.c_str(), options);
+        if (preprocessed.GetCompilationStatus() != shaderc_compilation_status_success)
+        {
+            HE_ENGINE_LOG_ERROR("Shader preprocessing failed: {0}", preprocessed.GetErrorMessage());
+            HE_ENGINE_ASSERT(false);
+        }
+
+        std::string preprocessedSource(preprocessed.begin());
+
+        shaderc::SpvCompilationResult compiled = compiler.CompileGlslToSpv(preprocessedSource, shaderKind, path.c_str(), options);
         if (compiled.GetCompilationStatus() != shaderc_compilation_status_success)
         {
             HE_ENGINE_LOG_ERROR("Shader compilation failed: {0}", compiled.GetErrorMessage());

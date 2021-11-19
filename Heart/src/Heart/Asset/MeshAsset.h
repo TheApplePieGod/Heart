@@ -2,6 +2,8 @@
 
 #include "Heart/Asset/Asset.h"
 #include "Heart/Renderer/Mesh.h"
+#include "Heart/Renderer/Material.h"
+#include "Heart/Core/UUID.h"
 
 namespace Heart
 {
@@ -17,8 +19,8 @@ namespace Heart
 
         Mesh& GetSubmesh(u32 index) { return m_Submeshes[index]; }
         u32 GetSubmeshCount() const { return static_cast<u32>(m_Submeshes.size()); }
-        u32 GetMaxTextures() const { return static_cast<u32>(m_DefaultTexturePaths.size()); }
-        const std::vector<std::string>& GetDefaultTexturePaths() const { return m_DefaultTexturePaths; }
+        u32 GetMaxMaterials() const { return static_cast<u32>(m_DefaultMaterials.size()); }
+        const std::vector<UUID>& GetDefaultMaterials() const { return m_DefaultMaterials; }
 
     private:
         struct BufferView
@@ -54,6 +56,16 @@ namespace Heart
             u32 SourceIndex;
         };
 
+        struct TextureSource
+        {
+            TextureSource(const std::string& path, UUID assetId)
+                : Path(path), AssetId(assetId)
+            {}
+
+            std::string Path;
+            UUID AssetId;
+        };
+
         struct SubmeshParseData
         {
             u32 VertexOffset = 0;
@@ -67,6 +79,6 @@ namespace Heart
 
     private:
         std::vector<Mesh> m_Submeshes;
-        std::vector<std::string> m_DefaultTexturePaths;
+        std::vector<UUID> m_DefaultMaterials;
     };
 }
