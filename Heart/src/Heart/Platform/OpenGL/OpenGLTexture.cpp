@@ -7,19 +7,22 @@
 
 namespace Heart
 {
-    OpenGLTexture::OpenGLTexture(const std::string& path, int width, int height, int channels, void* data)
-        : Texture(path, width, height, channels)
+    OpenGLTexture::OpenGLTexture(const std::string& path, bool floatComponents, int width, int height, int channels, void* data)
+        : Texture(path, floatComponents, width, height, channels)
     {
         bool load = data == nullptr;
         if (load)
         {
-            data = stbi_load(path.c_str(), &m_Width, &m_Height, &m_Channels, m_DesiredChannelCount);
+            if (floatComponents)
+                data = stbi_loadf(path.c_str(), &m_Width, &m_Height, &m_Channels, m_DesiredChannelCount);
+            else
+                data = stbi_load(path.c_str(), &m_Width, &m_Height, &m_Channels, m_DesiredChannelCount);
             if (data == nullptr)
             {
                 HE_ENGINE_LOG_ERROR("Failed to load image at path {0}", path);
                 HE_ENGINE_ASSERT(false);
             }
-            HE_ENGINE_LOG_TRACE("Texture info: {0}x{1} w/ {2} channels", m_Width, m_Height, m_Channels);
+            HE_ENGINE_LOG_TRACE("Texture info: {0}x{1} w/ {2} channels, float components: {3}", m_Width, m_Height, m_Channels, floatComponents);
         }
         
         ScanForTransparency(width, height, channels, data);
@@ -37,7 +40,7 @@ namespace Heart
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, OpenGLCommon::SamplerFilterToOpenGL(m_SamplerState.MagFilter));
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY, m_SamplerState.AnisotropyEnable ? std::min(maxAnisotropy, static_cast<float>(m_SamplerState.MaxAnisotropy)) : 1);
 
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_Width, m_Height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_Width, m_Height, 0, GL_RGBA, floatComponents ? GL_FLOAT : GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
 
         if (load)

@@ -24,13 +24,6 @@ namespace Heart
         AssetManager::RegisterAsset(Asset::Type::Shader, "PBRTransparentColor.frag", false, true);
         AssetManager::RegisterAsset(Asset::Type::Shader, "TransparentComposite.frag", false, true);
 
-        // register default shaders
-        AssetManager::RegisterAsset(Asset::Type::Shader, "assets/shaders/main.vert");
-        AssetManager::RegisterAsset(Asset::Type::Shader, "assets/shaders/main.frag");
-        AssetManager::RegisterAsset(Asset::Type::Shader, "assets/shaders/color.frag");
-        AssetManager::RegisterAsset(Asset::Type::Shader, "assets/shaders/composite.frag");
-        AssetManager::RegisterAsset(Asset::Type::Shader, "assets/shaders/fulltriangle.vert");
-
         // graphics pipeline
         GraphicsPipelineCreateInfo pbrPipeline = {
             AssetManager::GetAssetUUID("PBR.vert", true),

@@ -67,8 +67,8 @@ namespace Heart
     class Texture
     {
     public:
-        Texture(const std::string& path, int width, int height, int channels)
-            : m_Path(path), m_Width(width), m_Height(height), m_Channels(channels)
+        Texture(const std::string& path, bool floatComponents, int width, int height, int channels)
+            : m_Path(path), m_FloatComponents(floatComponents), m_Width(width), m_Height(height), m_Channels(channels)
         {}
         virtual ~Texture() = default;
 
@@ -82,7 +82,7 @@ namespace Heart
         inline const TextureSamplerState& GetSamplerState() const { return m_SamplerState; }
 
     public:
-        static Ref<Texture> Create(const std::string& path, int width = 0, int height = 0, int channels = 0, void* data = nullptr);
+        static Ref<Texture> Create(const std::string& path, bool floatComponents = false, int width = 0, int height = 0, int channels = 0, void* data = nullptr);
 
     protected:
         void ScanForTransparency(int width, int height, int channels, void* data);
@@ -91,6 +91,7 @@ namespace Heart
         const int m_DesiredChannelCount = 4; // all images will load as RGBA
         std::string m_Path;
         int m_Width, m_Height, m_Channels;
+        bool m_FloatComponents;
         u32 m_ArrayCount = 1;
         void* m_ImGuiHandle;
         bool m_HasTransparency = false;

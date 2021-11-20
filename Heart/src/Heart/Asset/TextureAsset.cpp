@@ -9,7 +9,13 @@ namespace Heart
     {
         if (m_Loaded) return;
 
-        unsigned char* pixels = stbi_load(m_AbsolutePath.c_str(), &m_Width, &m_Height, &m_Channels, m_DesiredChannelCount);
+        bool floatComponents = m_Extension == ".ibl"; // environment map
+
+        void* pixels = nullptr;
+        if (floatComponents)
+            pixels = stbi_loadf(m_AbsolutePath.c_str(), &m_Width, &m_Height, &m_Channels, m_DesiredChannelCount);
+        else
+            pixels = stbi_load(m_AbsolutePath.c_str(), &m_Width, &m_Height, &m_Channels, m_DesiredChannelCount);
         if (pixels == nullptr)
         {
             HE_ENGINE_LOG_ERROR("Failed to load texture at path {0}", m_AbsolutePath);
@@ -17,7 +23,7 @@ namespace Heart
             return;
         }
 
-        m_Texture = Texture::Create(m_AbsolutePath, m_Width, m_Height, m_Channels, pixels);
+        m_Texture = Texture::Create(m_AbsolutePath, floatComponents, m_Width, m_Height, m_Channels, pixels);
 
         m_Data = pixels;
         m_Valid = true;
