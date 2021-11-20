@@ -1,12 +1,6 @@
 #version 460
 
-layout(binding = 0) uniform FrameBuffer {
-    mat4 viewProj;
-    mat4 view;
-    vec2 screenSize;
-    bool reverseDepth;
-    bool padding;
-} frameData;
+#include "FrameBuffer.glsl"
 
 // 0---^-----------2
 // |   |   |     /

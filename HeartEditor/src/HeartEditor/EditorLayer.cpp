@@ -48,7 +48,7 @@ namespace HeartEditor
         entity = m_ActiveScene->CreateEntity("Cube Entity");
         entity.AddComponent<Heart::MeshComponent>();
         entity.GetComponent<Heart::MeshComponent>().Mesh = Heart::AssetManager::GetAssetUUID("assets/meshes/cube.gltf");
-        //entity.GetComponent<Heart::MeshComponent>().TexturePaths.emplace_back("assets/meshes/Sponza/glTF/8006627369776289000.png");
+        entity.GetComponent<Heart::MeshComponent>().Materials.emplace_back(0);
 
         // parenting testing
         // std::string parentString = "Parent Entity ";
@@ -107,7 +107,7 @@ namespace HeartEditor
 
         m_EditorCamera->OnUpdate(ts, m_ViewportInput, m_ViewportHover);
 
-        m_SceneRenderer->RenderScene(EditorApp::Get().GetWindow().GetContext(), m_ActiveScene.get(), m_EditorCamera->GetViewMatrix(), m_EditorCamera->GetViewProjectionMatrix());
+        m_SceneRenderer->RenderScene(EditorApp::Get().GetWindow().GetContext(), m_ActiveScene.get(), m_EditorCamera->GetViewMatrix(), m_EditorCamera->GetProjectionMatrix(), m_EditorCamera->GetPosition());
     }
 
     void EditorLayer::OnImGuiRender()

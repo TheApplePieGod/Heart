@@ -96,7 +96,7 @@ namespace Widgets
         try
         {
             m_ShouldRescan = false;
-            for (const auto& entry : std::filesystem::directory_iterator(m_DirectoryStack[m_DirectoryStackIndex]))
+            for (const auto& entry : std::filesystem::directory_iterator(std::filesystem::path(Heart::AssetManager::GetAssetsDirectory()).append(m_DirectoryStack[m_DirectoryStackIndex])))
                 m_DirectoryList.push_back(entry);
         }
         catch (std::exception e) // likely failed to open directory so just reset

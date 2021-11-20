@@ -1,14 +1,8 @@
 #version 460
 
-layout(location = 0) out vec4 outColor;
+#include "FrameBuffer.glsl"
 
-layout(binding = 0) uniform FrameBuffer {
-    mat4 viewProj;
-    mat4 view;
-    vec2 screenSize;
-    bool reverseDepth;
-    bool padding;
-} frameData;
+layout(location = 0) out vec4 outColor;
 
 #ifdef VULKAN
 layout (input_attachment_index = 0, binding = 1) uniform subpassInput texColor;

@@ -17,11 +17,12 @@ namespace Heart
     public:
         struct FrameData
         {
-            glm::mat4 ViewProj;
+            glm::mat4 Proj;
             glm::mat4 View;
+            glm::vec4 CameraPos;
             glm::vec2 ScreenSize;
             bool ReverseDepth;
-            bool Padding;
+            bool padding;
         };
         struct ObjectData
         {
@@ -34,7 +35,7 @@ namespace Heart
         SceneRenderer();
         ~SceneRenderer();
 
-        void RenderScene(GraphicsContext& context, Scene* scene, glm::mat4 view, glm::mat4 viewProjection);
+        void RenderScene(GraphicsContext& context, Scene* scene, glm::mat4 view, glm::mat4 projection, glm::vec3 position);
 
         inline Framebuffer& GetFinalFramebuffer() { return *m_FinalFramebuffer; }
 

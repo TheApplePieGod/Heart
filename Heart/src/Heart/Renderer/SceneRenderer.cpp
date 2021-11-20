@@ -76,8 +76,10 @@ namespace Heart
         BufferLayout frameDataLayout = {
             { BufferDataType::Mat4 },
             { BufferDataType::Mat4 },
+            { BufferDataType::Float4 },
             { BufferDataType::Float2 },
-            { BufferDataType::Float2 }
+            { BufferDataType::Bool },
+            { BufferDataType::Bool }
         };
 
         // per object data buffer layout
@@ -94,10 +96,9 @@ namespace Heart
             { BufferDataType::Float2 }, // material: texCoordScale
             { BufferDataType::Float2 }, // material: texCoordOffset
             { BufferDataType::Bool }, // material: hasAlbedo
-            { BufferDataType::Bool }, // material: hasRoughness
-            { BufferDataType::Bool }, // material: hasMetalness
+            { BufferDataType::Bool }, // material: hasMetallicRoughness
             { BufferDataType::Bool }, // material: hasNormal
-            { BufferDataType::Float2 } // material: padding
+            { BufferDataType::Float3 } // material: padding
         };
 
         m_FrameDataBuffer = Buffer::Create(Buffer::Type::Uniform, BufferUsageType::Dynamic, frameDataLayout, 1, nullptr);
@@ -135,7 +136,7 @@ namespace Heart
         
     }
 
-    void SceneRenderer::RenderScene(GraphicsContext& context, Scene* scene, glm::mat4 view, glm::mat4 viewProjection)
+    void SceneRenderer::RenderScene(GraphicsContext& context, Scene* scene, glm::mat4 view, glm::mat4 projection, glm::vec3 position)
     {
         HE_PROFILE_FUNCTION();
 
@@ -144,13 +145,15 @@ namespace Heart
         m_FinalFramebuffer->Bind();
         m_FinalFramebuffer->BindPipeline("pbr");
 
-        FrameData frameData = { viewProjection, view, m_FinalFramebuffer->GetSize(), Renderer::IsUsingReverseDepth() };
+        FrameData frameData = { projection, view, glm::vec4(position, 1.f), m_FinalFramebuffer->GetSize(), Renderer::IsUsingReverseDepth() };
         m_FrameDataBuffer->SetData(&frameData, 1, 0);
 
         m_FinalFramebuffer->BindShaderBufferResource(0, 0, m_FrameDataBuffer.get());
 
         // default texture binds
         m_FinalFramebuffer->BindShaderTextureResource(3, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
+        m_FinalFramebuffer->BindShaderTextureResource(4, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
+        m_FinalFramebuffer->BindShaderTextureResource(5, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
 
         std::vector<CachedRender> transparentMeshes;
         auto group = scene->GetRegistry().group<TransformComponent, MeshComponent>();
@@ -189,9 +192,19 @@ namespace Heart
                     auto& materialData = materialAsset->GetMaterial().GetMaterialData();
 
                     auto albedoAsset = AssetManager::RetrieveAsset<TextureAsset>(materialAsset->GetMaterial().GetAlbedoTexture());
-                    materialData.HasAlbedo = albedoAsset && albedoAsset->IsValid();
-                    if (materialData.HasAlbedo)
+                    materialData.SetHasAlbedo(albedoAsset && albedoAsset->IsValid());
+                    if (materialData.HasAlbedo())
                         m_FinalFramebuffer->BindShaderTextureResource(3, albedoAsset->GetTexture());
+
+                    auto metallicRoughnessAsset = AssetManager::RetrieveAsset<TextureAsset>(materialAsset->GetMaterial().GetMetallicRoughnessTexture());
+                    materialData.SetHasMetallicRoughness(metallicRoughnessAsset && metallicRoughnessAsset->IsValid());
+                    if (materialData.HasMetallicRoughness())
+                        m_FinalFramebuffer->BindShaderTextureResource(4, metallicRoughnessAsset->GetTexture());
+
+                    auto normalAsset = AssetManager::RetrieveAsset<TextureAsset>(materialAsset->GetMaterial().GetNormalTexture());
+                    materialData.SetHasNormal(normalAsset && normalAsset->IsValid());
+                    if (materialData.HasNormal())
+                        m_FinalFramebuffer->BindShaderTextureResource(5, normalAsset->GetTexture());
 
                     m_MaterialDataBuffer->SetData(&materialData, 1, materialIndex);
                 }
@@ -232,9 +245,19 @@ namespace Heart
             auto& materialData = materialAsset->GetMaterial().GetMaterialData();
 
             auto albedoAsset = AssetManager::RetrieveAsset<TextureAsset>(materialAsset->GetMaterial().GetAlbedoTexture());
-            materialData.HasAlbedo = albedoAsset && albedoAsset->IsValid();
-            if (materialData.HasAlbedo)
+            materialData.SetHasAlbedo(albedoAsset && albedoAsset->IsValid());
+            if (materialData.HasAlbedo())
                 m_FinalFramebuffer->BindShaderTextureResource(3, albedoAsset->GetTexture());
+
+            auto metallicRoughnessAsset = AssetManager::RetrieveAsset<TextureAsset>(materialAsset->GetMaterial().GetMetallicRoughnessTexture());
+            materialData.SetHasMetallicRoughness(metallicRoughnessAsset && metallicRoughnessAsset->IsValid());
+            if (materialData.HasMetallicRoughness())
+                m_FinalFramebuffer->BindShaderTextureResource(4, metallicRoughnessAsset->GetTexture());
+
+            auto normalAsset = AssetManager::RetrieveAsset<TextureAsset>(materialAsset->GetMaterial().GetNormalTexture());
+            materialData.SetHasNormal(normalAsset && normalAsset->IsValid());
+            if (materialData.HasNormal())
+                m_FinalFramebuffer->BindShaderTextureResource(5, normalAsset->GetTexture());
 
             m_FinalFramebuffer->BindShaderBufferResource(1, objectIndex, m_ObjectDataBuffer.get());
             m_ObjectDataBuffer->SetData(&mesh.ObjectData, 1, objectIndex);

@@ -49,11 +49,11 @@ namespace Heart
         // parse material data
         {
             auto& field = j["data"];
-            material.m_MaterialData.BaseColor = { field["baseColor"][0], field["baseColor"][1], field["baseColor"][2], field["baseColor"][3] };
-            material.m_MaterialData.Roughness = field["roughness"];
-            material.m_MaterialData.Metalness = field["metalness"];
-            material.m_MaterialData.TexCoordScale = { field["texCoordScale"][0], field["texCoordScale"][1] };
-            material.m_MaterialData.TexCoordOffset = { field["texCoordOffset"][0], field["texCoordOffset"][1] };
+            material.m_MaterialData.SetBaseColor({ field["baseColor"][0], field["baseColor"][1], field["baseColor"][2], field["baseColor"][3] });
+            material.m_MaterialData.SetRoughnessFactor(field["roughness"]);
+            material.m_MaterialData.SetMetalnessFactor(field["metalness"]);
+            material.m_MaterialData.SetTexCoordScale({ field["texCoordScale"][0], field["texCoordScale"][1] });
+            material.m_MaterialData.SetTexCoordOffset({ field["texCoordOffset"][0], field["texCoordOffset"][1] });
         }
 
         // parse metadata
@@ -66,8 +66,7 @@ namespace Heart
         {
             auto& field = j["textures"];
             material.m_AlbedoTextureAsset = AssetManager::RegisterAsset(Asset::Type::Texture, field["albedo"]);
-            material.m_RoughnessTextureAsset = AssetManager::RegisterAsset(Asset::Type::Texture, field["roughness"]);
-            material.m_MetalnessTextureAsset = AssetManager::RegisterAsset(Asset::Type::Texture, field["metalness"]);
+            material.m_MetallicRoughnessTextureAsset = AssetManager::RegisterAsset(Asset::Type::Texture, field["metallicRoughness"]);
             material.m_NormalTextureAsset = AssetManager::RegisterAsset(Asset::Type::Texture, field["normal"]);
         }
 
@@ -83,10 +82,10 @@ namespace Heart
         {
             auto& field = j["data"];
             field["baseColor"] = nlohmann::json::array({ material.m_MaterialData.BaseColor.r, material.m_MaterialData.BaseColor.g, material.m_MaterialData.BaseColor.b, material.m_MaterialData.BaseColor.a });
-            field["roughness"] = material.m_MaterialData.Roughness;
-            field["metalness"] = material.m_MaterialData.Metalness;
-            field["texCoordScale"] = nlohmann::json::array({ material.m_MaterialData.TexCoordScale.x, material.m_MaterialData.TexCoordScale.y });
-            field["texCoordOffset"] = nlohmann::json::array({ material.m_MaterialData.TexCoordOffset.x, material.m_MaterialData.TexCoordOffset.y });
+            field["roughness"] = material.m_MaterialData.GetRoughnessFactor();
+            field["metalness"] = material.m_MaterialData.GetMetalnessFactor();
+            field["texCoordScale"] = nlohmann::json::array({ material.m_MaterialData.GetTexCoordScale().x, material.m_MaterialData.GetTexCoordScale().y });
+            field["texCoordOffset"] = nlohmann::json::array({ material.m_MaterialData.GetTexCoordOffset().x, material.m_MaterialData.GetTexCoordOffset().y });
         }
 
         // metadata
@@ -99,8 +98,7 @@ namespace Heart
         {
             auto& field = j["textures"];
             field["albedo"] = AssetManager::GetPathFromUUID(material.m_AlbedoTextureAsset);
-            field["roughness"] = AssetManager::GetPathFromUUID(material.m_RoughnessTextureAsset);
-            field["metalness"] = AssetManager::GetPathFromUUID(material.m_MetalnessTextureAsset);
+            field["metallicRoughness"] = AssetManager::GetPathFromUUID(material.m_MetallicRoughnessTextureAsset);
             field["normal"] = AssetManager::GetPathFromUUID(material.m_NormalTextureAsset);
         }
 

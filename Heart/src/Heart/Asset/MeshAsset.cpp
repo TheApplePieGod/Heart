@@ -128,16 +128,37 @@ namespace Heart
                 Material parsingMaterial;
 
                 if (pbrField.contains("baseColorFactor"))
-                    parsingMaterial.m_MaterialData.BaseColor = { pbrField["baseColorFactor"][0], pbrField["baseColorFactor"][1], pbrField["baseColorFactor"][2], pbrField["baseColorFactor"][3] };
+                    parsingMaterial.m_MaterialData.SetBaseColor({ pbrField["baseColorFactor"][0], pbrField["baseColorFactor"][1], pbrField["baseColorFactor"][2], pbrField["baseColorFactor"][3] });
                 if (pbrField.contains("baseColorTexture"))
                 {
-                    u32 texIndex = material["pbrMetallicRoughness"]["baseColorTexture"]["index"];
+                    u32 texIndex = pbrField["baseColorTexture"]["index"];
                     parsingMaterial.m_AlbedoTextureAsset = textureSources[textureViews[texIndex].SourceIndex].AssetId;
 
                     // TODO: change this possibly
                     auto texAsset = AssetManager::RetrieveAsset<TextureAsset>(parsingMaterial.m_AlbedoTextureAsset);
                     if (texAsset && texAsset->IsValid())
                         parsingMaterial.m_Transparent = texAsset->GetTexture()->HasTransparency();
+                }
+                if (pbrField.contains("metallicRoughnessTexture"))
+                {
+                    u32 texIndex = pbrField["metallicRoughnessTexture"]["index"];
+                    parsingMaterial.m_MetallicRoughnessTextureAsset = textureSources[textureViews[texIndex].SourceIndex].AssetId;
+
+                    // in case these fields are not defined, we default the factor to 1.f to make sure the texture gets utilized
+                    parsingMaterial.m_MaterialData.SetMetalnessFactor(1.f);
+                    parsingMaterial.m_MaterialData.SetRoughnessFactor(1.f);
+                }
+                if (pbrField.contains("metallicFactor"))
+                    parsingMaterial.m_MaterialData.SetMetalnessFactor(pbrField["metallicFactor"]);
+                if (pbrField.contains("roughnessFactor"))
+                    parsingMaterial.m_MaterialData.SetRoughnessFactor(pbrField["roughnessFactor"]);
+
+                if (material.contains("normalTexture"))
+                {
+                    u32 texIndex = material["normalTexture"]["index"];
+                    float scale = material["normalTexture"]["scale"];
+                    parsingMaterial.m_NormalTextureAsset = textureSources[textureViews[texIndex].SourceIndex].AssetId;
+                    parsingMaterial.m_MaterialData.SetTexCoordScale({ scale, scale });
                 }
 
                 std::string localPath = std::filesystem::path(m_ParentPath).append(materialFilenameStart + std::to_string(materialIndex) + materialFilenameEnd).generic_u8string();

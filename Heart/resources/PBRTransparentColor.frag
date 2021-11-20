@@ -7,7 +7,7 @@ layout(location = 1) out vec4 outColor;
 layout(location = 2) out float outReveal;
 
 void main() {
-    vec4 color = GetAlbedo();
+    vec4 color = GetFinalColor();
     color.rgb *= color.a;
 
     if (color.a < 0.001)

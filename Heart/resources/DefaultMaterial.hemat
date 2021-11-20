@@ -1,8 +1,8 @@
 {
     "data": {
-        "baseColor": [1, 0, 0, 1],
-        "roughness": 0.5,
-        "metalness": 0.5,
+        "baseColor": [1, 1, 1, 1],
+        "roughness": 1.0,
+        "metalness": 0.0,
         "texCoordScale": [1, 1],
         "texCoordOffset": [0, 0]
     },
@@ -11,8 +11,7 @@
     },
     "textures": {
         "albedo": "",
-        "roughness": "",
-        "metalness": "",
+        "metallicRoughness": "",
         "normal": ""
     }
 }
