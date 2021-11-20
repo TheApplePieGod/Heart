@@ -34,8 +34,9 @@ namespace Heart
         glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY, &maxAnisotropy);
 
         // TODO: paramaterize
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, OpenGLCommon::SamplerWrapModeToOpenGL(m_SamplerState.UVWrap[0]));	
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, OpenGLCommon::SamplerWrapModeToOpenGL(m_SamplerState.UVWrap[1]));
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, OpenGLCommon::SamplerWrapModeToOpenGL(m_SamplerState.UVWWrap[0]));	
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, OpenGLCommon::SamplerWrapModeToOpenGL(m_SamplerState.UVWWrap[1]));
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, OpenGLCommon::SamplerWrapModeToOpenGL(m_SamplerState.UVWWrap[2]));
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, OpenGLCommon::SamplerFilterToOpenGLWithMipmap(m_SamplerState.MinFilter));
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, OpenGLCommon::SamplerFilterToOpenGL(m_SamplerState.MagFilter));
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY, m_SamplerState.AnisotropyEnable ? std::min(maxAnisotropy, static_cast<float>(m_SamplerState.MaxAnisotropy)) : 1);

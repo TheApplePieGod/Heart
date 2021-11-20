@@ -37,9 +37,16 @@ namespace Heart
 
     struct FramebufferColorAttachment
     {
-        glm::vec4 ClearColor;
-        ColorFormat Format;
         bool AllowCPURead;
+        union
+        {
+            struct
+            {
+                glm::vec4 ClearColor;
+                ColorFormat Format;
+            };
+            Ref<Texture> Texture;
+        }
     };
 
     struct FramebufferDepthAttachment

@@ -29,7 +29,7 @@ namespace Heart
     {
         SamplerFilter MinFilter = SamplerFilter::Linear;
         SamplerFilter MagFilter = SamplerFilter::Linear;
-        std::array<SamplerWrapMode, 2> UVWrap = { SamplerWrapMode::Repeat, SamplerWrapMode::Repeat };
+        std::array<SamplerWrapMode, 3> UVWWrap = { SamplerWrapMode::Repeat, SamplerWrapMode::Repeat, SamplerWrapMode::Repeat };
         bool AnisotropyEnable = true;
         u32 MaxAnisotropy = 8;
     };

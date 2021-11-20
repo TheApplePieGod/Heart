@@ -76,7 +76,7 @@ namespace Heart
         return 0;
     }
 
-    void VulkanCommon::CreateImage(VkDevice device, VkPhysicalDevice physicalDevice, u32 width, u32 height, VkFormat format, u32 mipLevels, VkSampleCountFlagBits numSamples, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory, VkImageLayout initialLayout)
+    void VulkanCommon::CreateImage(VkDevice device, VkPhysicalDevice physicalDevice, u32 width, u32 height, VkFormat format, u32 mipLevels, VkSampleCountFlagBits numSamples, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory, VkImageLayout initialLayout, bool cubemap)
     {
         VkImageCreateInfo imageInfo{};
         imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -85,14 +85,14 @@ namespace Heart
         imageInfo.extent.height = static_cast<u32>(height);
         imageInfo.extent.depth = 1;
         imageInfo.mipLevels = mipLevels;
-        imageInfo.arrayLayers = 1;
+        imageInfo.arrayLayers = cubemap ? 6 : 1;
         imageInfo.format = format;
         imageInfo.tiling = tiling;
         imageInfo.initialLayout = initialLayout;
         imageInfo.usage = usage;
         imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
         imageInfo.samples = numSamples;
-        imageInfo.flags = 0; // Optional
+        imageInfo.flags = cubemap ? VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT : 0;
 
         HE_VULKAN_CHECK_RESULT(vkCreateImage(device, &imageInfo, nullptr, &image));
 
@@ -109,18 +109,18 @@ namespace Heart
         vkBindImageMemory(device, image, imageMemory, 0);
     }
 
-    VkImageView VulkanCommon::CreateImageView(VkDevice device, VkImage image, VkFormat format, u32 mipLevels, VkImageAspectFlags aspectFlags)
+    VkImageView VulkanCommon::CreateImageView(VkDevice device, VkImage image, VkFormat format, u32 mipLevels, u32 baseArrayLayer, VkImageAspectFlags aspectFlags, bool cubemap)
     {
         VkImageViewCreateInfo viewInfo{};
         viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
         viewInfo.image = image;
-        viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        viewInfo.viewType = cubemap ? VK_IMAGE_VIEW_TYPE_CUBE : VK_IMAGE_VIEW_TYPE_2D;
         viewInfo.format = format;
         viewInfo.subresourceRange.aspectMask = aspectFlags;
         viewInfo.subresourceRange.baseMipLevel = 0;
         viewInfo.subresourceRange.levelCount = mipLevels;
         viewInfo.subresourceRange.baseArrayLayer = 0;
-        viewInfo.subresourceRange.layerCount = 1;
+        viewInfo.subresourceRange.layerCount = cubemap ? 6 : 1;
 
         VkImageView view;
         HE_VULKAN_CHECK_RESULT(vkCreateImageView(device, &viewInfo, nullptr, &view));
@@ -207,7 +207,7 @@ namespace Heart
         vkUnmapMemory(device, bufferMemory);
     }
 
-    void VulkanCommon::TransitionImageLayout(VkDevice device, VkCommandPool commandPool, VkQueue transferQueue, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout, u32 mipLevels)
+    void VulkanCommon::TransitionImageLayout(VkDevice device, VkCommandPool commandPool, VkQueue transferQueue, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout, u32 mipLevels, bool cubemap)
     {
         VkCommandBuffer commandBuffer = BeginSingleTimeCommands(device, commandPool);
 
@@ -222,7 +222,7 @@ namespace Heart
         barrier.subresourceRange.baseMipLevel = 0;
         barrier.subresourceRange.levelCount = mipLevels;
         barrier.subresourceRange.baseArrayLayer = 0;
-        barrier.subresourceRange.layerCount = 1;
+        barrier.subresourceRange.layerCount = cubemap ? 6 : 1;
 
         /*
         * Undefined → transfer destination: transfer writes that don't need to wait on anything
@@ -270,7 +270,7 @@ namespace Heart
         EndSingleTimeCommands(device, commandPool, commandBuffer, transferQueue);
     }
 
-    void VulkanCommon::TransitionImageLayout(VkDevice device, VkCommandBuffer buffer, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout, u32 mipLevels)
+    void VulkanCommon::TransitionImageLayout(VkDevice device, VkCommandBuffer buffer, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout, u32 mipLevels, bool cubemap)
     {
         VkImageMemoryBarrier barrier{};
         barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -283,7 +283,7 @@ namespace Heart
         barrier.subresourceRange.baseMipLevel = 0;
         barrier.subresourceRange.levelCount = mipLevels;
         barrier.subresourceRange.baseArrayLayer = 0;
-        barrier.subresourceRange.layerCount = 1;
+        barrier.subresourceRange.layerCount = cubemap ? 6 : 1;
 
         VkPipelineStageFlags sourceStage;
         VkPipelineStageFlags destinationStage;
