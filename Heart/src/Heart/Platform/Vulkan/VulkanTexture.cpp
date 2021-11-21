@@ -8,12 +8,12 @@
 
 namespace Heart
 {
-    VulkanTexture::VulkanTexture(int width, int height, int channels, void* data, u32 arrayCount, bool floatComponents)
-        : Texture(width, height, channels, arrayCount, floatComponents)
+    VulkanTexture::VulkanTexture(const TextureCreateInfo& createInfo, void* initialData)
+        : Texture(createInfo)
     {
-        if (data != nullptr)
-            ScanForTransparency(width, height, channels, data);
-        CreateTexture(data);
+        if (initialData != nullptr)
+            ScanForTransparency(createInfo.Width, createInfo.Height, createInfo.Channels, initialData);
+        CreateTexture(initialData);
     }
 
     VulkanTexture::~VulkanTexture()
@@ -37,16 +37,16 @@ namespace Heart
     void VulkanTexture::CreateTexture(void* data)
     {
         VulkanDevice& device = VulkanContext::GetDevice();
-        VkDeviceSize imageSize = m_Width * m_Height * m_Channels;
-        m_Format = m_FloatComponents ? VK_FORMAT_R32G32B32A32_SFLOAT : VK_FORMAT_R8G8B8A8_UNORM;
-        m_GeneralFormat = m_FloatComponents ? ColorFormat::RGBA32F : ColorFormat::RGBA8;
+        VkDeviceSize imageSize = m_Info.Width * m_Info.Height * m_Info.Channels;
+        m_Format = m_Info.FloatComponents ? VK_FORMAT_R32G32B32A32_SFLOAT : VK_FORMAT_R8G8B8A8_UNORM;
+        m_GeneralFormat = m_Info.FloatComponents ? ColorFormat::RGBA32F : ColorFormat::RGBA8;
 
         VkBuffer stagingBuffer;
         VkDeviceMemory stagingBufferMemory;
 
-        m_MipLevels = m_DesiredMipLevels;
-        u32 maxMipLevels = static_cast<u32>(floor(log2(std::max(m_Width, m_Height)))) + 1;
-        if (m_MipLevels > maxMipLevels)
+        m_MipLevels = m_Info.MipCount;
+        u32 maxMipLevels = static_cast<u32>(floor(log2(std::max(m_Info.Width, m_Info.Height)))) + 1;
+        if (m_MipLevels > maxMipLevels || m_MipLevels == 0)
             m_MipLevels = maxMipLevels;
 
         // create image & staging buffer and transfer the data into the first layer
@@ -55,7 +55,7 @@ namespace Heart
             VulkanCommon::CreateBuffer(
                 device.Device(),
                 device.PhysicalDevice(),
-                imageSize * (m_FloatComponents ? sizeof(float) : sizeof(unsigned char)),
+                imageSize * (m_Info.FloatComponents ? sizeof(float) : sizeof(unsigned char)),
                 VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                 stagingBuffer,
@@ -64,7 +64,7 @@ namespace Heart
             VulkanCommon::MapAndWriteBufferMemory(
                 device.Device(),
                 data,
-                m_FloatComponents ? sizeof(float) : sizeof(unsigned char),
+                m_Info.FloatComponents ? sizeof(float) : sizeof(unsigned char),
                 static_cast<u32>(imageSize),
                 stagingBufferMemory,
                 0
@@ -73,10 +73,10 @@ namespace Heart
         VulkanCommon::CreateImage(
             device.Device(),
             device.PhysicalDevice(),
-            m_Width, m_Height,
+            m_Info.Width, m_Info.Height,
             m_Format,
             m_MipLevels,
-            m_ArrayCount,
+            m_Info.ArrayCount,
             VK_SAMPLE_COUNT_1_BIT,
             VK_IMAGE_TILING_OPTIMAL,
             VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
@@ -92,7 +92,7 @@ namespace Heart
             VK_IMAGE_LAYOUT_UNDEFINED,
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
             m_MipLevels,
-            m_ArrayCount
+            m_Info.ArrayCount
         );
         if (data != nullptr)
         {
@@ -102,7 +102,7 @@ namespace Heart
                 device.TransferQueue(),
                 stagingBuffer,
                 m_Image,
-                static_cast<u32>(m_Width), static_cast<u32>(m_Height)
+                static_cast<u32>(m_Info.Width), static_cast<u32>(m_Info.Height)
             );
             VulkanCommon::GenerateMipmaps(
                 device.Device(),
@@ -111,9 +111,22 @@ namespace Heart
                 device.GraphicsQueue(),
                 m_Image,
                 m_Format,
-                m_Width, m_Height, 
+                m_Info.Width, m_Info.Height,
                 m_MipLevels,
-                m_ArrayCount
+                m_Info.ArrayCount
+            );
+        }
+        else
+        {
+            VulkanCommon::TransitionImageLayout(
+                device.Device(),
+                VulkanContext::GetTransferPool(),
+                device.TransferQueue(),
+                m_Image,
+                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                m_MipLevels,
+                m_Info.ArrayCount
             );
         }
 
@@ -126,13 +139,17 @@ namespace Heart
 
         CreateSampler();
 
-        // generate the general image view & one for each layer
-        m_ImageView = VulkanCommon::CreateImageView(device.Device(), m_Image, m_Format, m_MipLevels, m_ArrayCount, 0, VK_IMAGE_ASPECT_COLOR_BIT);
-        for (u32 i = 0; i < m_ArrayCount; i++)
+        // generate the general image view & one for each layer / mipmap
+        m_ImageView = VulkanCommon::CreateImageView(device.Device(), m_Image, m_Format, m_MipLevels, 0, m_Info.ArrayCount, 0, VK_IMAGE_ASPECT_COLOR_BIT);
+        for (u32 i = 0; i < m_Info.ArrayCount; i++)
         {
-            VkImageView layerView = VulkanCommon::CreateImageView(device.Device(), m_Image, m_Format, 1, 1, i, VK_IMAGE_ASPECT_COLOR_BIT);
-            m_LayerViews.emplace_back(layerView);
-            m_LayerImGuiHandles.emplace_back(ImGui_ImplVulkan_AddTexture(m_Sampler, layerView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL));
+            for (u32 j = 0; j < m_MipLevels; j++)
+            {
+                VkImageView layerView = VulkanCommon::CreateImageView(device.Device(), m_Image, m_Format, 1, j, 1, i, VK_IMAGE_ASPECT_COLOR_BIT);
+                m_LayerViews.emplace_back(layerView);
+                if (j == 0)
+                    m_LayerImGuiHandles.emplace_back(ImGui_ImplVulkan_AddTexture(m_Sampler, layerView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL));
+            }
         }
 
         m_CurrentLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;

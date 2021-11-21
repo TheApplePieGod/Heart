@@ -45,8 +45,9 @@ namespace Heart
         ColorFormat Format;
 
         // required if a texture should be used as a render target
-        Ref<Texture> Texture = nullptr;
+        Ref<Texture> Texture;
         u32 LayerIndex;
+        u32 MipLevel;
     };
 
     struct FramebufferDepthAttachment
@@ -75,6 +76,7 @@ namespace Heart
         // must be called after BindPipeline()
         virtual void BindShaderBufferResource(u32 bindingIndex, u32 elementOffset, Buffer* buffer) = 0;
         virtual void BindShaderTextureResource(u32 bindingIndex, Texture* texture) = 0;
+        virtual void BindShaderTextureLayerResource(u32 bindingIndex, Texture* texture, u32 layerIndex, u32 mipLevel) = 0;
         virtual void BindSubpassInputAttachment(u32 bindingIndex, SubpassAttachment attachment) = 0;
 
         virtual void* GetColorAttachmentImGuiHandle(u32 attachmentIndex) = 0;

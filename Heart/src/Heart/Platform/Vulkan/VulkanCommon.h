@@ -43,7 +43,7 @@ namespace Heart
         static QueueFamilyIndices GetQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface);
         static u32 FindMemoryType(VkPhysicalDevice physicalDevice, u32 typeFilter, VkMemoryPropertyFlags properties);
         static void CreateImage(VkDevice device, VkPhysicalDevice physicalDevice, u32 width, u32 height, VkFormat format, u32 mipLevels, u32 layerCount, VkSampleCountFlagBits numSamples, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory, VkImageLayout initialLayout);
-        static VkImageView CreateImageView(VkDevice device, VkImage image, VkFormat format, u32 mipLevels, u32 layerCount, u32 baseArrayLayer, VkImageAspectFlags aspectFlags);
+        static VkImageView CreateImageView(VkDevice device, VkImage image, VkFormat format, u32 mipLevels, u32 baseMip, u32 layerCount, u32 baseArrayLayer, VkImageAspectFlags aspectFlags);
         static VkCommandBuffer BeginSingleTimeCommands(VkDevice device, VkCommandPool commandPool);
         static void EndSingleTimeCommands(VkDevice device, VkCommandPool commandPool, VkCommandBuffer commandBuffer, VkQueue submitQueue);
         static VkPipelineShaderStageCreateInfo DefineShaderStage(VkShaderModule shaderModule, VkShaderStageFlagBits stage, const char* entrypoint = "main");

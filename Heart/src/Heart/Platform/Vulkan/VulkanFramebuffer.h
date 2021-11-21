@@ -18,6 +18,7 @@ namespace Heart
         void BindPipeline(const std::string& name) override;
         void BindShaderBufferResource(u32 bindingIndex, u32 offset, Buffer* buffer) override;
         void BindShaderTextureResource(u32 bindingIndex, Texture* texture) override;
+        void BindShaderTextureLayerResource(u32 bindingIndex, Texture* texture, u32 layerIndex, u32 mipLevel) override;
         void BindSubpassInputAttachment(u32 bindingIndex, SubpassAttachment attachment) override;
 
         void* GetColorAttachmentImGuiHandle(u32 attachmentIndex) override;
@@ -33,7 +34,7 @@ namespace Heart
 
     protected:
         Ref<GraphicsPipeline> InternalInitializeGraphicsPipeline(const GraphicsPipelineCreateInfo& createInfo) override;
-        void BindShaderResource(u32 bindingIndex, ShaderResourceType resourceType, void* resource, u32 offset); // offset in bytes
+        void BindShaderResource(u32 bindingIndex, ShaderResourceType resourceType, void* resource, bool useOffset, glm::vec2 offset); // buffer offset: bytes, image offset: layerIndex, mipLevel
 
     private:
         struct VulkanFramebufferAttachment
@@ -55,6 +56,7 @@ namespace Heart
             bool IsDepthAttachment;
             VulkanTexture* ExternalTexture;
             u32 ExternalTextureLayer;
+            u32 ExternalTextureMip;
             Ref<VulkanBuffer> AttachmentBuffer;
         };
 
@@ -84,6 +86,7 @@ namespace Heart
         std::vector<VkClearValue> m_CachedClearValues;
         std::vector<VkImageView> m_CachedImageViews;
 
+        u32 m_CurrentSubpass = 0;
         u64 m_LastUpdateFrame = 0;
         u32 m_InFlightFrameIndex = 0;
         VkSampleCountFlagBits m_ImageSamples;

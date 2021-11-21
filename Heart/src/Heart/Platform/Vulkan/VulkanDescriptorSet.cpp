@@ -92,7 +92,7 @@ namespace Heart
         vkDestroyDescriptorSetLayout(device.Device(), m_DescriptorSetLayout, nullptr);
     }
 
-    bool VulkanDescriptorSet::UpdateShaderResource(u32 bindingIndex, ShaderResourceType resourceType, void* resource)
+    bool VulkanDescriptorSet::UpdateShaderResource(u32 bindingIndex, ShaderResourceType resourceType, void* resource, bool useOffset, glm::vec2 offset)
     {
         HE_PROFILE_FUNCTION();
 
@@ -142,10 +142,12 @@ namespace Heart
 
                 for (u32 i = 0; i < texture->GetArrayCount(); i++)
                 {
-                    // TODO: customizable sampler
                     m_CachedImageInfos[imageInfoBaseIndex + i].sampler = texture->GetSampler();
                     m_CachedImageInfos[imageInfoBaseIndex + i].imageLayout = texture->GetCurrentLayout();
-                    m_CachedImageInfos[imageInfoBaseIndex + i].imageView = texture->GetImageView();
+                    if (useOffset)
+                        m_CachedImageInfos[imageInfoBaseIndex + i].imageView = texture->GetLayerImageView(static_cast<u32>(offset.x), static_cast<u32>(offset.y));
+                    else
+                        m_CachedImageInfos[imageInfoBaseIndex + i].imageView = texture->GetImageView();
                 }
             } break;
 
@@ -173,7 +175,7 @@ namespace Heart
             m_MostRecentDescriptorSet = AllocateSet();
             for (auto& write : m_CachedDescriptorWrites)
                 write.dstSet = m_MostRecentDescriptorSet;
-
+            
             vkUpdateDescriptorSets(device.Device(), static_cast<u32>(m_CachedDescriptorWrites.size()), m_CachedDescriptorWrites.data(), 0, nullptr);
 
             return true;

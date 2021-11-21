@@ -58,8 +58,12 @@ namespace Heart
     private:
         Ref<Texture> m_EnvironmentMap;
         Ref<Texture> m_IrradianceMap;
-        std::vector<Ref<Framebuffer>> m_CubemapFramebuffers;
-        std::vector<Ref<Framebuffer>> m_IrradianceMapFramebuffers;
+        Ref<Texture> m_PrefilterMap;
+        Ref<Texture> m_BRDFTexture;
+        std::vector<Ref<Framebuffer>> m_PrefilterFramebuffers; // one for each mip level
+        Ref<Framebuffer> m_BRDFFramebuffer;
+        Ref<Framebuffer> m_CubemapFramebuffer;
+        Ref<Framebuffer> m_IrradianceMapFramebuffer;
         Ref<Framebuffer> m_FinalFramebuffer;
         Ref<Buffer> m_FrameDataBuffer;
         Ref<Buffer> m_ObjectDataBuffer;

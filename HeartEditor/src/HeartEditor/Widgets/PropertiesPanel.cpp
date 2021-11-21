@@ -4,6 +4,7 @@
 #include "HeartEditor/EditorApp.h"
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/MeshAsset.h"
+#include "Heart/Asset/MaterialAsset.h"
 #include "Heart/Renderer/Renderer.h"
 #include "imgui/imgui_internal.h"
 #include "glm/gtc/type_ptr.hpp"
@@ -155,6 +156,18 @@ namespace Widgets
                                 ImGui::SetKeyboardFocusHere(-1);
                                 materialId = Heart::AssetManager::GetAssetUUID(buffer);
                             }
+
+                            if (materialId != 0)
+                            {
+                                float metalness = Heart::AssetManager::RetrieveAsset<Heart::MaterialAsset>(materialId)->GetMaterial().GetMaterialData().GetMetalnessFactor();
+                                if (ImGui::DragFloat("Metalness", &metalness, 0.05f, 0.f, 1.f))
+                                    Heart::AssetManager::RetrieveAsset<Heart::MaterialAsset>(materialId)->GetMaterial().GetMaterialData().SetMetalnessFactor(metalness);
+
+                                float roughness = Heart::AssetManager::RetrieveAsset<Heart::MaterialAsset>(materialId)->GetMaterial().GetMaterialData().GetRoughnessFactor();
+                                if (ImGui::DragFloat("Roughness", &roughness, 0.05f, 0.f, 1.f))
+                                    Heart::AssetManager::RetrieveAsset<Heart::MaterialAsset>(materialId)->GetMaterial().GetMaterialData().SetRoughnessFactor(roughness);
+                            }
+
                             ImGui::TreePop();
                         }
                         index++;

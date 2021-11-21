@@ -36,8 +36,8 @@ namespace HeartEditor
         Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Mesh, "assets/meshes/Duck/glTF/Duck.gltf");
         Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Mesh, "assets/meshes/IridescentDishWithOlives/glTF/IridescentDishWithOlives.gltf");
         Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Texture, "assets/envmaps/GrandCanyon.hdr");
-
-        Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>("assets/envmaps/GrandCanyon.hdr");
+        Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Texture, "assets/envmaps/IceLake.hdr");
+        Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Texture, "assets/envmaps/PopcornLobby.hdr");
 
         m_EditorCamera = Heart::CreateScope<EditorCamera>(70.f, 0.1f, 500.f, 1.f);
         m_ActiveScene = Heart::CreateRef<Heart::Scene>();

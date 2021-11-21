@@ -109,7 +109,7 @@ namespace Heart
         vkBindImageMemory(device, image, imageMemory, 0);
     }
 
-    VkImageView VulkanCommon::CreateImageView(VkDevice device, VkImage image, VkFormat format, u32 mipLevels, u32 layerCount, u32 baseArrayLayer, VkImageAspectFlags aspectFlags)
+    VkImageView VulkanCommon::CreateImageView(VkDevice device, VkImage image, VkFormat format, u32 mipLevels, u32 baseMip, u32 layerCount, u32 baseArrayLayer, VkImageAspectFlags aspectFlags)
     {
         VkImageViewType viewType = VK_IMAGE_VIEW_TYPE_2D;
         if (layerCount > 1)
@@ -123,7 +123,7 @@ namespace Heart
         viewInfo.viewType = viewType;
         viewInfo.format = format;
         viewInfo.subresourceRange.aspectMask = aspectFlags;
-        viewInfo.subresourceRange.baseMipLevel = 0;
+        viewInfo.subresourceRange.baseMipLevel = baseMip;
         viewInfo.subresourceRange.levelCount = mipLevels;
         viewInfo.subresourceRange.baseArrayLayer = baseArrayLayer;
         viewInfo.subresourceRange.layerCount = layerCount;

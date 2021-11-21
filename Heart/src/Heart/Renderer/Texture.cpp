@@ -7,25 +7,25 @@
 
 namespace Heart
 {
-    Ref<Texture> Texture::Create(int width, int height, int channels, void* data, u32 arrayCount, bool floatComponents)
+    Ref<Texture> Texture::Create(const TextureCreateInfo& createInfo, void* initialData)
     {
-        HE_ENGINE_ASSERT(channels == 4, "Non 4 channel textures are not supported");
+        HE_ENGINE_ASSERT(createInfo.Channels == 4, "Non 4 channel textures are not supported");
 
         switch (Renderer::GetApiType())
         {
             default:
             { HE_ENGINE_ASSERT(false, "Cannot create texture: selected ApiType is not supported"); return nullptr; }
             case RenderApi::Type::Vulkan:
-            { return CreateRef<VulkanTexture>(width, height, channels, data, arrayCount, floatComponents); }
+            { return CreateRef<VulkanTexture>(createInfo, initialData); }
             case RenderApi::Type::OpenGL:
-            { return CreateRef<OpenGLTexture>(width, height, channels, data, arrayCount, floatComponents); }
+            { return CreateRef<OpenGLTexture>(createInfo, initialData); }
         }
     }
 
     void Texture::ScanForTransparency(int width, int height, int channels, void* data)
     {
         // TODO: change this possibly?
-        if (m_FloatComponents) return;
+        if (m_Info.FloatComponents) return;
 
         unsigned char* pixels = (unsigned char*)data;
         int size = width * height * channels;

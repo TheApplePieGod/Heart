@@ -8,11 +8,11 @@ namespace Heart
     class VulkanTexture : public Texture
     {
     public:
-        VulkanTexture(int width, int height, int channels, void* data, u32 arrayCount, bool floatComponents);
+        VulkanTexture(const TextureCreateInfo& createInfo, void* initialData);
         ~VulkanTexture() override;
 
         inline VkImageView GetImageView() const { return m_ImageView; }
-        inline VkImageView GetLayerImageView(u32 layerIndex) const { return m_LayerViews[layerIndex]; }
+        inline VkImageView GetLayerImageView(u32 layerIndex, u32 mipLevel) const { return m_LayerViews[layerIndex * m_MipLevels + mipLevel]; }
         inline VkImageLayout GetCurrentLayout() const { return m_CurrentLayout; }
         inline VkSampler GetSampler() const { return m_Sampler; }
         inline ColorFormat GetGeneralFormat() const { return m_GeneralFormat; }
@@ -25,8 +25,6 @@ namespace Heart
         void CreateSampler();
 
     private:
-        const u32 m_DesiredMipLevels = 5;
-
         VkImage m_Image;
         VkImageView m_ImageView;
         VkDeviceMemory m_ImageMemory;

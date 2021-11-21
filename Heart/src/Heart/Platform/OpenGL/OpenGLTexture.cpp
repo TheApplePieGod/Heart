@@ -7,11 +7,11 @@
 
 namespace Heart
 {
-    OpenGLTexture::OpenGLTexture(int width, int height, int channels, void* data, u32 arrayCount, bool floatComponents)
-        : Texture(width, height, channels, arrayCount, floatComponents)
+    OpenGLTexture::OpenGLTexture(const TextureCreateInfo& createInfo, void* initialData)
+        : Texture(createInfo)
     {
-        if (data != nullptr)
-            ScanForTransparency(width, height, channels, data);
+        if (initialData != nullptr)
+            ScanForTransparency(createInfo.Width, createInfo.Height, createInfo.Channels, initialData);
         
         glGenTextures(1, &m_TextureId);
         glBindTexture(GL_TEXTURE_2D, m_TextureId);
@@ -27,7 +27,7 @@ namespace Heart
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, OpenGLCommon::SamplerFilterToOpenGL(m_SamplerState.MagFilter));
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY, m_SamplerState.AnisotropyEnable ? std::min(maxAnisotropy, static_cast<float>(m_SamplerState.MaxAnisotropy)) : 1);
 
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_Width, m_Height, 0, GL_RGBA, floatComponents ? GL_FLOAT : GL_UNSIGNED_BYTE, data);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, createInfo.Width, createInfo.Height, 0, GL_RGBA, createInfo.FloatComponents ? GL_FLOAT : GL_UNSIGNED_BYTE, initialData);
         glGenerateMipmap(GL_TEXTURE_2D);
 
         //m_ImGuiHandle = (void*)static_cast<size_t>(m_TextureId);

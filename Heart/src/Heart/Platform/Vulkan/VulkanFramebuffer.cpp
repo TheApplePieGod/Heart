@@ -75,9 +75,10 @@ namespace Heart
             {
                 attachmentData.ExternalTexture = (VulkanTexture*)attachment.Texture.get();
                 attachmentData.ExternalTextureLayer = attachment.LayerIndex;
+                attachmentData.ExternalTextureMip = attachment.MipLevel;
 
-                HE_ENGINE_ASSERT(m_Info.Width == attachmentData.ExternalTexture->GetWidth(), "Texture dimensions must match the framebuffer (framebuffer width/height cannot be zero)");
-                HE_ENGINE_ASSERT(m_Info.Height == attachmentData.ExternalTexture->GetHeight(), "Texture dimensions must match the framebuffer (framebuffer width/height cannot be zero)");
+                HE_ENGINE_ASSERT(m_Info.Width == attachmentData.ExternalTexture->GetMipWidth(attachment.MipLevel), "Texture dimensions (at the specified mip level) must match the framebuffer (framebuffer width/height cannot be zero)");
+                HE_ENGINE_ASSERT(m_Info.Height == attachmentData.ExternalTexture->GetMipHeight(attachment.MipLevel), "Texture dimensions (at the specified mip level) must match the framebuffer (framebuffer width/height cannot be zero)");
             }
 
             VkFormat colorFormat = attachment.Texture ? attachmentData.ExternalTexture->GetFormat() : VulkanCommon::ColorFormatToVulkan(attachment.Format);
@@ -145,9 +146,9 @@ namespace Heart
         std::vector<VkAttachmentReference> outputResolveAttachmentRefs;
         std::vector<VkAttachmentReference> depthAttachmentRefs;
 
-        inputAttachmentRefs.reserve(25);
-        outputAttachmentRefs.reserve(25);
-        outputResolveAttachmentRefs.reserve(25);
+        inputAttachmentRefs.reserve(100);
+        outputAttachmentRefs.reserve(100);
+        outputResolveAttachmentRefs.reserve(100);
         depthAttachmentRefs.reserve(createInfo.Subpasses.size());
         for (size_t i = 0; i < subpasses.size(); i++)
         {
@@ -283,6 +284,8 @@ namespace Heart
             m_BoundThisFrame = true;
             if (!m_Valid)
                 Recreate();
+
+            m_CurrentSubpass = 0;
      
             VkCommandBufferBeginInfo beginInfo{};
             beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -326,6 +329,7 @@ namespace Heart
 
         HE_ENGINE_ASSERT(!m_SubmittedThisFrame, "Cannot submit framebuffer twice in the same frame");
         HE_ENGINE_ASSERT(m_BoundThisFrame, "Cannot submit framebuffer that has not been bound this frame");
+        HE_ENGINE_ASSERT(m_CurrentSubpass == m_Info.Subpasses.size() - 1, "Attempting to submit a framebuffer without completing all subpasses");
 
         VkCommandBuffer buffer = GetCommandBuffer();
 
@@ -416,24 +420,29 @@ namespace Heart
     {
         HE_PROFILE_FUNCTION();
 
-        BindShaderResource(bindingIndex, ShaderResourceType::UniformBuffer, buffer, buffer->GetLayout().GetStride() * elementOffset); // uniform vs structured buffer are the doesn't matter here
+        BindShaderResource(bindingIndex, ShaderResourceType::UniformBuffer, buffer, true, { buffer->GetLayout().GetStride() * elementOffset, 0.f }); // uniform vs structured buffer doesn't matter here
     }
 
     void VulkanFramebuffer::BindShaderTextureResource(u32 bindingIndex, Texture* texture)
     {
         HE_PROFILE_FUNCTION();
         
-        BindShaderResource(bindingIndex, ShaderResourceType::Texture, texture, 0);
+        BindShaderResource(bindingIndex, ShaderResourceType::Texture, texture, false, glm::vec2(0.f));
+    }
+
+    void VulkanFramebuffer::BindShaderTextureLayerResource(u32 bindingIndex, Texture* texture, u32 layerIndex, u32 mipLevel)
+    {
+        BindShaderResource(bindingIndex, ShaderResourceType::Texture, texture, true, { layerIndex, mipLevel });
     }
 
     void VulkanFramebuffer::BindSubpassInputAttachment(u32 bindingIndex, SubpassAttachment attachment)
     {
         HE_PROFILE_FUNCTION();
 
-        BindShaderResource(bindingIndex, ShaderResourceType::SubpassInput, attachment.Type == SubpassAttachmentType::Depth ? &m_DepthAttachmentData[attachment.AttachmentIndex] : &m_AttachmentData[attachment.AttachmentIndex], 0);
+        BindShaderResource(bindingIndex, ShaderResourceType::SubpassInput, attachment.Type == SubpassAttachmentType::Depth ? &m_DepthAttachmentData[attachment.AttachmentIndex] : &m_AttachmentData[attachment.AttachmentIndex], false, glm::vec2(0.f));
     }
 
-    void VulkanFramebuffer::BindShaderResource(u32 bindingIndex, ShaderResourceType resourceType, void* resource, u32 offset)
+    void VulkanFramebuffer::BindShaderResource(u32 bindingIndex, ShaderResourceType resourceType, void* resource, bool useOffset, glm::vec2 offset)
     {
         // TODO: don't use string here
         HE_ENGINE_ASSERT(!m_BoundPipeline.empty(), "Must call BindPipeline before BindShaderResource");
@@ -444,13 +453,13 @@ namespace Heart
         if (!descriptorSet.DoesBindingExist(bindingIndex))
             return; // silently ignore, TODO: warning once in the console when this happens
 
-        if (resourceType == ShaderResourceType::UniformBuffer || resourceType == ShaderResourceType::StorageBuffer)
-            descriptorSet.UpdateDynamicOffset(bindingIndex, offset);
+        if (useOffset && (resourceType == ShaderResourceType::UniformBuffer || resourceType == ShaderResourceType::StorageBuffer))
+            descriptorSet.UpdateDynamicOffset(bindingIndex, static_cast<u32>(offset.x));
 
         // we only want to bind here if the descriptor set was allocated & updated
         // this will only occur if the binding resource differs at the same bind index and
         // only once all bind indexes have been bound with a resource this frame 
-        if (descriptorSet.UpdateShaderResource(bindingIndex, resourceType, resource))
+        if (descriptorSet.UpdateShaderResource(bindingIndex, resourceType, resource, useOffset, offset))
         {
             HE_ENGINE_ASSERT(descriptorSet.GetMostRecentDescriptorSet() != nullptr);
 
@@ -484,6 +493,9 @@ namespace Heart
 
     void VulkanFramebuffer::StartNextSubpass()
     {
+        m_CurrentSubpass++;
+        HE_ENGINE_ASSERT(m_CurrentSubpass < m_Info.Subpasses.size(), "Attempting to start a subpass that does not exist");
+
         vkCmdNextSubpass(GetCommandBuffer(), VK_SUBPASS_CONTENTS_INLINE);
     }
 
@@ -606,14 +618,14 @@ namespace Heart
         // create associated image views
         if (shouldCreateBaseTexture)
         {
-            attachmentData.ImageView = VulkanCommon::CreateImageView(device.Device(), attachmentData.Image, attachmentData.ColorFormat, 1, 1, 0, attachmentData.IsDepthAttachment ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT);
+            attachmentData.ImageView = VulkanCommon::CreateImageView(device.Device(), attachmentData.Image, attachmentData.ColorFormat, 1, 0, 1, 0, attachmentData.IsDepthAttachment ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT);
             m_CachedImageViews.emplace_back(attachmentData.ImageView);
             attachmentData.ImageImGuiId = ImGui_ImplVulkan_AddTexture(VulkanContext::GetDefaultSampler(), attachmentData.ImageView, attachmentData.IsDepthAttachment ? VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
         }
 
         if (shouldCreateResolveTexture)
         {
-            attachmentData.ResolveImageView = VulkanCommon::CreateImageView(device.Device(), attachmentData.ResolveImage, attachmentData.ColorFormat, 1, 1, 0, attachmentData.IsDepthAttachment ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT);
+            attachmentData.ResolveImageView = VulkanCommon::CreateImageView(device.Device(), attachmentData.ResolveImage, attachmentData.ColorFormat, 1, 0, 1, 0, attachmentData.IsDepthAttachment ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT);
             m_CachedImageViews.emplace_back(attachmentData.ResolveImageView);
             attachmentData.ResolveImageImGuiId = ImGui_ImplVulkan_AddTexture(VulkanContext::GetDefaultSampler(), attachmentData.ResolveImageView, attachmentData.IsDepthAttachment ? VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
         }
@@ -621,7 +633,7 @@ namespace Heart
         if (shouldResolveExternal)
         {
             attachmentData.ResolveImage = attachmentData.ExternalTexture->GetImage();
-            attachmentData.ResolveImageView = attachmentData.ExternalTexture->GetLayerImageView(attachmentData.ExternalTextureLayer);
+            attachmentData.ResolveImageView = attachmentData.ExternalTexture->GetLayerImageView(attachmentData.ExternalTextureLayer, attachmentData.ExternalTextureMip);
             attachmentData.ResolveImageMemory = attachmentData.ExternalTexture->GetImageMemory();
             attachmentData.ResolveImageImGuiId = attachmentData.ExternalTexture->GetImGuiHandle(attachmentData.ExternalTextureLayer);
             m_CachedImageViews.emplace_back(attachmentData.ResolveImageView);
@@ -629,7 +641,7 @@ namespace Heart
         else if (attachmentData.ExternalTexture)
         {
             attachmentData.Image = attachmentData.ExternalTexture->GetImage();
-            attachmentData.ImageView = attachmentData.ExternalTexture->GetLayerImageView(attachmentData.ExternalTextureLayer);
+            attachmentData.ImageView = attachmentData.ExternalTexture->GetLayerImageView(attachmentData.ExternalTextureLayer, attachmentData.ExternalTextureMip);
             attachmentData.ImageMemory = attachmentData.ExternalTexture->GetImageMemory();
             attachmentData.ImageImGuiId = attachmentData.ExternalTexture->GetImGuiHandle(attachmentData.ExternalTextureLayer);
             m_CachedImageViews.emplace_back(attachmentData.ImageView);

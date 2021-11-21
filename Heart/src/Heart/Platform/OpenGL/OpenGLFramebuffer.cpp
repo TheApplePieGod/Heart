@@ -122,6 +122,8 @@ namespace Heart
 
     void OpenGLFramebuffer::Submit()
     {
+        HE_ENGINE_ASSERT(m_CurrentSubpass == m_Info.Subpasses.size() - 1, "Attempting to submit a framebuffer without completing all subpasses");
+
         BlitFramebuffers(m_CurrentSubpass);
 
         for (auto& attachment : m_AttachmentData)
@@ -276,6 +278,8 @@ namespace Heart
     void OpenGLFramebuffer::StartNextSubpass()
     {
         m_CurrentSubpass++;
+
+        HE_ENGINE_ASSERT(m_CurrentSubpass < m_Info.Subpasses.size(), "Attempting to start a subpass that does not exist");
 
         // if using a multisampled buffer, perform a framebuffer blit (copy) operation on the previous subpass
         if (m_CurrentSubpass > 0)

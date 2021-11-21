@@ -105,7 +105,7 @@ namespace Heart
         m_SwapChainData.ImageViews.resize(m_SwapChainData.Images.size());
         for (int i = 0; i < m_SwapChainData.Images.size(); i++)
         {
-            m_SwapChainData.ImageViews[i] = VulkanCommon::CreateImageView(device.Device(), m_SwapChainData.Images[i], m_SwapChainData.ImageFormat, 1, 1, 0, VK_IMAGE_ASPECT_COLOR_BIT);
+            m_SwapChainData.ImageViews[i] = VulkanCommon::CreateImageView(device.Device(), m_SwapChainData.Images[i], m_SwapChainData.ImageFormat, 1, 0, 1, 0, VK_IMAGE_ASPECT_COLOR_BIT);
         }
     }
 
