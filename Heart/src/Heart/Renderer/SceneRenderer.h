@@ -53,6 +53,13 @@ namespace Heart
         };
 
     private:
+        void CalculateEnvironmentMaps(GraphicsContext& context);
+
+    private:
+        Ref<Texture> m_EnvironmentMap;
+        Ref<Texture> m_IrradianceMap;
+        std::vector<Ref<Framebuffer>> m_CubemapFramebuffers;
+        std::vector<Ref<Framebuffer>> m_IrradianceMapFramebuffers;
         Ref<Framebuffer> m_FinalFramebuffer;
         Ref<Buffer> m_FrameDataBuffer;
         Ref<Buffer> m_ObjectDataBuffer;

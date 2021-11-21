@@ -17,8 +17,8 @@ void main() {
     vec4 accum = subpassLoad(texColor);
     float reveal = subpassLoad(texWeights).r;
     #else
-    vec4 accum = texture(texColor, gl_FragCoord.xy / frameData.screenSize);
-    float reveal = texture(texWeights, gl_FragCoord.xy / frameData.screenSize).r;
+    vec4 accum = texture(texColor, gl_FragCoord.xy / frameBuffer.data.screenSize);
+    float reveal = texture(texWeights, gl_FragCoord.xy / frameBuffer.data.screenSize).r;
     #endif
 
     outColor = vec4(accum.rgb / max(accum.a, 1e-5), reveal);

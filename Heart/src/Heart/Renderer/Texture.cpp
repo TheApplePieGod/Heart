@@ -7,16 +7,18 @@
 
 namespace Heart
 {
-    Ref<Texture> Texture::Create(const std::string& path, bool floatComponents, int width, int height, int channels, void* data)
+    Ref<Texture> Texture::Create(int width, int height, int channels, void* data, u32 arrayCount, bool floatComponents)
     {
+        HE_ENGINE_ASSERT(channels == 4, "Non 4 channel textures are not supported");
+
         switch (Renderer::GetApiType())
         {
             default:
             { HE_ENGINE_ASSERT(false, "Cannot create texture: selected ApiType is not supported"); return nullptr; }
             case RenderApi::Type::Vulkan:
-            { return CreateRef<VulkanTexture>(path, floatComponents, width, height, channels, data); }
+            { return CreateRef<VulkanTexture>(width, height, channels, data, arrayCount, floatComponents); }
             case RenderApi::Type::OpenGL:
-            { return CreateRef<OpenGLTexture>(path, floatComponents, width, height, channels, data); }
+            { return CreateRef<OpenGLTexture>(width, height, channels, data, arrayCount, floatComponents); }
         }
     }
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Heart/Renderer/Framebuffer.h"
+#include "Heart/Platform/Vulkan/VulkanTexture.h"
 #include "Heart/Platform/Vulkan/VulkanSwapChain.h"
 #include "Heart/Platform/Vulkan/VulkanCommon.h"
 #include "Heart/Platform/Vulkan/VulkanBuffer.h"
@@ -52,6 +53,8 @@ namespace Heart
             bool HasResolve;
             bool CPUVisible;
             bool IsDepthAttachment;
+            VulkanTexture* ExternalTexture;
+            u32 ExternalTextureLayer;
             Ref<VulkanBuffer> AttachmentBuffer;
         };
 

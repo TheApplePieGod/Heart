@@ -1,6 +1,8 @@
 #include "htpch.h"
 #include "SceneRenderer.h"
 
+#include "Heart/Core/App.h"
+#include "Heart/Core/Camera.h"
 #include "Heart/Renderer/Renderer.h"
 #include "Heart/Scene/Components.h"
 #include "Heart/Scene/Entity.h"
@@ -23,6 +25,10 @@ namespace Heart
         AssetManager::RegisterAsset(Asset::Type::Shader, "FullscreenTriangle.vert", false, true);
         AssetManager::RegisterAsset(Asset::Type::Shader, "PBRTransparentColor.frag", false, true);
         AssetManager::RegisterAsset(Asset::Type::Shader, "TransparentComposite.frag", false, true);
+        AssetManager::RegisterAsset(Asset::Type::Shader, "Cubemap.vert", false, true);
+        AssetManager::RegisterAsset(Asset::Type::Shader, "EnvironmentMap.frag", false, true);
+        AssetManager::RegisterAsset(Asset::Type::Shader, "IrradianceMap.frag", false, true);
+        AssetManager::RegisterAsset(Asset::Type::Mesh, "DefaultCube.gltf", false, true);
 
         // graphics pipeline
         GraphicsPipelineCreateInfo pbrPipeline = {
@@ -72,7 +78,9 @@ namespace Heart
             { BufferDataType::Float4 },
             { BufferDataType::Float2 },
             { BufferDataType::Bool },
-            { BufferDataType::Bool }
+            { BufferDataType::Bool },
+            { BufferDataType::Float4 }, // padding
+            { BufferDataType::Float4 }, // padding
         };
 
         // per object data buffer layout
@@ -83,28 +91,23 @@ namespace Heart
         };
 
         BufferLayout materialDataLayout = {
-            { BufferDataType::Float4 }, // material: baseColor
-            { BufferDataType::Float }, // material: roughness
-            { BufferDataType::Float }, // material: metalness
-            { BufferDataType::Float2 }, // material: texCoordScale
-            { BufferDataType::Float2 }, // material: texCoordOffset
-            { BufferDataType::Bool }, // material: hasAlbedo
-            { BufferDataType::Bool }, // material: hasMetallicRoughness
-            { BufferDataType::Bool }, // material: hasNormal
-            { BufferDataType::Float3 } // material: padding
+            { BufferDataType::Float4 },
+            { BufferDataType::Float4 },
+            { BufferDataType::Float4 },
+            { BufferDataType::Float4 }
         };
 
-        m_FrameDataBuffer = Buffer::Create(Buffer::Type::Uniform, BufferUsageType::Dynamic, frameDataLayout, 1, nullptr);
+        m_FrameDataBuffer = Buffer::Create(Buffer::Type::Uniform, BufferUsageType::Dynamic, frameDataLayout, 50, nullptr);
         m_ObjectDataBuffer = Buffer::Create(Buffer::Type::Storage, BufferUsageType::Dynamic, objectDataLayout, 2000, nullptr);
         m_MaterialDataBuffer = Buffer::Create(Buffer::Type::Storage, BufferUsageType::Dynamic, materialDataLayout, 2000, nullptr);
 
         // framebuffer
         FramebufferCreateInfo fbCreateInfo = {
             {
-                { { 0.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::RGBA8, false },
-                { { -1.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::R32F, true },
-                { { 0.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::RGBA32F, false },
-                { { 1.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::R32F, false }
+                { false, { 0.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::RGBA8 },
+                { true, { -1.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::R32F },
+                { false, { 0.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::RGBA32F },
+                { false, { 1.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::R32F }
             },
             {
                 {}
@@ -122,6 +125,46 @@ namespace Heart
         m_FinalFramebuffer->RegisterGraphicsPipeline("pbr", pbrPipeline);
         m_FinalFramebuffer->RegisterGraphicsPipeline("pbrTpColor", transparencyColorPipeline);
         m_FinalFramebuffer->RegisterGraphicsPipeline("tpComposite", transparencyCompositePipeline);
+
+        // ------------------------------------------------------------------
+        // Environment map initalization
+        // ------------------------------------------------------------------
+
+        GraphicsPipelineCreateInfo envPipeline = {
+            AssetManager::GetAssetUUID("Cubemap.vert", true),
+            AssetManager::GetAssetUUID("EnvironmentMap.frag", true),
+            true,
+            VertexTopology::TriangleList,
+            Heart::Mesh::GetVertexLayout(),
+            { { false } },
+            false,
+            false,
+            CullMode::None,
+            WindingOrder::Clockwise,
+            0
+        };
+
+        m_EnvironmentMap = Texture::Create(512, 512, 4, nullptr, 6, true);
+
+        // cubemap framebuffer
+        FramebufferCreateInfo cubemapFbCreateInfo = {
+            {
+                { false, { 0.f, 0.f, 0.f, 0.f }, ColorFormat::None, m_EnvironmentMap, 0 }
+            },
+            {},
+            {
+                { {}, { { SubpassAttachmentType::Color, 0 } } },
+            }
+        };
+        cubemapFbCreateInfo.Width = m_EnvironmentMap->GetWidth();
+        cubemapFbCreateInfo.Height = m_EnvironmentMap->GetHeight();
+        cubemapFbCreateInfo.SampleCount = MsaaSampleCount::None;
+        for (u32 i = 0; i < 6; i++)
+        {
+            cubemapFbCreateInfo.ColorAttachments[0].LayerIndex = i;
+            m_CubemapFramebuffers.emplace_back(Framebuffer::Create(cubemapFbCreateInfo));
+            m_CubemapFramebuffers[i]->RegisterGraphicsPipeline("envmap", envPipeline);
+        }
     }
 
     SceneRenderer::~SceneRenderer()
@@ -129,11 +172,47 @@ namespace Heart
         
     }
 
+    void SceneRenderer::CalculateEnvironmentMaps(GraphicsContext& context)
+    {
+        auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>("DefaultCube.gltf", true);
+        auto& meshData = meshAsset->GetSubmesh(0);
+
+        Camera cubemapCam(90.f, 0.1f, 50.f, 1.f);
+
+        glm::vec2 rotations[] = { { 0.f, 0.f }, { 0.f, 90.f }, { 0.f, 180.f }, { 0.f, 270.f }, { 90.f, 0.f }, { -90.f, 0.f } };
+        for (u32 i = 0; i < 6; i++)
+        {
+            m_CubemapFramebuffers[i]->Bind();
+            m_CubemapFramebuffers[i]->BindPipeline("envmap");  
+
+            cubemapCam.UpdateViewMatrix(rotations[i].x, rotations[i].y, { 0.f, 0.f, 0.f });
+
+            FrameData frameData = { cubemapCam.GetProjectionMatrix(), cubemapCam.GetViewMatrix(), glm::vec4(0.f, 0.f, 0.f, 1.f), m_CubemapFramebuffers[i]->GetSize(), Renderer::IsUsingReverseDepth() };
+            m_FrameDataBuffer->SetData(&frameData, 1, i);
+            m_CubemapFramebuffers[i]->BindShaderBufferResource(0, i, m_FrameDataBuffer.get());
+
+            m_CubemapFramebuffers[i]->BindShaderTextureResource(1, AssetManager::RetrieveAsset<TextureAsset>("assets/envmaps/GrandCanyon.hdr")->GetTexture());
+
+            Renderer::Api().BindVertexBuffer(*meshData.GetVertexBuffer());
+            Renderer::Api().BindIndexBuffer(*meshData.GetIndexBuffer());
+            Renderer::Api().DrawIndexed(
+                meshData.GetIndexBuffer()->GetAllocatedCount(),
+                meshData.GetVertexBuffer()->GetAllocatedCount(),
+                0, 0, 1
+            );
+
+            Renderer::Api().RenderFramebuffers(context, { m_CubemapFramebuffers[i].get() });
+        }
+    }
+
     void SceneRenderer::RenderScene(GraphicsContext& context, Scene* scene, glm::mat4 view, glm::mat4 projection, glm::vec3 position)
     {
         HE_PROFILE_FUNCTION();
 
         HE_ENGINE_ASSERT(scene, "Scene cannot be nullptr");
+
+        if (App::Get().GetFrameCount() == 0)
+            CalculateEnvironmentMaps(context);
 
         m_FinalFramebuffer->Bind();
         m_FinalFramebuffer->BindPipeline("pbr");

@@ -7,7 +7,7 @@ namespace Heart
     class OpenGLTexture : public Texture
     {
     public:
-        OpenGLTexture(const std::string& path, bool floatComponents, int width, int height, int channels, void* data);
+        OpenGLTexture(int width, int height, int channels, void* data, u32 arrayCount, bool floatComponents);
         ~OpenGLTexture() override;
 
         inline u32 GetTextureId() const { return m_TextureId; }

@@ -7,25 +7,11 @@
 
 namespace Heart
 {
-    OpenGLTexture::OpenGLTexture(const std::string& path, bool floatComponents, int width, int height, int channels, void* data)
-        : Texture(path, floatComponents, width, height, channels)
+    OpenGLTexture::OpenGLTexture(int width, int height, int channels, void* data, u32 arrayCount, bool floatComponents)
+        : Texture(width, height, channels, arrayCount, floatComponents)
     {
-        bool load = data == nullptr;
-        if (load)
-        {
-            if (floatComponents)
-                data = stbi_loadf(path.c_str(), &m_Width, &m_Height, &m_Channels, m_DesiredChannelCount);
-            else
-                data = stbi_load(path.c_str(), &m_Width, &m_Height, &m_Channels, m_DesiredChannelCount);
-            if (data == nullptr)
-            {
-                HE_ENGINE_LOG_ERROR("Failed to load image at path {0}", path);
-                HE_ENGINE_ASSERT(false);
-            }
-            HE_ENGINE_LOG_TRACE("Texture info: {0}x{1} w/ {2} channels, float components: {3}", m_Width, m_Height, m_Channels, floatComponents);
-        }
-        
-        ScanForTransparency(width, height, channels, data);
+        if (data != nullptr)
+            ScanForTransparency(width, height, channels, data);
         
         glGenTextures(1, &m_TextureId);
         glBindTexture(GL_TEXTURE_2D, m_TextureId);
@@ -44,10 +30,7 @@ namespace Heart
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_Width, m_Height, 0, GL_RGBA, floatComponents ? GL_FLOAT : GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
 
-        if (load)
-            stbi_image_free(data);
-
-        m_ImGuiHandle = (void*)static_cast<size_t>(m_TextureId);
+        //m_ImGuiHandle = (void*)static_cast<size_t>(m_TextureId);
     }
 
     OpenGLTexture::~OpenGLTexture()

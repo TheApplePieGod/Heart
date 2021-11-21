@@ -43,6 +43,7 @@ namespace Heart
             attachmentData.HasResolve = false; //m_ImageSamples > VK_SAMPLE_COUNT_1_BIT;
             attachmentData.CPUVisible = false;
             attachmentData.IsDepthAttachment = true;
+            attachmentData.ExternalTexture = false;
 
             CreateAttachmentImages(attachmentData);
 
@@ -69,12 +70,21 @@ namespace Heart
         // TODO: depth resolve (https://github.com/KhronosGroup/Vulkan-Samples/blob/master/samples/performance/msaa/msaa_tutorial.md)
         for (auto& attachment : createInfo.ColorAttachments)
         {
-            VkFormat colorFormat = VulkanCommon::ColorFormatToVulkan(attachment.Format);
+            VulkanFramebufferAttachment attachmentData = {};
+            if (attachment.Texture)
+            {
+                attachmentData.ExternalTexture = (VulkanTexture*)attachment.Texture.get();
+                attachmentData.ExternalTextureLayer = attachment.LayerIndex;
+
+                HE_ENGINE_ASSERT(m_Info.Width == attachmentData.ExternalTexture->GetWidth(), "Texture dimensions must match the framebuffer (framebuffer width/height cannot be zero)");
+                HE_ENGINE_ASSERT(m_Info.Height == attachmentData.ExternalTexture->GetHeight(), "Texture dimensions must match the framebuffer (framebuffer width/height cannot be zero)");
+            }
+
+            VkFormat colorFormat = attachment.Texture ? attachmentData.ExternalTexture->GetFormat() : VulkanCommon::ColorFormatToVulkan(attachment.Format);
             VkClearValue clearValue{};
             clearValue.color = { attachment.ClearColor.r, attachment.ClearColor.g, attachment.ClearColor.b, attachment.ClearColor.a };
-
-            VulkanFramebufferAttachment attachmentData = {};
-            attachmentData.GeneralColorFormat = attachment.Format;
+  
+            attachmentData.GeneralColorFormat = attachment.Texture ? attachmentData.ExternalTexture->GetGeneralFormat() : attachment.Format;
             attachmentData.ColorFormat = colorFormat;
             attachmentData.HasResolve = m_ImageSamples > VK_SAMPLE_COUNT_1_BIT;
             attachmentData.CPUVisible = attachment.AllowCPURead;
@@ -539,22 +549,13 @@ namespace Heart
         bool colorTransferSrc = attachmentData.CPUVisible && !attachmentData.HasResolve;
 
         // create the associated images for the framebuffer
-        VulkanCommon::CreateImage(
-            device.Device(),
-            device.PhysicalDevice(),
-            m_ActualWidth,
-            m_ActualHeight,
-            attachmentData.ColorFormat,
-            1,
-            m_ImageSamples,
-            VK_IMAGE_TILING_OPTIMAL,
-            (attachmentData.IsDepthAttachment ? VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT : VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | (colorTransferSrc ? VK_IMAGE_USAGE_TRANSFER_SRC_BIT : 0),
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-            attachmentData.Image,
-            attachmentData.ImageMemory
-        );
+        // if we are using an external texture, that texture will be the resolve image in the case of a multisampled framebuffer
+        // for one sample, we will render directly to that image
 
-        if (attachmentData.HasResolve)
+        bool shouldResolveExternal = attachmentData.ExternalTexture && attachmentData.HasResolve;
+        bool shouldCreateBaseTexture = !attachmentData.ExternalTexture || shouldResolveExternal;
+        bool shouldCreateResolveTexture = attachmentData.HasResolve && !attachmentData.ExternalTexture;
+        if (shouldCreateBaseTexture)
         {
             VulkanCommon::CreateImage(
                 device.Device(),
@@ -562,13 +563,33 @@ namespace Heart
                 m_ActualWidth,
                 m_ActualHeight,
                 attachmentData.ColorFormat,
-                1,
+                1, 1,
+                m_ImageSamples,
+                VK_IMAGE_TILING_OPTIMAL,
+                (attachmentData.IsDepthAttachment ? VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT : VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | (colorTransferSrc ? VK_IMAGE_USAGE_TRANSFER_SRC_BIT : 0),
+                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                attachmentData.Image,
+                attachmentData.ImageMemory,
+                VK_IMAGE_LAYOUT_UNDEFINED
+            );
+        }
+
+        if (shouldCreateResolveTexture)
+        {
+            VulkanCommon::CreateImage(
+                device.Device(),
+                device.PhysicalDevice(),
+                m_ActualWidth,
+                m_ActualHeight,
+                attachmentData.ColorFormat,
+                1, 1,
                 VK_SAMPLE_COUNT_1_BIT,
                 VK_IMAGE_TILING_OPTIMAL,
                 (attachmentData.IsDepthAttachment ? VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT : VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | (attachmentData.CPUVisible ? VK_IMAGE_USAGE_TRANSFER_SRC_BIT : 0),
                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                 attachmentData.ResolveImage,
-                attachmentData.ResolveImageMemory
+                attachmentData.ResolveImageMemory,
+                VK_IMAGE_LAYOUT_UNDEFINED
             );
         }
 
@@ -582,16 +603,36 @@ namespace Heart
             ));
         }
 
-        // create associated image views 
-        attachmentData.ImageView = VulkanCommon::CreateImageView(device.Device(), attachmentData.Image, attachmentData.ColorFormat, 1, attachmentData.IsDepthAttachment ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT);
-        m_CachedImageViews.emplace_back(attachmentData.ImageView);
-        attachmentData.ImageImGuiId = ImGui_ImplVulkan_AddTexture(VulkanContext::GetDefaultSampler(), attachmentData.ImageView, attachmentData.IsDepthAttachment ? VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
-        if (attachmentData.HasResolve)
+        // create associated image views
+        if (shouldCreateBaseTexture)
         {
-            attachmentData.ResolveImageView = VulkanCommon::CreateImageView(device.Device(), attachmentData.ResolveImage, attachmentData.ColorFormat, 1, attachmentData.IsDepthAttachment ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT);
+            attachmentData.ImageView = VulkanCommon::CreateImageView(device.Device(), attachmentData.Image, attachmentData.ColorFormat, 1, 1, 0, attachmentData.IsDepthAttachment ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT);
+            m_CachedImageViews.emplace_back(attachmentData.ImageView);
+            attachmentData.ImageImGuiId = ImGui_ImplVulkan_AddTexture(VulkanContext::GetDefaultSampler(), attachmentData.ImageView, attachmentData.IsDepthAttachment ? VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+        }
+
+        if (shouldCreateResolveTexture)
+        {
+            attachmentData.ResolveImageView = VulkanCommon::CreateImageView(device.Device(), attachmentData.ResolveImage, attachmentData.ColorFormat, 1, 1, 0, attachmentData.IsDepthAttachment ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT);
             m_CachedImageViews.emplace_back(attachmentData.ResolveImageView);
             attachmentData.ResolveImageImGuiId = ImGui_ImplVulkan_AddTexture(VulkanContext::GetDefaultSampler(), attachmentData.ResolveImageView, attachmentData.IsDepthAttachment ? VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+        }
+
+        if (shouldResolveExternal)
+        {
+            attachmentData.ResolveImage = attachmentData.ExternalTexture->GetImage();
+            attachmentData.ResolveImageView = attachmentData.ExternalTexture->GetLayerImageView(attachmentData.ExternalTextureLayer);
+            attachmentData.ResolveImageMemory = attachmentData.ExternalTexture->GetImageMemory();
+            attachmentData.ResolveImageImGuiId = attachmentData.ExternalTexture->GetImGuiHandle(attachmentData.ExternalTextureLayer);
+            m_CachedImageViews.emplace_back(attachmentData.ResolveImageView);
+        }
+        else if (attachmentData.ExternalTexture)
+        {
+            attachmentData.Image = attachmentData.ExternalTexture->GetImage();
+            attachmentData.ImageView = attachmentData.ExternalTexture->GetLayerImageView(attachmentData.ExternalTextureLayer);
+            attachmentData.ImageMemory = attachmentData.ExternalTexture->GetImageMemory();
+            attachmentData.ImageImGuiId = attachmentData.ExternalTexture->GetImGuiHandle(attachmentData.ExternalTextureLayer);
+            m_CachedImageViews.emplace_back(attachmentData.ImageView);
         }
     }
 
@@ -599,13 +640,19 @@ namespace Heart
     {
         VulkanDevice& device = VulkanContext::GetDevice();
 
-        ImGui_ImplVulkan_RemoveTexture(attachmentData.ImageImGuiId);
-            
-        vkDestroyImageView(device.Device(), attachmentData.ImageView, nullptr);
-        vkDestroyImage(device.Device(), attachmentData.Image, nullptr);
-        vkFreeMemory(device.Device(), attachmentData.ImageMemory, nullptr);
+        bool shouldResolveExternal = attachmentData.ExternalTexture && attachmentData.HasResolve;
+        bool hasBaseTexture = !attachmentData.ExternalTexture || shouldResolveExternal;
+        bool hasResolveTexture = attachmentData.HasResolve && !attachmentData.ExternalTexture;
+        if (hasBaseTexture)
+        {
+            ImGui_ImplVulkan_RemoveTexture(attachmentData.ImageImGuiId);
+                
+            vkDestroyImageView(device.Device(), attachmentData.ImageView, nullptr);
+            vkDestroyImage(device.Device(), attachmentData.Image, nullptr);
+            vkFreeMemory(device.Device(), attachmentData.ImageMemory, nullptr);
+        }
 
-        if (attachmentData.HasResolve)
+        if (hasResolveTexture)
         {
             ImGui_ImplVulkan_RemoveTexture(attachmentData.ResolveImageImGuiId);
 

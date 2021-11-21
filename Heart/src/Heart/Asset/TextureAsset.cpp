@@ -9,7 +9,7 @@ namespace Heart
     {
         if (m_Loaded) return;
 
-        bool floatComponents = m_Extension == ".ibl"; // environment map
+        bool floatComponents = m_Extension == ".hdr"; // environment map
 
         void* pixels = nullptr;
         if (floatComponents)
@@ -23,7 +23,7 @@ namespace Heart
             return;
         }
 
-        m_Texture = Texture::Create(m_AbsolutePath, floatComponents, m_Width, m_Height, m_Channels, pixels);
+        m_Texture = Texture::Create(m_Width, m_Height, m_DesiredChannelCount, pixels, 1, floatComponents);
 
         m_Data = pixels;
         m_Valid = true;

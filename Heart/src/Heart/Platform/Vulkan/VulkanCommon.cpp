@@ -76,7 +76,7 @@ namespace Heart
         return 0;
     }
 
-    void VulkanCommon::CreateImage(VkDevice device, VkPhysicalDevice physicalDevice, u32 width, u32 height, VkFormat format, u32 mipLevels, VkSampleCountFlagBits numSamples, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory, VkImageLayout initialLayout, bool cubemap)
+    void VulkanCommon::CreateImage(VkDevice device, VkPhysicalDevice physicalDevice, u32 width, u32 height, VkFormat format, u32 mipLevels, u32 layerCount, VkSampleCountFlagBits numSamples, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory, VkImageLayout initialLayout)
     {
         VkImageCreateInfo imageInfo{};
         imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -85,14 +85,14 @@ namespace Heart
         imageInfo.extent.height = static_cast<u32>(height);
         imageInfo.extent.depth = 1;
         imageInfo.mipLevels = mipLevels;
-        imageInfo.arrayLayers = cubemap ? 6 : 1;
+        imageInfo.arrayLayers = layerCount;
         imageInfo.format = format;
         imageInfo.tiling = tiling;
         imageInfo.initialLayout = initialLayout;
         imageInfo.usage = usage;
         imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
         imageInfo.samples = numSamples;
-        imageInfo.flags = cubemap ? VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT : 0;
+        imageInfo.flags = layerCount == 6 ? VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT : 0;
 
         HE_VULKAN_CHECK_RESULT(vkCreateImage(device, &imageInfo, nullptr, &image));
 
@@ -109,18 +109,24 @@ namespace Heart
         vkBindImageMemory(device, image, imageMemory, 0);
     }
 
-    VkImageView VulkanCommon::CreateImageView(VkDevice device, VkImage image, VkFormat format, u32 mipLevels, u32 baseArrayLayer, VkImageAspectFlags aspectFlags, bool cubemap)
+    VkImageView VulkanCommon::CreateImageView(VkDevice device, VkImage image, VkFormat format, u32 mipLevels, u32 layerCount, u32 baseArrayLayer, VkImageAspectFlags aspectFlags)
     {
+        VkImageViewType viewType = VK_IMAGE_VIEW_TYPE_2D;
+        if (layerCount > 1)
+            viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+        if (layerCount == 6)
+            viewType = VK_IMAGE_VIEW_TYPE_CUBE;
+
         VkImageViewCreateInfo viewInfo{};
         viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
         viewInfo.image = image;
-        viewInfo.viewType = cubemap ? VK_IMAGE_VIEW_TYPE_CUBE : VK_IMAGE_VIEW_TYPE_2D;
+        viewInfo.viewType = viewType;
         viewInfo.format = format;
         viewInfo.subresourceRange.aspectMask = aspectFlags;
         viewInfo.subresourceRange.baseMipLevel = 0;
         viewInfo.subresourceRange.levelCount = mipLevels;
-        viewInfo.subresourceRange.baseArrayLayer = 0;
-        viewInfo.subresourceRange.layerCount = cubemap ? 6 : 1;
+        viewInfo.subresourceRange.baseArrayLayer = baseArrayLayer;
+        viewInfo.subresourceRange.layerCount = layerCount;
 
         VkImageView view;
         HE_VULKAN_CHECK_RESULT(vkCreateImageView(device, &viewInfo, nullptr, &view));
@@ -207,7 +213,7 @@ namespace Heart
         vkUnmapMemory(device, bufferMemory);
     }
 
-    void VulkanCommon::TransitionImageLayout(VkDevice device, VkCommandPool commandPool, VkQueue transferQueue, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout, u32 mipLevels, bool cubemap)
+    void VulkanCommon::TransitionImageLayout(VkDevice device, VkCommandPool commandPool, VkQueue transferQueue, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout, u32 mipLevels, u32 layerCount)
     {
         VkCommandBuffer commandBuffer = BeginSingleTimeCommands(device, commandPool);
 
@@ -222,7 +228,7 @@ namespace Heart
         barrier.subresourceRange.baseMipLevel = 0;
         barrier.subresourceRange.levelCount = mipLevels;
         barrier.subresourceRange.baseArrayLayer = 0;
-        barrier.subresourceRange.layerCount = cubemap ? 6 : 1;
+        barrier.subresourceRange.layerCount = layerCount;
 
         /*
         * Undefined → transfer destination: transfer writes that don't need to wait on anything
@@ -270,7 +276,7 @@ namespace Heart
         EndSingleTimeCommands(device, commandPool, commandBuffer, transferQueue);
     }
 
-    void VulkanCommon::TransitionImageLayout(VkDevice device, VkCommandBuffer buffer, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout, u32 mipLevels, bool cubemap)
+    void VulkanCommon::TransitionImageLayout(VkDevice device, VkCommandBuffer buffer, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout, u32 mipLevels, u32 layerCount)
     {
         VkImageMemoryBarrier barrier{};
         barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -283,7 +289,7 @@ namespace Heart
         barrier.subresourceRange.baseMipLevel = 0;
         barrier.subresourceRange.levelCount = mipLevels;
         barrier.subresourceRange.baseArrayLayer = 0;
-        barrier.subresourceRange.layerCount = cubemap ? 6 : 1;
+        barrier.subresourceRange.layerCount = layerCount;
 
         VkPipelineStageFlags sourceStage;
         VkPipelineStageFlags destinationStage;
@@ -336,7 +342,7 @@ namespace Heart
         EndSingleTimeCommands(device, commandPool, commandBuffer, transferQueue);
     }
 
-    void VulkanCommon::GenerateMipmaps(VkDevice device, VkPhysicalDevice physicalDevice, VkCommandPool commandPool, VkQueue submitQueue, VkImage image, VkFormat imageFormat, u32 width, u32 height, u32 mipLevels)
+    void VulkanCommon::GenerateMipmaps(VkDevice device, VkPhysicalDevice physicalDevice, VkCommandPool commandPool, VkQueue submitQueue, VkImage image, VkFormat imageFormat, u32 width, u32 height, u32 mipLevels, u32 layerCount)
     {
         // Check if image format supports linear blitting
         VkFormatProperties formatProperties;
@@ -381,13 +387,13 @@ namespace Heart
             blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
             blit.srcSubresource.mipLevel = i - 1;
             blit.srcSubresource.baseArrayLayer = 0;
-            blit.srcSubresource.layerCount = 1;
+            blit.srcSubresource.layerCount = layerCount;
             blit.dstOffsets[0] = { 0, 0, 0 };
             blit.dstOffsets[1] = { mipWidth > 1 ? mipWidth / 2 : 1, mipHeight > 1 ? mipHeight / 2 : 1, 1 };
             blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
             blit.dstSubresource.mipLevel = i;
             blit.dstSubresource.baseArrayLayer = 0;
-            blit.dstSubresource.layerCount = 1;
+            blit.dstSubresource.layerCount = layerCount;
 
             vkCmdBlitImage(commandBuffer,
                 image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,

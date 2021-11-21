@@ -91,7 +91,7 @@ float GetRoughness()
 vec4 GetFinalColor()
 {
     vec3 L = normalize(vec3(0.5f, 0.5f, 0.f));
-    vec3 V = normalize(frameData.cameraPos.xyz - worldPos);
+    vec3 V = normalize(frameBuffer.data.cameraPos.xyz - worldPos);
     vec3 H = normalize(V + L);
     vec3 nt = normalize(tangent);
     vec3 nb = normalize(bitangent);

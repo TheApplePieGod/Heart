@@ -1,11 +1,7 @@
 #version 460
 
 #include "FrameBuffer.glsl"
-
-layout(location = 0) in vec3 inPosition;
-layout(location = 1) in vec2 inTexCoord;
-layout(location = 2) in vec3 inNormal;
-layout(location = 3) in vec4 inTangent;
+#include "VertexLayout.glsl"
 
 layout(location = 0) out vec2 texCoord;
 layout(location = 1) out int entityId;
@@ -27,9 +23,9 @@ layout(binding = 1) readonly buffer ObjectBuffer {
 
 void main() {
     worldPos = (objectBuffer.object.model * vec4(inPosition, 1.0)).xyz;
-    vec4 viewPos = (frameData.view * vec4(worldPos, 1.0));
+    vec4 viewPos = (frameBuffer.data.view * vec4(worldPos, 1.0));
     depth = viewPos.z;
-    gl_Position = frameData.proj * viewPos;
+    gl_Position = frameBuffer.data.proj * viewPos;
     
     texCoord = inTexCoord;
     entityId = objectBuffer.object.entityId;

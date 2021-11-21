@@ -6,8 +6,8 @@ namespace Heart
 {
     enum class ColorFormat
     {
-        RGBA8 = 0,
-        R32F, RG32F, RGB32F, RGBA32F
+        None = 0,
+        RGBA8, R32F, RG32F, RGB32F, RGBA32F
     };
 
     enum class SamplerFilter
@@ -67,33 +67,30 @@ namespace Heart
     class Texture
     {
     public:
-        Texture(const std::string& path, bool floatComponents, int width, int height, int channels)
-            : m_Path(path), m_FloatComponents(floatComponents), m_Width(width), m_Height(height), m_Channels(channels)
+        Texture(int width, int height, int channels, u32 arrayCount = 1, bool floatComponents = false)
+            : m_Width(width), m_Height(height), m_Channels(channels), m_ArrayCount(arrayCount), m_FloatComponents(floatComponents)
         {}
         virtual ~Texture() = default;
 
-        inline void* GetImGuiHandle() const { return m_ImGuiHandle; }
+        inline void* GetImGuiHandle(u32 layerIndex = 0) const { return m_LayerImGuiHandles[layerIndex]; }
         inline u32 GetArrayCount() const { return m_ArrayCount; }
         inline int GetWidth() const { return m_Width; }
         inline int GetHeight() const { return m_Height; }
         inline int GetChannels() const { return m_Channels; }
-        inline const std::string& GetFilePath() const { return m_Path; }
         inline bool HasTransparency() const { return m_HasTransparency; }
         inline const TextureSamplerState& GetSamplerState() const { return m_SamplerState; }
 
     public:
-        static Ref<Texture> Create(const std::string& path, bool floatComponents = false, int width = 0, int height = 0, int channels = 0, void* data = nullptr);
+        static Ref<Texture> Create(int width, int height, int channels, void* data = nullptr, u32 arrayCount = 1, bool floatComponents = false);
 
     protected:
         void ScanForTransparency(int width, int height, int channels, void* data);
 
     protected:
-        const int m_DesiredChannelCount = 4; // all images will load as RGBA
-        std::string m_Path;
         int m_Width, m_Height, m_Channels;
         bool m_FloatComponents;
-        u32 m_ArrayCount = 1;
-        void* m_ImGuiHandle;
+        u32 m_ArrayCount;
+        std::vector<void*> m_LayerImGuiHandles;
         bool m_HasTransparency = false;
         TextureSamplerState m_SamplerState;
     };

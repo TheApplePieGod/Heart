@@ -20,6 +20,6 @@ void main() {
     uint vertexIndex = gl_VertexID;
     #endif
 
-    vec4 pos = vec4((float((vertexIndex >> 1U) & 1U)) * 4.0 - 1.0, (float(vertexIndex & 1U)) * 4.0 - 1.0, frameData.reverseDepth, 1.0);
+    vec4 pos = vec4((float((vertexIndex >> 1U) & 1U)) * 4.0 - 1.0, (float(vertexIndex & 1U)) * 4.0 - 1.0, frameBuffer.data.reverseDepth, 1.0);
     gl_Position = pos;
 }
