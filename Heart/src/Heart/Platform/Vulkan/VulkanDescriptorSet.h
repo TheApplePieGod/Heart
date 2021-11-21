@@ -29,6 +29,7 @@ namespace Heart
         inline void PushDescriptorPool() { m_DescriptorPools[m_InFlightFrameIndex].emplace_back(CreateDescriptorPool()); }
         VkDescriptorSet AllocateSet();
         void ClearPools();
+        size_t HashBindings();
 
     private:
         // TODO: parameterize?
@@ -45,6 +46,7 @@ namespace Heart
         std::array<VkDescriptorBufferInfo, MAX_UNIQUE_DESCRIPTORS> m_CachedBufferInfos;
         std::array<VkDescriptorImageInfo, MAX_DESCRIPTOR_ARRAY_COUNT * MAX_UNIQUE_DESCRIPTORS> m_CachedImageInfos;
         std::unordered_map<u32, size_t> m_DescriptorWriteMappings;
+        std::unordered_map<size_t, VkDescriptorSet> m_CachedDescriptorSets;
 
         u32 m_FrameDataRegistryId;
         u64 m_LastResetFrame = 0;

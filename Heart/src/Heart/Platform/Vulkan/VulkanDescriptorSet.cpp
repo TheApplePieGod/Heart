@@ -118,6 +118,13 @@ namespace Heart
 
         //HE_ENGINE_ASSERT(m_DescriptorWriteMappings.find(bindingIndex) != m_DescriptorWriteMappings.end(), "Attempting to update a shader resource binding that doesn't exist");
 
+        size_t hash = HashBindings();
+        if (m_CachedDescriptorSets.find(hash) != m_CachedDescriptorSets.end())
+        {
+            m_MostRecentDescriptorSet = m_CachedDescriptorSets[hash];
+            return true;
+        }
+
         u32 bufferInfoBaseIndex = bindingIndex;
         u32 imageInfoBaseIndex = bindingIndex * MAX_DESCRIPTOR_ARRAY_COUNT;
         switch (resourceType)
@@ -169,7 +176,6 @@ namespace Heart
         descriptorWrite.pBufferInfo = &m_CachedBufferInfos[bufferInfoBaseIndex];
         descriptorWrite.pImageInfo = &m_CachedImageInfos[imageInfoBaseIndex];
 
-        // in order to keep vulkan happy, we cannot update a descriptor set 
         if (m_WritesReadyCount == m_CachedDescriptorWrites.size())
         {
             m_MostRecentDescriptorSet = AllocateSet();
@@ -177,6 +183,8 @@ namespace Heart
                 write.dstSet = m_MostRecentDescriptorSet;
             
             vkUpdateDescriptorSets(device.Device(), static_cast<u32>(m_CachedDescriptorWrites.size()), m_CachedDescriptorWrites.data(), 0, nullptr);
+
+            m_CachedDescriptorSets[hash] = m_MostRecentDescriptorSet;
 
             return true;
         }
@@ -232,8 +240,19 @@ namespace Heart
         m_InFlightFrameIndex = mainContext.GetSwapChain().GetInFlightFrameIndex();
         m_AvailableSetIndex = 0;
         m_AvailablePoolIndex = 0;
+        m_CachedDescriptorSets.clear();
 
         for (auto& pool : m_DescriptorPools[m_InFlightFrameIndex])
             vkResetDescriptorPool(device.Device(), pool, 0);
+    }
+
+    size_t VulkanDescriptorSet::HashBindings()
+    {
+        size_t hash = 0;
+
+        for (auto pair : m_BoundResources)
+            hash ^= std::hash<intptr_t>{}((intptr_t)pair.second);
+
+        return hash;
     }
 }
