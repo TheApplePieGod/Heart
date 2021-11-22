@@ -18,20 +18,26 @@ namespace Heart
             default: break;
             case Type::Uniform:
             {
-                VkDeviceSize minAlignment = device.PhysicalDeviceProperties().limits.minUniformBufferOffsetAlignment;
-                if (layout.GetStride() % minAlignment != 0)
+                if (elementCount > 1)
                 {
-                    HE_ENGINE_LOG_CRITICAL("Uniform buffer layout must be a multiple of {0} but is {1}", minAlignment, layout.GetStride());
-                    HE_ENGINE_ASSERT(false);
+                    VkDeviceSize minAlignment = device.PhysicalDeviceProperties().limits.minUniformBufferOffsetAlignment;
+                    if (layout.GetStride() % minAlignment != 0)
+                    {
+                        HE_ENGINE_LOG_CRITICAL("Uniform buffer layout must be a multiple of {0} but is {1}", minAlignment, layout.GetStride());
+                        HE_ENGINE_ASSERT(false);
+                    }
                 }
             }
             case Type::Storage:
             {
-                VkDeviceSize minAlignment = device.PhysicalDeviceProperties().limits.minStorageBufferOffsetAlignment;
-                if (layout.GetStride() % minAlignment != 0)
+                if (elementCount > 1)
                 {
-                    HE_ENGINE_LOG_CRITICAL("Storage buffer layout must be a multiple of {0} but is {1}", minAlignment, layout.GetStride());
-                    HE_ENGINE_ASSERT(false);
+                    VkDeviceSize minAlignment = device.PhysicalDeviceProperties().limits.minStorageBufferOffsetAlignment;
+                    if (layout.GetStride() % minAlignment != 0)
+                    {
+                        HE_ENGINE_LOG_CRITICAL("Storage buffer layout must be a multiple of {0} but is {1}", minAlignment, layout.GetStride());
+                        HE_ENGINE_ASSERT(false);
+                    }
                 }
             }
             case Type::Pixel:

@@ -116,9 +116,14 @@ namespace Widgets
     void ContentBrowser::RenderDirectoryNode(const std::string& path)
     {
         std::vector<std::filesystem::directory_entry> directories;
-        for (const auto& entry : std::filesystem::directory_iterator(std::filesystem::path(Heart::AssetManager::GetAssetsDirectory()).append(path)))
-            if (entry.is_directory())
-                directories.push_back(entry);
+        try
+        {
+            for (const auto& entry : std::filesystem::directory_iterator(std::filesystem::path(Heart::AssetManager::GetAssetsDirectory()).append(path)))
+                if (entry.is_directory())
+                    directories.push_back(entry);
+        }
+        catch (std::exception e) // likely invalid path so cut off this node
+        { return; }
 
         bool selected = path == m_DirectoryStack[m_DirectoryStackIndex];
         ImGuiTreeNodeFlags node_flags = (directories.size() > 0 ? 0 : ImGuiTreeNodeFlags_Leaf) | ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | (selected ? ImGuiTreeNodeFlags_Selected : 0);
@@ -144,16 +149,9 @@ namespace Widgets
         auto entryName = entry.path().filename().generic_u8string();
 
         ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.f, 0.f, 0.f, 0.f));
-        std::string texturePath = "assets/textures/folder.png";
-        if (!entry.is_directory())
-        {
-            if (Heart::AssetManager::IsAssetRegistered(Heart::Asset::Type::Texture, entry.path().generic_u8string()))
-                texturePath = entry.path().generic_u8string();
-            else
-                texturePath = "assets/textures/file.png";
-        }
+            
         ImGui::ImageButton(
-            Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>(texturePath.c_str())->GetTexture()->GetImGuiHandle(),
+            Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>(entry.is_directory() ? "editor/folder.png" :  "editor/file.png", true)->GetTexture()->GetImGuiHandle(),
             { m_CardSize.x, m_CardSize.y }
         );
         if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0))

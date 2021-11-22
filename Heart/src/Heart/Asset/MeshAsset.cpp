@@ -19,6 +19,8 @@ namespace Heart
         try
         {
             data = FilesystemUtils::ReadFile(m_AbsolutePath, fileLength);
+            if (!data)
+                throw std::exception();
             if (/*m_Extension == ".glb" ||*/ m_Extension == ".gltf") // TODO: glb support
                 ParseGLTF(data);
         }

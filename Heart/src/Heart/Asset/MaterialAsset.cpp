@@ -44,6 +44,9 @@ namespace Heart
 
         u32 fileLength;
         unsigned char* data = FilesystemUtils::ReadFile(path, fileLength);
+        if (!data)
+            throw std::exception();
+
         auto j = nlohmann::json::parse(data);
 
         // parse material data

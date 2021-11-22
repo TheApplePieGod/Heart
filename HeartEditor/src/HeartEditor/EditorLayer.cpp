@@ -17,16 +17,16 @@ namespace HeartEditor
 {
     EditorLayer::EditorLayer()
     {
-        // register editor texture assets
-        Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Texture, "assets/textures/pan.png");
-        Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Texture, "assets/textures/rotate.png");
-        Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Texture, "assets/textures/scale.png");
-        Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Texture, "assets/textures/object.png");
-        Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Texture, "assets/textures/world.png");
-        Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Texture, "assets/textures/folder.png");
-        Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Texture, "assets/textures/file.png");
+        // Register required editor resources
+        Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Texture, "editor/pan.png", true, true);
+        Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Texture, "editor/rotate.png", true, true);
+        Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Texture, "editor/scale.png", true, true);
+        Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Texture, "editor/object.png", true, true);
+        Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Texture, "editor/world.png", true, true);
+        Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Texture, "editor/folder.png", true, true);
+        Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Texture, "editor/file.png", true, true);
 
-        // register testing assets
+        // Register testing assets
         Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Material, "assets/materials/TestMaterial.hemat");
         Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Texture, "assets/textures/fish.png");
         Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Texture, "assets/textures/test.png");
@@ -35,9 +35,6 @@ namespace HeartEditor
         Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Mesh, "assets/meshes/Buggy/glTF/Buggy.gltf");
         Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Mesh, "assets/meshes/Duck/glTF/Duck.gltf");
         Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Mesh, "assets/meshes/IridescentDishWithOlives/glTF/IridescentDishWithOlives.gltf");
-        Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Texture, "assets/envmaps/GrandCanyon.hdr");
-        Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Texture, "assets/envmaps/IceLake.hdr");
-        Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Texture, "assets/envmaps/PopcornLobby.hdr");
 
         m_EditorCamera = Heart::CreateScope<EditorCamera>(70.f, 0.1f, 500.f, 1.f);
         m_ActiveScene = Heart::CreateRef<Heart::Scene>();
@@ -53,38 +50,9 @@ namespace HeartEditor
         entity.GetComponent<Heart::MeshComponent>().Mesh = Heart::AssetManager::GetAssetUUID("assets/meshes/cube.gltf");
         entity.GetComponent<Heart::MeshComponent>().Materials.emplace_back(0);
 
-        // parenting testing
-        // std::string parentString = "Parent Entity ";
-        // std::string childString = "Child Entity ";
-        // int max = 25;
-        // int scaleMax = 2;
-        // for (int i = 0; i < 50; i++)
-        // {
-        //     Heart::Entity parentEntity = m_ActiveScene->CreateEntity(parentString + std::to_string(i));
-        //     Heart::Entity childEntity;
-        //     parentEntity.AddComponent<Heart::MeshComponent>();
-
-        //     auto& transformComp = parentEntity.GetComponent<Heart::TransformComponent>();
-        //     transformComp.Translation += glm::vec3(rand() % (max * 2) - max, rand() % (max * 2) - max, rand() % (max * 2) - max);
-        //     transformComp.Rotation += glm::vec3(rand() % (180 * 2) - 180, rand() % (180 * 2) - 180, rand() % (180 * 2) - 180);
-        //     //transformComp.Scale += glm::vec3(rand() % scaleMax, rand() % scaleMax, rand() % scaleMax);
-        //     m_ActiveScene->CacheEntityTransform(parentEntity);
-
-        //     for (int j = 0; j < 10; j++)
-        //     {
-        //         Heart::Entity childEntity = m_ActiveScene->CreateEntity(childString + std::to_string(j));
-        //         childEntity.AddComponent<Heart::MeshComponent>();
-        //         m_ActiveScene->AssignRelationship(parentEntity, childEntity);
-                
-        //         auto& transformComp = childEntity.GetComponent<Heart::TransformComponent>();
-        //         transformComp.Translation += glm::vec3(rand() % (max * 2) - max, rand() % (max * 2) - max, rand() % (max * 2) - max);
-        //         transformComp.Rotation += glm::vec3(rand() % (180 * 2) - 180, rand() % (180 * 2) - 180, rand() % (180 * 2) - 180);
-        //         //transformComp.Scale += glm::vec3(rand() % scaleMax, rand() % scaleMax, rand() % scaleMax);
-        //         m_ActiveScene->CacheEntityTransform(childEntity);
-
-        //         parentEntity = childEntity;
-        //     }
-        // }
+        m_EnvironmentMaps.emplace_back(Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Texture, "assets/envmaps/GrandCanyon.hdr"));
+        m_EnvironmentMaps.emplace_back(Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Texture, "assets/envmaps/IceLake.hdr"));
+        m_EnvironmentMaps.emplace_back(Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Texture, "assets/envmaps/PopcornLobby.hdr"));
     }
 
     EditorLayer::~EditorLayer()
@@ -100,6 +68,13 @@ namespace HeartEditor
 
         m_SceneRenderer = Heart::CreateScope<Heart::SceneRenderer>();
 
+        auto loadTimer = Heart::Timer("Environment map generation");
+        for (auto& map : m_EnvironmentMaps)
+        {
+            map.Initialize();
+            map.Recalculate();
+        }
+
         HE_CLIENT_LOG_INFO("Editor attached");
     }
 
@@ -110,7 +85,13 @@ namespace HeartEditor
 
         m_EditorCamera->OnUpdate(ts, m_ViewportInput, m_ViewportHover);
 
-        m_SceneRenderer->RenderScene(EditorApp::Get().GetWindow().GetContext(), m_ActiveScene.get(), m_EditorCamera->GetViewMatrix(), m_EditorCamera->GetProjectionMatrix(), m_EditorCamera->GetPosition());
+        m_SceneRenderer->RenderScene(
+            EditorApp::Get().GetWindow().GetContext(),
+            m_ActiveScene.get(),
+            *m_EditorCamera,
+            m_EditorCamera->GetPosition(),
+            &m_EnvironmentMaps[0]
+        );
     }
 
     void EditorLayer::OnImGuiRender()
@@ -254,7 +235,7 @@ namespace HeartEditor
 
             ImGui::TableSetColumnIndex(0);
             if (ImGui::ImageButton(
-                Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>("assets/textures/pan.png")->GetTexture()->GetImGuiHandle(),
+                Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>("editor/pan.png", true)->GetTexture()->GetImGuiHandle(),
                 { 25, 25 }
             ))
             { m_GizmoOperation = ImGuizmo::OPERATION::TRANSLATE; }
@@ -262,7 +243,7 @@ namespace HeartEditor
 
             ImGui::TableSetColumnIndex(1);
             if (ImGui::ImageButton(
-                Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>("assets/textures/rotate.png")->GetTexture()->GetImGuiHandle(),
+                Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>("editor/rotate.png", true)->GetTexture()->GetImGuiHandle(),
                 { 25, 25 }
             ))
             { m_GizmoOperation = ImGuizmo::OPERATION::ROTATE; }
@@ -270,7 +251,7 @@ namespace HeartEditor
 
             ImGui::TableSetColumnIndex(2);
             if (ImGui::ImageButton(
-                Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>("assets/textures/scale.png")->GetTexture()->GetImGuiHandle(),
+                Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>("editor/scale.png", true)->GetTexture()->GetImGuiHandle(),
                 { 25, 25 }
             ))
             { m_GizmoOperation = ImGuizmo::OPERATION::SCALE; }
@@ -281,7 +262,7 @@ namespace HeartEditor
 
             ImGui::TableSetColumnIndex(4);
             if (ImGui::ImageButton(
-                Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>(m_GizmoMode ? "assets/textures/world.png" : "assets/textures/object.png")->GetTexture()->GetImGuiHandle(),
+                Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>(m_GizmoMode ? "editor/world.png" : "editor/object.png", true)->GetTexture()->GetImGuiHandle(),
                 { 25, 25 }
             ))
             { m_GizmoMode = (ImGuizmo::MODE)(!m_GizmoMode); }
@@ -369,6 +350,9 @@ namespace HeartEditor
         UnsubscribeFromEmitter(&EditorApp::Get().GetWindow());
         
         m_SceneRenderer.reset();
+
+        for (auto& map : m_EnvironmentMaps)
+            map.Shutdown();
 
         HE_CLIENT_LOG_INFO("Editor detached");
     }

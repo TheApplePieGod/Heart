@@ -16,7 +16,7 @@ namespace Heart
         void Shutdown();
 
         // returns true if a call to vkCmdBindDescriptorSets using GetMostRecentDescriptorSet() is allowed
-        bool UpdateShaderResource(u32 bindingIndex, ShaderResourceType resourceType, void* resource, bool useOffset, glm::vec2 offset); // offset used for image
+        bool UpdateShaderResource(u32 bindingIndex, ShaderResourceType resourceType, void* resource, bool useOffset, u32 offset); // offset used for image
 
         inline VkDescriptorSetLayout GetLayout() const { return m_DescriptorSetLayout; };
         inline VkDescriptorSet GetMostRecentDescriptorSet() const { return m_MostRecentDescriptorSet; }

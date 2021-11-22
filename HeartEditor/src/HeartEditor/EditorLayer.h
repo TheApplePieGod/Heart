@@ -8,6 +8,7 @@
 #include "Heart/Scene/Scene.h"
 #include "Heart/Scene/Entity.h"
 #include "Heart/Renderer/SceneRenderer.h"
+#include "Heart/Renderer/EnvironmentMap.h"
 #include "imgui/imgui.h"
 #include "imguizmo/ImGuizmo.h"
 
@@ -54,6 +55,7 @@ namespace HeartEditor
         Heart::Ref<Heart::Scene> m_ActiveScene;
         Heart::Scope<Heart::SceneRenderer> m_SceneRenderer;
         Heart::Scope<EditorCamera> m_EditorCamera;
+        std::vector<Heart::EnvironmentMap> m_EnvironmentMaps;
         glm::vec2 m_ViewportMousePos; // mouse position relative to the viewport window
         glm::vec2 m_ViewportSize;
         bool m_ViewportInput = false;

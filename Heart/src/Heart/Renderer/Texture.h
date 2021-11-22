@@ -98,6 +98,7 @@ namespace Heart
 
     protected:
         TextureCreateInfo m_Info;
+        u32 m_MipLevels;
         std::vector<void*> m_LayerImGuiHandles;
         bool m_HasTransparency = false;
         TextureSamplerState m_SamplerState;

@@ -1,7 +1,7 @@
 #version 460
 #define PI 3.14159265359
 
-#include "FrameBuffer.glsl"
+#include "CubemapBuffer.glsl"
 
 layout(location = 0) in vec3 localPos;
 
@@ -52,7 +52,7 @@ void main() {
     vec3 R = N;
     vec3 V = R;
 
-    float roughness = frameBuffer.data.cameraPos.x;
+    float roughness = cubemapBuffer.data.parameters.x;
 
     const uint SAMPLE_COUNT = 1024u;
     float totalWeight = 0.0;   

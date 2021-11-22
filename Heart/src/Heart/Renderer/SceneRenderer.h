@@ -6,6 +6,8 @@
 #include "Heart/Renderer/Buffer.h"
 #include "Heart/Renderer/Texture.h"
 #include "Heart/Renderer/Material.h"
+#include "Heart/Renderer/EnvironmentMap.h"
+#include "Heart/Core/Camera.h"
 #include "glm/vec2.hpp"
 #include "glm/vec3.hpp"
 #include "glm/mat4x4.hpp"
@@ -35,7 +37,7 @@ namespace Heart
         SceneRenderer();
         ~SceneRenderer();
 
-        void RenderScene(GraphicsContext& context, Scene* scene, glm::mat4 view, glm::mat4 projection, glm::vec3 position);
+        void RenderScene(GraphicsContext& context, Scene* scene, const Camera& camera, glm::vec3 cameraPosition, EnvironmentMap* envMap = nullptr);
 
         inline Framebuffer& GetFinalFramebuffer() { return *m_FinalFramebuffer; }
 
@@ -53,20 +55,23 @@ namespace Heart
         };
 
     private:
-        void CalculateEnvironmentMaps(GraphicsContext& context);
+        void RenderEnvironmentMap();
+        void RenderOpaque();
+        void RenderTransparent();
+        void Composite();
 
     private:
-        Ref<Texture> m_EnvironmentMap;
-        Ref<Texture> m_IrradianceMap;
-        Ref<Texture> m_PrefilterMap;
-        Ref<Texture> m_BRDFTexture;
-        std::vector<Ref<Framebuffer>> m_PrefilterFramebuffers; // one for each mip level
-        Ref<Framebuffer> m_BRDFFramebuffer;
-        Ref<Framebuffer> m_CubemapFramebuffer;
-        Ref<Framebuffer> m_IrradianceMapFramebuffer;
+        Ref<Texture> m_DefaultEnvironmentMap;
         Ref<Framebuffer> m_FinalFramebuffer;
         Ref<Buffer> m_FrameDataBuffer;
         Ref<Buffer> m_ObjectDataBuffer;
         Ref<Buffer> m_MaterialDataBuffer;
+
+        // in-flight frame data
+        Scene* m_Scene;
+        EnvironmentMap* m_EnvironmentMap;
+        std::vector<CachedRender> m_TransparentMeshes;
+        u32 m_ObjectDataOffset = 0;
+        u32 m_MaterialDataOffset = 0;  
     };
 }

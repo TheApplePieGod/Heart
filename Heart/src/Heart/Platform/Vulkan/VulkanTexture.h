@@ -31,7 +31,6 @@ namespace Heart
         VkFormat m_Format;
         ColorFormat m_GeneralFormat;
         std::vector<VkImageView> m_LayerViews;
-        u32 m_MipLevels;
         VkImageLayout m_CurrentLayout;
         VkSampler m_Sampler;
     };

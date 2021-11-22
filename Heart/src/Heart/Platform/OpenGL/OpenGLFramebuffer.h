@@ -2,6 +2,7 @@
 
 #include "Heart/Renderer/Framebuffer.h"
 #include "Heart/Platform/OpenGL/OpenGLBuffer.h"
+#include "Heart/Platform/OpenGL/OpenGLTexture.h"
 
 namespace Heart
 {
@@ -15,7 +16,7 @@ namespace Heart
         void BindPipeline(const std::string& name) override;
         void BindShaderBufferResource(u32 bindingIndex, u32 offset, Buffer* buffer) override;
         void BindShaderTextureResource(u32 bindingIndex, Texture* texture) override;
-        void BindShaderTextureLayerResource(u32 bindingIndex, Texture* texture, u32 layerIndex, u32 mipLevel) override {}
+        void BindShaderTextureLayerResource(u32 bindingIndex, Texture* texture, u32 layerIndex) override;
         void BindSubpassInputAttachment(u32 bindingIndex, SubpassAttachment attachment) override;
 
         void* GetColorAttachmentImGuiHandle(u32 attachmentIndex) override;
@@ -40,6 +41,9 @@ namespace Heart
             bool IsDepthAttachment;
             std::array<Ref<OpenGLBuffer>, 2> PixelBuffers;
             void* PixelBufferMapping = nullptr;
+            OpenGLTexture* ExternalTexture;
+            u32 ExternalTextureLayer;
+            u32 ExternalTextureMip;
             u32 PBOFramebufferAttachment;
         };
 

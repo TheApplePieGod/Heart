@@ -420,29 +420,29 @@ namespace Heart
     {
         HE_PROFILE_FUNCTION();
 
-        BindShaderResource(bindingIndex, ShaderResourceType::UniformBuffer, buffer, true, { buffer->GetLayout().GetStride() * elementOffset, 0.f }); // uniform vs structured buffer doesn't matter here
+        BindShaderResource(bindingIndex, ShaderResourceType::UniformBuffer, buffer, true, buffer->GetLayout().GetStride() * elementOffset); // uniform vs structured buffer doesn't matter here
     }
 
     void VulkanFramebuffer::BindShaderTextureResource(u32 bindingIndex, Texture* texture)
     {
         HE_PROFILE_FUNCTION();
         
-        BindShaderResource(bindingIndex, ShaderResourceType::Texture, texture, false, glm::vec2(0.f));
+        BindShaderResource(bindingIndex, ShaderResourceType::Texture, texture, false, 0);
     }
 
-    void VulkanFramebuffer::BindShaderTextureLayerResource(u32 bindingIndex, Texture* texture, u32 layerIndex, u32 mipLevel)
+    void VulkanFramebuffer::BindShaderTextureLayerResource(u32 bindingIndex, Texture* texture, u32 layerIndex)
     {
-        BindShaderResource(bindingIndex, ShaderResourceType::Texture, texture, true, { layerIndex, mipLevel });
+        BindShaderResource(bindingIndex, ShaderResourceType::Texture, texture, true, layerIndex);
     }
 
     void VulkanFramebuffer::BindSubpassInputAttachment(u32 bindingIndex, SubpassAttachment attachment)
     {
         HE_PROFILE_FUNCTION();
 
-        BindShaderResource(bindingIndex, ShaderResourceType::SubpassInput, attachment.Type == SubpassAttachmentType::Depth ? &m_DepthAttachmentData[attachment.AttachmentIndex] : &m_AttachmentData[attachment.AttachmentIndex], false, glm::vec2(0.f));
+        BindShaderResource(bindingIndex, ShaderResourceType::SubpassInput, attachment.Type == SubpassAttachmentType::Depth ? &m_DepthAttachmentData[attachment.AttachmentIndex] : &m_AttachmentData[attachment.AttachmentIndex], false, 0);
     }
 
-    void VulkanFramebuffer::BindShaderResource(u32 bindingIndex, ShaderResourceType resourceType, void* resource, bool useOffset, glm::vec2 offset)
+    void VulkanFramebuffer::BindShaderResource(u32 bindingIndex, ShaderResourceType resourceType, void* resource, bool useOffset, u32 offset)
     {
         // TODO: don't use string here
         HE_ENGINE_ASSERT(!m_BoundPipeline.empty(), "Must call BindPipeline before BindShaderResource");
@@ -454,7 +454,7 @@ namespace Heart
             return; // silently ignore, TODO: warning once in the console when this happens
 
         if (useOffset && (resourceType == ShaderResourceType::UniformBuffer || resourceType == ShaderResourceType::StorageBuffer))
-            descriptorSet.UpdateDynamicOffset(bindingIndex, static_cast<u32>(offset.x));
+            descriptorSet.UpdateDynamicOffset(bindingIndex, offset);
 
         // we only want to bind here if the descriptor set was allocated & updated
         // this will only occur if the binding resource differs at the same bind index and

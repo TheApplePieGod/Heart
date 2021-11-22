@@ -12,6 +12,30 @@ namespace Heart
     {
         glGenBuffers(1, &m_BufferId);
 
+        if (elementCount > 1)
+        {
+            if (type == Type::Uniform)
+            {
+                int minAlignment = 0;
+                glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minAlignment);
+                if (layout.GetStride() % minAlignment != 0)
+                {
+                    HE_ENGINE_LOG_CRITICAL("Uniform buffer layout must be a multiple of {0} but is {1}", minAlignment, layout.GetStride());
+                    HE_ENGINE_ASSERT(false);
+                }
+            }
+            else if (type == Type::Storage)
+            {
+                int minAlignment = 0;
+                glGetIntegerv(GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT, &minAlignment);
+                if (layout.GetStride() % minAlignment != 0)
+                {
+                    HE_ENGINE_LOG_CRITICAL("Uniform buffer layout must be a multiple of {0} but is {1}", minAlignment, layout.GetStride());
+                    HE_ENGINE_ASSERT(false);
+                }
+            }
+        }
+
         glBindBuffer(OpenGLCommon::BufferTypeToOpenGL(type), m_BufferId);
         glBufferData(OpenGLCommon::BufferTypeToOpenGL(type), layout.GetStride() * elementCount, initialData, OpenGLCommon::BufferUsageTypeToOpenGL(usage));
         glBindBuffer(OpenGLCommon::BufferTypeToOpenGL(type), 0);

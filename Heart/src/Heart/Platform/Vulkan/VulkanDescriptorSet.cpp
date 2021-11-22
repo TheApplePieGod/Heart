@@ -92,7 +92,7 @@ namespace Heart
         vkDestroyDescriptorSetLayout(device.Device(), m_DescriptorSetLayout, nullptr);
     }
 
-    bool VulkanDescriptorSet::UpdateShaderResource(u32 bindingIndex, ShaderResourceType resourceType, void* resource, bool useOffset, glm::vec2 offset)
+    bool VulkanDescriptorSet::UpdateShaderResource(u32 bindingIndex, ShaderResourceType resourceType, void* resource, bool useOffset, u32 offset)
     {
         HE_PROFILE_FUNCTION();
 
@@ -118,8 +118,9 @@ namespace Heart
 
         //HE_ENGINE_ASSERT(m_DescriptorWriteMappings.find(bindingIndex) != m_DescriptorWriteMappings.end(), "Attempting to update a shader resource binding that doesn't exist");
 
+        // TODO: cache offsets
         size_t hash = HashBindings();
-        if (m_CachedDescriptorSets.find(hash) != m_CachedDescriptorSets.end())
+        if (offset != 0 && m_CachedDescriptorSets.find(hash) != m_CachedDescriptorSets.end())
         {
             m_MostRecentDescriptorSet = m_CachedDescriptorSets[hash];
             return true;
@@ -152,7 +153,7 @@ namespace Heart
                     m_CachedImageInfos[imageInfoBaseIndex + i].sampler = texture->GetSampler();
                     m_CachedImageInfos[imageInfoBaseIndex + i].imageLayout = texture->GetCurrentLayout();
                     if (useOffset)
-                        m_CachedImageInfos[imageInfoBaseIndex + i].imageView = texture->GetLayerImageView(static_cast<u32>(offset.x), static_cast<u32>(offset.y));
+                        m_CachedImageInfos[imageInfoBaseIndex + i].imageView = texture->GetLayerImageView(offset, 0);
                     else
                         m_CachedImageInfos[imageInfoBaseIndex + i].imageView = texture->GetImageView();
                 }

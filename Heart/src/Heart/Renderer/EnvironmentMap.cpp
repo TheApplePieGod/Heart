@@ -1,0 +1,366 @@
+#include "htpch.h"
+#include "EnvironmentMap.h"
+
+#include "Heart/Asset/AssetManager.h"
+#include "Heart/Asset/TextureAsset.h"
+#include "Heart/Asset/MeshAsset.h"
+#include "Heart/Renderer/Mesh.h"
+#include "Heart/Renderer/Renderer.h"
+#include "Heart/Core/Camera.h"
+#include "Heart/Core/Window.h"
+
+namespace Heart
+{
+    EnvironmentMap::EnvironmentMap(UUID mapAsset)
+        : m_MapAsset(mapAsset)
+    {
+        // Register required resources
+        AssetManager::RegisterAsset(Asset::Type::Shader, "BRDFQuad.vert", false, true);
+        AssetManager::RegisterAsset(Asset::Type::Shader, "CalcEnvironmentMap.frag", false, true);
+        AssetManager::RegisterAsset(Asset::Type::Shader, "EnvironmentMap.vert", false, true);
+        AssetManager::RegisterAsset(Asset::Type::Shader, "CalcIrradianceMap.frag", false, true);
+        AssetManager::RegisterAsset(Asset::Type::Shader, "CalcPrefilterMap.frag", false, true);
+        AssetManager::RegisterAsset(Asset::Type::Shader, "CalcBRDF.frag", false, true);
+        AssetManager::RegisterAsset(Asset::Type::Mesh, "DefaultCube.gltf", false, true);
+    }
+
+    void EnvironmentMap::Initialize()
+    {
+        // Create texture & cubemap targets
+        m_EnvironmentMap = Texture::Create({ 512, 512, 4, true, 6, 1 });
+        m_IrradianceMap = Texture::Create({ 256, 256, 4, true, 6, 1 });
+        m_PrefilterMap = Texture::Create({ 256, 256, 4, true, 6, 5 });
+        m_BRDFTexture = Texture::Create({ 512, 512, 4, true, 1, 1 });
+
+        // Create the cubemap data buffer to hold data for each face render
+        BufferLayout cubemapDataLayout = {
+            { BufferDataType::Mat4 },
+            { BufferDataType::Mat4 },
+            { BufferDataType::Float4 }
+        };
+        m_CubemapDataBuffer = Buffer::Create(Buffer::Type::Storage, BufferUsageType::Dynamic, cubemapDataLayout, 100, nullptr);
+
+        // ------------------------------------------------------------------
+        // Cubemap framebuffer: convert loaded image into a cubemap
+        // ------------------------------------------------------------------
+        FramebufferCreateInfo cubemapFbCreateInfo = {
+            {
+                { false, { 0.f, 0.f, 0.f, 0.f }, ColorFormat::None, m_EnvironmentMap, 0 },
+                { false, { 0.f, 0.f, 0.f, 0.f }, ColorFormat::None, m_EnvironmentMap, 1 },
+                { false, { 0.f, 0.f, 0.f, 0.f }, ColorFormat::None, m_EnvironmentMap, 2 },
+                { false, { 0.f, 0.f, 0.f, 0.f }, ColorFormat::None, m_EnvironmentMap, 3 },
+                { false, { 0.f, 0.f, 0.f, 0.f }, ColorFormat::None, m_EnvironmentMap, 4 },
+                { false, { 0.f, 0.f, 0.f, 0.f }, ColorFormat::None, m_EnvironmentMap, 5 }
+            },
+            {},
+            {
+                { {}, { { SubpassAttachmentType::Color, 0 } } },
+                { {}, { { SubpassAttachmentType::Color, 1 } } },
+                { {}, { { SubpassAttachmentType::Color, 2 } } },
+                { {}, { { SubpassAttachmentType::Color, 3 } } },
+                { {}, { { SubpassAttachmentType::Color, 4 } } },
+                { {}, { { SubpassAttachmentType::Color, 5 } } }
+            },
+            m_EnvironmentMap->GetWidth(), m_EnvironmentMap->GetHeight(),
+            MsaaSampleCount::None
+        };
+        m_CubemapFramebuffer = Framebuffer::Create(cubemapFbCreateInfo);
+
+        GraphicsPipelineCreateInfo envPipeline = {
+            AssetManager::GetAssetUUID("EnvironmentMap.vert", true),
+            AssetManager::GetAssetUUID("CalcEnvironmentMap.frag", true),
+            true,
+            VertexTopology::TriangleList,
+            Heart::Mesh::GetVertexLayout(),
+            { { false } },
+            false,
+            false,
+            CullMode::None,
+            WindingOrder::Clockwise,
+            0
+        };
+        for (u32 i = 0; i < 6; i++) // create a pipeline for each subpass
+        {
+            envPipeline.SubpassIndex = i;
+            m_CubemapFramebuffer->RegisterGraphicsPipeline(std::to_string(i), envPipeline);
+        }
+
+        // -----------------------------------------------------------------------------------------
+        // Irradiance framebuffer: calculate environment's irradiance and store it in a cubemap
+        // ---------------------------------------------------------------------------------------
+        FramebufferCreateInfo irradianceFbCreateInfo = {
+            {
+                { false, { 0.f, 0.f, 0.f, 0.f }, ColorFormat::None, m_IrradianceMap, 0 },
+                { false, { 0.f, 0.f, 0.f, 0.f }, ColorFormat::None, m_IrradianceMap, 1 },
+                { false, { 0.f, 0.f, 0.f, 0.f }, ColorFormat::None, m_IrradianceMap, 2 },
+                { false, { 0.f, 0.f, 0.f, 0.f }, ColorFormat::None, m_IrradianceMap, 3 },
+                { false, { 0.f, 0.f, 0.f, 0.f }, ColorFormat::None, m_IrradianceMap, 4 },
+                { false, { 0.f, 0.f, 0.f, 0.f }, ColorFormat::None, m_IrradianceMap, 5 }
+            },
+            {},
+            {
+                { {}, { { SubpassAttachmentType::Color, 0 } } },
+                { {}, { { SubpassAttachmentType::Color, 1 } } },
+                { {}, { { SubpassAttachmentType::Color, 2 } } },
+                { {}, { { SubpassAttachmentType::Color, 3 } } },
+                { {}, { { SubpassAttachmentType::Color, 4 } } },
+                { {}, { { SubpassAttachmentType::Color, 5 } } }
+            },
+            m_IrradianceMap->GetWidth(), m_IrradianceMap->GetHeight(),
+            MsaaSampleCount::None
+        };
+        m_IrradianceMapFramebuffer = Framebuffer::Create(irradianceFbCreateInfo);
+
+        GraphicsPipelineCreateInfo irradiancePipeline = {
+            AssetManager::GetAssetUUID("EnvironmentMap.vert", true),
+            AssetManager::GetAssetUUID("CalcIrradianceMap.frag", true),
+            true,
+            VertexTopology::TriangleList,
+            Heart::Mesh::GetVertexLayout(),
+            { { false } },
+            false,
+            false,
+            CullMode::None,
+            WindingOrder::Clockwise,
+            0
+        };
+        for (u32 i = 0; i < 6; i++) // pipeline for each subpass
+        {
+            irradiancePipeline.SubpassIndex = i;
+            m_IrradianceMapFramebuffer->RegisterGraphicsPipeline(std::to_string(i), irradiancePipeline);
+        }
+
+        // -----------------------------------------------------------------------------------------------------------------------
+        // Prefilter framebuffers: calculate environment's light contribution based on roughness and store it in a cubemap's mips
+        // ----------------------------------------------------------------------------------------------------------------------
+        FramebufferCreateInfo prefilterFbCreateInfo = {
+            {}, {},
+            {
+                { {}, { { SubpassAttachmentType::Color, 0 } } },
+                { {}, { { SubpassAttachmentType::Color, 1 } } },
+                { {}, { { SubpassAttachmentType::Color, 2 } } },
+                { {}, { { SubpassAttachmentType::Color, 3 } } },
+                { {}, { { SubpassAttachmentType::Color, 4 } } },
+                { {}, { { SubpassAttachmentType::Color, 5 } } }
+            },
+            0, 0,
+            MsaaSampleCount::None
+        };
+
+        GraphicsPipelineCreateInfo prefilterPipeline = {
+            AssetManager::GetAssetUUID("EnvironmentMap.vert", true),
+            AssetManager::GetAssetUUID("CalcPrefilterMap.frag", true),
+            true,
+            VertexTopology::TriangleList,
+            Heart::Mesh::GetVertexLayout(),
+            { { false } },
+            false,
+            false,
+            CullMode::None,
+            WindingOrder::Clockwise,
+            0
+        };
+        for (u32 i = 0; i < 5; i++) // each mip level
+        {
+            prefilterFbCreateInfo.ColorAttachments.clear();
+            for (u32 j = 0; j < 6; j++) // each face
+                prefilterFbCreateInfo.ColorAttachments.push_back({ false, { 0.f, 0.f, 0.f, 0.f }, ColorFormat::None, m_PrefilterMap, j, i });
+            prefilterFbCreateInfo.Width = static_cast<u32>(m_PrefilterMap->GetWidth() * pow(0.5f, i));
+            prefilterFbCreateInfo.Height = static_cast<u32>(m_PrefilterMap->GetHeight() * pow(0.5f, i));
+
+            m_PrefilterFramebuffers.emplace_back(Framebuffer::Create(prefilterFbCreateInfo));
+            for (u32 j = 0; j < 6; j++) // each face
+            {
+                prefilterPipeline.SubpassIndex = j;
+                m_PrefilterFramebuffers.back()->RegisterGraphicsPipeline(std::to_string(j), prefilterPipeline);
+            }
+        }
+
+        // -----------------------------------------------------------------------------------------------------------------------
+        // BRDF framebuffer: solve the BRDF integral and store it in a texture (TODO: store this somewhere because it is constant)
+        // ----------------------------------------------------------------------------------------------------------------------
+        FramebufferCreateInfo brdfFbCreateInfo = {
+            {
+                { false, { 0.f, 0.f, 0.f, 0.f }, ColorFormat::None, m_BRDFTexture }
+            },
+            {},
+            {
+                { {}, { { SubpassAttachmentType::Color, 0 } } }
+            },
+            m_BRDFTexture->GetWidth(), m_BRDFTexture->GetHeight(),
+            MsaaSampleCount::None
+        };
+        m_BRDFFramebuffer = Framebuffer::Create(brdfFbCreateInfo);
+
+        GraphicsPipelineCreateInfo brdfPipeline = {
+            AssetManager::GetAssetUUID("BRDFQuad.vert", true),
+            AssetManager::GetAssetUUID("CalcBRDF.frag", true),
+            false,
+            VertexTopology::TriangleList,
+            Heart::Mesh::GetVertexLayout(),
+            { { false } },
+            false,
+            false,
+            CullMode::None,
+            WindingOrder::Clockwise,
+            0
+        };
+        m_BRDFFramebuffer->RegisterGraphicsPipeline("0", brdfPipeline);
+    }
+
+    void EnvironmentMap::Shutdown()
+    {
+        m_EnvironmentMap.reset();
+        m_IrradianceMap.reset();
+        m_PrefilterMap.reset();
+        m_BRDFTexture.reset();
+
+        for (auto& buffer : m_PrefilterFramebuffers)
+            buffer.reset();
+        m_PrefilterFramebuffers.clear();
+        m_BRDFFramebuffer.reset();
+        m_CubemapFramebuffer.reset();
+        m_IrradianceMapFramebuffer.reset();
+
+        m_CubemapDataBuffer.reset();
+        m_FrameDataBuffer.reset();
+    }
+
+    void EnvironmentMap::Recalculate()
+    {
+        // Retrieve the basic cube mesh
+        auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>("DefaultCube.gltf", true);
+        auto& meshData = meshAsset->GetSubmesh(0);
+
+        // Retrieve the associated env map asset
+        auto mapAsset = AssetManager::RetrieveAsset<TextureAsset>(m_MapAsset);
+        if (!mapAsset || !mapAsset->IsValid())
+        {
+            HE_ENGINE_LOG_ERROR("Could not calculate environment map, cannot retrieve map asset");
+            return;
+        }
+
+        // +X -X +Y -Y +Z -Z rotations for rendering each face of the cubemap
+        glm::vec2 rotations[] = { { 90.f, 0.f }, { -90.f, 0.f }, { 0.f, 90.f }, { 0.f, -90.f }, { 0.f, 0.f }, { 180.f, 0.f } };
+
+        // The camera that will be used to render each face
+        Camera cubemapCam(90.f, 0.1f, 50.f, 1.f);
+
+        // Dynamic offset into the CubeData buffer
+        u32 cubeDataIndex = 0;
+
+        // ------------------------------------------------------------------
+        // Render equirectangular map to cubemap
+        // ------------------------------------------------------------------
+        m_CubemapFramebuffer->Bind();
+        for (u32 i = 0; i < 6; i++)
+        {
+            if (i != 0)
+                m_CubemapFramebuffer->StartNextSubpass();
+
+            m_CubemapFramebuffer->BindPipeline(std::to_string(i));  
+
+            cubemapCam.UpdateViewMatrix(rotations[i].x, rotations[i].y, { 0.f, 0.f, 0.f });
+
+            CubemapData mapData = { cubemapCam.GetProjectionMatrix(), cubemapCam.GetViewMatrix(), glm::vec4(0.f) };
+            m_CubemapDataBuffer->SetData(&mapData, 1, cubeDataIndex);
+            m_CubemapFramebuffer->BindShaderBufferResource(0, cubeDataIndex, m_CubemapDataBuffer.get());
+
+            m_CubemapFramebuffer->BindShaderTextureResource(1, mapAsset->GetTexture());
+
+            Renderer::Api().BindVertexBuffer(*meshData.GetVertexBuffer());
+            Renderer::Api().BindIndexBuffer(*meshData.GetIndexBuffer());
+            Renderer::Api().DrawIndexed(
+                meshData.GetIndexBuffer()->GetAllocatedCount(),
+                meshData.GetVertexBuffer()->GetAllocatedCount(),
+                0, 0, 1
+            );
+
+            cubeDataIndex++;
+        }
+
+        Renderer::Api().RenderFramebuffers(Window::GetMainWindow().GetContext(), { m_CubemapFramebuffer.get() });
+
+        // ------------------------------------------------------------------
+        // Precalculate environment irradiance
+        // ------------------------------------------------------------------
+        m_IrradianceMapFramebuffer->Bind();
+        for (u32 i = 0; i < 6; i++)
+        {
+            if (i != 0)
+                m_IrradianceMapFramebuffer->StartNextSubpass();
+
+            m_IrradianceMapFramebuffer->BindPipeline(std::to_string(i));  
+
+            cubemapCam.UpdateViewMatrix(rotations[i].x, rotations[i].y, { 0.f, 0.f, 0.f });
+
+            CubemapData mapData = { cubemapCam.GetProjectionMatrix(), cubemapCam.GetViewMatrix(), glm::vec4(0.f) };
+            m_CubemapDataBuffer->SetData(&mapData, 1, cubeDataIndex);
+            m_IrradianceMapFramebuffer->BindShaderBufferResource(0, cubeDataIndex, m_CubemapDataBuffer.get());
+
+            m_IrradianceMapFramebuffer->BindShaderTextureResource(1, m_EnvironmentMap.get());
+
+            Renderer::Api().BindVertexBuffer(*meshData.GetVertexBuffer());
+            Renderer::Api().BindIndexBuffer(*meshData.GetIndexBuffer());
+            Renderer::Api().DrawIndexed(
+                meshData.GetIndexBuffer()->GetAllocatedCount(),
+                meshData.GetVertexBuffer()->GetAllocatedCount(),
+                0, 0, 1
+            );
+
+            cubeDataIndex++;
+        }
+
+        Renderer::Api().RenderFramebuffers(Window::GetMainWindow().GetContext(), { m_IrradianceMapFramebuffer.get() });
+
+        // ------------------------------------------------------------------
+        // Prefilter the environment map based on roughness
+        // ------------------------------------------------------------------
+        for (size_t i = 0; i < m_PrefilterFramebuffers.size(); i++)
+        {
+            m_PrefilterFramebuffers[i]->Bind();
+
+            float roughness = static_cast<float>(i) / 4;
+            for (u32 j = 0; j < 6; j++) // each face
+            {
+                if (j != 0)
+                    m_PrefilterFramebuffers[i]->StartNextSubpass();
+
+                m_PrefilterFramebuffers[i]->BindPipeline(std::to_string(j));  
+
+                cubemapCam.UpdateViewMatrix(rotations[j].x, rotations[j].y, { 0.f, 0.f, 0.f });
+
+                CubemapData mapData = { cubemapCam.GetProjectionMatrix(), cubemapCam.GetViewMatrix(), glm::vec4(roughness, 0.f, 0.f, 0.f) };
+                m_CubemapDataBuffer->SetData(&mapData, 1, cubeDataIndex);
+                m_PrefilterFramebuffers[i]->BindShaderBufferResource(0, cubeDataIndex, m_CubemapDataBuffer.get());
+
+                m_PrefilterFramebuffers[i]->BindShaderTextureResource(1, m_EnvironmentMap.get());
+
+                Renderer::Api().BindVertexBuffer(*meshData.GetVertexBuffer());
+                Renderer::Api().BindIndexBuffer(*meshData.GetIndexBuffer());
+                Renderer::Api().DrawIndexed(
+                    meshData.GetIndexBuffer()->GetAllocatedCount(),
+                    meshData.GetVertexBuffer()->GetAllocatedCount(),
+                    0, 0, 1
+                );
+
+                cubeDataIndex++;
+            }
+
+            Renderer::Api().RenderFramebuffers(Window::GetMainWindow().GetContext(), { m_PrefilterFramebuffers[i].get() });
+        }
+
+        // ------------------------------------------------------------------
+        // Precalculate the BRDF texture
+        // ------------------------------------------------------------------
+        m_BRDFFramebuffer->Bind();
+        m_BRDFFramebuffer->BindPipeline("0");  
+
+        CubemapData mapData = { cubemapCam.GetProjectionMatrix(), cubemapCam.GetViewMatrix(), glm::vec4(Renderer::IsUsingReverseDepth(), 0.f, 0.f, 0.f) };
+        m_CubemapDataBuffer->SetData(&mapData, 1, cubeDataIndex++);
+        m_BRDFFramebuffer->BindShaderBufferResource(0, cubeDataIndex, m_CubemapDataBuffer.get());
+
+        Renderer::Api().Draw(3, 0, 1);
+        Renderer::Api().RenderFramebuffers(Window::GetMainWindow().GetContext(), { m_BRDFFramebuffer.get() });
+    }
+}

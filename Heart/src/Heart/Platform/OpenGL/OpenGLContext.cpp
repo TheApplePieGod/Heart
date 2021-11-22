@@ -47,6 +47,7 @@ namespace Heart
         // opengl setup
         glEnable(GL_MULTISAMPLE);
         glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE);
+        glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);  
 
         #ifdef HE_DEBUG
             glEnable(GL_DEBUG_OUTPUT);

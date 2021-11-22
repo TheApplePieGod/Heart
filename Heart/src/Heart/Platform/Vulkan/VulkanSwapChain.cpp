@@ -448,10 +448,6 @@ namespace Heart
         scissor.offset = {0, 0};
         scissor.extent = m_SwapChainData.Extent;
         vkCmdSetScissor(GetCommandBuffer(), 0, 1, &scissor);
-
-        // clear the submitted command buffers from last frame
-        m_AuxiliaryCommandBuffers.clear();
-        m_AuxiliaryCommandBufferCounts.clear();
     }
 
     void VulkanSwapChain::EndFrame()
@@ -497,6 +493,10 @@ namespace Heart
             RecreateSwapChain();
 
         m_InFlightFrameIndex = (m_InFlightFrameIndex + 1) % MAX_FRAMES_IN_FLIGHT;
+
+        // clear the submitted command buffers
+        m_AuxiliaryCommandBuffers.clear();
+        m_AuxiliaryCommandBufferCounts.clear();
     }
 
     void VulkanSwapChain::Present()
