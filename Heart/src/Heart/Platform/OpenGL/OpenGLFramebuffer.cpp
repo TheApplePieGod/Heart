@@ -128,6 +128,8 @@ namespace Heart
 
             StartNextSubpass();
         }
+
+        OpenGLContext::SetBoundFramebuffer(this);
     }
 
     void OpenGLFramebuffer::Submit()
@@ -147,6 +149,8 @@ namespace Heart
         // }
 
         m_CurrentSubpass = -1;
+        m_FlushedThisFrame = false;
+        m_BoundPipeline = nullptr;
     }
 
     void OpenGLFramebuffer::BindPipeline(const std::string& name)
@@ -156,7 +160,7 @@ namespace Heart
         auto pipeline = static_cast<OpenGLGraphicsPipeline*>(LoadPipeline(name).get());
         glUseProgram(pipeline->GetProgramId());
         glBindVertexArray(pipeline->GetVertexArrayId());
-        OpenGLContext::SetBoundGraphicsPipeline(pipeline);
+
         if (pipeline->GetCullMode() != CullMode::None)
         {
             glEnable(GL_CULL_FACE);
@@ -205,11 +209,14 @@ namespace Heart
             else
                 glDisablei(GL_BLEND, buffer);
         }
+
+        m_BoundPipeline = pipeline;
     }
 
     void OpenGLFramebuffer::BindShaderBufferResource(u32 bindingIndex, u32 elementOffset, Buffer* _buffer)
     {
         HE_PROFILE_FUNCTION();
+        HE_ENGINE_ASSERT(m_BoundPipeline != nullptr, "Must call BindPipeline before BindShaderResource");
 
         OpenGLBuffer& buffer = static_cast<OpenGLBuffer&>(*_buffer);
 
@@ -220,6 +227,7 @@ namespace Heart
     void OpenGLFramebuffer::BindShaderTextureResource(u32 bindingIndex, Texture* _texture)
     {
         HE_PROFILE_FUNCTION();
+        HE_ENGINE_ASSERT(m_BoundPipeline != nullptr, "Must call BindPipeline before BindShaderResource");
 
         OpenGLTexture& texture = static_cast<OpenGLTexture&>(*_texture);
 
@@ -229,6 +237,9 @@ namespace Heart
 
     void OpenGLFramebuffer::BindShaderTextureLayerResource(u32 bindingIndex, Texture* _texture, u32 layerIndex)
     {
+        HE_PROFILE_FUNCTION();
+        HE_ENGINE_ASSERT(m_BoundPipeline != nullptr, "Must call BindPipeline before BindShaderResource");
+
         OpenGLTexture& texture = static_cast<OpenGLTexture&>(*_texture);
 
         glActiveTexture(GL_TEXTURE0 + bindingIndex);
@@ -237,11 +248,21 @@ namespace Heart
 
     void OpenGLFramebuffer::BindSubpassInputAttachment(u32 bindingIndex, SubpassAttachment attachment)
     {
+        HE_PROFILE_FUNCTION();
+        HE_ENGINE_ASSERT(m_BoundPipeline != nullptr, "Must call BindPipeline before BindShaderResource");
+
         glActiveTexture(GL_TEXTURE0 + bindingIndex);
         if (attachment.Type == SubpassAttachmentType::Depth)
             glBindTexture(GL_TEXTURE_2D, m_DepthAttachmentData[attachment.AttachmentIndex].HasResolve ? m_DepthAttachmentData[attachment.AttachmentIndex].BlitImage : m_DepthAttachmentData[attachment.AttachmentIndex].Image);
         else
             glBindTexture(GL_TEXTURE_2D, m_AttachmentData[attachment.AttachmentIndex].HasResolve ? m_AttachmentData[attachment.AttachmentIndex].BlitImage : m_AttachmentData[attachment.AttachmentIndex].Image);
+    }
+
+    void OpenGLFramebuffer::FlushBindings()
+    {
+        HE_ENGINE_ASSERT(m_BoundPipeline != nullptr, "Must call BindPipeline and bind all resources before FlushBindings");
+
+        m_FlushedThisFrame = true;
     }
 
     void* OpenGLFramebuffer::GetColorAttachmentImGuiHandle(u32 attachmentIndex)
@@ -308,6 +329,9 @@ namespace Heart
 
         // enable draw for all attachments
         glDrawBuffers(GetSubpassOutputColorAttachmentCount(m_CurrentSubpass), m_CachedAttachmentHandles.data());
+
+        m_FlushedThisFrame = false;
+        m_BoundPipeline = nullptr;
     }
 
     Ref<GraphicsPipeline> OpenGLFramebuffer::InternalInitializeGraphicsPipeline(const GraphicsPipelineCreateInfo& createInfo)

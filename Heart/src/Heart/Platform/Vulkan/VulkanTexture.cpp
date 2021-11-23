@@ -1,6 +1,7 @@
 #include "htpch.h"
 #include "VulkanTexture.h"
 
+#include "Heart/Platform/Vulkan/VulkanFramebuffer.h"
 #include "Heart/Platform/Vulkan/VulkanContext.h"
 #include "Heart/Platform/Vulkan/VulkanDevice.h"
 #include "stb_image/stb_image.h"
@@ -32,6 +33,69 @@ namespace Heart
         vkDestroyImageView(device.Device(), m_ImageView, nullptr);
         vkDestroyImage(device.Device(), m_Image, nullptr);
         vkFreeMemory(device.Device(), m_ImageMemory, nullptr);
+    }
+
+    void VulkanTexture::RegenerateMipMaps()
+    {
+        if (m_MipLevels == 1) return;
+
+        VulkanDevice& device = VulkanContext::GetDevice();
+
+        VulkanCommon::TransitionImageLayout(
+            device.Device(),
+            VulkanContext::GetTransferPool(),
+            device.TransferQueue(),
+            m_Image,
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            m_MipLevels,
+            m_Info.ArrayCount
+        );
+        VulkanCommon::GenerateMipmaps(
+            device.Device(),
+            device.PhysicalDevice(),
+            VulkanContext::GetGraphicsPool(),
+            device.GraphicsQueue(),
+            m_Image,
+            m_Format,
+            m_Info.Width, m_Info.Height,
+            m_MipLevels,
+            m_Info.ArrayCount
+        );
+    }
+
+    void VulkanTexture::RegenerateMipMapsSync(Framebuffer* buffer)
+    {
+        if (m_MipLevels == 1) return;
+
+        VulkanDevice& device = VulkanContext::GetDevice();
+        VulkanFramebuffer* framebuffer = (VulkanFramebuffer*)buffer;
+
+        HE_ENGINE_ASSERT(framebuffer->WasBoundThisFrame(), "Passed framebuffer must have been bound this frame");
+        HE_ENGINE_ASSERT(!framebuffer->WasSubmittedThisFrame(), "Passed framebuffer must not have been submitted yet this frame");
+
+        VkCommandBuffer cmdBuffer = VulkanCommon::BeginSingleTimeCommands(device.Device(), VulkanContext::GetGraphicsPool(), true);
+        VulkanCommon::TransitionImageLayout(
+            device.Device(),
+            cmdBuffer,
+            m_Image,
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            m_MipLevels,
+            m_Info.ArrayCount
+        );
+        VulkanCommon::GenerateMipmaps(
+            device.Device(),
+            device.PhysicalDevice(),
+            cmdBuffer,
+            m_Image,
+            m_Format,
+            m_Info.Width, m_Info.Height,
+            m_MipLevels,
+            m_Info.ArrayCount
+        );
+        VulkanCommon::EndSingleTimeCommands(device.Device(), nullptr, cmdBuffer, nullptr, true);
+        framebuffer->PushAuxiliaryCommandBuffer(cmdBuffer);
     }
 
     void VulkanTexture::CreateTexture(void* data)

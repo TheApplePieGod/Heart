@@ -92,7 +92,7 @@ namespace Heart
         vkDestroyDescriptorSetLayout(device.Device(), m_DescriptorSetLayout, nullptr);
     }
 
-    bool VulkanDescriptorSet::UpdateShaderResource(u32 bindingIndex, ShaderResourceType resourceType, void* resource, bool useOffset, u32 offset)
+    void VulkanDescriptorSet::UpdateShaderResource(u32 bindingIndex, ShaderResourceType resourceType, void* resource, bool useOffset, u32 offset)
     {
         HE_PROFILE_FUNCTION();
 
@@ -112,19 +112,13 @@ namespace Heart
             }
         }
 
-        if (m_BoundResources[bindingIndex] == resource)
-            return m_WritesReadyCount == m_CachedDescriptorWrites.size();
-        m_BoundResources[bindingIndex] = resource;
+        auto& boundResource = m_BoundResources[bindingIndex];
+        if (boundResource.Resource == resource && boundResource.Offset == offset) // don't do anything if this resource is already bound
+            return;
+        boundResource.Resource = resource;
+        boundResource.Offset = offset;
 
         //HE_ENGINE_ASSERT(m_DescriptorWriteMappings.find(bindingIndex) != m_DescriptorWriteMappings.end(), "Attempting to update a shader resource binding that doesn't exist");
-
-        // TODO: cache offsets
-        size_t hash = HashBindings();
-        if (offset != 0 && m_CachedDescriptorSets.find(hash) != m_CachedDescriptorSets.end())
-        {
-            m_MostRecentDescriptorSet = m_CachedDescriptorSets[hash];
-            return true;
-        }
 
         u32 bufferInfoBaseIndex = bindingIndex;
         u32 imageInfoBaseIndex = bindingIndex * MAX_DESCRIPTOR_ARRAY_COUNT;
@@ -176,21 +170,28 @@ namespace Heart
 
         descriptorWrite.pBufferInfo = &m_CachedBufferInfos[bufferInfoBaseIndex];
         descriptorWrite.pImageInfo = &m_CachedImageInfos[imageInfoBaseIndex];
+    }
 
-        if (m_WritesReadyCount == m_CachedDescriptorWrites.size())
+    void VulkanDescriptorSet::FlushBindings()
+    {
+        HE_ENGINE_ASSERT(CanFlush(), "Cannot flush bindings until all binding slots have been bound");
+
+        size_t hash = HashBindings();
+        if (m_CachedDescriptorSets.find(hash) != m_CachedDescriptorSets.end())
         {
-            m_MostRecentDescriptorSet = AllocateSet();
-            for (auto& write : m_CachedDescriptorWrites)
-                write.dstSet = m_MostRecentDescriptorSet;
-            
-            vkUpdateDescriptorSets(device.Device(), static_cast<u32>(m_CachedDescriptorWrites.size()), m_CachedDescriptorWrites.data(), 0, nullptr);
-
-            m_CachedDescriptorSets[hash] = m_MostRecentDescriptorSet;
-
-            return true;
+            m_MostRecentDescriptorSet = m_CachedDescriptorSets[hash];
+            return;
         }
 
-        return false;
+        VulkanDevice& device = VulkanContext::GetDevice();
+
+        m_MostRecentDescriptorSet = AllocateSet();
+        for (auto& write : m_CachedDescriptorWrites)
+            write.dstSet = m_MostRecentDescriptorSet;
+        
+        vkUpdateDescriptorSets(device.Device(), static_cast<u32>(m_CachedDescriptorWrites.size()), m_CachedDescriptorWrites.data(), 0, nullptr);
+
+        m_CachedDescriptorSets[hash] = m_MostRecentDescriptorSet;
     }
 
     VkDescriptorPool VulkanDescriptorSet::CreateDescriptorPool()
@@ -210,7 +211,6 @@ namespace Heart
         return pool;
     }
 
-    // TODO: last successful index to speed up allocation when searching for a pool
     VkDescriptorSet VulkanDescriptorSet::AllocateSet()
     {
         // generate if we go over the size limit or if this is the first allocation of the frame
@@ -252,7 +252,10 @@ namespace Heart
         size_t hash = 0;
 
         for (auto pair : m_BoundResources)
-            hash ^= std::hash<intptr_t>{}((intptr_t)pair.second);
+        {
+            hash ^= std::hash<intptr_t>{}((intptr_t)pair.second.Resource);
+            hash ^= std::hash<intptr_t>{}((intptr_t)(pair.second.Offset * 250798));
+        }
 
         return hash;
     }

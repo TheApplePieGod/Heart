@@ -3,6 +3,7 @@
 #include "Heart/Renderer/Framebuffer.h"
 #include "Heart/Platform/OpenGL/OpenGLBuffer.h"
 #include "Heart/Platform/OpenGL/OpenGLTexture.h"
+#include "Heart/Platform/OpenGL/OpenGLGraphicsPipeline.h"
 
 namespace Heart
 {
@@ -18,12 +19,16 @@ namespace Heart
         void BindShaderTextureResource(u32 bindingIndex, Texture* texture) override;
         void BindShaderTextureLayerResource(u32 bindingIndex, Texture* texture, u32 layerIndex) override;
         void BindSubpassInputAttachment(u32 bindingIndex, SubpassAttachment attachment) override;
+        void FlushBindings() override;
 
         void* GetColorAttachmentImGuiHandle(u32 attachmentIndex) override;
         void* GetColorAttachmentPixelData(u32 attachmentIndex) override;
 
         void ClearOutputAttachment(u32 outputAttachmentIndex, bool clearDepth) override;
         void StartNextSubpass() override;
+        
+        inline bool CanDraw() const { return m_FlushedThisFrame; }
+        inline OpenGLGraphicsPipeline* GetBoundPipeline() { return m_BoundPipeline; }
 
     protected:
         Ref<GraphicsPipeline> InternalInitializeGraphicsPipeline(const GraphicsPipelineCreateInfo& createInfo) override;
@@ -73,6 +78,8 @@ namespace Heart
 
         int m_ImageSamples = 1;
         int m_CurrentSubpass = -1;
+        bool m_FlushedThisFrame = false;
+        OpenGLGraphicsPipeline* m_BoundPipeline = nullptr;
 
         friend class OpenGLRenderApi;
     };

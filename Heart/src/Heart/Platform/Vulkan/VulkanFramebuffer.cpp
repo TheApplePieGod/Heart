@@ -4,7 +4,6 @@
 #include "Heart/Core/Window.h"
 #include "Heart/Platform/Vulkan/VulkanContext.h"
 #include "Heart/Platform/Vulkan/VulkanDevice.h"
-#include "Heart/Platform/Vulkan/VulkanGraphicsPipeline.h"
 #include "Heart/Core/App.h"
 #include "Heart/Renderer/Renderer.h"
 #include "imgui/backends/imgui_impl_vulkan.h"
@@ -277,15 +276,13 @@ namespace Heart
         HE_ENGINE_ASSERT(!m_SubmittedThisFrame, "Cannot bind a framebuffer that has already been submitted");
 
         VkCommandBuffer buffer = GetCommandBuffer();
-        VulkanContext::SetBoundCommandBuffer(buffer);
+        VulkanContext::SetBoundFramebuffer(this);
 
         if (!m_BoundThisFrame)
         {
             m_BoundThisFrame = true;
             if (!m_Valid)
                 Recreate();
-
-            m_CurrentSubpass = 0;
      
             VkCommandBufferBeginInfo beginInfo{};
             beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -331,6 +328,7 @@ namespace Heart
         HE_ENGINE_ASSERT(m_BoundThisFrame, "Cannot submit framebuffer that has not been bound this frame");
         HE_ENGINE_ASSERT(m_CurrentSubpass == m_Info.Subpasses.size() - 1, "Attempting to submit a framebuffer without completing all subpasses");
 
+        VulkanDevice& device = VulkanContext::GetDevice();
         VkCommandBuffer buffer = GetCommandBuffer();
 
         vkCmdEndRenderPass(buffer);
@@ -341,11 +339,17 @@ namespace Heart
         for (auto& attachment : m_DepthAttachmentData)
             CopyAttachmentToBuffer(attachment);
 
+        // execute any commands that need to be synced with this framebuffer (i.e. Texture::RegenerateMipMapsSync)
+        for (auto cmdBuf : m_AuxiliaryCommandBuffers[m_InFlightFrameIndex])
+            vkCmdExecuteCommands(buffer, 1, &cmdBuf);
+
         HE_VULKAN_CHECK_RESULT(vkEndCommandBuffer(buffer));
 
-        m_BoundPipeline = "";
+        m_BoundPipeline = nullptr;
         m_BoundThisFrame = false;
         m_SubmittedThisFrame = true;
+        m_FlushedThisFrame = false;
+        m_CurrentSubpass = 0;
     }
 
     void VulkanFramebuffer::CopyAttachmentToBuffer(VulkanFramebufferAttachment& attachmentData)
@@ -413,7 +417,7 @@ namespace Heart
 
         vkCmdBindPipeline(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->GetPipeline());
 
-        m_BoundPipeline = name;
+        m_BoundPipeline = pipeline;
     }
 
     void VulkanFramebuffer::BindShaderBufferResource(u32 bindingIndex, u32 elementOffset, Buffer* buffer)
@@ -432,6 +436,8 @@ namespace Heart
 
     void VulkanFramebuffer::BindShaderTextureLayerResource(u32 bindingIndex, Texture* texture, u32 layerIndex)
     {
+        HE_PROFILE_FUNCTION();
+
         BindShaderResource(bindingIndex, ShaderResourceType::Texture, texture, true, layerIndex);
     }
 
@@ -444,11 +450,9 @@ namespace Heart
 
     void VulkanFramebuffer::BindShaderResource(u32 bindingIndex, ShaderResourceType resourceType, void* resource, bool useOffset, u32 offset)
     {
-        // TODO: don't use string here
-        HE_ENGINE_ASSERT(!m_BoundPipeline.empty(), "Must call BindPipeline before BindShaderResource");
+        HE_ENGINE_ASSERT(m_BoundPipeline != nullptr, "Must call BindPipeline before BindShaderResource");
 
-        VulkanGraphicsPipeline& boundPipeline = static_cast<VulkanGraphicsPipeline&>(*LoadPipeline(m_BoundPipeline));
-        VulkanDescriptorSet& descriptorSet = boundPipeline.GetVulkanDescriptorSet();
+        VulkanDescriptorSet& descriptorSet = m_BoundPipeline->GetVulkanDescriptorSet();
 
         if (!descriptorSet.DoesBindingExist(bindingIndex))
             return; // silently ignore, TODO: warning once in the console when this happens
@@ -456,24 +460,35 @@ namespace Heart
         if (useOffset && (resourceType == ShaderResourceType::UniformBuffer || resourceType == ShaderResourceType::StorageBuffer))
             descriptorSet.UpdateDynamicOffset(bindingIndex, offset);
 
-        // we only want to bind here if the descriptor set was allocated & updated
-        // this will only occur if the binding resource differs at the same bind index and
-        // only once all bind indexes have been bound with a resource this frame 
-        if (descriptorSet.UpdateShaderResource(bindingIndex, resourceType, resource, useOffset, offset))
-        {
-            HE_ENGINE_ASSERT(descriptorSet.GetMostRecentDescriptorSet() != nullptr);
+        // update the descriptor set binding information
+        descriptorSet.UpdateShaderResource(bindingIndex, resourceType, resource, useOffset, offset);
+    }
 
-            VkDescriptorSet sets[1] = { descriptorSet.GetMostRecentDescriptorSet() };
-            vkCmdBindDescriptorSets(
-                GetCommandBuffer(),
-                VK_PIPELINE_BIND_POINT_GRAPHICS,
-                boundPipeline.GetLayout(),
-                0, 1,
-                sets,
-                static_cast<u32>(descriptorSet.GetDynamicOffsets().size()),
-                descriptorSet.GetDynamicOffsets().data()
-            );
-        }
+    void VulkanFramebuffer::FlushBindings()
+    {
+        HE_ENGINE_ASSERT(m_BoundPipeline != nullptr, "Must call BindPipeline and bind all resources before FlushBindings");
+
+        VulkanDescriptorSet& descriptorSet = m_BoundPipeline->GetVulkanDescriptorSet();
+
+        // update a newly allocated descriptor set based on the current bindings or return
+        // a cached one that was created before with the same binding info
+        descriptorSet.FlushBindings();
+
+        HE_ENGINE_ASSERT(descriptorSet.GetMostRecentDescriptorSet() != nullptr);
+
+        // bind the new set
+        VkDescriptorSet sets[1] = { descriptorSet.GetMostRecentDescriptorSet() };
+        vkCmdBindDescriptorSets(
+            GetCommandBuffer(),
+            VK_PIPELINE_BIND_POINT_GRAPHICS,
+            m_BoundPipeline->GetLayout(),
+            0, 1,
+            sets,
+            static_cast<u32>(descriptorSet.GetDynamicOffsets().size()),
+            descriptorSet.GetDynamicOffsets().data()
+        );
+
+        m_FlushedThisFrame = true;
     }
     
     void* VulkanFramebuffer::GetColorAttachmentImGuiHandle(u32 attachmentIndex)
@@ -497,6 +512,9 @@ namespace Heart
         HE_ENGINE_ASSERT(m_CurrentSubpass < m_Info.Subpasses.size(), "Attempting to start a subpass that does not exist");
 
         vkCmdNextSubpass(GetCommandBuffer(), VK_SUBPASS_CONTENTS_INLINE);
+
+        m_FlushedThisFrame = false;
+        m_BoundPipeline = nullptr;
     }
 
     void VulkanFramebuffer::ClearOutputAttachment(u32 outputAttachmentIndex, bool clearDepth)
@@ -729,12 +747,18 @@ namespace Heart
         if (App::Get().GetFrameCount() != m_LastUpdateFrame)
         {
             // it is a new frame so we need to get the new flight frame index
+            VulkanDevice& device = VulkanContext::GetDevice();
             VulkanContext& mainContext = static_cast<VulkanContext&>(Window::GetMainWindow().GetContext());
 
             m_InFlightFrameIndex = mainContext.GetSwapChain().GetInFlightFrameIndex();
             m_LastUpdateFrame = App::Get().GetFrameCount();
 
             m_SubmittedThisFrame = false;
+
+            // free old auxiliary command buffers
+            for (auto cmdBuf : m_AuxiliaryCommandBuffers[m_InFlightFrameIndex])
+                vkFreeCommandBuffers(device.Device(), VulkanContext::GetGraphicsPool(), 1, &cmdBuf);
+            m_AuxiliaryCommandBuffers[m_InFlightFrameIndex].clear();
         }
     }
 }

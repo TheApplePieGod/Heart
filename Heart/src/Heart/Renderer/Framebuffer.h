@@ -78,6 +78,7 @@ namespace Heart
         virtual void BindShaderTextureResource(u32 bindingIndex, Texture* texture) = 0;
         virtual void BindShaderTextureLayerResource(u32 bindingIndex, Texture* texture, u32 layerIndex) = 0;
         virtual void BindSubpassInputAttachment(u32 bindingIndex, SubpassAttachment attachment) = 0;
+        virtual void FlushBindings() = 0;
 
         virtual void* GetColorAttachmentImGuiHandle(u32 attachmentIndex) = 0;
 

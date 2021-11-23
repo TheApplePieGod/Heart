@@ -4,6 +4,7 @@
 #include "Heart/Platform/Vulkan/VulkanDevice.h"
 #include "Heart/Platform/Vulkan/VulkanSwapChain.h"
 #include "Heart/Platform/Vulkan/VulkanCommon.h"
+#include "Heart/Platform/Vulkan/VulkanFramebuffer.h"
 
 namespace Heart
 {
@@ -31,10 +32,12 @@ namespace Heart
         inline static VkCommandPool GetGraphicsPool() { return s_GraphicsPool; }
         inline static VkCommandPool GetComputePool() { return s_ComputePool; }
         inline static VkCommandPool GetTransferPool() { return s_TransferPool; }
-        inline static VkCommandBuffer GetBoundCommandBuffer() { HE_ENGINE_ASSERT(s_BoundCommandBuffer != nullptr, "Cannot send commands to an unbound command buffer (forget to call Framebuffer.Bind()?)"); return s_BoundCommandBuffer; }
-        inline static void SetBoundCommandBuffer(VkCommandBuffer buffer) { s_BoundCommandBuffer = buffer; }
         inline static VkSampler GetDefaultSampler() { return s_DefaultSampler; }
         inline static void Sync() { vkDeviceWaitIdle(s_VulkanDevice.Device()); };
+
+        // both bound command & frame buffers should be from the same object
+        inline static VulkanFramebuffer* GetBoundFramebuffer() { HE_ENGINE_ASSERT(s_BoundFramebuffer != nullptr, "No framebuffer is bound (forget to call Framebuffer.Bind()?)"); return s_BoundFramebuffer; }
+        inline static void SetBoundFramebuffer(VulkanFramebuffer* buffer) { s_BoundFramebuffer = buffer; }
 
         static std::vector<const char*> ConfigureValidationLayers();
     
@@ -60,7 +63,7 @@ namespace Heart
         static VkDebugUtilsMessengerEXT s_DebugMessenger;
         static VulkanDevice s_VulkanDevice;
         static VkCommandPool s_GraphicsPool, s_ComputePool, s_TransferPool;
-        static VkCommandBuffer s_BoundCommandBuffer;
+        static VulkanFramebuffer* s_BoundFramebuffer;
         static VkSampler s_DefaultSampler;
     };
 }

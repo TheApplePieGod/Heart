@@ -1,6 +1,7 @@
 #include "htpch.h"
 #include "OpenGLContext.h"
 
+#include "Heart/Platform/OpenGL/OpenGLFramebuffer.h"
 #include "Heart/Core/Timing.h"
 #include "imgui/imgui.h"
 #include "imgui/backends/imgui_impl_opengl3.h"
@@ -9,7 +10,7 @@
 
 namespace Heart
 {
-    OpenGLGraphicsPipeline* OpenGLContext::s_BoundGraphicsPipeline = nullptr;
+    OpenGLFramebuffer* OpenGLContext::s_BoundFramebuffer = nullptr;
     int OpenGLContext::s_MsaaMaxSamples = 1;
 
     static void debugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam)
@@ -98,6 +99,6 @@ namespace Heart
         auto timer = AggregateTimer("OpenGLContext::EndFrame");
 
         glfwSwapBuffers((GLFWwindow*)m_WindowHandle);
-        s_BoundGraphicsPipeline = nullptr;
+        s_BoundFramebuffer = nullptr;
     }
 }

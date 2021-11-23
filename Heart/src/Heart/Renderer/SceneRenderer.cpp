@@ -47,7 +47,9 @@ namespace Heart
         };
         BufferLayout materialDataLayout = {
             { BufferDataType::Float4 }, // base color
+            { BufferDataType::Float4 }, // emissive factor
             { BufferDataType::Float4 }, // texcoord transform
+            { BufferDataType::Float4 }, // has PBR textures
             { BufferDataType::Float4 }, // has textures
             { BufferDataType::Float4 } // scalars
         };
@@ -189,6 +191,8 @@ namespace Heart
         auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>("DefaultCube.gltf", true);
         auto& meshData = meshAsset->GetSubmesh(0);
 
+        m_FinalFramebuffer->FlushBindings();
+
         Renderer::Api().BindVertexBuffer(*meshData.GetVertexBuffer());
         Renderer::Api().BindIndexBuffer(*meshData.GetIndexBuffer());
         Renderer::Api().DrawIndexed(
@@ -210,17 +214,19 @@ namespace Heart
         m_FinalFramebuffer->BindShaderTextureResource(3, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
         m_FinalFramebuffer->BindShaderTextureResource(4, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
         m_FinalFramebuffer->BindShaderTextureResource(5, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
+        m_FinalFramebuffer->BindShaderTextureResource(6, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
+        m_FinalFramebuffer->BindShaderTextureResource(7, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
         if (m_EnvironmentMap)
         {
-            m_FinalFramebuffer->BindShaderTextureResource(6, m_EnvironmentMap->GetIrradianceCubemap());
-            m_FinalFramebuffer->BindShaderTextureResource(7, m_EnvironmentMap->GetPrefilterCubemap());
-            m_FinalFramebuffer->BindShaderTextureResource(8, m_EnvironmentMap->GetBRDFTexture());
+            m_FinalFramebuffer->BindShaderTextureResource(8, m_EnvironmentMap->GetIrradianceCubemap());
+            m_FinalFramebuffer->BindShaderTextureResource(9, m_EnvironmentMap->GetPrefilterCubemap());
+            m_FinalFramebuffer->BindShaderTextureResource(10, m_EnvironmentMap->GetBRDFTexture());
         }
         else
         {
-            m_FinalFramebuffer->BindShaderTextureResource(6, m_DefaultEnvironmentMap.get());
-            m_FinalFramebuffer->BindShaderTextureResource(7, m_DefaultEnvironmentMap.get());
-            m_FinalFramebuffer->BindShaderTextureLayerResource(8, m_DefaultEnvironmentMap.get(), 0);
+            m_FinalFramebuffer->BindShaderTextureResource(8, m_DefaultEnvironmentMap.get());
+            m_FinalFramebuffer->BindShaderTextureResource(9, m_DefaultEnvironmentMap.get());
+            m_FinalFramebuffer->BindShaderTextureLayerResource(10, m_DefaultEnvironmentMap.get(), 0);
         }
 
         auto group = m_Scene->GetRegistry().group<TransformComponent, MeshComponent>();
@@ -272,12 +278,24 @@ namespace Heart
                     if (materialData.HasNormal())
                         m_FinalFramebuffer->BindShaderTextureResource(5, normalAsset->GetTexture());
 
+                    auto emissiveAsset = AssetManager::RetrieveAsset<TextureAsset>(materialAsset->GetMaterial().GetEmissiveTexture());
+                    materialData.SetHasEmissive(emissiveAsset && emissiveAsset->IsValid());
+                    if (materialData.HasEmissive())
+                        m_FinalFramebuffer->BindShaderTextureResource(6, emissiveAsset->GetTexture());
+
+                    auto occlusionAsset = AssetManager::RetrieveAsset<TextureAsset>(materialAsset->GetMaterial().GetOcclusionTexture());
+                    materialData.SetHasOcclusion(occlusionAsset && occlusionAsset->IsValid());
+                    if (materialData.HasOcclusion())
+                        m_FinalFramebuffer->BindShaderTextureResource(7, occlusionAsset->GetTexture());
+
                     m_MaterialDataBuffer->SetData(&materialData, 1, m_MaterialDataOffset);
                 }
                 else // default material
                     m_MaterialDataBuffer->SetData(&AssetManager::RetrieveAsset<MaterialAsset>("DefaultMaterial.hemat", true)->GetMaterial().GetMaterialData(), 1, m_MaterialDataOffset);
 
                 m_FinalFramebuffer->BindShaderBufferResource(2, m_MaterialDataOffset, m_MaterialDataBuffer.get());
+
+                m_FinalFramebuffer->FlushBindings();
 
                 // Draw
                 Renderer::Api().BindVertexBuffer(*meshData.GetVertexBuffer());
@@ -307,17 +325,19 @@ namespace Heart
         m_FinalFramebuffer->BindShaderTextureResource(3, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
         m_FinalFramebuffer->BindShaderTextureResource(4, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
         m_FinalFramebuffer->BindShaderTextureResource(5, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
+        m_FinalFramebuffer->BindShaderTextureResource(6, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
+        m_FinalFramebuffer->BindShaderTextureResource(7, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
         if (m_EnvironmentMap)
         {
-            m_FinalFramebuffer->BindShaderTextureResource(6, m_EnvironmentMap->GetIrradianceCubemap());
-            m_FinalFramebuffer->BindShaderTextureResource(7, m_EnvironmentMap->GetPrefilterCubemap());
-            m_FinalFramebuffer->BindShaderTextureResource(8, m_EnvironmentMap->GetBRDFTexture());
+            m_FinalFramebuffer->BindShaderTextureResource(8, m_EnvironmentMap->GetIrradianceCubemap());
+            m_FinalFramebuffer->BindShaderTextureResource(9, m_EnvironmentMap->GetPrefilterCubemap());
+            m_FinalFramebuffer->BindShaderTextureResource(10, m_EnvironmentMap->GetBRDFTexture());
         }
         else
         {
-            m_FinalFramebuffer->BindShaderTextureResource(6, m_DefaultEnvironmentMap.get());
-            m_FinalFramebuffer->BindShaderTextureResource(7, m_DefaultEnvironmentMap.get());
-            m_FinalFramebuffer->BindShaderTextureLayerResource(8, m_DefaultEnvironmentMap.get(), 0);
+            m_FinalFramebuffer->BindShaderTextureResource(8, m_DefaultEnvironmentMap.get());
+            m_FinalFramebuffer->BindShaderTextureResource(9, m_DefaultEnvironmentMap.get());
+            m_FinalFramebuffer->BindShaderTextureLayerResource(10, m_DefaultEnvironmentMap.get(), 0);
         }
 
         for (auto& mesh : m_TransparentMeshes)
@@ -343,11 +363,23 @@ namespace Heart
             if (materialData.HasNormal())
                 m_FinalFramebuffer->BindShaderTextureResource(5, normalAsset->GetTexture());
 
+            auto emissiveAsset = AssetManager::RetrieveAsset<TextureAsset>(materialAsset->GetMaterial().GetEmissiveTexture());
+            materialData.SetHasEmissive(emissiveAsset && emissiveAsset->IsValid());
+            if (materialData.HasEmissive())
+                m_FinalFramebuffer->BindShaderTextureResource(6, emissiveAsset->GetTexture());
+
+            auto occlusionAsset = AssetManager::RetrieveAsset<TextureAsset>(materialAsset->GetMaterial().GetOcclusionTexture());
+            materialData.SetHasOcclusion(occlusionAsset && occlusionAsset->IsValid());
+            if (materialData.HasOcclusion())
+                m_FinalFramebuffer->BindShaderTextureResource(7, occlusionAsset->GetTexture());
+
             m_FinalFramebuffer->BindShaderBufferResource(1, m_ObjectDataOffset, m_ObjectDataBuffer.get());
             m_ObjectDataBuffer->SetData(&mesh.ObjectData, 1, m_ObjectDataOffset);
 
             m_FinalFramebuffer->BindShaderBufferResource(2, m_MaterialDataOffset, m_MaterialDataBuffer.get());
             m_MaterialDataBuffer->SetData(&materialData, 1, m_MaterialDataOffset);
+
+            m_FinalFramebuffer->FlushBindings();
 
             // Draw
             Renderer::Api().BindVertexBuffer(*meshData.GetVertexBuffer());
@@ -374,6 +406,8 @@ namespace Heart
         // Bind the input attachments from the transparent pass
         m_FinalFramebuffer->BindSubpassInputAttachment(1, { SubpassAttachmentType::Color, 2 });
         m_FinalFramebuffer->BindSubpassInputAttachment(2, { SubpassAttachmentType::Color, 3 });
+
+        m_FinalFramebuffer->FlushBindings();
 
         // Draw the fullscreen triangle
         Renderer::Api().Draw(3, 0, 1);

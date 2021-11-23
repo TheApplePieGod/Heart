@@ -15,7 +15,7 @@ namespace Heart
     VkCommandPool VulkanContext::s_GraphicsPool;
     VkCommandPool VulkanContext::s_ComputePool;
     VkCommandPool VulkanContext::s_TransferPool;
-    VkCommandBuffer VulkanContext::s_BoundCommandBuffer;
+    VulkanFramebuffer* VulkanContext::s_BoundFramebuffer = nullptr;
     VkSampler VulkanContext::s_DefaultSampler;
 
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
@@ -289,9 +289,6 @@ namespace Heart
         HE_PROFILE_FUNCTION();
 
         m_VulkanSwapChain.BeginFrame();
-
-        // bind the initial commandbuffer to be the main window's
-        //SetBoundCommandBuffer(m_VulkanSwapChain.GetCommandBuffer());
     }
 
     void VulkanContext::EndFrame()
@@ -300,7 +297,7 @@ namespace Heart
         auto timer = AggregateTimer("VulkanContext::EndFrame");
         
         m_VulkanSwapChain.EndFrame();
-        s_BoundCommandBuffer = nullptr;
+        s_BoundFramebuffer = nullptr;
     }
 
     std::vector<const char*> VulkanContext::ConfigureValidationLayers()

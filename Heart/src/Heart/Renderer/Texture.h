@@ -72,6 +72,7 @@ namespace Heart
         u32 MipCount; // set to zero to deduce mip count
     };
 
+    class Framebuffer;
     class Texture
     {
     public:
@@ -79,6 +80,9 @@ namespace Heart
             : m_Info(createInfo)
         {}
         virtual ~Texture() = default;
+
+        virtual void RegenerateMipMaps() = 0;
+        virtual void RegenerateMipMapsSync(Framebuffer* buffer) = 0; // sync with framebuffer drawing
 
         inline void* GetImGuiHandle(u32 layerIndex = 0) const { return m_LayerImGuiHandles[layerIndex]; }
         inline u32 GetArrayCount() const { return m_Info.ArrayCount; }

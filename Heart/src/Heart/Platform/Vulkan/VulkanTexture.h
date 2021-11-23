@@ -11,6 +11,9 @@ namespace Heart
         VulkanTexture(const TextureCreateInfo& createInfo, void* initialData);
         ~VulkanTexture() override;
 
+        void RegenerateMipMaps() override;
+        void RegenerateMipMapsSync(Framebuffer* buffer) override;
+
         inline VkImageView GetImageView() const { return m_ImageView; }
         inline VkImageView GetLayerImageView(u32 layerIndex, u32 mipLevel) const { return m_LayerViews[layerIndex * m_MipLevels + mipLevel]; }
         inline VkImageLayout GetCurrentLayout() const { return m_CurrentLayout; }

@@ -2,8 +2,10 @@
 
 struct Material {
     vec4 baseColor;
+    vec4 emissiveFactor;
     vec4 texCoordTransform; // [0-1]: scale, [2-3]: offset
-    vec4 hasTextures; // [0]: hasAlbedo, [1]: hasMetallicRoughness, [2]: hasNormal
+    vec4 hasPBRTextures; // [0]: hasAlbedo, [1]: hasMetallicRoughness
+    vec4 hasTextures; // [0]: hasNormal, [1]: hasEmissive, [2]: hasOcclusion
     vec4 scalars; // [0]: metalness, [1]: roughness
 };
 
@@ -21,9 +23,11 @@ layout(binding = 2) readonly buffer MaterialBuffer {
 layout(binding = 3) uniform sampler2D albedoTex;
 layout(binding = 4) uniform sampler2D metallicRoughnessTex;
 layout(binding = 5) uniform sampler2D normalTex;
-layout(binding = 6) uniform samplerCube irradianceMap;
-layout(binding = 7) uniform samplerCube prefilterMap;
-layout(binding = 8) uniform sampler2D brdfLUT;
+layout(binding = 6) uniform sampler2D emissiveTex;
+layout(binding = 7) uniform sampler2D occlusionTex;
+layout(binding = 8) uniform samplerCube irradianceMap;
+layout(binding = 9) uniform samplerCube prefilterMap;
+layout(binding = 10) uniform sampler2D brdfLUT;
 
 #define PI 3.1415926
 
@@ -75,7 +79,7 @@ float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
 vec4 GetAlbedo()
 {
     vec4 color = materialBuffer.material.baseColor;
-    if (materialBuffer.material.hasTextures[0] == 1.f) // has albedo
+    if (materialBuffer.material.hasPBRTextures[0] == 1.f) // has albedo
         color *= texture(albedoTex, (texCoord + materialBuffer.material.texCoordTransform.zw) * materialBuffer.material.texCoordTransform.xy);
     return color;
 }
@@ -83,7 +87,7 @@ vec4 GetAlbedo()
 float GetMetalness()
 {
     float metalness = materialBuffer.material.scalars[0];
-    if (materialBuffer.material.hasTextures[1] == 1.f) // has metallicRoughness
+    if (materialBuffer.material.hasPBRTextures[1] == 1.f) // has metallicRoughness
         metalness *= texture(metallicRoughnessTex, (texCoord + materialBuffer.material.texCoordTransform.zw) * materialBuffer.material.texCoordTransform.xy).b;
     return metalness;
 }
@@ -91,9 +95,25 @@ float GetMetalness()
 float GetRoughness()
 {
     float roughness = materialBuffer.material.scalars[1];
-    if (materialBuffer.material.hasTextures[1] == 1.f) // has metallicRoughness
+    if (materialBuffer.material.hasPBRTextures[1] == 1.f) // has metallicRoughness
         roughness *= texture(metallicRoughnessTex, (texCoord + materialBuffer.material.texCoordTransform.zw) * materialBuffer.material.texCoordTransform.xy).g;
     return roughness;
+}
+
+vec3 GetEmissive()
+{
+    vec3 emissive = materialBuffer.material.emissiveFactor.xyz;
+    if (materialBuffer.material.hasTextures[1] == 1.f) // has emissive
+        emissive *= texture(emissiveTex, (texCoord + materialBuffer.material.texCoordTransform.zw) * materialBuffer.material.texCoordTransform.xy).rgb;
+    return emissive;
+}
+
+float GetOcclusion()
+{
+    float occlusion = 1.f;
+    if (materialBuffer.material.hasTextures[2] == 1.f) // has occlusion
+        occlusion = texture(occlusionTex, (texCoord + materialBuffer.material.texCoordTransform.zw) * materialBuffer.material.texCoordTransform.xy).r;
+    return occlusion;
 }
 
 vec4 GetFinalColor()
@@ -106,7 +126,7 @@ vec4 GetFinalColor()
     mat3x3 tbn = mat3x3(nb, nt, nn);
 
     vec3 N = nn;
-    if (materialBuffer.material.hasTextures[2] == 1.f) // has normal
+    if (materialBuffer.material.hasTextures[0] == 1.f) // has normal
         N = tbn * (texture(normalTex, (texCoord + materialBuffer.material.texCoordTransform.zw) * materialBuffer.material.texCoordTransform.xy).xyz * 2.0 - 1.0);
 
     const float MAX_REFLECTION_LOD = 4.0;
@@ -115,6 +135,8 @@ vec4 GetFinalColor()
     vec4 baseColor = GetAlbedo();
     float roughness = GetRoughness();
     float metalness = GetMetalness();
+    vec3 emissive = GetEmissive();
+    float occlusion = GetOcclusion();
 
     vec3 F0 = vec3(0.04);
     F0 = mix(F0, baseColor.rgb, metalness);
@@ -159,7 +181,7 @@ vec4 GetFinalColor()
     vec3 prefilteredColor = textureLod(prefilterMap, R,  roughness * MAX_REFLECTION_LOD).rgb;   
     vec2 envBRDF = texture(brdfLUT, vec2(max(dot(N, V), 0.0), roughness)).rg;
     vec3 specular = prefilteredColor * (F * envBRDF.x + envBRDF.y);
-    vec3 ambient = (kD * diffuse + specular); //* ao; specular
+    vec3 ambient = (kD * diffuse + specular) * occlusion; // specular
 
     vec3 finalColor = ambient + finalContribution;
 
@@ -169,5 +191,5 @@ vec4 GetFinalColor()
     // gamma correction
     finalColor = pow(finalColor, vec3(1.0/2.2));
 
-    return vec4(finalColor, baseColor.a);
+    return vec4(finalColor + emissive, baseColor.a);
 }

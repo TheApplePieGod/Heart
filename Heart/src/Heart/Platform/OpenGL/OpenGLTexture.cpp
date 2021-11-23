@@ -83,6 +83,13 @@ namespace Heart
         glBindTexture(m_Target, 0);
     }
 
+    void OpenGLTexture::RegenerateMipMaps()
+    {
+        glBindTexture(m_Target, m_TextureId);
+        glGenerateMipmap(m_Target);
+        glBindTexture(m_Target, 0);
+    }
+
     OpenGLTexture::~OpenGLTexture()
     {
         glDeleteTextures(1, &m_TextureId);

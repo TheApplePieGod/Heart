@@ -6,6 +6,7 @@
 #include "Heart/Asset/MaterialAsset.h"
 #include "Heart/Asset/TextureAsset.h"
 #include "nlohmann/json.hpp"
+#include "glm/glm.hpp"
 
 namespace Heart
 {
@@ -114,7 +115,7 @@ namespace Heart
         {
             for (auto& texture : j["textures"])
             {
-                textureViews.emplace_back(texture["sampler"], texture["source"]);
+                textureViews.emplace_back(texture.contains("sampler") ? texture["sampler"] : 0, texture["source"]);
             }
         }
 
@@ -129,18 +130,22 @@ namespace Heart
                 auto& pbrField = material["pbrMetallicRoughness"];
                 Material parsingMaterial;
 
-                if (pbrField.contains("baseColorFactor"))
-                    parsingMaterial.m_MaterialData.SetBaseColor({ pbrField["baseColorFactor"][0], pbrField["baseColorFactor"][1], pbrField["baseColorFactor"][2], pbrField["baseColorFactor"][3] });
                 if (pbrField.contains("baseColorTexture"))
                 {
                     u32 texIndex = pbrField["baseColorTexture"]["index"];
                     parsingMaterial.m_AlbedoTextureAsset = textureSources[textureViews[texIndex].SourceIndex].AssetId;
+
+                    // in case this field is not defined, we default the factor to 1.f to make sure the texture gets utilized
+                    parsingMaterial.m_MaterialData.SetBaseColor({ 1.f, 1.f, 1.f, 1.f });
 
                     // TODO: change this possibly
                     auto texAsset = AssetManager::RetrieveAsset<TextureAsset>(parsingMaterial.m_AlbedoTextureAsset);
                     if (texAsset && texAsset->IsValid())
                         parsingMaterial.m_Transparent = texAsset->GetTexture()->HasTransparency();
                 }
+                if (pbrField.contains("baseColorFactor"))
+                    parsingMaterial.m_MaterialData.SetBaseColor({ pbrField["baseColorFactor"][0], pbrField["baseColorFactor"][1], pbrField["baseColorFactor"][2], pbrField["baseColorFactor"][3] });
+
                 if (pbrField.contains("metallicRoughnessTexture"))
                 {
                     u32 texIndex = pbrField["metallicRoughnessTexture"]["index"];
@@ -158,10 +163,29 @@ namespace Heart
                 if (material.contains("normalTexture"))
                 {
                     u32 texIndex = material["normalTexture"]["index"];
-                    float scale = material["normalTexture"]["scale"];
                     parsingMaterial.m_NormalTextureAsset = textureSources[textureViews[texIndex].SourceIndex].AssetId;
-                    parsingMaterial.m_MaterialData.SetTexCoordScale({ scale, scale });
+
+                    if (material["normalTexture"].contains("scale"))
+                    {
+                        float scale = material["normalTexture"]["scale"];
+                        parsingMaterial.m_MaterialData.SetTexCoordScale({ scale, scale });
+                    }
                 }
+                if (material.contains("occlusionTexture"))
+                {
+                    u32 texIndex = material["occlusionTexture"]["index"];
+                    parsingMaterial.m_OcclusionTextureAsset = textureSources[textureViews[texIndex].SourceIndex].AssetId;
+                }
+                if (material.contains("emissiveTexture"))
+                {
+                    u32 texIndex = material["emissiveTexture"]["index"];
+                    parsingMaterial.m_EmissiveTextureAsset = textureSources[textureViews[texIndex].SourceIndex].AssetId;
+
+                    // in case this field is not defined, we default the factor to 1.f to make sure the texture gets utilized
+                    parsingMaterial.m_MaterialData.SetEmissiveFactor({ 1.f, 1.f, 1.f, 1.f });
+                }
+                if (material.contains("emissiveFactor"))
+                    parsingMaterial.m_MaterialData.SetEmissiveFactor({ material["emissiveFactor"][0], material["emissiveFactor"][1], material["emissiveFactor"][2], 0.f });
 
                 std::string localPath = std::filesystem::path(m_ParentPath).append(materialFilenameStart + std::to_string(materialIndex) + materialFilenameEnd).generic_u8string();
                 std::string finalPath = std::filesystem::path(AssetManager::GetAssetsDirectory()).append(localPath).generic_u8string();
@@ -180,6 +204,8 @@ namespace Heart
         }
 
         // parse meshes and create submeshes based on material
+        bool hasTangents = false;
+        bool hasNormals = false;
         std::unordered_map<u32, SubmeshParseData> parseData; // keyed by material id
         for (auto& mesh : j["meshes"])
         {
@@ -252,11 +278,13 @@ namespace Heart
                         else if (attribute.key() == "NORMAL")
                         {
                             smData.Vertices[i].Normal = *(glm::vec3*)(&buffer[bufferView.ByteOffset + accessor.ByteOffset + offset]);
+                            hasNormals = true;
                             offset += 12;
                         }
                         else if (attribute.key() == "TANGENT")
                         {
                             smData.Vertices[i].Tangent = *(glm::vec4*)(&buffer[bufferView.ByteOffset + accessor.ByteOffset + offset]);
+                            hasTangents = true;
                             offset += 16;
                         }
                     }
@@ -269,6 +297,44 @@ namespace Heart
 
         // populate submeshes with parsed data
         for (auto& pair : parseData)
-            m_Submeshes.emplace_back(pair.second.Vertices, pair.second.Indices, pair.first); 
+        {
+            // calculate the normals and/or tangents of the submesh if they aren't provided
+            if (!hasNormals || !hasTangents)
+            {
+                for (size_t i = 0; i < pair.second.Indices.size(); i += 3)
+                {
+                    Mesh::Vertex& v0 = pair.second.Vertices[pair.second.Indices[i]];
+                    Mesh::Vertex& v1 = pair.second.Vertices[pair.second.Indices[i + 1]];
+                    Mesh::Vertex& v2 = pair.second.Vertices[pair.second.Indices[i + 2]];
+
+                    glm::vec3 deltaPos1 = v1.Position - v0.Position;
+                    glm::vec3 deltaPos2 = v2.Position - v0.Position;
+
+                    glm::vec2 deltaUV1 = v1.UV - v0.UV;
+                    glm::vec2 deltaUV2 = v2.UV - v0.UV;
+
+                    float r = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV1.y * deltaUV2.x);
+                    glm::vec4 tangent = glm::vec4((deltaPos1 * deltaUV2.y - deltaPos2 * deltaUV1.y) * r, 1.f);
+
+                    if (!hasTangents)
+                    {
+                        v0.Tangent = tangent;
+                        v1.Tangent = tangent;
+                        v2.Tangent = tangent;
+                    }
+                    if (!hasNormals)
+                    {
+                        glm::vec3 bitangent = (deltaPos2 * deltaUV1.x - deltaPos1 * deltaUV2.x) * r;
+                        glm::vec3 normal = glm::cross(bitangent, glm::vec3(tangent));
+
+                        v0.Normal = normal;
+                        v1.Normal = normal;
+                        v2.Normal = normal;
+                    }
+                }
+            }
+
+            m_Submeshes.emplace_back(pair.second.Vertices, pair.second.Indices, pair.first);
+        }
     }
 }

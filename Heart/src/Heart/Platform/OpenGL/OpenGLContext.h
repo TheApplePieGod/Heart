@@ -4,7 +4,7 @@
 
 namespace Heart
 {
-    class OpenGLGraphicsPipeline;
+    class OpenGLFramebuffer;
     class OpenGLContext : public GraphicsContext
     {
     public:
@@ -19,15 +19,12 @@ namespace Heart
         void BeginFrame() override;
         void EndFrame() override;
 
-        // inline static void SetBoundVertexTopology(int topology) { s_BoundVertexTopology = topology; }
-        // inline static int GetBoundVertexTopology() { return s_BoundVertexTopology; }
-
-        inline static void SetBoundGraphicsPipeline(OpenGLGraphicsPipeline* pipeline) { s_BoundGraphicsPipeline = pipeline; }
-        inline static OpenGLGraphicsPipeline* GetBoundGraphicsPipeline() { return s_BoundGraphicsPipeline; }
+        inline static void SetBoundFramebuffer(OpenGLFramebuffer* buffer) { s_BoundFramebuffer = buffer; }
+        inline static OpenGLFramebuffer* GetBoundFramebuffer() { HE_ENGINE_ASSERT(s_BoundFramebuffer != nullptr, "No framebuffer is bound (forget to call Framebuffer.Bind()?)"); return s_BoundFramebuffer; }
         inline static int MaxMsaaSamples() { return s_MsaaMaxSamples; }
 
     private:
-        static OpenGLGraphicsPipeline* s_BoundGraphicsPipeline;
+        static OpenGLFramebuffer* s_BoundFramebuffer;
         static int s_MsaaMaxSamples;
 
     };

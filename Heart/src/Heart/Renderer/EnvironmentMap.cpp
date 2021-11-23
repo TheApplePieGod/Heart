@@ -27,7 +27,7 @@ namespace Heart
     void EnvironmentMap::Initialize()
     {
         // Create texture & cubemap targets
-        m_EnvironmentMap = Texture::Create({ 512, 512, 4, true, 6, 1 });
+        m_EnvironmentMap = Texture::Create({ 512, 512, 4, true, 6, 0 });
         m_IrradianceMap = Texture::Create({ 256, 256, 4, true, 6, 1 });
         m_PrefilterMap = Texture::Create({ 256, 256, 4, true, 6, 5 });
         m_BRDFTexture = Texture::Create({ 512, 512, 4, true, 1, 1 });
@@ -268,6 +268,8 @@ namespace Heart
 
             m_CubemapFramebuffer->BindShaderTextureResource(1, mapAsset->GetTexture());
 
+            m_CubemapFramebuffer->FlushBindings();
+
             Renderer::Api().BindVertexBuffer(*meshData.GetVertexBuffer());
             Renderer::Api().BindIndexBuffer(*meshData.GetIndexBuffer());
             Renderer::Api().DrawIndexed(
@@ -278,6 +280,8 @@ namespace Heart
 
             cubeDataIndex++;
         }
+
+        m_EnvironmentMap->RegenerateMipMapsSync(m_CubemapFramebuffer.get());
 
         Renderer::Api().RenderFramebuffers(Window::GetMainWindow().GetContext(), { m_CubemapFramebuffer.get() });
 
@@ -299,6 +303,8 @@ namespace Heart
             m_IrradianceMapFramebuffer->BindShaderBufferResource(0, cubeDataIndex, m_CubemapDataBuffer.get());
 
             m_IrradianceMapFramebuffer->BindShaderTextureResource(1, m_EnvironmentMap.get());
+
+            m_IrradianceMapFramebuffer->FlushBindings();
 
             Renderer::Api().BindVertexBuffer(*meshData.GetVertexBuffer());
             Renderer::Api().BindIndexBuffer(*meshData.GetIndexBuffer());
@@ -336,6 +342,8 @@ namespace Heart
 
                 m_PrefilterFramebuffers[i]->BindShaderTextureResource(1, m_EnvironmentMap.get());
 
+                m_PrefilterFramebuffers[i]->FlushBindings();
+
                 Renderer::Api().BindVertexBuffer(*meshData.GetVertexBuffer());
                 Renderer::Api().BindIndexBuffer(*meshData.GetIndexBuffer());
                 Renderer::Api().DrawIndexed(
@@ -359,6 +367,8 @@ namespace Heart
         CubemapData mapData = { cubemapCam.GetProjectionMatrix(), cubemapCam.GetViewMatrix(), glm::vec4(Renderer::IsUsingReverseDepth(), 0.f, 0.f, 0.f) };
         m_CubemapDataBuffer->SetData(&mapData, 1, cubeDataIndex++);
         m_BRDFFramebuffer->BindShaderBufferResource(0, cubeDataIndex, m_CubemapDataBuffer.get());
+
+        m_BRDFFramebuffer->FlushBindings();
 
         Renderer::Api().Draw(3, 0, 1);
         Renderer::Api().RenderFramebuffers(Window::GetMainWindow().GetContext(), { m_BRDFFramebuffer.get() });

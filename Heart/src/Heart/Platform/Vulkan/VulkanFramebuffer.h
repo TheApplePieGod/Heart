@@ -5,6 +5,7 @@
 #include "Heart/Platform/Vulkan/VulkanSwapChain.h"
 #include "Heart/Platform/Vulkan/VulkanCommon.h"
 #include "Heart/Platform/Vulkan/VulkanBuffer.h"
+#include "Heart/Platform/Vulkan/VulkanGraphicsPipeline.h"
 
 namespace Heart
 {
@@ -20,6 +21,7 @@ namespace Heart
         void BindShaderTextureResource(u32 bindingIndex, Texture* texture) override;
         void BindShaderTextureLayerResource(u32 bindingIndex, Texture* texture, u32 layerIndex) override;
         void BindSubpassInputAttachment(u32 bindingIndex, SubpassAttachment attachment) override;
+        void FlushBindings() override;
 
         void* GetColorAttachmentImGuiHandle(u32 attachmentIndex) override;
         void* GetColorAttachmentPixelData(u32 attachmentIndex) override;
@@ -30,7 +32,12 @@ namespace Heart
 
         inline VkFramebuffer GetFramebuffer() const { return m_Framebuffer; }
         inline VkRenderPass GetRenderPass() const { return m_RenderPass; }
-        inline VkCommandBuffer GetCommandBuffer() { UpdateFrameIndex(); return m_CommandBuffers[m_InFlightFrameIndex]; } ;
+        inline VkCommandBuffer GetCommandBuffer() { UpdateFrameIndex(); return m_CommandBuffers[m_InFlightFrameIndex]; }
+        inline bool CanDraw() const { return m_FlushedThisFrame; }
+        inline VulkanGraphicsPipeline* GetBoundPipeline() { return m_BoundPipeline; }
+        inline void PushAuxiliaryCommandBuffer(VkCommandBuffer buffer) { UpdateFrameIndex(); m_AuxiliaryCommandBuffers[m_InFlightFrameIndex].push_back(buffer); }
+        inline bool WasBoundThisFrame() const { return m_BoundThisFrame; }
+        inline bool WasSubmittedThisFrame() const { return m_SubmittedThisFrame; }
 
     protected:
         Ref<GraphicsPipeline> InternalInitializeGraphicsPipeline(const GraphicsPipelineCreateInfo& createInfo) override;
@@ -79,12 +86,13 @@ namespace Heart
     private:
         VkFramebuffer m_Framebuffer;
         VkRenderPass m_RenderPass;
-        std::string m_BoundPipeline;
+        VulkanGraphicsPipeline* m_BoundPipeline = nullptr;
         std::array<VkCommandBuffer, MAX_FRAMES_IN_FLIGHT> m_CommandBuffers;
         std::vector<VulkanFramebufferAttachment> m_AttachmentData;
         std::vector<VulkanFramebufferAttachment> m_DepthAttachmentData;
         std::vector<VkClearValue> m_CachedClearValues;
         std::vector<VkImageView> m_CachedImageViews;
+        std::array<std::vector<VkCommandBuffer>, MAX_FRAMES_IN_FLIGHT> m_AuxiliaryCommandBuffers;
 
         u32 m_CurrentSubpass = 0;
         u64 m_LastUpdateFrame = 0;
@@ -92,6 +100,7 @@ namespace Heart
         VkSampleCountFlagBits m_ImageSamples;
         bool m_SubmittedThisFrame = false;
         bool m_BoundThisFrame = false;
+        bool m_FlushedThisFrame = false;
 
         friend class VulkanRenderApi;
         friend class VulkanSwapChain;

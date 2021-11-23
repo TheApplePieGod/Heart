@@ -4,11 +4,15 @@
 
 namespace Heart
 {
+    class Framebuffer;
     class OpenGLTexture : public Texture
     {
     public:
         OpenGLTexture(const TextureCreateInfo& createInfo, void* initialData);
         ~OpenGLTexture() override;
+
+        void RegenerateMipMaps() override;
+        void RegenerateMipMapsSync(Framebuffer* buffer) override { RegenerateMipMaps(); }
 
         inline u32 GetTextureId() const { return m_TextureId; }
         inline int GetTarget() const { return m_Target; }

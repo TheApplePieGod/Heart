@@ -34,6 +34,19 @@ namespace HeartEditor
         Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Mesh, "assets/meshes/Sponza/glTF/Sponza.gltf");
         Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Mesh, "assets/meshes/Buggy/glTF/Buggy.gltf");
         Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Mesh, "assets/meshes/Duck/glTF/Duck.gltf");
+        Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Mesh, "assets/meshes/Lantern/glTF/Lantern.gltf");
+        Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Mesh, "assets/meshes/BoomBox/glTF/BoomBox.gltf");
+        Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Mesh, "assets/meshes/GlamVelvetSofa/glTF/GlamVelvetSofa.gltf");
+        Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Mesh, "assets/meshes/Avocado/glTF/Avocado.gltf");
+        Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Mesh, "assets/meshes/DragonAttenuation/glTF/DragonAttenuation.gltf");
+        Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Mesh, "assets/meshes/Suzanne/glTF/Suzanne.gltf");
+        Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Mesh, "assets/meshes/WaterBottle/glTF/WaterBottle.gltf");
+        Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Mesh, "assets/meshes/StainedGlassLamp/glTF/StainedGlassLamp.gltf");
+        Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Mesh, "assets/meshes/SciFiHelmet/glTF/SciFiHelmet.gltf");
+        Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Mesh, "assets/meshes/RecursiveSkeletons/glTF/RecursiveSkeletons.gltf");
+        Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Mesh, "assets/meshes/MosquitoInAmber/glTF/MosquitoInAmber.gltf");
+        Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Mesh, "assets/meshes/SheenChair/glTF/SheenChair.gltf");
+        Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Mesh, "assets/meshes/DamagedHelmet/glTF/DamagedHelmet.gltf");
         Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Mesh, "assets/meshes/IridescentDishWithOlives/glTF/IridescentDishWithOlives.gltf");
 
         m_EditorCamera = Heart::CreateScope<EditorCamera>(70.f, 0.1f, 500.f, 1.f);
@@ -47,12 +60,14 @@ namespace HeartEditor
 
         entity = m_ActiveScene->CreateEntity("Cube Entity");
         entity.AddComponent<Heart::MeshComponent>();
-        entity.GetComponent<Heart::MeshComponent>().Mesh = Heart::AssetManager::GetAssetUUID("assets/meshes/cube.gltf");
-        entity.GetComponent<Heart::MeshComponent>().Materials.emplace_back(0);
+        entity.GetComponent<Heart::MeshComponent>().Mesh = Heart::AssetManager::GetAssetUUID("assets/meshes/DamagedHelmet/glTF/DamagedHelmet.gltf");
+        //entity.GetComponent<Heart::MeshComponent>().Mesh = Heart::AssetManager::GetAssetUUID("assets/meshes/Duck/glTF/Duck.gltf");
 
-        m_EnvironmentMaps.emplace_back(Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Texture, "assets/envmaps/GrandCanyon.hdr"));
-        m_EnvironmentMaps.emplace_back(Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Texture, "assets/envmaps/IceLake.hdr"));
+        //m_EnvironmentMaps.emplace_back(Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Texture, "assets/envmaps/GrandCanyon.hdr"));
+        //m_EnvironmentMaps.emplace_back(Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Texture, "assets/envmaps/IceLake.hdr"));
         m_EnvironmentMaps.emplace_back(Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Texture, "assets/envmaps/PopcornLobby.hdr"));
+        //m_EnvironmentMaps.emplace_back(Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Texture, "assets/envmaps/Factory.hdr"));
+        //m_EnvironmentMaps.emplace_back(Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Texture, "assets/envmaps/Bridge.hdr"));
     }
 
     EditorLayer::~EditorLayer()

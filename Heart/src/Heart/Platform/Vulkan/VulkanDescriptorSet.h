@@ -15,14 +15,22 @@ namespace Heart
         void Initialize(const std::vector<ReflectionDataElement>& reflectionData);
         void Shutdown();
 
-        // returns true if a call to vkCmdBindDescriptorSets using GetMostRecentDescriptorSet() is allowed
-        bool UpdateShaderResource(u32 bindingIndex, ShaderResourceType resourceType, void* resource, bool useOffset, u32 offset); // offset used for image
+        void UpdateShaderResource(u32 bindingIndex, ShaderResourceType resourceType, void* resource, bool useOffset, u32 offset); // offset used for image
+        void FlushBindings();
 
         inline VkDescriptorSetLayout GetLayout() const { return m_DescriptorSetLayout; };
         inline VkDescriptorSet GetMostRecentDescriptorSet() const { return m_MostRecentDescriptorSet; }
         inline void UpdateDynamicOffset(u32 bindingIndex, u32 offset) { m_DynamicOffsets[m_OffsetMappings[bindingIndex]] = offset; }
         inline const std::vector<u32>& GetDynamicOffsets() const { return m_DynamicOffsets; }
         inline bool DoesBindingExist(u32 bindingIndex) const { return m_DescriptorWriteMappings.find(bindingIndex) != m_DescriptorWriteMappings.end(); }
+        inline bool CanFlush() const { return m_WritesReadyCount == m_CachedDescriptorWrites.size(); }
+
+    private:
+        struct BoundResource
+        {
+            void* Resource;
+            u32 Offset;
+        };
 
     private:
         VkDescriptorPool CreateDescriptorPool();
@@ -55,7 +63,7 @@ namespace Heart
         size_t m_AvailableSetIndex = 0;
         size_t m_AvailablePoolIndex = 0;
 
-        std::unordered_map<u32, void*> m_BoundResources;
+        std::unordered_map<u32, BoundResource> m_BoundResources;
 
         std::vector<u32> m_DynamicOffsets;
         std::unordered_map<u32, size_t> m_OffsetMappings;

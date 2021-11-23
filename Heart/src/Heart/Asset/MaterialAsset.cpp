@@ -53,6 +53,7 @@ namespace Heart
         {
             auto& field = j["data"];
             material.m_MaterialData.SetBaseColor({ field["baseColor"][0], field["baseColor"][1], field["baseColor"][2], field["baseColor"][3] });
+            material.m_MaterialData.SetEmissiveFactor({ field["emissiveFactor"][0], field["emissiveFactor"][1], field["emissiveFactor"][2], 0.f });
             material.m_MaterialData.SetRoughnessFactor(field["roughness"]);
             material.m_MaterialData.SetMetalnessFactor(field["metalness"]);
             material.m_MaterialData.SetTexCoordScale({ field["texCoordScale"][0], field["texCoordScale"][1] });
@@ -71,6 +72,8 @@ namespace Heart
             material.m_AlbedoTextureAsset = AssetManager::RegisterAsset(Asset::Type::Texture, field["albedo"]);
             material.m_MetallicRoughnessTextureAsset = AssetManager::RegisterAsset(Asset::Type::Texture, field["metallicRoughness"]);
             material.m_NormalTextureAsset = AssetManager::RegisterAsset(Asset::Type::Texture, field["normal"]);
+            material.m_EmissiveTextureAsset = AssetManager::RegisterAsset(Asset::Type::Texture, field["emissive"]);
+            material.m_OcclusionTextureAsset = AssetManager::RegisterAsset(Asset::Type::Texture, field["occlusion"]);
         }
 
         delete[] data;
@@ -84,7 +87,8 @@ namespace Heart
         // material data
         {
             auto& field = j["data"];
-            field["baseColor"] = nlohmann::json::array({ material.m_MaterialData.BaseColor.r, material.m_MaterialData.BaseColor.g, material.m_MaterialData.BaseColor.b, material.m_MaterialData.BaseColor.a });
+            field["baseColor"] = nlohmann::json::array({ material.m_MaterialData.GetBaseColor().r, material.m_MaterialData.GetBaseColor().g, material.m_MaterialData.GetBaseColor().b, material.m_MaterialData.GetBaseColor().a });
+            field["emissiveFactor"] = nlohmann::json::array({ material.m_MaterialData.GetEmissiveFactor().r, material.m_MaterialData.GetEmissiveFactor().g, material.m_MaterialData.GetEmissiveFactor().b });
             field["roughness"] = material.m_MaterialData.GetRoughnessFactor();
             field["metalness"] = material.m_MaterialData.GetMetalnessFactor();
             field["texCoordScale"] = nlohmann::json::array({ material.m_MaterialData.GetTexCoordScale().x, material.m_MaterialData.GetTexCoordScale().y });
@@ -103,6 +107,8 @@ namespace Heart
             field["albedo"] = AssetManager::GetPathFromUUID(material.m_AlbedoTextureAsset);
             field["metallicRoughness"] = AssetManager::GetPathFromUUID(material.m_MetallicRoughnessTextureAsset);
             field["normal"] = AssetManager::GetPathFromUUID(material.m_NormalTextureAsset);
+            field["emissive"] = AssetManager::GetPathFromUUID(material.m_EmissiveTextureAsset);
+            field["occlusion"] = AssetManager::GetPathFromUUID(material.m_OcclusionTextureAsset);
         }
 
         std::ofstream file(path);

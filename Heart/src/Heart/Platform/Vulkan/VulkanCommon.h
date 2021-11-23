@@ -44,8 +44,8 @@ namespace Heart
         static u32 FindMemoryType(VkPhysicalDevice physicalDevice, u32 typeFilter, VkMemoryPropertyFlags properties);
         static void CreateImage(VkDevice device, VkPhysicalDevice physicalDevice, u32 width, u32 height, VkFormat format, u32 mipLevels, u32 layerCount, VkSampleCountFlagBits numSamples, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory, VkImageLayout initialLayout);
         static VkImageView CreateImageView(VkDevice device, VkImage image, VkFormat format, u32 mipLevels, u32 baseMip, u32 layerCount, u32 baseArrayLayer, VkImageAspectFlags aspectFlags);
-        static VkCommandBuffer BeginSingleTimeCommands(VkDevice device, VkCommandPool commandPool);
-        static void EndSingleTimeCommands(VkDevice device, VkCommandPool commandPool, VkCommandBuffer commandBuffer, VkQueue submitQueue);
+        static VkCommandBuffer BeginSingleTimeCommands(VkDevice device, VkCommandPool commandPool, bool secondary = false);
+        static void EndSingleTimeCommands(VkDevice device, VkCommandPool commandPool, VkCommandBuffer commandBuffer, VkQueue submitQueue, bool secondary = false);
         static VkPipelineShaderStageCreateInfo DefineShaderStage(VkShaderModule shaderModule, VkShaderStageFlagBits stage, const char* entrypoint = "main");
         static void CreateBuffer(VkDevice device, VkPhysicalDevice physicalDevice, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
         static void MapAndWriteBufferMemory(VkDevice device, void* data, u32 dataSize, u32 elementCount, VkDeviceMemory bufferMemory, u32 elementMemoryOffset);
@@ -53,6 +53,7 @@ namespace Heart
         static void TransitionImageLayout(VkDevice device, VkCommandBuffer buffer, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout, u32 mipLevels, u32 layerCount);
         static void CopyBufferToImage(VkDevice device, VkCommandPool commandPool, VkQueue transferQueue, VkBuffer srcBuffer, VkImage dstImage, uint32_t width, uint32_t height);
         static void GenerateMipmaps(VkDevice device, VkPhysicalDevice physicalDevice, VkCommandPool commandPool, VkQueue submitQueue, VkImage image, VkFormat imageFormat, u32 width, u32 height, u32 mipLevels, u32 layerCount);
+        static void GenerateMipmaps(VkDevice device, VkPhysicalDevice physicalDevice, VkCommandBuffer buffer, VkImage image, VkFormat imageFormat, u32 width, u32 height, u32 mipLevels, u32 layerCount);
 
         static VkFormat ColorFormatToVulkan(ColorFormat format);
         static VkSampleCountFlagBits MsaaSampleCountToVulkan(MsaaSampleCount sampleCount);
