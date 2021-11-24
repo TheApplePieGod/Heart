@@ -8,6 +8,7 @@
 #include "Heart/Input/Input.h"
 #include "imgui/imgui.h"
 #include "imgui/imgui_internal.h"
+#include "Heart/Util/ImGuiUtil.h"
 
 namespace HeartEditor
 {
@@ -39,38 +40,15 @@ namespace Widgets
     {
         HE_PROFILE_FUNCTION();
         
-        f32 windowWidth = ImGui::GetWindowContentRegionMax().x - ImGui::GetWindowContentRegionMin().x;
-        f32 windowHeight = ImGui::GetContentRegionAvail().y;
-
-        // update the 'max size'
-        m_WindowSizes.y = windowWidth - m_WindowSizes.x - 16.f;
-
-        // draw the splitter that allows for child window resizing
-        ImGuiContext& g = *GImGui;
-        ImGuiWindow* window = g.CurrentWindow;
-        ImGuiID id = window->GetID("##Splitter");
-        ImRect bb;
-        bb.Min = ImVec2(window->DC.CursorPos.x + m_WindowSizes.x, window->DC.CursorPos.y);
-        bb.Max = ImGui::CalcItemSize(ImVec2(6.f, windowHeight), 0.0f, 0.0f);
-        bb.Max = { bb.Max.x + bb.Min.x, bb.Max.y + bb.Min.y };
-        ImGui::SplitterBehavior(bb, id, ImGuiAxis_X, &m_WindowSizes.x, &m_WindowSizes.y, 100.f, 100.f, 0.0f);
-
-        // tree
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.f, 0.f));
-        ImGui::BeginChild("cbtree", ImVec2(m_WindowSizes.x, windowHeight), false);
-        
-        RenderSidebar();
-
-        ImGui::EndChild();
-        
-        ImGui::SameLine(0.f, 10.f);
-
-        ImGui::BeginChild("cbfiles", ImVec2(m_WindowSizes.y, windowHeight), false);
-        
-        RenderViewport(envMap);
-
-        ImGui::EndChild();
-        ImGui::PopStyleVar();
+        Heart::ImGuiUtil::ResizableWindowSplitter(
+            m_WindowSizes,
+            { 100.f, 100.f },
+            true,
+            6.f,
+            10.f,
+            [&]() { RenderSidebar(); },
+            [&, envMap]() { RenderViewport(envMap); }
+        );
     }
 
     void MaterialEditor::RenderSidebar()

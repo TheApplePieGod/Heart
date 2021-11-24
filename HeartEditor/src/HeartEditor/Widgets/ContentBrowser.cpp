@@ -6,6 +6,7 @@
 #include "Heart/Asset/TextureAsset.h"
 #include "imgui/imgui.h"
 #include "imgui/imgui_internal.h"
+#include "Heart/Util/ImGuiUtil.h"
 
 namespace HeartEditor
 {
@@ -23,71 +24,53 @@ namespace Widgets
         if (m_ShouldRescan)
             ScanDirectory();
 
-        f32 windowWidth = ImGui::GetWindowContentRegionMax().x - ImGui::GetWindowContentRegionMin().x;
-        f32 windowHeight = ImGui::GetContentRegionAvail().y;
-
-        // update the 'max size'
-        m_WindowSizes.y = windowWidth - m_WindowSizes.x - 13.f;
-
-        // draw the splitter that allows for child window resizing
-        ImGuiContext& g = *GImGui;
-        ImGuiWindow* window = g.CurrentWindow;
-        ImGuiID id = window->GetID("##Splitter");
-        ImRect bb;
-        bb.Min = ImVec2(window->DC.CursorPos.x + m_WindowSizes.x, window->DC.CursorPos.y);
-        bb.Max = ImGui::CalcItemSize(ImVec2(3.f, windowHeight), 0.0f, 0.0f);
-        bb.Max = { bb.Max.x + bb.Min.x, bb.Max.y + bb.Min.y };
-        ImGui::SplitterBehavior(bb, id, ImGuiAxis_X, &m_WindowSizes.x, &m_WindowSizes.y, 100.f, 100.f, 0.0f);
-
-        // tree
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.f, 0.f));
-        ImGui::BeginChild("cbtree", ImVec2(m_WindowSizes.x, windowHeight), false);
-        RenderDirectoryNode(m_DirectoryStack[0]);
-        ImGui::EndChild();
-        
-        ImGui::SameLine(0.f, 10.f);
-
-        ImGui::BeginChild("cbfiles", ImVec2(m_WindowSizes.y, windowHeight), false);
-        // file list navigation
-        if (ImGui::Button("<##back"))
-        {
-            if (--m_DirectoryStackIndex < 0)
-                m_DirectoryStackIndex++;
-            else
-                m_ShouldRescan = true;
-        }
-        ImGui::SameLine(0.f, 5.f);
-        if (ImGui::Button(">##forwards"))
-        {
-            if (++m_DirectoryStackIndex >= m_DirectoryStack.size())
-                m_DirectoryStackIndex--;
-            else
-                m_ShouldRescan = true;
-        }
-        ImGui::SameLine(0.f, 10.f);
-        if (ImGui::Button("Refresh"))
-            m_ShouldRescan = true;
-
-        // file list (jank)
-        ImGui::BeginChild("cbfileslist", ImVec2(m_WindowSizes.y, ImGui::GetContentRegionAvail().y));
-        f32 currentExtent = 999999.f; // to prevent SameLine spacing in first row
-        for (const auto& entry : m_DirectoryList)
-        {
-            if (currentExtent + m_CardSize.x + m_CardSpacing >= m_WindowSizes.y - 50.f)
-                currentExtent = 0.f;
-            else
+        Heart::ImGuiUtil::ResizableWindowSplitter(
+            m_WindowSizes,
+            { 100.f, 100.f },
+            true,
+            3.f,
+            10.f,
+            [&]() { RenderDirectoryNode(m_DirectoryStack[0]); },
+            [&]()
             {
-                ImGui::SameLine(0.f, m_CardSpacing);
-                currentExtent += m_CardSpacing;
+                if (ImGui::Button("<##back"))
+                {
+                    if (--m_DirectoryStackIndex < 0)
+                        m_DirectoryStackIndex++;
+                    else
+                        m_ShouldRescan = true;
+                }
+                ImGui::SameLine(0.f, 5.f);
+                if (ImGui::Button(">##forwards"))
+                {
+                    if (++m_DirectoryStackIndex >= m_DirectoryStack.size())
+                        m_DirectoryStackIndex--;
+                    else
+                        m_ShouldRescan = true;
+                }
+                ImGui::SameLine(0.f, 10.f);
+                if (ImGui::Button("Refresh"))
+                    m_ShouldRescan = true;
+
+                // file list (jank)
+                ImGui::BeginChild("cbfileslist", ImVec2(m_WindowSizes.y, ImGui::GetContentRegionAvail().y));
+                f32 currentExtent = 999999.f; // to prevent SameLine spacing in first row
+                for (const auto& entry : m_DirectoryList)
+                {
+                    if (currentExtent + m_CardSize.x + m_CardSpacing >= m_WindowSizes.y - 50.f)
+                        currentExtent = 0.f;
+                    else
+                    {
+                        ImGui::SameLine(0.f, m_CardSpacing);
+                        currentExtent += m_CardSpacing;
+                    }
+
+                    RenderFileCard(entry);
+                    currentExtent += m_CardSize.x;
+                }
+                ImGui::EndChild();
             }
-
-            RenderFileCard(entry);
-            currentExtent += m_CardSize.x;
-        }
-        ImGui::EndChild();
-
-        ImGui::EndChild();
-        ImGui::PopStyleVar();
+        );
     }
 
     void ContentBrowser::ScanDirectory()

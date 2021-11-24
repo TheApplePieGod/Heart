@@ -60,8 +60,8 @@ namespace HeartEditor
 
         entity = m_ActiveScene->CreateEntity("Cube Entity");
         entity.AddComponent<Heart::MeshComponent>();
-        entity.GetComponent<Heart::MeshComponent>().Mesh = Heart::AssetManager::GetAssetUUID("assets/meshes/DamagedHelmet/glTF/DamagedHelmet.gltf");
-        //entity.GetComponent<Heart::MeshComponent>().Mesh = Heart::AssetManager::GetAssetUUID("assets/meshes/Duck/glTF/Duck.gltf");
+        //entity.GetComponent<Heart::MeshComponent>().Mesh = Heart::AssetManager::GetAssetUUID("assets/meshes/DamagedHelmet/glTF/DamagedHelmet.gltf");
+        entity.GetComponent<Heart::MeshComponent>().Mesh = Heart::AssetManager::GetAssetUUID("assets/meshes/Duck/glTF/Duck.gltf");
 
         m_EnvironmentMaps.emplace_back(Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Texture, "assets/envmaps/GrandCanyon.hdr"));
         //m_EnvironmentMaps.emplace_back(Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Texture, "assets/envmaps/IceLake.hdr"));

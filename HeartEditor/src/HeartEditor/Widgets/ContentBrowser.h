@@ -23,7 +23,7 @@ namespace Widgets
     private:
         const glm::vec2 m_CardSize = { 75.f, 75.f };
         const f32 m_CardSpacing = 5.f;
-        glm::vec2 m_WindowSizes = { 200.f, 5000.f };
+        glm::vec2 m_WindowSizes = { 0.f, 0.f };
         std::vector<std::string> m_DirectoryStack = { "assets" };
         int m_DirectoryStackIndex = 0;
         std::vector<std::filesystem::directory_entry> m_DirectoryList;

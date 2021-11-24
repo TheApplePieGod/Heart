@@ -75,7 +75,7 @@ namespace Heart
                 { { { SubpassAttachmentType::Color, 2 }, { SubpassAttachmentType::Color, 3 } }, { { SubpassAttachmentType::Depth, 0 }, { SubpassAttachmentType::Color, 0 } } } // composite
             },
             0, 0,
-            MsaaSampleCount::None
+            MsaaSampleCount::Eight
         };
         m_FinalFramebuffer = Framebuffer::Create(fbCreateInfo);
 

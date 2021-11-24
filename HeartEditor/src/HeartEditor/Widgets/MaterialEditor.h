@@ -32,7 +32,7 @@ namespace Widgets
         glm::vec2 m_SwivelRotation = { 0.f, 0.f };
         float m_Radius = 2.f;
         Heart::Entity m_DemoEntity;
-        glm::vec2 m_WindowSizes = { 200.f, 5000.f };
+        glm::vec2 m_WindowSizes = { 0.f, 0.f };
     };
 }
 }
