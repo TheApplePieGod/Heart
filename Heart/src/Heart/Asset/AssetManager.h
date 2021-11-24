@@ -17,9 +17,11 @@ namespace Heart
         static void OnUpdate();
 
         static const std::string& GetAssetsDirectory() { return s_AssetsDirectory; }
-        static bool IsAssetRegistered(const std::string& path);
-        static bool IsAssetRegistered(Asset::Type type, const std::string& path);
+
         static UUID RegisterAsset(Asset::Type type, const std::string& path, bool persistent = false, bool isResource = false);
+        static void RegisterAssetsInDirectory(const std::string& path, bool persistent = false, bool isResource = false);
+
+        static Asset::Type DeduceAssetTypeFromFile(const std::string& path);
 
         static UUID GetAssetUUID(const std::string& path, bool isResource = false);
         static std::string GetPathFromUUID(UUID uuid);
@@ -57,7 +59,7 @@ namespace Heart
 
     private:
         static inline const u64 s_AssetFrameLimit = 1000;
-        static inline const std::string s_ResourcesDirectory = "resources"; 
+        static inline const std::string s_ResourceDirectory = "resources";
         static std::unordered_map<UUID, UUIDEntry> s_UUIDs;
         static std::unordered_map<std::string, AssetEntry> s_Registry;
         static std::unordered_map<std::string, AssetEntry> s_Resources;

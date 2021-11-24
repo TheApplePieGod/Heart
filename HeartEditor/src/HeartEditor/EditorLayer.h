@@ -16,6 +16,7 @@
 #include "HeartEditor/Widgets/SceneHierarchyPanel.h"
 #include "HeartEditor/Widgets/PropertiesPanel.h"
 #include "HeartEditor/Widgets/ContentBrowser.h"
+#include "HeartEditor/Widgets/MaterialEditor.h"
 
 namespace HeartEditor
 {
@@ -25,6 +26,7 @@ namespace HeartEditor
         Widgets::SceneHierarchyPanel SceneHierarchyPanel;
         Widgets::PropertiesPanel PropertiesPanel;
         Widgets::ContentBrowser ContentBrowser;
+        Widgets::MaterialEditor MaterialEditor;
     };
 
     class EditorLayer : public Heart::Layer

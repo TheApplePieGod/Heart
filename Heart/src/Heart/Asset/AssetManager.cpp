@@ -12,7 +12,7 @@ namespace Heart
 
     void AssetManager::Initialize()
     {
-        
+        RegisterAssetsInDirectory(s_ResourceDirectory, false, true);
     }
 
     void AssetManager::Shutdown()
@@ -80,23 +80,6 @@ namespace Heart
         entry.LoadedFrame = std::numeric_limits<u64>::max() - s_AssetFrameLimit; // prevent extraneous unloading
     }
 
-    bool AssetManager::IsAssetRegistered(const std::string& path)
-    {
-        return IsAssetRegistered(Asset::Type::None, path);
-    }
-
-    bool AssetManager::IsAssetRegistered(Asset::Type type, const std::string& path)
-    {
-        if (s_Registry.find(path) != s_Registry.end())
-        {
-            if (type == Asset::Type::None)
-                return true;
-            return s_Registry[path].Asset->GetType() == type;
-        }
-
-        return false;
-    }
-
     UUID AssetManager::RegisterAsset(Asset::Type type, const std::string& path, bool persistent, bool isResource)
     {
         if (path.empty())
@@ -107,26 +90,69 @@ namespace Heart
             return oldUUID;
 
         UUID newUUID = UUID();
-        s_UUIDs[newUUID] = { path, isResource };
-
         if (isResource)
         {
-            if (s_Resources.find(path) == s_Resources.end())
-            {
-                HE_ENGINE_LOG_TRACE("Registering {0} resource @ {1}", HE_ENUM_TO_STRING(Asset, type), path);
-                std::string absolutePath = std::filesystem::path(s_ResourcesDirectory).append(path).generic_u8string();
-                s_Resources[path] = { Asset::Create(type, path, absolutePath), std::numeric_limits<u64>::max() - s_AssetFrameLimit, persistent };
+            std::string trimmedPath = path.substr(s_ResourceDirectory.size() + 1); // remove the directory from the start of the path so it doesn't need to be included when referencing resource assets
+            if (s_Resources.find(trimmedPath) == s_Resources.end())
+            {  
+                HE_ENGINE_LOG_TRACE("Registering {0} resource @ {1}", HE_ENUM_TO_STRING(Asset, type), trimmedPath);
+                s_Resources[trimmedPath] = { Asset::Create(type, trimmedPath, path), std::numeric_limits<u64>::max() - s_AssetFrameLimit, persistent };
             }
-            return newUUID;
+            s_UUIDs[newUUID] = { trimmedPath, isResource };
+        }
+        else
+        {
+            if (s_Registry.find(path) == s_Registry.end())
+            {
+                HE_ENGINE_LOG_TRACE("Registering {0} asset @ {1}", HE_ENUM_TO_STRING(Asset, type), path);
+                std::string absolutePath = std::filesystem::path(s_AssetsDirectory).append(path).generic_u8string();
+                s_Registry[path] = { Asset::Create(type, path, absolutePath), std::numeric_limits<u64>::max() - s_AssetFrameLimit, persistent };
+            }
+            s_UUIDs[newUUID] = { path, isResource };
         }
 
-        if (s_Registry.find(path) == s_Registry.end())
-        {
-            HE_ENGINE_LOG_TRACE("Registering {0} asset @ {1}", HE_ENUM_TO_STRING(Asset, type), path);
-            std::string absolutePath = std::filesystem::path(s_AssetsDirectory).append(path).generic_u8string();
-            s_Registry[path] = { Asset::Create(type, path, absolutePath), std::numeric_limits<u64>::max() - s_AssetFrameLimit, persistent };
-        }
         return newUUID;    
+    }
+
+    void AssetManager::RegisterAssetsInDirectory(const std::string& path, bool persistent, bool isResource)
+    {
+        auto directory = std::filesystem::path(path);
+
+        try
+        {
+            for (const auto& entry : std::filesystem::directory_iterator(directory))
+                if (entry.is_directory())
+                    RegisterAssetsInDirectory(entry.path().generic_u8string(), persistent, isResource);
+                else
+                {
+                    std::string path = entry.path().generic_u8string();
+                    Asset::Type type = DeduceAssetTypeFromFile(path);
+                    if (type != Asset::Type::None)
+                        RegisterAsset(type, path, persistent, isResource);
+                }
+        }
+        catch (std::exception e) // likely invalid path so stop searching
+        { return; }
+    }
+
+    Asset::Type AssetManager::DeduceAssetTypeFromFile(const std::string& path)
+    {
+        auto extension = std::filesystem::path(path).extension().generic_u8string();
+
+        // convert the extension to lowercase
+        std::transform(extension.begin(), extension.end(), extension.begin(), [](unsigned char c) { return std::tolower(c); });
+        
+        Asset::Type type = Asset::Type::None;
+        if (extension == ".png" || extension == ".jpg" || extension == ".bmp" || extension == ".hdr") // textures
+            type = Asset::Type::Texture;
+        else if (extension == ".gltf")
+            type = Asset::Type::Mesh;
+        else if (extension == ".vert" || extension == ".frag" || extension == ".comp")
+            type = Asset::Type::Shader;
+        else if (extension == ".hemat")
+            type = Asset::Type::Material;
+
+        return type;
     }
 
     UUID AssetManager::GetAssetUUID(const std::string& path, bool isResource)

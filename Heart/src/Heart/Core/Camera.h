@@ -36,6 +36,7 @@ namespace Heart
         ~Camera();
 
         void UpdateViewMatrix(f32 xRotation, f32 yRotation, glm::vec3 position);
+        void UpdateViewMatrix(glm::vec3 centerPoint, f32 radius, f32 xRotation, f32 yRotation);
 
         inline ProjectionType GetType() const { return m_ProjectionType; }
         inline void UpdateWidth(f32 width) { m_OrthoWidth = width; UpdateProjectionMatrix(); }

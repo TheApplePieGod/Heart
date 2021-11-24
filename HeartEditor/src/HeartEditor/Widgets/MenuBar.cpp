@@ -20,6 +20,7 @@ namespace Widgets
         m_WindowStatuses["Scene Hierarchy"] = true;
         m_WindowStatuses["Settings"] = true;
         m_WindowStatuses["Debug Info"] = true;
+        m_WindowStatuses["Material Editor"] = true;
     }
 
     void MenuBar::OnImGuiRender(Heart::Scene* activeScene, Heart::Entity& selectedEntity)

@@ -102,4 +102,42 @@ namespace Heart
             0.f, 0.f, 0.f, 1.f
         ) * m_ViewMatrix;
     }
+
+    void Camera::UpdateViewMatrix(glm::vec3 centerPoint, f32 radius, f32 xRotation, f32 yRotation)
+    {
+        // rotate the camera's axes via a quaternion
+        glm::vec3 rotation = { -yRotation, xRotation, 0.f };
+        glm::quat q = glm::quat(glm::radians(rotation));
+        m_RightVector = glm::rotate(q, glm::vec3(1.f, 0.f, 0.f));
+        m_UpVector = glm::rotate(q, glm::vec3(0.f, 1.f, 0.f));
+        m_ForwardVector = glm::rotate(q, glm::vec3(0.f, 0.f, 1.f));
+
+        glm::vec3 circularPosition = centerPoint + m_ForwardVector * radius;
+        m_RightVector *= -1.f;
+        m_ForwardVector *= -1.f;
+
+        // calculate the basic view matrix
+        m_ViewMatrix = glm::inverse(glm::mat4(
+            m_RightVector.x, m_RightVector.y, m_RightVector.z, 0.f,
+            m_UpVector.x, m_UpVector.y, m_UpVector.z, 0.f,
+            m_ForwardVector.x, m_ForwardVector.y, m_ForwardVector.z, 0.f,
+            circularPosition.x, circularPosition.y, circularPosition.z, 1.f
+        ));
+
+        // invert the z axis
+        m_ViewMatrix = glm::mat4(
+            1.f, 0.f, 0.f, 0.f,
+            0.f, 1.f, 0.f, 0.f,
+            0.f, 0.f, -1.f, 0.f,
+            0.f, 0.f, 0.f, 1.f
+        ) * m_ViewMatrix;
+
+        // invert the y axis for ViewMatrixInvertedY
+        m_ViewMatrixInvertedY = glm::mat4(
+            1.f, 0.f, 0.f, 0.f,
+            0.f, -1.f, 0.f, 0.f,
+            0.f, 0.f, 1.f, 0.f,
+            0.f, 0.f, 0.f, 1.f
+        ) * m_ViewMatrix;
+    }
 }

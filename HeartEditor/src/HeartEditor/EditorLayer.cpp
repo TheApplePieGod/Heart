@@ -18,13 +18,13 @@ namespace HeartEditor
     EditorLayer::EditorLayer()
     {
         // Register required editor resources
-        Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Texture, "editor/pan.png", true, true);
-        Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Texture, "editor/rotate.png", true, true);
-        Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Texture, "editor/scale.png", true, true);
-        Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Texture, "editor/object.png", true, true);
-        Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Texture, "editor/world.png", true, true);
-        Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Texture, "editor/folder.png", true, true);
-        Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Texture, "editor/file.png", true, true);
+        // Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Texture, "editor/pan.png", true, true);
+        // Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Texture, "editor/rotate.png", true, true);
+        // Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Texture, "editor/scale.png", true, true);
+        // Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Texture, "editor/object.png", true, true);
+        // Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Texture, "editor/world.png", true, true);
+        // Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Texture, "editor/folder.png", true, true);
+        // Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Texture, "editor/file.png", true, true);
 
         // Register testing assets
         Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Material, "assets/materials/TestMaterial.hemat");
@@ -89,6 +89,8 @@ namespace HeartEditor
             map.Initialize();
             map.Recalculate();
         }
+
+        m_Widgets.MaterialEditor.Initialize();
 
         HE_CLIENT_LOG_INFO("Editor attached");
     }
@@ -183,6 +185,17 @@ namespace HeartEditor
             ImGui::Begin("Debug Info", m_Widgets.MainMenuBar.GetWindowStatusRef("Debug Info"));
 
             RenderDebugInfo();
+
+            ImGui::End();
+            ImGui::PopStyleVar();
+        }
+
+        if (m_Widgets.MainMenuBar.GetWindowStatus("Material Editor"))
+        {
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 5.0f));
+            ImGui::Begin("Material Editor", m_Widgets.MainMenuBar.GetWindowStatusRef("Material Editor"));
+
+            m_Widgets.MaterialEditor.OnImGuiRender(&m_EnvironmentMaps[0]);
 
             ImGui::End();
             ImGui::PopStyleVar();
@@ -368,6 +381,8 @@ namespace HeartEditor
 
         for (auto& map : m_EnvironmentMaps)
             map.Shutdown();
+
+        m_Widgets.MaterialEditor.Shutdown();
 
         HE_CLIENT_LOG_INFO("Editor detached");
     }
