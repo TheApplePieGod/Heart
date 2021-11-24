@@ -14,7 +14,9 @@ namespace Heart
     class EnvironmentMap
     {
     public:
-        EnvironmentMap::EnvironmentMap(UUID mapAsset);
+        EnvironmentMap::EnvironmentMap(UUID mapAsset)
+        : m_MapAsset(mapAsset)
+        {}
 
         void Initialize();
         void Shutdown();

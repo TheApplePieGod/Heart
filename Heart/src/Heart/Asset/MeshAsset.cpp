@@ -72,7 +72,10 @@ namespace Heart
                 buffers.back().assign(bin, bin + fileLength);
             }
             else
-            { HE_ENGINE_ASSERT(false, "Buffer data is not in a supported format"); }
+            {
+                HE_ENGINE_LOG_ERROR("Cannot load GLTF mesh that uses an unsupported buffer data format");
+                throw std::exception();
+            }
         }
 
         // parse buffer views
@@ -99,7 +102,8 @@ namespace Heart
                 std::string uri = image["uri"];
                 if (uri.find("base64") != std::string::npos)
                 {
-                    HE_ENGINE_ASSERT(false, "Loading inline textures is not supported yet");
+                    HE_ENGINE_LOG_ERROR("Cannot load GLTF mesh that uses inline textures (not supported yet)");
+                    throw std::exception();
                     //std::string base64 = uri.substr(uri.find(',') + 1);
                     //buffers.emplace_back(Base64Decode(base64));
                 }
@@ -213,9 +217,16 @@ namespace Heart
                 parseData.MaterialIndex = materialIndex;
 
                 // Points = 0, Lines, LineLoop, LineStrip, Triangles, TriangleStrip, TriangleFan
-                if (primitive.contains("mode"))
-                { HE_ENGINE_ASSERT(primitive["mode"] == 4, "Cannot load GLTF mesh that uses an unsupported primitive mode"); } // TODO: support all modes
-                HE_ENGINE_ASSERT(primitive.contains("indices"), "Cannot load GLTF mesh that does not use indexed geometry");
+                if (primitive.contains("mode") && primitive["mode"] != 4)
+                {
+                    HE_ENGINE_LOG_ERROR("Cannot load GLTF mesh that uses an unsupported primitive mode");
+                    throw std::exception();
+                }
+                if (!primitive.contains("indices"))
+                {
+                    HE_ENGINE_LOG_ERROR("Cannot load GLTF mesh that does not use indexed geometry");
+                    throw std::exception();
+                }
 
                 // parse indices
                 {
@@ -227,7 +238,7 @@ namespace Heart
                         parseData.Indices.resize(accessor.Count);
 
                     u32 offset = 0; // bytes
-                    for (u32 i = 0; i < accessor.Count; i++)
+                    for (int i = static_cast<int>(accessor.Count) - 1; i >= 0; i--) // parse the indices in reverse order to account for coordinate system flip
                     {
                         if (accessor.ComponentType == 5123) // unsigned short
                         {
@@ -240,7 +251,10 @@ namespace Heart
                             offset += 4;
                         }
                         else
-                        { HE_ENGINE_ASSERT(false, "Cannot load GLTF mesh that has indices with an unsupported data type"); }
+                        {
+                            HE_ENGINE_LOG_ERROR("Cannot load GLTF mesh that has indices with an unsupported data type");
+                            throw std::exception();
+                        }
                     }
                 }
 
@@ -295,9 +309,13 @@ namespace Heart
         std::unordered_map<u32, SubmeshData> submeshData;
         u32 sceneIndex = j["scene"];
         auto& scenes = j["scenes"];
+        
+        // start with a base scale of z = -1. this is because we are translating from a right handed to a left handed coordinate space
+        // the order of the indices have been reversed to account for this change
+        glm::mat4 baseTransform = glm::scale(glm::mat4(1.f), { 1.f, 1.f, -1.f });
         for (auto& nodeIndex : scenes[sceneIndex]["nodes"])
         {
-            ParseGLTFNode(j, nodeIndex, meshes, submeshData, glm::mat4(1.f));
+            ParseGLTFNode(j, nodeIndex, meshes, submeshData, baseTransform);
         }
 
         // populate submeshes with parsed data
@@ -318,8 +336,8 @@ namespace Heart
                     glm::vec2 deltaUV1 = v1.UV - v0.UV;
                     glm::vec2 deltaUV2 = v2.UV - v0.UV;
 
-                    float r = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV1.y * deltaUV2.x);
-                    glm::vec4 tangent = glm::vec4((deltaPos1 * deltaUV2.y - deltaPos2 * deltaUV1.y) * r, 1.f);
+                    float r = 1.0f / (deltaUV1.y * deltaUV2.x - deltaUV1.x * deltaUV2.y);
+                    glm::vec4 tangent = glm::vec4((deltaPos1 * -deltaUV2.y + deltaPos2 * deltaUV1.y) * r, 1.f);
 
                     if (!hasTangents)
                     {
@@ -329,7 +347,7 @@ namespace Heart
                     }
                     if (!hasNormals)
                     {
-                        glm::vec3 bitangent = (deltaPos2 * deltaUV1.x - deltaPos1 * deltaUV2.x) * r;
+                        glm::vec3 bitangent = (deltaPos1 * -deltaUV2.x + deltaPos2 * deltaUV1.x) * r;
                         glm::vec3 normal = glm::cross(bitangent, glm::vec3(tangent));
 
                         v0.Normal = normal;
@@ -364,7 +382,7 @@ namespace Heart
             if (node.contains("translation"))
                 translation = { node["translation"][0], node["translation"][1], node["translation"][2] };
             if (node.contains("rotation"))
-                rotation = { node["rotation"][0], node["rotation"][1], node["rotation"][2], node["rotation"][3] };
+                rotation = { node["rotation"][3], node["rotation"][0], node["rotation"][1], node["rotation"][2] };
             if (node.contains("scale"))
                 scale = { node["scale"][0], node["scale"][1], node["scale"][2] };
 
@@ -393,6 +411,8 @@ namespace Heart
                 for (auto vertex : primitive.Vertices)
                 {
                     vertex.Position = finalMatrix * glm::vec4(vertex.Position, 1.f);
+                    vertex.Normal = (glm::mat3)finalMatrix * vertex.Normal;
+                    vertex.Tangent = glm::vec4((glm::mat3)finalMatrix * glm::vec3(vertex.Tangent), vertex.Tangent.w);
                     submesh.Vertices.emplace_back(vertex);
                 }
 

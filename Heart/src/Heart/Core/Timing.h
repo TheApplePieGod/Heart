@@ -14,11 +14,19 @@ namespace Heart
 
         ~Timer()
         {
-            if (m_ShouldLog && !m_Name.empty())
+            if (m_ShouldLog)
+                Log();
+        }
+
+        inline void Log()
+        {
+            if (!m_Name.empty())
                 HE_ENGINE_LOG_INFO("{0} took {1} ms", m_Name, static_cast<u32>(ElapsedMilliseconds()));
         }
 
         inline void Reset() { m_Start = std::chrono::high_resolution_clock::now(); }
+
+        inline void SetName(const std::string& newName) { m_Name = newName; } 
 
         inline double ElapsedSeconds()
         {

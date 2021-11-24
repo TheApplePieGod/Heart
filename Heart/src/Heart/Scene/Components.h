@@ -45,7 +45,7 @@ namespace Heart
 
     struct MeshComponent
     {
-        UUID Mesh;
+        UUID Mesh = 0;
         std::vector<UUID> Materials;
     };
 }

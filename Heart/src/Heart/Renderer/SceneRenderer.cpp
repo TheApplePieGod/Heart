@@ -16,18 +16,6 @@ namespace Heart
 {
     SceneRenderer::SceneRenderer()
     {
-        // Register required resources
-        // AssetManager::RegisterAsset(Asset::Type::Texture, "DefaultTexture.png", true, true);
-        // AssetManager::RegisterAsset(Asset::Type::Material, "DefaultMaterial.hemat", true, true);
-        // AssetManager::RegisterAsset(Asset::Type::Shader, "PBR.vert", false, true);
-        // AssetManager::RegisterAsset(Asset::Type::Shader, "PBR.frag", false, true);
-        // AssetManager::RegisterAsset(Asset::Type::Shader, "FullscreenTriangle.vert", false, true);
-        // AssetManager::RegisterAsset(Asset::Type::Shader, "PBRTransparentColor.frag", false, true);
-        // AssetManager::RegisterAsset(Asset::Type::Shader, "TransparentComposite.frag", false, true);
-        // AssetManager::RegisterAsset(Asset::Type::Shader, "Skybox.vert", false, true);
-        // AssetManager::RegisterAsset(Asset::Type::Shader, "Skybox.frag", false, true);
-        // AssetManager::RegisterAsset(Asset::Type::Mesh, "DefaultCube.gltf", false, true);
-
         // Create default environment map cubemap object
         m_DefaultEnvironmentMap = Texture::Create({ 512, 512, 4, false, 6, 5 });
 

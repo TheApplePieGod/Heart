@@ -2,6 +2,7 @@
 #include "AssetManager.h"
 
 #include "Heart/Core/App.h"
+#include "Heart/Core/Timing.h"
 
 namespace Heart
 {
@@ -12,7 +13,14 @@ namespace Heart
 
     void AssetManager::Initialize()
     {
+        auto timer = Heart::Timer("Registering resources", false);
         RegisterAssetsInDirectory(s_ResourceDirectory, false, true);
+        timer.Log();
+
+        timer.SetName("Registering assets");
+        timer.Reset();
+        RegisterAssetsInDirectory(s_AssetsDirectory, false, false);
+        timer.Log();
     }
 
     void AssetManager::Shutdown()
@@ -92,13 +100,13 @@ namespace Heart
         UUID newUUID = UUID();
         if (isResource)
         {
-            std::string trimmedPath = path.substr(s_ResourceDirectory.size() + 1); // remove the directory from the start of the path so it doesn't need to be included when referencing resource assets
-            if (s_Resources.find(trimmedPath) == s_Resources.end())
+            if (s_Resources.find(path) == s_Resources.end())
             {  
-                HE_ENGINE_LOG_TRACE("Registering {0} resource @ {1}", HE_ENUM_TO_STRING(Asset, type), trimmedPath);
-                s_Resources[trimmedPath] = { Asset::Create(type, trimmedPath, path), std::numeric_limits<u64>::max() - s_AssetFrameLimit, persistent };
+                HE_ENGINE_LOG_TRACE("Registering {0} resource @ {1}", HE_ENUM_TO_STRING(Asset, type), path);
+                std::string absolutePath = std::filesystem::path(s_ResourceDirectory).append(path).generic_u8string();
+                s_Resources[path] = { Asset::Create(type, path, absolutePath), std::numeric_limits<u64>::max() - s_AssetFrameLimit, persistent };
             }
-            s_UUIDs[newUUID] = { trimmedPath, isResource };
+            s_UUIDs[newUUID] = { path, isResource, type };
         }
         else
         {
@@ -108,27 +116,29 @@ namespace Heart
                 std::string absolutePath = std::filesystem::path(s_AssetsDirectory).append(path).generic_u8string();
                 s_Registry[path] = { Asset::Create(type, path, absolutePath), std::numeric_limits<u64>::max() - s_AssetFrameLimit, persistent };
             }
-            s_UUIDs[newUUID] = { path, isResource };
+            s_UUIDs[newUUID] = { path, isResource, type };
         }
 
         return newUUID;    
     }
 
-    void AssetManager::RegisterAssetsInDirectory(const std::string& path, bool persistent, bool isResource)
+    void AssetManager::RegisterAssetsInDirectory(const std::filesystem::path& directory, bool persistent, bool isResource)
     {
-        auto directory = std::filesystem::path(path);
-
         try
         {
             for (const auto& entry : std::filesystem::directory_iterator(directory))
                 if (entry.is_directory())
-                    RegisterAssetsInDirectory(entry.path().generic_u8string(), persistent, isResource);
+                    RegisterAssetsInDirectory(entry.path(), persistent, isResource);
                 else
                 {
                     std::string path = entry.path().generic_u8string();
                     Asset::Type type = DeduceAssetTypeFromFile(path);
                     if (type != Asset::Type::None)
-                        RegisterAsset(type, path, persistent, isResource);
+                    {
+                        // remove the base from the start of the path so it doesn't need to be included when referencing
+                        std::string trimmedPath = path.substr((isResource ? s_ResourceDirectory.size() : s_AssetsDirectory.size()) + 1);
+                        RegisterAsset(type, trimmedPath, persistent, isResource);
+                    }
                 }
         }
         catch (std::exception e) // likely invalid path so stop searching

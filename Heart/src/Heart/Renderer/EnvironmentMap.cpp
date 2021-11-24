@@ -11,18 +11,7 @@
 
 namespace Heart
 {
-    EnvironmentMap::EnvironmentMap(UUID mapAsset)
-        : m_MapAsset(mapAsset)
-    {
-        // Register required resources
-        // AssetManager::RegisterAsset(Asset::Type::Shader, "BRDFQuad.vert", false, true);
-        // AssetManager::RegisterAsset(Asset::Type::Shader, "CalcEnvironmentMap.frag", false, true);
-        // AssetManager::RegisterAsset(Asset::Type::Shader, "EnvironmentMap.vert", false, true);
-        // AssetManager::RegisterAsset(Asset::Type::Shader, "CalcIrradianceMap.frag", false, true);
-        // AssetManager::RegisterAsset(Asset::Type::Shader, "CalcPrefilterMap.frag", false, true);
-        // AssetManager::RegisterAsset(Asset::Type::Shader, "CalcBRDF.frag", false, true);
-        // AssetManager::RegisterAsset(Asset::Type::Mesh, "DefaultCube.gltf", false, true);
-    }
+    
 
     void EnvironmentMap::Initialize()
     {

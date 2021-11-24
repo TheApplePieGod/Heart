@@ -9,7 +9,7 @@ namespace Heart
 {
     Ref<GraphicsContext> GraphicsContext::Create(void* window)
     {
-        HE_ENGINE_LOG_INFO("Creating GraphicsContext with api type {0}", RenderApi::TypeStrings[static_cast<u16>(Renderer::GetApiType())]);
+        HE_ENGINE_LOG_TRACE("Creating GraphicsContext with api type {0}", RenderApi::TypeStrings[static_cast<u16>(Renderer::GetApiType())]);
 
         switch (Renderer::GetApiType())
         {

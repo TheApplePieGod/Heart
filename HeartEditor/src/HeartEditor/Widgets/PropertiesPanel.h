@@ -41,6 +41,9 @@ namespace Widgets
             }
             return false;
         }
+    
+    private:
+        ImGuiTextFilter m_MeshTextFilter;
     };
 }
 }

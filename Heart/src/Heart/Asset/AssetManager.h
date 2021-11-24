@@ -8,6 +8,20 @@ namespace Heart
     class AssetManager
     {
     public:
+        struct AssetEntry
+        {
+            Ref<Asset> Asset;
+            u64 LoadedFrame;
+            bool Persistent;
+        };
+        struct UUIDEntry
+        {
+            std::string Path;
+            bool IsResource;
+            Asset::Type Type;
+        };
+
+    public:
         static void Initialize();
         static void Shutdown();
         static void UnloadAllAssets();
@@ -16,10 +30,11 @@ namespace Heart
         static void LoadAllResources();
         static void OnUpdate();
 
-        static const std::string& GetAssetsDirectory() { return s_AssetsDirectory; }
+        inline static const std::string& GetAssetsDirectory() { return s_AssetsDirectory; }
+        inline static const std::unordered_map<UUID, UUIDEntry>& GetUUIDRegistry() { return s_UUIDs; }
 
         static UUID RegisterAsset(Asset::Type type, const std::string& path, bool persistent = false, bool isResource = false);
-        static void RegisterAssetsInDirectory(const std::string& path, bool persistent = false, bool isResource = false);
+        static void RegisterAssetsInDirectory(const std::filesystem::path& directory, bool persistent = false, bool isResource = false);
 
         static Asset::Type DeduceAssetTypeFromFile(const std::string& path);
 
@@ -39,19 +54,6 @@ namespace Heart
         {
             return static_cast<T*>(RetrieveAsset(uuid));
         }
-
-    private:
-        struct AssetEntry
-        {
-            Ref<Asset> Asset;
-            u64 LoadedFrame;
-            bool Persistent;
-        };
-        struct UUIDEntry
-        {
-            std::string Path;
-            bool IsResource;
-        };
 
     private:
         static void LoadAsset(AssetEntry& entry);
