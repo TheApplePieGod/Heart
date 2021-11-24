@@ -756,9 +756,11 @@ namespace Heart
             m_SubmittedThisFrame = false;
 
             // free old auxiliary command buffers
-            for (auto cmdBuf : m_AuxiliaryCommandBuffers[m_InFlightFrameIndex])
-                vkFreeCommandBuffers(device.Device(), VulkanContext::GetGraphicsPool(), 1, &cmdBuf);
-            m_AuxiliaryCommandBuffers[m_InFlightFrameIndex].clear();
+            if (m_AuxiliaryCommandBuffers[m_InFlightFrameIndex].size() > 0)
+            {
+                vkFreeCommandBuffers(device.Device(), VulkanContext::GetGraphicsPool(), static_cast<u32>(m_AuxiliaryCommandBuffers[m_InFlightFrameIndex].size()), m_AuxiliaryCommandBuffers[m_InFlightFrameIndex].data());
+                m_AuxiliaryCommandBuffers[m_InFlightFrameIndex].clear();
+            }
         }
     }
 }

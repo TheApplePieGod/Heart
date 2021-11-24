@@ -186,7 +186,7 @@ namespace Heart
     {
         m_FinalFramebuffer->BindPipeline("skybox");
         m_FinalFramebuffer->BindShaderBufferResource(0, 0, m_FrameDataBuffer.get());
-        m_FinalFramebuffer->BindShaderTextureResource(1, m_EnvironmentMap->GetEnvironmentCubemap());
+        m_FinalFramebuffer->BindShaderTextureResource(1, m_EnvironmentMap->GetPrefilterCubemap());
 
         auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>("DefaultCube.gltf", true);
         auto& meshData = meshAsset->GetSubmesh(0);

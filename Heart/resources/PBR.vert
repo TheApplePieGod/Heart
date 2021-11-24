@@ -29,8 +29,10 @@ void main() {
     
     texCoord = inTexCoord;
     entityId = objectBuffer.object.entityId;
-    normal = inNormal;
-    tangent = inTangent.xyz;
+    
+    // adjust to match object rotation (and technically scale but it gets normalized out later)
+    normal = mat3(objectBuffer.object.model) * inNormal;
+    tangent = mat3(objectBuffer.object.model) * inTangent.xyz;
     bitangent = cross(inTangent.xyz, inNormal);
     bitangent *= inTangent.w;
 }

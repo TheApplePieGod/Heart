@@ -116,6 +116,17 @@ float GetOcclusion()
     return occlusion;
 }
 
+// https://knarkowicz.wordpress.com/2016/01/06/aces-filmic-tone-mapping-curve/
+vec3 ACESFilm(vec3 x)
+{
+    float a = 2.51f;
+    float b = 0.03f;
+    float c = 2.43f;
+    float d = 0.59f;
+    float e = 0.14f;
+    return clamp((x*(a*x+b))/(x*(c*x+d)+e), vec3(0.f), vec3(1.f));
+}
+
 vec4 GetFinalColor()
 {
     vec3 V = normalize(frameBuffer.data.cameraPos.xyz - worldPos);
@@ -147,7 +158,8 @@ vec4 GetFinalColor()
     // Begin per light code
     // ------------------------------
     {
-        vec3 lightColor = vec3(0.95f, 0.9f, 0.8f);
+        vec3 lightColor = vec3(0.6f, 0.7f, 0.99f);
+        //vec3 lightColor = vec3(0.95f, 0.5f, 0.1f);
         vec3 L = normalize(vec3(0.5f, 0.5f, 0.f)); // directional light
         vec3 H = normalize(V + L);
         vec3 F = FresnelSchlick(max(dot(H, V), 0.0), F0);
@@ -186,10 +198,11 @@ vec4 GetFinalColor()
     vec3 finalColor = ambient + finalContribution;
 
     // tonemapping
-    finalColor = finalColor / (finalColor + vec3(1.0));
+    finalColor = ACESFilm(finalColor);
+    // finalColor = finalColor / (finalColor + vec3(1.0));
 
     // gamma correction
-    finalColor = pow(finalColor, vec3(1.0/2.2));
+    finalColor = pow(finalColor, vec3(0.4545));
 
     return vec4(finalColor + emissive, baseColor.a);
 }
