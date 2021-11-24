@@ -21,7 +21,7 @@ namespace Widgets
 
     private:
         void RenderSidebar();
-        void RenderViewport(Heart::EnvironmentMap* envMap);
+        void RenderViewport();
 
     private:
         Heart::UUID m_MaterialAsset = 0;
@@ -33,6 +33,7 @@ namespace Widgets
         float m_Radius = 2.f;
         Heart::Entity m_DemoEntity;
         glm::vec2 m_WindowSizes = { 0.f, 0.f };
+        bool m_FirstRender = true;
     };
 }
 }

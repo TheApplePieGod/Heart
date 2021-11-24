@@ -138,8 +138,8 @@ namespace Widgets
                     if (ImGui::Button("Populate Default Materials"))
                     {
                         auto meshAsset = Heart::AssetManager::RetrieveAsset<Heart::MeshAsset>(buffer);
-                        if (meshAsset && meshAsset->IsValid())
-                            meshComp.Materials = meshAsset->GetDefaultMaterials();
+                        //if (meshAsset && meshAsset->IsValid())
+                        //    meshComp.Materials = meshAsset->GetDefaultMaterials();
                     }
                     
                     ImGui::Separator();

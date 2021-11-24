@@ -75,7 +75,7 @@ namespace Heart
                 { { { SubpassAttachmentType::Color, 2 }, { SubpassAttachmentType::Color, 3 } }, { { SubpassAttachmentType::Depth, 0 }, { SubpassAttachmentType::Color, 0 } } } // composite
             },
             0, 0,
-            MsaaSampleCount::Eight
+            MsaaSampleCount::None
         };
         m_FinalFramebuffer = Framebuffer::Create(fbCreateInfo);
 
@@ -247,43 +247,46 @@ namespace Heart
             {
                 auto& meshData = meshAsset->GetSubmesh(i);
 
-                UUID finalMaterialId = meshAsset->GetDefaultMaterials()[meshData.GetMaterialIndex()];
+                Material* finalMaterial = &meshAsset->GetDefaultMaterials()[meshData.GetMaterialIndex()]; // default material
                 if (mesh.Materials.size() > meshData.GetMaterialIndex())
-                    finalMaterialId = mesh.Materials[meshData.GetMaterialIndex()];
+                {
+                    auto materialAsset = AssetManager::RetrieveAsset<MaterialAsset>(mesh.Materials[meshData.GetMaterialIndex()]);
+                    if (materialAsset && materialAsset->IsValid())
+                       finalMaterial = &materialAsset->GetMaterial();
+                }
 
-                auto materialAsset = AssetManager::RetrieveAsset<MaterialAsset>(finalMaterialId);
-                if (materialAsset && materialAsset->IsValid())
+                if (finalMaterial)
                 {
                     // Transparent materials get cached for the next pass
-                    if (materialAsset->GetMaterial().IsTransparent())
+                    if (finalMaterial->IsTransparent())
                     {
-                        m_TransparentMeshes.emplace_back(finalMaterialId, mesh.Mesh, i, objectData);
+                        m_TransparentMeshes.emplace_back(finalMaterial, mesh.Mesh, i, objectData);
                         continue;
                     }
 
-                    auto& materialData = materialAsset->GetMaterial().GetMaterialData();
+                    auto& materialData = finalMaterial->GetMaterialData();
 
-                    auto albedoAsset = AssetManager::RetrieveAsset<TextureAsset>(materialAsset->GetMaterial().GetAlbedoTexture());
+                    auto albedoAsset = AssetManager::RetrieveAsset<TextureAsset>(finalMaterial->GetAlbedoTexture());
                     materialData.SetHasAlbedo(albedoAsset && albedoAsset->IsValid());
                     if (materialData.HasAlbedo())
                         m_FinalFramebuffer->BindShaderTextureResource(3, albedoAsset->GetTexture());
 
-                    auto metallicRoughnessAsset = AssetManager::RetrieveAsset<TextureAsset>(materialAsset->GetMaterial().GetMetallicRoughnessTexture());
+                    auto metallicRoughnessAsset = AssetManager::RetrieveAsset<TextureAsset>(finalMaterial->GetMetallicRoughnessTexture());
                     materialData.SetHasMetallicRoughness(metallicRoughnessAsset && metallicRoughnessAsset->IsValid());
                     if (materialData.HasMetallicRoughness())
                         m_FinalFramebuffer->BindShaderTextureResource(4, metallicRoughnessAsset->GetTexture());
 
-                    auto normalAsset = AssetManager::RetrieveAsset<TextureAsset>(materialAsset->GetMaterial().GetNormalTexture());
+                    auto normalAsset = AssetManager::RetrieveAsset<TextureAsset>(finalMaterial->GetNormalTexture());
                     materialData.SetHasNormal(normalAsset && normalAsset->IsValid());
                     if (materialData.HasNormal())
                         m_FinalFramebuffer->BindShaderTextureResource(5, normalAsset->GetTexture());
 
-                    auto emissiveAsset = AssetManager::RetrieveAsset<TextureAsset>(materialAsset->GetMaterial().GetEmissiveTexture());
+                    auto emissiveAsset = AssetManager::RetrieveAsset<TextureAsset>(finalMaterial->GetEmissiveTexture());
                     materialData.SetHasEmissive(emissiveAsset && emissiveAsset->IsValid());
                     if (materialData.HasEmissive())
                         m_FinalFramebuffer->BindShaderTextureResource(6, emissiveAsset->GetTexture());
 
-                    auto occlusionAsset = AssetManager::RetrieveAsset<TextureAsset>(materialAsset->GetMaterial().GetOcclusionTexture());
+                    auto occlusionAsset = AssetManager::RetrieveAsset<TextureAsset>(finalMaterial->GetOcclusionTexture());
                     materialData.SetHasOcclusion(occlusionAsset && occlusionAsset->IsValid());
                     if (materialData.HasOcclusion())
                         m_FinalFramebuffer->BindShaderTextureResource(7, occlusionAsset->GetTexture());
@@ -342,33 +345,32 @@ namespace Heart
 
         for (auto& mesh : m_TransparentMeshes)
         {
-            // We can safely load the assets here because the object must have a mesh & material asset to make it this far
+            // We can safely load the assets here because the object must have a mesh & material to make it this far
             auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>(mesh.Mesh);
             auto& meshData = meshAsset->GetSubmesh(mesh.SubmeshIndex);
-            auto materialAsset = AssetManager::RetrieveAsset<MaterialAsset>(mesh.Material);
-            auto& materialData = materialAsset->GetMaterial().GetMaterialData();
+            auto& materialData = mesh.Material->GetMaterialData();
 
-            auto albedoAsset = AssetManager::RetrieveAsset<TextureAsset>(materialAsset->GetMaterial().GetAlbedoTexture());
+            auto albedoAsset = AssetManager::RetrieveAsset<TextureAsset>(mesh.Material->GetAlbedoTexture());
             materialData.SetHasAlbedo(albedoAsset && albedoAsset->IsValid());
             if (materialData.HasAlbedo())
                 m_FinalFramebuffer->BindShaderTextureResource(3, albedoAsset->GetTexture());
 
-            auto metallicRoughnessAsset = AssetManager::RetrieveAsset<TextureAsset>(materialAsset->GetMaterial().GetMetallicRoughnessTexture());
+            auto metallicRoughnessAsset = AssetManager::RetrieveAsset<TextureAsset>(mesh.Material->GetMetallicRoughnessTexture());
             materialData.SetHasMetallicRoughness(metallicRoughnessAsset && metallicRoughnessAsset->IsValid());
             if (materialData.HasMetallicRoughness())
                 m_FinalFramebuffer->BindShaderTextureResource(4, metallicRoughnessAsset->GetTexture());
 
-            auto normalAsset = AssetManager::RetrieveAsset<TextureAsset>(materialAsset->GetMaterial().GetNormalTexture());
+            auto normalAsset = AssetManager::RetrieveAsset<TextureAsset>(mesh.Material->GetNormalTexture());
             materialData.SetHasNormal(normalAsset && normalAsset->IsValid());
             if (materialData.HasNormal())
                 m_FinalFramebuffer->BindShaderTextureResource(5, normalAsset->GetTexture());
 
-            auto emissiveAsset = AssetManager::RetrieveAsset<TextureAsset>(materialAsset->GetMaterial().GetEmissiveTexture());
+            auto emissiveAsset = AssetManager::RetrieveAsset<TextureAsset>(mesh.Material->GetEmissiveTexture());
             materialData.SetHasEmissive(emissiveAsset && emissiveAsset->IsValid());
             if (materialData.HasEmissive())
                 m_FinalFramebuffer->BindShaderTextureResource(6, emissiveAsset->GetTexture());
 
-            auto occlusionAsset = AssetManager::RetrieveAsset<TextureAsset>(materialAsset->GetMaterial().GetOcclusionTexture());
+            auto occlusionAsset = AssetManager::RetrieveAsset<TextureAsset>(mesh.Material->GetOcclusionTexture());
             materialData.SetHasOcclusion(occlusionAsset && occlusionAsset->IsValid());
             if (materialData.HasOcclusion())
                 m_FinalFramebuffer->BindShaderTextureResource(7, occlusionAsset->GetTexture());

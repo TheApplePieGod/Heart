@@ -4,6 +4,8 @@
 #include "Heart/Renderer/Mesh.h"
 #include "Heart/Renderer/Material.h"
 #include "Heart/Core/UUID.h"
+#include "nlohmann/json.hpp"
+#include "glm/mat4x4.hpp"
 
 namespace Heart
 {
@@ -20,7 +22,7 @@ namespace Heart
         Mesh& GetSubmesh(u32 index) { return m_Submeshes[index]; }
         u32 GetSubmeshCount() const { return static_cast<u32>(m_Submeshes.size()); }
         u32 GetMaxMaterials() const { return static_cast<u32>(m_DefaultMaterials.size()); }
-        const std::vector<UUID>& GetDefaultMaterials() const { return m_DefaultMaterials; }
+        std::vector<Material>& GetDefaultMaterials() { return m_DefaultMaterials; }
 
     private:
         struct BufferView
@@ -66,19 +68,32 @@ namespace Heart
             UUID AssetId;
         };
 
-        struct SubmeshParseData
+        struct PrimitiveParseData
         {
-            u32 VertexOffset = 0;
-            u32 IndexOffset = 0;
             std::vector<Mesh::Vertex> Vertices = {};
             std::vector<u32> Indices = {};
+            u32 MaterialIndex = 0;
+        };
+
+        struct MeshParseData
+        {
+            std::vector<PrimitiveParseData> Primitives;
+        };
+
+        struct SubmeshData
+        {
+            std::vector<Mesh::Vertex> Vertices = {};
+            std::vector<u32> Indices = {};
+            u32 VertexOffset;
+            u32 IndexOffset;
         };
 
     private:
         void ParseGLTF(unsigned char* data);
+        void ParseGLTFNode(const nlohmann::json& root, u32 nodeIndex, const std::vector<MeshParseData>& meshData, std::unordered_map<u32, SubmeshData>& submeshData, const glm::mat4& parentTransform);
 
     private:
         std::vector<Mesh> m_Submeshes;
-        std::vector<UUID> m_DefaultMaterials;
+        std::vector<Material> m_DefaultMaterials;
     };
 }

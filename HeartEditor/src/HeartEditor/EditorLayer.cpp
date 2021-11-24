@@ -55,13 +55,11 @@ namespace HeartEditor
         auto entity = m_ActiveScene->CreateEntity("Test Entity");
         entity.AddComponent<Heart::MeshComponent>();
         entity.GetComponent<Heart::MeshComponent>().Mesh = Heart::AssetManager::GetAssetUUID("assets/meshes/Sponza/glTF/Sponza.gltf");
-        entity.GetComponent<Heart::TransformComponent>().Scale = { 0.01f, 0.01f, 0.01f };
-        m_ActiveScene->CacheEntityTransform(entity);
 
-        entity = m_ActiveScene->CreateEntity("Cube Entity");
-        entity.AddComponent<Heart::MeshComponent>();
+        //entity = m_ActiveScene->CreateEntity("Cube Entity");
+        //entity.AddComponent<Heart::MeshComponent>();
         //entity.GetComponent<Heart::MeshComponent>().Mesh = Heart::AssetManager::GetAssetUUID("assets/meshes/DamagedHelmet/glTF/DamagedHelmet.gltf");
-        entity.GetComponent<Heart::MeshComponent>().Mesh = Heart::AssetManager::GetAssetUUID("assets/meshes/Duck/glTF/Duck.gltf");
+        //entity.GetComponent<Heart::MeshComponent>().Mesh = Heart::AssetManager::GetAssetUUID("assets/meshes/Buggy/glTF/Buggy.gltf");
 
         m_EnvironmentMaps.emplace_back(Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Texture, "assets/envmaps/GrandCanyon.hdr"));
         //m_EnvironmentMaps.emplace_back(Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Texture, "assets/envmaps/IceLake.hdr"));

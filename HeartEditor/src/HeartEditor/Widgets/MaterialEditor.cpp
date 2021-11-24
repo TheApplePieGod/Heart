@@ -34,12 +34,25 @@ namespace Widgets
     void MaterialEditor::Shutdown()
     {
         m_SceneRenderer.reset();
+        m_FirstRender = true;
     }
 
     void MaterialEditor::OnImGuiRender(Heart::EnvironmentMap* envMap)
     {
         HE_PROFILE_FUNCTION();
         
+        if (ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows) || m_FirstRender)
+        {
+            m_FirstRender = false;
+            m_SceneRenderer->RenderScene(
+                EditorApp::Get().GetWindow().GetContext(),
+                m_Scene.get(),
+                m_SceneCamera,
+                m_SceneCameraPosition,
+                envMap
+            );
+        }
+
         Heart::ImGuiUtil::ResizableWindowSplitter(
             m_WindowSizes,
             { 100.f, 100.f },
@@ -47,7 +60,7 @@ namespace Widgets
             6.f,
             10.f,
             [&]() { RenderSidebar(); },
-            [&, envMap]() { RenderViewport(envMap); }
+            [&]() { RenderViewport(); }
         );
     }
 
@@ -56,7 +69,7 @@ namespace Widgets
         ImGui::Text("test");
     }
 
-    void MaterialEditor::RenderViewport(Heart::EnvironmentMap* envMap)
+    void MaterialEditor::RenderViewport()
     {
         // calculate viewport bounds & aspect ratio
         ImVec2 viewportMin = ImGui::GetWindowContentRegionMin();
@@ -66,14 +79,6 @@ namespace Widgets
         glm::vec2 viewportStart = { viewportMin.x + viewportPos.x, viewportMin.y + viewportPos.y };
         glm::vec2 viewportEnd = viewportStart + viewportSize;
         m_SceneCamera.UpdateAspectRatio(viewportSize.x / viewportSize.y);
-
-        m_SceneRenderer->RenderScene(
-            EditorApp::Get().GetWindow().GetContext(),
-            m_Scene.get(),
-            m_SceneCamera,
-            m_SceneCameraPosition,
-            envMap
-        );
 
         // draw the viewport background
         ImGui::GetWindowDrawList()->AddRectFilled({ viewportStart.x, viewportStart.y }, { viewportEnd.x, viewportEnd.y }, IM_COL32( 0, 0, 0, 255 )); // viewport background

@@ -29,37 +29,6 @@ namespace Heart
 
     public:
         static const BufferLayout& GetVertexLayout() { return s_VertexLayout; }
-        inline static const std::vector<Vertex> DefaultCubeVertices = {
-            { { -0.5f, -0.5f, -0.5f }, { 0.f, 1.f } }, // -Z
-            { { 0.5f, -0.5f, -0.5f }, { 1.f, 1.f } },
-            { { 0.5f, 0.5f, -0.5f }, { 1.f, 0.f } },
-            { { -0.5f, 0.5f, -0.5f }, { 0.f, 0.f } },
-
-            { { -0.5f, -0.5f, 0.5f }, { 0.f, 1.f } }, // +Z
-            { { 0.5f, -0.5f, 0.5f }, { 1.f, 1.f } },
-            { { 0.5f, 0.5f, 0.5f }, { 1.f, 0.f } },
-            { { -0.5f, 0.5f, 0.5f }, { 0.f, 0.f } },
-
-            { { 0.5f, -0.5f, -0.5f }, { 0.f, 1.f } }, // +X
-            { { 0.5f, -0.5f, 0.5f }, { 1.f, 1.f } },
-            { { 0.5f, 0.5f, 0.5f }, { 1.f, 0.f } },
-            { { 0.5f, 0.5f, -0.5f }, { 0.f, 0.f } },
-
-            { { -0.5f, -0.5f, -0.5f }, { 0.f, 1.f } }, // -X
-            { { -0.5f, -0.5f, 0.5f }, { 1.f, 1.f } },
-            { { -0.5f, 0.5f, 0.5f }, { 1.f, 0.f } },
-            { { -0.5f, 0.5f, -0.5f }, { 0.f, 0.f } },
-
-            { { -0.5f, 0.5f, -0.5f }, { 0.f, 1.f } }, // +Y
-            { { -0.5f, 0.5f, 0.5f }, { 0.f, 0.f } },
-            { { 0.5f, 0.5f, 0.5f }, { 1.f, 0.f } },
-            { { 0.5f, 0.5f, -0.5f }, { 1.f, 1.f } },
-
-            { { -0.5f, -0.5f, -0.5f }, { 0.f, 1.f } }, // -Y
-            { { -0.5f, -0.5f, 0.5f }, { 0.f, 0.f } },
-            { { 0.5f, -0.5f, 0.5f }, { 1.f, 0.f } },
-            { { 0.5f, -0.5f, -0.5f }, { 1.f, 1.f } }
-        };
 
     private:
         inline static const BufferLayout s_VertexLayout = {

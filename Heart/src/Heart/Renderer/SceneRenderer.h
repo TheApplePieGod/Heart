@@ -44,11 +44,11 @@ namespace Heart
     private:
         struct CachedRender
         {
-            CachedRender(UUID material, UUID mesh, u32 submeshIndex, const ObjectData& objData)
+            CachedRender(Material* material, UUID mesh, u32 submeshIndex, const ObjectData& objData)
                 : Material(material), Mesh(mesh), SubmeshIndex(submeshIndex), ObjectData(objData)
             {}
 
-            UUID Material;
+            Material* Material;
             UUID Mesh;
             u32 SubmeshIndex;
             ObjectData ObjectData;

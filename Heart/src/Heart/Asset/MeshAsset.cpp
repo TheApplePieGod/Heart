@@ -5,8 +5,10 @@
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/MaterialAsset.h"
 #include "Heart/Asset/TextureAsset.h"
-#include "nlohmann/json.hpp"
 #include "glm/glm.hpp"
+#include "glm/gtc/matrix_transform.hpp"
+#include "glm/gtx/quaternion.hpp"
+#include "glm/gtc/type_ptr.hpp"
 
 namespace Heart
 {
@@ -187,35 +189,28 @@ namespace Heart
                 if (material.contains("emissiveFactor"))
                     parsingMaterial.m_MaterialData.SetEmissiveFactor({ material["emissiveFactor"][0], material["emissiveFactor"][1], material["emissiveFactor"][2], 0.f });
 
-                std::string localPath = std::filesystem::path(m_ParentPath).append(materialFilenameStart + std::to_string(materialIndex) + materialFilenameEnd).generic_u8string();
-                std::string finalPath = std::filesystem::path(AssetManager::GetAssetsDirectory()).append(localPath).generic_u8string();
-                MaterialAsset::SerializeMaterial(finalPath, parsingMaterial);
-                m_DefaultMaterials.emplace_back(AssetManager::RegisterAsset(Asset::Type::Material, localPath));
+                m_DefaultMaterials.emplace_back(parsingMaterial);
                 materialIndex++;
             }
         }
         else // should always have one material
-        {
-            Material genericMaterial;
-            std::string localPath = std::filesystem::path(m_ParentPath).append(materialFilenameStart + "0" + materialFilenameEnd).generic_u8string();
-            std::string finalPath = std::filesystem::path(AssetManager::GetAssetsDirectory()).append(localPath).generic_u8string();
-            MaterialAsset::SerializeMaterial(finalPath, genericMaterial);
-            m_DefaultMaterials.emplace_back(AssetManager::RegisterAsset(Asset::Type::Material, finalPath));
-        }
+            m_DefaultMaterials.emplace_back();
 
-        // parse meshes and create submeshes based on material
+        // parse meshes
         bool hasTangents = false;
         bool hasNormals = false;
-        std::unordered_map<u32, SubmeshParseData> parseData; // keyed by material id
+        std::vector<MeshParseData> meshes;
         for (auto& mesh : j["meshes"])
         {
+            MeshParseData meshData;
             for (auto& primitive : mesh["primitives"])
             {
-                u32 materialIndex = primitive.contains("material") ? primitive["material"] : 0;
-                if (parseData.find(materialIndex) == parseData.end())
-                    parseData[materialIndex] = SubmeshParseData();
+                PrimitiveParseData parseData;
 
-                auto& smData = parseData[materialIndex];
+                u32 indexOffset = 0;
+                u32 vertexOffset = 0;
+                u32 materialIndex = primitive.contains("material") ? primitive["material"] : 0;
+                parseData.MaterialIndex = materialIndex;
 
                 // Points = 0, Lines, LineLoop, LineStrip, Triangles, TriangleStrip, TriangleFan
                 if (primitive.contains("mode"))
@@ -228,27 +223,25 @@ namespace Heart
                     auto& bufferView = bufferViews[accessor.BufferViewIndex];
                     auto& buffer = buffers[bufferView.BufferIndex];
 
-                    if (accessor.Count + smData.IndexOffset > smData.Indices.size())
-                        smData.Indices.resize(accessor.Count + smData.Indices.size());
+                    if (accessor.Count > parseData.Indices.size())
+                        parseData.Indices.resize(accessor.Count);
 
                     u32 offset = 0; // bytes
-                    for (u32 i = smData.IndexOffset; i < smData.IndexOffset + accessor.Count; i++)
+                    for (u32 i = 0; i < accessor.Count; i++)
                     {
                         if (accessor.ComponentType == 5123) // unsigned short
                         {
-                            smData.Indices[i] = *(u16*)(&buffer[bufferView.ByteOffset + accessor.ByteOffset + offset]) + smData.VertexOffset;
+                            parseData.Indices[i] = *(u16*)(&buffer[bufferView.ByteOffset + accessor.ByteOffset + offset]);
                             offset += 2;
                         }
                         else if (accessor.ComponentType == 5125) // unsigned int
                         {
-                            smData.Indices[i] = *(u32*)(&buffer[bufferView.ByteOffset + accessor.ByteOffset + offset]) + smData.VertexOffset;
+                            parseData.Indices[i] = *(u32*)(&buffer[bufferView.ByteOffset + accessor.ByteOffset + offset]);
                             offset += 4;
                         }
                         else
                         { HE_ENGINE_ASSERT(false, "Cannot load GLTF mesh that has indices with an unsupported data type"); }
                     }
-
-                    smData.IndexOffset += accessor.Count;
                 }
 
                 u32 lastCount = 0;
@@ -258,32 +251,32 @@ namespace Heart
                     auto& bufferView = bufferViews[accessor.BufferViewIndex];
                     auto& buffer = buffers[bufferView.BufferIndex];
 
-                    if (accessor.Count + smData.VertexOffset > smData.Vertices.size())
-                        smData.Vertices.resize(accessor.Count + smData.Vertices.size());
+                    if (accessor.Count > parseData.Vertices.size())
+                        parseData.Vertices.resize(accessor.Count);
 
                     // parse vertex data
                     u32 offset = 0; // bytes
-                    for (u32 i = smData.VertexOffset; i < smData.VertexOffset + accessor.Count; i++)
+                    for (u32 i = 0; i < accessor.Count; i++)
                     {
                         if (attribute.key() == "POSITION")
                         {
-                            smData.Vertices[i].Position = *(glm::vec3*)(&buffer[bufferView.ByteOffset + accessor.ByteOffset + offset]);
+                            parseData.Vertices[i].Position = *(glm::vec3*)(&buffer[bufferView.ByteOffset + accessor.ByteOffset + offset]);
                             offset += 12;
                         }
                         else if (attribute.key() == "TEXCOORD_0")
                         {
-                            smData.Vertices[i].UV = *(glm::vec2*)(&buffer[bufferView.ByteOffset + accessor.ByteOffset + offset]);
+                            parseData.Vertices[i].UV = *(glm::vec2*)(&buffer[bufferView.ByteOffset + accessor.ByteOffset + offset]);
                             offset += 8;
                         }
                         else if (attribute.key() == "NORMAL")
                         {
-                            smData.Vertices[i].Normal = *(glm::vec3*)(&buffer[bufferView.ByteOffset + accessor.ByteOffset + offset]);
+                            parseData.Vertices[i].Normal = *(glm::vec3*)(&buffer[bufferView.ByteOffset + accessor.ByteOffset + offset]);
                             hasNormals = true;
                             offset += 12;
                         }
                         else if (attribute.key() == "TANGENT")
                         {
-                            smData.Vertices[i].Tangent = *(glm::vec4*)(&buffer[bufferView.ByteOffset + accessor.ByteOffset + offset]);
+                            parseData.Vertices[i].Tangent = *(glm::vec4*)(&buffer[bufferView.ByteOffset + accessor.ByteOffset + offset]);
                             hasTangents = true;
                             offset += 16;
                         }
@@ -291,12 +284,24 @@ namespace Heart
 
                     lastCount = accessor.Count;
                 }
-                smData.VertexOffset += lastCount;
+
+                meshData.Primitives.push_back(parseData);
             }
+
+            meshes.push_back(meshData);
+        }
+
+        // iterate through the nodes and create submeshes based on each material in the scene
+        std::unordered_map<u32, SubmeshData> submeshData;
+        u32 sceneIndex = j["scene"];
+        auto& scenes = j["scenes"];
+        for (auto& nodeIndex : scenes[sceneIndex]["nodes"])
+        {
+            ParseGLTFNode(j, nodeIndex, meshes, submeshData, glm::mat4(1.f));
         }
 
         // populate submeshes with parsed data
-        for (auto& pair : parseData)
+        for (auto& pair : submeshData)
         {
             // calculate the normals and/or tangents of the submesh if they aren't provided
             if (!hasNormals || !hasTangents)
@@ -336,5 +341,68 @@ namespace Heart
 
             m_Submeshes.emplace_back(pair.second.Vertices, pair.second.Indices, pair.first);
         }
+    }
+
+    void MeshAsset::ParseGLTFNode(const nlohmann::json& root, u32 nodeIndex, const std::vector<MeshParseData>& meshData, std::unordered_map<u32, SubmeshData>& submeshData, const glm::mat4& parentTransform)
+    {
+        auto& node = root["nodes"][nodeIndex];
+
+        glm::mat4 positionMatrix;
+        if (node.contains("matrix"))
+        {
+            std::vector<float> valueArr(16);
+            for (size_t i = 0; i < node["matrix"].size(); i++)
+                valueArr[i] = node["matrix"][i];
+            positionMatrix = glm::make_mat4(valueArr.data());
+        }
+        else
+        {
+            glm::vec3 translation = { 0.f, 0.f, 0.f };
+            glm::quat rotation = { 1.f, 0.f, 0.f, 0.f };
+            glm::vec3 scale = { 1.f, 1.f, 1.f };
+
+            if (node.contains("translation"))
+                translation = { node["translation"][0], node["translation"][1], node["translation"][2] };
+            if (node.contains("rotation"))
+                rotation = { node["rotation"][0], node["rotation"][1], node["rotation"][2], node["rotation"][3] };
+            if (node.contains("scale"))
+                scale = { node["scale"][0], node["scale"][1], node["scale"][2] };
+
+            positionMatrix = glm::translate(glm::mat4(1.0f), translation)
+				* glm::toMat4(rotation)
+				* glm::scale(glm::mat4(1.0f), scale);
+        }
+
+        glm::mat4 finalMatrix = parentTransform * positionMatrix;
+
+        if (node.contains("mesh"))
+        {
+            auto& mesh = meshData[node["mesh"]];
+
+            for (auto& primitive : mesh.Primitives)
+            {
+                if (submeshData.find(primitive.MaterialIndex) == submeshData.end())
+                    submeshData[primitive.MaterialIndex] = SubmeshData();
+                auto& submesh = submeshData[primitive.MaterialIndex];
+
+                // push the new indices into the material submesh
+                for (auto index : primitive.Indices)
+                    submesh.Indices.emplace_back(index + submesh.VertexOffset);
+
+                // transform the vertices and push them into the material submesh
+                for (auto vertex : primitive.Vertices)
+                {
+                    vertex.Position = finalMatrix * glm::vec4(vertex.Position, 1.f);
+                    submesh.Vertices.emplace_back(vertex);
+                }
+
+                submesh.IndexOffset += static_cast<u32>(primitive.Indices.size());
+                submesh.VertexOffset += static_cast<u32>(primitive.Vertices.size());
+            }
+        }
+
+        if (node.contains("children"))
+            for (auto& child : node["children"])
+                ParseGLTFNode(root, child, meshData, submeshData, finalMatrix);
     }
 }
