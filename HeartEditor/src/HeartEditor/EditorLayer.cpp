@@ -17,7 +17,7 @@ namespace HeartEditor
 {
     EditorLayer::EditorLayer()
     {
-        m_EditorCamera = Heart::CreateScope<EditorCamera>(70.f, 0.1f, 500.f, 1.f);
+        m_EditorCamera = Heart::CreateScope<EditorCamera>(70.f, 0.1f, 500.f, 1.f, glm::vec3(0.f, 1.f, 0.f));
         m_ActiveScene = Heart::CreateRef<Heart::Scene>();
 
         auto entity = m_ActiveScene->CreateEntity("Test Entity");
@@ -97,19 +97,19 @@ namespace HeartEditor
         ImGuiID dockspaceId = ImGui::GetID("EditorDockSpace");
         ImGui::DockSpace(dockspaceId, ImVec2(0.f, 0.f), 0);
 
-        if (m_Widgets.MainMenuBar.GetWindowStatus("Viewport"))
+        if (m_Widgets.MainMenuBar.IsWindowOpen("Viewport"))
         {
-            ImGui::Begin("Viewport", m_Widgets.MainMenuBar.GetWindowStatusRef("Viewport"));
+            ImGui::Begin("Viewport", m_Widgets.MainMenuBar.GetWindowOpenRef("Viewport"));
 
             RenderViewport();
 
             ImGui::End();
         }
 
-        if (m_Widgets.MainMenuBar.GetWindowStatus("Content Browser"))
+        if (m_Widgets.MainMenuBar.IsWindowOpen("Content Browser"))
         {
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 5.0f));
-            ImGui::Begin("Content Browser", m_Widgets.MainMenuBar.GetWindowStatusRef("Content Browser"));
+            ImGui::Begin("Content Browser", m_Widgets.MainMenuBar.GetWindowOpenRef("Content Browser"));
 
             m_Widgets.ContentBrowser.OnImGuiRender();
 
@@ -117,10 +117,10 @@ namespace HeartEditor
             ImGui::PopStyleVar();
         }
 
-        if (m_Widgets.MainMenuBar.GetWindowStatus("Scene Hierarchy"))
+        if (m_Widgets.MainMenuBar.IsWindowOpen("Scene Hierarchy"))
         {
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 5.0f));
-            ImGui::Begin("Scene Hierarchy", m_Widgets.MainMenuBar.GetWindowStatusRef("Scene Hierarchy"));
+            ImGui::Begin("Scene Hierarchy", m_Widgets.MainMenuBar.GetWindowOpenRef("Scene Hierarchy"));
 
             m_Widgets.SceneHierarchyPanel.OnImGuiRender(m_ActiveScene.get(), m_SelectedEntity);
 
@@ -128,27 +128,30 @@ namespace HeartEditor
             ImGui::PopStyleVar();
         }
 
-        if (m_Widgets.MainMenuBar.GetWindowStatus("Properties Panel"))
+        if (m_Widgets.MainMenuBar.IsWindowOpen("Properties Panel"))
         {
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 5.0f));
-            ImGui::Begin("Properties", m_Widgets.MainMenuBar.GetWindowStatusRef("Properties Panel"));
+            ImGui::Begin("Properties", m_Widgets.MainMenuBar.GetWindowOpenRef("Properties Panel"));
 
-            m_Widgets.PropertiesPanel.OnImGuiRender(m_SelectedEntity);
+            Heart::UUID oldMaterial = m_SelectedMaterial;
+            m_Widgets.PropertiesPanel.OnImGuiRender(m_SelectedEntity, m_SelectedMaterial);
+            if (oldMaterial != m_SelectedMaterial) // was updated so open the material editor
+                m_Widgets.MainMenuBar.SetWindowOpen("Material Editor", true);
 
             ImGui::End();
             ImGui::PopStyleVar();
         }
 
-        if (m_Widgets.MainMenuBar.GetWindowStatus("Settings"))
+        if (m_Widgets.MainMenuBar.IsWindowOpen("Settings"))
         {
-            ImGui::Begin("Settings", m_Widgets.MainMenuBar.GetWindowStatusRef("Settings"));
+            ImGui::Begin("Settings", m_Widgets.MainMenuBar.GetWindowOpenRef("Settings"));
             ImGui::End();
         }
 
-        if (m_Widgets.MainMenuBar.GetWindowStatus("Debug Info"))
+        if (m_Widgets.MainMenuBar.IsWindowOpen("Debug Info"))
         {
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 5.0f));
-            ImGui::Begin("Debug Info", m_Widgets.MainMenuBar.GetWindowStatusRef("Debug Info"));
+            ImGui::Begin("Debug Info", m_Widgets.MainMenuBar.GetWindowOpenRef("Debug Info"));
 
             RenderDebugInfo();
 
@@ -156,19 +159,19 @@ namespace HeartEditor
             ImGui::PopStyleVar();
         }
 
-        if (m_Widgets.MainMenuBar.GetWindowStatus("Material Editor"))
+        if (m_Widgets.MainMenuBar.IsWindowOpen("Material Editor"))
         {
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 5.0f));
-            ImGui::Begin("Material Editor", m_Widgets.MainMenuBar.GetWindowStatusRef("Material Editor"));
+            ImGui::Begin("Material Editor", m_Widgets.MainMenuBar.GetWindowOpenRef("Material Editor"), m_Widgets.MainMenuBar.IsWindowDirty("Material Editor") ? ImGuiWindowFlags_UnsavedDocument : 0);
 
-            m_Widgets.MaterialEditor.OnImGuiRender(&m_EnvironmentMaps[0]);
+            m_Widgets.MaterialEditor.OnImGuiRender(&m_EnvironmentMaps[0], m_SelectedMaterial, m_Widgets.MainMenuBar.GetWindowDirtyRef("Material Editor"));
 
             ImGui::End();
             ImGui::PopStyleVar();
         }
 
-        if (m_Widgets.MainMenuBar.GetWindowStatus("ImGui Demo"))
-            ImGui::ShowDemoWindow(m_Widgets.MainMenuBar.GetWindowStatusRef("ImGui Demo"));
+        if (m_Widgets.MainMenuBar.IsWindowOpen("ImGui Demo"))
+            ImGui::ShowDemoWindow(m_Widgets.MainMenuBar.GetWindowOpenRef("ImGui Demo"));
 
         ImGui::End();
 

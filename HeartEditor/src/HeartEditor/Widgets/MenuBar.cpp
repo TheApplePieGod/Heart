@@ -14,13 +14,20 @@ namespace Widgets
     MenuBar::MenuBar()
     {
         // open default windows (todo: save/load)
-        m_WindowStatuses["Viewport"] = true;
-        m_WindowStatuses["Content Browser"] = true;
-        m_WindowStatuses["Properties Panel"] = true;
-        m_WindowStatuses["Scene Hierarchy"] = true;
-        m_WindowStatuses["Settings"] = true;
-        m_WindowStatuses["Debug Info"] = true;
-        m_WindowStatuses["Material Editor"] = true;
+        m_WindowStatuses["Viewport"] = { true, false };
+        m_WindowStatuses["Content Browser"] = { true, false };
+        m_WindowStatuses["Properties Panel"] = { true, false };
+        m_WindowStatuses["Scene Hierarchy"] = { true, false };
+        m_WindowStatuses["Settings"] = { true, false };
+        m_WindowStatuses["Debug Info"] = { true, false };
+        m_WindowStatuses["Material Editor"] = { false, false };
+    }
+
+    bool MenuBar::AreAnyWindowsDirty()
+    {
+        for (auto& element : m_WindowStatuses)
+            if (element.second.Dirty) return true;
+        return false;
     }
 
     void MenuBar::OnImGuiRender(Heart::Scene* activeScene, Heart::Entity& selectedEntity)
@@ -68,9 +75,7 @@ namespace Widgets
                 if (ImGui::BeginMenu("Windows"))
                 {
                     for (auto& element : m_WindowStatuses)
-                    {
-                        ImGui::MenuItem(element.first.c_str(), nullptr, &element.second);
-                    }
+                        ImGui::MenuItem(element.first.c_str(), nullptr, &element.second.Open);
 
                     ImGui::EndMenu();
                 }

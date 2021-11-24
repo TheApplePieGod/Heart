@@ -110,6 +110,7 @@ namespace Heart
                 else
                 {
                     std::string finalPath = std::filesystem::path(m_ParentPath).append(uri).generic_u8string();
+                    finalPath = std::regex_replace(finalPath, std::regex("%20"), " "); // replace URL encoded spaces with actual spaces
                     textureSources.emplace_back(finalPath, AssetManager::RegisterAsset(Asset::Type::Texture, finalPath));
                 }
             }

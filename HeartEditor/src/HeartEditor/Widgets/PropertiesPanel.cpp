@@ -5,6 +5,7 @@
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/MeshAsset.h"
 #include "Heart/Asset/MaterialAsset.h"
+#include "Heart/Util/ImGuiUtils.h"
 #include "Heart/Renderer/Renderer.h"
 #include "imgui/imgui_internal.h"
 #include "glm/gtc/type_ptr.hpp"
@@ -66,7 +67,7 @@ namespace Widgets
         ImGui::PopStyleVar();
     }
 
-    void PropertiesPanel::OnImGuiRender(Heart::Entity selectedEntity)
+    void PropertiesPanel::OnImGuiRender(Heart::Entity selectedEntity, Heart::UUID& selectedMaterial)
     {
         HE_PROFILE_FUNCTION();
 
@@ -128,78 +129,63 @@ namespace Widgets
 
                     ImGui::Indent();
 
-                    ImGui::Text("Mesh Asset: ");
+                    ImGui::Text("Mesh Asset:");
                     ImGui::SameLine();
-                    bool meshExists = UUIDRegistry.find(meshComp.Mesh) != UUIDRegistry.end();
-                    bool popupOpened = ImGui::Button(meshExists ? UUIDRegistry.at(meshComp.Mesh).Path.c_str() : "NULL");
-                    if (popupOpened)
-                        ImGui::OpenPopup("MeshSelectPopup");
-                        
-                    ImGui::SetNextWindowSize({ 500.f, ImGui::GetWindowSize().y });
-                    if (ImGui::BeginPopup("MeshSelectPopup", ImGuiWindowFlags_HorizontalScrollbar))
-                    {
-                        if (m_MeshTextFilter.Draw() || popupOpened)
-                            ImGui::SetKeyboardFocusHere(-1);
-                        ImGui::Separator();
-                        for (auto& pair : UUIDRegistry)
+                    Heart::ImGuiUtils::AssetPicker(
+                        Heart::Asset::Type::Mesh,
+                        meshComp.Mesh,
+                        "NULL",
+                        "MeshSelect",
+                        m_MeshTextFilter,
+                        nullptr,
+                        [&meshComp](Heart::UUID selected)
                         {
-                            if (pair.second.Type == Heart::Asset::Type::Mesh && m_MeshTextFilter.PassFilter(pair.second.Path.c_str()))
-                            {
-                                if (ImGui::MenuItem(pair.second.Path.c_str()))
-                                {
-                                    meshComp.Mesh = pair.first;
-                                    ImGui::CloseCurrentPopup();
-                                }
-                            }
+                            meshComp.Mesh = selected;
+
+                            auto meshAsset = Heart::AssetManager::RetrieveAsset<Heart::MeshAsset>(meshComp.Mesh);
+                            if (meshAsset && meshAsset->IsValid())
+                                meshComp.Materials.resize(meshAsset->GetMaxMaterials(), 0);
                         }
-                        ImGui::EndPopup();
+                    );
+
+                    auto meshAsset = Heart::AssetManager::RetrieveAsset<Heart::MeshAsset>(meshComp.Mesh);
+                    if (meshAsset && meshAsset->IsValid())
+                    {
+                        if (meshComp.Materials.size() == 0)
+                            meshComp.Materials.resize(meshAsset->GetMaxMaterials(), 0);
+
+                        ImGui::Dummy({ 0.f, 5.f });
+                        ImGui::Text("Materials");
+                        ImGui::Separator();
+                        u32 index = 0;
+                        std::string baseName = "Material ";
+                        for (auto& materialId : meshComp.Materials)
+                        {
+                            std::string entryName = baseName + std::to_string(index);
+
+                            ImGui::Text(entryName.c_str(), index);
+                            ImGui::SameLine();
+                            Heart::ImGuiUtils::AssetPicker(
+                                Heart::Asset::Type::Material,
+                                materialId,
+                                "DEFAULT",
+                                entryName,
+                                m_MaterialTextFilter,
+                                [&materialId, &selectedMaterial]()
+                                {
+                                    if (ImGui::MenuItem("Clear"))
+                                        materialId = 0;
+                                    if (ImGui::MenuItem("Open in Editor"))
+                                        selectedMaterial = materialId;
+                                },
+                                [&materialId](Heart::UUID selected) { materialId = selected; }
+                            );
+
+                            index++;
+                        }
                     }
-
-                //     char buffer[128];
-                //     std::strncpy(buffer, Heart::AssetManager::GetPathFromUUID(meshComp.Mesh).c_str(), sizeof(buffer));
-                //     if (ImGui::InputText("Mesh Path", buffer, sizeof(buffer)))
-                //     {
-                //         ImGui::SetKeyboardFocusHere(-1);
-                //         meshComp.Mesh = Heart::AssetManager::GetAssetUUID(buffer);
-                //     }
-
-                //     if (ImGui::Button("Populate Default Materials"))
-                //     {
-                //         auto meshAsset = Heart::AssetManager::RetrieveAsset<Heart::MeshAsset>(buffer);
-                //         //if (meshAsset && meshAsset->IsValid())
-                //         //    meshComp.Materials = meshAsset->GetDefaultMaterials();
-                //     }
-                    
-                //     ImGui::Separator();
-
-                //     std::string label = "Material ";
-                //     u32 index = 0;
-                //     for (auto& materialId : meshComp.Materials)
-                //     {
-                //         if (ImGui::TreeNode((label + std::to_string(index)).c_str()))
-                //         {
-                //             std::strncpy(buffer, Heart::AssetManager::GetPathFromUUID(materialId).c_str(), sizeof(buffer));
-                //             if (ImGui::InputText("Path", buffer, sizeof(buffer)))
-                //             {
-                //                 ImGui::SetKeyboardFocusHere(-1);
-                //                 materialId = Heart::AssetManager::GetAssetUUID(buffer);
-                //             }
-
-                //             if (materialId != 0)
-                //             {
-                //                 float metalness = Heart::AssetManager::RetrieveAsset<Heart::MaterialAsset>(materialId)->GetMaterial().GetMaterialData().GetMetalnessFactor();
-                //                 if (ImGui::DragFloat("Metalness", &metalness, 0.05f, 0.f, 1.f))
-                //                     Heart::AssetManager::RetrieveAsset<Heart::MaterialAsset>(materialId)->GetMaterial().GetMaterialData().SetMetalnessFactor(metalness);
-
-                //                 float roughness = Heart::AssetManager::RetrieveAsset<Heart::MaterialAsset>(materialId)->GetMaterial().GetMaterialData().GetRoughnessFactor();
-                //                 if (ImGui::DragFloat("Roughness", &roughness, 0.05f, 0.f, 1.f))
-                //                     Heart::AssetManager::RetrieveAsset<Heart::MaterialAsset>(materialId)->GetMaterial().GetMaterialData().SetRoughnessFactor(roughness);
-                //             }
-
-                //             ImGui::TreePop();
-                //         }
-                //         index++;
-                //     }
+                    else
+                        ImGui::TextColored({ 0.9f, 0.1f, 0.1f, 1.f }, "Invalid Mesh");
                     
                     ImGui::Unindent();
                 }

@@ -14,7 +14,7 @@ namespace Widgets
     public:
         PropertiesPanel();
 
-        void OnImGuiRender(Heart::Entity selectedEntity);
+        void OnImGuiRender(Heart::Entity selectedEntity, Heart::UUID& selectedMaterial);
 
     private:
         void RenderXYZSlider(const std::string& name, f32* x, f32* y, f32* z, f32 min, f32 max, f32 step);
@@ -44,6 +44,7 @@ namespace Widgets
     
     private:
         ImGuiTextFilter m_MeshTextFilter;
+        ImGuiTextFilter m_MaterialTextFilter;
     };
 }
 }

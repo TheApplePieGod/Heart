@@ -193,6 +193,7 @@ namespace Heart
 
     Asset* AssetManager::RetrieveAsset(UUID uuid)
     {
+        if (!uuid) return nullptr;
         if (s_UUIDs.find(uuid) == s_UUIDs.end()) return nullptr;
 
         auto& uuidEntry = s_UUIDs[uuid];

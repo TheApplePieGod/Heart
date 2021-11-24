@@ -10,6 +10,8 @@ namespace HeartEditor
         EditorApp();
         ~EditorApp() = default;
 
+        void Close() override;
+
     private:
         
     };

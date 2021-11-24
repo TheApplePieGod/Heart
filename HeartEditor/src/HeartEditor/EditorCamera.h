@@ -8,7 +8,7 @@ namespace HeartEditor
     class EditorCamera : public Heart::Camera
     {
     public:
-        EditorCamera(f32 fov, f32 nearClip, f32 farClip, f32 aspectRatio);
+        EditorCamera(f32 fov, f32 nearClip, f32 farClip, f32 aspectRatio, glm::vec3 position);
 
         void OnUpdate(Heart::Timestep ts, bool viewportFocused, bool viewportHovered);
 

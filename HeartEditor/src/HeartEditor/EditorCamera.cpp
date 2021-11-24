@@ -5,9 +5,10 @@
 
 namespace HeartEditor
 {
-    EditorCamera::EditorCamera(f32 fov, f32 nearClip, f32 farClip, f32 aspectRatio)
+    EditorCamera::EditorCamera(f32 fov, f32 nearClip, f32 farClip, f32 aspectRatio, glm::vec3 position)
         : Camera(fov, nearClip, farClip, aspectRatio)
     {
+        m_Position = position;
         InternalUpdateViewMatrix();
     }
 

@@ -2,6 +2,7 @@
 
 #include "Heart/Core/Layer.h"
 #include "Heart/Core/Timing.h"
+#include "Heart/Core/UUID.h"
 #include "HeartEditor/EditorCamera.h"
 #include "Heart/Events/KeyboardEvents.h"
 #include "Heart/Events/MouseEvents.h"
@@ -40,6 +41,8 @@ namespace HeartEditor
         void OnImGuiRender() override;
         void OnDetach() override;
 
+        inline bool IsDirty() { return m_Widgets.MainMenuBar.AreAnyWindowsDirty(); }
+
         void OnEvent(Heart::Event& event) override;
 
     protected:
@@ -65,5 +68,6 @@ namespace HeartEditor
         Heart::Entity m_SelectedEntity;
         ImGuizmo::MODE m_GizmoMode = ImGuizmo::MODE::LOCAL;
         ImGuizmo::OPERATION m_GizmoOperation = ImGuizmo::OPERATION::TRANSLATE;
+        Heart::UUID m_SelectedMaterial = 0;
     };
 }

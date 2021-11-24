@@ -53,6 +53,13 @@ namespace Heart
         inline UUID GetOcclusionTexture() const { return m_OcclusionTextureAsset; }
         inline bool IsTransparent() const { return m_Transparent; }
 
+        inline void SetAlbedoTexture(UUID texture) { m_AlbedoTextureAsset = texture; }
+        inline void SetMetallicRoughnessTexture(UUID texture) { m_MetallicRoughnessTextureAsset = texture; }
+        inline void SetNormalTexture(UUID texture) { m_NormalTextureAsset = texture; }
+        inline void SetEmissiveTexture(UUID texture) { m_EmissiveTextureAsset = texture; }
+        inline void SetOcclusionTexture(UUID texture) { m_OcclusionTextureAsset = texture; }
+        inline void SetTransparent(bool transparent) { m_Transparent = transparent; }
+
     private:
         MaterialData m_MaterialData;
         UUID m_AlbedoTextureAsset = 0;

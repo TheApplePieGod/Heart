@@ -52,28 +52,40 @@ namespace Heart
         // parse material data
         {
             auto& field = j["data"];
-            material.m_MaterialData.SetBaseColor({ field["baseColor"][0], field["baseColor"][1], field["baseColor"][2], field["baseColor"][3] });
-            material.m_MaterialData.SetEmissiveFactor({ field["emissiveFactor"][0], field["emissiveFactor"][1], field["emissiveFactor"][2], 0.f });
-            material.m_MaterialData.SetRoughnessFactor(field["roughness"]);
-            material.m_MaterialData.SetMetalnessFactor(field["metalness"]);
-            material.m_MaterialData.SetTexCoordScale({ field["texCoordScale"][0], field["texCoordScale"][1] });
-            material.m_MaterialData.SetTexCoordOffset({ field["texCoordOffset"][0], field["texCoordOffset"][1] });
+            if (field.contains("baseColor"))
+                material.m_MaterialData.SetBaseColor({ field["baseColor"][0], field["baseColor"][1], field["baseColor"][2], field["baseColor"][3] });
+            if (field.contains("emissiveFactor"))
+                material.m_MaterialData.SetEmissiveFactor({ field["emissiveFactor"][0], field["emissiveFactor"][1], field["emissiveFactor"][2], 0.f });
+            if (field.contains("roughness"))
+                material.m_MaterialData.SetRoughnessFactor(field["roughness"]);
+            if (field.contains("metalness"))
+                material.m_MaterialData.SetMetalnessFactor(field["metalness"]);
+            if (field.contains("texCoordScale"))
+                material.m_MaterialData.SetTexCoordScale({ field["texCoordScale"][0], field["texCoordScale"][1] });
+            if (field.contains("texCoordOffset"))
+                material.m_MaterialData.SetTexCoordOffset({ field["texCoordOffset"][0], field["texCoordOffset"][1] });
         }
 
         // parse metadata
         {
             auto& field = j["metadata"];
-            material.m_Transparent = field["transparent"];
+            if (field.contains("transparent"))
+                material.m_Transparent = field["transparent"];
         }
 
         // parse texture data
         {
             auto& field = j["textures"];
-            material.m_AlbedoTextureAsset = AssetManager::RegisterAsset(Asset::Type::Texture, field["albedo"]);
-            material.m_MetallicRoughnessTextureAsset = AssetManager::RegisterAsset(Asset::Type::Texture, field["metallicRoughness"]);
-            material.m_NormalTextureAsset = AssetManager::RegisterAsset(Asset::Type::Texture, field["normal"]);
-            material.m_EmissiveTextureAsset = AssetManager::RegisterAsset(Asset::Type::Texture, field["emissive"]);
-            material.m_OcclusionTextureAsset = AssetManager::RegisterAsset(Asset::Type::Texture, field["occlusion"]);
+            if (field.contains("albedo"))
+                material.m_AlbedoTextureAsset = AssetManager::RegisterAsset(Asset::Type::Texture, field["albedo"]);
+            if (field.contains("metallicRoughness"))
+                material.m_MetallicRoughnessTextureAsset = AssetManager::RegisterAsset(Asset::Type::Texture, field["metallicRoughness"]);
+            if (field.contains("normal"))
+                material.m_NormalTextureAsset = AssetManager::RegisterAsset(Asset::Type::Texture, field["normal"]);
+            if (field.contains("emissive"))
+                material.m_EmissiveTextureAsset = AssetManager::RegisterAsset(Asset::Type::Texture, field["emissive"]);
+            if (field.contains("occlusion"))
+                material.m_OcclusionTextureAsset = AssetManager::RegisterAsset(Asset::Type::Texture, field["occlusion"]);
         }
 
         delete[] data;

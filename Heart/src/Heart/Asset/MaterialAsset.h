@@ -14,6 +14,7 @@ namespace Heart
 
         void Load() override;
         void Unload() override;
+        void SaveChanges() { SerializeMaterial(m_AbsolutePath, m_Material); }
 
         Material& GetMaterial() { return m_Material; }
 

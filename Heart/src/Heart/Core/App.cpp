@@ -4,6 +4,10 @@
 #include "Heart/Core/Timing.h"
 #include "Heart/Asset/AssetManager.h"
 
+#ifdef HE_PLATFORM_WINDOWS
+#include <Windows.h>
+#endif
+
 namespace Heart
 {
     App* App::s_Instance = nullptr;
@@ -125,6 +129,22 @@ namespace Heart
 
             m_SwitchingApi = RenderApi::Type::None;
         }
+    }
+
+    void App::Close()
+    {
+        m_Running = false;
+    }
+
+    void App::CloseWithConfirmation()
+    {
+        #ifdef HE_PLATFORM_WINDOWS
+            int selection = MessageBox(HWND_DESKTOP, "Are you sure you want to quit? You may have unsaved changes.", "Confirmation", MB_OKCANCEL | WS_POPUP);
+            if (selection != 1)
+               return;
+        #endif
+
+        m_Running = false;
     }
 
     void App::Run()

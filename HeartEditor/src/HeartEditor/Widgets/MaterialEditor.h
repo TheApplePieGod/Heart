@@ -5,6 +5,8 @@
 #include "Heart/Core/Camera.h"
 #include "Heart/Scene/Entity.h"
 #include "Heart/Renderer/EnvironmentMap.h"
+#include "Heart/Renderer/Material.h"
+#include "imgui/imgui.h"
 
 namespace HeartEditor
 {
@@ -17,11 +19,11 @@ namespace Widgets
         
         void Initialize();
         void Shutdown();
-        void OnImGuiRender(Heart::EnvironmentMap* envMap);
+        void OnImGuiRender(Heart::EnvironmentMap* envMap, Heart::UUID selectedMaterial, bool* dirty);
 
     private:
-        void RenderSidebar();
-        void RenderViewport();
+        void RenderSidebar(Heart::UUID selectedMaterial, bool* dirty);
+        void RenderViewport(bool shouldRender);
 
     private:
         Heart::UUID m_MaterialAsset = 0;
@@ -34,6 +36,9 @@ namespace Widgets
         Heart::Entity m_DemoEntity;
         glm::vec2 m_WindowSizes = { 0.f, 0.f };
         bool m_FirstRender = true;
+        Heart::UUID m_LastMaterial = 0;
+        ImGuiTextFilter m_TextureTextFilter;
+        Heart::Material m_CachedMaterial;
     };
 }
 }

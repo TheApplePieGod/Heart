@@ -6,7 +6,7 @@
 #include "Heart/Asset/TextureAsset.h"
 #include "imgui/imgui.h"
 #include "imgui/imgui_internal.h"
-#include "Heart/Util/ImGuiUtil.h"
+#include "Heart/Util/ImGuiUtils.h"
 
 namespace HeartEditor
 {
@@ -24,12 +24,13 @@ namespace Widgets
         if (m_ShouldRescan)
             ScanDirectory();
 
-        Heart::ImGuiUtil::ResizableWindowSplitter(
+        Heart::ImGuiUtils::ResizableWindowSplitter(
             m_WindowSizes,
             { 100.f, 100.f },
             true,
             3.f,
             10.f,
+            false,
             [&]() { RenderDirectoryNode(m_DirectoryStack[0]); },
             [&]()
             {

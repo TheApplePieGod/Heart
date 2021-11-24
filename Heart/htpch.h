@@ -22,6 +22,7 @@
 #include <random>
 
 #include <string>
+#include <regex>
 #include <array>
 #include <vector>
 #include <unordered_map>
