@@ -28,6 +28,10 @@ namespace Widgets
         int m_DirectoryStackIndex = 0;
         std::vector<std::filesystem::directory_entry> m_DirectoryList;
         bool m_ShouldRescan = false;
+
+        std::filesystem::path m_RenamingPath;
+        std::string m_Rename = "";
+        bool m_ShouldRename = false;
     };
 }
 }

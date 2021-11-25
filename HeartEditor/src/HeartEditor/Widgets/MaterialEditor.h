@@ -19,7 +19,7 @@ namespace Widgets
         
         void Initialize();
         void Shutdown();
-        void OnImGuiRender(Heart::EnvironmentMap* envMap, Heart::UUID selectedMaterial, bool* dirty);
+        void OnImGuiRender(Heart::EnvironmentMap* envMap, Heart::UUID& selectedMaterial, bool* dirty);
 
     private:
         void RenderSidebar(Heart::UUID selectedMaterial, bool* dirty);

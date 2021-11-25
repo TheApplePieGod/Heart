@@ -32,14 +32,18 @@ namespace Heart
 
         inline static const std::string& GetAssetsDirectory() { return s_AssetsDirectory; }
         inline static const std::unordered_map<UUID, UUIDEntry>& GetUUIDRegistry() { return s_UUIDs; }
+        inline static std::string GetAbsolutePath(const std::string& relative) { return std::filesystem::path(s_AssetsDirectory).append(relative).generic_u8string(); }
 
         static UUID RegisterAsset(Asset::Type type, const std::string& path, bool persistent = false, bool isResource = false);
         static void RegisterAssetsInDirectory(const std::filesystem::path& directory, bool persistent = false, bool isResource = false);
+
+        static void RenameAsset(const std::string& oldPath, const std::string& newPath);
 
         static Asset::Type DeduceAssetTypeFromFile(const std::string& path);
 
         static UUID GetAssetUUID(const std::string& path, bool isResource = false);
         static std::string GetPathFromUUID(UUID uuid);
+        static bool IsAssetAnEngineResource(UUID uuid);
 
         static Asset* RetrieveAsset(const std::string& path, bool isResource = false);
         template<typename T>

@@ -6,6 +6,7 @@
 #include "Heart/Asset/MeshAsset.h"
 #include "Heart/Asset/MaterialAsset.h"
 #include "Heart/Util/ImGuiUtils.h"
+#include "Heart/Util/FilesystemUtils.h"
 #include "Heart/Renderer/Renderer.h"
 #include "imgui/imgui_internal.h"
 #include "glm/gtc/type_ptr.hpp"
@@ -171,12 +172,29 @@ namespace Widgets
                                 "DEFAULT",
                                 entryName,
                                 m_MaterialTextFilter,
-                                [&materialId, &selectedMaterial]()
+                                [&materialId, &selectedMaterial, &meshAsset, index]()
                                 {
-                                    if (ImGui::MenuItem("Clear"))
-                                        materialId = 0;
-                                    if (ImGui::MenuItem("Open in Editor"))
-                                        selectedMaterial = materialId;
+                                    if (selectedMaterial)
+                                    {
+                                        if (ImGui::MenuItem("Clear"))
+                                            materialId = 0;
+                                        if (ImGui::MenuItem("Open in Editor"))
+                                            selectedMaterial = materialId;
+                                    }
+                                    if (ImGui::MenuItem("Export to File"))
+                                    {
+                                        Heart::Material* exportingMaterial = &meshAsset->GetDefaultMaterials()[index]; // default material
+                                        if (materialId != 0)
+                                        {
+                                            auto materialAsset = Heart::AssetManager::RetrieveAsset<Heart::MaterialAsset>(materialId);
+                                            if (materialAsset && materialAsset->IsValid())
+                                                exportingMaterial = &materialAsset->GetMaterial();
+                                        }
+
+                                        std::string path = Heart::FilesystemUtils::SaveAsDialog(Heart::AssetManager::GetAssetsDirectory(), "Export Material", "Material", "hemat");
+                                        if (!path.empty())
+                                            Heart::MaterialAsset::SerializeMaterial(path, *exportingMaterial);
+                                    }
                                 },
                                 [&materialId](Heart::UUID selected) { materialId = selected; }
                             );

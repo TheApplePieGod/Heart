@@ -61,6 +61,7 @@ namespace Widgets
         if (ImGui::BeginDragDropSource())
         {
             ImGui::SetDragDropPayload("EntityNode", &entity, sizeof(u64));
+            ImGui::Text(nameComponent.Name.c_str());
             ImGui::EndDragDropSource();
         }
 
@@ -78,13 +79,13 @@ namespace Widgets
         // right click menu
         if (ImGui::BeginPopupContextItem((nameString + std::to_string(static_cast<u32>(entity))).c_str()))
         {
-            if (ImGui::Button("Remove Entity"))
+            if (ImGui::MenuItem("Remove Entity"))
             {
                 activeScene->DestroyEntity({ activeScene, entity });
                 selectedEntity = Heart::Entity();
                 justDestroyed = true;
             }
-            if (ImGui::Button("Duplicate Entity"))
+            if (ImGui::MenuItem("Duplicate Entity"))
             {
                 selectedEntity = activeScene->DuplicateEntity({ activeScene, entity }, true, true);
                 ImGui::CloseCurrentPopup();

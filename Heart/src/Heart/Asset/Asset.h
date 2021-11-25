@@ -21,6 +21,8 @@ namespace Heart
         virtual void Unload() = 0;
         void Reload();
 
+        void UpdatePath(const std::string& path, const std::string& absolutePath);
+
         inline const std::string& GetPath() const { return m_Path; }
         inline const std::string& GetAbsolutePath() const { return m_AbsolutePath; }
         inline const std::string& GetFilename() const { return m_Filename; }

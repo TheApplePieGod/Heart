@@ -8,6 +8,7 @@
 #include "Heart/Input/Input.h"
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/TextureAsset.h"
+#include "Heart/Asset/SceneAsset.h"
 #include "imgui/imgui_internal.h"
 #include "glm/vec4.hpp"
 #include "glm/gtc/type_ptr.hpp"
@@ -92,7 +93,7 @@ namespace HeartEditor
         ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
         ImGui::Begin("Main Window", nullptr, windowFlags);
         
-        m_Widgets.MainMenuBar.OnImGuiRender(m_ActiveScene.get(), m_SelectedEntity);
+        m_Widgets.MainMenuBar.OnImGuiRender(m_ActiveScene, m_SelectedEntity);
 
         ImGuiID dockspaceId = ImGui::GetID("EditorDockSpace");
         ImGui::DockSpace(dockspaceId, ImVec2(0.f, 0.f), 0);
@@ -271,6 +272,20 @@ namespace HeartEditor
 
         // hover is false if we are hovering over the buttons
         m_ViewportHover = m_ViewportHover && !ImGui::IsItemHovered();
+
+        if (ImGui::BeginDragDropTarget())
+        {
+            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("FileTransfer"))
+            {
+                const char* payloadData = (const char*)payload->Data;
+                std::string relativePath = std::filesystem::relative(payloadData, Heart::AssetManager::GetAssetsDirectory()).generic_u8string();
+                auto assetType = Heart::AssetManager::DeduceAssetTypeFromFile(relativePath);
+
+                if (assetType == Heart::Asset::Type::Scene)
+                    m_ActiveScene = Heart::AssetManager::RetrieveAsset<Heart::SceneAsset>(Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Scene, relativePath))->GetScene();
+            }
+            ImGui::EndDragDropTarget();
+        }
 
         // draw the imguizmo if an entity is selected
         if (m_SelectedEntity.IsValid())

@@ -136,7 +136,7 @@ namespace Heart
         if (path.empty())
             return 0;
 
-        UUID oldUUID = GetAssetUUID(path);
+        UUID oldUUID = GetAssetUUID(path, isResource);
         if (oldUUID != 0)
             return oldUUID;
 
@@ -179,13 +179,39 @@ namespace Heart
                     if (type != Asset::Type::None)
                     {
                         // remove the base from the start of the path so it doesn't need to be included when referencing
-                        std::string trimmedPath = path.substr((isResource ? s_ResourceDirectory.size() : s_AssetsDirectory.size()) + 1);
-                        RegisterAsset(type, trimmedPath, persistent, isResource);
+                        std::string basePath = std::filesystem::relative(path, isResource ? s_ResourceDirectory : s_AssetsDirectory).generic_u8string();
+                        RegisterAsset(type, basePath, persistent, isResource);
                     }
                 }
         }
         catch (std::exception e) // likely invalid path so stop searching
         { return; }
+    }
+
+    void AssetManager::RenameAsset(const std::string& oldPath, const std::string& newPath)
+    {
+        bool entryFound = false;
+        for (auto& entry : s_UUIDs)
+        {
+            if (entry.second.Path == oldPath)
+            {
+                entry.second.Path = newPath;
+                entryFound = true;
+                break;
+            }
+        }
+
+        if (!entryFound) return;
+
+        // don't even bother to check for resources because those shouldn't ever be renamed
+
+        // change registry key
+        auto registryNode = s_Registry.extract(oldPath);
+        registryNode.key() = newPath;
+        s_Registry.insert(std::move(registryNode));
+
+        // change asset paths
+        s_Registry[newPath].Asset->UpdatePath(newPath, GetAbsolutePath(newPath));
     }
 
     Asset::Type AssetManager::DeduceAssetTypeFromFile(const std::string& path)
@@ -222,6 +248,13 @@ namespace Heart
         if (!uuid) return "";
         if (s_UUIDs.find(uuid) == s_UUIDs.end()) return "";
         return s_UUIDs[uuid].Path;
+    }
+
+    bool AssetManager::IsAssetAnEngineResource(UUID uuid)
+    {
+        if (!uuid) return false;
+        if (s_UUIDs.find(uuid) == s_UUIDs.end()) return false;
+        return s_UUIDs[uuid].IsResource;
     }
 
     Asset* AssetManager::RetrieveAsset(const std::string& path, bool isResource)

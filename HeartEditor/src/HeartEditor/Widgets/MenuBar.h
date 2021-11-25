@@ -12,7 +12,7 @@ namespace Widgets
     public:
         MenuBar();
 
-        void OnImGuiRender(Heart::Scene* activeScene, Heart::Entity& selectedEntity);
+        void OnImGuiRender(Heart::Ref<Heart::Scene>& activeScene, Heart::Entity& selectedEntity);
 
         inline bool* GetWindowOpenRef(const std::string& name) { return &m_WindowStatuses[name].Open; }
         inline bool IsWindowOpen(const std::string& name) { return m_WindowStatuses[name].Open; }

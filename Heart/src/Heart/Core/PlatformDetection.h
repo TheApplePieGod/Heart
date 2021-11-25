@@ -6,6 +6,7 @@
 	#ifdef _WIN64
 		/* Windows x64  */
 		#define HE_PLATFORM_WINDOWS
+		#define GLFW_EXPOSE_NATIVE_WIN32
 	#else
 		/* Windows x86 */
 		#error "x86 Builds are not supported!"
@@ -23,6 +24,7 @@
 		#error "IOS is not supported!"
 	#elif TARGET_OS_MAC == 1
 		#define HE_PLATFORM_MACOS
+		#define GLFW_EXPOSE_NATIVE_COCOA
 		#error "MacOS is not supported!"
 	#else
 		#error "Unknown Apple platform!"
@@ -35,6 +37,7 @@
 	#error "Android is not supported!"
 #elif defined(__linux__)
 	#define HE_PLATFORM_LINUX
+	#define GLFW_EXPOSE_NATIVE_X11
 	#error "Linux is not supported!"
 #else
 	/* Unknown compiler/platform */

@@ -71,7 +71,7 @@ namespace Heart
             ImGui::OpenPopup(popupName.c_str());
         
         // right click menu
-        if (contextMenuCallback && selectedAsset && ImGui::BeginPopupContextItem((widgetId + "context").c_str()))
+        if (contextMenuCallback && ImGui::BeginPopupContextItem((widgetId + "context").c_str()))
         {
             contextMenuCallback();
             ImGui::EndPopup();

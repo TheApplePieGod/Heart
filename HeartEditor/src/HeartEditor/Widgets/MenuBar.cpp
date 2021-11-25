@@ -4,7 +4,9 @@
 #include "HeartEditor/EditorApp.h"
 #include "Heart/Scene/Entity.h"
 #include "Heart/Renderer/Renderer.h"
+#include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/SceneAsset.h"
+#include "Heart/Util/FilesystemUtils.h"
 #include "imgui/imgui.h"
 #include "imgui/imgui_internal.h"
 
@@ -31,7 +33,7 @@ namespace Widgets
         return false;
     }
 
-    void MenuBar::OnImGuiRender(Heart::Scene* activeScene, Heart::Entity& selectedEntity)
+    void MenuBar::OnImGuiRender(Heart::Ref<Heart::Scene>& activeScene, Heart::Entity& selectedEntity)
     {
         HE_PROFILE_FUNCTION();
         
@@ -51,8 +53,26 @@ namespace Widgets
                     if (ImGui::MenuItem("Create Entity"))
                         selectedEntity = activeScene->CreateEntity("New Entity");
 
-                    if (ImGui::MenuItem("Save Scene"))
-                        Heart::SceneAsset::SerializeScene("D:/Projects/Heart/HeartEditor/assets/scenes/Test.hescn", activeScene);
+                    // if (ImGui::MenuItem("Save Scene"))
+                    // {
+                    //     std::string path = Heart::FilesystemUtils::SaveAsDialog(Heart::AssetManager::GetAssetsDirectory(), "Save Scene As", "Scene", "hescn");
+                    //     if (!path.empty())
+                    //         Heart::SceneAsset::SerializeScene(path, activeScene.get());
+                    // }
+
+                    if (ImGui::MenuItem("Save Scene As"))
+                    {
+                        std::string path = Heart::FilesystemUtils::SaveAsDialog(Heart::AssetManager::GetAssetsDirectory(), "Save Scene As", "Scene", "hescn");
+                        if (!path.empty())
+                            Heart::SceneAsset::SerializeScene(path, activeScene.get());
+                    }
+
+                    if (ImGui::MenuItem("Load Scene"))
+                    {
+                        std::string path = Heart::FilesystemUtils::OpenFileDialog(Heart::AssetManager::GetAssetsDirectory(), "Save Scene As", "hescn");
+                        if (!path.empty())
+                            activeScene = Heart::SceneAsset::DeserializeScene(path);
+                    }
 
                     if (ImGui::MenuItem("Toggle Fullscreen", "F11"))
                         EditorApp::Get().GetWindow().ToggleFullscreen();

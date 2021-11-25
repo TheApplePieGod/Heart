@@ -40,7 +40,7 @@ namespace Widgets
         m_FirstRender = true;
     }
 
-    void MaterialEditor::OnImGuiRender(Heart::EnvironmentMap* envMap, Heart::UUID selectedMaterial, bool* dirty)
+    void MaterialEditor::OnImGuiRender(Heart::EnvironmentMap* envMap, Heart::UUID& selectedMaterial, bool* dirty)
     {
         HE_PROFILE_FUNCTION();
         
@@ -78,6 +78,20 @@ namespace Widgets
             [&]() { RenderSidebar(selectedMaterial, dirty); },
             [&]() { RenderViewport(shouldRender); }
         );
+
+        if (ImGui::BeginDragDropTarget())
+        {
+            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("FileTransfer"))
+            {
+                const char* payloadData = (const char*)payload->Data;
+                std::string relativePath = std::filesystem::relative(payloadData, Heart::AssetManager::GetAssetsDirectory()).generic_u8string();
+                auto assetType = Heart::AssetManager::DeduceAssetTypeFromFile(relativePath);
+
+                if (assetType == Heart::Asset::Type::Material)
+                    selectedMaterial = Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Material, relativePath);
+            }
+            ImGui::EndDragDropTarget();
+        }
     }
 
     void MaterialEditor::RenderSidebar(Heart::UUID selectedMaterial, bool* dirty)
@@ -91,10 +105,19 @@ namespace Widgets
         auto materialAsset = Heart::AssetManager::RetrieveAsset<Heart::MaterialAsset>(selectedMaterial);
         if (materialAsset && materialAsset->IsValid())
         {
+            if (Heart::AssetManager::IsAssetAnEngineResource(selectedMaterial))
+            {
+                ImGui::TextColored({ 1.f, 1.f, 0.f, 1.f }, "Cannot Modify an Engine Resource");
+                return;
+            }
+
             auto& material = materialAsset->GetMaterial();
             auto& materialData = material.GetMaterialData();
 
-            if (!*dirty)
+            ImGui::Text(materialAsset->GetPath().c_str());
+
+            bool disabled = !*dirty;
+            if (disabled)
                 ImGui::BeginDisabled();
             if (ImGui::Button("Save Changes"))
             {
@@ -109,7 +132,7 @@ namespace Widgets
                 material = m_CachedMaterial;
             }
             ImGui::Dummy({ 0.f, 5.f });
-            if (!*dirty)
+            if (disabled)
                 ImGui::EndDisabled();
 
             ImGui::Text("Material Properties");
@@ -280,7 +303,7 @@ namespace Widgets
                 ImGui::Image(ocAsset->GetTexture()->GetImGuiHandle(0), { previewSize, previewSize });
         }
         else
-            ImGui::TextColored({ 0.0f, 0.1f, 0.1f, 1.f }, "Invalid Material");
+            ImGui::TextColored({ 0.9f, 0.1f, 0.1f, 1.f }, "Invalid Material");
     }
 
     void MaterialEditor::RenderViewport(bool shouldRender)
@@ -303,6 +326,7 @@ namespace Widgets
             m_SceneRenderer->GetFinalFramebuffer().GetColorAttachmentImGuiHandle(0),
             { viewportSize.x, viewportSize.y }
         );
+
         if (ImGui::IsItemHovered())
         {
             if (ImGui::IsMouseDragging(0))

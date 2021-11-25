@@ -80,15 +80,15 @@ namespace Heart
         {
             auto& field = j["textures"];
             if (field.contains("albedo"))
-                material.m_AlbedoTextureAsset = AssetManager::RegisterAsset(Asset::Type::Texture, field["albedo"]);
+                material.m_AlbedoTextureAsset = AssetManager::RegisterAsset(Asset::Type::Texture, field["albedo"]["path"], false, field["albedo"]["engineResource"]);
             if (field.contains("metallicRoughness"))
-                material.m_MetallicRoughnessTextureAsset = AssetManager::RegisterAsset(Asset::Type::Texture, field["metallicRoughness"]);
+                material.m_MetallicRoughnessTextureAsset = AssetManager::RegisterAsset(Asset::Type::Texture, field["metallicRoughness"]["path"], false, field["metallicRoughness"]["engineResource"]);
             if (field.contains("normal"))
-                material.m_NormalTextureAsset = AssetManager::RegisterAsset(Asset::Type::Texture, field["normal"]);
+                material.m_NormalTextureAsset = AssetManager::RegisterAsset(Asset::Type::Texture, field["normal"]["path"], false, field["normal"]["engineResource"]);
             if (field.contains("emissive"))
-                material.m_EmissiveTextureAsset = AssetManager::RegisterAsset(Asset::Type::Texture, field["emissive"]);
+                material.m_EmissiveTextureAsset = AssetManager::RegisterAsset(Asset::Type::Texture, field["emissive"]["path"], false, field["emissive"]["engineResource"]);
             if (field.contains("occlusion"))
-                material.m_OcclusionTextureAsset = AssetManager::RegisterAsset(Asset::Type::Texture, field["occlusion"]);
+                material.m_OcclusionTextureAsset = AssetManager::RegisterAsset(Asset::Type::Texture, field["occlusion"]["path"], false, field["occlusion"]["engineResource"]);
         }
 
         delete[] data;
@@ -119,11 +119,20 @@ namespace Heart
         // texture data
         {
             auto& field = j["textures"];
-            field["albedo"] = AssetManager::GetPathFromUUID(material.m_AlbedoTextureAsset);
-            field["metallicRoughness"] = AssetManager::GetPathFromUUID(material.m_MetallicRoughnessTextureAsset);
-            field["normal"] = AssetManager::GetPathFromUUID(material.m_NormalTextureAsset);
-            field["emissive"] = AssetManager::GetPathFromUUID(material.m_EmissiveTextureAsset);
-            field["occlusion"] = AssetManager::GetPathFromUUID(material.m_OcclusionTextureAsset);
+            field["albedo"]["path"] = AssetManager::GetPathFromUUID(material.m_AlbedoTextureAsset);
+            field["albedo"]["engineResource"] = AssetManager::IsAssetAnEngineResource(material.m_AlbedoTextureAsset);
+
+            field["metallicRoughness"]["path"] = AssetManager::GetPathFromUUID(material.m_MetallicRoughnessTextureAsset);
+            field["metallicRoughness"]["engineResource"] = AssetManager::IsAssetAnEngineResource(material.m_MetallicRoughnessTextureAsset);
+
+            field["normal"]["path"] = AssetManager::GetPathFromUUID(material.m_NormalTextureAsset);
+            field["normal"]["engineResource"] = AssetManager::IsAssetAnEngineResource(material.m_NormalTextureAsset);
+
+            field["emissive"]["path"] = AssetManager::GetPathFromUUID(material.m_EmissiveTextureAsset);
+            field["emissive"]["engineResource"] = AssetManager::IsAssetAnEngineResource(material.m_EmissiveTextureAsset);
+
+            field["occlusion"]["path"] = AssetManager::GetPathFromUUID(material.m_OcclusionTextureAsset);
+            field["occlusion"]["engineResource"] = AssetManager::IsAssetAnEngineResource(material.m_OcclusionTextureAsset);
         }
 
         std::ofstream file(path);

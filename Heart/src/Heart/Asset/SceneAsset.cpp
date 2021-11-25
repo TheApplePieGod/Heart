@@ -46,8 +46,63 @@ namespace Heart
     {
         auto scene = CreateRef<Scene>();
 
+        u32 fileLength;
+        unsigned char* data = FilesystemUtils::ReadFile(path, fileLength);
+        if (!data)
+            throw std::exception();
 
-        //delete[] data;
+        auto j = nlohmann::json::parse(data);
+
+        // parse entities
+        {
+            auto& field = j["entities"];
+            for (auto& loaded : field)
+            {
+                // REQUIRED: Id & name components
+                UUID id = loaded["idComponent"]["id"];
+                std::string name = loaded["nameComponent"]["name"];
+                auto entity = scene->CreateEntityWithUUID(name, id);
+
+                // REQUIRED: Transform component
+                glm::vec3 translation = { loaded["transformComponent"]["translation"][0], loaded["transformComponent"]["translation"][1], loaded["transformComponent"]["translation"][2] };
+                glm::vec3 rotation = { loaded["transformComponent"]["rotation"][0], loaded["transformComponent"]["rotation"][1], loaded["transformComponent"]["rotation"][2] };
+                glm::vec3 scale = { loaded["transformComponent"]["scale"][0], loaded["transformComponent"]["scale"][1], loaded["transformComponent"]["scale"][2] };
+                entity.SetTransform(translation, rotation, scale);
+
+                // Parent component
+                if (loaded.contains("parentComponent"))
+                    entity.AddComponent<ParentComponent>(loaded["parentComponent"]["id"]);
+
+                // Child component
+                if (loaded.contains("childComponent"))
+                {
+                    auto& children = loaded["childComponent"]["children"];
+                    std::vector<UUID> ids;
+                    ids.reserve(children.size());
+                    for (auto& childId : children)
+                        ids.emplace_back(childId);
+                    entity.AddComponent<ChildComponent>(ids);
+                }
+
+                // Mesh component
+                if (loaded.contains("meshComponent"))
+                {
+                    auto& materials = loaded["meshComponent"]["materials"];
+                    std::vector<UUID> ids;
+                    UUID meshAsset = AssetManager::RegisterAsset(Asset::Type::Mesh, loaded["meshComponent"]["mesh"]["path"], false, loaded["meshComponent"]["mesh"]["engineResource"]);
+                    for (auto& material : materials)
+                        ids.emplace_back(AssetManager::RegisterAsset(Asset::Type::Material, material["path"], false, material["engineResource"]));
+                    entity.AddComponent<MeshComponent>(meshAsset, ids);
+                }
+            }
+        }
+
+        // parse settings
+        {
+            auto& field = j["settings"];
+        }
+
+        delete[] data;
         return scene;
     }
 
@@ -65,11 +120,17 @@ namespace Heart
                 nlohmann::json entry;
                 Entity entity = { scene, handle };
                 
-                // Id component
+                // REQUIRED: Id component
                 entry["idComponent"]["id"] = static_cast<u64>(entity.GetUUID());
 
-                // Name component
+                // REQUIRED: Name component
                 entry["nameComponent"]["name"] = entity.GetName();
+
+                // REQUIRED: Transform component
+                auto& transformComp = entity.GetComponent<TransformComponent>();
+                entry["transformComponent"]["translation"] = nlohmann::json::array({ transformComp.Translation.x, transformComp.Translation.y, transformComp.Translation.z });
+                entry["transformComponent"]["rotation"] = nlohmann::json::array({ transformComp.Rotation.x, transformComp.Rotation.y, transformComp.Rotation.z });
+                entry["transformComponent"]["scale"] = nlohmann::json::array({ transformComp.Scale.x, transformComp.Scale.y, transformComp.Scale.z });
 
                 // Parent component
                 if (entity.HasComponent<ParentComponent>())
@@ -83,19 +144,17 @@ namespace Heart
                         entry["childComponent"]["children"][i] = static_cast<u64>(childComp.Children[i]);
                 }
 
-                // Transform component
-                auto& transformComp = entity.GetComponent<TransformComponent>();
-                entry["transformComponent"]["translation"] = nlohmann::json::array({ transformComp.Translation.x, transformComp.Translation.y, transformComp.Translation.z });
-                entry["transformComponent"]["rotation"] = nlohmann::json::array({ transformComp.Rotation.x, transformComp.Rotation.y, transformComp.Rotation.z });
-                entry["transformComponent"]["scale"] = nlohmann::json::array({ transformComp.Scale.x, transformComp.Scale.y, transformComp.Scale.z });
-
                 // Mesh component
                 if (entity.HasComponent<MeshComponent>())
                 {
                     auto& meshComp = entity.GetComponent<MeshComponent>();
-                    entry["meshComponent"]["mesh"] = AssetManager::GetPathFromUUID(meshComp.Mesh);
+                    entry["meshComponent"]["mesh"]["path"] = AssetManager::GetPathFromUUID(meshComp.Mesh);
+                    entry["meshComponent"]["mesh"]["engineResource"] = AssetManager::IsAssetAnEngineResource(meshComp.Mesh);
                     for (size_t i = 0; i < meshComp.Materials.size(); i++)
-                        entry["meshComponent"]["materials"][i] = AssetManager::GetPathFromUUID(meshComp.Materials[i]);
+                    {
+                        entry["meshComponent"]["materials"][i]["path"] = AssetManager::GetPathFromUUID(meshComp.Materials[i]);
+                        entry["meshComponent"]["materials"][i]["engineResource"] = AssetManager::IsAssetAnEngineResource(meshComp.Materials[i]);
+                    }
                 }
 
                 field[index++] = entry;
@@ -105,6 +164,7 @@ namespace Heart
         // settings
         {
             auto& field = j["settings"];
+            //field["debugCameraPos"] = nlohmann::json::array({
         }
 
         std::ofstream file(path);

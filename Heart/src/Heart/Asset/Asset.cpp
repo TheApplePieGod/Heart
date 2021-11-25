@@ -12,13 +12,7 @@ namespace Heart
     Asset::Asset(const std::string& path, const std::string& absolutePath)
         : m_Path(path), m_AbsolutePath(absolutePath)
     {
-        auto entry = std::filesystem::path(path);
-        m_Filename = entry.filename().generic_u8string();
-        m_Extension = entry.extension().generic_u8string();
-        m_ParentPath = entry.parent_path().generic_u8string();
-
-        // convert the extension to lowercase
-        std::transform(m_Extension.begin(), m_Extension.end(), m_Extension.begin(), [](unsigned char c) { return std::tolower(c); });
+        UpdatePath(path, absolutePath);
     }
 
     void Asset::Reload()
@@ -26,6 +20,20 @@ namespace Heart
         if (m_Loaded)
             Unload();
         Load();
+    }
+
+    void Asset::UpdatePath(const std::string& path, const std::string& absolutePath)
+    {
+        auto entry = std::filesystem::path(path);
+        m_Filename = entry.filename().generic_u8string();
+        m_Extension = entry.extension().generic_u8string();
+        m_ParentPath = entry.parent_path().generic_u8string();
+
+        // convert the extension to lowercase
+        std::transform(m_Extension.begin(), m_Extension.end(), m_Extension.begin(), [](unsigned char c) { return std::tolower(c); });
+
+        m_Path = path;
+        m_AbsolutePath = absolutePath;
     }
 
     Ref<Asset> Asset::Create(Type type, const std::string& path, const std::string& absolutePath)
