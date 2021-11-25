@@ -37,7 +37,7 @@ namespace Heart
         SceneRenderer();
         ~SceneRenderer();
 
-        void RenderScene(GraphicsContext& context, Scene* scene, const Camera& camera, glm::vec3 cameraPosition, EnvironmentMap* envMap = nullptr);
+        void RenderScene(GraphicsContext& context, Scene* scene, const Camera& camera, glm::vec3 cameraPosition, bool drawGrid, EnvironmentMap* envMap = nullptr);
 
         inline Framebuffer& GetFinalFramebuffer() { return *m_FinalFramebuffer; }
 
@@ -56,9 +56,12 @@ namespace Heart
 
     private:
         void RenderEnvironmentMap();
+        void RenderGrid();
         void RenderOpaque();
         void RenderTransparent();
         void Composite();
+
+        void InitializeGridBuffers();
 
     private:
         Ref<Texture> m_DefaultEnvironmentMap;
@@ -66,6 +69,10 @@ namespace Heart
         Ref<Buffer> m_FrameDataBuffer;
         Ref<Buffer> m_ObjectDataBuffer;
         Ref<Buffer> m_MaterialDataBuffer;
+
+        // grid
+        Ref<Buffer> m_GridVertices;
+        Ref<Buffer> m_GridIndices;
 
         // in-flight frame data
         Scene* m_Scene;

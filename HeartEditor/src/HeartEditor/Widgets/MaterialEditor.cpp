@@ -64,6 +64,7 @@ namespace Widgets
                 m_Scene.get(),
                 m_SceneCamera,
                 m_SceneCameraPosition,
+                false,
                 envMap
             );
         }

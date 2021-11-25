@@ -21,13 +21,13 @@ namespace HeartEditor
         m_EditorCamera = Heart::CreateScope<EditorCamera>(70.f, 0.1f, 500.f, 1.f, glm::vec3(0.f, 1.f, 0.f));
         m_ActiveScene = Heart::CreateRef<Heart::Scene>();
 
-        auto entity = m_ActiveScene->CreateEntity("Test Entity");
-        entity.AddComponent<Heart::MeshComponent>();
-        entity.GetComponent<Heart::MeshComponent>().Mesh = Heart::AssetManager::GetAssetUUID("assets/meshes/Sponza/glTF/Sponza.gltf");
-
-        //entity = m_ActiveScene->CreateEntity("Cube Entity");
+        //auto entity = m_ActiveScene->CreateEntity("Test Entity");
         //entity.AddComponent<Heart::MeshComponent>();
-        //entity.GetComponent<Heart::MeshComponent>().Mesh = Heart::AssetManager::GetAssetUUID("assets/meshes/DamagedHelmet/glTF/DamagedHelmet.gltf");
+        //entity.GetComponent<Heart::MeshComponent>().Mesh = Heart::AssetManager::GetAssetUUID("assets/meshes/Sponza/glTF/Sponza.gltf");
+
+        auto entity = m_ActiveScene->CreateEntity("Cube Entity");
+        entity.AddComponent<Heart::MeshComponent>();
+        entity.GetComponent<Heart::MeshComponent>().Mesh = Heart::AssetManager::GetAssetUUID("DefaultCube.gltf", true);
         //entity.GetComponent<Heart::MeshComponent>().Mesh = Heart::AssetManager::GetAssetUUID("assets/meshes/Buggy/glTF/Buggy.gltf");
 
         m_EnvironmentMaps.emplace_back(Heart::AssetManager::GetAssetUUID("assets/envmaps/GrandCanyon.hdr"));
@@ -74,6 +74,7 @@ namespace HeartEditor
             m_ActiveScene.get(),
             *m_EditorCamera,
             m_EditorCamera->GetPosition(),
+            true,
             &m_EnvironmentMaps[0]
         );
     }

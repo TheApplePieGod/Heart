@@ -148,6 +148,25 @@ namespace Widgets
                                 meshComp.Materials.resize(meshAsset->GetMaxMaterials(), 0);
                         }
                     );
+                    if (ImGui::BeginDragDropTarget())
+                    {
+                        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("FileTransfer"))
+                        {
+                            const char* payloadData = (const char*)payload->Data;
+                            std::string relativePath = std::filesystem::relative(payloadData, Heart::AssetManager::GetAssetsDirectory()).generic_u8string();
+                            auto assetType = Heart::AssetManager::DeduceAssetTypeFromFile(relativePath);
+
+                            if (assetType == Heart::Asset::Type::Mesh)
+                            {
+                                meshComp.Mesh = Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Mesh, relativePath);
+                                
+                                auto meshAsset = Heart::AssetManager::RetrieveAsset<Heart::MeshAsset>(meshComp.Mesh);
+                                if (meshAsset && meshAsset->IsValid())
+                                    meshComp.Materials.resize(meshAsset->GetMaxMaterials(), 0);
+                            }
+                        }
+                        ImGui::EndDragDropTarget();
+                    }
 
                     auto meshAsset = Heart::AssetManager::RetrieveAsset<Heart::MeshAsset>(meshComp.Mesh);
                     if (meshAsset && meshAsset->IsValid())
@@ -198,6 +217,19 @@ namespace Widgets
                                 },
                                 [&materialId](Heart::UUID selected) { materialId = selected; }
                             );
+                            if (ImGui::BeginDragDropTarget())
+                            {
+                                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("FileTransfer"))
+                                {
+                                    const char* payloadData = (const char*)payload->Data;
+                                    std::string relativePath = std::filesystem::relative(payloadData, Heart::AssetManager::GetAssetsDirectory()).generic_u8string();
+                                    auto assetType = Heart::AssetManager::DeduceAssetTypeFromFile(relativePath);
+
+                                    if (assetType == Heart::Asset::Type::Material)
+                                        materialId = Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Material, relativePath);
+                                }
+                                ImGui::EndDragDropTarget();
+                            }
 
                             index++;
                         }

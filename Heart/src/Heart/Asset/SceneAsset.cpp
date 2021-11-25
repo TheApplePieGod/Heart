@@ -164,7 +164,6 @@ namespace Heart
         // settings
         {
             auto& field = j["settings"];
-            //field["debugCameraPos"] = nlohmann::json::array({
         }
 
         std::ofstream file(path);

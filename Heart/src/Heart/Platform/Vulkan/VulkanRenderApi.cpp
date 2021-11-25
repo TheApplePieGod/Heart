@@ -70,7 +70,7 @@ namespace Heart
         HE_PROFILE_FUNCTION();
         auto timer = AggregateTimer("VulkanRenderApi::DrawIndexed");
 
-        HE_ENGINE_ASSERT(VulkanContext::GetBoundFramebuffer()->CanDraw(), "Framebuffer is not ready to draw (did you bind all of your shader resources?)");
+        HE_ENGINE_ASSERT(VulkanContext::GetBoundFramebuffer()->CanDraw(), "Framebuffer is not ready to draw (did you bind & flush all of your shader resources?)");
         vkCmdDrawIndexed(VulkanContext::GetBoundFramebuffer()->GetCommandBuffer(), indexCount, instanceCount, indexOffset, vertexOffset, 0);
     }
 
@@ -79,7 +79,7 @@ namespace Heart
         HE_PROFILE_FUNCTION();
         auto timer = AggregateTimer("VulkanRenderApi::Draw");
 
-        HE_ENGINE_ASSERT(VulkanContext::GetBoundFramebuffer()->CanDraw(), "Framebuffer is not ready to draw (did you bind all of your shader resources?)");
+        HE_ENGINE_ASSERT(VulkanContext::GetBoundFramebuffer()->CanDraw(), "Framebuffer is not ready to draw (did you bind & flush all of your shader resources?)");
         vkCmdDraw(VulkanContext::GetBoundFramebuffer()->GetCommandBuffer(), vertexCount, instanceCount, vertexOffset, 0);
     }
 

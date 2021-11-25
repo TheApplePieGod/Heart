@@ -44,6 +44,7 @@ namespace Heart
         m_FrameDataBuffer = Buffer::Create(Buffer::Type::Uniform, BufferUsageType::Dynamic, frameDataLayout, 1, nullptr);
         m_ObjectDataBuffer = Buffer::Create(Buffer::Type::Storage, BufferUsageType::Dynamic, objectDataLayout, 2000, nullptr);
         m_MaterialDataBuffer = Buffer::Create(Buffer::Type::Storage, BufferUsageType::Dynamic, materialDataLayout, 2000, nullptr);
+        InitializeGridBuffers();
 
         // Create the main framebuffer
         FramebufferCreateInfo fbCreateInfo = {
@@ -58,6 +59,7 @@ namespace Heart
             },
             {
                 { {}, { { SubpassAttachmentType::Color, 0 } } }, // environment map
+                { {}, { { SubpassAttachmentType::Color, 0 } } }, // grid
                 { {}, { { SubpassAttachmentType::Depth, 0 }, { SubpassAttachmentType::Color, 0 }, { SubpassAttachmentType::Color, 1 } } }, // opaque
                 { {}, { { SubpassAttachmentType::Depth, 0 }, { SubpassAttachmentType::Color, 1 }, { SubpassAttachmentType::Color, 2 }, { SubpassAttachmentType::Color, 3 } } }, // transparent color
                 { { { SubpassAttachmentType::Color, 2 }, { SubpassAttachmentType::Color, 3 } }, { { SubpassAttachmentType::Depth, 0 }, { SubpassAttachmentType::Color, 0 } } } // composite
@@ -81,6 +83,19 @@ namespace Heart
             WindingOrder::Clockwise,
             0
         };
+        GraphicsPipelineCreateInfo gridPipeline = {
+            AssetManager::GetAssetUUID("Grid.vert", true),
+            AssetManager::GetAssetUUID("Grid.frag", true),
+            true,
+            VertexTopology::LineList,
+            { BufferDataType::Float3 },
+            { { false } },
+            false,
+            false,
+            CullMode::None,
+            WindingOrder::Clockwise,
+            1
+        };
         GraphicsPipelineCreateInfo pbrPipeline = {
             AssetManager::GetAssetUUID("PBR.vert", true),
             AssetManager::GetAssetUUID("PBR.frag", true),
@@ -92,7 +107,7 @@ namespace Heart
             true,
             CullMode::Backface,
             WindingOrder::Clockwise,
-            1
+            2
         };
         GraphicsPipelineCreateInfo transparencyColorPipeline = {
             AssetManager::GetAssetUUID("PBR.vert", true),
@@ -105,7 +120,7 @@ namespace Heart
             true,
             CullMode::None,
             WindingOrder::Clockwise,
-            2
+            3
         };
         GraphicsPipelineCreateInfo transparencyCompositePipeline = {
             AssetManager::GetAssetUUID("FullscreenTriangle.vert", true),
@@ -118,9 +133,10 @@ namespace Heart
             false,
             CullMode::None,
             WindingOrder::Clockwise,
-            3
+            4
         };
         m_FinalFramebuffer->RegisterGraphicsPipeline("skybox", envMapPipeline);
+        m_FinalFramebuffer->RegisterGraphicsPipeline("grid", gridPipeline);
         m_FinalFramebuffer->RegisterGraphicsPipeline("pbr", pbrPipeline);
         m_FinalFramebuffer->RegisterGraphicsPipeline("pbrTpColor", transparencyColorPipeline);
         m_FinalFramebuffer->RegisterGraphicsPipeline("tpComposite", transparencyCompositePipeline);
@@ -131,7 +147,7 @@ namespace Heart
         
     }
 
-    void SceneRenderer::RenderScene(GraphicsContext& context, Scene* scene, const Camera& camera, glm::vec3 cameraPosition, EnvironmentMap* envMap)
+    void SceneRenderer::RenderScene(GraphicsContext& context, Scene* scene, const Camera& camera, glm::vec3 cameraPosition, bool drawGrid, EnvironmentMap* envMap)
     {
         HE_PROFILE_FUNCTION();
         HE_ENGINE_ASSERT(scene, "Scene cannot be nullptr");
@@ -153,6 +169,11 @@ namespace Heart
         // Render the skybox if set
         if (m_EnvironmentMap)
             RenderEnvironmentMap();
+
+        // Draw the grid if set
+        m_FinalFramebuffer->StartNextSubpass();
+        if (drawGrid)   
+            RenderGrid();
 
         // Opaque pass
         m_FinalFramebuffer->StartNextSubpass();
@@ -186,6 +207,26 @@ namespace Heart
         Renderer::Api().DrawIndexed(
             meshData.GetIndexBuffer()->GetAllocatedCount(),
             meshData.GetVertexBuffer()->GetAllocatedCount(),
+            0, 0, 1
+        );
+    }
+
+    void SceneRenderer::RenderGrid()
+    {
+        // Bind grid pipeline
+        m_FinalFramebuffer->BindPipeline("grid");
+
+        // Bind frame data
+        m_FinalFramebuffer->BindShaderBufferResource(0, 0, m_FrameDataBuffer.get());
+
+        m_FinalFramebuffer->FlushBindings();
+
+        // Draw
+        Renderer::Api().BindVertexBuffer(*m_GridVertices);
+        Renderer::Api().BindIndexBuffer(*m_GridIndices);
+        Renderer::Api().DrawIndexed(
+            m_GridIndices->GetAllocatedCount(),
+            m_GridVertices->GetAllocatedCount(),
             0, 0, 1
         );
     }
@@ -401,5 +442,45 @@ namespace Heart
 
         // Draw the fullscreen triangle
         Renderer::Api().Draw(3, 0, 1);
+    }
+
+    void SceneRenderer::InitializeGridBuffers()
+    {
+        // Default size (TODO: parameterize)
+        u32 gridSize = 20;
+
+        std::vector<glm::vec3> vertices;
+        vertices.reserve(static_cast<size_t>(pow(gridSize + 1, 2)));
+        std::vector<u32> indices;
+        
+        // Calculate the grid with a line list
+        glm::vec3 pos = { gridSize * -0.5f, 0.f, gridSize * -0.5f };
+        u32 vertexIndex = 0;
+        for (u32 i = 0; i <= gridSize; i++)
+        {
+            for (u32 j = 0; j <= gridSize; j++)
+            {
+                vertices.emplace_back(pos);
+
+                if (j != 0)
+                {
+                    indices.emplace_back(vertexIndex);
+                    indices.emplace_back(vertexIndex - 1);
+                }
+                if (i != 0)
+                {
+                    indices.emplace_back(vertexIndex);
+                    indices.emplace_back(vertexIndex - gridSize - 1);
+                }
+
+                pos.x += 1.f;
+                vertexIndex++;
+            }
+            pos.x = gridSize * -0.5f;
+            pos.z += 1.f;
+        }
+
+        m_GridVertices = Buffer::Create(Buffer::Type::Vertex, BufferUsageType::Static, { BufferDataType::Float3 }, static_cast<u32>(vertices.size()), (void*)vertices.data());
+        m_GridIndices = Buffer::CreateIndexBuffer(BufferUsageType::Static, static_cast<u32>(indices.size()), (void*)indices.data());
     }
 }

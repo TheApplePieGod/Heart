@@ -61,7 +61,7 @@ namespace Heart
         auto timer = AggregateTimer("OpenGLRenderApi::DrawIndexed");
 
         // To maintain consistency with vulkan requirement
-        HE_ENGINE_ASSERT(OpenGLContext::GetBoundFramebuffer()->CanDraw(), "Framebuffer is not ready to draw (did you bind all of your shader resources?)");
+        HE_ENGINE_ASSERT(OpenGLContext::GetBoundFramebuffer()->CanDraw(), "Framebuffer is not ready to draw (did you bind & flush all of your shader resources?)");
 
         glDrawElementsInstancedBaseVertex(
             OpenGLCommon::VertexTopologyToOpenGL(OpenGLContext::GetBoundFramebuffer()->GetBoundPipeline()->GetVertexTopology()),
@@ -79,7 +79,7 @@ namespace Heart
         auto timer = AggregateTimer("OpenGLRenderApi::Draw");
 
         // To maintain consistency with vulkan requirement
-        HE_ENGINE_ASSERT(OpenGLContext::GetBoundFramebuffer()->CanDraw(), "Framebuffer is not ready to draw (did you bind all of your shader resources?)");
+        HE_ENGINE_ASSERT(OpenGLContext::GetBoundFramebuffer()->CanDraw(), "Framebuffer is not ready to draw (did you bind & flush all of your shader resources?)");
 
         glDrawArraysInstancedBaseInstance(
             OpenGLCommon::VertexTopologyToOpenGL(OpenGLContext::GetBoundFramebuffer()->GetBoundPipeline()->GetVertexTopology()),
