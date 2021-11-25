@@ -94,7 +94,7 @@ namespace Widgets
             auto& material = materialAsset->GetMaterial();
             auto& materialData = material.GetMaterialData();
 
-            if (*dirty)
+            if (!*dirty)
                 ImGui::BeginDisabled();
             if (ImGui::Button("Save Changes"))
             {
@@ -109,7 +109,7 @@ namespace Widgets
                 material = m_CachedMaterial;
             }
             ImGui::Dummy({ 0.f, 5.f });
-            if (*dirty)
+            if (!*dirty)
                 ImGui::EndDisabled();
 
             ImGui::Text("Material Properties");
@@ -132,6 +132,14 @@ namespace Widgets
             ImGui::SameLine();
             if (ImGui::DragFloat("##Roughness", &materialData.Scalars.y, 0.05f, 0.f, 1.f))
                 *dirty = true;
+            bool isTransparent = material.IsTransparent();
+            ImGui::Text("Is Transparent");
+            ImGui::SameLine();
+            if (ImGui::Checkbox("##Transparent", &isTransparent))
+            {
+                material.SetTransparent(isTransparent);
+                *dirty = true;
+            }
 
             float previewSize = 128.f;
             ImGui::Dummy({ 0.f, 5.f });
