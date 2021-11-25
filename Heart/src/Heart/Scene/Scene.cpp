@@ -110,6 +110,8 @@ namespace Heart
             parent.GetComponent<ChildComponent>().Children.push_back(childUUID);
         else
             parent.AddComponent<ChildComponent>(std::initializer_list<UUID>({ childUUID }));
+
+        CacheEntityTransform(child);
     }
 
     void Scene::UnparentEntity(Entity child)
@@ -127,6 +129,8 @@ namespace Heart
 
             child.RemoveComponent<ParentComponent>();
         }
+
+        CacheEntityTransform(child);
     }
 
     void Scene::RemoveChild(UUID parentUUID, UUID childUUID)

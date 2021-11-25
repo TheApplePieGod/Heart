@@ -4,6 +4,7 @@
 #include "HeartEditor/EditorApp.h"
 #include "Heart/Scene/Entity.h"
 #include "Heart/Renderer/Renderer.h"
+#include "Heart/Asset/SceneAsset.h"
 #include "imgui/imgui.h"
 #include "imgui/imgui_internal.h"
 
@@ -49,6 +50,9 @@ namespace Widgets
                 {
                     if (ImGui::MenuItem("Create Entity"))
                         selectedEntity = activeScene->CreateEntity("New Entity");
+
+                    if (ImGui::MenuItem("Save Scene"))
+                        Heart::SceneAsset::SerializeScene("D:/Projects/Heart/HeartEditor/assets/scenes/Test.hescn", activeScene);
 
                     if (ImGui::MenuItem("Toggle Fullscreen", "F11"))
                         EditorApp::Get().GetWindow().ToggleFullscreen();

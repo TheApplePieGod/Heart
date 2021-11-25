@@ -273,9 +273,8 @@ namespace HeartEditor
         m_ViewportHover = m_ViewportHover && !ImGui::IsItemHovered();
 
         // draw the imguizmo if an entity is selected
-        if (m_SelectedEntity.IsValid() && m_SelectedEntity.HasComponent<Heart::TransformComponent>())
+        if (m_SelectedEntity.IsValid())
         {
-            auto& transformComponent = m_SelectedEntity.GetComponent<Heart::TransformComponent>();
             glm::mat4 parentTransform;
             glm::mat4 transform = m_ActiveScene->CalculateEntityTransform(m_SelectedEntity, &parentTransform);
 
@@ -293,15 +292,13 @@ namespace HeartEditor
 
             if (ImGuizmo::IsUsing())
             {
-                glm::vec3 invskew;
+                glm::vec3 invscale, invtranslation, invskew;
                 glm::vec4 invperspective;
                 glm::quat invrotation;
             
                 // convert the word space transform to local space by multiplying it by the inverse of the parent transform
-                glm::decompose(glm::inverse(parentTransform) * transform, transformComponent.Scale, invrotation, transformComponent.Translation, invskew, invperspective);
-                transformComponent.Rotation = glm::degrees(glm::eulerAngles(invrotation));
-
-                m_ActiveScene->CacheEntityTransform(m_SelectedEntity);
+                glm::decompose(glm::inverse(parentTransform) * transform, invscale, invrotation, invtranslation, invskew, invperspective);
+                m_SelectedEntity.SetTransform(invtranslation, glm::degrees(glm::eulerAngles(invrotation)), invscale);
             }
         }
     }

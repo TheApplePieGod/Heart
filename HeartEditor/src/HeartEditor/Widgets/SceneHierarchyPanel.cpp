@@ -38,7 +38,6 @@ namespace Widgets
             {
                 u32 payloadData = *(const u32*)payload->Data;
                 activeScene->UnparentEntity({ activeScene, payloadData });
-                activeScene->CacheEntityTransform({ activeScene, payloadData });
             }
             ImGui::EndDragDropTarget();
         }
@@ -72,7 +71,6 @@ namespace Widgets
             {
                 u32 payloadData = *(const u32*)payload->Data;
                 activeScene->AssignRelationship({ activeScene, entity }, { activeScene, payloadData });
-                activeScene->CacheEntityTransform({ activeScene, entity });
             }
             ImGui::EndDragDropTarget();
         }

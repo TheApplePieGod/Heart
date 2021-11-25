@@ -204,6 +204,8 @@ namespace Heart
             type = Asset::Type::Shader;
         else if (extension == ".hemat")
             type = Asset::Type::Material;
+        else if (extension == ".hescn")
+            type = Asset::Type::Scene;
 
         return type;
     }
@@ -217,6 +219,7 @@ namespace Heart
 
     std::string AssetManager::GetPathFromUUID(UUID uuid)
     {
+        if (!uuid) return "";
         if (s_UUIDs.find(uuid) == s_UUIDs.end()) return "";
         return s_UUIDs[uuid].Path;
     }

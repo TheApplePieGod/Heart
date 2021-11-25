@@ -5,6 +5,7 @@
 #include "Heart/Asset/ShaderAsset.h"
 #include "Heart/Asset/MeshAsset.h"
 #include "Heart/Asset/MaterialAsset.h"
+#include "Heart/Asset/SceneAsset.h"
 
 namespace Heart
 {
@@ -41,6 +42,8 @@ namespace Heart
             { return CreateRef<MeshAsset>(path, absolutePath); }
             case Asset::Type::Material:
             { return CreateRef<MaterialAsset>(path, absolutePath); }
+            case Asset::Type::Scene:
+            { return CreateRef<SceneAsset>(path, absolutePath); }
         }
     }
 

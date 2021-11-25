@@ -107,17 +107,17 @@ namespace Widgets
                 bool headerOpen = ImGui::CollapsingHeader("Transform");
                 if (!RenderComponentPopup<Heart::MeshComponent>("TransformPopup", selectedEntity, false) && headerOpen)
                 {
-                    auto& transformComp = selectedEntity.GetComponent<Heart::TransformComponent>();
-
+                    glm::vec3 translation = selectedEntity.GetPosition();
+                    glm::vec3 rotation = selectedEntity.GetRotation();
+                    glm::vec3 scale = selectedEntity.GetScale();
                     ImGui::Indent();
-                    RenderXYZSlider("Translation  ", &transformComp.Translation.x, &transformComp.Translation.y, &transformComp.Translation.z, -999999.f, 999999.f, 0.1f);
-                    RenderXYZSlider("Rotation     ", &transformComp.Rotation.x, &transformComp.Rotation.y, &transformComp.Rotation.z, 0.f, 360.f, 1.f);
-                    RenderXYZSlider("Scale        ", &transformComp.Scale.x, &transformComp.Scale.y, &transformComp.Scale.z, 0.f, 999999.f, 0.1f);
+                    RenderXYZSlider("Translation  ", &translation.x, &translation.y, &translation.z, -999999.f, 999999.f, 0.1f);
+                    RenderXYZSlider("Rotation     ", &rotation.x, &rotation.y, &rotation.z, 0.f, 360.f, 1.f);
+                    RenderXYZSlider("Scale        ", &scale.x, &scale.y, &scale.z, 0.f, 999999.f, 0.1f);
                     ImGui::Unindent();
 
-                    selectedEntity.GetScene()->CacheEntityTransform(selectedEntity);
+                    selectedEntity.SetTransform(translation, rotation, scale);
                 }
-                
             }
             if (selectedEntity.HasComponent<Heart::MeshComponent>())
             {

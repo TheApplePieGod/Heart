@@ -51,5 +51,7 @@ namespace Heart
         entt::registry m_Registry;
         std::unordered_map<UUID, entt::entity> m_UUIDMap;
         std::unordered_map<entt::entity, glm::mat4> m_CachedTransforms;
+
+        friend class Entity;
     };
 }
