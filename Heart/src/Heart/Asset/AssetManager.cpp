@@ -10,6 +10,9 @@ namespace Heart
     std::unordered_map<std::string, AssetManager::AssetEntry> AssetManager::s_Registry;
     std::unordered_map<std::string, AssetManager::AssetEntry> AssetManager::s_Resources;
     std::string AssetManager::s_AssetsDirectory = "D:/Projects/Heart/HeartEditor";
+    std::thread AssetManager::s_AssetThread;
+    std::queue<AssetManager::LoadOperation> AssetManager::s_OperationQueue;
+    std::mutex AssetManager::s_QueueLock;
 
     void AssetManager::Initialize()
     {
@@ -21,10 +24,15 @@ namespace Heart
         timer.Reset();
         RegisterAssetsInDirectory(s_AssetsDirectory, false, false);
         timer.Log();
+
+        //s_AssetThread = std::thread(AssetManager::ProcessQueue);
+        //s_AssetThread.detach();
     }
 
     void AssetManager::Shutdown()
     {
+        //s_AssetThread.join();
+
         // cleanup assets
         for (auto& pair : s_Registry)
             pair.second.Asset.reset();
@@ -58,6 +66,41 @@ namespace Heart
                 HE_ENGINE_LOG_TRACE("Unloading resource @ {0}", pair.second.Asset->GetPath());
             }
         }
+    }
+
+    void AssetManager::ProcessQueue()
+    {
+        while (true)
+        {
+            while (!s_OperationQueue.empty())
+            {
+                s_QueueLock.lock();
+                auto operation = s_OperationQueue.front();
+                s_QueueLock.unlock();
+
+                if (s_UUIDs.find(operation.Asset) != s_UUIDs.end())
+                {
+                    auto& uuidEntry = s_UUIDs[operation.Asset];
+                    auto& entry = uuidEntry.IsResource ? s_Resources[uuidEntry.Path] : s_Registry[uuidEntry.Path];
+
+                    if (operation.Load)
+                        LoadAsset(entry);
+                    else
+                        UnloadAsset(entry);
+                }
+                
+                s_OperationQueue.pop();
+            }
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        }
+    }
+
+    void AssetManager::PushOperation(const LoadOperation& operation)
+    {
+        s_QueueLock.lock();
+        s_OperationQueue.push(operation);
+        s_QueueLock.unlock();
     }
 
     void AssetManager::UnloadAllAssets()
@@ -191,14 +234,27 @@ namespace Heart
         return entry.Asset.get();
     }
 
-    Asset* AssetManager::RetrieveAsset(UUID uuid)
+    Asset* AssetManager::RetrieveAsset(UUID uuid, bool async)
     {
         if (!uuid) return nullptr;
         if (s_UUIDs.find(uuid) == s_UUIDs.end()) return nullptr;
 
         auto& uuidEntry = s_UUIDs[uuid];
         auto& entry = uuidEntry.IsResource ? s_Resources[uuidEntry.Path] : s_Registry[uuidEntry.Path];
-        LoadAsset(entry);
+
+        if (async)
+        {
+            if (!entry.Asset->IsLoading())
+                PushOperation({ true, uuid });
+        }
+        else
+        {
+            if (entry.Asset->IsLoading())
+                while (entry.Asset->IsLoading()) { std::this_thread::sleep_for(std::chrono::milliseconds(1)); }
+            else
+                LoadAsset(entry);
+        }
+
         return entry.Asset.get();
     }
 }

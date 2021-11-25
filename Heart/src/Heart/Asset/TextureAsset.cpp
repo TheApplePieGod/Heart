@@ -7,7 +7,8 @@ namespace Heart
 {
     void TextureAsset::Load()
     {
-        if (m_Loaded) return;
+        if (m_Loaded || m_Loading) return;
+        m_Loading = true;
 
         bool floatComponents = false;
         if (m_Extension == ".hdr") // environment map: use float components and flip on load
@@ -27,6 +28,7 @@ namespace Heart
         {
             HE_ENGINE_LOG_ERROR("Failed to load texture at path {0}", m_AbsolutePath);
             m_Loaded = true;
+            m_Loading = false;
             return;
         }
 
@@ -38,8 +40,9 @@ namespace Heart
         m_Texture = Texture::Create(createInfo, pixels);
 
         m_Data = pixels;
-        m_Valid = true;
         m_Loaded = true;
+        m_Loading = false;
+        m_Valid = true;
     }
 
     void TextureAsset::Unload()

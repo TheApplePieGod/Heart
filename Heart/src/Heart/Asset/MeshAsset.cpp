@@ -14,7 +14,8 @@ namespace Heart
 {
     void MeshAsset::Load()
     {
-        if (m_Loaded) return;
+        if (m_Loaded || m_Loading) return;
+        m_Loading = true;
 
         u32 fileLength;
         unsigned char* data = nullptr;
@@ -31,11 +32,13 @@ namespace Heart
         {
             HE_ENGINE_LOG_ERROR("Failed to load mesh at path {0}", m_AbsolutePath);
             m_Loaded = true;
+            m_Loading = false;
             return;
         }
 
         delete[] data;
         m_Loaded = true;
+        m_Loading = false;
         m_Valid = true;
     }
 

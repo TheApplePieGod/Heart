@@ -9,7 +9,8 @@ namespace Heart
 {
     void MaterialAsset::Load()
     {
-        if (m_Loaded) return;
+        if (m_Loaded || m_Loading) return;
+        m_Loading = true;
 
         try
         {
@@ -19,11 +20,13 @@ namespace Heart
         {
             HE_ENGINE_LOG_ERROR("Failed to load material at path {0}", m_AbsolutePath);
             m_Loaded = true;
+            m_Loading = false;
             return;
         }
 
         m_Data = nullptr;
         m_Loaded = true;
+        m_Loading = false;
         m_Valid = true;
     }
 

@@ -48,16 +48,25 @@ namespace Heart
             return static_cast<T*>(RetrieveAsset(path, isResource));
         }
 
-        static Asset* RetrieveAsset(UUID uuid);
+        static Asset* RetrieveAsset(UUID uuid, bool async = false);
         template<typename T>
-        static T* RetrieveAsset(UUID uuid)
+        static T* RetrieveAsset(UUID uuid, bool async = false)
         {
-            return static_cast<T*>(RetrieveAsset(uuid));
+            return static_cast<T*>(RetrieveAsset(uuid, async));
         }
+
+    private:
+        struct LoadOperation
+        {
+            bool Load;
+            UUID Asset;
+        };
 
     private:
         static void LoadAsset(AssetEntry& entry);
         static void UnloadAsset(AssetEntry& entry);
+        static void ProcessQueue();
+        static void PushOperation(const LoadOperation& operation);
 
     private:
         static inline const u64 s_AssetFrameLimit = 1000;
@@ -66,5 +75,9 @@ namespace Heart
         static std::unordered_map<std::string, AssetEntry> s_Registry;
         static std::unordered_map<std::string, AssetEntry> s_Resources;
         static std::string s_AssetsDirectory;
+
+        static std::thread s_AssetThread;
+        static std::queue<LoadOperation> s_OperationQueue;
+        static std::mutex s_QueueLock;
     };
 }

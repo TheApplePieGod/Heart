@@ -174,7 +174,6 @@ namespace Heart
             submitInfo.pCommandBuffers = &commandBuffer;
 
             HE_VULKAN_CHECK_RESULT(vkQueueSubmit(submitQueue, 1, &submitInfo, VK_NULL_HANDLE));
-
             vkQueueWaitIdle(submitQueue);
 
             vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);

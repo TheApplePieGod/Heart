@@ -21,13 +21,14 @@ namespace Heart
         virtual void Unload() = 0;
         void Reload();
 
-        const std::string& GetPath() const { return m_Path; }
-        const std::string& GetAbsolutePath() const { return m_AbsolutePath; }
-        const std::string& GetFilename() const { return m_Filename; }
-        void* GetRawData() const { return m_Data; }
-        bool IsLoaded() const { return m_Loaded; }
-        bool IsValid() const { return m_Valid; }
-        Type GetType() const { return m_Type; }
+        inline const std::string& GetPath() const { return m_Path; }
+        inline const std::string& GetAbsolutePath() const { return m_AbsolutePath; }
+        inline const std::string& GetFilename() const { return m_Filename; }
+        inline void* GetRawData() const { return m_Data; }
+        inline bool IsLoaded() const { return m_Loaded; }
+        inline bool IsLoading() const { return m_Loading; }
+        inline bool IsValid() const { return m_Valid; }
+        inline Type GetType() const { return m_Type; }
 
     public:
         static Ref<Asset> Create(Type type, const std::string& path, const std::string& absolutePath);
@@ -43,6 +44,7 @@ namespace Heart
         std::string m_Extension;
         void* m_Data = nullptr;
         bool m_Loaded = false;
+        bool m_Loading = false;
         bool m_Valid = false;
         Type m_Type = Type::None;
 
