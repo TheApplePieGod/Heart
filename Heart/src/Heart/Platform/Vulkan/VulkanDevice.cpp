@@ -60,6 +60,7 @@ namespace Heart
             deviceFeatures.samplerAnisotropy = VK_TRUE;
             deviceFeatures.independentBlend = VK_TRUE;
             deviceFeatures.shaderSampledImageArrayDynamicIndexing = VK_TRUE;
+            deviceFeatures.wideLines = VK_TRUE;
             
             VkPhysicalDeviceRobustness2FeaturesEXT robustnessFeatures{};
             robustnessFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT;
@@ -142,6 +143,7 @@ namespace Heart
             deviceFeatures.samplerAnisotropy &&
             deviceFeatures.independentBlend &&
             deviceFeatures.shaderSampledImageArrayDynamicIndexing &&
+            deviceFeatures.wideLines &&
             indexingFeatures.descriptorBindingPartiallyBound &&
             indexingFeatures.runtimeDescriptorArray
         );

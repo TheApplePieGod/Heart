@@ -65,6 +65,13 @@ namespace Heart
         vkCmdBindIndexBuffer(VulkanContext::GetBoundFramebuffer()->GetCommandBuffer(), buffer, 0, VK_INDEX_TYPE_UINT32);
     }
 
+    void VulkanRenderApi::SetLineWidth(float width)
+    {
+        HE_ENGINE_ASSERT(width > 0.f && width <= 10.f, "Line width must be > 0 and <= 10"); // opengl constraint
+
+        vkCmdSetLineWidth(VulkanContext::GetBoundFramebuffer()->GetCommandBuffer(), width);
+    }
+
     void VulkanRenderApi::DrawIndexed(u32 indexCount, u32 vertexCount, u32 indexOffset, u32 vertexOffset, u32 instanceCount)
     {
         HE_PROFILE_FUNCTION();

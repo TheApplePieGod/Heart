@@ -306,6 +306,8 @@ namespace Heart
             scissor.extent = { m_ActualWidth, m_ActualHeight };
             vkCmdSetScissor(buffer, 0, 1, &scissor);
 
+            vkCmdSetLineWidth(buffer, 1.f);
+
             VkRenderPassBeginInfo renderPassInfo{};
             renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
             renderPassInfo.renderPass = m_RenderPass;

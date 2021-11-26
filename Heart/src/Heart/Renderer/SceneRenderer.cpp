@@ -222,6 +222,7 @@ namespace Heart
         m_FinalFramebuffer->FlushBindings();
 
         // Draw
+        Renderer::Api().SetLineWidth(2.f);
         Renderer::Api().BindVertexBuffer(*m_GridVertices);
         Renderer::Api().BindIndexBuffer(*m_GridIndices);
         Renderer::Api().DrawIndexed(
