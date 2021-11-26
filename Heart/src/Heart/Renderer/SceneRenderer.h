@@ -77,7 +77,7 @@ namespace Heart
         // in-flight frame data
         Scene* m_Scene;
         EnvironmentMap* m_EnvironmentMap;
-        std::vector<CachedRender> m_TransparentMeshes;
+        std::vector<CachedRender> m_TranslucentMeshes;
         u32 m_ObjectDataOffset = 0;
         u32 m_MaterialDataOffset = 0;  
     };

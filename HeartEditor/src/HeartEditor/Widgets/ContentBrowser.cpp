@@ -235,6 +235,8 @@ namespace Widgets
 
         if (ImGui::BeginPopupContextItem(entryName.c_str()))
         {
+            auto assetType = Heart::AssetManager::DeduceAssetTypeFromFile(entryName);
+
             ImGui::BeginDisabled();
             if (ImGui::MenuItem("Delete"))
             {
@@ -248,6 +250,14 @@ namespace Widgets
                 m_Rename = entryName;
                 m_ShouldRename = true;
             }
+            if (assetType == Heart::Asset::Type::Material)
+            {
+                if (ImGui::MenuItem("Open in Editor"))
+                {
+                    // TODO
+                }
+            }
+
             ImGui::EndPopup();
         }
  

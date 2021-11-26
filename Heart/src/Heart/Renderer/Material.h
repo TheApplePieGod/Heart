@@ -20,6 +20,7 @@ namespace Heart
         inline void SetHasOcclusion(bool flag) { HasTextures.z = flag; }
         inline void SetMetalnessFactor(float factor) { Scalars.x = factor; }
         inline void SetRoughnessFactor(float factor) { Scalars.y = factor; }
+        inline void SetAlphaClipThreshold(float threshold) { Scalars.z = threshold; }
 
         inline glm::vec4 GetBaseColor() const { return BaseColor; }
         inline glm::vec4 GetEmissiveFactor() const { return EmissiveFactor; }
@@ -32,13 +33,14 @@ namespace Heart
         inline bool HasOcclusion() const { return HasTextures.z; }
         inline float GetMetalnessFactor() const { return Scalars.x; }
         inline float GetRoughnessFactor() const { return Scalars.y; }
+        inline float GetAlphaClipThreshold() const { return Scalars.z; }
 
         glm::vec4 BaseColor = { 1.f, 1.f, 1.f, 1.f };
         glm::vec4 EmissiveFactor = { 0.f, 0.f, 0.f, 0.f };
         glm::vec4 TexCoordTransform = { 1.f, 1.f, 0.f, 0.f }; // [0-1]: scale, [2-3]: offset
         glm::vec4 HasPBRTextures = { 0, 0, 0, 0 }; // [0]: hasAlbedo, [1]: hasMetallicRoughness
         glm::vec4 HasTextures = { 0, 0, 0, 0 }; // [0]: hasNormal, [1]: hasEmissive, [2]: hasOcclusion
-        glm::vec4 Scalars = { 0.f, 1.f, 0.f, 0.f }; // [0]: metalness, [1]: roughness
+        glm::vec4 Scalars = { 0.f, 1.f, 0.f, 0.f }; // [0]: metalness, [1]: roughness, [2]: alphaClipThreshold
     };
 
     class Material
@@ -51,14 +53,14 @@ namespace Heart
         inline UUID GetNormalTexture() const { return m_NormalTextureAsset; }
         inline UUID GetEmissiveTexture() const { return m_EmissiveTextureAsset; }
         inline UUID GetOcclusionTexture() const { return m_OcclusionTextureAsset; }
-        inline bool IsTransparent() const { return m_Transparent; }
+        inline bool IsTranslucent() const { return m_Translucent; }
 
         inline void SetAlbedoTexture(UUID texture) { m_AlbedoTextureAsset = texture; }
         inline void SetMetallicRoughnessTexture(UUID texture) { m_MetallicRoughnessTextureAsset = texture; }
         inline void SetNormalTexture(UUID texture) { m_NormalTextureAsset = texture; }
         inline void SetEmissiveTexture(UUID texture) { m_EmissiveTextureAsset = texture; }
         inline void SetOcclusionTexture(UUID texture) { m_OcclusionTextureAsset = texture; }
-        inline void SetTransparent(bool transparent) { m_Transparent = transparent; }
+        inline void SetTranslucent(bool translucent) { m_Translucent = translucent; }
 
     private:
         MaterialData m_MaterialData;
@@ -67,7 +69,7 @@ namespace Heart
         UUID m_NormalTextureAsset = 0;
         UUID m_EmissiveTextureAsset = 0;
         UUID m_OcclusionTextureAsset = 0;
-        bool m_Transparent = false;
+        bool m_Translucent = false;
 
         friend class MaterialAsset;
         friend class MeshAsset;

@@ -151,7 +151,11 @@ namespace Heart
                     // TODO: change this possibly
                     auto texAsset = AssetManager::RetrieveAsset<TextureAsset>(parsingMaterial.m_AlbedoTextureAsset);
                     if (texAsset && texAsset->IsValid())
-                        parsingMaterial.m_Transparent = texAsset->GetTexture()->HasTransparency();
+                    {
+                        if (texAsset->GetTexture()->HasTransparency())
+                            parsingMaterial.m_MaterialData.SetAlphaClipThreshold(0.1f);
+                        parsingMaterial.m_Translucent = texAsset->GetTexture()->HasTranslucency();
+                    }
                 }
                 if (pbrField.contains("baseColorFactor"))
                     parsingMaterial.m_MaterialData.SetBaseColor({ pbrField["baseColorFactor"][0], pbrField["baseColorFactor"][1], pbrField["baseColorFactor"][2], pbrField["baseColorFactor"][3] });

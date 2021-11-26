@@ -33,7 +33,10 @@ namespace Heart
         {
             if (pixels[i] < 250)
             {
-                m_HasTransparency = true;
+                if (pixels[i] < 5)
+                    m_HasTransparency = true;
+                else
+                    m_HasTranslucency = true;
                 return;
             }
         }

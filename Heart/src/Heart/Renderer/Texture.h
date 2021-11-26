@@ -7,7 +7,9 @@ namespace Heart
     enum class ColorFormat
     {
         None = 0,
-        RGBA8, R32F, RG32F, RGB32F, RGBA32F
+        RGBA8,
+        R16F, RGBA16F,
+        R32F, RGBA32F
     };
 
     enum class SamplerFilter
@@ -39,9 +41,9 @@ namespace Heart
         switch (format)
         {
             case ColorFormat::RGBA8: return 4;
+            case ColorFormat::R16F: return 1;
+            case ColorFormat::RGBA16F: return 4;
             case ColorFormat::R32F: return 1;
-            case ColorFormat::RG32F: return 2;
-            case ColorFormat::RGB32F: return 3;
             case ColorFormat::RGBA32F: return 4;
         }
 
@@ -54,9 +56,9 @@ namespace Heart
         switch (format)
         {
             case ColorFormat::RGBA8: return BufferDataType::UInt8;
+            case ColorFormat::R16F: return BufferDataType::HalfFloat;
+            case ColorFormat::RGBA16F: return BufferDataType::HalfFloat;
             case ColorFormat::R32F: return BufferDataType::Float;
-            case ColorFormat::RG32F: return BufferDataType::Float;
-            case ColorFormat::RGB32F: return BufferDataType::Float;
             case ColorFormat::RGBA32F: return BufferDataType::Float;
         }
 
@@ -92,6 +94,7 @@ namespace Heart
         inline u32 GetMipHeight(u32 mipLevel) const { return std::max(static_cast<u32>(m_Info.Height * pow(0.5f, mipLevel)), 0U); }
         inline u32 GetChannels() const { return static_cast<u32>(m_Info.Channels); }
         inline bool HasTransparency() const { return m_HasTransparency; }
+        inline bool HasTranslucency() const { return m_HasTranslucency; }
         inline const TextureSamplerState& GetSamplerState() const { return m_SamplerState; }
 
     public:
@@ -105,6 +108,7 @@ namespace Heart
         u32 m_MipLevels;
         std::vector<void*> m_LayerImGuiHandles;
         bool m_HasTransparency = false;
+        bool m_HasTranslucency = false;
         TextureSamplerState m_SamplerState;
     };
 }

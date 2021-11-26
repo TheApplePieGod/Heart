@@ -6,7 +6,7 @@ struct Material {
     vec4 texCoordTransform; // [0-1]: scale, [2-3]: offset
     vec4 hasPBRTextures; // [0]: hasAlbedo, [1]: hasMetallicRoughness
     vec4 hasTextures; // [0]: hasNormal, [1]: hasEmissive, [2]: hasOcclusion
-    vec4 scalars; // [0]: metalness, [1]: roughness
+    vec4 scalars; // [0]: metalness, [1]: roughness, [2]: alphaClipThreshold
 };
 
 layout(location = 0) in vec2 texCoord;
@@ -116,6 +116,12 @@ float GetOcclusion()
     return occlusion;
 }
 
+void Clip(float alpha)
+{
+    if (alpha <= materialBuffer.material.scalars[2]) // alpha clip threshold
+        discard;
+}
+
 // https://knarkowicz.wordpress.com/2016/01/06/aces-filmic-tone-mapping-curve/
 vec3 ACESFilm(vec3 x)
 {
@@ -129,6 +135,14 @@ vec3 ACESFilm(vec3 x)
 
 vec4 GetFinalColor()
 {
+    vec4 baseColor = GetAlbedo();
+    Clip(baseColor.a);
+
+    float roughness = GetRoughness();
+    float metalness = GetMetalness();
+    vec3 emissive = GetEmissive();
+    float occlusion = GetOcclusion();
+
     vec3 V = normalize(frameBuffer.data.cameraPos.xyz - worldPos);
     vec3 nt = normalize(tangent);
     vec3 nb = normalize(bitangent);
@@ -142,12 +156,6 @@ vec4 GetFinalColor()
 
     const float MAX_REFLECTION_LOD = 4.0;
     vec3 R = reflect(-V, N); 
-
-    vec4 baseColor = GetAlbedo();
-    float roughness = GetRoughness();
-    float metalness = GetMetalness();
-    vec3 emissive = GetEmissive();
-    float occlusion = GetOcclusion();
 
     vec3 F0 = vec3(0.04);
     F0 = mix(F0, baseColor.rgb, metalness);

@@ -193,7 +193,7 @@ namespace Widgets
                                 m_MaterialTextFilter,
                                 [&materialId, &selectedMaterial, &meshAsset, index]()
                                 {
-                                    if (selectedMaterial)
+                                    if (materialId)
                                     {
                                         if (ImGui::MenuItem("Clear"))
                                             materialId = 0;

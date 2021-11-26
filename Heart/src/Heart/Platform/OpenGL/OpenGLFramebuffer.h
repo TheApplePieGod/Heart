@@ -80,6 +80,7 @@ namespace Heart
         int m_CurrentSubpass = -1;
         bool m_FlushedThisFrame = false;
         OpenGLGraphicsPipeline* m_BoundPipeline = nullptr;
+        std::string m_BoundPipelineName = "";
 
         friend class OpenGLRenderApi;
     };

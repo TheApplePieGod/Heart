@@ -156,12 +156,16 @@ namespace Widgets
             ImGui::SameLine();
             if (ImGui::DragFloat("##Roughness", &materialData.Scalars.y, 0.05f, 0.f, 1.f))
                 *dirty = true;
-            bool isTransparent = material.IsTransparent();
-            ImGui::Text("Is Transparent");
+            ImGui::Text("Alpha Clip Threshold");
             ImGui::SameLine();
-            if (ImGui::Checkbox("##Transparent", &isTransparent))
+            if (ImGui::DragFloat("##ACThreshold", &materialData.Scalars.z, 0.01f, 0.f, 1.f))
+                *dirty = true;
+            bool isTranslucent = material.IsTranslucent();
+            ImGui::Text("Is Translucent");
+            ImGui::SameLine();
+            if (ImGui::Checkbox("##Translucent", &isTranslucent))
             {
-                material.SetTransparent(isTransparent);
+                material.SetTranslucent(isTranslucent);
                 *dirty = true;
             }
 

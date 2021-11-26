@@ -348,6 +348,7 @@ namespace Heart
         HE_VULKAN_CHECK_RESULT(vkEndCommandBuffer(buffer));
 
         m_BoundPipeline = nullptr;
+        m_BoundPipelineName = "";
         m_BoundThisFrame = false;
         m_SubmittedThisFrame = true;
         m_FlushedThisFrame = false;
@@ -414,12 +415,15 @@ namespace Heart
     {
         HE_PROFILE_FUNCTION();
 
+        if (name == m_BoundPipelineName) return;
+
         VkCommandBuffer buffer = GetCommandBuffer();
         auto pipeline = static_cast<VulkanGraphicsPipeline*>(LoadPipeline(name).get());
 
         vkCmdBindPipeline(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->GetPipeline());
 
         m_BoundPipeline = pipeline;
+        m_BoundPipelineName = name;
     }
 
     void VulkanFramebuffer::BindShaderBufferResource(u32 bindingIndex, u32 elementOffset, Buffer* buffer)
@@ -517,6 +521,7 @@ namespace Heart
 
         m_FlushedThisFrame = false;
         m_BoundPipeline = nullptr;
+        m_BoundPipelineName = "";
     }
 
     void VulkanFramebuffer::ClearOutputAttachment(u32 outputAttachmentIndex, bool clearDepth)

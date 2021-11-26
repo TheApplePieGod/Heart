@@ -87,6 +87,7 @@ namespace Heart
         VkFramebuffer m_Framebuffer;
         VkRenderPass m_RenderPass;
         VulkanGraphicsPipeline* m_BoundPipeline = nullptr;
+        std::string m_BoundPipelineName = "";
         std::array<VkCommandBuffer, MAX_FRAMES_IN_FLIGHT> m_CommandBuffers;
         std::vector<VulkanFramebufferAttachment> m_AttachmentData;
         std::vector<VulkanFramebufferAttachment> m_DepthAttachmentData;

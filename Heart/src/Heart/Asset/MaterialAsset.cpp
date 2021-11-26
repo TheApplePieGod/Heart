@@ -63,6 +63,8 @@ namespace Heart
                 material.m_MaterialData.SetRoughnessFactor(field["roughness"]);
             if (field.contains("metalness"))
                 material.m_MaterialData.SetMetalnessFactor(field["metalness"]);
+            if (field.contains("alphaClipThreshold"))
+                material.m_MaterialData.SetAlphaClipThreshold(field["alphaClipThreshold"]);
             if (field.contains("texCoordScale"))
                 material.m_MaterialData.SetTexCoordScale({ field["texCoordScale"][0], field["texCoordScale"][1] });
             if (field.contains("texCoordOffset"))
@@ -72,8 +74,8 @@ namespace Heart
         // parse metadata
         {
             auto& field = j["metadata"];
-            if (field.contains("transparent"))
-                material.m_Transparent = field["transparent"];
+            if (field.contains("translucent"))
+                material.m_Translucent = field["translucent"];
         }
 
         // parse texture data
@@ -106,6 +108,7 @@ namespace Heart
             field["emissiveFactor"] = nlohmann::json::array({ material.m_MaterialData.GetEmissiveFactor().r, material.m_MaterialData.GetEmissiveFactor().g, material.m_MaterialData.GetEmissiveFactor().b });
             field["roughness"] = material.m_MaterialData.GetRoughnessFactor();
             field["metalness"] = material.m_MaterialData.GetMetalnessFactor();
+            field["alphaClipThreshold"] = material.m_MaterialData.GetAlphaClipThreshold();
             field["texCoordScale"] = nlohmann::json::array({ material.m_MaterialData.GetTexCoordScale().x, material.m_MaterialData.GetTexCoordScale().y });
             field["texCoordOffset"] = nlohmann::json::array({ material.m_MaterialData.GetTexCoordOffset().x, material.m_MaterialData.GetTexCoordOffset().y });
         }
@@ -113,7 +116,7 @@ namespace Heart
         // metadata
         {
             auto& field = j["metadata"];
-            field["transparent"] = material.m_Transparent;
+            field["translucent"] = material.m_Translucent;
         }
 
         // texture data

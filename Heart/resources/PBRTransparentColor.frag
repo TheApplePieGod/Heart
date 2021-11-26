@@ -10,9 +10,6 @@ void main() {
     vec4 color = GetFinalColor();
     color.rgb *= color.a;
 
-    if (color.a < 0.001)
-        discard;
-
     const float depthZ = -depth * 10.0f;
 
     const float distWeight = clamp(0.03 / (1e-5 + pow(depthZ / 200, 4.0)), 1e-2, 3e3);

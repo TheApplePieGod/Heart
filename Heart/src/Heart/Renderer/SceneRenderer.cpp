@@ -51,8 +51,8 @@ namespace Heart
             {
                 { false, { 0.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::RGBA8 },
                 { true, { -1.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::R32F },
-                { false, { 0.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::RGBA32F },
-                { false, { 1.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::R32F }
+                { false, { 0.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::RGBA16F },
+                { false, { 1.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::R16F }
             },
             {
                 {}
@@ -157,7 +157,7 @@ namespace Heart
         m_EnvironmentMap = envMap;
         m_ObjectDataOffset = 0;
         m_MaterialDataOffset = 0;
-        m_TransparentMeshes.clear();
+        m_TranslucentMeshes.clear();
 
         // Set the global data for this frame
         FrameData frameData = { camera.GetProjectionMatrix(), camera.GetViewMatrix(), glm::vec4(cameraPosition, 1.f), m_FinalFramebuffer->GetSize(), Renderer::IsUsingReverseDepth() };
@@ -287,10 +287,10 @@ namespace Heart
 
                 if (finalMaterial)
                 {
-                    // Transparent materials get cached for the next pass
-                    if (finalMaterial->IsTransparent())
+                    // Translucent materials get cached for the next pass
+                    if (finalMaterial->IsTranslucent())
                     {
-                        m_TransparentMeshes.emplace_back(finalMaterial, mesh.Mesh, i, objectData);
+                        m_TranslucentMeshes.emplace_back(finalMaterial, mesh.Mesh, i, objectData);
                         continue;
                     }
 
@@ -373,7 +373,7 @@ namespace Heart
             m_FinalFramebuffer->BindShaderTextureLayerResource(10, m_DefaultEnvironmentMap.get(), 0);
         }
 
-        for (auto& mesh : m_TransparentMeshes)
+        for (auto& mesh : m_TranslucentMeshes)
         {
             // We can safely load the assets here because the object must have a mesh & material to make it this far
             auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>(mesh.Mesh);

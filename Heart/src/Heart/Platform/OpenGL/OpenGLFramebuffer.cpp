@@ -151,12 +151,15 @@ namespace Heart
         m_CurrentSubpass = -1;
         m_FlushedThisFrame = false;
         m_BoundPipeline = nullptr;
+        m_BoundPipelineName = "";
     }
 
     void OpenGLFramebuffer::BindPipeline(const std::string& name)
     {
         HE_PROFILE_FUNCTION();
         
+        if (name == m_BoundPipelineName) return;
+
         auto pipeline = static_cast<OpenGLGraphicsPipeline*>(LoadPipeline(name).get());
         glUseProgram(pipeline->GetProgramId());
         glBindVertexArray(pipeline->GetVertexArrayId());
@@ -211,6 +214,7 @@ namespace Heart
         }
 
         m_BoundPipeline = pipeline;
+        m_BoundPipelineName = name;
     }
 
     void OpenGLFramebuffer::BindShaderBufferResource(u32 bindingIndex, u32 elementOffset, Buffer* _buffer)
@@ -332,6 +336,7 @@ namespace Heart
 
         m_FlushedThisFrame = false;
         m_BoundPipeline = nullptr;
+        m_BoundPipelineName = "";
     }
 
     Ref<GraphicsPipeline> OpenGLFramebuffer::InternalInitializeGraphicsPipeline(const GraphicsPipelineCreateInfo& createInfo)
