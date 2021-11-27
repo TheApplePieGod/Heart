@@ -6,7 +6,6 @@
 
 namespace Heart
 {
-    // TODO: some way of hinting GL_STATIC_DRAW vs GL_DYNAMIC_DRAW
     OpenGLBuffer::OpenGLBuffer(Type type, BufferUsageType usage, const BufferLayout& layout, u32 elementCount, void* initialData)
         : Buffer(type, usage, layout, elementCount)
     {
@@ -50,6 +49,8 @@ namespace Heart
     {
         HE_PROFILE_FUNCTION();
         
+        HE_ENGINE_ASSERT(elementCount + elementOffset <= m_AllocatedCount, "Attempting to set data on buffer which is larger than allocated size");
+
         glBindBuffer(OpenGLCommon::BufferTypeToOpenGL(m_Type), m_BufferId);
         glBufferSubData(OpenGLCommon::BufferTypeToOpenGL(m_Type), m_Layout.GetStride() * elementOffset, m_Layout.GetStride() * elementCount, data);
         glBindBuffer(OpenGLCommon::BufferTypeToOpenGL(m_Type), 0);

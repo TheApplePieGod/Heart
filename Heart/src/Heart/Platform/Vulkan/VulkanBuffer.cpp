@@ -42,6 +42,8 @@ namespace Heart
             }
             case Type::Pixel:
             { m_UsesStaging = false; } break;
+            case Type::Indirect:
+            { m_UsesStaging = false; } break;
             case Type::Vertex:
             case Type::Index:
             {
@@ -125,6 +127,8 @@ namespace Heart
             { VulkanCommon::CreateBuffer(device.Device(), device.PhysicalDevice(), size, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, outBuffer, outMemory); } break;
             case Type::Pixel:
             { VulkanCommon::CreateBuffer(device.Device(), device.PhysicalDevice(), size, VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, outBuffer, outMemory); } break;
+            case Type::Indirect:
+            { VulkanCommon::CreateBuffer(device.Device(), device.PhysicalDevice(), size, VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, outBuffer, outMemory); } break;
             case Type::Vertex:
             {
                 VulkanCommon::CreateBuffer(device.Device(), device.PhysicalDevice(), size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, outStagingBuffer, outStagingMemory);
@@ -154,7 +158,7 @@ namespace Heart
         HE_PROFILE_FUNCTION();
         
         // TODO: dynamic resizing
-        HE_ENGINE_ASSERT(elementCount <= m_AllocatedCount, "Attempting to set data on buffer which is larger than allocated size");
+        HE_ENGINE_ASSERT(elementCount + elementOffset <= m_AllocatedCount, "Attempting to set data on buffer which is larger than allocated size");
         if (m_Usage == BufferUsageType::Static)
         {
             HE_ENGINE_LOG_WARN("Attemting to update buffer that is marked as static");

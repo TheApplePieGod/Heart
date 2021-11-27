@@ -74,7 +74,7 @@ namespace Heart
         virtual void BindPipeline(const std::string& name) = 0;
 
         // must be called after BindPipeline()
-        virtual void BindShaderBufferResource(u32 bindingIndex, u32 elementOffset, Buffer* buffer) = 0;
+        virtual void BindShaderBufferResource(u32 bindingIndex, u32 elementOffset, u32 elementCount, Buffer* buffer) = 0;
         virtual void BindShaderTextureResource(u32 bindingIndex, Texture* texture) = 0;
         virtual void BindShaderTextureLayerResource(u32 bindingIndex, Texture* texture, u32 layerIndex) = 0;
         virtual void BindSubpassInputAttachment(u32 bindingIndex, SubpassAttachment attachment) = 0;

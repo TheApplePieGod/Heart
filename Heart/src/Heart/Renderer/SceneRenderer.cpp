@@ -2,6 +2,7 @@
 #include "SceneRenderer.h"
 
 #include "Heart/Core/App.h"
+#include "Heart/Core/Timing.h"
 #include "Heart/Renderer/Renderer.h"
 #include "Heart/Scene/Components.h"
 #include "Heart/Scene/Entity.h"
@@ -63,8 +64,7 @@ namespace Heart
         };
         BufferLayout objectDataLayout = {
             { BufferDataType::Mat4 }, // transform
-            { BufferDataType::Int }, // entityId
-            { BufferDataType::Float3 } // padding
+            { BufferDataType::Float4 } // [0]: entityId
         };
         BufferLayout materialDataLayout = {
             { BufferDataType::Float4 }, // base color
@@ -74,9 +74,17 @@ namespace Heart
             { BufferDataType::Float4 }, // has textures
             { BufferDataType::Float4 } // scalars
         };
+        BufferLayout indirectDataLayout = {
+            { BufferDataType::UInt }, // index count
+            { BufferDataType::UInt }, // instance count
+            { BufferDataType::UInt }, // first index
+            { BufferDataType::Int }, // vertex offset
+            { BufferDataType::UInt } // first instance
+        };
         m_FrameDataBuffer = Buffer::Create(Buffer::Type::Uniform, BufferUsageType::Dynamic, frameDataLayout, 1, nullptr);
-        m_ObjectDataBuffer = Buffer::Create(Buffer::Type::Storage, BufferUsageType::Dynamic, objectDataLayout, 2000, nullptr);
-        m_MaterialDataBuffer = Buffer::Create(Buffer::Type::Storage, BufferUsageType::Dynamic, materialDataLayout, 2000, nullptr);
+        m_ObjectDataBuffer = Buffer::Create(Buffer::Type::Storage, BufferUsageType::Dynamic, objectDataLayout, 5000, nullptr);
+        m_MaterialDataBuffer = Buffer::Create(Buffer::Type::Storage, BufferUsageType::Dynamic, materialDataLayout, 5000, nullptr);
+        m_IndirectBuffer = Buffer::Create(Buffer::Type::Indirect, BufferUsageType::Dynamic, indirectDataLayout, 1000, nullptr);
         InitializeGridBuffers();
 
         // Create the main framebuffer
@@ -184,6 +192,7 @@ namespace Heart
         m_FrameDataBuffer.reset();
         m_ObjectDataBuffer.reset();
         m_MaterialDataBuffer.reset();
+        m_IndirectBuffer.reset();
 
         m_GridVertices.reset();
         m_GridIndices.reset();
@@ -197,9 +206,10 @@ namespace Heart
         // Reset in-flight frame data
         m_Scene = scene;
         m_EnvironmentMap = scene->GetEnvironmentMap();
-        m_ObjectDataOffset = 0;
-        m_MaterialDataOffset = 0;
-        m_TranslucentMeshes.clear();
+        m_IndirectBatches.clear();
+        m_DeferredIndirectBatches.clear();
+        for (auto& list : m_EntityListPool)
+            list.clear();
 
         // Set the global data for this frame
         FrameData frameData = { camera.GetProjectionMatrix(), camera.GetViewMatrix(), glm::vec4(cameraPosition, 1.f), m_FinalFramebuffer->GetSize(), Renderer::IsUsingReverseDepth() };
@@ -217,13 +227,12 @@ namespace Heart
         if (drawGrid)   
             RenderGrid();
 
-        // Opaque pass
-        m_FinalFramebuffer->StartNextSubpass();
-        RenderOpaque();
+        // Recalculate the indirect render batches
+        CalculateBatches();
 
-        // Transparent pass
+        // Batches pass
         m_FinalFramebuffer->StartNextSubpass();
-        RenderTransparent();
+        RenderBatches();
 
         // Composite pass
         m_FinalFramebuffer->StartNextSubpass();
@@ -233,10 +242,125 @@ namespace Heart
         Renderer::Api().RenderFramebuffers(context, { m_FinalFramebuffer.get() });
     }
 
+    void SceneRenderer::CalculateBatches()
+    {
+        HE_PROFILE_FUNCTION();
+
+        // Loop over each mesh component / submesh, hash the mesh & material, and place the entity in a batch
+        // associated with the mesh & material. At this stage, Batch.First is unused and Batch.Count indicates
+        // how many instances there are
+        u32 batchIndex = 0;
+        auto group = m_Scene->GetRegistry().group<TransformComponent, MeshComponent>();
+        for (auto entity : group)
+        {
+            auto [transform, mesh] = group.get<TransformComponent, MeshComponent>(entity);
+
+            // Skip invalid meshes
+            auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>(mesh.Mesh);
+            if (!meshAsset || !meshAsset->IsValid()) continue;
+
+            for (u32 i = 0; i < meshAsset->GetSubmeshCount(); i++)
+            {
+                auto& meshData = meshAsset->GetSubmesh(i);
+
+                // Create a hash based on the submesh and its material if applicable
+                u64 hash = mesh.Mesh ^ (i * 123192);
+                if (meshData.GetMaterialIndex() < mesh.Materials.size())
+                    hash ^= mesh.Materials[meshData.GetMaterialIndex()];
+
+                // Get/create a batch associated with this hash
+                auto& batch = m_IndirectBatches[hash];
+
+                // Update the batch information if this is the first entity being added to it
+                if (batch.Count == 0)
+                {
+                    // Retrieve a vector from the pool
+                    batch.EntityListIndex = batchIndex;
+                    if (batchIndex >= m_EntityListPool.size())
+                        m_EntityListPool.emplace_back();
+
+                    // Set the material & mesh associated with this batch
+                    batch.Mesh = &meshData;
+                    batch.Material = &meshAsset->GetDefaultMaterials()[meshData.GetMaterialIndex()]; // default material
+                    if (mesh.Materials.size() > meshData.GetMaterialIndex())
+                    {
+                        auto materialAsset = AssetManager::RetrieveAsset<MaterialAsset>(mesh.Materials[meshData.GetMaterialIndex()]);
+                        if (materialAsset && materialAsset->IsValid())
+                            batch.Material = &materialAsset->GetMaterial();
+                    }
+
+                    batchIndex++;
+                }
+                
+                // Push the associated entity to the associated vector from the pool
+                batch.Count++;
+                m_EntityListPool[batch.EntityListIndex].emplace_back(static_cast<u32>(entity));
+            }
+        }
+
+        // Loop over the calculated batches and populate the indirect buffer with draw commands. Because we are instancing, we need to make sure each object/material data
+        // element gets placed contiguously for each indirect draw call. At this stage, Batch.First is the index of the indirect draw command in the buffer and
+        // Batch.Count will equal 1 because it represents how many draw commands are in each batch
+        u32 commandIndex = 0;
+        u32 renderId = 0;
+        for (auto& pair : m_IndirectBatches)
+        {
+            // Update the draw command index
+            pair.second.First = commandIndex;
+
+            // Popupate the indirect buffer
+            IndexedIndirectCommand command = {
+                pair.second.Mesh->GetIndexBuffer()->GetAllocatedCount(),
+                pair.second.Count, 0, 0, renderId
+            };
+            m_IndirectBuffer->SetData(&command, 1, commandIndex);
+            commandIndex++;
+
+            // Contiguiously set the instance data for each entity associated with this batch
+            auto& entityList = m_EntityListPool[pair.second.EntityListIndex];
+            for (auto& entity : entityList)
+            {
+                // Object data
+                ObjectData objectData = { m_Scene->GetEntityCachedTransform({ m_Scene, entity }), { entity, 0.f, 0.f, 0.f } };
+                m_ObjectDataBuffer->SetData(&objectData, 1, renderId);
+
+                // Material data
+                if (pair.second.Material)
+                {
+                    auto& materialData = pair.second.Material->GetMaterialData();
+
+                    auto albedoAsset = AssetManager::RetrieveAsset<TextureAsset>(pair.second.Material->GetAlbedoTexture());
+                    materialData.SetHasAlbedo(albedoAsset && albedoAsset->IsValid());
+
+                    auto metallicRoughnessAsset = AssetManager::RetrieveAsset<TextureAsset>(pair.second.Material->GetMetallicRoughnessTexture());
+                    materialData.SetHasMetallicRoughness(metallicRoughnessAsset && metallicRoughnessAsset->IsValid());
+
+                    auto normalAsset = AssetManager::RetrieveAsset<TextureAsset>(pair.second.Material->GetNormalTexture());
+                    materialData.SetHasNormal(normalAsset && normalAsset->IsValid());
+
+                    auto emissiveAsset = AssetManager::RetrieveAsset<TextureAsset>(pair.second.Material->GetEmissiveTexture());
+                    materialData.SetHasEmissive(emissiveAsset && emissiveAsset->IsValid());
+
+                    auto occlusionAsset = AssetManager::RetrieveAsset<TextureAsset>(pair.second.Material->GetOcclusionTexture());
+                    materialData.SetHasOcclusion(occlusionAsset && occlusionAsset->IsValid());
+
+                    m_MaterialDataBuffer->SetData(&materialData, 1, renderId);
+                }
+                else
+                    m_MaterialDataBuffer->SetData(&AssetManager::RetrieveAsset<MaterialAsset>("DefaultMaterial.hemat", true)->GetMaterial().GetMaterialData(), 1, renderId);
+
+                renderId++;
+            }
+
+            // Change the count to represent the number of draw commands
+            pair.second.Count = 1;
+        }
+    }
+
     void SceneRenderer::RenderEnvironmentMap()
     {
         m_FinalFramebuffer->BindPipeline("skybox");
-        m_FinalFramebuffer->BindShaderBufferResource(0, 0, m_FrameDataBuffer.get());
+        m_FinalFramebuffer->BindShaderBufferResource(0, 0, 1, m_FrameDataBuffer.get());
         m_FinalFramebuffer->BindShaderTextureResource(1, m_EnvironmentMap->GetPrefilterCubemap());
 
         auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>("DefaultCube.gltf", true);
@@ -248,7 +372,6 @@ namespace Heart
         Renderer::Api().BindIndexBuffer(*meshData.GetIndexBuffer());
         Renderer::Api().DrawIndexed(
             meshData.GetIndexBuffer()->GetAllocatedCount(),
-            meshData.GetVertexBuffer()->GetAllocatedCount(),
             0, 0, 1
         );
     }
@@ -259,7 +382,7 @@ namespace Heart
         m_FinalFramebuffer->BindPipeline("grid");
 
         // Bind frame data
-        m_FinalFramebuffer->BindShaderBufferResource(0, 0, m_FrameDataBuffer.get());
+        m_FinalFramebuffer->BindShaderBufferResource(0, 0, 1, m_FrameDataBuffer.get());
 
         m_FinalFramebuffer->FlushBindings();
 
@@ -269,213 +392,135 @@ namespace Heart
         Renderer::Api().BindIndexBuffer(*m_GridIndices);
         Renderer::Api().DrawIndexed(
             m_GridIndices->GetAllocatedCount(),
-            m_GridVertices->GetAllocatedCount(),
             0, 0, 1
         );
     }
     
-    void SceneRenderer::RenderOpaque()
+    void SceneRenderer::BindMaterial(Material* material)
     {
+        HE_PROFILE_FUNCTION();
+
+        auto& materialData = material->GetMaterialData();
+
+        if (materialData.HasAlbedo())
+        {
+            auto albedoAsset = AssetManager::RetrieveAsset<TextureAsset>(material->GetAlbedoTexture());
+            m_FinalFramebuffer->BindShaderTextureResource(3, albedoAsset->GetTexture());
+        }
+        
+        if (materialData.HasMetallicRoughness())
+        {
+            auto metallicRoughnessAsset = AssetManager::RetrieveAsset<TextureAsset>(material->GetMetallicRoughnessTexture());
+            m_FinalFramebuffer->BindShaderTextureResource(4, metallicRoughnessAsset->GetTexture());
+        }
+
+        if (materialData.HasNormal())
+        {
+            auto normalAsset = AssetManager::RetrieveAsset<TextureAsset>(material->GetNormalTexture());
+            m_FinalFramebuffer->BindShaderTextureResource(5, normalAsset->GetTexture());
+        }
+
+        if (materialData.HasEmissive())
+        {
+            auto emissiveAsset = AssetManager::RetrieveAsset<TextureAsset>(material->GetEmissiveTexture());
+            m_FinalFramebuffer->BindShaderTextureResource(6, emissiveAsset->GetTexture());
+        }
+
+        if (materialData.HasOcclusion())
+        {
+            auto occlusionAsset = AssetManager::RetrieveAsset<TextureAsset>(material->GetOcclusionTexture());
+            m_FinalFramebuffer->BindShaderTextureResource(7, occlusionAsset->GetTexture());
+        }
+    }
+
+    void SceneRenderer::BindPBRDefaults()
+    {
+        // Bind frame data
+        m_FinalFramebuffer->BindShaderBufferResource(0, 0, 1, m_FrameDataBuffer.get());
+
+        // Bind object data
+        m_FinalFramebuffer->BindShaderBufferResource(1, 0, m_ObjectDataBuffer->GetAllocatedCount(), m_ObjectDataBuffer.get());
+        m_FinalFramebuffer->BindShaderBufferResource(2, 0, m_MaterialDataBuffer->GetAllocatedCount(), m_MaterialDataBuffer.get());
+
+        // Default texture binds
+        m_FinalFramebuffer->BindShaderTextureResource(3, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
+        m_FinalFramebuffer->BindShaderTextureResource(4, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
+        m_FinalFramebuffer->BindShaderTextureResource(5, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
+        m_FinalFramebuffer->BindShaderTextureResource(6, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
+        m_FinalFramebuffer->BindShaderTextureResource(7, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
+        if (m_EnvironmentMap)
+        {
+            m_FinalFramebuffer->BindShaderTextureResource(8, m_EnvironmentMap->GetIrradianceCubemap());
+            m_FinalFramebuffer->BindShaderTextureResource(9, m_EnvironmentMap->GetPrefilterCubemap());
+            m_FinalFramebuffer->BindShaderTextureResource(10, m_EnvironmentMap->GetBRDFTexture());
+        }
+        else
+        {
+            m_FinalFramebuffer->BindShaderTextureResource(8, m_DefaultEnvironmentMap.get());
+            m_FinalFramebuffer->BindShaderTextureResource(9, m_DefaultEnvironmentMap.get());
+            m_FinalFramebuffer->BindShaderTextureLayerResource(10, m_DefaultEnvironmentMap.get(), 0);
+        }
+    }
+
+    void SceneRenderer::RenderBatches()
+    {
+        HE_PROFILE_FUNCTION();
+        
         // Bind opaque PBR pipeline
         m_FinalFramebuffer->BindPipeline("pbr");
 
-        // Bind frame data
-        m_FinalFramebuffer->BindShaderBufferResource(0, 0, m_FrameDataBuffer.get());
+        // Bind defaults
+        BindPBRDefaults();
 
-        // Default texture binds
-        m_FinalFramebuffer->BindShaderTextureResource(3, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
-        m_FinalFramebuffer->BindShaderTextureResource(4, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
-        m_FinalFramebuffer->BindShaderTextureResource(5, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
-        m_FinalFramebuffer->BindShaderTextureResource(6, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
-        m_FinalFramebuffer->BindShaderTextureResource(7, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
-        if (m_EnvironmentMap)
+        // Initial (opaque) batches pass
+        for (auto& pair : m_IndirectBatches)
         {
-            m_FinalFramebuffer->BindShaderTextureResource(8, m_EnvironmentMap->GetIrradianceCubemap());
-            m_FinalFramebuffer->BindShaderTextureResource(9, m_EnvironmentMap->GetPrefilterCubemap());
-            m_FinalFramebuffer->BindShaderTextureResource(10, m_EnvironmentMap->GetBRDFTexture());
-        }
-        else
-        {
-            m_FinalFramebuffer->BindShaderTextureResource(8, m_DefaultEnvironmentMap.get());
-            m_FinalFramebuffer->BindShaderTextureResource(9, m_DefaultEnvironmentMap.get());
-            m_FinalFramebuffer->BindShaderTextureLayerResource(10, m_DefaultEnvironmentMap.get(), 0);
-        }
+            auto& batch = pair.second;
 
-        auto group = m_Scene->GetRegistry().group<TransformComponent, MeshComponent>();
-        for (auto entity : group)
-        {
-            auto [transform, mesh] = group.get<TransformComponent, MeshComponent>(entity);
-
-            auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>(mesh.Mesh);
-            if (!meshAsset || !meshAsset->IsValid()) continue;
-
-            m_FinalFramebuffer->BindShaderBufferResource(1, m_ObjectDataOffset, m_ObjectDataBuffer.get());
-
-            // store transform at offset in buffer
-            ObjectData objectData = { m_Scene->GetEntityCachedTransform({ m_Scene, entity }), static_cast<int>(entity) };
-            m_ObjectDataBuffer->SetData(&objectData, 1, m_ObjectDataOffset);
-
-            for (u32 i = 0; i < meshAsset->GetSubmeshCount(); i++)
+            if (batch.Material)
             {
-                auto& meshData = meshAsset->GetSubmesh(i);
-
-                Material* finalMaterial = &meshAsset->GetDefaultMaterials()[meshData.GetMaterialIndex()]; // default material
-                if (mesh.Materials.size() > meshData.GetMaterialIndex())
+                if (batch.Material->IsTranslucent())
                 {
-                    auto materialAsset = AssetManager::RetrieveAsset<MaterialAsset>(mesh.Materials[meshData.GetMaterialIndex()]);
-                    if (materialAsset && materialAsset->IsValid())
-                       finalMaterial = &materialAsset->GetMaterial();
+                    m_DeferredIndirectBatches.emplace_back(&batch);
+                    continue;
                 }
-
-                if (finalMaterial)
-                {
-                    // Translucent materials get cached for the next pass
-                    if (finalMaterial->IsTranslucent())
-                    {
-                        m_TranslucentMeshes.emplace_back(finalMaterial, mesh.Mesh, i, objectData);
-                        continue;
-                    }
-
-                    auto& materialData = finalMaterial->GetMaterialData();
-
-                    auto albedoAsset = AssetManager::RetrieveAsset<TextureAsset>(finalMaterial->GetAlbedoTexture());
-                    materialData.SetHasAlbedo(albedoAsset && albedoAsset->IsValid());
-                    if (materialData.HasAlbedo())
-                        m_FinalFramebuffer->BindShaderTextureResource(3, albedoAsset->GetTexture());
-
-                    auto metallicRoughnessAsset = AssetManager::RetrieveAsset<TextureAsset>(finalMaterial->GetMetallicRoughnessTexture());
-                    materialData.SetHasMetallicRoughness(metallicRoughnessAsset && metallicRoughnessAsset->IsValid());
-                    if (materialData.HasMetallicRoughness())
-                        m_FinalFramebuffer->BindShaderTextureResource(4, metallicRoughnessAsset->GetTexture());
-
-                    auto normalAsset = AssetManager::RetrieveAsset<TextureAsset>(finalMaterial->GetNormalTexture());
-                    materialData.SetHasNormal(normalAsset && normalAsset->IsValid());
-                    if (materialData.HasNormal())
-                        m_FinalFramebuffer->BindShaderTextureResource(5, normalAsset->GetTexture());
-
-                    auto emissiveAsset = AssetManager::RetrieveAsset<TextureAsset>(finalMaterial->GetEmissiveTexture());
-                    materialData.SetHasEmissive(emissiveAsset && emissiveAsset->IsValid());
-                    if (materialData.HasEmissive())
-                        m_FinalFramebuffer->BindShaderTextureResource(6, emissiveAsset->GetTexture());
-
-                    auto occlusionAsset = AssetManager::RetrieveAsset<TextureAsset>(finalMaterial->GetOcclusionTexture());
-                    materialData.SetHasOcclusion(occlusionAsset && occlusionAsset->IsValid());
-                    if (materialData.HasOcclusion())
-                        m_FinalFramebuffer->BindShaderTextureResource(7, occlusionAsset->GetTexture());
-
-                    m_MaterialDataBuffer->SetData(&materialData, 1, m_MaterialDataOffset);
-                }
-                else // default material
-                    m_MaterialDataBuffer->SetData(&AssetManager::RetrieveAsset<MaterialAsset>("DefaultMaterial.hemat", true)->GetMaterial().GetMaterialData(), 1, m_MaterialDataOffset);
-
-                m_FinalFramebuffer->BindShaderBufferResource(2, m_MaterialDataOffset, m_MaterialDataBuffer.get());
-
-                m_FinalFramebuffer->FlushBindings();
-
-                // Draw
-                Renderer::Api().BindVertexBuffer(*meshData.GetVertexBuffer());
-                Renderer::Api().BindIndexBuffer(*meshData.GetIndexBuffer());
-                Renderer::Api().DrawIndexed(
-                    meshData.GetIndexBuffer()->GetAllocatedCount(),
-                    meshData.GetVertexBuffer()->GetAllocatedCount(),
-                    0, 0, 1
-                );
-
-                m_MaterialDataOffset++;
+                BindMaterial(batch.Material);
             }
-
-            m_ObjectDataOffset++;
-        }
-    }
-    
-    void SceneRenderer::RenderTransparent()
-    {
-        // Bind transparent PBR pipeline
-        m_FinalFramebuffer->BindPipeline("pbrTpColor");
-        
-        // Bind frame data
-        m_FinalFramebuffer->BindShaderBufferResource(0, 0, m_FrameDataBuffer.get());
-
-        // Default texture binds
-        m_FinalFramebuffer->BindShaderTextureResource(3, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
-        m_FinalFramebuffer->BindShaderTextureResource(4, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
-        m_FinalFramebuffer->BindShaderTextureResource(5, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
-        m_FinalFramebuffer->BindShaderTextureResource(6, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
-        m_FinalFramebuffer->BindShaderTextureResource(7, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
-        if (m_EnvironmentMap)
-        {
-            m_FinalFramebuffer->BindShaderTextureResource(8, m_EnvironmentMap->GetIrradianceCubemap());
-            m_FinalFramebuffer->BindShaderTextureResource(9, m_EnvironmentMap->GetPrefilterCubemap());
-            m_FinalFramebuffer->BindShaderTextureResource(10, m_EnvironmentMap->GetBRDFTexture());
-        }
-        else
-        {
-            m_FinalFramebuffer->BindShaderTextureResource(8, m_DefaultEnvironmentMap.get());
-            m_FinalFramebuffer->BindShaderTextureResource(9, m_DefaultEnvironmentMap.get());
-            m_FinalFramebuffer->BindShaderTextureLayerResource(10, m_DefaultEnvironmentMap.get(), 0);
-        }
-
-        for (auto& mesh : m_TranslucentMeshes)
-        {
-            // We can safely load the assets here because the object must have a mesh & material to make it this far
-            auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>(mesh.Mesh);
-            auto& meshData = meshAsset->GetSubmesh(mesh.SubmeshIndex);
-            auto& materialData = mesh.Material->GetMaterialData();
-
-            auto albedoAsset = AssetManager::RetrieveAsset<TextureAsset>(mesh.Material->GetAlbedoTexture());
-            materialData.SetHasAlbedo(albedoAsset && albedoAsset->IsValid());
-            if (materialData.HasAlbedo())
-                m_FinalFramebuffer->BindShaderTextureResource(3, albedoAsset->GetTexture());
-
-            auto metallicRoughnessAsset = AssetManager::RetrieveAsset<TextureAsset>(mesh.Material->GetMetallicRoughnessTexture());
-            materialData.SetHasMetallicRoughness(metallicRoughnessAsset && metallicRoughnessAsset->IsValid());
-            if (materialData.HasMetallicRoughness())
-                m_FinalFramebuffer->BindShaderTextureResource(4, metallicRoughnessAsset->GetTexture());
-
-            auto normalAsset = AssetManager::RetrieveAsset<TextureAsset>(mesh.Material->GetNormalTexture());
-            materialData.SetHasNormal(normalAsset && normalAsset->IsValid());
-            if (materialData.HasNormal())
-                m_FinalFramebuffer->BindShaderTextureResource(5, normalAsset->GetTexture());
-
-            auto emissiveAsset = AssetManager::RetrieveAsset<TextureAsset>(mesh.Material->GetEmissiveTexture());
-            materialData.SetHasEmissive(emissiveAsset && emissiveAsset->IsValid());
-            if (materialData.HasEmissive())
-                m_FinalFramebuffer->BindShaderTextureResource(6, emissiveAsset->GetTexture());
-
-            auto occlusionAsset = AssetManager::RetrieveAsset<TextureAsset>(mesh.Material->GetOcclusionTexture());
-            materialData.SetHasOcclusion(occlusionAsset && occlusionAsset->IsValid());
-            if (materialData.HasOcclusion())
-                m_FinalFramebuffer->BindShaderTextureResource(7, occlusionAsset->GetTexture());
-
-            m_FinalFramebuffer->BindShaderBufferResource(1, m_ObjectDataOffset, m_ObjectDataBuffer.get());
-            m_ObjectDataBuffer->SetData(&mesh.ObjectData, 1, m_ObjectDataOffset);
-
-            m_FinalFramebuffer->BindShaderBufferResource(2, m_MaterialDataOffset, m_MaterialDataBuffer.get());
-            m_MaterialDataBuffer->SetData(&materialData, 1, m_MaterialDataOffset);
 
             m_FinalFramebuffer->FlushBindings();
 
             // Draw
-            Renderer::Api().BindVertexBuffer(*meshData.GetVertexBuffer());
-            Renderer::Api().BindIndexBuffer(*meshData.GetIndexBuffer());
-            Renderer::Api().DrawIndexed(
-                meshData.GetIndexBuffer()->GetAllocatedCount(),
-                meshData.GetVertexBuffer()->GetAllocatedCount(),
-                0, 0, 1
-            );
+            Renderer::Api().BindVertexBuffer(*batch.Mesh->GetVertexBuffer());
+            Renderer::Api().BindIndexBuffer(*batch.Mesh->GetIndexBuffer());
+            Renderer::Api().DrawIndexedIndirect(m_IndirectBuffer.get(), batch.First, batch.Count);
+        }
 
-            m_ObjectDataOffset++;
-            m_MaterialDataOffset++;
+        // Secondary (translucent) batches pass
+        m_FinalFramebuffer->StartNextSubpass();
+        m_FinalFramebuffer->BindPipeline("pbrTpColor");
+        BindPBRDefaults();
+
+        for (auto batch : m_DeferredIndirectBatches)
+        {
+            if (batch->Material)
+                BindMaterial(batch->Material);
+
+            m_FinalFramebuffer->FlushBindings();
+
+            // Draw
+            Renderer::Api().BindVertexBuffer(*batch->Mesh->GetVertexBuffer());
+            Renderer::Api().BindIndexBuffer(*batch->Mesh->GetIndexBuffer());
+            Renderer::Api().DrawIndexedIndirect(m_IndirectBuffer.get(), batch->First, batch->Count);
         }
     }
-    
+
     void SceneRenderer::Composite()
     {
         // Bind alpha compositing pipeline
         m_FinalFramebuffer->BindPipeline("tpComposite");
 
         // Bind frame data
-        m_FinalFramebuffer->BindShaderBufferResource(0, 0, m_FrameDataBuffer.get());
+        m_FinalFramebuffer->BindShaderBufferResource(0, 0, 1, m_FrameDataBuffer.get());
 
         // Bind the input attachments from the transparent pass
         m_FinalFramebuffer->BindSubpassInputAttachment(1, { SubpassAttachmentType::Color, 2 });

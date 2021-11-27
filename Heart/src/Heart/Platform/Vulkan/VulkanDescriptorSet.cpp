@@ -14,11 +14,15 @@ namespace Heart
     {
         VulkanDevice& device = VulkanContext::GetDevice();
 
-        // create the descriptor set layout and cache the associated poolsizes
+        // reflection data should give us sorted binding indexes so we can make some shortcuts here
+
+        // create the descriptor set layout and cache the associated pool sizes
         std::vector<VkDescriptorSetLayoutBinding> bindings;
         std::unordered_map<VkDescriptorType, u32> descriptorCounts;
         for (auto& element : reflectionData)
         {
+            BindingData bindingData{};
+
             VkDescriptorSetLayoutBinding binding{};
             binding.binding = element.BindingIndex;
             binding.descriptorType = VulkanCommon::ShaderResourceTypeToVulkan(element.ResourceType);
@@ -37,15 +41,17 @@ namespace Heart
             descriptorWrite.descriptorType = binding.descriptorType;
             descriptorWrite.descriptorCount = element.ArrayCount;
 
-            m_DescriptorWriteMappings[element.BindingIndex] = m_CachedDescriptorWrites.size(); 
+            bindingData.DescriptorWriteMapping = m_CachedDescriptorWrites.size(); 
             m_CachedDescriptorWrites.emplace_back(descriptorWrite);
 
             // populate the dynamic offset info if applicable
             if (element.ResourceType == ShaderResourceType::UniformBuffer || element.ResourceType == ShaderResourceType::StorageBuffer)
             {
-                m_OffsetMappings[element.BindingIndex] = m_DynamicOffsets.size();
+                bindingData.OffsetIndex = m_DynamicOffsets.size();
                 m_DynamicOffsets.emplace_back(0);
             }
+
+            m_Bindings.emplace_back(bindingData);
         }
 
         VkDescriptorSetLayoutCreateInfo layoutInfo{};
@@ -92,7 +98,7 @@ namespace Heart
         vkDestroyDescriptorSetLayout(device.Device(), m_DescriptorSetLayout, nullptr);
     }
 
-    void VulkanDescriptorSet::UpdateShaderResource(u32 bindingIndex, ShaderResourceType resourceType, void* resource, bool useOffset, u32 offset)
+    void VulkanDescriptorSet::UpdateShaderResource(u32 bindingIndex, ShaderResourceType resourceType, void* resource, bool useOffset, u32 offset, u32 size)
     {
         HE_PROFILE_FUNCTION();
 
@@ -134,7 +140,7 @@ namespace Heart
 
                 m_CachedBufferInfos[bufferInfoBaseIndex].buffer = buffer->GetBuffer();
                 m_CachedBufferInfos[bufferInfoBaseIndex].offset = 0;
-                m_CachedBufferInfos[bufferInfoBaseIndex].range = buffer->GetLayout().GetStride(); //buffer.GetAllocatedSize(); // when using dynamic buffers, range is the stride rather than the whole size
+                m_CachedBufferInfos[bufferInfoBaseIndex].range = size;
             } break;
 
             case ShaderResourceType::Texture:
@@ -164,7 +170,7 @@ namespace Heart
             } break;
         }
 
-        VkWriteDescriptorSet& descriptorWrite = m_CachedDescriptorWrites[m_DescriptorWriteMappings[bindingIndex]];
+        VkWriteDescriptorSet& descriptorWrite = m_CachedDescriptorWrites[m_Bindings[bindingIndex].DescriptorWriteMapping];
         if (descriptorWrite.pBufferInfo == nullptr && descriptorWrite.pImageInfo == nullptr)
             m_WritesReadyCount++;
 

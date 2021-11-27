@@ -179,6 +179,7 @@ namespace Heart
             case Buffer::Type::Uniform: return GL_UNIFORM_BUFFER;
             case Buffer::Type::Storage: return GL_SHADER_STORAGE_BUFFER;
             case Buffer::Type::Pixel: return GL_PIXEL_PACK_BUFFER;
+            case Buffer::Type::Indirect: return GL_DRAW_INDIRECT_BUFFER;
         }
 
         return -1;

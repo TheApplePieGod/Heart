@@ -6,6 +6,7 @@
 #include "Heart/Renderer/Buffer.h"
 #include "Heart/Renderer/Texture.h"
 #include "Heart/Renderer/Material.h"
+#include "Heart/Renderer/Mesh.h"
 #include "Heart/Renderer/EnvironmentMap.h"
 #include "Heart/Core/Camera.h"
 #include "Heart/Events/EventEmitter.h"
@@ -31,8 +32,7 @@ namespace Heart
         struct ObjectData
         {
             glm::mat4 Model;
-            int EntityId = -1;
-            glm::vec3 Padding;
+            glm::vec4 Data;
         };
 
     public:
@@ -46,26 +46,34 @@ namespace Heart
         inline Framebuffer& GetFinalFramebuffer() { return *m_FinalFramebuffer; }
 
     private:
-        struct CachedRender
+        struct IndirectBatch
         {
-            CachedRender(Material* material, UUID mesh, u32 submeshIndex, const ObjectData& objData)
-                : Material(material), Mesh(mesh), SubmeshIndex(submeshIndex), ObjectData(objData)
-            {}
-
             Material* Material;
-            UUID Mesh;
-            u32 SubmeshIndex;
-            ObjectData ObjectData;
+            Mesh* Mesh;
+            u32 First = 0;
+            u32 Count = 0;
+            u32 EntityListIndex = 0;
+        };
+        struct IndexedIndirectCommand
+        {
+            u32 IndexCount;
+            u32 InstanceCount;
+            u32 FirstIndex;
+            int VertexOffset;
+            u32 FirstInstance;
         };
 
     private:
         void Initialize();
         void Shutdown();
 
+        void CalculateBatches();
+        void BindMaterial(Material* material);
+        void BindPBRDefaults();
+
         void RenderEnvironmentMap();
         void RenderGrid();
-        void RenderOpaque();
-        void RenderTransparent();
+        void RenderBatches();
         void Composite();
 
         void InitializeGridBuffers();
@@ -81,6 +89,7 @@ namespace Heart
         Ref<Buffer> m_FrameDataBuffer;
         Ref<Buffer> m_ObjectDataBuffer;
         Ref<Buffer> m_MaterialDataBuffer;
+        Ref<Buffer> m_IndirectBuffer;
 
         // grid
         Ref<Buffer> m_GridVertices;
@@ -89,8 +98,8 @@ namespace Heart
         // in-flight frame data
         Scene* m_Scene;
         EnvironmentMap* m_EnvironmentMap;
-        std::vector<CachedRender> m_TranslucentMeshes;
-        u32 m_ObjectDataOffset = 0;
-        u32 m_MaterialDataOffset = 0;  
+        std::unordered_map<u64, IndirectBatch> m_IndirectBatches;
+        std::vector<IndirectBatch*> m_DeferredIndirectBatches;
+        std::vector<std::vector<u32>> m_EntityListPool;
     };
 }

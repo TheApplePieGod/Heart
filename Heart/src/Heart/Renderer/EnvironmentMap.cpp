@@ -295,7 +295,7 @@ namespace Heart
 
             CubemapData mapData = { cubemapCam.GetProjectionMatrix(), cubemapCam.GetViewMatrix(), glm::vec4(0.f) };
             m_CubemapDataBuffer->SetData(&mapData, 1, cubeDataIndex);
-            m_CubemapFramebuffer->BindShaderBufferResource(0, cubeDataIndex, m_CubemapDataBuffer.get());
+            m_CubemapFramebuffer->BindShaderBufferResource(0, cubeDataIndex, 1, m_CubemapDataBuffer.get());
 
             m_CubemapFramebuffer->BindShaderTextureResource(1, mapAsset->GetTexture());
 
@@ -305,7 +305,6 @@ namespace Heart
             Renderer::Api().BindIndexBuffer(*meshData.GetIndexBuffer());
             Renderer::Api().DrawIndexed(
                 meshData.GetIndexBuffer()->GetAllocatedCount(),
-                meshData.GetVertexBuffer()->GetAllocatedCount(),
                 0, 0, 1
             );
 
@@ -331,7 +330,7 @@ namespace Heart
 
             CubemapData mapData = { cubemapCam.GetProjectionMatrix(), cubemapCam.GetViewMatrix(), glm::vec4(0.f) };
             m_CubemapDataBuffer->SetData(&mapData, 1, cubeDataIndex);
-            m_IrradianceMapFramebuffer->BindShaderBufferResource(0, cubeDataIndex, m_CubemapDataBuffer.get());
+            m_IrradianceMapFramebuffer->BindShaderBufferResource(0, cubeDataIndex, 1, m_CubemapDataBuffer.get());
 
             m_IrradianceMapFramebuffer->BindShaderTextureResource(1, m_EnvironmentMap.get());
 
@@ -341,7 +340,6 @@ namespace Heart
             Renderer::Api().BindIndexBuffer(*meshData.GetIndexBuffer());
             Renderer::Api().DrawIndexed(
                 meshData.GetIndexBuffer()->GetAllocatedCount(),
-                meshData.GetVertexBuffer()->GetAllocatedCount(),
                 0, 0, 1
             );
 
@@ -369,7 +367,7 @@ namespace Heart
 
                 CubemapData mapData = { cubemapCam.GetProjectionMatrix(), cubemapCam.GetViewMatrix(), glm::vec4(roughness, m_EnvironmentMap->GetWidth(), 0.f, 0.f) };
                 m_CubemapDataBuffer->SetData(&mapData, 1, cubeDataIndex);
-                m_PrefilterFramebuffers[i]->BindShaderBufferResource(0, cubeDataIndex, m_CubemapDataBuffer.get());
+                m_PrefilterFramebuffers[i]->BindShaderBufferResource(0, cubeDataIndex, 1, m_CubemapDataBuffer.get());
 
                 m_PrefilterFramebuffers[i]->BindShaderTextureResource(1, m_EnvironmentMap.get());
 
@@ -379,7 +377,6 @@ namespace Heart
                 Renderer::Api().BindIndexBuffer(*meshData.GetIndexBuffer());
                 Renderer::Api().DrawIndexed(
                     meshData.GetIndexBuffer()->GetAllocatedCount(),
-                    meshData.GetVertexBuffer()->GetAllocatedCount(),
                     0, 0, 1
                 );
 
@@ -397,7 +394,7 @@ namespace Heart
 
         CubemapData mapData = { cubemapCam.GetProjectionMatrix(), cubemapCam.GetViewMatrix(), glm::vec4(Renderer::IsUsingReverseDepth(), 0.f, 0.f, 0.f) };
         m_CubemapDataBuffer->SetData(&mapData, 1, cubeDataIndex++);
-        m_BRDFFramebuffer->BindShaderBufferResource(0, cubeDataIndex, m_CubemapDataBuffer.get());
+        m_BRDFFramebuffer->BindShaderBufferResource(0, cubeDataIndex, 1, m_CubemapDataBuffer.get());
 
         m_BRDFFramebuffer->FlushBindings();
 

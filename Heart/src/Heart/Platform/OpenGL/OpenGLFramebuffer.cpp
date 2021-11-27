@@ -217,15 +217,16 @@ namespace Heart
         m_BoundPipelineName = name;
     }
 
-    void OpenGLFramebuffer::BindShaderBufferResource(u32 bindingIndex, u32 elementOffset, Buffer* _buffer)
+    void OpenGLFramebuffer::BindShaderBufferResource(u32 bindingIndex, u32 elementOffset, u32 elementCount, Buffer* _buffer)
     {
         HE_PROFILE_FUNCTION();
         HE_ENGINE_ASSERT(m_BoundPipeline != nullptr, "Must call BindPipeline before BindShaderResource");
+        HE_ENGINE_ASSERT(elementCount + elementOffset < _buffer->GetAllocatedCount(), "ElementCount + ElementOffset must be <= buffer allocated count");
 
         OpenGLBuffer& buffer = static_cast<OpenGLBuffer&>(*_buffer);
 
         glBindBufferBase(OpenGLCommon::BufferTypeToOpenGL(buffer.GetType()), bindingIndex, buffer.GetBufferId());
-        glBindBufferRange(OpenGLCommon::BufferTypeToOpenGL(buffer.GetType()), bindingIndex, buffer.GetBufferId(), elementOffset * buffer.GetLayout().GetStride(), buffer.GetAllocatedSize());
+        glBindBufferRange(OpenGLCommon::BufferTypeToOpenGL(buffer.GetType()), bindingIndex, buffer.GetBufferId(), elementOffset * buffer.GetLayout().GetStride(), elementCount * buffer.GetLayout().GetStride());
     }
 
     void OpenGLFramebuffer::BindShaderTextureResource(u32 bindingIndex, Texture* _texture)

@@ -62,7 +62,7 @@ namespace Heart
         glLineWidth(width);
     }
 
-    void OpenGLRenderApi::DrawIndexed(u32 indexCount, u32 vertexCount, u32 indexOffset, u32 vertexOffset, u32 instanceCount)
+    void OpenGLRenderApi::DrawIndexed(u32 indexCount, u32 indexOffset, u32 vertexOffset, u32 instanceCount)
     {
         HE_PROFILE_FUNCTION();
         auto timer = AggregateTimer("OpenGLRenderApi::DrawIndexed");
@@ -95,6 +95,25 @@ namespace Heart
             instanceCount,
             0
         );
+    }
+
+    void OpenGLRenderApi::DrawIndexedIndirect(Buffer* indirectBuffer, u32 commandOffset, u32 drawCount)
+    {
+        HE_PROFILE_FUNCTION();
+        auto timer = AggregateTimer("OpenGLRenderApi::DrawIndexedIndirect");
+
+        // To maintain consistency with vulkan requirement
+        HE_ENGINE_ASSERT(OpenGLContext::GetBoundFramebuffer()->CanDraw(), "Framebuffer is not ready to draw (did you bind & flush all of your shader resources?)");
+
+        glBindBuffer(GL_DRAW_INDIRECT_BUFFER, ((OpenGLBuffer*)indirectBuffer)->GetBufferId());
+        glMultiDrawElementsIndirect(
+            OpenGLCommon::VertexTopologyToOpenGL(OpenGLContext::GetBoundFramebuffer()->GetBoundPipeline()->GetVertexTopology()),
+            GL_UNSIGNED_INT,
+            (void*)((intptr_t)commandOffset * indirectBuffer->GetLayout().GetStride()),
+            drawCount,
+            indirectBuffer->GetLayout().GetStride()
+        );
+        glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
     }
 
     void OpenGLRenderApi::RenderFramebuffers(GraphicsContext& _context, const std::vector<Framebuffer*>& framebuffers)
