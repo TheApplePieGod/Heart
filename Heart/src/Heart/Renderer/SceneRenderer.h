@@ -46,24 +46,13 @@ namespace Heart
         inline Framebuffer& GetFinalFramebuffer() { return *m_FinalFramebuffer; }
 
     private:
-        struct CachedRender
-        {
-            CachedRender(Material* material, UUID mesh, u32 submeshIndex, const ObjectData& objData)
-                : Material(material), Mesh(mesh), SubmeshIndex(submeshIndex), ObjectData(objData)
-            {}
-
-            Material* Material;
-            UUID Mesh;
-            u32 SubmeshIndex;
-            ObjectData ObjectData;
-        };
         struct IndirectBatch
         {
             Material* Material;
             Mesh* Mesh;
             u32 First = 0;
             u32 Count = 0;
-            std::vector<u32> Entities;
+            u32 EntityListIndex = 0;
         };
         struct IndexedIndirectCommand
         {
@@ -79,12 +68,12 @@ namespace Heart
         void Shutdown();
 
         void CalculateBatches();
-        void RenderOpaqueIndirect();
+        void BindMaterial(Material* material);
+        void BindPBRDefaults();
 
         void RenderEnvironmentMap();
         void RenderGrid();
-        void RenderOpaque();
-        void RenderTransparent();
+        void RenderBatches();
         void Composite();
 
         void InitializeGridBuffers();
@@ -109,9 +98,8 @@ namespace Heart
         // in-flight frame data
         Scene* m_Scene;
         EnvironmentMap* m_EnvironmentMap;
-        std::vector<CachedRender> m_TranslucentMeshes;
         std::unordered_map<u64, IndirectBatch> m_IndirectBatches;
-        u32 m_ObjectDataOffset = 0;
-        u32 m_MaterialDataOffset = 0;  
+        std::vector<IndirectBatch*> m_DeferredIndirectBatches;
+        std::vector<std::vector<u32>> m_EntityListPool;
     };
 }

@@ -34,7 +34,7 @@ namespace HeartEditor
 
         // int max = 100;
         // int scaleMax = 2;
-        // for (int i = 0; i < 200; i++)
+        // for (int i = 0; i < 150; i++)
         // {
         //     Heart::Entity entity = m_ActiveScene->CreateEntity("Entity " + std::to_string(i));
         //     entity.AddComponent<Heart::MeshComponent>().Mesh = Heart::AssetManager::GetAssetUUID("assets/meshes/Sponza/glTF/Sponza.gltf");
