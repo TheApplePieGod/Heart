@@ -6,6 +6,8 @@
 #include "Heart/Scene/Components.h"
 #include "Heart/Scene/Entity.h"
 #include "Heart/Input/Input.h"
+#include "Heart/Util/FilesystemUtils.h"
+#include "Heart/Util/ImGuiUtils.h"
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/TextureAsset.h"
 #include "Heart/Asset/SceneAsset.h"
@@ -20,6 +22,7 @@ namespace HeartEditor
     {
         m_EditorCamera = Heart::CreateScope<EditorCamera>(70.f, 0.1f, 500.f, 1.f, glm::vec3(0.f, 1.f, 0.f));
         m_ActiveScene = Heart::CreateRef<Heart::Scene>();
+        m_SceneRenderer = Heart::CreateScope<Heart::SceneRenderer>();
 
         //auto entity = m_ActiveScene->CreateEntity("Test Entity");
         //entity.AddComponent<Heart::MeshComponent>();
@@ -29,17 +32,11 @@ namespace HeartEditor
         //entity.AddComponent<Heart::MeshComponent>();
         //entity.GetComponent<Heart::MeshComponent>().Mesh = Heart::AssetManager::GetAssetUUID("DefaultCube.gltf", true);
         //entity.GetComponent<Heart::MeshComponent>().Mesh = Heart::AssetManager::GetAssetUUID("assets/meshes/Buggy/glTF/Buggy.gltf");
-
-        m_EnvironmentMaps.emplace_back(Heart::AssetManager::GetAssetUUID("assets/envmaps/GrandCanyon.hdr"));
-        //m_EnvironmentMaps.emplace_back(Heart::AssetManager::GetAssetUUID("assets/envmaps/IceLake.hdr"));
-        //m_EnvironmentMaps.emplace_back(Heart::AssetManager::GetAssetUUID("assets/envmaps/PopcornLobby.hdr"));
-        //m_EnvironmentMaps.emplace_back(Heart::AssetManager::GetAssetUUID("assets/envmaps/Factory.hdr"));
-        //m_EnvironmentMaps.emplace_back(Heart::AssetManager::GetAssetUUID("assets/envmaps/Bridge.hdr"));
     }
 
     EditorLayer::~EditorLayer()
     {
-        
+
     }
 
     void EditorLayer::OnAttach()
@@ -48,18 +45,16 @@ namespace HeartEditor
 
         SubscribeToEmitter(&EditorApp::Get().GetWindow());
 
-        m_SceneRenderer = Heart::CreateScope<Heart::SceneRenderer>();
-
-        auto loadTimer = Heart::Timer("Environment map generation");
-        for (auto& map : m_EnvironmentMaps)
-        {
-            map.Initialize();
-            map.Recalculate();
-        }
-
-        m_Widgets.MaterialEditor.Initialize();
-
         HE_CLIENT_LOG_INFO("Editor attached");
+    }
+
+    void EditorLayer::OnDetach()
+    {
+        UnsubscribeFromEmitter(&EditorApp::Get().GetWindow());
+
+        m_Widgets.MaterialEditor.Reset();
+
+        HE_CLIENT_LOG_INFO("Editor detached");
     }
 
     void EditorLayer::OnUpdate(Heart::Timestep ts)
@@ -74,8 +69,7 @@ namespace HeartEditor
             m_ActiveScene.get(),
             *m_EditorCamera,
             m_EditorCamera->GetPosition(),
-            true,
-            &m_EnvironmentMaps[0]
+            true
         );
     }
 
@@ -146,8 +140,55 @@ namespace HeartEditor
 
         if (m_Widgets.MainMenuBar.IsWindowOpen("Settings"))
         {
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 5.0f));
             ImGui::Begin("Settings", m_Widgets.MainMenuBar.GetWindowOpenRef("Settings"));
+
+            ImGui::Text("Project Path:");
+            ImGui::SameLine();
+            ImGui::BeginDisabled();
+            ImGui::InputText("##ProjPath", (char*)Heart::AssetManager::GetAssetsDirectory().c_str(), Heart::AssetManager::GetAssetsDirectory().size(), ImGuiInputTextFlags_ReadOnly);
+            ImGui::EndDisabled();
+            ImGui::SameLine();
+            if (ImGui::Button("...##ProjPathSelect"))
+            {
+                std::string path = Heart::FilesystemUtils::OpenFolderDialog("", "Select Project Directory");
+                if (!path.empty())
+                {
+                    // Unload the scene
+                    m_ActiveScene = Heart::CreateRef<Heart::Scene>();
+
+                    // Call switch on the app
+                    EditorApp::Get().SwitchAssetsDirectory(path);
+                }
+            }
+
             ImGui::End();
+            ImGui::PopStyleVar();
+        }
+
+        if (m_Widgets.MainMenuBar.IsWindowOpen("Scene Settings"))
+        {
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 5.0f));
+            ImGui::Begin("Scene Settings", m_Widgets.MainMenuBar.GetWindowOpenRef("Scene Settings"));
+
+            Heart::UUID mapId = m_ActiveScene->GetEnvironmentMap() ? m_ActiveScene->GetEnvironmentMap()->GetMapAsset() : 0;
+            ImGui::Text("Environment map:");
+            ImGui::SameLine();
+            Heart::ImGuiUtils::AssetPicker(
+                Heart::Asset::Type::Texture,
+                mapId,
+                "NULL",
+                "EnvMapSelect",
+                m_EnvMapTextFilter,
+                nullptr,
+                [&](Heart::UUID selected)
+                {
+                    m_ActiveScene->SetEnvironmentMap(selected);
+                }
+            );
+
+            ImGui::End();
+            ImGui::PopStyleVar();
         }
 
         if (m_Widgets.MainMenuBar.IsWindowOpen("Debug Info"))
@@ -166,7 +207,7 @@ namespace HeartEditor
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 5.0f));
             ImGui::Begin("Material Editor", m_Widgets.MainMenuBar.GetWindowOpenRef("Material Editor"), m_Widgets.MainMenuBar.IsWindowDirty("Material Editor") ? ImGuiWindowFlags_UnsavedDocument : 0);
 
-            m_Widgets.MaterialEditor.OnImGuiRender(&m_EnvironmentMaps[0], m_SelectedMaterial, m_Widgets.MainMenuBar.GetWindowDirtyRef("Material Editor"));
+            m_Widgets.MaterialEditor.OnImGuiRender(m_SelectedMaterial, m_Widgets.MainMenuBar.GetWindowDirtyRef("Material Editor"));
 
             ImGui::End();
             ImGui::PopStyleVar();
@@ -353,20 +394,6 @@ namespace HeartEditor
             ImGui::EndTooltip();
             ImGui::PopStyleVar();
         }
-    }
-
-    void EditorLayer::OnDetach()
-    {
-        UnsubscribeFromEmitter(&EditorApp::Get().GetWindow());
-        
-        m_SceneRenderer.reset();
-
-        for (auto& map : m_EnvironmentMaps)
-            map.Shutdown();
-
-        m_Widgets.MaterialEditor.Shutdown();
-
-        HE_CLIENT_LOG_INFO("Editor detached");
     }
 
     void EditorLayer::OnEvent(Heart::Event& event)

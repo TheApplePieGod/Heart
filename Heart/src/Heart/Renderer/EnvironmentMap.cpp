@@ -1,6 +1,7 @@
 #include "htpch.h"
 #include "EnvironmentMap.h"
 
+#include "Heart/Core/App.h"
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/TextureAsset.h"
 #include "Heart/Asset/MeshAsset.h"
@@ -8,13 +9,50 @@
 #include "Heart/Renderer/Renderer.h"
 #include "Heart/Core/Camera.h"
 #include "Heart/Core/Window.h"
+#include "Heart/Core/Timing.h"
 
 namespace Heart
 {
-    
+    EnvironmentMap::EnvironmentMap(UUID mapAsset)
+        : m_MapAsset(mapAsset)
+    {
+        SubscribeToEmitter(&App::Get());
+        Initialize();
+    }
 
+    EnvironmentMap::~EnvironmentMap()
+    {
+        UnsubscribeFromEmitter(&App::Get());
+        Shutdown();
+    }
+
+    void EnvironmentMap::OnEvent(Event& event)
+    {
+        event.Map<AppGraphicsInitEvent>(HE_BIND_EVENT_FN(EnvironmentMap::OnAppGraphicsInit));
+        event.Map<AppGraphicsShutdownEvent>(HE_BIND_EVENT_FN(EnvironmentMap::OnAppGraphicsShutdown));
+    }
+
+    bool EnvironmentMap::OnAppGraphicsInit(AppGraphicsInitEvent& event)
+    {
+        if (!m_Initialized)
+        {
+            Initialize();
+            if (m_MapAsset)
+                Recalculate();
+        }
+        return false;
+    }
+
+    bool EnvironmentMap::OnAppGraphicsShutdown(AppGraphicsShutdownEvent& event)
+    {
+        Shutdown();
+        return false;
+    }
+    
     void EnvironmentMap::Initialize()
     {
+        m_Initialized = true;
+
         // Create texture & cubemap targets
         m_EnvironmentMap = Texture::Create({ 512, 512, 4, true, 6, 0 });
         m_IrradianceMap = Texture::Create({ 256, 256, 4, true, 6, 1 });
@@ -199,6 +237,8 @@ namespace Heart
 
     void EnvironmentMap::Shutdown()
     {
+        m_Initialized = false;
+
         m_EnvironmentMap.reset();
         m_IrradianceMap.reset();
         m_PrefilterMap.reset();
@@ -217,6 +257,8 @@ namespace Heart
 
     void EnvironmentMap::Recalculate()
     {
+        auto loadTimer = Timer("Environment map generation");
+
         // Retrieve the basic cube mesh
         auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>("DefaultCube.gltf", true);
         auto& meshData = meshAsset->GetSubmesh(0);

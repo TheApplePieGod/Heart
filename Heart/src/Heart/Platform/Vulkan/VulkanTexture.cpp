@@ -19,20 +19,30 @@ namespace Heart
 
     VulkanTexture::~VulkanTexture()
     {
-        VulkanDevice& device = VulkanContext::GetDevice();
-        VulkanContext::Sync();
+        // Copy required variables for lambda
+        auto sampler = m_Sampler;
+        auto imGuiHandles = m_LayerImGuiHandles;
+        auto layerViews = m_LayerViews;
+        auto imageView = m_ImageView;
+        auto image = m_Image;
+        auto imageMemory = m_ImageMemory;
 
-        vkDestroySampler(device.Device(), m_Sampler, nullptr);
+        VulkanContext::PushDeleteQueue([=]()
+        {
+            VulkanDevice& device = VulkanContext::GetDevice();
 
-        for (auto handle : m_LayerImGuiHandles)
-            ImGui_ImplVulkan_RemoveTexture(handle);
+            vkDestroySampler(device.Device(), sampler, nullptr);
 
-        for (auto view : m_LayerViews)
-            vkDestroyImageView(device.Device(), view, nullptr);
+            for (auto handle : imGuiHandles)
+                ImGui_ImplVulkan_RemoveTexture(handle);
 
-        vkDestroyImageView(device.Device(), m_ImageView, nullptr);
-        vkDestroyImage(device.Device(), m_Image, nullptr);
-        vkFreeMemory(device.Device(), m_ImageMemory, nullptr);
+            for (auto view : layerViews)
+                vkDestroyImageView(device.Device(), view, nullptr);
+
+            vkDestroyImageView(device.Device(), imageView, nullptr);
+            vkDestroyImage(device.Device(), image, nullptr);
+            vkFreeMemory(device.Device(), imageMemory, nullptr);
+        });
     }
 
     void VulkanTexture::RegenerateMipMaps()

@@ -21,7 +21,8 @@ namespace Widgets
         m_WindowStatuses["Content Browser"] = { true, false };
         m_WindowStatuses["Properties Panel"] = { true, false };
         m_WindowStatuses["Scene Hierarchy"] = { true, false };
-        m_WindowStatuses["Settings"] = { true, false };
+        m_WindowStatuses["Settings"] = { false, false };
+        m_WindowStatuses["Scene Settings"] = { true, false };
         m_WindowStatuses["Debug Info"] = { true, false };
         m_WindowStatuses["Material Editor"] = { false, false };
     }

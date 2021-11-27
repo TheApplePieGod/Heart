@@ -5,6 +5,7 @@ namespace Heart
     enum class EventType
     {
         None = 0,
+        AppGraphicsShutdown, AppGraphicsInit,
         WindowResize, WindowClose,
         Key, KeyPressed, KeyReleased,
         MouseButton, MouseButtonPressed, MouseButtonReleased

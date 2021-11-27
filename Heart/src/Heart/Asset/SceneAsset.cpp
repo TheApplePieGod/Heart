@@ -100,6 +100,8 @@ namespace Heart
         // parse settings
         {
             auto& field = j["settings"];
+            if (field.contains("environmentMap"))
+                scene->SetEnvironmentMap(AssetManager::RegisterAsset(Asset::Type::Texture, field["environmentMap"]["path"], false, field["environmentMap"]["engineResource"]));
         }
 
         delete[] data;
@@ -164,6 +166,8 @@ namespace Heart
         // settings
         {
             auto& field = j["settings"];
+            field["environmentMap"]["path"] = scene->GetEnvironmentMap() ? AssetManager::GetPathFromUUID(scene->GetEnvironmentMap()->GetMapAsset()) : "";
+            field["environmentMap"]["engineResource"] = scene->GetEnvironmentMap() ? AssetManager::IsAssetAnEngineResource(scene->GetEnvironmentMap()->GetMapAsset()) : false;
         }
 
         std::ofstream file(path);

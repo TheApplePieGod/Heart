@@ -8,13 +8,15 @@
 #include "Heart/Renderer/Material.h"
 #include "Heart/Renderer/EnvironmentMap.h"
 #include "Heart/Core/Camera.h"
+#include "Heart/Events/EventEmitter.h"
+#include "Heart/Events/AppEvents.h"
 #include "glm/vec2.hpp"
 #include "glm/vec3.hpp"
 #include "glm/mat4x4.hpp"
 
 namespace Heart
 {
-    class SceneRenderer
+    class SceneRenderer : public EventListener
     {
     public:
         struct FrameData
@@ -37,7 +39,9 @@ namespace Heart
         SceneRenderer();
         ~SceneRenderer();
 
-        void RenderScene(GraphicsContext& context, Scene* scene, const Camera& camera, glm::vec3 cameraPosition, bool drawGrid, EnvironmentMap* envMap = nullptr);
+        void RenderScene(GraphicsContext& context, Scene* scene, const Camera& camera, glm::vec3 cameraPosition, bool drawGrid);
+
+        void OnEvent(Event& event) override;
 
         inline Framebuffer& GetFinalFramebuffer() { return *m_FinalFramebuffer; }
 
@@ -55,6 +59,9 @@ namespace Heart
         };
 
     private:
+        void Initialize();
+        void Shutdown();
+
         void RenderEnvironmentMap();
         void RenderGrid();
         void RenderOpaque();
@@ -63,7 +70,12 @@ namespace Heart
 
         void InitializeGridBuffers();
 
+        bool OnAppGraphicsInit(AppGraphicsInitEvent& event);
+        bool OnAppGraphicsShutdown(AppGraphicsShutdownEvent& event);
+
     private:
+        bool m_Initialized = false;
+
         Ref<Texture> m_DefaultEnvironmentMap;
         Ref<Framebuffer> m_FinalFramebuffer;
         Ref<Buffer> m_FrameDataBuffer;

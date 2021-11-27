@@ -17,6 +17,7 @@ namespace Heart
     VkCommandPool VulkanContext::s_TransferPool;
     VulkanFramebuffer* VulkanContext::s_BoundFramebuffer = nullptr;
     VkSampler VulkanContext::s_DefaultSampler;
+    std::deque<std::function<void()>> VulkanContext::s_DeleteQueue;
 
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
         VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -71,7 +72,9 @@ namespace Heart
     VulkanContext::~VulkanContext()
     {
         HE_ENGINE_LOG_TRACE("VULKAN: Destroying context");
-        vkDeviceWaitIdle(s_VulkanDevice.Device());
+        Sync();
+
+        ProcessDeleteQueue();
 
         m_VulkanSwapChain.Shutdown();
 
@@ -266,7 +269,10 @@ namespace Heart
 
     void VulkanContext::ShutdownImGui()
     {
-        vkDeviceWaitIdle(s_VulkanDevice.Device());
+        Sync();
+
+        ProcessDeleteQueue();
+
         ImGui_ImplVulkan_Shutdown();
     }
 
@@ -288,6 +294,8 @@ namespace Heart
     {
         HE_PROFILE_FUNCTION();
 
+        ProcessDeleteQueue();
+
         m_VulkanSwapChain.BeginFrame();
     }
 
@@ -298,6 +306,20 @@ namespace Heart
         
         m_VulkanSwapChain.EndFrame();
         s_BoundFramebuffer = nullptr;
+    }
+
+    void VulkanContext::ProcessDeleteQueue()
+    {
+        if (!s_DeleteQueue.empty())
+        {
+            Sync();
+
+            // Reverse iterate (FIFO)
+		    for (auto it = s_DeleteQueue.rbegin(); it != s_DeleteQueue.rend(); it++)
+			    (*it)(); // Call the function
+
+            s_DeleteQueue.clear();
+		}
     }
 
     std::vector<const char*> VulkanContext::ConfigureValidationLayers()

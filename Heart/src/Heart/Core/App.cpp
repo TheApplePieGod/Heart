@@ -52,6 +52,11 @@ namespace Heart
         m_SwitchingApi = type;
     }
     
+    void App::SwitchAssetsDirectory(const std::string& newDirectory)
+    {
+        m_SwitchingAssetsDirectory = newDirectory;
+    }
+
     void App::InitializeGraphicsApi(RenderApi::Type type, const WindowSettings& windowSettings)
     {
         Renderer::Initialize(type);
@@ -60,7 +65,10 @@ namespace Heart
         SubscribeToEmitter(&GetWindow());
         Window::SetMainWindow(m_Window);
 
-        m_ImGuiInstance.Initialize();
+        m_ImGuiInstance = CreateRef<ImGuiInstance>(m_Window);
+
+        AppGraphicsInitEvent event;
+        Emit(event);
     }
 
     void App::ShutdownGraphicsApi()
@@ -69,12 +77,15 @@ namespace Heart
             layer->OnDetach();
 
         UnsubscribeFromEmitter(&GetWindow());
-        Window::SetMainWindow(nullptr);
 
-        m_ImGuiInstance.Shutdown();
+        AppGraphicsShutdownEvent event;
+        Emit(event);
+
+        m_ImGuiInstance.reset();
 
         Renderer::Shutdown();
 
+        Window::SetMainWindow(nullptr);
         m_Window.reset();
     }
 
@@ -131,6 +142,21 @@ namespace Heart
         }
     }
 
+    void App::CheckForAssetsDirectorySwitch()
+    {
+        if (m_SwitchingAssetsDirectory != "")
+        {
+            AssetManager::UpdateAssetsDirectory(m_SwitchingAssetsDirectory);
+            
+            // TEMPORARY SOLUTION
+            // Until we have dedicated projects and I figure out what exactly needs to happen when
+            // the assets directory changes, force a full reload on the graphics backend
+            m_SwitchingApi = Renderer::GetApiType();
+
+            m_SwitchingAssetsDirectory = "";
+        }
+    }
+
     void App::Close()
     {
         m_Running = false;
@@ -171,14 +197,15 @@ namespace Heart
                 layer->OnUpdate(m_LastTimestep);
 
             // ImGui render
-            m_ImGuiInstance.BeginFrame();
+            m_ImGuiInstance->BeginFrame();
             for (auto layer : m_Layers)
                 layer->OnImGuiRender();
-            m_ImGuiInstance.EndFrame();
+            m_ImGuiInstance->EndFrame();
 
             m_Window->EndFrame();
             m_FrameCount++;
 
+            CheckForAssetsDirectorySwitch();
             CheckForGraphicsApiSwitch();
             AggregateTimer::ResetAggregateTimes();
         }

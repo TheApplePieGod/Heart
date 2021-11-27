@@ -4,6 +4,8 @@
 #include "Heart/Renderer/Texture.h"
 #include "Heart/Renderer/Framebuffer.h"
 #include "Heart/Renderer/Buffer.h"
+#include "Heart/Events/EventEmitter.h"
+#include "Heart/Events/AppEvents.h"
 
 #include "glm/mat4x4.hpp"
 #include "glm/vec4.hpp"
@@ -11,22 +13,21 @@
 
 namespace Heart
 {
-    class EnvironmentMap
+    class EnvironmentMap : public EventListener
     {
     public:
-        EnvironmentMap::EnvironmentMap(UUID mapAsset)
-        : m_MapAsset(mapAsset)
-        {}
-
-        void Initialize();
-        void Shutdown();
+        EnvironmentMap(UUID mapAsset);
+        ~EnvironmentMap();
 
         void Recalculate();
         inline void UpdateMapAsset(UUID asset) { m_MapAsset = asset; }
+        inline UUID GetMapAsset() const { return m_MapAsset; }
         inline Texture* GetEnvironmentCubemap() { return m_EnvironmentMap.get(); }
         inline Texture* GetIrradianceCubemap() { return m_IrradianceMap.get(); }
         inline Texture* GetPrefilterCubemap() { return m_PrefilterMap.get(); }
         inline Texture* GetBRDFTexture() { return m_BRDFTexture.get(); }
+
+        void OnEvent(Event& event) override;
 
     private:
         struct CubemapData
@@ -37,8 +38,15 @@ namespace Heart
         };
 
     private:
+        void Initialize();
+        void Shutdown();
+        bool OnAppGraphicsInit(AppGraphicsInitEvent& event);
+        bool OnAppGraphicsShutdown(AppGraphicsShutdownEvent& event);
+
+    private:
         UUID m_MapAsset;
-    
+        bool m_Initialized = false;
+
         Ref<Texture> m_EnvironmentMap;
         Ref<Texture> m_IrradianceMap;
         Ref<Texture> m_PrefilterMap;

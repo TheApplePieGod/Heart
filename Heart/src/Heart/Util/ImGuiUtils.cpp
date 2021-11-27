@@ -6,7 +6,7 @@
 
 namespace Heart
 {
-    void ImGuiUtils::ResizableWindowSplitter(glm::vec2& storedWindowSizes, glm::vec2 minWindowSize, bool isHorizontal, float splitterThickness, float windowSpacing, bool splitterDisable, std::function<void()> window1Contents, std::function<void()> window2Contents)
+    void ImGuiUtils::ResizableWindowSplitter(glm::vec2& storedWindowSizes, glm::vec2 minWindowSize, bool isHorizontal, float splitterThickness, float windowSpacing, bool splitterDisable, std::function<void()>&& window1Contents, std::function<void()>&& window2Contents)
     {
         f32 availableWidth = ImGui::GetWindowContentRegionMax().x - ImGui::GetWindowContentRegionMin().x;
         f32 availableHeight = ImGui::GetContentRegionAvail().y;
@@ -60,13 +60,15 @@ namespace Heart
         ImGui::PopStyleVar();
     }
 
-    void ImGuiUtils::AssetPicker(Asset::Type assetType, UUID selectedAsset, const std::string& nullSelectionText, const std::string& widgetId, ImGuiTextFilter& textFilter, std::function<void()> contextMenuCallback, std::function<void(UUID)> selectCallback)
+    void ImGuiUtils::AssetPicker(Asset::Type assetType, UUID selectedAsset, const std::string& nullSelectionText, const std::string& widgetId, ImGuiTextFilter& textFilter, std::function<void()>&& contextMenuCallback, std::function<void(UUID)>&& selectCallback)
     {
         const auto& UUIDRegistry = AssetManager::GetUUIDRegistry();
 
+        bool valid = selectedAsset && UUIDRegistry.find(selectedAsset) != UUIDRegistry.end();
+
         std::string buttonNullSelection = nullSelectionText + "##" + widgetId;
         std::string popupName = widgetId + "SP";
-        bool popupOpened = ImGui::Button(selectedAsset ? UUIDRegistry.at(selectedAsset).Path.c_str() : buttonNullSelection.c_str());
+        bool popupOpened = ImGui::Button(valid ? UUIDRegistry.at(selectedAsset).Path.c_str() : buttonNullSelection.c_str());
         if (popupOpened)
             ImGui::OpenPopup(popupName.c_str());
         

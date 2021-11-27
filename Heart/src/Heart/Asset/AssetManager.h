@@ -38,6 +38,7 @@ namespace Heart
         static void RegisterAssetsInDirectory(const std::filesystem::path& directory, bool persistent = false, bool isResource = false);
 
         static void RenameAsset(const std::string& oldPath, const std::string& newPath);
+        static void UpdateAssetsDirectory(const std::string& directory);
 
         static Asset::Type DeduceAssetTypeFromFile(const std::string& path);
 

@@ -140,6 +140,10 @@ namespace Heart
         if (oldUUID != 0)
             return oldUUID;
 
+        // Only register if the path exists (resources are assumed to exist)
+        if (!isResource && !std::filesystem::exists(GetAbsolutePath(path)))
+            return 0;
+
         UUID newUUID = UUID();
         if (isResource)
         {
@@ -212,6 +216,27 @@ namespace Heart
 
         // change asset paths
         s_Registry[newPath].Asset->UpdatePath(newPath, GetAbsolutePath(newPath));
+    }
+
+    void AssetManager::UpdateAssetsDirectory(const std::string& directory)
+    {
+        UnloadAllAssets();
+        s_AssetsDirectory = directory;
+
+        // clear all the regisitered assets
+        s_Registry.clear();
+
+        // remove all UUID entries that aren't resources
+        for (auto it = std::begin(s_UUIDs); it != std::end(s_UUIDs);)
+        {
+            if (!it->second.IsResource)
+                it = s_UUIDs.erase(it);
+            else
+                it++;
+        }
+
+        // scan the new directory
+        RegisterAssetsInDirectory(directory, false, false);
     }
 
     Asset::Type AssetManager::DeduceAssetTypeFromFile(const std::string& path)

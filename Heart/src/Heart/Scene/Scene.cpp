@@ -13,7 +13,7 @@ namespace Heart
 
     Scene::~Scene()
     {
-        
+
     }
 
     Entity Scene::CreateEntity(const std::string& name)
@@ -192,6 +192,20 @@ namespace Heart
     void Scene::ClearScene()
     {
         m_Registry.clear();
+    }
+
+    void Scene::SetEnvironmentMap(UUID mapAsset)
+    {
+        if (!mapAsset)
+            m_EnvironmentMap.reset();
+        else
+        {
+            if (m_EnvironmentMap)
+                m_EnvironmentMap->UpdateMapAsset(mapAsset);
+            else
+                m_EnvironmentMap = CreateRef<EnvironmentMap>(mapAsset);
+            m_EnvironmentMap->Recalculate();
+        }
     }
 
     Entity Scene::GetEntityFromUUID(UUID uuid)

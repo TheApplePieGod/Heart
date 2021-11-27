@@ -24,10 +24,7 @@ namespace Heart
 
     void EventEmitter::Emit(Event& event)
     {
-        //HT_ENGINE_LOG_TRACE("Emitting events");
         for (auto listener : m_Subscribers)
-        {
             listener->OnEvent(event);
-        }
     }
 }

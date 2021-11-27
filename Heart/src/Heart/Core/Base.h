@@ -25,6 +25,7 @@ typedef uint32_t u32;
 typedef uint64_t u64;
 typedef float_t f32;
 typedef double_t d64;
+typedef wchar_t wchar;
 
 #define HE_ENUM_TO_STRING(class, value) class::TypeStrings[static_cast<u16>(value)]
 #define HE_EXPAND_ARGS(args) args

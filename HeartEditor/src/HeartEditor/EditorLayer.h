@@ -60,7 +60,6 @@ namespace HeartEditor
         Heart::Ref<Heart::Scene> m_ActiveScene;
         Heart::Scope<Heart::SceneRenderer> m_SceneRenderer;
         Heart::Scope<EditorCamera> m_EditorCamera;
-        std::vector<Heart::EnvironmentMap> m_EnvironmentMaps;
         glm::vec2 m_ViewportMousePos; // mouse position relative to the viewport window
         glm::vec2 m_ViewportSize;
         bool m_ViewportInput = false;
@@ -69,5 +68,7 @@ namespace HeartEditor
         ImGuizmo::MODE m_GizmoMode = ImGuizmo::MODE::LOCAL;
         ImGuizmo::OPERATION m_GizmoOperation = ImGuizmo::OPERATION::TRANSLATE;
         Heart::UUID m_SelectedMaterial = 0;
+
+        ImGuiTextFilter m_EnvMapTextFilter;
     };
 }

@@ -37,12 +37,12 @@ namespace Heart
     public:
         virtual void OnEvent(Event& event) = 0;
 
-        inline void SubscribeToEmitter(EventEmitter* emitter) { emitter->Subscribe(this); }
+        inline void SubscribeToEmitter(EventEmitter* emitter) { if (emitter) emitter->Subscribe(this); }
 
         // DO NOT CALL THIS INSIDE THE BODY OF AN EVENT CALLBACK
-        inline void UnsubscribeFromEmitter(EventEmitter* emitter) { emitter->Unsubscribe(this); }
+        inline void UnsubscribeFromEmitter(EventEmitter* emitter) { if (emitter) emitter->Unsubscribe(this); }
         
-        inline bool IsSubscribedToEmitter(EventEmitter* emitter) { return emitter->IsSubscribed(this); }
+        inline bool IsSubscribedToEmitter(EventEmitter* emitter) { return emitter && emitter->IsSubscribed(this); }
 
     private:
 

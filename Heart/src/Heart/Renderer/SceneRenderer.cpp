@@ -16,6 +16,39 @@ namespace Heart
 {
     SceneRenderer::SceneRenderer()
     {
+        SubscribeToEmitter(&App::Get());
+        Initialize();
+    }
+
+    SceneRenderer::~SceneRenderer()
+    {
+        UnsubscribeFromEmitter(&App::Get());
+        Shutdown();
+    }
+
+    void SceneRenderer::OnEvent(Event& event)
+    {
+        event.Map<AppGraphicsInitEvent>(HE_BIND_EVENT_FN(SceneRenderer::OnAppGraphicsInit));
+        event.Map<AppGraphicsShutdownEvent>(HE_BIND_EVENT_FN(SceneRenderer::OnAppGraphicsShutdown));
+    }
+
+    bool SceneRenderer::OnAppGraphicsInit(AppGraphicsInitEvent& event)
+    {
+        if (!m_Initialized)
+            Initialize();
+        return false;
+    }
+
+    bool SceneRenderer::OnAppGraphicsShutdown(AppGraphicsShutdownEvent& event)
+    {
+        Shutdown();
+        return false;
+    }
+
+    void SceneRenderer::Initialize()
+    {
+        m_Initialized = true;
+
         // Create default environment map cubemap object
         m_DefaultEnvironmentMap = Texture::Create({ 512, 512, 4, false, 6, 5 });
 
@@ -142,19 +175,28 @@ namespace Heart
         m_FinalFramebuffer->RegisterGraphicsPipeline("tpComposite", transparencyCompositePipeline);
     }
 
-    SceneRenderer::~SceneRenderer()
+    void SceneRenderer::Shutdown()
     {
-        
+        m_Initialized = false;
+
+        m_DefaultEnvironmentMap.reset();
+        m_FinalFramebuffer.reset();
+        m_FrameDataBuffer.reset();
+        m_ObjectDataBuffer.reset();
+        m_MaterialDataBuffer.reset();
+
+        m_GridVertices.reset();
+        m_GridIndices.reset();
     }
 
-    void SceneRenderer::RenderScene(GraphicsContext& context, Scene* scene, const Camera& camera, glm::vec3 cameraPosition, bool drawGrid, EnvironmentMap* envMap)
+    void SceneRenderer::RenderScene(GraphicsContext& context, Scene* scene, const Camera& camera, glm::vec3 cameraPosition, bool drawGrid)
     {
         HE_PROFILE_FUNCTION();
         HE_ENGINE_ASSERT(scene, "Scene cannot be nullptr");
 
         // Reset in-flight frame data
         m_Scene = scene;
-        m_EnvironmentMap = envMap;
+        m_EnvironmentMap = scene->GetEnvironmentMap();
         m_ObjectDataOffset = 0;
         m_MaterialDataOffset = 0;
         m_TranslucentMeshes.clear();

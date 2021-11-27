@@ -18,7 +18,9 @@ namespace Widgets
 {
     MaterialEditor::MaterialEditor()
     {
+        m_SceneRenderer = Heart::CreateScope<Heart::SceneRenderer>();
         m_Scene = Heart::CreateRef<Heart::Scene>();
+        m_Scene->SetEnvironmentMap(Heart::AssetManager::GetAssetUUID("DefaultEnvironmentMap.hdr", true));
 
         m_DemoEntity = m_Scene->CreateEntity("Demo Entity");
         m_DemoEntity.AddComponent<Heart::MeshComponent>();
@@ -29,18 +31,12 @@ namespace Widgets
         m_SceneCameraPosition = -m_SceneCamera.GetForwardVector() * m_Radius;
     }
 
-    void MaterialEditor::Initialize()
+    void MaterialEditor::Reset()
     {
-        m_SceneRenderer = Heart::CreateScope<Heart::SceneRenderer>();
-    }
-
-    void MaterialEditor::Shutdown()
-    {
-        m_SceneRenderer.reset();
         m_FirstRender = true;
     }
 
-    void MaterialEditor::OnImGuiRender(Heart::EnvironmentMap* envMap, Heart::UUID& selectedMaterial, bool* dirty)
+    void MaterialEditor::OnImGuiRender(Heart::UUID& selectedMaterial, bool* dirty)
     {
         HE_PROFILE_FUNCTION();
         
@@ -64,8 +60,7 @@ namespace Widgets
                 m_Scene.get(),
                 m_SceneCamera,
                 m_SceneCameraPosition,
-                false,
-                envMap
+                false
             );
         }
 
