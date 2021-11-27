@@ -72,7 +72,7 @@ namespace Heart
         vkCmdSetLineWidth(VulkanContext::GetBoundFramebuffer()->GetCommandBuffer(), width);
     }
 
-    void VulkanRenderApi::DrawIndexed(u32 indexCount, u32 vertexCount, u32 indexOffset, u32 vertexOffset, u32 instanceCount)
+    void VulkanRenderApi::DrawIndexed(u32 indexCount, u32 indexOffset, u32 vertexOffset, u32 instanceCount)
     {
         HE_PROFILE_FUNCTION();
         auto timer = AggregateTimer("VulkanRenderApi::DrawIndexed");
@@ -88,6 +88,21 @@ namespace Heart
 
         HE_ENGINE_ASSERT(VulkanContext::GetBoundFramebuffer()->CanDraw(), "Framebuffer is not ready to draw (did you bind & flush all of your shader resources?)");
         vkCmdDraw(VulkanContext::GetBoundFramebuffer()->GetCommandBuffer(), vertexCount, instanceCount, vertexOffset, 0);
+    }
+
+    void VulkanRenderApi::DrawIndexedIndirect(Buffer* indirectBuffer, u32 commandOffset, u32 drawCount)
+    {
+        HE_PROFILE_FUNCTION();
+        auto timer = AggregateTimer("VulkanRenderApi::DrawIndexedIndirect");
+        
+        // TODO: use vkCmdDrawIndexedIndirectCount
+        vkCmdDrawIndexedIndirect(
+            VulkanContext::GetBoundFramebuffer()->GetCommandBuffer(),
+            ((VulkanBuffer*)indirectBuffer)->GetBuffer(),
+            commandOffset * indirectBuffer->GetLayout().GetStride(),
+            drawCount,
+            indirectBuffer->GetLayout().GetStride()
+        );
     }
 
     void VulkanRenderApi::RenderFramebuffers(GraphicsContext& _context, const std::vector<Framebuffer*>& framebuffers)

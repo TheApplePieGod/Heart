@@ -463,7 +463,7 @@ namespace Heart
         if (!descriptorSet.DoesBindingExist(bindingIndex))
             return; // silently ignore, TODO: warning once in the console when this happens
 
-        if (useOffset && (resourceType == ShaderResourceType::UniformBuffer || resourceType == ShaderResourceType::StorageBuffer))
+        if (useOffset && descriptorSet.IsBindingDynamic(bindingIndex))
             descriptorSet.UpdateDynamicOffset(bindingIndex, offset);
 
         // update the descriptor set binding information

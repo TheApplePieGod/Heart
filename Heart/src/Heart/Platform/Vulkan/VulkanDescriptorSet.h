@@ -12,7 +12,7 @@ namespace Heart
     class VulkanDescriptorSet
     {
     public:
-        void Initialize(const std::vector<ReflectionDataElement>& reflectionData);
+        void Initialize(const std::vector<ReflectionDataElement>& reflectionData, const ShaderPreprocessData& preprocessData);
         void Shutdown();
 
         void UpdateShaderResource(u32 bindingIndex, ShaderResourceType resourceType, void* resource, bool useOffset, u32 offset); // offset used for image
@@ -20,9 +20,10 @@ namespace Heart
 
         inline VkDescriptorSetLayout GetLayout() const { return m_DescriptorSetLayout; };
         inline VkDescriptorSet GetMostRecentDescriptorSet() const { return m_MostRecentDescriptorSet; }
-        inline void UpdateDynamicOffset(u32 bindingIndex, u32 offset) { m_DynamicOffsets[m_OffsetMappings[bindingIndex]] = offset; }
+        inline void UpdateDynamicOffset(u32 bindingIndex, u32 offset) { m_DynamicOffsets[m_Bindings[bindingIndex].OffsetIndex] = offset; }
         inline const std::vector<u32>& GetDynamicOffsets() const { return m_DynamicOffsets; }
-        inline bool DoesBindingExist(u32 bindingIndex) const { return m_DescriptorWriteMappings.find(bindingIndex) != m_DescriptorWriteMappings.end(); }
+        inline bool DoesBindingExist(u32 bindingIndex) const { return bindingIndex < m_Bindings.size(); }
+        inline bool IsBindingDynamic(u32 bindingIndex) const { return m_Bindings[bindingIndex].IsDynamic; };
         inline bool CanFlush() const { return m_WritesReadyCount == m_CachedDescriptorWrites.size(); }
 
     private:
@@ -30,6 +31,12 @@ namespace Heart
         {
             void* Resource;
             u32 Offset;
+        };
+        struct BindingData
+        {
+            size_t DescriptorWriteMapping;
+            bool IsDynamic;
+            size_t OffsetIndex;
         };
 
     private:
@@ -53,19 +60,16 @@ namespace Heart
         std::vector<VkWriteDescriptorSet> m_CachedDescriptorWrites;
         std::array<VkDescriptorBufferInfo, MAX_UNIQUE_DESCRIPTORS> m_CachedBufferInfos;
         std::array<VkDescriptorImageInfo, MAX_DESCRIPTOR_ARRAY_COUNT * MAX_UNIQUE_DESCRIPTORS> m_CachedImageInfos;
-        std::unordered_map<u32, size_t> m_DescriptorWriteMappings;
         std::unordered_map<size_t, VkDescriptorSet> m_CachedDescriptorSets;
 
-        u32 m_FrameDataRegistryId;
         u64 m_LastResetFrame = 0;
         u32 m_InFlightFrameIndex = 0;
         size_t m_WritesReadyCount = 0;
         size_t m_AvailableSetIndex = 0;
         size_t m_AvailablePoolIndex = 0;
 
+        std::vector<BindingData> m_Bindings;
         std::unordered_map<u32, BoundResource> m_BoundResources;
-
         std::vector<u32> m_DynamicOffsets;
-        std::unordered_map<u32, size_t> m_OffsetMappings;
     };
 }

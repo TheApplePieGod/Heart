@@ -28,6 +28,11 @@ namespace Heart
         u32 ArrayCount;
     };
 
+    struct ShaderPreprocessData
+    {
+        std::vector<u32> DynamicBindings;
+    };
+
     class Shader
     {
     public:
@@ -46,6 +51,7 @@ namespace Heart
         virtual ~Shader() = default;
 
         inline const std::vector<ReflectionDataElement>& GetReflectionData() { return m_ReflectionData; }
+        inline const ShaderPreprocessData& GetPreprocessData() const { return m_PreprocessData; }
 
     public:
         static Ref<Shader> Create(const std::string& path, Type shaderType);
@@ -59,5 +65,6 @@ namespace Heart
         std::string m_Path;
         bool m_Loaded;
         std::vector<ReflectionDataElement> m_ReflectionData;
+        ShaderPreprocessData m_PreprocessData;
     };
 }

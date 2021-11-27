@@ -44,6 +44,11 @@ namespace Heart
                 m_ProgramReflectionData.push_back(fragData);
         }
 
+        // just insert all of the dynamic bindings
+        m_PreprocessData.DynamicBindings.clear();
+        m_PreprocessData.DynamicBindings.insert(m_PreprocessData.DynamicBindings.end(), vertShader->GetPreprocessData().DynamicBindings.begin(), vertShader->GetPreprocessData().DynamicBindings.end());
+        m_PreprocessData.DynamicBindings.insert(m_PreprocessData.DynamicBindings.end(), fragShader->GetPreprocessData().DynamicBindings.begin(), fragShader->GetPreprocessData().DynamicBindings.end());
+
         std::sort(m_ProgramReflectionData.begin(), m_ProgramReflectionData.end(), [](const ReflectionDataElement& a, const ReflectionDataElement& b)
         {
             return a.BindingIndex < b.BindingIndex;

@@ -531,15 +531,15 @@ namespace Heart
         return VK_FRONT_FACE_MAX_ENUM;
     }
 
-    VkDescriptorType VulkanCommon::ShaderResourceTypeToVulkan(ShaderResourceType type)
+    VkDescriptorType VulkanCommon::ShaderResourceTypeToVulkan(ShaderResourceType type, bool dynamic)
     {
         switch (type)
         {
             default:
             { HE_ENGINE_ASSERT(false, "Vulkan does not support specified ShaderResourceType"); } break;
             case ShaderResourceType::Texture: return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            case ShaderResourceType::UniformBuffer: return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-            case ShaderResourceType::StorageBuffer: return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
+            case ShaderResourceType::UniformBuffer: return dynamic ? VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC : VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            case ShaderResourceType::StorageBuffer: return dynamic ? VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC : VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
             case ShaderResourceType::SubpassInput: return VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
         }
 

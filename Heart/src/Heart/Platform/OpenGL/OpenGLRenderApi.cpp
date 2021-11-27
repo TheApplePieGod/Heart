@@ -62,7 +62,7 @@ namespace Heart
         glLineWidth(width);
     }
 
-    void OpenGLRenderApi::DrawIndexed(u32 indexCount, u32 vertexCount, u32 indexOffset, u32 vertexOffset, u32 instanceCount)
+    void OpenGLRenderApi::DrawIndexed(u32 indexCount, u32 indexOffset, u32 vertexOffset, u32 instanceCount)
     {
         HE_PROFILE_FUNCTION();
         auto timer = AggregateTimer("OpenGLRenderApi::DrawIndexed");

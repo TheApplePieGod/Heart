@@ -10,18 +10,25 @@
 
 namespace Heart
 {
-    void VulkanDescriptorSet::Initialize(const std::vector<ReflectionDataElement>& reflectionData)
+    void VulkanDescriptorSet::Initialize(const std::vector<ReflectionDataElement>& reflectionData, const ShaderPreprocessData& preprocessData)
     {
         VulkanDevice& device = VulkanContext::GetDevice();
 
-        // create the descriptor set layout and cache the associated poolsizes
+        // reflection data should give us sorted binding indexes so we can make some shortcuts here
+
+        // create the descriptor set layout and cache the associated pool sizes
         std::vector<VkDescriptorSetLayoutBinding> bindings;
         std::unordered_map<VkDescriptorType, u32> descriptorCounts;
         for (auto& element : reflectionData)
         {
+            BindingData bindingData{};
+
+            // use dynamic offsets if the preprocess directive #use_dynamic_offsets is specified
+            bindingData.IsDynamic = std::find(preprocessData.DynamicBindings.begin(), preprocessData.DynamicBindings.end(), element.BindingIndex) != preprocessData.DynamicBindings.end();
+
             VkDescriptorSetLayoutBinding binding{};
             binding.binding = element.BindingIndex;
-            binding.descriptorType = VulkanCommon::ShaderResourceTypeToVulkan(element.ResourceType);
+            binding.descriptorType = VulkanCommon::ShaderResourceTypeToVulkan(element.ResourceType, bindingData.IsDynamic);
             binding.descriptorCount = element.ArrayCount;
             binding.stageFlags = VulkanCommon::ShaderResourceAccessTypeToVulkan(element.AccessType);
             binding.pImmutableSamplers = nullptr;
@@ -37,15 +44,17 @@ namespace Heart
             descriptorWrite.descriptorType = binding.descriptorType;
             descriptorWrite.descriptorCount = element.ArrayCount;
 
-            m_DescriptorWriteMappings[element.BindingIndex] = m_CachedDescriptorWrites.size(); 
+            bindingData.DescriptorWriteMapping = m_CachedDescriptorWrites.size(); 
             m_CachedDescriptorWrites.emplace_back(descriptorWrite);
 
             // populate the dynamic offset info if applicable
-            if (element.ResourceType == ShaderResourceType::UniformBuffer || element.ResourceType == ShaderResourceType::StorageBuffer)
+            if (bindingData.IsDynamic && (element.ResourceType == ShaderResourceType::UniformBuffer || element.ResourceType == ShaderResourceType::StorageBuffer))
             {
-                m_OffsetMappings[element.BindingIndex] = m_DynamicOffsets.size();
+                bindingData.OffsetIndex = m_DynamicOffsets.size();
                 m_DynamicOffsets.emplace_back(0);
             }
+
+            m_Bindings.emplace_back(bindingData);
         }
 
         VkDescriptorSetLayoutCreateInfo layoutInfo{};
@@ -134,7 +143,10 @@ namespace Heart
 
                 m_CachedBufferInfos[bufferInfoBaseIndex].buffer = buffer->GetBuffer();
                 m_CachedBufferInfos[bufferInfoBaseIndex].offset = 0;
-                m_CachedBufferInfos[bufferInfoBaseIndex].range = buffer->GetLayout().GetStride(); //buffer.GetAllocatedSize(); // when using dynamic buffers, range is the stride rather than the whole size
+                if (m_Bindings[bindingIndex].IsDynamic)
+                    m_CachedBufferInfos[bufferInfoBaseIndex].range = buffer->GetLayout().GetStride(); // when using dynamic buffers, range is the stride rather than the whole size
+                else
+                    m_CachedBufferInfos[bufferInfoBaseIndex].range = buffer->GetAllocatedSize();
             } break;
 
             case ShaderResourceType::Texture:
@@ -164,7 +176,7 @@ namespace Heart
             } break;
         }
 
-        VkWriteDescriptorSet& descriptorWrite = m_CachedDescriptorWrites[m_DescriptorWriteMappings[bindingIndex]];
+        VkWriteDescriptorSet& descriptorWrite = m_CachedDescriptorWrites[m_Bindings[bindingIndex].DescriptorWriteMapping];
         if (descriptorWrite.pBufferInfo == nullptr && descriptorWrite.pImageInfo == nullptr)
             m_WritesReadyCount++;
 

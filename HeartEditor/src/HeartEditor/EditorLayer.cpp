@@ -24,9 +24,9 @@ namespace HeartEditor
         m_ActiveScene = Heart::CreateRef<Heart::Scene>();
         m_SceneRenderer = Heart::CreateScope<Heart::SceneRenderer>();
 
-        //auto entity = m_ActiveScene->CreateEntity("Test Entity");
-        //entity.AddComponent<Heart::MeshComponent>();
-        //entity.GetComponent<Heart::MeshComponent>().Mesh = Heart::AssetManager::GetAssetUUID("assets/meshes/Sponza/glTF/Sponza.gltf");
+        auto entity = m_ActiveScene->CreateEntity("Test Entity");
+        entity.AddComponent<Heart::MeshComponent>();
+        entity.GetComponent<Heart::MeshComponent>().Mesh = Heart::AssetManager::GetAssetUUID("assets/meshes/Sponza/glTF/Sponza.gltf");
 
         //auto entity = m_ActiveScene->CreateEntity("Cube Entity");
         //entity.AddComponent<Heart::MeshComponent>();

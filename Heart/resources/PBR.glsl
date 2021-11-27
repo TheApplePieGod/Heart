@@ -16,9 +16,10 @@ layout(location = 3) in vec3 worldPos;
 layout(location = 4) in vec3 normal;
 layout(location = 5) in vec3 tangent;
 layout(location = 6) in vec3 bitangent;
+layout(location = 7) in flat int instance;
 
 layout(binding = 2) readonly buffer MaterialBuffer {
-    Material material;
+    Material materials[];
 } materialBuffer;
 layout(binding = 3) uniform sampler2D albedoTex;
 layout(binding = 4) uniform sampler2D metallicRoughnessTex;
@@ -78,47 +79,47 @@ float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
 
 vec4 GetAlbedo()
 {
-    vec4 color = materialBuffer.material.baseColor;
-    if (materialBuffer.material.hasPBRTextures[0] == 1.f) // has albedo
-        color *= texture(albedoTex, (texCoord + materialBuffer.material.texCoordTransform.zw) * materialBuffer.material.texCoordTransform.xy);
+    vec4 color = materialBuffer.materials[instance].baseColor;
+    if (materialBuffer.materials[instance].hasPBRTextures[0] == 1.f) // has albedo
+        color *= texture(albedoTex, (texCoord + materialBuffer.materials[instance].texCoordTransform.zw) * materialBuffer.materials[instance].texCoordTransform.xy);
     return color;
 }
 
 float GetMetalness()
 {
-    float metalness = materialBuffer.material.scalars[0];
-    if (materialBuffer.material.hasPBRTextures[1] == 1.f) // has metallicRoughness
-        metalness *= texture(metallicRoughnessTex, (texCoord + materialBuffer.material.texCoordTransform.zw) * materialBuffer.material.texCoordTransform.xy).b;
+    float metalness = materialBuffer.materials[instance].scalars[0];
+    if (materialBuffer.materials[instance].hasPBRTextures[1] == 1.f) // has metallicRoughness
+        metalness *= texture(metallicRoughnessTex, (texCoord + materialBuffer.materials[instance].texCoordTransform.zw) * materialBuffer.materials[instance].texCoordTransform.xy).b;
     return metalness;
 }
 
 float GetRoughness()
 {
-    float roughness = materialBuffer.material.scalars[1];
-    if (materialBuffer.material.hasPBRTextures[1] == 1.f) // has metallicRoughness
-        roughness *= texture(metallicRoughnessTex, (texCoord + materialBuffer.material.texCoordTransform.zw) * materialBuffer.material.texCoordTransform.xy).g;
+    float roughness = materialBuffer.materials[instance].scalars[1];
+    if (materialBuffer.materials[instance].hasPBRTextures[1] == 1.f) // has metallicRoughness
+        roughness *= texture(metallicRoughnessTex, (texCoord + materialBuffer.materials[instance].texCoordTransform.zw) * materialBuffer.materials[instance].texCoordTransform.xy).g;
     return roughness;
 }
 
 vec3 GetEmissive()
 {
-    vec3 emissive = materialBuffer.material.emissiveFactor.xyz;
-    if (materialBuffer.material.hasTextures[1] == 1.f) // has emissive
-        emissive *= texture(emissiveTex, (texCoord + materialBuffer.material.texCoordTransform.zw) * materialBuffer.material.texCoordTransform.xy).rgb;
+    vec3 emissive = materialBuffer.materials[instance].emissiveFactor.xyz;
+    if (materialBuffer.materials[instance].hasTextures[1] == 1.f) // has emissive
+        emissive *= texture(emissiveTex, (texCoord + materialBuffer.materials[instance].texCoordTransform.zw) * materialBuffer.materials[instance].texCoordTransform.xy).rgb;
     return emissive;
 }
 
 float GetOcclusion()
 {
     float occlusion = 1.f;
-    if (materialBuffer.material.hasTextures[2] == 1.f) // has occlusion
-        occlusion = texture(occlusionTex, (texCoord + materialBuffer.material.texCoordTransform.zw) * materialBuffer.material.texCoordTransform.xy).r;
+    if (materialBuffer.materials[instance].hasTextures[2] == 1.f) // has occlusion
+        occlusion = texture(occlusionTex, (texCoord + materialBuffer.materials[instance].texCoordTransform.zw) * materialBuffer.materials[instance].texCoordTransform.xy).r;
     return occlusion;
 }
 
 void Clip(float alpha)
 {
-    if (alpha <= materialBuffer.material.scalars[2]) // alpha clip threshold
+    if (alpha <= materialBuffer.materials[instance].scalars[2]) // alpha clip threshold
         discard;
 }
 
@@ -151,8 +152,8 @@ vec4 GetFinalColor()
     mat3x3 tbn = mat3x3(nb, nt, nn);
 
     vec3 N = nn;
-    if (materialBuffer.material.hasTextures[0] == 1.f) // has normal
-        N = tbn * (texture(normalTex, (texCoord + materialBuffer.material.texCoordTransform.zw) * materialBuffer.material.texCoordTransform.xy).xyz * 2.0 - 1.0);
+    if (materialBuffer.materials[instance].hasTextures[0] == 1.f) // has normal
+        N = tbn * (texture(normalTex, (texCoord + materialBuffer.materials[instance].texCoordTransform.zw) * materialBuffer.materials[instance].texCoordTransform.xy).xyz * 2.0 - 1.0);
 
     const float MAX_REFLECTION_LOD = 4.0;
     vec3 R = reflect(-V, N); 

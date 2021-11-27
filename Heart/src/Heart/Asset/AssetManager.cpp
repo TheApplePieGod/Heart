@@ -297,6 +297,8 @@ namespace Heart
 
     Asset* AssetManager::RetrieveAsset(UUID uuid, bool async)
     {
+        HE_PROFILE_FUNCTION();
+
         if (!uuid) return nullptr;
         if (s_UUIDs.find(uuid) == s_UUIDs.end()) return nullptr;
 

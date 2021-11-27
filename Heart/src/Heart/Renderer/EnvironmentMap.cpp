@@ -305,7 +305,6 @@ namespace Heart
             Renderer::Api().BindIndexBuffer(*meshData.GetIndexBuffer());
             Renderer::Api().DrawIndexed(
                 meshData.GetIndexBuffer()->GetAllocatedCount(),
-                meshData.GetVertexBuffer()->GetAllocatedCount(),
                 0, 0, 1
             );
 
@@ -341,7 +340,6 @@ namespace Heart
             Renderer::Api().BindIndexBuffer(*meshData.GetIndexBuffer());
             Renderer::Api().DrawIndexed(
                 meshData.GetIndexBuffer()->GetAllocatedCount(),
-                meshData.GetVertexBuffer()->GetAllocatedCount(),
                 0, 0, 1
             );
 
@@ -379,7 +377,6 @@ namespace Heart
                 Renderer::Api().BindIndexBuffer(*meshData.GetIndexBuffer());
                 Renderer::Api().DrawIndexed(
                     meshData.GetIndexBuffer()->GetAllocatedCount(),
-                    meshData.GetVertexBuffer()->GetAllocatedCount(),
                     0, 0, 1
                 );
 

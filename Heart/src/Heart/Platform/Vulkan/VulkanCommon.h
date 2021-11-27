@@ -61,7 +61,7 @@ namespace Heart
         static VkFormat BufferDataTypeToVulkan(BufferDataType type);
         static VkCullModeFlagBits CullModeToVulkan(CullMode mode);
         static VkFrontFace WindingOrderToVulkan(WindingOrder order);
-        static VkDescriptorType ShaderResourceTypeToVulkan(ShaderResourceType type);
+        static VkDescriptorType ShaderResourceTypeToVulkan(ShaderResourceType type, bool dynamic);
         static VkShaderStageFlags ShaderResourceAccessTypeToVulkan(ShaderResourceAccessType type);
         static VkBlendFactor BlendFactorToVulkan(BlendFactor factor);
         static VkBlendOp BlendOperationToVulkan(BlendOperation op);

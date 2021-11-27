@@ -41,7 +41,7 @@ namespace Heart
     {
         VulkanDevice& device = VulkanContext::GetDevice();
 
-        m_DescriptorSet.Initialize(m_ProgramReflectionData);
+        m_DescriptorSet.Initialize(m_ProgramReflectionData, m_PreprocessData);
 
         auto vertShader = AssetManager::RetrieveAsset<ShaderAsset>(createInfo.VertexShaderAsset)->GetShader();
         auto fragShader = AssetManager::RetrieveAsset<ShaderAsset>(createInfo.FragmentShaderAsset)->GetShader();
