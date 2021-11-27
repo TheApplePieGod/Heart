@@ -82,8 +82,8 @@ namespace Heart
             { BufferDataType::UInt } // first instance
         };
         m_FrameDataBuffer = Buffer::Create(Buffer::Type::Uniform, BufferUsageType::Dynamic, frameDataLayout, 1, nullptr);
-        m_ObjectDataBuffer = Buffer::Create(Buffer::Type::Storage, BufferUsageType::Dynamic, objectDataLayout, 1000, nullptr);
-        m_MaterialDataBuffer = Buffer::Create(Buffer::Type::Storage, BufferUsageType::Dynamic, materialDataLayout, 1000, nullptr);
+        m_ObjectDataBuffer = Buffer::Create(Buffer::Type::Storage, BufferUsageType::Dynamic, objectDataLayout, 5000, nullptr);
+        m_MaterialDataBuffer = Buffer::Create(Buffer::Type::Storage, BufferUsageType::Dynamic, materialDataLayout, 5000, nullptr);
         m_IndirectBuffer = Buffer::Create(Buffer::Type::Indirect, BufferUsageType::Dynamic, indirectDataLayout, 1000, nullptr);
         InitializeGridBuffers();
 
@@ -251,8 +251,6 @@ namespace Heart
         //auto timer = Timer("CalcBatches");
 
         auto group = m_Scene->GetRegistry().group<TransformComponent, MeshComponent>();
-        u32 renderId = 0;
-        u32 batchId = 0;
         for (auto entity : group)
         {
             auto [transform, mesh] = group.get<TransformComponent, MeshComponent>(entity);
@@ -263,16 +261,13 @@ namespace Heart
             for (u32 i = 0; i < meshAsset->GetSubmeshCount(); i++)
             {
                 auto& meshData = meshAsset->GetSubmesh(i);
-                ObjectData objectData = { m_Scene->GetEntityCachedTransform({ m_Scene, entity }), { entity, 0.f, 0.f, 0.f } };
-                m_ObjectDataBuffer->SetData(&objectData, 1, renderId);
 
                 u64 hash = mesh.Mesh ^ (i * 123192);
                 for (auto id : mesh.Materials)
                     hash ^= id;
 
                 auto& batch = m_IndirectBatches[hash];
-                batch.Count++;
-                if (!batch.First)
+                if (batch.Count == 0)
                 {
                     batch.Mesh = &meshData;
 
@@ -283,50 +278,58 @@ namespace Heart
                         if (materialAsset && materialAsset->IsValid())
                             batch.Material = &materialAsset->GetMaterial();
                     }
-
-                    if (batch.Material)
-                    {
-                        auto& materialData = batch.Material->GetMaterialData();
-
-                        auto albedoAsset = AssetManager::RetrieveAsset<TextureAsset>(batch.Material->GetAlbedoTexture());
-                        materialData.SetHasAlbedo(albedoAsset && albedoAsset->IsValid());
-
-                        auto metallicRoughnessAsset = AssetManager::RetrieveAsset<TextureAsset>(batch.Material->GetMetallicRoughnessTexture());
-                        materialData.SetHasMetallicRoughness(metallicRoughnessAsset && metallicRoughnessAsset->IsValid());
-
-                        auto normalAsset = AssetManager::RetrieveAsset<TextureAsset>(batch.Material->GetNormalTexture());
-                        materialData.SetHasNormal(normalAsset && normalAsset->IsValid());
-
-                        auto emissiveAsset = AssetManager::RetrieveAsset<TextureAsset>(batch.Material->GetEmissiveTexture());
-                        materialData.SetHasEmissive(emissiveAsset && emissiveAsset->IsValid());
-
-                        auto occlusionAsset = AssetManager::RetrieveAsset<TextureAsset>(batch.Material->GetOcclusionTexture());
-                        materialData.SetHasOcclusion(occlusionAsset && occlusionAsset->IsValid());
-
-                        m_MaterialDataBuffer->SetData(&materialData, 1, renderId);
-                    }
-                    else
-                        m_MaterialDataBuffer->SetData(&AssetManager::RetrieveAsset<MaterialAsset>("DefaultMaterial.hemat", true)->GetMaterial().GetMaterialData(), 1, renderId);
                 }
-                batch.RenderIds.emplace_back(renderId);
-
-                renderId++;
+                
+                batch.Count++;
+                batch.Entities.emplace_back(static_cast<u32>(entity));
             }
         }
 
-        u32 index = 0;
+        u32 commandIndex = 0;
+        u32 renderId = 0;
         for (auto& pair : m_IndirectBatches)
         {
-            pair.second.First = index;
-            for (auto renderId : pair.second.RenderIds)
+            pair.second.First = commandIndex;
+            IndexedIndirectCommand command = {
+                pair.second.Mesh->GetIndexBuffer()->GetAllocatedCount(),
+                pair.second.Count, 0, 0, renderId
+            };
+            m_IndirectBuffer->SetData(&command, 1, commandIndex);
+            commandIndex++;
+
+            for (auto& entity : pair.second.Entities)
             {
-                IndexedIndirectCommand command = {
-                    pair.second.Mesh->GetIndexBuffer()->GetAllocatedCount(),
-                    1, 0, 0, renderId
-                };
-                m_IndirectBuffer->SetData(&command, 1, index);
-                index++;
+                ObjectData objectData = { m_Scene->GetEntityCachedTransform({ m_Scene, entity }), { entity, 0.f, 0.f, 0.f } };
+                m_ObjectDataBuffer->SetData(&objectData, 1, renderId);
+
+                if (pair.second.Material)
+                {
+                    auto& materialData = pair.second.Material->GetMaterialData();
+
+                    auto albedoAsset = AssetManager::RetrieveAsset<TextureAsset>(pair.second.Material->GetAlbedoTexture());
+                    materialData.SetHasAlbedo(albedoAsset && albedoAsset->IsValid());
+
+                    auto metallicRoughnessAsset = AssetManager::RetrieveAsset<TextureAsset>(pair.second.Material->GetMetallicRoughnessTexture());
+                    materialData.SetHasMetallicRoughness(metallicRoughnessAsset && metallicRoughnessAsset->IsValid());
+
+                    auto normalAsset = AssetManager::RetrieveAsset<TextureAsset>(pair.second.Material->GetNormalTexture());
+                    materialData.SetHasNormal(normalAsset && normalAsset->IsValid());
+
+                    auto emissiveAsset = AssetManager::RetrieveAsset<TextureAsset>(pair.second.Material->GetEmissiveTexture());
+                    materialData.SetHasEmissive(emissiveAsset && emissiveAsset->IsValid());
+
+                    auto occlusionAsset = AssetManager::RetrieveAsset<TextureAsset>(pair.second.Material->GetOcclusionTexture());
+                    materialData.SetHasOcclusion(occlusionAsset && occlusionAsset->IsValid());
+
+                    m_MaterialDataBuffer->SetData(&materialData, 1, renderId);
+                }
+                else
+                    m_MaterialDataBuffer->SetData(&AssetManager::RetrieveAsset<MaterialAsset>("DefaultMaterial.hemat", true)->GetMaterial().GetMaterialData(), 1, renderId);
+
+                renderId++;
             }
+
+            pair.second.Count = 1;
         }
     }
 
@@ -437,8 +440,6 @@ namespace Heart
                     auto occlusionAsset = AssetManager::RetrieveAsset<TextureAsset>(batch.Material->GetOcclusionTexture());
                     m_FinalFramebuffer->BindShaderTextureResource(7, occlusionAsset->GetTexture());
                 }
-
-                m_MaterialDataBuffer->SetData(&materialData, 1, m_MaterialDataOffset);
             }
 
             m_FinalFramebuffer->FlushBindings();

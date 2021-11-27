@@ -21,7 +21,7 @@ namespace Heart
         void DrawIndexed(u32 indexCount, u32 indexOffset, u32 vertexOffset, u32 instanceCount) override;
         void Draw(u32 vertexCount, u32 vertexOffset, u32 instanceCount) override;
 
-        void DrawIndexedIndirect(Buffer* indirectBuffer, u32 commandOffset, u32 drawCount) override {}
+        void DrawIndexedIndirect(Buffer* indirectBuffer, u32 commandOffset, u32 drawCount) override;
 
         void RenderFramebuffers(GraphicsContext& context, const std::vector<Framebuffer*>& framebuffers) override;
 

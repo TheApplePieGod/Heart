@@ -6,7 +6,6 @@
 
 namespace Heart
 {
-    // TODO: some way of hinting GL_STATIC_DRAW vs GL_DYNAMIC_DRAW
     OpenGLBuffer::OpenGLBuffer(Type type, BufferUsageType usage, const BufferLayout& layout, u32 elementCount, void* initialData)
         : Buffer(type, usage, layout, elementCount)
     {

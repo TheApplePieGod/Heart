@@ -63,7 +63,7 @@ namespace Heart
             Mesh* Mesh;
             u32 First = 0;
             u32 Count = 0;
-            std::vector<u32> RenderIds;
+            std::vector<u32> Entities;
         };
         struct IndexedIndirectCommand
         {

@@ -22,18 +22,24 @@ layout(binding = 1) readonly buffer ObjectBuffer {
 } objectBuffer;
 
 void main() {
-    worldPos = (objectBuffer.objects[gl_BaseInstance].model * vec4(inPosition, 1.0)).xyz;
+    #ifdef VULKAN
+        int instanceIndex = gl_InstanceIndex;
+    #else
+        int instanceIndex = gl_BaseInstance + gl_InstanceID;
+    #endif
+
+    worldPos = (objectBuffer.objects[instanceIndex].model * vec4(inPosition, 1.0)).xyz;
     vec4 viewPos = (frameBuffer.data.view * vec4(worldPos, 1.0));
     depth = viewPos.z;
     gl_Position = frameBuffer.data.proj * viewPos;
     
     texCoord = inTexCoord;
-    entityId = int(objectBuffer.objects[gl_BaseInstance].data[0]); // entity id
-    instance = gl_BaseInstance;
+    entityId = int(objectBuffer.objects[instanceIndex].data[0]); // entity id
+    instance = instanceIndex;
 
     // adjust to match object rotation (and technically scale but it gets normalized out later)
-    normal = mat3(objectBuffer.objects[gl_BaseInstance].model) * inNormal;
-    tangent = mat3(objectBuffer.objects[gl_BaseInstance].model) * inTangent.xyz;
+    normal = mat3(objectBuffer.objects[instanceIndex].model) * inNormal;
+    tangent = mat3(objectBuffer.objects[instanceIndex].model) * inTangent.xyz;
     bitangent = cross(inTangent.xyz, inNormal);
     bitangent *= inTangent.w;
 }

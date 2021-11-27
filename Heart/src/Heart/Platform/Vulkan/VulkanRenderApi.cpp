@@ -96,6 +96,7 @@ namespace Heart
         auto timer = AggregateTimer("VulkanRenderApi::DrawIndexedIndirect");
         
         // TODO: use vkCmdDrawIndexedIndirectCount
+        HE_ENGINE_ASSERT(VulkanContext::GetBoundFramebuffer()->CanDraw(), "Framebuffer is not ready to draw (did you bind & flush all of your shader resources?)");
         vkCmdDrawIndexedIndirect(
             VulkanContext::GetBoundFramebuffer()->GetCommandBuffer(),
             ((VulkanBuffer*)indirectBuffer)->GetBuffer(),
