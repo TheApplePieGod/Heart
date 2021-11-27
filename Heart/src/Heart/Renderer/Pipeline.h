@@ -107,7 +107,6 @@ namespace Heart
     protected:
         GraphicsPipelineCreateInfo m_Info;
         std::vector<ReflectionDataElement> m_ProgramReflectionData; // program = vertex+fragment shaders
-        ShaderPreprocessData m_PreprocessData;
 
     private:
         void ConsolidateReflectionData();

@@ -426,35 +426,37 @@ namespace Heart
         m_BoundPipelineName = name;
     }
 
-    void VulkanFramebuffer::BindShaderBufferResource(u32 bindingIndex, u32 elementOffset, Buffer* buffer)
+    void VulkanFramebuffer::BindShaderBufferResource(u32 bindingIndex, u32 elementOffset, u32 elementCount, Buffer* buffer)
     {
         HE_PROFILE_FUNCTION();
 
-        BindShaderResource(bindingIndex, ShaderResourceType::UniformBuffer, buffer, true, buffer->GetLayout().GetStride() * elementOffset); // uniform vs structured buffer doesn't matter here
+        HE_ENGINE_ASSERT(elementCount + elementOffset <= buffer->GetAllocatedCount(), "ElementCount + ElementOffset must be <= buffer allocated count");
+
+        BindShaderResource(bindingIndex, ShaderResourceType::UniformBuffer, buffer, true, buffer->GetLayout().GetStride() * elementOffset, buffer->GetLayout().GetStride() * elementCount); // uniform vs structured buffer doesn't matter here
     }
 
     void VulkanFramebuffer::BindShaderTextureResource(u32 bindingIndex, Texture* texture)
     {
         HE_PROFILE_FUNCTION();
         
-        BindShaderResource(bindingIndex, ShaderResourceType::Texture, texture, false, 0);
+        BindShaderResource(bindingIndex, ShaderResourceType::Texture, texture, false, 0, 0);
     }
 
     void VulkanFramebuffer::BindShaderTextureLayerResource(u32 bindingIndex, Texture* texture, u32 layerIndex)
     {
         HE_PROFILE_FUNCTION();
 
-        BindShaderResource(bindingIndex, ShaderResourceType::Texture, texture, true, layerIndex);
+        BindShaderResource(bindingIndex, ShaderResourceType::Texture, texture, true, layerIndex, 0);
     }
 
     void VulkanFramebuffer::BindSubpassInputAttachment(u32 bindingIndex, SubpassAttachment attachment)
     {
         HE_PROFILE_FUNCTION();
 
-        BindShaderResource(bindingIndex, ShaderResourceType::SubpassInput, attachment.Type == SubpassAttachmentType::Depth ? &m_DepthAttachmentData[attachment.AttachmentIndex] : &m_AttachmentData[attachment.AttachmentIndex], false, 0);
+        BindShaderResource(bindingIndex, ShaderResourceType::SubpassInput, attachment.Type == SubpassAttachmentType::Depth ? &m_DepthAttachmentData[attachment.AttachmentIndex] : &m_AttachmentData[attachment.AttachmentIndex], false, 0, 0);
     }
 
-    void VulkanFramebuffer::BindShaderResource(u32 bindingIndex, ShaderResourceType resourceType, void* resource, bool useOffset, u32 offset)
+    void VulkanFramebuffer::BindShaderResource(u32 bindingIndex, ShaderResourceType resourceType, void* resource, bool useOffset, u32 offset, u32 size)
     {
         HE_ENGINE_ASSERT(m_BoundPipeline != nullptr, "Must call BindPipeline before BindShaderResource");
 
@@ -463,11 +465,11 @@ namespace Heart
         if (!descriptorSet.DoesBindingExist(bindingIndex))
             return; // silently ignore, TODO: warning once in the console when this happens
 
-        if (useOffset && descriptorSet.IsBindingDynamic(bindingIndex))
+        if (useOffset && (resourceType == ShaderResourceType::UniformBuffer || resourceType == ShaderResourceType::StorageBuffer))
             descriptorSet.UpdateDynamicOffset(bindingIndex, offset);
 
         // update the descriptor set binding information
-        descriptorSet.UpdateShaderResource(bindingIndex, resourceType, resource, useOffset, offset);
+        descriptorSet.UpdateShaderResource(bindingIndex, resourceType, resource, useOffset, offset, size);
     }
 
     void VulkanFramebuffer::FlushBindings()

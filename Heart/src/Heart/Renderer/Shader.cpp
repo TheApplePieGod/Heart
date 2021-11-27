@@ -113,25 +113,25 @@ namespace Heart
         std::string preprocessed(preprocessedResult.begin());
 
         // run the custom preprocessor over the source code
-        {
-            const char* token = "#use_dynamic_offsets";
-            size_t tokenLen = strlen(token);
+        // {
+        //     const char* token = "#use_dynamic_offsets";
+        //     size_t tokenLen = strlen(token);
 
-            size_t pos = preprocessed.find(token, 0);
-            while (pos != std::string::npos)
-            {
-                size_t eol = preprocessed.find_first_of("\r\n", pos);
-                if (eol == std::string::npos)
-                    eol = preprocessed.find_first_of("\n", pos);
-                HE_ENGINE_ASSERT(eol != std::string::npos, "Token must be followed by a newline");
+        //     size_t pos = preprocessed.find(token, 0);
+        //     while (pos != std::string::npos)
+        //     {
+        //         size_t eol = preprocessed.find_first_of("\r\n", pos);
+        //         if (eol == std::string::npos)
+        //             eol = preprocessed.find_first_of("\n", pos);
+        //         HE_ENGINE_ASSERT(eol != std::string::npos, "Token must be followed by a newline");
 
-                size_t numStart = pos + tokenLen + 1;
-                u32 bindingIndex = atoi(preprocessed.substr(numStart, eol - numStart).c_str());
-                m_PreprocessData.DynamicBindings.emplace_back(bindingIndex);
+        //         size_t numStart = pos + tokenLen + 1;
+        //         u32 bindingIndex = atoi(preprocessed.substr(numStart, eol - numStart).c_str());
+        //         m_PreprocessData.DynamicBindings.emplace_back(bindingIndex);
 
-                pos = preprocessed.find(token, eol);
-            }
-        }
+        //         pos = preprocessed.find(token, eol);
+        //     }
+        // }
 
         shaderc::SpvCompilationResult compiled = compiler.CompileGlslToSpv(preprocessed, shaderKind, path.c_str(), options);
         if (compiled.GetCompilationStatus() != shaderc_compilation_status_success)

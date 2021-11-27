@@ -158,7 +158,7 @@ namespace Heart
         HE_PROFILE_FUNCTION();
         
         // TODO: dynamic resizing
-        HE_ENGINE_ASSERT(elementCount <= m_AllocatedCount, "Attempting to set data on buffer which is larger than allocated size");
+        HE_ENGINE_ASSERT(elementCount + elementOffset <= m_AllocatedCount, "Attempting to set data on buffer which is larger than allocated size");
         if (m_Usage == BufferUsageType::Static)
         {
             HE_ENGINE_LOG_WARN("Attemting to update buffer that is marked as static");

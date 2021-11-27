@@ -12,10 +12,10 @@ namespace Heart
     class VulkanDescriptorSet
     {
     public:
-        void Initialize(const std::vector<ReflectionDataElement>& reflectionData, const ShaderPreprocessData& preprocessData);
+        void Initialize(const std::vector<ReflectionDataElement>& reflectionData);
         void Shutdown();
 
-        void UpdateShaderResource(u32 bindingIndex, ShaderResourceType resourceType, void* resource, bool useOffset, u32 offset); // offset used for image
+        void UpdateShaderResource(u32 bindingIndex, ShaderResourceType resourceType, void* resource, bool useOffset, u32 offset, u32 size);
         void FlushBindings();
 
         inline VkDescriptorSetLayout GetLayout() const { return m_DescriptorSetLayout; };
@@ -23,7 +23,6 @@ namespace Heart
         inline void UpdateDynamicOffset(u32 bindingIndex, u32 offset) { m_DynamicOffsets[m_Bindings[bindingIndex].OffsetIndex] = offset; }
         inline const std::vector<u32>& GetDynamicOffsets() const { return m_DynamicOffsets; }
         inline bool DoesBindingExist(u32 bindingIndex) const { return bindingIndex < m_Bindings.size(); }
-        inline bool IsBindingDynamic(u32 bindingIndex) const { return m_Bindings[bindingIndex].IsDynamic; };
         inline bool CanFlush() const { return m_WritesReadyCount == m_CachedDescriptorWrites.size(); }
 
     private:
@@ -35,7 +34,6 @@ namespace Heart
         struct BindingData
         {
             size_t DescriptorWriteMapping;
-            bool IsDynamic;
             size_t OffsetIndex;
         };
 

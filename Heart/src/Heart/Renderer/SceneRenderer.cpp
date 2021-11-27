@@ -333,7 +333,7 @@ namespace Heart
     void SceneRenderer::RenderEnvironmentMap()
     {
         m_FinalFramebuffer->BindPipeline("skybox");
-        m_FinalFramebuffer->BindShaderBufferResource(0, 0, m_FrameDataBuffer.get());
+        m_FinalFramebuffer->BindShaderBufferResource(0, 0, 1, m_FrameDataBuffer.get());
         m_FinalFramebuffer->BindShaderTextureResource(1, m_EnvironmentMap->GetPrefilterCubemap());
 
         auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>("DefaultCube.gltf", true);
@@ -355,7 +355,7 @@ namespace Heart
         m_FinalFramebuffer->BindPipeline("grid");
 
         // Bind frame data
-        m_FinalFramebuffer->BindShaderBufferResource(0, 0, m_FrameDataBuffer.get());
+        m_FinalFramebuffer->BindShaderBufferResource(0, 0, 1, m_FrameDataBuffer.get());
 
         m_FinalFramebuffer->FlushBindings();
 
@@ -375,11 +375,11 @@ namespace Heart
         m_FinalFramebuffer->BindPipeline("pbr");
 
         // Bind frame data
-        m_FinalFramebuffer->BindShaderBufferResource(0, 0, m_FrameDataBuffer.get());
+        m_FinalFramebuffer->BindShaderBufferResource(0, 0, 1, m_FrameDataBuffer.get());
 
         // Bind object data
-        m_FinalFramebuffer->BindShaderBufferResource(1, 0, m_ObjectDataBuffer.get());
-        m_FinalFramebuffer->BindShaderBufferResource(2, 0, m_MaterialDataBuffer.get());
+        m_FinalFramebuffer->BindShaderBufferResource(1, 0, m_ObjectDataBuffer->GetAllocatedCount(), m_ObjectDataBuffer.get());
+        m_FinalFramebuffer->BindShaderBufferResource(2, 0, m_MaterialDataBuffer->GetAllocatedCount(), m_MaterialDataBuffer.get());
 
         // Default texture binds
         m_FinalFramebuffer->BindShaderTextureResource(3, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
@@ -458,7 +458,7 @@ namespace Heart
         m_FinalFramebuffer->BindPipeline("pbr");
 
         // Bind frame data
-        m_FinalFramebuffer->BindShaderBufferResource(0, 0, m_FrameDataBuffer.get());
+        m_FinalFramebuffer->BindShaderBufferResource(0, 0, 1, m_FrameDataBuffer.get());
 
         // Default texture binds
         m_FinalFramebuffer->BindShaderTextureResource(3, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
@@ -487,7 +487,7 @@ namespace Heart
             auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>(mesh.Mesh);
             if (!meshAsset || !meshAsset->IsValid()) continue;
 
-            m_FinalFramebuffer->BindShaderBufferResource(1, m_ObjectDataOffset, m_ObjectDataBuffer.get());
+            m_FinalFramebuffer->BindShaderBufferResource(1, m_ObjectDataOffset, 1, m_ObjectDataBuffer.get());
 
             // store transform at offset in buffer
             ObjectData objectData = { m_Scene->GetEntityCachedTransform({ m_Scene, entity }), { entity, 0.f, 0.f, 0.f } };
@@ -546,7 +546,7 @@ namespace Heart
                 else // default material
                     m_MaterialDataBuffer->SetData(&AssetManager::RetrieveAsset<MaterialAsset>("DefaultMaterial.hemat", true)->GetMaterial().GetMaterialData(), 1, m_MaterialDataOffset);
 
-                m_FinalFramebuffer->BindShaderBufferResource(2, m_MaterialDataOffset, m_MaterialDataBuffer.get());
+                m_FinalFramebuffer->BindShaderBufferResource(2, m_MaterialDataOffset, 1, m_MaterialDataBuffer.get());
 
                 m_FinalFramebuffer->FlushBindings();
 
@@ -571,7 +571,7 @@ namespace Heart
         m_FinalFramebuffer->BindPipeline("pbrTpColor");
         
         // Bind frame data
-        m_FinalFramebuffer->BindShaderBufferResource(0, 0, m_FrameDataBuffer.get());
+        m_FinalFramebuffer->BindShaderBufferResource(0, 0, 1, m_FrameDataBuffer.get());
 
         // Default texture binds
         m_FinalFramebuffer->BindShaderTextureResource(3, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
@@ -624,10 +624,10 @@ namespace Heart
             if (materialData.HasOcclusion())
                 m_FinalFramebuffer->BindShaderTextureResource(7, occlusionAsset->GetTexture());
 
-            m_FinalFramebuffer->BindShaderBufferResource(1, m_ObjectDataOffset, m_ObjectDataBuffer.get());
+            m_FinalFramebuffer->BindShaderBufferResource(1, m_ObjectDataOffset, 1, m_ObjectDataBuffer.get());
             m_ObjectDataBuffer->SetData(&mesh.ObjectData, 1, m_ObjectDataOffset);
 
-            m_FinalFramebuffer->BindShaderBufferResource(2, m_MaterialDataOffset, m_MaterialDataBuffer.get());
+            m_FinalFramebuffer->BindShaderBufferResource(2, m_MaterialDataOffset, 1, m_MaterialDataBuffer.get());
             m_MaterialDataBuffer->SetData(&materialData, 1, m_MaterialDataOffset);
 
             m_FinalFramebuffer->FlushBindings();
@@ -651,7 +651,7 @@ namespace Heart
         m_FinalFramebuffer->BindPipeline("tpComposite");
 
         // Bind frame data
-        m_FinalFramebuffer->BindShaderBufferResource(0, 0, m_FrameDataBuffer.get());
+        m_FinalFramebuffer->BindShaderBufferResource(0, 0, 1, m_FrameDataBuffer.get());
 
         // Bind the input attachments from the transparent pass
         m_FinalFramebuffer->BindSubpassInputAttachment(1, { SubpassAttachmentType::Color, 2 });
