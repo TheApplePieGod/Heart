@@ -41,9 +41,9 @@ namespace Heart
         HE_ENGINE_LOG_INFO("Shutdown complete");
     }
 
-    void App::PushLayer(Layer* layer)
+    void App::PushLayer(const Ref<Layer>& layer)
     {
-        m_Layers.push_back(layer);
+        m_Layers.emplace_back(layer);
         layer->OnAttach();
     }
 

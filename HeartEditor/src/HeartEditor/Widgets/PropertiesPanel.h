@@ -1,5 +1,7 @@
 #pragma once
 
+#include "HeartEditor/Widgets/Widget.h"
+#include "HeartEditor/Editor.h"
 #include "Heart/Scene/Scene.h"
 #include "Heart/Scene/Entity.h"
 #include "Heart/Scene/Components.h"
@@ -9,19 +11,24 @@ namespace HeartEditor
 {
 namespace Widgets
 {
-    class PropertiesPanel
+    class PropertiesPanel : public Widget
     {
     public:
-        PropertiesPanel();
+        PropertiesPanel(const std::string& name, bool initialOpen)
+            : Widget(name, initialOpen)
+        {}
 
-        void OnImGuiRender(Heart::Entity selectedEntity, Heart::UUID& selectedMaterial);
+        void OnImGuiRender() override;
 
     private:
+        void RenderTransformComponent();
+        void RenderMeshComponent();
+
         void RenderXYZSlider(const std::string& name, f32* x, f32* y, f32* z, f32 min, f32 max, f32 step);
 
         // returns true if the component was deleted
         template<typename Component>
-        bool RenderComponentPopup(const std::string& popupName, Heart::Entity selectedEntity, bool canRemove = true)
+        bool RenderComponentPopup(const std::string& popupName, bool canRemove = true)
         {
             if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1))
                 ImGui::OpenPopup(popupName.c_str());
@@ -29,9 +36,9 @@ namespace Widgets
             {
                 if (!canRemove)
                     ImGui::BeginDisabled();
-                if (ImGui::Button("Remove Component"))
+                if (ImGui::MenuItem("Remove Component"))
                 {
-                    selectedEntity.RemoveComponent<Component>();
+                    Editor::GetState().SelectedEntity.RemoveComponent<Component>();
                     ImGui::EndPopup();
                     return true;
                 }

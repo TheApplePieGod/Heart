@@ -1,5 +1,6 @@
 #pragma once
 
+#include "HeartEditor/Widgets/Widget.h"
 #include "Heart/Renderer/SceneRenderer.h"
 #include "Heart/Core/UUID.h"
 #include "Heart/Core/Camera.h"
@@ -12,16 +13,18 @@ namespace HeartEditor
 {
 namespace Widgets
 {
-    class MaterialEditor
+    class MaterialEditor : public Widget
     {
     public:
-        MaterialEditor();
+        MaterialEditor(const std::string& name, bool initialOpen);
         
         void Reset();
-        void OnImGuiRender(Heart::UUID& selectedMaterial, bool* dirty);
+        void OnImGuiRender() override;
+
+        inline void SetSelectedMaterial(Heart::UUID material) { m_SelectedMaterial = material; }
 
     private:
-        void RenderSidebar(Heart::UUID selectedMaterial, bool* dirty);
+        void RenderSidebar();
         void RenderViewport(bool shouldRender);
 
     private:
@@ -36,6 +39,7 @@ namespace Widgets
         glm::vec2 m_WindowSizes = { 0.f, 0.f };
         bool m_FirstRender = true;
         Heart::UUID m_LastMaterial = 0;
+        Heart::UUID m_SelectedMaterial = 0;
         ImGuiTextFilter m_TextureTextFilter;
         Heart::Material m_CachedMaterial;
     };

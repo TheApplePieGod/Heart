@@ -201,6 +201,8 @@ namespace Heart
     void SceneRenderer::RenderScene(GraphicsContext& context, Scene* scene, const Camera& camera, glm::vec3 cameraPosition, bool drawGrid)
     {
         HE_PROFILE_FUNCTION();
+        auto timer = Heart::AggregateTimer("SceneRenderer::RenderScene");
+
         HE_ENGINE_ASSERT(scene, "Scene cannot be nullptr");
 
         // Reset in-flight frame data

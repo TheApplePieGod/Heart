@@ -1,6 +1,7 @@
 #include "htpch.h"
 #include "SceneHierarchyPanel.h"
 
+#include "HeartEditor/Editor.h"
 #include "HeartEditor/EditorApp.h"
 #include "Heart/Renderer/Renderer.h"
 #include "Heart/Scene/Components.h"
@@ -12,23 +13,21 @@ namespace HeartEditor
 {
 namespace Widgets
 {
-    SceneHierarchyPanel::SceneHierarchyPanel()
-    {
-
-    }
-
-    void SceneHierarchyPanel::OnImGuiRender(Heart::Scene* activeScene, Heart::Entity& selectedEntity)
+    void SceneHierarchyPanel::OnImGuiRender()
     {
         HE_PROFILE_FUNCTION();
-        
+
+        if (!m_Open) return;
+
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 5.0f));
+        ImGui::Begin(m_Name.c_str(), &m_Open);
+
         // only top level components
-        auto view = activeScene->GetRegistry().view<Heart::NameComponent>(entt::exclude<Heart::ParentComponent>);
+        auto view = Editor::GetActiveScene().GetRegistry().view<Heart::NameComponent>(entt::exclude<Heart::ParentComponent>);
 
         ImGui::BeginChild("HierarchyChild");
         for (auto entity : view)
-        {
-            RenderEntity(activeScene, entity, selectedEntity);
-        }
+            RenderEntity(entity);
         ImGui::EndChild();
 
         // top level drag drop for parenting to root
@@ -37,25 +36,38 @@ namespace Widgets
             if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("EntityNode"))
             {
                 u32 payloadData = *(const u32*)payload->Data;
-                activeScene->UnparentEntity({ activeScene, payloadData });
+                Editor::GetActiveScene().UnparentEntity({ &Editor::GetActiveScene(), payloadData });
             }
             ImGui::EndDragDropTarget();
         }
+
+        if (ImGui::BeginPopupContextItem("SceneHierarchyPopup", ImGuiPopupFlags_NoOpenOverExistingPopup | ImGuiPopupFlags_MouseButtonRight))
+        {
+            if (ImGui::MenuItem("Create Entity"))
+                Editor::GetState().SelectedEntity = Editor::GetActiveScene().CreateEntity("New Entity");
+
+            ImGui::EndPopup();
+        }
+
+        ImGui::End();
+        ImGui::PopStyleVar();
     }
 
-    void SceneHierarchyPanel::RenderEntity(Heart::Scene* activeScene, entt::entity entity, Heart::Entity& selectedEntity)
+    void SceneHierarchyPanel::RenderEntity(entt::entity entity)
     {
-        auto& nameComponent = activeScene->GetRegistry().get<Heart::NameComponent>(entity);
-        bool hasChildren = activeScene->GetRegistry().any_of<Heart::ChildComponent>(entity) && activeScene->GetRegistry().get<Heart::ChildComponent>(entity).Children.size() > 0;
+        Heart::Scene& activeScene = Editor::GetActiveScene();
+
+        auto& nameComponent = activeScene.GetRegistry().get<Heart::NameComponent>(entity);
+        bool hasChildren = activeScene.GetRegistry().any_of<Heart::ChildComponent>(entity) && activeScene.GetRegistry().get<Heart::ChildComponent>(entity).Children.size() > 0;
         bool open = false;
         bool justDestroyed = false;
         std::string nameString = "EntityPopup";
 
         // create the tree node
-        ImGuiTreeNodeFlags node_flags = (hasChildren ? 0 : ImGuiTreeNodeFlags_Leaf) | ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | (selectedEntity.GetHandle() == entity ? ImGuiTreeNodeFlags_Selected : 0);
+        ImGuiTreeNodeFlags node_flags = (hasChildren ? 0 : ImGuiTreeNodeFlags_Leaf) | ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | (Editor::GetState().SelectedEntity.GetHandle() == entity ? ImGuiTreeNodeFlags_Selected : 0);
         open = ImGui::TreeNodeEx((void*)(intptr_t)(u32)entity, node_flags, nameComponent.Name.c_str());
         if (ImGui::IsItemClicked())
-            selectedEntity = Heart::Entity(activeScene, entity);
+            Editor::GetState().SelectedEntity = Heart::Entity(&activeScene, entity);
 
         // if dragging, we are going to be looking for a new parent to assign to
         if (ImGui::BeginDragDropSource())
@@ -71,7 +83,7 @@ namespace Widgets
             if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("EntityNode"))
             {
                 u32 payloadData = *(const u32*)payload->Data;
-                activeScene->AssignRelationship({ activeScene, entity }, { activeScene, payloadData });
+                activeScene.AssignRelationship({ &activeScene, entity }, { &activeScene, payloadData });
             }
             ImGui::EndDragDropTarget();
         }
@@ -81,13 +93,13 @@ namespace Widgets
         {
             if (ImGui::MenuItem("Remove Entity"))
             {
-                activeScene->DestroyEntity({ activeScene, entity });
-                selectedEntity = Heart::Entity();
+                activeScene.DestroyEntity({ &activeScene, entity });
+                Editor::GetState().SelectedEntity = Heart::Entity();
                 justDestroyed = true;
             }
             if (ImGui::MenuItem("Duplicate Entity"))
             {
-                selectedEntity = activeScene->DuplicateEntity({ activeScene, entity }, true, true);
+                Editor::GetState().SelectedEntity = activeScene.DuplicateEntity({ &activeScene, entity }, true, true);
                 ImGui::CloseCurrentPopup();
             }
             ImGui::EndPopup();
@@ -98,11 +110,9 @@ namespace Widgets
         {
             if (hasChildren && !justDestroyed)
             {
-                auto& childComp = activeScene->GetRegistry().get<Heart::ChildComponent>(entity);
+                auto& childComp = activeScene.GetRegistry().get<Heart::ChildComponent>(entity);
                 for (auto uuid : childComp.Children)
-                {
-                    RenderEntity(activeScene, activeScene->GetEntityFromUUID(uuid).GetHandle(), selectedEntity);
-                }
+                    RenderEntity(activeScene.GetEntityFromUUID(uuid).GetHandle());
             }
             ImGui::TreePop();
         }

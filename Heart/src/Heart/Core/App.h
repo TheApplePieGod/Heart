@@ -18,7 +18,7 @@ namespace Heart
         App(const std::string& windowName = "Heart Engine");
         ~App();
 
-        void PushLayer(Layer* layer);
+        void PushLayer(const Ref<Layer>& layer);
         void SwitchGraphicsApi(RenderApi::Type type);
         void SwitchAssetsDirectory(const std::string& newDirectory);
 
@@ -32,7 +32,7 @@ namespace Heart
         inline Timestep GetLastTimestep() const { return m_LastTimestep; }
 
     protected:
-        std::vector<Layer*> m_Layers;
+        std::vector<Ref<Layer>> m_Layers;
         Ref<ImGuiInstance> m_ImGuiInstance;
         Ref<Window> m_Window;
         bool m_Running = true;
