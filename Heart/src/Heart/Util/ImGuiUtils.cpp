@@ -6,6 +6,49 @@
 
 namespace Heart
 {
+    void ImGuiUtils::RenderTooltip(const std::string& text)
+    {
+        if (ImGui::IsItemHovered())
+        {
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 5.f, 5.f} );
+            ImGui::BeginTooltip();
+            ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+            ImGui::TextUnformatted(text.c_str());
+            ImGui::PopTextWrapPos();
+            ImGui::EndTooltip();
+            ImGui::PopStyleVar();
+        }
+    }
+
+    void ImGuiUtils::InputText(const std::string& name, std::string& text)
+    {
+        char buffer[128];
+        memset(buffer, 0, sizeof(buffer));
+        std::strncpy(buffer, text.c_str(), sizeof(buffer));
+        if (ImGui::InputText(name.c_str(), buffer, sizeof(buffer)))
+        {
+            ImGui::SetKeyboardFocusHere(-1);
+            text = std::string(buffer);
+        }
+    }
+
+    void ImGuiUtils::AssetDropTarget(Asset::Type typeFilter, std::function<void(const std::string&)>&& dropCallback)
+    {
+        if (ImGui::BeginDragDropTarget())
+        {
+            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("FileTransfer"))
+            {
+                const char* payloadData = (const char*)payload->Data;
+                std::string relativePath = std::filesystem::relative(payloadData, AssetManager::GetAssetsDirectory()).generic_u8string();
+                auto assetType = AssetManager::DeduceAssetTypeFromFile(relativePath);
+
+                if ((typeFilter == Asset::Type::None || assetType == typeFilter) && dropCallback)
+                    dropCallback(relativePath);
+            }
+            ImGui::EndDragDropTarget();
+        }
+    }
+
     void ImGuiUtils::ResizableWindowSplitter(glm::vec2& storedWindowSizes, glm::vec2 minWindowSize, bool isHorizontal, float splitterThickness, float windowSpacing, bool splitterDisable, std::function<void()>&& window1Contents, std::function<void()>&& window2Contents)
     {
         f32 availableWidth = ImGui::GetWindowContentRegionMax().x - ImGui::GetWindowContentRegionMin().x;

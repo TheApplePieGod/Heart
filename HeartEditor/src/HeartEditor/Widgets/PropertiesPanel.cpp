@@ -11,15 +11,12 @@
 #include "imgui/imgui_internal.h"
 #include "glm/gtc/type_ptr.hpp"
 
+#include "HeartEditor/Widgets/MaterialEditor.h"
+
 namespace HeartEditor
 {
 namespace Widgets
 {
-    PropertiesPanel::PropertiesPanel()
-    {
-
-    }
-
     void PropertiesPanel::RenderXYZSlider(const std::string& name, f32* x, f32* y, f32* z, f32 min, f32 max, f32 step)
     {
         f32 width = ImGui::GetContentRegionAvail().x;
@@ -68,177 +65,181 @@ namespace Widgets
         ImGui::PopStyleVar();
     }
 
-    void PropertiesPanel::OnImGuiRender(Heart::Entity selectedEntity, Heart::UUID& selectedMaterial)
+    void PropertiesPanel::OnImGuiRender()
     {
         HE_PROFILE_FUNCTION();
 
+        if (!m_Open) return;
+
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 5.0f));
+        ImGui::Begin(m_Name.c_str(), &m_Open);
+
+        auto selectedEntity = Editor::GetState().SelectedEntity;
         if (selectedEntity.IsValid())
         {
-            if (selectedEntity.HasComponent<Heart::NameComponent>())
-            {
-                auto& nameComponent = selectedEntity.GetComponent<Heart::NameComponent>();
+            // All entities should have a name component
+            auto& nameComponent = selectedEntity.GetComponent<Heart::NameComponent>();
+            Heart::ImGuiUtils::InputText("##Name", nameComponent.Name);
 
-                char buffer[128];
-                memset(buffer, 0, sizeof(buffer));
-                std::strncpy(buffer, nameComponent.Name.c_str(), sizeof(buffer));
-                if (ImGui::InputText("##Name", buffer, sizeof(buffer)))
+            ImGui::SameLine();
+            
+            if (ImGui::Button("Add Component"))
+                ImGui::OpenPopup("AddComponent");
+            
+            if (ImGui::BeginPopup("AddComponent"))
+            {
+                if (ImGui::MenuItem("Mesh Component"))
                 {
-                    ImGui::SetKeyboardFocusHere(-1);
-                    nameComponent.Name = std::string(buffer);
+                    selectedEntity.AddComponent<Heart::MeshComponent>();
                 }
 
+                ImGui::EndPopup();
+            }
+
+            RenderTransformComponent();
+            RenderMeshComponent();
+        }
+
+        ImGui::End();
+        ImGui::PopStyleVar();
+    }
+
+    void PropertiesPanel::RenderTransformComponent()
+    {
+        // All entities should have a transform component but double check just in case
+        auto selectedEntity = Editor::GetState().SelectedEntity;
+        if (selectedEntity.HasComponent<Heart::TransformComponent>())
+        {
+            bool headerOpen = ImGui::CollapsingHeader("Transform");
+            if (!RenderComponentPopup<Heart::MeshComponent>("TransformPopup", false) && headerOpen)
+            {
+                glm::vec3 translation = selectedEntity.GetPosition();
+                glm::vec3 rotation = selectedEntity.GetRotation();
+                glm::vec3 scale = selectedEntity.GetScale();
+                ImGui::Indent();
+                RenderXYZSlider("Translation  ", &translation.x, &translation.y, &translation.z, -999999.f, 999999.f, 0.1f);
+                RenderXYZSlider("Rotation     ", &rotation.x, &rotation.y, &rotation.z, 0.f, 360.f, 1.f);
+                RenderXYZSlider("Scale        ", &scale.x, &scale.y, &scale.z, 0.f, 999999.f, 0.1f);
+                ImGui::Unindent();
+
+                selectedEntity.SetTransform(translation, rotation, scale);
+            }
+        }
+    }
+
+    void PropertiesPanel::RenderMeshComponent()
+    {
+        auto selectedEntity = Editor::GetState().SelectedEntity;
+        if (selectedEntity.HasComponent<Heart::MeshComponent>())
+        {
+            bool headerOpen = ImGui::CollapsingHeader("Mesh"); 
+            if (!RenderComponentPopup<Heart::MeshComponent>("MeshPopup") && headerOpen)
+            {
+                auto& meshComp = selectedEntity.GetComponent<Heart::MeshComponent>();
+                const auto& UUIDRegistry = Heart::AssetManager::GetUUIDRegistry();
+
+                ImGui::Indent();
+
+                // Mesh picker
+                ImGui::Text("Mesh Asset:");
                 ImGui::SameLine();
-                
-                if (ImGui::Button("Add Component"))
-                    ImGui::OpenPopup("AddComponent");
-                
-                if (ImGui::BeginPopup("AddComponent"))
-                {
-                    if (ImGui::MenuItem("Mesh Component"))
+                Heart::ImGuiUtils::AssetPicker(
+                    Heart::Asset::Type::Mesh,
+                    meshComp.Mesh,
+                    "NULL",
+                    "MeshSelect",
+                    m_MeshTextFilter,
+                    nullptr,
+                    [&meshComp](Heart::UUID selected)
                     {
-                        selectedEntity.AddComponent<Heart::MeshComponent>();
-                    }
+                        meshComp.Mesh = selected;
 
-                    ImGui::EndPopup();
-                }
-            }
-
-            if (selectedEntity.HasComponent<Heart::TransformComponent>())
-            {
-                bool headerOpen = ImGui::CollapsingHeader("Transform");
-                if (!RenderComponentPopup<Heart::MeshComponent>("TransformPopup", selectedEntity, false) && headerOpen)
-                {
-                    glm::vec3 translation = selectedEntity.GetPosition();
-                    glm::vec3 rotation = selectedEntity.GetRotation();
-                    glm::vec3 scale = selectedEntity.GetScale();
-                    ImGui::Indent();
-                    RenderXYZSlider("Translation  ", &translation.x, &translation.y, &translation.z, -999999.f, 999999.f, 0.1f);
-                    RenderXYZSlider("Rotation     ", &rotation.x, &rotation.y, &rotation.z, 0.f, 360.f, 1.f);
-                    RenderXYZSlider("Scale        ", &scale.x, &scale.y, &scale.z, 0.f, 999999.f, 0.1f);
-                    ImGui::Unindent();
-
-                    selectedEntity.SetTransform(translation, rotation, scale);
-                }
-            }
-            if (selectedEntity.HasComponent<Heart::MeshComponent>())
-            {
-                bool headerOpen = ImGui::CollapsingHeader("Mesh"); 
-                if (!RenderComponentPopup<Heart::MeshComponent>("MeshPopup", selectedEntity) && headerOpen)
-                {
-                    auto& meshComp = selectedEntity.GetComponent<Heart::MeshComponent>();
-                    const auto& UUIDRegistry = Heart::AssetManager::GetUUIDRegistry();
-
-                    ImGui::Indent();
-
-                    ImGui::Text("Mesh Asset:");
-                    ImGui::SameLine();
-                    Heart::ImGuiUtils::AssetPicker(
-                        Heart::Asset::Type::Mesh,
-                        meshComp.Mesh,
-                        "NULL",
-                        "MeshSelect",
-                        m_MeshTextFilter,
-                        nullptr,
-                        [&meshComp](Heart::UUID selected)
-                        {
-                            meshComp.Mesh = selected;
-
-                            auto meshAsset = Heart::AssetManager::RetrieveAsset<Heart::MeshAsset>(meshComp.Mesh);
-                            if (meshAsset && meshAsset->IsValid())
-                                meshComp.Materials.resize(meshAsset->GetMaxMaterials(), 0);
-                        }
-                    );
-                    if (ImGui::BeginDragDropTarget())
-                    {
-                        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("FileTransfer"))
-                        {
-                            const char* payloadData = (const char*)payload->Data;
-                            std::string relativePath = std::filesystem::relative(payloadData, Heart::AssetManager::GetAssetsDirectory()).generic_u8string();
-                            auto assetType = Heart::AssetManager::DeduceAssetTypeFromFile(relativePath);
-
-                            if (assetType == Heart::Asset::Type::Mesh)
-                            {
-                                meshComp.Mesh = Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Mesh, relativePath);
-                                
-                                auto meshAsset = Heart::AssetManager::RetrieveAsset<Heart::MeshAsset>(meshComp.Mesh);
-                                if (meshAsset && meshAsset->IsValid())
-                                    meshComp.Materials.resize(meshAsset->GetMaxMaterials(), 0);
-                            }
-                        }
-                        ImGui::EndDragDropTarget();
-                    }
-
-                    auto meshAsset = Heart::AssetManager::RetrieveAsset<Heart::MeshAsset>(meshComp.Mesh);
-                    if (meshAsset && meshAsset->IsValid())
-                    {
-                        if (meshComp.Materials.size() == 0)
+                        auto meshAsset = Heart::AssetManager::RetrieveAsset<Heart::MeshAsset>(meshComp.Mesh);
+                        if (meshAsset && meshAsset->IsValid())
                             meshComp.Materials.resize(meshAsset->GetMaxMaterials(), 0);
-
-                        ImGui::Dummy({ 0.f, 5.f });
-                        ImGui::Text("Materials");
-                        ImGui::Separator();
-                        u32 index = 0;
-                        std::string baseName = "Material ";
-                        for (auto& materialId : meshComp.Materials)
-                        {
-                            std::string entryName = baseName + std::to_string(index);
-
-                            ImGui::Text(entryName.c_str(), index);
-                            ImGui::SameLine();
-                            Heart::ImGuiUtils::AssetPicker(
-                                Heart::Asset::Type::Material,
-                                materialId,
-                                "DEFAULT",
-                                entryName,
-                                m_MaterialTextFilter,
-                                [&materialId, &selectedMaterial, &meshAsset, index]()
-                                {
-                                    if (materialId)
-                                    {
-                                        if (ImGui::MenuItem("Clear"))
-                                            materialId = 0;
-                                        if (ImGui::MenuItem("Open in Editor"))
-                                            selectedMaterial = materialId;
-                                    }
-                                    if (ImGui::MenuItem("Export to File"))
-                                    {
-                                        Heart::Material* exportingMaterial = &meshAsset->GetDefaultMaterials()[index]; // default material
-                                        if (materialId != 0)
-                                        {
-                                            auto materialAsset = Heart::AssetManager::RetrieveAsset<Heart::MaterialAsset>(materialId);
-                                            if (materialAsset && materialAsset->IsValid())
-                                                exportingMaterial = &materialAsset->GetMaterial();
-                                        }
-
-                                        std::string path = Heart::FilesystemUtils::SaveAsDialog(Heart::AssetManager::GetAssetsDirectory(), "Export Material", "Material", "hemat");
-                                        if (!path.empty())
-                                            Heart::MaterialAsset::SerializeMaterial(path, *exportingMaterial);
-                                    }
-                                },
-                                [&materialId](Heart::UUID selected) { materialId = selected; }
-                            );
-                            if (ImGui::BeginDragDropTarget())
-                            {
-                                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("FileTransfer"))
-                                {
-                                    const char* payloadData = (const char*)payload->Data;
-                                    std::string relativePath = std::filesystem::relative(payloadData, Heart::AssetManager::GetAssetsDirectory()).generic_u8string();
-                                    auto assetType = Heart::AssetManager::DeduceAssetTypeFromFile(relativePath);
-
-                                    if (assetType == Heart::Asset::Type::Material)
-                                        materialId = Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Material, relativePath);
-                                }
-                                ImGui::EndDragDropTarget();
-                            }
-
-                            index++;
-                        }
                     }
-                    else
-                        ImGui::TextColored({ 0.9f, 0.1f, 0.1f, 1.f }, "Invalid Mesh");
-                    
-                    ImGui::Unindent();
+                );
+
+                // Assign mesh on drop
+                Heart::ImGuiUtils::AssetDropTarget(
+                    Heart::Asset::Type::Mesh,
+                    [&meshComp](const std::string& path)
+                    {
+                        meshComp.Mesh = Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Mesh, path);      
+                        auto meshAsset = Heart::AssetManager::RetrieveAsset<Heart::MeshAsset>(meshComp.Mesh);
+                        if (meshAsset && meshAsset->IsValid())
+                            meshComp.Materials.resize(meshAsset->GetMaxMaterials(), 0);
+                    }
+                );
+
+                auto meshAsset = Heart::AssetManager::RetrieveAsset<Heart::MeshAsset>(meshComp.Mesh);
+                if (meshAsset && meshAsset->IsValid())
+                {
+                    // Resize the materials to match the max of the mesh
+                    // This will add more zeros (defaults) if need be but will not replace old overridden materials
+                    if (meshComp.Materials.size() == 0)
+                        meshComp.Materials.resize(meshAsset->GetMaxMaterials(), 0);
+
+                    // Selection for each material
+                    ImGui::Dummy({ 0.f, 5.f });
+                    ImGui::Text("Materials");
+                    ImGui::Separator();
+                    u32 index = 0;
+                    std::string baseName = "Material ";
+                    for (auto& materialId : meshComp.Materials)
+                    {
+                        std::string entryName = baseName + std::to_string(index);
+
+                        // Material picker
+                        ImGui::Text(entryName.c_str(), index);
+                        ImGui::SameLine();
+                        Heart::ImGuiUtils::AssetPicker(
+                            Heart::Asset::Type::Material,
+                            materialId,
+                            "DEFAULT",
+                            entryName,
+                            m_MaterialTextFilter,
+                            [&materialId, &meshAsset, index]()
+                            {
+                                // Context menu per material
+                                if (materialId)
+                                {
+                                    if (ImGui::MenuItem("Clear"))
+                                        materialId = 0;
+                                    if (ImGui::MenuItem("Open in Editor"))
+                                        ((Widgets::MaterialEditor&)Editor::GetWindow("Material Editor")).SetSelectedMaterial(materialId);
+                                }
+                                if (ImGui::MenuItem("Export to File"))
+                                {
+                                    Heart::Material* exportingMaterial = &meshAsset->GetDefaultMaterials()[index]; // default material
+                                    if (materialId != 0)
+                                    {
+                                        auto materialAsset = Heart::AssetManager::RetrieveAsset<Heart::MaterialAsset>(materialId);
+                                        if (materialAsset && materialAsset->IsValid())
+                                            exportingMaterial = &materialAsset->GetMaterial();
+                                    }
+
+                                    std::string path = Heart::FilesystemUtils::SaveAsDialog(Heart::AssetManager::GetAssetsDirectory(), "Export Material", "Material", "hemat");
+                                    if (!path.empty())
+                                        Heart::MaterialAsset::SerializeMaterial(path, *exportingMaterial);
+                                }
+                            },
+                            [&materialId](Heart::UUID selected) { materialId = selected; }
+                        );
+
+                        // Assign material on drop
+                        Heart::ImGuiUtils::AssetDropTarget(
+                            Heart::Asset::Type::Material,
+                            [&materialId](const std::string& path) { materialId = Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Material, path); }
+                        );
+
+                        index++;
+                    }
                 }
+                else
+                    ImGui::TextColored({ 0.9f, 0.1f, 0.1f, 1.f }, "Invalid Mesh");
+                
+                ImGui::Unindent();
             }
         }
     }

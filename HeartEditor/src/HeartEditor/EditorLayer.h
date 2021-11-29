@@ -13,23 +13,10 @@
 #include "imgui/imgui.h"
 #include "imguizmo/ImGuizmo.h"
 
-#include "HeartEditor/Widgets/MenuBar.h"
-#include "HeartEditor/Widgets/SceneHierarchyPanel.h"
-#include "HeartEditor/Widgets/PropertiesPanel.h"
-#include "HeartEditor/Widgets/ContentBrowser.h"
-#include "HeartEditor/Widgets/MaterialEditor.h"
+#include "HeartEditor/MenuBar.h"
 
 namespace HeartEditor
 {
-    struct EditorWidgets
-    {
-        Widgets::MenuBar MainMenuBar;
-        Widgets::SceneHierarchyPanel SceneHierarchyPanel;
-        Widgets::PropertiesPanel PropertiesPanel;
-        Widgets::ContentBrowser ContentBrowser;
-        Widgets::MaterialEditor MaterialEditor;
-    };
-
     class EditorLayer : public Heart::Layer
     {
     public:
@@ -41,8 +28,6 @@ namespace HeartEditor
         void OnImGuiRender() override;
         void OnDetach() override;
 
-        inline bool IsDirty() { return m_Widgets.MainMenuBar.AreAnyWindowsDirty(); }
-
         void OnEvent(Heart::Event& event) override;
 
     protected:
@@ -51,24 +36,6 @@ namespace HeartEditor
         bool MouseButtonReleasedEvent(Heart::MouseButtonReleasedEvent& event);
 
     private:
-        void RenderViewport();
-        void RenderDebugInfo();
-        void RenderTooltip(const std::string& text);
-
-    private:
-        EditorWidgets m_Widgets;
-        Heart::Ref<Heart::Scene> m_ActiveScene;
-        Heart::Scope<Heart::SceneRenderer> m_SceneRenderer;
-        Heart::Scope<EditorCamera> m_EditorCamera;
-        glm::vec2 m_ViewportMousePos; // mouse position relative to the viewport window
-        glm::vec2 m_ViewportSize;
-        bool m_ViewportInput = false;
-        bool m_ViewportHover = false;
-        Heart::Entity m_SelectedEntity;
-        ImGuizmo::MODE m_GizmoMode = ImGuizmo::MODE::LOCAL;
-        ImGuizmo::OPERATION m_GizmoOperation = ImGuizmo::OPERATION::TRANSLATE;
-        Heart::UUID m_SelectedMaterial = 0;
-
-        ImGuiTextFilter m_EnvMapTextFilter;
+        MenuBar m_MenuBar;
     };
 }

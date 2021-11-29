@@ -16,7 +16,8 @@ namespace HeartEditor
 {
 namespace Widgets
 {
-    MaterialEditor::MaterialEditor()
+    MaterialEditor::MaterialEditor(const std::string& name, bool initialOpen)
+        : Widget(name, initialOpen)
     {
         m_SceneRenderer = Heart::CreateScope<Heart::SceneRenderer>();
         m_Scene = Heart::CreateRef<Heart::Scene>();
@@ -36,24 +37,39 @@ namespace Widgets
         m_FirstRender = true;
     }
 
-    void MaterialEditor::OnImGuiRender(Heart::UUID& selectedMaterial, bool* dirty)
+    void MaterialEditor::OnImGuiRender()
     {
         HE_PROFILE_FUNCTION();
+
+        // Open the window when a new material is selected
+        if (m_SelectedMaterial != m_LastMaterial)
+            m_Open = true;
+
+        if (!m_Open) return;
+
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 5.0f));
+        ImGui::Begin(m_Name.c_str(), &m_Open);
         
-        auto materialAsset = Heart::AssetManager::RetrieveAsset<Heart::MaterialAsset>(selectedMaterial);
+        auto materialAsset = Heart::AssetManager::RetrieveAsset<Heart::MaterialAsset>(m_SelectedMaterial);
         bool shouldRender = materialAsset && materialAsset->IsValid();
 
-        if ((shouldRender && ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows)) || m_FirstRender || selectedMaterial != m_LastMaterial)
+        // Only render the window when:
+        //  - Valid material & window is focused
+        //  - The material was just changed
+        //  - Graphics api was just initialized (first render)
+        if ((shouldRender && ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows)) || m_FirstRender || m_SelectedMaterial != m_LastMaterial)
         {
-            if (selectedMaterial != m_LastMaterial)
+            // Cache the material for reverting changes later
+            if (m_SelectedMaterial != m_LastMaterial)
             {
-                *dirty = false;
+                m_Dirty = false;
                 m_CachedMaterial = materialAsset->GetMaterial();
             }
 
-            m_LastMaterial = selectedMaterial;
+            // Updates
+            m_LastMaterial = m_SelectedMaterial;
             m_FirstRender = false;
-            m_DemoEntity.GetComponent<Heart::MeshComponent>().Materials[0] = selectedMaterial;
+            m_DemoEntity.GetComponent<Heart::MeshComponent>().Materials[0] = m_SelectedMaterial;
             m_SceneCamera.UpdateAspectRatio(m_WindowSizes.y / ImGui::GetContentRegionMax().y); // update aspect using estimated size
             m_SceneRenderer->RenderScene(
                 EditorApp::Get().GetWindow().GetContext(),
@@ -71,37 +87,33 @@ namespace Widgets
             6.f,
             10.f,
             !ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows),
-            [&]() { RenderSidebar(selectedMaterial, dirty); },
+            [&]() { RenderSidebar(); },
             [&]() { RenderViewport(shouldRender); }
         );
 
-        if (ImGui::BeginDragDropTarget())
-        {
-            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("FileTransfer"))
-            {
-                const char* payloadData = (const char*)payload->Data;
-                std::string relativePath = std::filesystem::relative(payloadData, Heart::AssetManager::GetAssetsDirectory()).generic_u8string();
-                auto assetType = Heart::AssetManager::DeduceAssetTypeFromFile(relativePath);
+        // Display material on drop
+        Heart::ImGuiUtils::AssetDropTarget(
+            Heart::Asset::Type::Material,
+            [&](const std::string& path) { m_SelectedMaterial = Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Material, path); }
+        );
 
-                if (assetType == Heart::Asset::Type::Material)
-                    selectedMaterial = Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Material, relativePath);
-            }
-            ImGui::EndDragDropTarget();
-        }
+        ImGui::End();
+        ImGui::PopStyleVar();
     }
 
-    void MaterialEditor::RenderSidebar(Heart::UUID selectedMaterial, bool* dirty)
+    void MaterialEditor::RenderSidebar()
     {
-        if (!selectedMaterial)
+        if (!m_SelectedMaterial)
         {
             ImGui::TextColored({ 1.f, 1.f, 0.f, 1.f }, "No Material Selected");
             return;
         }
 
-        auto materialAsset = Heart::AssetManager::RetrieveAsset<Heart::MaterialAsset>(selectedMaterial);
+        auto materialAsset = Heart::AssetManager::RetrieveAsset<Heart::MaterialAsset>(m_SelectedMaterial);
         if (materialAsset && materialAsset->IsValid())
         {
-            if (Heart::AssetManager::IsAssetAnEngineResource(selectedMaterial))
+            // Do not allow modification of engine resources, but still allow for them to be displayed
+            if (Heart::AssetManager::IsAssetAnEngineResource(m_SelectedMaterial))
             {
                 ImGui::TextColored({ 1.f, 1.f, 0.f, 1.f }, "Cannot Modify an Engine Resource");
                 return;
@@ -110,21 +122,23 @@ namespace Widgets
             auto& material = materialAsset->GetMaterial();
             auto& materialData = material.GetMaterialData();
 
+            // Material path
             ImGui::Text(materialAsset->GetPath().c_str());
 
-            bool disabled = !*dirty;
+            // Save buttons
+            bool disabled = !m_Dirty;
             if (disabled)
                 ImGui::BeginDisabled();
             if (ImGui::Button("Save Changes"))
             {
-                *dirty = false;
+                m_Dirty = false;
                 materialAsset->SaveChanges();
                 m_CachedMaterial = material;
             }
             ImGui::SameLine();
             if (ImGui::Button("Revert Changes"))
             {
-                *dirty = false;
+                m_Dirty = false;
                 material = m_CachedMaterial;
             }
             ImGui::Dummy({ 0.f, 5.f });
@@ -134,34 +148,34 @@ namespace Widgets
             ImGui::Text("Material Properties");
             ImGui::Separator();
 
-            // careful here, we are editing the material data properties directly so if the layout changes we need to come back in here and fix them
+            // Careful here, we are editing the material data properties directly so if the layout changes we need to come back in here and fix them
             ImGui::Text("Base Color");
             ImGui::SameLine();
             if (ImGui::ColorEdit4("##Base Color", (float*)&materialData.BaseColor, ImGuiColorEditFlags_AlphaPreviewHalf | ImGuiColorEditFlags_AlphaBar))
-                *dirty = true;
+                m_Dirty = true;
             ImGui::Text("Emissive Factor");
             ImGui::SameLine();
             if (ImGui::ColorEdit3("##Emissive Factor", (float*)&materialData.EmissiveFactor))
-                *dirty = true;
+                m_Dirty = true;
             ImGui::Text("Metalness");
             ImGui::SameLine();
             if (ImGui::DragFloat("##Metalness", &materialData.Scalars.x, 0.05f, 0.f, 1.f))
-                *dirty = true;
+                m_Dirty = true;
             ImGui::Text("Roughness");
             ImGui::SameLine();
             if (ImGui::DragFloat("##Roughness", &materialData.Scalars.y, 0.05f, 0.f, 1.f))
-                *dirty = true;
+                m_Dirty = true;
             ImGui::Text("Alpha Clip Threshold");
             ImGui::SameLine();
             if (ImGui::DragFloat("##ACThreshold", &materialData.Scalars.z, 0.01f, 0.f, 1.f))
-                *dirty = true;
+                m_Dirty = true;
             bool isTranslucent = material.IsTranslucent();
             ImGui::Text("Is Translucent");
             ImGui::SameLine();
             if (ImGui::Checkbox("##Translucent", &isTranslucent))
             {
                 material.SetTranslucent(isTranslucent);
-                *dirty = true;
+                m_Dirty = true;
             }
 
             float previewSize = 128.f;
@@ -180,15 +194,15 @@ namespace Widgets
                 "NULL",
                 "AlbedoSelect",
                 m_TextureTextFilter,
-                [&material, dirty]()
+                [&]()
                 {
                     if (ImGui::MenuItem("Clear"))
                     {
                         material.SetAlbedoTexture(0);
-                        *dirty = true;
+                        m_Dirty = true;
                     }
                 },
-                [&material, dirty](Heart::UUID selected) { material.SetAlbedoTexture(selected); *dirty = true; }
+                [&](Heart::UUID selected) { material.SetAlbedoTexture(selected); m_Dirty = true; }
             );
             auto albedoAsset = Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>(material.GetAlbedoTexture());
             if (albedoAsset && albedoAsset->IsValid())
@@ -207,15 +221,15 @@ namespace Widgets
                 "NULL",
                 "MRSelect",
                 m_TextureTextFilter,
-                [&material, dirty]()
+                [&]()
                 {
                     if (ImGui::MenuItem("Clear"))
                     {
                         material.SetMetallicRoughnessTexture(0);
-                        *dirty = true;
+                        m_Dirty = true;
                     }
                 },
-                [&material, dirty](Heart::UUID selected) { material.SetMetallicRoughnessTexture(selected); *dirty = true; }
+                [&](Heart::UUID selected) { material.SetMetallicRoughnessTexture(selected); m_Dirty = true; }
             );
             auto mrAsset = Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>(material.GetMetallicRoughnessTexture());
             if (mrAsset && mrAsset->IsValid())
@@ -234,15 +248,15 @@ namespace Widgets
                 "NULL",
                 "NormalSelect",
                 m_TextureTextFilter,
-                [&material, dirty]()
+                [&]()
                 {
                     if (ImGui::MenuItem("Clear"))
                     {
                         material.SetNormalTexture(0);
-                        *dirty = true;
+                        m_Dirty = true;
                     }
                 },
-                [&material, dirty](Heart::UUID selected) { material.SetNormalTexture(selected); *dirty = true; }
+                [&](Heart::UUID selected) { material.SetNormalTexture(selected); m_Dirty = true; }
             );
             auto normalAsset = Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>(material.GetNormalTexture());
             if (normalAsset && normalAsset->IsValid())
@@ -261,15 +275,15 @@ namespace Widgets
                 "NULL",
                 "EmissiveSelect",
                 m_TextureTextFilter,
-                [&material, dirty]()
+                [&]()
                 {
                     if (ImGui::MenuItem("Clear"))
                     {
                         material.SetEmissiveTexture(0);
-                        *dirty = true;
+                        m_Dirty = true;
                     }
                 },
-                [&material, dirty](Heart::UUID selected) { material.SetEmissiveTexture(selected); *dirty = true; }
+                [&](Heart::UUID selected) { material.SetEmissiveTexture(selected); m_Dirty = true; }
             );
             auto emAsset = Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>(material.GetEmissiveTexture());
             if (emAsset && emAsset->IsValid())
@@ -288,15 +302,15 @@ namespace Widgets
                 "NULL",
                 "OCSelect",
                 m_TextureTextFilter,
-                [&material, dirty]()
+                [&]()
                 {
                     if (ImGui::MenuItem("Clear"))
                     {
                         material.SetOcclusionTexture(0);
-                        *dirty = true;
+                        m_Dirty = true;
                     }
                 },
-                [&material, dirty](Heart::UUID selected) { material.SetOcclusionTexture(selected); *dirty = true; }
+                [&](Heart::UUID selected) { material.SetOcclusionTexture(selected); m_Dirty = true; }
             );
             auto ocAsset = Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>(material.GetOcclusionTexture());
             if (ocAsset && ocAsset->IsValid())
@@ -310,7 +324,7 @@ namespace Widgets
     {
         if (!shouldRender) return;
 
-        // calculate viewport bounds
+        // Calculate viewport bounds
         ImVec2 viewportMin = ImGui::GetWindowContentRegionMin();
         ImVec2 viewportMax = ImGui::GetWindowContentRegionMax();
         ImVec2 viewportPos = ImGui::GetWindowPos();
@@ -318,15 +332,16 @@ namespace Widgets
         glm::vec2 viewportStart = { viewportMin.x + viewportPos.x, viewportMin.y + viewportPos.y };
         glm::vec2 viewportEnd = viewportStart + viewportSize;
 
-        // draw the viewport background
+        // Draw the viewport background
         ImGui::GetWindowDrawList()->AddRectFilled({ viewportStart.x, viewportStart.y }, { viewportEnd.x, viewportEnd.y }, IM_COL32( 0, 0, 0, 255 )); // viewport background
 
-        // draw the rendered texture
+        // Draw the rendered texture
         ImGui::Image(
             m_SceneRenderer->GetFinalFramebuffer().GetColorAttachmentImGuiHandle(0),
             { viewportSize.x, viewportSize.y }
         );
 
+        // If we are dragging in the viewport, update the swivel camera rotation
         if (ImGui::IsItemHovered())
         {
             if (ImGui::IsMouseDragging(0))
@@ -334,6 +349,8 @@ namespace Widgets
                 m_SwivelRotation.x += static_cast<float>(Heart::Input::GetMouseDeltaX());
                 m_SwivelRotation.y += static_cast<float>(Heart::Input::GetMouseDeltaY());
             }
+
+            // Camera will orbit around { 0, 0, 0 }
             m_Radius = std::clamp(m_Radius + static_cast<float>(-Heart::Input::GetScrollOffsetY()), 0.f, 100.f);
             m_SceneCamera.UpdateViewMatrix({ 0.f, 0.f, 0.f }, m_Radius, m_SwivelRotation.x, m_SwivelRotation.y);
             m_SceneCameraPosition = -m_SceneCamera.GetForwardVector() * m_Radius;
