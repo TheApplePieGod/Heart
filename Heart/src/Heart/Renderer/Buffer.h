@@ -9,6 +9,7 @@ namespace Heart
         UInt, UInt8,
         Double,
         Int, Int2, Int3, Int4,
+        HalfFloat,
         Float, Float2, Float3, Float4,
         Mat3, Mat4  
     };
@@ -33,6 +34,7 @@ namespace Heart
             case BufferDataType::Int2: return 4 * 2;
             case BufferDataType::Int3: return 4 * 3;
             case BufferDataType::Int4: return 4 * 4;
+            case BufferDataType::HalfFloat: return 2;
             case BufferDataType::Float: return 4;
             case BufferDataType::Float2: return 4 * 2;
             case BufferDataType::Float3: return 4 * 3;
@@ -57,6 +59,7 @@ namespace Heart
             case BufferDataType::Int2: return 2;
             case BufferDataType::Int3: return 3;
             case BufferDataType::Int4: return 4;
+            case BufferDataType::HalfFloat: return 1;
             case BufferDataType::Float: return 1;
             case BufferDataType::Float2: return 2;
             case BufferDataType::Float3: return 3;
@@ -110,10 +113,10 @@ namespace Heart
         enum class Type
         {
             None = 0,
-            Uniform, Storage, Vertex, Index, Pixel
+            Uniform, Storage, Vertex, Index, Pixel, Indirect
         };
         inline static const char* TypeStrings[] = {
-            "None", "Uniform", "Storage", "Vertex", "Index", "Pixel"
+            "None", "Uniform", "Storage", "Vertex", "Index", "Pixel", "Indirect"
         };
 
     public:

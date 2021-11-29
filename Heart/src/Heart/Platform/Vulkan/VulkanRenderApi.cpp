@@ -29,7 +29,7 @@ namespace Heart
         viewport.minDepth = 0.0f;
         viewport.maxDepth = 1.0f;
 
-        vkCmdSetViewport(VulkanContext::GetBoundCommandBuffer(), 0, 1, &viewport);
+        vkCmdSetViewport(VulkanContext::GetBoundFramebuffer()->GetCommandBuffer(), 0, 1, &viewport);
     }
 
     void VulkanRenderApi::ResizeWindow(GraphicsContext& _context, u32 width, u32 height)
@@ -43,28 +43,42 @@ namespace Heart
     {
         HE_PROFILE_FUNCTION();
 
+        // To maintain consistency with opengl requirement
+        HE_ENGINE_ASSERT(VulkanContext::GetBoundFramebuffer()->GetBoundPipeline() != nullptr, "Must bind graphics pipeline before calling BindVertexBuffer");
+
         VkBuffer buffer = static_cast<VulkanBuffer&>(_buffer).GetBuffer();
 
         VkDeviceSize offsets[] = { 0 };
-        vkCmdBindVertexBuffers(VulkanContext::GetBoundCommandBuffer(), 0, 1, &buffer, offsets);
+        vkCmdBindVertexBuffers(VulkanContext::GetBoundFramebuffer()->GetCommandBuffer(), 0, 1, &buffer, offsets);
     }
 
     void VulkanRenderApi::BindIndexBuffer(Buffer& _buffer)
     {
         HE_PROFILE_FUNCTION();
 
+        // To maintain consistency with opengl requirement
+        HE_ENGINE_ASSERT(VulkanContext::GetBoundFramebuffer()->GetBoundPipeline() != nullptr, "Must bind graphics pipeline before calling BindIndexBuffer");
+
         VkBuffer buffer = static_cast<VulkanBuffer&>(_buffer).GetBuffer();
 
         VkDeviceSize offsets[] = { 0 };
-        vkCmdBindIndexBuffer(VulkanContext::GetBoundCommandBuffer(), buffer, 0, VK_INDEX_TYPE_UINT32);
+        vkCmdBindIndexBuffer(VulkanContext::GetBoundFramebuffer()->GetCommandBuffer(), buffer, 0, VK_INDEX_TYPE_UINT32);
     }
 
-    void VulkanRenderApi::DrawIndexed(u32 indexCount, u32 vertexCount, u32 indexOffset, u32 vertexOffset, u32 instanceCount)
+    void VulkanRenderApi::SetLineWidth(float width)
+    {
+        HE_ENGINE_ASSERT(width > 0.f && width <= 10.f, "Line width must be > 0 and <= 10"); // opengl constraint
+
+        vkCmdSetLineWidth(VulkanContext::GetBoundFramebuffer()->GetCommandBuffer(), width);
+    }
+
+    void VulkanRenderApi::DrawIndexed(u32 indexCount, u32 indexOffset, u32 vertexOffset, u32 instanceCount)
     {
         HE_PROFILE_FUNCTION();
         auto timer = AggregateTimer("VulkanRenderApi::DrawIndexed");
 
-        vkCmdDrawIndexed(VulkanContext::GetBoundCommandBuffer(), indexCount, instanceCount, indexOffset, vertexOffset, 0);
+        HE_ENGINE_ASSERT(VulkanContext::GetBoundFramebuffer()->CanDraw(), "Framebuffer is not ready to draw (did you bind & flush all of your shader resources?)");
+        vkCmdDrawIndexed(VulkanContext::GetBoundFramebuffer()->GetCommandBuffer(), indexCount, instanceCount, indexOffset, vertexOffset, 0);
     }
 
     void VulkanRenderApi::Draw(u32 vertexCount, u32 vertexOffset, u32 instanceCount)
@@ -72,7 +86,24 @@ namespace Heart
         HE_PROFILE_FUNCTION();
         auto timer = AggregateTimer("VulkanRenderApi::Draw");
 
-        vkCmdDraw(VulkanContext::GetBoundCommandBuffer(), vertexCount, instanceCount, vertexOffset, 0);
+        HE_ENGINE_ASSERT(VulkanContext::GetBoundFramebuffer()->CanDraw(), "Framebuffer is not ready to draw (did you bind & flush all of your shader resources?)");
+        vkCmdDraw(VulkanContext::GetBoundFramebuffer()->GetCommandBuffer(), vertexCount, instanceCount, vertexOffset, 0);
+    }
+
+    void VulkanRenderApi::DrawIndexedIndirect(Buffer* indirectBuffer, u32 commandOffset, u32 drawCount)
+    {
+        HE_PROFILE_FUNCTION();
+        auto timer = AggregateTimer("VulkanRenderApi::DrawIndexedIndirect");
+        
+        // TODO: use vkCmdDrawIndexedIndirectCount
+        HE_ENGINE_ASSERT(VulkanContext::GetBoundFramebuffer()->CanDraw(), "Framebuffer is not ready to draw (did you bind & flush all of your shader resources?)");
+        vkCmdDrawIndexedIndirect(
+            VulkanContext::GetBoundFramebuffer()->GetCommandBuffer(),
+            ((VulkanBuffer*)indirectBuffer)->GetBuffer(),
+            commandOffset * indirectBuffer->GetLayout().GetStride(),
+            drawCount,
+            indirectBuffer->GetLayout().GetStride()
+        );
     }
 
     void VulkanRenderApi::RenderFramebuffers(GraphicsContext& _context, const std::vector<Framebuffer*>& framebuffers)

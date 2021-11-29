@@ -76,7 +76,7 @@ namespace Heart
         return 0;
     }
 
-    void VulkanCommon::CreateImage(VkDevice device, VkPhysicalDevice physicalDevice, u32 width, u32 height, VkFormat format, u32 mipLevels, VkSampleCountFlagBits numSamples, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory, VkImageLayout initialLayout)
+    void VulkanCommon::CreateImage(VkDevice device, VkPhysicalDevice physicalDevice, u32 width, u32 height, VkFormat format, u32 mipLevels, u32 layerCount, VkSampleCountFlagBits numSamples, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory, VkImageLayout initialLayout)
     {
         VkImageCreateInfo imageInfo{};
         imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -85,14 +85,14 @@ namespace Heart
         imageInfo.extent.height = static_cast<u32>(height);
         imageInfo.extent.depth = 1;
         imageInfo.mipLevels = mipLevels;
-        imageInfo.arrayLayers = 1;
+        imageInfo.arrayLayers = layerCount;
         imageInfo.format = format;
         imageInfo.tiling = tiling;
         imageInfo.initialLayout = initialLayout;
         imageInfo.usage = usage;
         imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
         imageInfo.samples = numSamples;
-        imageInfo.flags = 0; // Optional
+        imageInfo.flags = layerCount == 6 ? VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT : 0;
 
         HE_VULKAN_CHECK_RESULT(vkCreateImage(device, &imageInfo, nullptr, &image));
 
@@ -109,18 +109,24 @@ namespace Heart
         vkBindImageMemory(device, image, imageMemory, 0);
     }
 
-    VkImageView VulkanCommon::CreateImageView(VkDevice device, VkImage image, VkFormat format, u32 mipLevels, VkImageAspectFlags aspectFlags)
+    VkImageView VulkanCommon::CreateImageView(VkDevice device, VkImage image, VkFormat format, u32 mipLevels, u32 baseMip, u32 layerCount, u32 baseArrayLayer, VkImageAspectFlags aspectFlags)
     {
+        VkImageViewType viewType = VK_IMAGE_VIEW_TYPE_2D;
+        if (layerCount > 1)
+            viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+        if (layerCount == 6)
+            viewType = VK_IMAGE_VIEW_TYPE_CUBE;
+
         VkImageViewCreateInfo viewInfo{};
         viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
         viewInfo.image = image;
-        viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        viewInfo.viewType = viewType;
         viewInfo.format = format;
         viewInfo.subresourceRange.aspectMask = aspectFlags;
-        viewInfo.subresourceRange.baseMipLevel = 0;
+        viewInfo.subresourceRange.baseMipLevel = baseMip;
         viewInfo.subresourceRange.levelCount = mipLevels;
-        viewInfo.subresourceRange.baseArrayLayer = 0;
-        viewInfo.subresourceRange.layerCount = 1;
+        viewInfo.subresourceRange.baseArrayLayer = baseArrayLayer;
+        viewInfo.subresourceRange.layerCount = layerCount;
 
         VkImageView view;
         HE_VULKAN_CHECK_RESULT(vkCreateImageView(device, &viewInfo, nullptr, &view));
@@ -128,40 +134,50 @@ namespace Heart
         return view;
     }
 
-    VkCommandBuffer VulkanCommon::BeginSingleTimeCommands(VkDevice device, VkCommandPool commandPool)
+    VkCommandBuffer VulkanCommon::BeginSingleTimeCommands(VkDevice device, VkCommandPool commandPool, bool secondary)
     {
         VkCommandBufferAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        allocInfo.level = secondary ? VK_COMMAND_BUFFER_LEVEL_SECONDARY : VK_COMMAND_BUFFER_LEVEL_PRIMARY;
         allocInfo.commandPool = commandPool;
         allocInfo.commandBufferCount = 1;
 
         VkCommandBuffer commandBuffer;
         HE_VULKAN_CHECK_RESULT(vkAllocateCommandBuffers(device, &allocInfo, &commandBuffer));
 
+        VkCommandBufferInheritanceInfo inheritanceInfo{};
+        inheritanceInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO;
+        inheritanceInfo.pNext = nullptr;
+        inheritanceInfo.renderPass = nullptr;
+        inheritanceInfo.subpass = 0;
+        inheritanceInfo.framebuffer = VK_NULL_HANDLE;
+
         VkCommandBufferBeginInfo beginInfo{};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
         beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+        beginInfo.pInheritanceInfo = secondary ? &inheritanceInfo : nullptr;
 
         HE_VULKAN_CHECK_RESULT(vkBeginCommandBuffer(commandBuffer, &beginInfo));
 
         return commandBuffer;
     }
 
-    void VulkanCommon::EndSingleTimeCommands(VkDevice device, VkCommandPool commandPool, VkCommandBuffer commandBuffer, VkQueue submitQueue)
+    void VulkanCommon::EndSingleTimeCommands(VkDevice device, VkCommandPool commandPool, VkCommandBuffer commandBuffer, VkQueue submitQueue, bool secondary)
     {
         HE_VULKAN_CHECK_RESULT(vkEndCommandBuffer(commandBuffer));
 
-        VkSubmitInfo submitInfo{};
-        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &commandBuffer;
+        if (!secondary)
+        {
+            VkSubmitInfo submitInfo{};
+            submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+            submitInfo.commandBufferCount = 1;
+            submitInfo.pCommandBuffers = &commandBuffer;
 
-        HE_VULKAN_CHECK_RESULT(vkQueueSubmit(submitQueue, 1, &submitInfo, VK_NULL_HANDLE));
+            HE_VULKAN_CHECK_RESULT(vkQueueSubmit(submitQueue, 1, &submitInfo, VK_NULL_HANDLE));
+            vkQueueWaitIdle(submitQueue);
 
-        vkQueueWaitIdle(submitQueue);
-
-        vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
+            vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
+        }
     }
 
     VkPipelineShaderStageCreateInfo VulkanCommon::DefineShaderStage(VkShaderModule shaderModule, VkShaderStageFlagBits stage, const char* entrypoint)
@@ -207,10 +223,15 @@ namespace Heart
         vkUnmapMemory(device, bufferMemory);
     }
 
-    void VulkanCommon::TransitionImageLayout(VkDevice device, VkCommandPool commandPool, VkQueue transferQueue, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout, u32 mipLevels)
+    void VulkanCommon::TransitionImageLayout(VkDevice device, VkCommandPool commandPool, VkQueue transferQueue, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout, u32 mipLevels, u32 layerCount)
     {
         VkCommandBuffer commandBuffer = BeginSingleTimeCommands(device, commandPool);
+        TransitionImageLayout(device, commandBuffer, image, oldLayout, newLayout, mipLevels, layerCount);
+        EndSingleTimeCommands(device, commandPool, commandBuffer, transferQueue);
+    }
 
+    void VulkanCommon::TransitionImageLayout(VkDevice device, VkCommandBuffer buffer, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout, u32 mipLevels, u32 layerCount)
+    {
         VkImageMemoryBarrier barrier{};
         barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
         barrier.oldLayout = oldLayout;
@@ -222,7 +243,7 @@ namespace Heart
         barrier.subresourceRange.baseMipLevel = 0;
         barrier.subresourceRange.levelCount = mipLevels;
         barrier.subresourceRange.baseArrayLayer = 0;
-        barrier.subresourceRange.layerCount = 1;
+        barrier.subresourceRange.layerCount = layerCount;
 
         /*
         * Undefined → transfer destination: transfer writes that don't need to wait on anything
@@ -237,6 +258,14 @@ namespace Heart
             barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 
             sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+            destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+        }
+        else if (oldLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
+        {
+            barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+            barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+            sourceStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
             destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
         }
         else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
@@ -255,39 +284,7 @@ namespace Heart
             sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
             destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
         }
-        else
-            throw std::invalid_argument("Unsupported layout transition");
-
-        vkCmdPipelineBarrier(
-            commandBuffer,
-            sourceStage, destinationStage,
-            0,
-            0, nullptr,
-            0, nullptr,
-            1, &barrier
-        );
-
-        EndSingleTimeCommands(device, commandPool, commandBuffer, transferQueue);
-    }
-
-    void VulkanCommon::TransitionImageLayout(VkDevice device, VkCommandBuffer buffer, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout, u32 mipLevels)
-    {
-        VkImageMemoryBarrier barrier{};
-        barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-        barrier.oldLayout = oldLayout;
-        barrier.newLayout = newLayout;
-        barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        barrier.image = image;
-        barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        barrier.subresourceRange.baseMipLevel = 0;
-        barrier.subresourceRange.levelCount = mipLevels;
-        barrier.subresourceRange.baseArrayLayer = 0;
-        barrier.subresourceRange.layerCount = 1;
-
-        VkPipelineStageFlags sourceStage;
-        VkPipelineStageFlags destinationStage;
-        if (oldLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL)
+        else if (oldLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL)
         {
             barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
             barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
@@ -336,7 +333,14 @@ namespace Heart
         EndSingleTimeCommands(device, commandPool, commandBuffer, transferQueue);
     }
 
-    void VulkanCommon::GenerateMipmaps(VkDevice device, VkPhysicalDevice physicalDevice, VkCommandPool commandPool, VkQueue submitQueue, VkImage image, VkFormat imageFormat, u32 width, u32 height, u32 mipLevels)
+    void VulkanCommon::GenerateMipmaps(VkDevice device, VkPhysicalDevice physicalDevice, VkCommandPool commandPool, VkQueue submitQueue, VkImage image, VkFormat imageFormat, u32 width, u32 height, u32 mipLevels, u32 layerCount)
+    {
+        VkCommandBuffer commandBuffer = BeginSingleTimeCommands(device, commandPool);
+        GenerateMipmaps(device, physicalDevice, commandBuffer, image, imageFormat, width, height, mipLevels, layerCount);
+        EndSingleTimeCommands(device, commandPool, commandBuffer, submitQueue);
+    }
+
+    void VulkanCommon::GenerateMipmaps(VkDevice device, VkPhysicalDevice physicalDevice, VkCommandBuffer buffer, VkImage image, VkFormat imageFormat, u32 width, u32 height, u32 mipLevels, u32 layerCount)
     {
         // Check if image format supports linear blitting
         VkFormatProperties formatProperties;
@@ -345,8 +349,6 @@ namespace Heart
         // TODO: store these somewhere or create them using STB
         HE_ENGINE_ASSERT(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT, "Texture image format does not support linear blitting");
 
-        VkCommandBuffer commandBuffer = BeginSingleTimeCommands(device, commandPool);
-
         VkImageMemoryBarrier barrier{};
         barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
         barrier.image = image;
@@ -354,7 +356,7 @@ namespace Heart
         barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
         barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
         barrier.subresourceRange.baseArrayLayer = 0;
-        barrier.subresourceRange.layerCount = 1;
+        barrier.subresourceRange.layerCount = layerCount;
         barrier.subresourceRange.levelCount = 1;
 
         int mipWidth = static_cast<int>(width);
@@ -368,7 +370,7 @@ namespace Heart
             barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
             barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
 
-            vkCmdPipelineBarrier(commandBuffer,
+            vkCmdPipelineBarrier(buffer,
                 VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
                 0, nullptr,
                 0, nullptr,
@@ -381,15 +383,15 @@ namespace Heart
             blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
             blit.srcSubresource.mipLevel = i - 1;
             blit.srcSubresource.baseArrayLayer = 0;
-            blit.srcSubresource.layerCount = 1;
+            blit.srcSubresource.layerCount = layerCount;
             blit.dstOffsets[0] = { 0, 0, 0 };
             blit.dstOffsets[1] = { mipWidth > 1 ? mipWidth / 2 : 1, mipHeight > 1 ? mipHeight / 2 : 1, 1 };
             blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
             blit.dstSubresource.mipLevel = i;
             blit.dstSubresource.baseArrayLayer = 0;
-            blit.dstSubresource.layerCount = 1;
+            blit.dstSubresource.layerCount = layerCount;
 
-            vkCmdBlitImage(commandBuffer,
+            vkCmdBlitImage(buffer,
                 image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                 image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                 1, &blit,
@@ -401,7 +403,7 @@ namespace Heart
             barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
             barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
-            vkCmdPipelineBarrier(commandBuffer,
+            vkCmdPipelineBarrier(buffer,
                 VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
                 0, nullptr,
                 0, nullptr,
@@ -418,14 +420,12 @@ namespace Heart
         barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
         barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
-        vkCmdPipelineBarrier(commandBuffer,
+        vkCmdPipelineBarrier(buffer,
             VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
             0, nullptr,
             0, nullptr,
             1, &barrier
         );
-
-        EndSingleTimeCommands(device, commandPool, commandBuffer, submitQueue);
     }
 
     VkFormat VulkanCommon::ColorFormatToVulkan(ColorFormat format)
@@ -435,9 +435,9 @@ namespace Heart
             default:
             { HE_ENGINE_ASSERT(false, "Vulkan does not support specified ColorFormat"); } break;
             case ColorFormat::RGBA8: return VK_FORMAT_R8G8B8A8_SRGB;
+            case ColorFormat::R16F: return VK_FORMAT_R16_SFLOAT;
+            case ColorFormat::RGBA16F: return VK_FORMAT_R16G16B16A16_SFLOAT;
             case ColorFormat::R32F: return VK_FORMAT_R32_SFLOAT;
-            case ColorFormat::RG32F: return VK_FORMAT_R32G32_SFLOAT;
-            case ColorFormat::RGB32F: return VK_FORMAT_R32G32B32_SFLOAT;
             case ColorFormat::RGBA32F: return VK_FORMAT_R32G32B32A32_SFLOAT;
         }
 

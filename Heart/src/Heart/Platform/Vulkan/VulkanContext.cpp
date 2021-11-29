@@ -15,8 +15,9 @@ namespace Heart
     VkCommandPool VulkanContext::s_GraphicsPool;
     VkCommandPool VulkanContext::s_ComputePool;
     VkCommandPool VulkanContext::s_TransferPool;
-    VkCommandBuffer VulkanContext::s_BoundCommandBuffer;
+    VulkanFramebuffer* VulkanContext::s_BoundFramebuffer = nullptr;
     VkSampler VulkanContext::s_DefaultSampler;
+    std::deque<std::function<void()>> VulkanContext::s_DeleteQueue;
 
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
         VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -71,7 +72,9 @@ namespace Heart
     VulkanContext::~VulkanContext()
     {
         HE_ENGINE_LOG_TRACE("VULKAN: Destroying context");
-        vkDeviceWaitIdle(s_VulkanDevice.Device());
+        Sync();
+
+        ProcessDeleteQueue();
 
         m_VulkanSwapChain.Shutdown();
 
@@ -118,7 +121,7 @@ namespace Heart
         poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
         poolInfo.poolSizeCount = static_cast<u32>(poolSizes.size());
         poolInfo.pPoolSizes = poolSizes.data();
-        poolInfo.maxSets = 100;
+        poolInfo.maxSets = 1000;
         poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
 
         HE_VULKAN_CHECK_RESULT(vkCreateDescriptorPool(s_VulkanDevice.Device(), &poolInfo, nullptr, &m_ImGuiDescriptorPool));
@@ -266,7 +269,10 @@ namespace Heart
 
     void VulkanContext::ShutdownImGui()
     {
-        vkDeviceWaitIdle(s_VulkanDevice.Device());
+        Sync();
+
+        ProcessDeleteQueue();
+
         ImGui_ImplVulkan_Shutdown();
     }
 
@@ -288,10 +294,9 @@ namespace Heart
     {
         HE_PROFILE_FUNCTION();
 
-        m_VulkanSwapChain.BeginFrame();
+        ProcessDeleteQueue();
 
-        // bind the initial commandbuffer to be the main window's
-        //SetBoundCommandBuffer(m_VulkanSwapChain.GetCommandBuffer());
+        m_VulkanSwapChain.BeginFrame();
     }
 
     void VulkanContext::EndFrame()
@@ -300,7 +305,21 @@ namespace Heart
         auto timer = AggregateTimer("VulkanContext::EndFrame");
         
         m_VulkanSwapChain.EndFrame();
-        s_BoundCommandBuffer = nullptr;
+        s_BoundFramebuffer = nullptr;
+    }
+
+    void VulkanContext::ProcessDeleteQueue()
+    {
+        if (!s_DeleteQueue.empty())
+        {
+            Sync();
+
+            // Reverse iterate (FIFO)
+		    for (auto it = s_DeleteQueue.rbegin(); it != s_DeleteQueue.rend(); it++)
+			    (*it)(); // Call the function
+
+            s_DeleteQueue.clear();
+		}
     }
 
     std::vector<const char*> VulkanContext::ConfigureValidationLayers()

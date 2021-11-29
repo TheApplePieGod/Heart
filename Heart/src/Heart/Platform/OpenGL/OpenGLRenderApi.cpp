@@ -39,27 +39,45 @@ namespace Heart
     {
         HE_PROFILE_FUNCTION();
 
-        HE_ENGINE_ASSERT(OpenGLContext::GetBoundGraphicsPipeline() != nullptr, "Must bind graphics pipeline before calling BindVertexBuffer");
+        HE_ENGINE_ASSERT(OpenGLContext::GetBoundFramebuffer()->GetBoundPipeline() != nullptr, "Must bind graphics pipeline before calling BindVertexBuffer");
+
         u32 bufferId = static_cast<OpenGLBuffer&>(_buffer).GetBufferId();
-        glBindVertexBuffer(0, bufferId, 0, OpenGLContext::GetBoundGraphicsPipeline()->GetVertexLayoutStride());
+        glBindVertexBuffer(0, bufferId, 0, OpenGLContext::GetBoundFramebuffer()->GetBoundPipeline()->GetVertexLayoutStride());
     }
 
     void OpenGLRenderApi::BindIndexBuffer(Buffer& _buffer)
     {
         HE_PROFILE_FUNCTION();
 
-        HE_ENGINE_ASSERT(OpenGLContext::GetBoundGraphicsPipeline() != nullptr, "Must bind graphics pipeline before calling BindIndexBuffer");
+        HE_ENGINE_ASSERT(OpenGLContext::GetBoundFramebuffer()->GetBoundPipeline() != nullptr, "Must bind graphics pipeline before calling BindIndexBuffer");
+
         u32 bufferId = static_cast<OpenGLBuffer&>(_buffer).GetBufferId();
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, bufferId);
     }
 
-    void OpenGLRenderApi::DrawIndexed(u32 indexCount, u32 vertexCount, u32 indexOffset, u32 vertexOffset, u32 instanceCount)
+    void OpenGLRenderApi::SetLineWidth(float width)
+    {
+        HE_ENGINE_ASSERT(width > 0.f && width <= 10.f, "Line width must be > 0 and <= 10");
+
+        glLineWidth(width);
+    }
+
+    void OpenGLRenderApi::DrawIndexed(u32 indexCount, u32 indexOffset, u32 vertexOffset, u32 instanceCount)
     {
         HE_PROFILE_FUNCTION();
         auto timer = AggregateTimer("OpenGLRenderApi::DrawIndexed");
 
-        HE_ENGINE_ASSERT(OpenGLContext::GetBoundGraphicsPipeline() != nullptr, "Must bind graphics pipeline before calling DrawIndexed");
-        glDrawElementsInstancedBaseVertex(OpenGLCommon::VertexTopologyToOpenGL(OpenGLContext::GetBoundGraphicsPipeline()->GetVertexTopology()), indexCount, GL_UNSIGNED_INT, (void*)(indexOffset * sizeof(u32)), instanceCount, vertexOffset);
+        // To maintain consistency with vulkan requirement
+        HE_ENGINE_ASSERT(OpenGLContext::GetBoundFramebuffer()->CanDraw(), "Framebuffer is not ready to draw (did you bind & flush all of your shader resources?)");
+
+        glDrawElementsInstancedBaseVertex(
+            OpenGLCommon::VertexTopologyToOpenGL(OpenGLContext::GetBoundFramebuffer()->GetBoundPipeline()->GetVertexTopology()),
+            indexCount,
+            GL_UNSIGNED_INT,
+            (void*)(indexOffset * sizeof(u32)),
+            instanceCount,
+            vertexOffset
+        );
     }
 
     void OpenGLRenderApi::Draw(u32 vertexCount, u32 vertexOffset, u32 instanceCount)
@@ -67,8 +85,35 @@ namespace Heart
         HE_PROFILE_FUNCTION();
         auto timer = AggregateTimer("OpenGLRenderApi::Draw");
 
-        HE_ENGINE_ASSERT(OpenGLContext::GetBoundGraphicsPipeline() != nullptr, "Must bind graphics pipeline before calling Draw");
-        glDrawArraysInstancedBaseInstance(OpenGLCommon::VertexTopologyToOpenGL(OpenGLContext::GetBoundGraphicsPipeline()->GetVertexTopology()), vertexOffset, vertexCount, instanceCount, 0);
+        // To maintain consistency with vulkan requirement
+        HE_ENGINE_ASSERT(OpenGLContext::GetBoundFramebuffer()->CanDraw(), "Framebuffer is not ready to draw (did you bind & flush all of your shader resources?)");
+
+        glDrawArraysInstancedBaseInstance(
+            OpenGLCommon::VertexTopologyToOpenGL(OpenGLContext::GetBoundFramebuffer()->GetBoundPipeline()->GetVertexTopology()),
+            vertexOffset,
+            vertexCount,
+            instanceCount,
+            0
+        );
+    }
+
+    void OpenGLRenderApi::DrawIndexedIndirect(Buffer* indirectBuffer, u32 commandOffset, u32 drawCount)
+    {
+        HE_PROFILE_FUNCTION();
+        auto timer = AggregateTimer("OpenGLRenderApi::DrawIndexedIndirect");
+
+        // To maintain consistency with vulkan requirement
+        HE_ENGINE_ASSERT(OpenGLContext::GetBoundFramebuffer()->CanDraw(), "Framebuffer is not ready to draw (did you bind & flush all of your shader resources?)");
+
+        glBindBuffer(GL_DRAW_INDIRECT_BUFFER, ((OpenGLBuffer*)indirectBuffer)->GetBufferId());
+        glMultiDrawElementsIndirect(
+            OpenGLCommon::VertexTopologyToOpenGL(OpenGLContext::GetBoundFramebuffer()->GetBoundPipeline()->GetVertexTopology()),
+            GL_UNSIGNED_INT,
+            (void*)((intptr_t)commandOffset * indirectBuffer->GetLayout().GetStride()),
+            drawCount,
+            indirectBuffer->GetLayout().GetStride()
+        );
+        glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
     }
 
     void OpenGLRenderApi::RenderFramebuffers(GraphicsContext& _context, const std::vector<Framebuffer*>& framebuffers)

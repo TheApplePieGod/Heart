@@ -5,11 +5,24 @@
 #include "Heart/Asset/ShaderAsset.h"
 #include "Heart/Asset/MeshAsset.h"
 #include "Heart/Asset/MaterialAsset.h"
+#include "Heart/Asset/SceneAsset.h"
 
 namespace Heart
 {
     Asset::Asset(const std::string& path, const std::string& absolutePath)
         : m_Path(path), m_AbsolutePath(absolutePath)
+    {
+        UpdatePath(path, absolutePath);
+    }
+
+    void Asset::Reload()
+    {
+        if (m_Loaded)
+            Unload();
+        Load();
+    }
+
+    void Asset::UpdatePath(const std::string& path, const std::string& absolutePath)
     {
         auto entry = std::filesystem::path(path);
         m_Filename = entry.filename().generic_u8string();
@@ -18,13 +31,9 @@ namespace Heart
 
         // convert the extension to lowercase
         std::transform(m_Extension.begin(), m_Extension.end(), m_Extension.begin(), [](unsigned char c) { return std::tolower(c); });
-    }
 
-    void Asset::Reload()
-    {
-        if (m_Loaded)
-            Unload();
-        Load();
+        m_Path = path;
+        m_AbsolutePath = absolutePath;
     }
 
     Ref<Asset> Asset::Create(Type type, const std::string& path, const std::string& absolutePath)
@@ -41,6 +50,8 @@ namespace Heart
             { return CreateRef<MeshAsset>(path, absolutePath); }
             case Asset::Type::Material:
             { return CreateRef<MaterialAsset>(path, absolutePath); }
+            case Asset::Type::Scene:
+            { return CreateRef<SceneAsset>(path, absolutePath); }
         }
     }
 

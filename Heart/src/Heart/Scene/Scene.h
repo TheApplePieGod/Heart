@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Heart/Renderer/EnvironmentMap.h"
 #include "Heart/Core/UUID.h"
 #include "entt/entt.hpp"
 #include "glm/mat4x4.hpp"
@@ -32,9 +33,12 @@ namespace Heart
         }
 
         void ClearScene();
+        void SetEnvironmentMap(UUID mapAsset);
 
-        entt::registry& GetRegistry() { return m_Registry; }
+        inline entt::registry& GetRegistry() { return m_Registry; }
+        inline EnvironmentMap* GetEnvironmentMap() { return m_EnvironmentMap.get(); }
         Entity GetEntityFromUUID(UUID uuid);
+
 
     private:
         template<typename Component>
@@ -51,5 +55,8 @@ namespace Heart
         entt::registry m_Registry;
         std::unordered_map<UUID, entt::entity> m_UUIDMap;
         std::unordered_map<entt::entity, glm::mat4> m_CachedTransforms;
+        Ref<EnvironmentMap> m_EnvironmentMap;
+
+        friend class Entity;
     };
 }

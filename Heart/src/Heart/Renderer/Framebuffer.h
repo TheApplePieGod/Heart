@@ -37,9 +37,17 @@ namespace Heart
 
     struct FramebufferColorAttachment
     {
-        glm::vec4 ClearColor;
-        ColorFormat Format;
+        // mandatory
         bool AllowCPURead;
+        glm::vec4 ClearColor;
+
+        // required if not providing a texture
+        ColorFormat Format;
+
+        // required if a texture should be used as a render target
+        Ref<Texture> Texture;
+        u32 LayerIndex;
+        u32 MipLevel;
     };
 
     struct FramebufferDepthAttachment
@@ -66,9 +74,11 @@ namespace Heart
         virtual void BindPipeline(const std::string& name) = 0;
 
         // must be called after BindPipeline()
-        virtual void BindShaderBufferResource(u32 bindingIndex, u32 elementOffset, Buffer* buffer) = 0;
+        virtual void BindShaderBufferResource(u32 bindingIndex, u32 elementOffset, u32 elementCount, Buffer* buffer) = 0;
         virtual void BindShaderTextureResource(u32 bindingIndex, Texture* texture) = 0;
+        virtual void BindShaderTextureLayerResource(u32 bindingIndex, Texture* texture, u32 layerIndex) = 0;
         virtual void BindSubpassInputAttachment(u32 bindingIndex, SubpassAttachment attachment) = 0;
+        virtual void FlushBindings() = 0;
 
         virtual void* GetColorAttachmentImGuiHandle(u32 attachmentIndex) = 0;
 

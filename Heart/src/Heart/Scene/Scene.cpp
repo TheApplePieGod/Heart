@@ -13,7 +13,7 @@ namespace Heart
 
     Scene::~Scene()
     {
-        
+
     }
 
     Entity Scene::CreateEntity(const std::string& name)
@@ -110,6 +110,8 @@ namespace Heart
             parent.GetComponent<ChildComponent>().Children.push_back(childUUID);
         else
             parent.AddComponent<ChildComponent>(std::initializer_list<UUID>({ childUUID }));
+
+        CacheEntityTransform(child);
     }
 
     void Scene::UnparentEntity(Entity child)
@@ -127,6 +129,8 @@ namespace Heart
 
             child.RemoveComponent<ParentComponent>();
         }
+
+        CacheEntityTransform(child);
     }
 
     void Scene::RemoveChild(UUID parentUUID, UUID childUUID)
@@ -188,6 +192,20 @@ namespace Heart
     void Scene::ClearScene()
     {
         m_Registry.clear();
+    }
+
+    void Scene::SetEnvironmentMap(UUID mapAsset)
+    {
+        if (!mapAsset)
+            m_EnvironmentMap.reset();
+        else
+        {
+            if (m_EnvironmentMap)
+                m_EnvironmentMap->UpdateMapAsset(mapAsset);
+            else
+                m_EnvironmentMap = CreateRef<EnvironmentMap>(mapAsset);
+            m_EnvironmentMap->Recalculate();
+        }
     }
 
     Entity Scene::GetEntityFromUUID(UUID uuid)

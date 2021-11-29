@@ -1,6 +1,14 @@
 #include "htpch.h"
 #include "FilesystemUtils.h"
 
+#include "Heart/Core/App.h"
+#include "GLFW/glfw3native.h"
+
+#ifdef HE_PLATFORM_WINDOWS
+#include <Windows.h>
+#include <ShlObj.h>
+#endif
+
 namespace Heart
 {
     std::string FilesystemUtils::ReadFileToString(const std::string& path)
@@ -33,5 +41,125 @@ namespace Heart
 
         outLength = fileSize;
         return buffer;
+    }
+
+    std::string FilesystemUtils::SaveAsDialog(const std::string& initialPath, const std::string& title, const std::string& defaultFileName, const std::string& extension)
+    {
+        #ifdef HE_PLATFORM_WINDOWS
+            return Win32OpenDialog(initialPath, title, defaultFileName, extension, false, true);
+        #endif
+    }
+
+    std::string FilesystemUtils::OpenFileDialog(const std::string& initialPath, const std::string& title, const std::string& extension)
+    {
+        #ifdef HE_PLATFORM_WINDOWS
+            return Win32OpenDialog(initialPath, title, "", extension, false, false);
+        #endif
+    }
+
+    // https://cpp.hotexamples.com/examples/-/IFileDialog/-/cpp-ifiledialog-class-examples.html
+    std::string FilesystemUtils::OpenFolderDialog(const std::string& initialPath, const std::string& title)
+    {
+        #ifdef HE_PLATFORM_WINDOWS
+            return Win32OpenDialog(initialPath, title, "", "", true, false);
+        #endif
+    }
+
+    std::string FilesystemUtils::Win32OpenDialog(const std::string& initialPath, const std::string& title, const std::string& defaultFileName, const std::string& extension, bool folder, bool save)
+    {
+        HE_ENGINE_ASSERT(!folder || !save, "Cannot open a dialog with folder and save flags set to true");
+
+        std::string outputPath = "";
+        #ifdef HE_PLATFORM_WINDOWS
+            HRESULT hr = S_OK;
+
+            IFileDialog* pDialog = nullptr;
+            IShellItem* pItem = nullptr;
+            LPWSTR pwszFilePath = NULL;
+
+            // Create the FileOpenDialog object.
+            hr = CoCreateInstance(
+                save ? CLSID_FileSaveDialog : CLSID_FileOpenDialog, 
+                NULL, 
+                CLSCTX_INPROC_SERVER, 
+                IID_PPV_ARGS(&pDialog)
+            );
+            if (FAILED(hr)) goto done;
+
+            if (!title.empty())
+            {
+                hr = pDialog->SetTitle(NarrowToWideString(title).c_str());
+                if (FAILED(hr)) goto done;
+            }
+
+            DWORD dwOptions;
+            hr = pDialog->GetOptions(&dwOptions);
+            if (FAILED(hr)) goto done;
+            pDialog->SetOptions(dwOptions | (folder ? FOS_PICKFOLDERS : 0) | (save ? FOS_PATHMUSTEXIST : 0) | FOS_NOCHANGEDIR | FOS_OVERWRITEPROMPT);
+
+            if (!folder)
+            {
+                std::wstring wideExtension = NarrowToWideString(extension);
+                std::wstring filterFirst = wideExtension + L" (*." + wideExtension + L")";
+                std::wstring filterSecond = L"*." + wideExtension;
+                COMDLG_FILTERSPEC rgSpec[] = 
+                {
+                    { L"All Files (*.*)", L"*.*" },
+                    { filterFirst.c_str(), filterSecond.c_str() }
+                };
+                hr = pDialog->SetFileTypes(extension.empty() ? 1 : ARRAYSIZE(rgSpec), rgSpec);
+                if (FAILED(hr)) goto done;
+
+                pDialog->SetFileTypeIndex(2);
+                if (save)
+                    pDialog->SetDefaultExtension(wideExtension.c_str());
+
+                if (save && !defaultFileName.empty())
+                {
+                    hr = pDialog->SetFileName(NarrowToWideString(defaultFileName).c_str());
+                    if (FAILED(hr)) goto done;
+                }
+            }
+
+            hr = pDialog->Show(NULL);
+            if (FAILED(hr) || hr == HRESULT_FROM_WIN32(ERROR_CANCELLED)) goto done;
+
+            hr = pDialog->GetResult(&pItem);
+            if (FAILED(hr)) goto done;
+
+            hr = pItem->GetDisplayName(SIGDN_FILESYSPATH, &pwszFilePath);
+            if (FAILED(hr)) goto done;
+
+            outputPath = WideToNarrowString(pwszFilePath);
+
+        done:
+            if (pDialog)
+                pDialog->Release();
+            if (pItem)
+                pItem->Release();
+        #endif
+        return outputPath;
+    }
+
+    std::string FilesystemUtils::WideToNarrowString(const std::wstring& wide)
+    {
+        std::string output;
+        output.reserve(wide.length());
+
+        for (wchar c : wide)
+            output.push_back((char)c);
+
+        return output;
+    }
+
+    std::wstring FilesystemUtils::NarrowToWideString(const std::string& narrow)
+    {
+        std::wstring output;
+        output.reserve(narrow.length());
+
+        for (char c : narrow)
+            output.push_back((wchar)c);
+
+        return output;
     }
 }

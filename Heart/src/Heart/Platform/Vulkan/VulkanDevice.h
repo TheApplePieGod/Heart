@@ -23,6 +23,7 @@ namespace Heart
         inline u32 TransferQueueIndex() const { return m_TransferQueueIndex; }
         inline VkSampleCountFlagBits MaxMsaaSamples() const { return m_DeviceMaxSampleCount; }
         inline bool IsInitialized() const { return m_Initialized; }
+        inline const VkPhysicalDeviceProperties& PhysicalDeviceProperties() const { return m_PhysicalDeviceProperties; }
 
     private:
         bool IsDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface, const std::vector<const char*>& deviceExtensions);

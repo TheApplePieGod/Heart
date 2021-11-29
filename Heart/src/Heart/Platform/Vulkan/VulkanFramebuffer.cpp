@@ -4,7 +4,6 @@
 #include "Heart/Core/Window.h"
 #include "Heart/Platform/Vulkan/VulkanContext.h"
 #include "Heart/Platform/Vulkan/VulkanDevice.h"
-#include "Heart/Platform/Vulkan/VulkanGraphicsPipeline.h"
 #include "Heart/Core/App.h"
 #include "Heart/Renderer/Renderer.h"
 #include "imgui/backends/imgui_impl_vulkan.h"
@@ -43,6 +42,7 @@ namespace Heart
             attachmentData.HasResolve = false; //m_ImageSamples > VK_SAMPLE_COUNT_1_BIT;
             attachmentData.CPUVisible = false;
             attachmentData.IsDepthAttachment = true;
+            attachmentData.ExternalTexture = false;
 
             CreateAttachmentImages(attachmentData);
 
@@ -69,12 +69,22 @@ namespace Heart
         // TODO: depth resolve (https://github.com/KhronosGroup/Vulkan-Samples/blob/master/samples/performance/msaa/msaa_tutorial.md)
         for (auto& attachment : createInfo.ColorAttachments)
         {
-            VkFormat colorFormat = VulkanCommon::ColorFormatToVulkan(attachment.Format);
+            VulkanFramebufferAttachment attachmentData = {};
+            if (attachment.Texture)
+            {
+                attachmentData.ExternalTexture = (VulkanTexture*)attachment.Texture.get();
+                attachmentData.ExternalTextureLayer = attachment.LayerIndex;
+                attachmentData.ExternalTextureMip = attachment.MipLevel;
+
+                HE_ENGINE_ASSERT(m_Info.Width == attachmentData.ExternalTexture->GetMipWidth(attachment.MipLevel), "Texture dimensions (at the specified mip level) must match the framebuffer (framebuffer width/height cannot be zero)");
+                HE_ENGINE_ASSERT(m_Info.Height == attachmentData.ExternalTexture->GetMipHeight(attachment.MipLevel), "Texture dimensions (at the specified mip level) must match the framebuffer (framebuffer width/height cannot be zero)");
+            }
+
+            VkFormat colorFormat = attachment.Texture ? attachmentData.ExternalTexture->GetFormat() : VulkanCommon::ColorFormatToVulkan(attachment.Format);
             VkClearValue clearValue{};
             clearValue.color = { attachment.ClearColor.r, attachment.ClearColor.g, attachment.ClearColor.b, attachment.ClearColor.a };
-
-            VulkanFramebufferAttachment attachmentData = {};
-            attachmentData.GeneralColorFormat = attachment.Format;
+  
+            attachmentData.GeneralColorFormat = attachment.Texture ? attachmentData.ExternalTexture->GetGeneralFormat() : attachment.Format;
             attachmentData.ColorFormat = colorFormat;
             attachmentData.HasResolve = m_ImageSamples > VK_SAMPLE_COUNT_1_BIT;
             attachmentData.CPUVisible = attachment.AllowCPURead;
@@ -135,9 +145,9 @@ namespace Heart
         std::vector<VkAttachmentReference> outputResolveAttachmentRefs;
         std::vector<VkAttachmentReference> depthAttachmentRefs;
 
-        inputAttachmentRefs.reserve(25);
-        outputAttachmentRefs.reserve(25);
-        outputResolveAttachmentRefs.reserve(25);
+        inputAttachmentRefs.reserve(100);
+        outputAttachmentRefs.reserve(100);
+        outputResolveAttachmentRefs.reserve(100);
         depthAttachmentRefs.reserve(createInfo.Subpasses.size());
         for (size_t i = 0; i < subpasses.size(); i++)
         {
@@ -266,7 +276,7 @@ namespace Heart
         HE_ENGINE_ASSERT(!m_SubmittedThisFrame, "Cannot bind a framebuffer that has already been submitted");
 
         VkCommandBuffer buffer = GetCommandBuffer();
-        VulkanContext::SetBoundCommandBuffer(buffer);
+        VulkanContext::SetBoundFramebuffer(this);
 
         if (!m_BoundThisFrame)
         {
@@ -296,6 +306,8 @@ namespace Heart
             scissor.extent = { m_ActualWidth, m_ActualHeight };
             vkCmdSetScissor(buffer, 0, 1, &scissor);
 
+            vkCmdSetLineWidth(buffer, 1.f);
+
             VkRenderPassBeginInfo renderPassInfo{};
             renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
             renderPassInfo.renderPass = m_RenderPass;
@@ -316,7 +328,9 @@ namespace Heart
 
         HE_ENGINE_ASSERT(!m_SubmittedThisFrame, "Cannot submit framebuffer twice in the same frame");
         HE_ENGINE_ASSERT(m_BoundThisFrame, "Cannot submit framebuffer that has not been bound this frame");
+        HE_ENGINE_ASSERT(m_CurrentSubpass == m_Info.Subpasses.size() - 1, "Attempting to submit a framebuffer without completing all subpasses");
 
+        VulkanDevice& device = VulkanContext::GetDevice();
         VkCommandBuffer buffer = GetCommandBuffer();
 
         vkCmdEndRenderPass(buffer);
@@ -327,11 +341,18 @@ namespace Heart
         for (auto& attachment : m_DepthAttachmentData)
             CopyAttachmentToBuffer(attachment);
 
+        // execute any commands that need to be synced with this framebuffer (i.e. Texture::RegenerateMipMapsSync)
+        for (auto cmdBuf : m_AuxiliaryCommandBuffers[m_InFlightFrameIndex])
+            vkCmdExecuteCommands(buffer, 1, &cmdBuf);
+
         HE_VULKAN_CHECK_RESULT(vkEndCommandBuffer(buffer));
 
-        m_BoundPipeline = "";
+        m_BoundPipeline = nullptr;
+        m_BoundPipelineName = "";
         m_BoundThisFrame = false;
         m_SubmittedThisFrame = true;
+        m_FlushedThisFrame = false;
+        m_CurrentSubpass = 0;
     }
 
     void VulkanFramebuffer::CopyAttachmentToBuffer(VulkanFramebufferAttachment& attachmentData)
@@ -394,67 +415,88 @@ namespace Heart
     {
         HE_PROFILE_FUNCTION();
 
+        if (name == m_BoundPipelineName) return;
+
         VkCommandBuffer buffer = GetCommandBuffer();
         auto pipeline = static_cast<VulkanGraphicsPipeline*>(LoadPipeline(name).get());
 
         vkCmdBindPipeline(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->GetPipeline());
 
-        m_BoundPipeline = name;
+        m_BoundPipeline = pipeline;
+        m_BoundPipelineName = name;
     }
 
-    void VulkanFramebuffer::BindShaderBufferResource(u32 bindingIndex, u32 elementOffset, Buffer* buffer)
+    void VulkanFramebuffer::BindShaderBufferResource(u32 bindingIndex, u32 elementOffset, u32 elementCount, Buffer* buffer)
     {
         HE_PROFILE_FUNCTION();
 
-        BindShaderResource(bindingIndex, ShaderResourceType::UniformBuffer, buffer, buffer->GetLayout().GetStride() * elementOffset); // uniform vs structured buffer are the doesn't matter here
+        HE_ENGINE_ASSERT(elementCount + elementOffset <= buffer->GetAllocatedCount(), "ElementCount + ElementOffset must be <= buffer allocated count");
+
+        BindShaderResource(bindingIndex, ShaderResourceType::UniformBuffer, buffer, true, buffer->GetLayout().GetStride() * elementOffset, buffer->GetLayout().GetStride() * elementCount); // uniform vs structured buffer doesn't matter here
     }
 
     void VulkanFramebuffer::BindShaderTextureResource(u32 bindingIndex, Texture* texture)
     {
         HE_PROFILE_FUNCTION();
         
-        BindShaderResource(bindingIndex, ShaderResourceType::Texture, texture, 0);
+        BindShaderResource(bindingIndex, ShaderResourceType::Texture, texture, false, 0, 0);
+    }
+
+    void VulkanFramebuffer::BindShaderTextureLayerResource(u32 bindingIndex, Texture* texture, u32 layerIndex)
+    {
+        HE_PROFILE_FUNCTION();
+
+        BindShaderResource(bindingIndex, ShaderResourceType::Texture, texture, true, layerIndex, 0);
     }
 
     void VulkanFramebuffer::BindSubpassInputAttachment(u32 bindingIndex, SubpassAttachment attachment)
     {
         HE_PROFILE_FUNCTION();
 
-        BindShaderResource(bindingIndex, ShaderResourceType::SubpassInput, attachment.Type == SubpassAttachmentType::Depth ? &m_DepthAttachmentData[attachment.AttachmentIndex] : &m_AttachmentData[attachment.AttachmentIndex], 0);
+        BindShaderResource(bindingIndex, ShaderResourceType::SubpassInput, attachment.Type == SubpassAttachmentType::Depth ? &m_DepthAttachmentData[attachment.AttachmentIndex] : &m_AttachmentData[attachment.AttachmentIndex], false, 0, 0);
     }
 
-    void VulkanFramebuffer::BindShaderResource(u32 bindingIndex, ShaderResourceType resourceType, void* resource, u32 offset)
+    void VulkanFramebuffer::BindShaderResource(u32 bindingIndex, ShaderResourceType resourceType, void* resource, bool useOffset, u32 offset, u32 size)
     {
-        // TODO: don't use string here
-        HE_ENGINE_ASSERT(!m_BoundPipeline.empty(), "Must call BindPipeline before BindShaderResource");
+        HE_ENGINE_ASSERT(m_BoundPipeline != nullptr, "Must call BindPipeline before BindShaderResource");
 
-        VulkanGraphicsPipeline& boundPipeline = static_cast<VulkanGraphicsPipeline&>(*LoadPipeline(m_BoundPipeline));
-        VulkanDescriptorSet& descriptorSet = boundPipeline.GetVulkanDescriptorSet();
+        VulkanDescriptorSet& descriptorSet = m_BoundPipeline->GetVulkanDescriptorSet();
 
         if (!descriptorSet.DoesBindingExist(bindingIndex))
             return; // silently ignore, TODO: warning once in the console when this happens
 
-        if (resourceType == ShaderResourceType::UniformBuffer || resourceType == ShaderResourceType::StorageBuffer)
+        if (useOffset && (resourceType == ShaderResourceType::UniformBuffer || resourceType == ShaderResourceType::StorageBuffer))
             descriptorSet.UpdateDynamicOffset(bindingIndex, offset);
 
-        // we only want to bind here if the descriptor set was allocated & updated
-        // this will only occur if the binding resource differs at the same bind index and
-        // only once all bind indexes have been bound with a resource this frame 
-        if (descriptorSet.UpdateShaderResource(bindingIndex, resourceType, resource))
-        {
-            HE_ENGINE_ASSERT(descriptorSet.GetMostRecentDescriptorSet() != nullptr);
+        // update the descriptor set binding information
+        descriptorSet.UpdateShaderResource(bindingIndex, resourceType, resource, useOffset, offset, size);
+    }
 
-            VkDescriptorSet sets[1] = { descriptorSet.GetMostRecentDescriptorSet() };
-            vkCmdBindDescriptorSets(
-                GetCommandBuffer(),
-                VK_PIPELINE_BIND_POINT_GRAPHICS,
-                boundPipeline.GetLayout(),
-                0, 1,
-                sets,
-                static_cast<u32>(descriptorSet.GetDynamicOffsets().size()),
-                descriptorSet.GetDynamicOffsets().data()
-            );
-        }
+    void VulkanFramebuffer::FlushBindings()
+    {
+        HE_ENGINE_ASSERT(m_BoundPipeline != nullptr, "Must call BindPipeline and bind all resources before FlushBindings");
+
+        VulkanDescriptorSet& descriptorSet = m_BoundPipeline->GetVulkanDescriptorSet();
+
+        // update a newly allocated descriptor set based on the current bindings or return
+        // a cached one that was created before with the same binding info
+        descriptorSet.FlushBindings();
+
+        HE_ENGINE_ASSERT(descriptorSet.GetMostRecentDescriptorSet() != nullptr);
+
+        // bind the new set
+        VkDescriptorSet sets[1] = { descriptorSet.GetMostRecentDescriptorSet() };
+        vkCmdBindDescriptorSets(
+            GetCommandBuffer(),
+            VK_PIPELINE_BIND_POINT_GRAPHICS,
+            m_BoundPipeline->GetLayout(),
+            0, 1,
+            sets,
+            static_cast<u32>(descriptorSet.GetDynamicOffsets().size()),
+            descriptorSet.GetDynamicOffsets().data()
+        );
+
+        m_FlushedThisFrame = true;
     }
     
     void* VulkanFramebuffer::GetColorAttachmentImGuiHandle(u32 attachmentIndex)
@@ -474,7 +516,14 @@ namespace Heart
 
     void VulkanFramebuffer::StartNextSubpass()
     {
+        m_CurrentSubpass++;
+        HE_ENGINE_ASSERT(m_CurrentSubpass < m_Info.Subpasses.size(), "Attempting to start a subpass that does not exist");
+
         vkCmdNextSubpass(GetCommandBuffer(), VK_SUBPASS_CONTENTS_INLINE);
+
+        m_FlushedThisFrame = false;
+        m_BoundPipeline = nullptr;
+        m_BoundPipelineName = "";
     }
 
     void VulkanFramebuffer::ClearOutputAttachment(u32 outputAttachmentIndex, bool clearDepth)
@@ -539,22 +588,13 @@ namespace Heart
         bool colorTransferSrc = attachmentData.CPUVisible && !attachmentData.HasResolve;
 
         // create the associated images for the framebuffer
-        VulkanCommon::CreateImage(
-            device.Device(),
-            device.PhysicalDevice(),
-            m_ActualWidth,
-            m_ActualHeight,
-            attachmentData.ColorFormat,
-            1,
-            m_ImageSamples,
-            VK_IMAGE_TILING_OPTIMAL,
-            (attachmentData.IsDepthAttachment ? VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT : VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | (colorTransferSrc ? VK_IMAGE_USAGE_TRANSFER_SRC_BIT : 0),
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-            attachmentData.Image,
-            attachmentData.ImageMemory
-        );
+        // if we are using an external texture, that texture will be the resolve image in the case of a multisampled framebuffer
+        // for one sample, we will render directly to that image
 
-        if (attachmentData.HasResolve)
+        bool shouldResolveExternal = attachmentData.ExternalTexture && attachmentData.HasResolve;
+        bool shouldCreateBaseTexture = !attachmentData.ExternalTexture || shouldResolveExternal;
+        bool shouldCreateResolveTexture = attachmentData.HasResolve && !attachmentData.ExternalTexture;
+        if (shouldCreateBaseTexture)
         {
             VulkanCommon::CreateImage(
                 device.Device(),
@@ -562,13 +602,33 @@ namespace Heart
                 m_ActualWidth,
                 m_ActualHeight,
                 attachmentData.ColorFormat,
-                1,
+                1, 1,
+                m_ImageSamples,
+                VK_IMAGE_TILING_OPTIMAL,
+                (attachmentData.IsDepthAttachment ? VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT : VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | (colorTransferSrc ? VK_IMAGE_USAGE_TRANSFER_SRC_BIT : 0),
+                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                attachmentData.Image,
+                attachmentData.ImageMemory,
+                VK_IMAGE_LAYOUT_UNDEFINED
+            );
+        }
+
+        if (shouldCreateResolveTexture)
+        {
+            VulkanCommon::CreateImage(
+                device.Device(),
+                device.PhysicalDevice(),
+                m_ActualWidth,
+                m_ActualHeight,
+                attachmentData.ColorFormat,
+                1, 1,
                 VK_SAMPLE_COUNT_1_BIT,
                 VK_IMAGE_TILING_OPTIMAL,
                 (attachmentData.IsDepthAttachment ? VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT : VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | (attachmentData.CPUVisible ? VK_IMAGE_USAGE_TRANSFER_SRC_BIT : 0),
                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                 attachmentData.ResolveImage,
-                attachmentData.ResolveImageMemory
+                attachmentData.ResolveImageMemory,
+                VK_IMAGE_LAYOUT_UNDEFINED
             );
         }
 
@@ -582,16 +642,36 @@ namespace Heart
             ));
         }
 
-        // create associated image views 
-        attachmentData.ImageView = VulkanCommon::CreateImageView(device.Device(), attachmentData.Image, attachmentData.ColorFormat, 1, attachmentData.IsDepthAttachment ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT);
-        m_CachedImageViews.emplace_back(attachmentData.ImageView);
-        attachmentData.ImageImGuiId = ImGui_ImplVulkan_AddTexture(VulkanContext::GetDefaultSampler(), attachmentData.ImageView, attachmentData.IsDepthAttachment ? VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
-        if (attachmentData.HasResolve)
+        // create associated image views
+        if (shouldCreateBaseTexture)
         {
-            attachmentData.ResolveImageView = VulkanCommon::CreateImageView(device.Device(), attachmentData.ResolveImage, attachmentData.ColorFormat, 1, attachmentData.IsDepthAttachment ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT);
+            attachmentData.ImageView = VulkanCommon::CreateImageView(device.Device(), attachmentData.Image, attachmentData.ColorFormat, 1, 0, 1, 0, attachmentData.IsDepthAttachment ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT);
+            m_CachedImageViews.emplace_back(attachmentData.ImageView);
+            attachmentData.ImageImGuiId = ImGui_ImplVulkan_AddTexture(VulkanContext::GetDefaultSampler(), attachmentData.ImageView, attachmentData.IsDepthAttachment ? VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+        }
+
+        if (shouldCreateResolveTexture)
+        {
+            attachmentData.ResolveImageView = VulkanCommon::CreateImageView(device.Device(), attachmentData.ResolveImage, attachmentData.ColorFormat, 1, 0, 1, 0, attachmentData.IsDepthAttachment ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT);
             m_CachedImageViews.emplace_back(attachmentData.ResolveImageView);
             attachmentData.ResolveImageImGuiId = ImGui_ImplVulkan_AddTexture(VulkanContext::GetDefaultSampler(), attachmentData.ResolveImageView, attachmentData.IsDepthAttachment ? VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+        }
+
+        if (shouldResolveExternal)
+        {
+            attachmentData.ResolveImage = attachmentData.ExternalTexture->GetImage();
+            attachmentData.ResolveImageView = attachmentData.ExternalTexture->GetLayerImageView(attachmentData.ExternalTextureLayer, attachmentData.ExternalTextureMip);
+            attachmentData.ResolveImageMemory = attachmentData.ExternalTexture->GetImageMemory();
+            attachmentData.ResolveImageImGuiId = attachmentData.ExternalTexture->GetImGuiHandle(attachmentData.ExternalTextureLayer);
+            m_CachedImageViews.emplace_back(attachmentData.ResolveImageView);
+        }
+        else if (attachmentData.ExternalTexture)
+        {
+            attachmentData.Image = attachmentData.ExternalTexture->GetImage();
+            attachmentData.ImageView = attachmentData.ExternalTexture->GetLayerImageView(attachmentData.ExternalTextureLayer, attachmentData.ExternalTextureMip);
+            attachmentData.ImageMemory = attachmentData.ExternalTexture->GetImageMemory();
+            attachmentData.ImageImGuiId = attachmentData.ExternalTexture->GetImGuiHandle(attachmentData.ExternalTextureLayer);
+            m_CachedImageViews.emplace_back(attachmentData.ImageView);
         }
     }
 
@@ -599,13 +679,19 @@ namespace Heart
     {
         VulkanDevice& device = VulkanContext::GetDevice();
 
-        ImGui_ImplVulkan_RemoveTexture(attachmentData.ImageImGuiId);
-            
-        vkDestroyImageView(device.Device(), attachmentData.ImageView, nullptr);
-        vkDestroyImage(device.Device(), attachmentData.Image, nullptr);
-        vkFreeMemory(device.Device(), attachmentData.ImageMemory, nullptr);
+        bool shouldResolveExternal = attachmentData.ExternalTexture && attachmentData.HasResolve;
+        bool hasBaseTexture = !attachmentData.ExternalTexture || shouldResolveExternal;
+        bool hasResolveTexture = attachmentData.HasResolve && !attachmentData.ExternalTexture;
+        if (hasBaseTexture)
+        {
+            ImGui_ImplVulkan_RemoveTexture(attachmentData.ImageImGuiId);
+                
+            vkDestroyImageView(device.Device(), attachmentData.ImageView, nullptr);
+            vkDestroyImage(device.Device(), attachmentData.Image, nullptr);
+            vkFreeMemory(device.Device(), attachmentData.ImageMemory, nullptr);
+        }
 
-        if (attachmentData.HasResolve)
+        if (hasResolveTexture)
         {
             ImGui_ImplVulkan_RemoveTexture(attachmentData.ResolveImageImGuiId);
 
@@ -670,12 +756,20 @@ namespace Heart
         if (App::Get().GetFrameCount() != m_LastUpdateFrame)
         {
             // it is a new frame so we need to get the new flight frame index
+            VulkanDevice& device = VulkanContext::GetDevice();
             VulkanContext& mainContext = static_cast<VulkanContext&>(Window::GetMainWindow().GetContext());
 
             m_InFlightFrameIndex = mainContext.GetSwapChain().GetInFlightFrameIndex();
             m_LastUpdateFrame = App::Get().GetFrameCount();
 
             m_SubmittedThisFrame = false;
+
+            // free old auxiliary command buffers
+            if (m_AuxiliaryCommandBuffers[m_InFlightFrameIndex].size() > 0)
+            {
+                vkFreeCommandBuffers(device.Device(), VulkanContext::GetGraphicsPool(), static_cast<u32>(m_AuxiliaryCommandBuffers[m_InFlightFrameIndex].size()), m_AuxiliaryCommandBuffers[m_InFlightFrameIndex].data());
+                m_AuxiliaryCommandBuffers[m_InFlightFrameIndex].clear();
+            }
         }
     }
 }

@@ -1,28 +1,19 @@
 #include "htpch.h"
 #include "MenuBar.h"
 
+#include "HeartEditor/Editor.h"
 #include "HeartEditor/EditorApp.h"
 #include "Heart/Scene/Entity.h"
 #include "Heart/Renderer/Renderer.h"
+#include "Heart/Asset/AssetManager.h"
+#include "Heart/Asset/SceneAsset.h"
+#include "Heart/Util/FilesystemUtils.h"
 #include "imgui/imgui.h"
 #include "imgui/imgui_internal.h"
 
 namespace HeartEditor
 {
-namespace Widgets
-{
-    MenuBar::MenuBar()
-    {
-        // open default windows (todo: save/load)
-        m_WindowStatuses["Viewport"] = true;
-        m_WindowStatuses["Content Browser"] = true;
-        m_WindowStatuses["Properties Panel"] = true;
-        m_WindowStatuses["Scene Hierarchy"] = true;
-        m_WindowStatuses["Settings"] = true;
-        m_WindowStatuses["Debug Info"] = true;
-    }
-
-    void MenuBar::OnImGuiRender(Heart::Scene* activeScene, Heart::Entity& selectedEntity)
+    void MenuBar::OnImGuiRender()
     {
         HE_PROFILE_FUNCTION();
         
@@ -39,8 +30,31 @@ namespace Widgets
             {
                 if (ImGui::BeginMenu("File"))
                 {
-                    if (ImGui::MenuItem("Create Entity"))
-                        selectedEntity = activeScene->CreateEntity("New Entity");
+                    // if (ImGui::MenuItem("Save Scene"))
+                    // {
+                    //     std::string path = Heart::FilesystemUtils::SaveAsDialog(Heart::AssetManager::GetAssetsDirectory(), "Save Scene As", "Scene", "hescn");
+                    //     if (!path.empty())
+                    //         Heart::SceneAsset::SerializeScene(path, activeScene.get());
+                    // }
+
+                    if (ImGui::MenuItem("Save Scene As"))
+                    {
+                        std::string path = Heart::FilesystemUtils::SaveAsDialog(Heart::AssetManager::GetAssetsDirectory(), "Save Scene As", "Scene", "hescn");
+                        if (!path.empty())
+                            Heart::SceneAsset::SerializeScene(path, &Editor::GetActiveScene());
+                    }
+
+                    if (ImGui::MenuItem("Load Scene"))
+                    {
+                        std::string path = Heart::FilesystemUtils::OpenFileDialog(Heart::AssetManager::GetAssetsDirectory(), "Save Scene As", "hescn");
+                        if (!path.empty())
+                        {
+                            Heart::UUID assetId = Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Scene, path);
+                            auto asset = Heart::AssetManager::RetrieveAsset<Heart::SceneAsset>(assetId);
+                            if (asset && asset->IsValid())
+                                Editor::SetActiveScene(asset->GetScene());
+                        }
+                    }
 
                     if (ImGui::MenuItem("Toggle Fullscreen", "F11"))
                         EditorApp::Get().GetWindow().ToggleFullscreen();
@@ -66,10 +80,14 @@ namespace Widgets
 
                 if (ImGui::BeginMenu("Windows"))
                 {
-                    for (auto& element : m_WindowStatuses)
+                    for (auto& window : Editor::s_Windows)
                     {
-                        ImGui::MenuItem(element.first.c_str(), nullptr, &element.second);
+                        bool open = window.second->IsOpen();
+                        ImGui::MenuItem(window.second->GetName().c_str(), nullptr, &open);
+                        window.second->SetOpen(open);
                     }
+
+                    ImGui::MenuItem("ImGui Demo", nullptr, &Editor::s_ImGuiDemoOpen);
 
                     ImGui::EndMenu();
                 }
@@ -102,5 +120,4 @@ namespace Widgets
 
         ImGui::PopStyleVar(2);
     }
-}
 }

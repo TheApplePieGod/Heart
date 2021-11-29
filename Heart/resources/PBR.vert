@@ -1,35 +1,45 @@
 #version 460
 
-layout(location = 0) in vec3 inPosition;
-layout(location = 1) in vec2 inTexCoord;
-layout(location = 2) in vec3 inNormal;
-layout(location = 3) in vec4 inTangent;
+#include "FrameBuffer.glsl"
+#include "VertexLayout.glsl"
 
 layout(location = 0) out vec2 texCoord;
 layout(location = 1) out int entityId;
 layout(location = 2) out float depth;
-
-layout(binding = 0) uniform FrameBuffer {
-    mat4 viewProj;
-    mat4 view;
-    vec2 screenSize;
-    bool reverseDepth;
-    bool padding;
-} frameData;
+layout(location = 3) out vec3 worldPos;
+layout(location = 4) out vec3 normal;
+layout(location = 5) out vec3 tangent;
+layout(location = 6) out vec3 bitangent;
+layout(location = 7) out int instance;
 
 struct ObjectData {
     mat4 model;
-    int entityId;
-    vec3 padding;
+    vec4 data;
 };
 
 layout(binding = 1) readonly buffer ObjectBuffer {
-    ObjectData object;
+    ObjectData objects[];
 } objectBuffer;
 
 void main() {
-    gl_Position = frameData.viewProj * objectBuffer.object.model * vec4(inPosition, 1.0);
-    depth = (frameData.view * objectBuffer.object.model * vec4(inPosition, 1.0)).z;
+    #ifdef VULKAN
+        int instanceIndex = gl_InstanceIndex;
+    #else
+        int instanceIndex = gl_BaseInstance + gl_InstanceID;
+    #endif
+
+    worldPos = (objectBuffer.objects[instanceIndex].model * vec4(inPosition, 1.0)).xyz;
+    vec4 viewPos = (frameBuffer.data.view * vec4(worldPos, 1.0));
+    depth = viewPos.z;
+    gl_Position = frameBuffer.data.proj * viewPos;
+    
     texCoord = inTexCoord;
-    entityId = objectBuffer.object.entityId;
+    entityId = int(objectBuffer.objects[instanceIndex].data[0]); // entity id
+    instance = instanceIndex;
+
+    // adjust to match object rotation (and technically scale but it gets normalized out later)
+    normal = mat3(objectBuffer.objects[instanceIndex].model) * inNormal;
+    tangent = mat3(objectBuffer.objects[instanceIndex].model) * inTangent.xyz;
+    bitangent = cross(inTangent.xyz, inNormal);
+    bitangent *= inTangent.w;
 }

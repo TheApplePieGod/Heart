@@ -17,12 +17,14 @@ namespace Heart
 
     void ShaderAsset::Load()
     {
-        if (m_Loaded) return;
+        if (m_Loaded || m_Loading) return;
+        m_Loading = true;
 
         m_Shader = Shader::Create(m_AbsolutePath, m_ShaderType);
 
         m_Data = nullptr;
         m_Loaded = true;
+        m_Loading = false;
         m_Valid = true;
     }
 

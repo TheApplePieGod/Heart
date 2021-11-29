@@ -1,14 +1,10 @@
 #version 460
 
-layout(location = 0) out vec4 outColor;
+#include "FrameBuffer.glsl"
 
-layout(binding = 0) uniform FrameBuffer {
-    mat4 viewProj;
-    mat4 view;
-    vec2 screenSize;
-    bool reverseDepth;
-    bool padding;
-} frameData;
+layout(location = 0) in vec2 texCoord;
+
+layout(location = 0) out vec4 outColor;
 
 #ifdef VULKAN
 layout (input_attachment_index = 0, binding = 1) uniform subpassInput texColor;
@@ -23,8 +19,8 @@ void main() {
     vec4 accum = subpassLoad(texColor);
     float reveal = subpassLoad(texWeights).r;
     #else
-    vec4 accum = texture(texColor, gl_FragCoord.xy / frameData.screenSize);
-    float reveal = texture(texWeights, gl_FragCoord.xy / frameData.screenSize).r;
+    vec4 accum = texture(texColor, gl_FragCoord.xy / frameBuffer.data.screenSize);
+    float reveal = texture(texWeights, gl_FragCoord.xy / frameBuffer.data.screenSize).r;
     #endif
 
     outColor = vec4(accum.rgb / max(accum.a, 1e-5), reveal);

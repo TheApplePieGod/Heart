@@ -15,20 +15,34 @@ namespace Heart
         void Initialize(const std::vector<ReflectionDataElement>& reflectionData);
         void Shutdown();
 
-        // returns true if a call to vkCmdBindDescriptorSets using GetMostRecentDescriptorSet() is allowed
-        bool UpdateShaderResource(u32 bindingIndex, ShaderResourceType resourceType, void* resource);
+        void UpdateShaderResource(u32 bindingIndex, ShaderResourceType resourceType, void* resource, bool useOffset, u32 offset, u32 size);
+        void FlushBindings();
 
         inline VkDescriptorSetLayout GetLayout() const { return m_DescriptorSetLayout; };
         inline VkDescriptorSet GetMostRecentDescriptorSet() const { return m_MostRecentDescriptorSet; }
-        inline void UpdateDynamicOffset(u32 bindingIndex, u32 offset) { m_DynamicOffsets[m_OffsetMappings[bindingIndex]] = offset; }
+        inline void UpdateDynamicOffset(u32 bindingIndex, u32 offset) { m_DynamicOffsets[m_Bindings[bindingIndex].OffsetIndex] = offset; }
         inline const std::vector<u32>& GetDynamicOffsets() const { return m_DynamicOffsets; }
-        inline bool DoesBindingExist(u32 bindingIndex) const { return m_DescriptorWriteMappings.find(bindingIndex) != m_DescriptorWriteMappings.end(); }
+        inline bool DoesBindingExist(u32 bindingIndex) const { return bindingIndex < m_Bindings.size(); }
+        inline bool CanFlush() const { return m_WritesReadyCount == m_CachedDescriptorWrites.size(); }
+
+    private:
+        struct BoundResource
+        {
+            void* Resource;
+            u32 Offset;
+        };
+        struct BindingData
+        {
+            size_t DescriptorWriteMapping;
+            size_t OffsetIndex;
+        };
 
     private:
         VkDescriptorPool CreateDescriptorPool();
         inline void PushDescriptorPool() { m_DescriptorPools[m_InFlightFrameIndex].emplace_back(CreateDescriptorPool()); }
         VkDescriptorSet AllocateSet();
         void ClearPools();
+        size_t HashBindings();
 
     private:
         // TODO: parameterize?
@@ -44,18 +58,16 @@ namespace Heart
         std::vector<VkWriteDescriptorSet> m_CachedDescriptorWrites;
         std::array<VkDescriptorBufferInfo, MAX_UNIQUE_DESCRIPTORS> m_CachedBufferInfos;
         std::array<VkDescriptorImageInfo, MAX_DESCRIPTOR_ARRAY_COUNT * MAX_UNIQUE_DESCRIPTORS> m_CachedImageInfos;
-        std::unordered_map<u32, size_t> m_DescriptorWriteMappings;
+        std::unordered_map<size_t, VkDescriptorSet> m_CachedDescriptorSets;
 
-        u32 m_FrameDataRegistryId;
         u64 m_LastResetFrame = 0;
         u32 m_InFlightFrameIndex = 0;
         size_t m_WritesReadyCount = 0;
         size_t m_AvailableSetIndex = 0;
         size_t m_AvailablePoolIndex = 0;
 
-        std::unordered_map<u32, void*> m_BoundResources;
-
+        std::vector<BindingData> m_Bindings;
+        std::unordered_map<u32, BoundResource> m_BoundResources;
         std::vector<u32> m_DynamicOffsets;
-        std::unordered_map<u32, size_t> m_OffsetMappings;
     };
 }

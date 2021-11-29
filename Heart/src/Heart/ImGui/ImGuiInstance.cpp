@@ -9,10 +9,10 @@
 
 namespace Heart
 {
-    void ImGuiInstance::Initialize()
+    ImGuiInstance::ImGuiInstance(Ref<Window>& window)
+		: m_Window(window)
     {
 		HE_ENGINE_LOG_TRACE("Initializing ImGui instance");
-        auto& window = App::Get().GetWindow();
 
         IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
@@ -47,15 +47,15 @@ namespace Heart
             default:
             { HE_ENGINE_ASSERT(false, "Cannot initialize ImGui: selected ApiType is not supported"); } break;
             case RenderApi::Type::Vulkan:
-            { ImGui_ImplGlfw_InitForVulkan(window.GetWindowHandle(), true); } break;
+            { ImGui_ImplGlfw_InitForVulkan(window->GetWindowHandle(), true); } break;
 			case RenderApi::Type::OpenGL:
-            { ImGui_ImplGlfw_InitForOpenGL(window.GetWindowHandle(), true); } break;
+            { ImGui_ImplGlfw_InitForOpenGL(window->GetWindowHandle(), true); } break;
         }
 
         Recreate();
     }
 
-    void ImGuiInstance::Shutdown()
+    ImGuiInstance::~ImGuiInstance()
     {
 		HE_ENGINE_LOG_TRACE("Shutting down ImGui instance");
         Cleanup();
@@ -69,7 +69,7 @@ namespace Heart
         if (m_Initialized)
             Cleanup();
 
-        App::Get().GetWindow().GetContext().InitializeImGui();
+        m_Window->GetContext().InitializeImGui();
 
         m_Initialized = true;
     }
@@ -78,7 +78,7 @@ namespace Heart
     {
         if (!m_Initialized) return;
 
-        App::Get().GetWindow().GetContext().ShutdownImGui();
+        m_Window->GetContext().ShutdownImGui();
 
         m_Initialized = false;
     }
@@ -87,7 +87,7 @@ namespace Heart
     {
 		HE_PROFILE_FUNCTION();
 
-        App::Get().GetWindow().GetContext().ImGuiBeginFrame();
+        m_Window->GetContext().ImGuiBeginFrame();
 
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
@@ -98,11 +98,10 @@ namespace Heart
 		HE_PROFILE_FUNCTION();
 		
         ImGuiIO& io = ImGui::GetIO();
-		Window& mainWindow = App::Get().GetWindow();
-		io.DisplaySize = ImVec2((f32)mainWindow.GetWidth(), (f32)mainWindow.GetHeight());
+		io.DisplaySize = ImVec2((f32)m_Window->GetWidth(), (f32)m_Window->GetHeight());
         
 		ImGui::Render();
-        mainWindow.GetContext().ImGuiEndFrame();
+        m_Window->GetContext().ImGuiEndFrame();
 
 		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
 		{

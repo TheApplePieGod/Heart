@@ -29,15 +29,19 @@ namespace Heart
 
         for (auto& fragData : fragShader->GetReflectionData())
         {
+            bool add = true;
             for (auto& vertData : m_ProgramReflectionData)
             {
                 if (fragData.BindingIndex == vertData.BindingIndex)
                 {
                     HE_ENGINE_ASSERT(fragData.UniqueId != vertData.UniqueId, "Binding index must be unique for all shader resources");
                     vertData.AccessType = ShaderResourceAccessType::Both;
+                    add = false;
+                    break;
                 }
             }
-            m_ProgramReflectionData.push_back(fragData);
+            if (add)
+                m_ProgramReflectionData.push_back(fragData);
         }
 
         std::sort(m_ProgramReflectionData.begin(), m_ProgramReflectionData.end(), [](const ReflectionDataElement& a, const ReflectionDataElement& b)

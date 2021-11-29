@@ -8,8 +8,8 @@ namespace Heart
     class ImGuiInstance
     {
     public:
-        void Initialize();
-        void Shutdown();
+        ImGuiInstance(Ref<Window>& window);
+        ~ImGuiInstance();
 
         void Recreate();
         
@@ -22,6 +22,6 @@ namespace Heart
 
     private:
         bool m_Initialized = false;
-
+        Ref<Window> m_Window;
     };
 }

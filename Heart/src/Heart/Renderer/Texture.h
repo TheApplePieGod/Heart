@@ -6,8 +6,10 @@ namespace Heart
 {
     enum class ColorFormat
     {
-        RGBA8 = 0,
-        R32F, RG32F, RGB32F, RGBA32F
+        None = 0,
+        RGBA8,
+        R16F, RGBA16F,
+        R32F, RGBA32F
     };
 
     enum class SamplerFilter
@@ -29,7 +31,7 @@ namespace Heart
     {
         SamplerFilter MinFilter = SamplerFilter::Linear;
         SamplerFilter MagFilter = SamplerFilter::Linear;
-        std::array<SamplerWrapMode, 2> UVWrap = { SamplerWrapMode::Repeat, SamplerWrapMode::Repeat };
+        std::array<SamplerWrapMode, 3> UVWWrap = { SamplerWrapMode::Repeat, SamplerWrapMode::Repeat, SamplerWrapMode::Repeat };
         bool AnisotropyEnable = true;
         u32 MaxAnisotropy = 8;
     };
@@ -39,9 +41,9 @@ namespace Heart
         switch (format)
         {
             case ColorFormat::RGBA8: return 4;
+            case ColorFormat::R16F: return 1;
+            case ColorFormat::RGBA16F: return 4;
             case ColorFormat::R32F: return 1;
-            case ColorFormat::RG32F: return 2;
-            case ColorFormat::RGB32F: return 3;
             case ColorFormat::RGBA32F: return 4;
         }
 
@@ -54,9 +56,9 @@ namespace Heart
         switch (format)
         {
             case ColorFormat::RGBA8: return BufferDataType::UInt8;
+            case ColorFormat::R16F: return BufferDataType::HalfFloat;
+            case ColorFormat::RGBA16F: return BufferDataType::HalfFloat;
             case ColorFormat::R32F: return BufferDataType::Float;
-            case ColorFormat::RG32F: return BufferDataType::Float;
-            case ColorFormat::RGB32F: return BufferDataType::Float;
             case ColorFormat::RGBA32F: return BufferDataType::Float;
         }
 
@@ -64,36 +66,49 @@ namespace Heart
         return BufferDataType::None;
     }
 
+    struct TextureCreateInfo
+    {
+        int Width, Height, Channels;
+        bool FloatComponents;
+        u32 ArrayCount;
+        u32 MipCount; // set to zero to deduce mip count
+    };
+
+    class Framebuffer;
     class Texture
     {
     public:
-        Texture(const std::string& path, int width, int height, int channels)
-            : m_Path(path), m_Width(width), m_Height(height), m_Channels(channels)
+        Texture(const TextureCreateInfo& createInfo)
+            : m_Info(createInfo)
         {}
         virtual ~Texture() = default;
 
-        inline void* GetImGuiHandle() const { return m_ImGuiHandle; }
-        inline u32 GetArrayCount() const { return m_ArrayCount; }
-        inline int GetWidth() const { return m_Width; }
-        inline int GetHeight() const { return m_Height; }
-        inline int GetChannels() const { return m_Channels; }
-        inline const std::string& GetFilePath() const { return m_Path; }
+        virtual void RegenerateMipMaps() = 0;
+        virtual void RegenerateMipMapsSync(Framebuffer* buffer) = 0; // sync with framebuffer drawing
+
+        inline void* GetImGuiHandle(u32 layerIndex = 0) const { return m_LayerImGuiHandles[layerIndex]; }
+        inline u32 GetArrayCount() const { return m_Info.ArrayCount; }
+        inline u32 GetWidth() const { return static_cast<u32>(m_Info.Width); }
+        inline u32 GetHeight() const { return static_cast<u32>(m_Info.Height); }
+        inline u32 GetMipWidth(u32 mipLevel) const { return std::max(static_cast<u32>(m_Info.Width * pow(0.5f, mipLevel)), 0U); }
+        inline u32 GetMipHeight(u32 mipLevel) const { return std::max(static_cast<u32>(m_Info.Height * pow(0.5f, mipLevel)), 0U); }
+        inline u32 GetChannels() const { return static_cast<u32>(m_Info.Channels); }
         inline bool HasTransparency() const { return m_HasTransparency; }
+        inline bool HasTranslucency() const { return m_HasTranslucency; }
         inline const TextureSamplerState& GetSamplerState() const { return m_SamplerState; }
 
     public:
-        static Ref<Texture> Create(const std::string& path, int width = 0, int height = 0, int channels = 0, void* data = nullptr);
+        static Ref<Texture> Create(const TextureCreateInfo& createInfo, void* initialData = nullptr);
 
     protected:
         void ScanForTransparency(int width, int height, int channels, void* data);
 
     protected:
-        const int m_DesiredChannelCount = 4; // all images will load as RGBA
-        std::string m_Path;
-        int m_Width, m_Height, m_Channels;
-        u32 m_ArrayCount = 1;
-        void* m_ImGuiHandle;
+        TextureCreateInfo m_Info;
+        u32 m_MipLevels;
+        std::vector<void*> m_LayerImGuiHandles;
         bool m_HasTransparency = false;
+        bool m_HasTranslucency = false;
         TextureSamplerState m_SamplerState;
     };
 }

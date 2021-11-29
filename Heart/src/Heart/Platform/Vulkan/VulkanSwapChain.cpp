@@ -105,7 +105,7 @@ namespace Heart
         m_SwapChainData.ImageViews.resize(m_SwapChainData.Images.size());
         for (int i = 0; i < m_SwapChainData.Images.size(); i++)
         {
-            m_SwapChainData.ImageViews[i] = VulkanCommon::CreateImageView(device.Device(), m_SwapChainData.Images[i], m_SwapChainData.ImageFormat, 1);
+            m_SwapChainData.ImageViews[i] = VulkanCommon::CreateImageView(device.Device(), m_SwapChainData.Images[i], m_SwapChainData.ImageFormat, 1, 0, 1, 0, VK_IMAGE_ASPECT_COLOR_BIT);
         }
     }
 
@@ -448,10 +448,6 @@ namespace Heart
         scissor.offset = {0, 0};
         scissor.extent = m_SwapChainData.Extent;
         vkCmdSetScissor(GetCommandBuffer(), 0, 1, &scissor);
-
-        // clear the submitted command buffers from last frame
-        m_AuxiliaryCommandBuffers.clear();
-        m_AuxiliaryCommandBufferCounts.clear();
     }
 
     void VulkanSwapChain::EndFrame()
@@ -497,6 +493,10 @@ namespace Heart
             RecreateSwapChain();
 
         m_InFlightFrameIndex = (m_InFlightFrameIndex + 1) % MAX_FRAMES_IN_FLIGHT;
+
+        // clear the submitted command buffers
+        m_AuxiliaryCommandBuffers.clear();
+        m_AuxiliaryCommandBufferCounts.clear();
     }
 
     void VulkanSwapChain::Present()

@@ -4,6 +4,7 @@
 #include "Heart/Platform/Vulkan/VulkanDevice.h"
 #include "Heart/Platform/Vulkan/VulkanSwapChain.h"
 #include "Heart/Platform/Vulkan/VulkanCommon.h"
+#include "Heart/Platform/Vulkan/VulkanFramebuffer.h"
 
 namespace Heart
 {
@@ -23,7 +24,7 @@ namespace Heart
 
         inline VkRenderPass GetMainRenderPass() const { return m_VulkanSwapChain.GetRenderPass(); }
         inline VkCommandBuffer GetMainCommandBuffer() const { return m_VulkanSwapChain.GetCommandBuffer(); }
-        inline VulkanSwapChain& GetSwapChain() { return m_VulkanSwapChain; };
+        inline VulkanSwapChain& GetSwapChain() { return m_VulkanSwapChain; }
 
     public:
         inline static VkInstance GetInstance() { return s_Instance; };
@@ -31,10 +32,15 @@ namespace Heart
         inline static VkCommandPool GetGraphicsPool() { return s_GraphicsPool; }
         inline static VkCommandPool GetComputePool() { return s_ComputePool; }
         inline static VkCommandPool GetTransferPool() { return s_TransferPool; }
-        inline static VkCommandBuffer GetBoundCommandBuffer() { HE_ENGINE_ASSERT(s_BoundCommandBuffer != nullptr, "Cannot send commands to an unbound command buffer (forget to call Framebuffer.Bind()?)"); return s_BoundCommandBuffer; }
-        inline static void SetBoundCommandBuffer(VkCommandBuffer buffer) { s_BoundCommandBuffer = buffer; }
         inline static VkSampler GetDefaultSampler() { return s_DefaultSampler; }
-        inline static void Sync() { vkDeviceWaitIdle(s_VulkanDevice.Device()); };
+        inline static void Sync() { vkDeviceWaitIdle(s_VulkanDevice.Device()); }
+        
+        static void ProcessDeleteQueue();
+
+        // both bound command & frame buffers should be from the same object
+        inline static VulkanFramebuffer* GetBoundFramebuffer() { HE_ENGINE_ASSERT(s_BoundFramebuffer != nullptr, "No framebuffer is bound (forget to call Framebuffer.Bind()?)"); return s_BoundFramebuffer; }
+        inline static void SetBoundFramebuffer(VulkanFramebuffer* buffer) { s_BoundFramebuffer = buffer; }
+        inline static void PushDeleteQueue(std::function<void()>&& func) { s_DeleteQueue.emplace_back(func); }
 
         static std::vector<const char*> ConfigureValidationLayers();
     
@@ -60,7 +66,8 @@ namespace Heart
         static VkDebugUtilsMessengerEXT s_DebugMessenger;
         static VulkanDevice s_VulkanDevice;
         static VkCommandPool s_GraphicsPool, s_ComputePool, s_TransferPool;
-        static VkCommandBuffer s_BoundCommandBuffer;
+        static VulkanFramebuffer* s_BoundFramebuffer;
         static VkSampler s_DefaultSampler;
+        static std::deque<std::function<void()>> s_DeleteQueue;
     };
 }

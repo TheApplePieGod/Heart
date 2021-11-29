@@ -12,9 +12,9 @@ namespace Heart
             default:
             { HE_ENGINE_ASSERT(false, "OpenGL does not support specified ColorFormat"); } break;
             case ColorFormat::RGBA8: return GL_RGBA8;
+            case ColorFormat::R16F: return GL_R16F;
+            case ColorFormat::RGBA16F: return GL_RGBA16F;
             case ColorFormat::R32F: return GL_R32F;
-            case ColorFormat::RG32F: return GL_RG32F;
-            case ColorFormat::RGB32F: return GL_RGB32F;
             case ColorFormat::RGBA32F: return GL_RGBA32F;
         }
 
@@ -28,9 +28,9 @@ namespace Heart
             default:
             { HE_ENGINE_ASSERT(false, "OpenGL does not support specified ColorFormat"); } break;
             case ColorFormat::RGBA8: return GL_RGBA;
+            case ColorFormat::R16F: return GL_RED;
+            case ColorFormat::RGBA16F: return GL_RGBA;
             case ColorFormat::R32F: return GL_RED;
-            case ColorFormat::RG32F: return GL_RG;
-            case ColorFormat::RGB32F: return GL_RGB;
             case ColorFormat::RGBA32F: return GL_RGBA;
         }
 
@@ -44,9 +44,9 @@ namespace Heart
             default:
             { HE_ENGINE_ASSERT(false, "OpenGL does not support specified ColorFormat"); } break;
             case ColorFormat::RGBA8: return GL_UNSIGNED_BYTE;
+            case ColorFormat::R16F: return GL_FLOAT;
+            case ColorFormat::RGBA16F: return GL_FLOAT;
             case ColorFormat::R32F: return GL_FLOAT;
-            case ColorFormat::RG32F: return GL_FLOAT;
-            case ColorFormat::RGB32F: return GL_FLOAT;
             case ColorFormat::RGBA32F: return GL_FLOAT;
         }
 
@@ -179,6 +179,7 @@ namespace Heart
             case Buffer::Type::Uniform: return GL_UNIFORM_BUFFER;
             case Buffer::Type::Storage: return GL_SHADER_STORAGE_BUFFER;
             case Buffer::Type::Pixel: return GL_PIXEL_PACK_BUFFER;
+            case Buffer::Type::Indirect: return GL_DRAW_INDIRECT_BUFFER;
         }
 
         return -1;

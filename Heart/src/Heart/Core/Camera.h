@@ -35,6 +35,9 @@ namespace Heart
 
         ~Camera();
 
+        void UpdateViewMatrix(f32 xRotation, f32 yRotation, glm::vec3 position);
+        void UpdateViewMatrix(glm::vec3 centerPoint, f32 radius, f32 xRotation, f32 yRotation);
+
         inline ProjectionType GetType() const { return m_ProjectionType; }
         inline void UpdateWidth(f32 width) { m_OrthoWidth = width; UpdateProjectionMatrix(); }
         inline void UpdateHeight(f32 height) { m_OrthoHeight = height; UpdateProjectionMatrix(); }
@@ -44,6 +47,10 @@ namespace Heart
         inline void UpdateFarClip(f32 clip) { m_FarClip = clip; UpdateProjectionMatrix(); }
         inline void UpdateProjectionType(ProjectionType type) { m_ProjectionType = type; UpdateProjectionMatrix(); }
         inline glm::mat4 GetProjectionMatrix() const { return m_ProjectionMatrix; }
+        
+        inline glm::mat4 GetViewMatrix() const { return m_ViewMatrix; }
+        inline glm::mat4 GetViewMatrixInvertedY() const { return m_ViewMatrixInvertedY; }
+        inline glm::vec3 GetForwardVector() const { return m_ForwardVector; }
 
     protected:
         void UpdateProjectionMatrix();
@@ -59,5 +66,10 @@ namespace Heart
         f32 m_FOV, m_OrthoWidth, m_OrthoHeight, m_NearClip, m_FarClip, m_AspectRatio;
         ProjectionType m_ProjectionType;
         glm::mat4 m_ProjectionMatrix;
+        glm::mat4 m_ViewMatrix;
+        glm::mat4 m_ViewMatrixInvertedY; // used for ImGuizmo
+        glm::vec3 m_ForwardVector = m_DefaultForwardVector;
+        glm::vec3 m_RightVector = m_DefaultRightVector;
+        glm::vec3 m_UpVector = m_DefaultUpVector;
     };
 }

@@ -22,8 +22,11 @@
 #include <random>
 
 #include <string>
+#include <regex>
 #include <array>
 #include <vector>
+#include <queue>
+#include <deque>
 #include <unordered_map>
 #include <unordered_set>
 

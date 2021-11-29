@@ -2,6 +2,7 @@
 
 #include "Heart/Core/UUID.h"
 #include "entt/entt.hpp"
+#include "Heart/Scene/Components.h"
 
 namespace Heart
 {
@@ -40,12 +41,23 @@ namespace Heart
             return m_Scene->GetRegistry().get<Component>(m_EntityHandle);
         }
 
-        UUID GetUUID();
         bool IsValid();
         void Destroy();
-
+        
         inline Scene* GetScene() { return m_Scene; }
-        inline entt::entity GetHandle() { return m_EntityHandle; }
+        inline entt::entity GetHandle() const { return m_EntityHandle; }
+        inline glm::vec3 GetPosition() { return GetComponent<TransformComponent>().Translation; }
+        inline glm::vec3 GetRotation() { return GetComponent<TransformComponent>().Rotation; }
+        inline glm::vec3 GetScale() { return GetComponent<TransformComponent>().Scale; }
+        inline glm::mat4x4 GetTransformMatrix() { return GetComponent<TransformComponent>().GetTransformMatrix(); }
+        inline UUID GetUUID() { return GetComponent<IdComponent>().UUID; }
+        inline const std::string& GetName() { return GetComponent<NameComponent>().Name; }
+
+        glm::mat4x4 GetWorldTransformMatrix();
+        void SetPosition(glm::vec3 pos);
+        void SetRotation(glm::vec3 rot);
+        void SetScale(glm::vec3 scale);
+        void SetTransform(glm::vec3 pos, glm::vec3 rot, glm::vec3 scale);
 
     private:
         entt::entity m_EntityHandle = entt::null;

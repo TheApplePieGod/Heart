@@ -1,18 +1,1 @@
-{
-    "data": {
-        "baseColor": [1, 0, 0, 1],
-        "roughness": 0.5,
-        "metalness": 0.5,
-        "texCoordScale": [1, 1],
-        "texCoordOffset": [0, 0]
-    },
-    "metadata": {
-        "transparent": false
-    },
-    "textures": {
-        "albedo": "",
-        "roughness": "",
-        "metalness": "",
-        "normal": ""
-    }
-}
+{"data":{"baseColor":[1.0,0.0,1.0,1.0],"emissiveFactor":[0.0,0.0,0.0],"metalness":0.0,"roughness":1.0,"texCoordOffset":[0.0,0.0],"texCoordScale":[1.0,1.0]},"metadata":{"transparent":false},"textures":{"albedo":{"engineResource":false,"path":""},"emissive":{"engineResource":false,"path":""},"metallicRoughness":{"engineResource":false,"path":""},"normal":{"engineResource":false,"path":""},"occlusion":{"engineResource":false,"path":""}}}

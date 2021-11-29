@@ -103,16 +103,37 @@ namespace Heart
             case Type::Fragment: { shaderKind = shaderc_glsl_fragment_shader; } break;
         }
 
-        shaderc::PreprocessedSourceCompilationResult preprocessed = compiler.PreprocessGlsl(sourceCode, shaderKind, path.c_str(), options);
-        if (preprocessed.GetCompilationStatus() != shaderc_compilation_status_success)
+        shaderc::PreprocessedSourceCompilationResult preprocessedResult = compiler.PreprocessGlsl(sourceCode, shaderKind, path.c_str(), options);
+        if (preprocessedResult.GetCompilationStatus() != shaderc_compilation_status_success)
         {
-            HE_ENGINE_LOG_ERROR("Shader preprocessing failed: {0}", preprocessed.GetErrorMessage());
+            HE_ENGINE_LOG_ERROR("Shader preprocessing failed: {0}", preprocessedResult.GetErrorMessage());
             HE_ENGINE_ASSERT(false);
         }
 
-        std::string preprocessedSource(preprocessed.begin());
+        std::string preprocessed(preprocessedResult.begin());
 
-        shaderc::SpvCompilationResult compiled = compiler.CompileGlslToSpv(preprocessedSource, shaderKind, path.c_str(), options);
+        // run the custom preprocessor over the source code
+        // {
+        //     const char* token = "#use_dynamic_offsets";
+        //     size_t tokenLen = strlen(token);
+
+        //     size_t pos = preprocessed.find(token, 0);
+        //     while (pos != std::string::npos)
+        //     {
+        //         size_t eol = preprocessed.find_first_of("\r\n", pos);
+        //         if (eol == std::string::npos)
+        //             eol = preprocessed.find_first_of("\n", pos);
+        //         HE_ENGINE_ASSERT(eol != std::string::npos, "Token must be followed by a newline");
+
+        //         size_t numStart = pos + tokenLen + 1;
+        //         u32 bindingIndex = atoi(preprocessed.substr(numStart, eol - numStart).c_str());
+        //         m_PreprocessData.DynamicBindings.emplace_back(bindingIndex);
+
+        //         pos = preprocessed.find(token, eol);
+        //     }
+        // }
+
+        shaderc::SpvCompilationResult compiled = compiler.CompileGlslToSpv(preprocessed, shaderKind, path.c_str(), options);
         if (compiled.GetCompilationStatus() != shaderc_compilation_status_success)
         {
             HE_ENGINE_LOG_ERROR("Shader compilation failed: {0}", compiled.GetErrorMessage());

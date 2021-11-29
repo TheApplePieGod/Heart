@@ -39,7 +39,7 @@ namespace Heart
 
         for (auto& attachment : m_Info.DepthAttachments)
         {
-            OpenGLFramebufferAttachment attachmentData;
+            OpenGLFramebufferAttachment attachmentData{};
             attachmentData.GeneralColorFormat = m_GeneralDepthFormat;
             attachmentData.ColorFormat = m_DepthFormat;
             attachmentData.ColorFormatInternal = m_DepthFormatInternal;
@@ -54,10 +54,20 @@ namespace Heart
 
         for (auto& attachment : m_Info.ColorAttachments)
         {
-            OpenGLFramebufferAttachment attachmentData;
-            attachmentData.GeneralColorFormat = attachment.Format;
-            attachmentData.ColorFormat = OpenGLCommon::ColorFormatToOpenGL(attachment.Format);
-            attachmentData.ColorFormatInternal = OpenGLCommon::ColorFormatToInternalOpenGL(attachment.Format);
+            OpenGLFramebufferAttachment attachmentData{};
+            if (attachment.Texture)
+            {
+                attachmentData.ExternalTexture = (OpenGLTexture*)attachment.Texture.get();
+                attachmentData.ExternalTextureLayer = attachment.LayerIndex;
+                attachmentData.ExternalTextureMip = attachment.MipLevel;
+
+                HE_ENGINE_ASSERT(m_Info.Width == attachmentData.ExternalTexture->GetMipWidth(attachment.MipLevel), "Texture dimensions (at the specified mip level) must match the framebuffer (framebuffer width/height cannot be zero)");
+                HE_ENGINE_ASSERT(m_Info.Height == attachmentData.ExternalTexture->GetMipHeight(attachment.MipLevel), "Texture dimensions (at the specified mip level) must match the framebuffer (framebuffer width/height cannot be zero)");
+            }
+
+            attachmentData.GeneralColorFormat = attachment.Texture ? attachmentData.ExternalTexture->GetGeneralFormat() : attachment.Format;
+            attachmentData.ColorFormat = attachment.Texture ? attachmentData.ExternalTexture->GetFormat() : OpenGLCommon::ColorFormatToOpenGL(attachment.Format);
+            attachmentData.ColorFormatInternal = attachment.Texture ? attachmentData.ExternalTexture->GetInternalFormat() : OpenGLCommon::ColorFormatToInternalOpenGL(attachment.Format);
             attachmentData.HasResolve = m_ImageSamples > 1;
             attachmentData.CPUVisible = attachment.AllowCPURead;
             attachmentData.IsDepthAttachment = false;
@@ -118,10 +128,14 @@ namespace Heart
 
             StartNextSubpass();
         }
+
+        OpenGLContext::SetBoundFramebuffer(this);
     }
 
     void OpenGLFramebuffer::Submit()
     {
+        HE_ENGINE_ASSERT(m_CurrentSubpass == m_Info.Subpasses.size() - 1, "Attempting to submit a framebuffer without completing all subpasses");
+
         BlitFramebuffers(m_CurrentSubpass);
 
         for (auto& attachment : m_AttachmentData)
@@ -135,16 +149,21 @@ namespace Heart
         // }
 
         m_CurrentSubpass = -1;
+        m_FlushedThisFrame = false;
+        m_BoundPipeline = nullptr;
+        m_BoundPipelineName = "";
     }
 
     void OpenGLFramebuffer::BindPipeline(const std::string& name)
     {
         HE_PROFILE_FUNCTION();
         
+        if (name == m_BoundPipelineName) return;
+
         auto pipeline = static_cast<OpenGLGraphicsPipeline*>(LoadPipeline(name).get());
         glUseProgram(pipeline->GetProgramId());
         glBindVertexArray(pipeline->GetVertexArrayId());
-        OpenGLContext::SetBoundGraphicsPipeline(pipeline);
+
         if (pipeline->GetCullMode() != CullMode::None)
         {
             glEnable(GL_CULL_FACE);
@@ -193,35 +212,62 @@ namespace Heart
             else
                 glDisablei(GL_BLEND, buffer);
         }
+
+        m_BoundPipeline = pipeline;
+        m_BoundPipelineName = name;
     }
 
-    void OpenGLFramebuffer::BindShaderBufferResource(u32 bindingIndex, u32 elementOffset, Buffer* _buffer)
+    void OpenGLFramebuffer::BindShaderBufferResource(u32 bindingIndex, u32 elementOffset, u32 elementCount, Buffer* _buffer)
     {
         HE_PROFILE_FUNCTION();
+        HE_ENGINE_ASSERT(m_BoundPipeline != nullptr, "Must call BindPipeline before BindShaderResource");
+        HE_ENGINE_ASSERT(elementCount + elementOffset <= _buffer->GetAllocatedCount(), "ElementCount + ElementOffset must be <= buffer allocated count");
 
         OpenGLBuffer& buffer = static_cast<OpenGLBuffer&>(*_buffer);
 
         glBindBufferBase(OpenGLCommon::BufferTypeToOpenGL(buffer.GetType()), bindingIndex, buffer.GetBufferId());
-        glBindBufferRange(OpenGLCommon::BufferTypeToOpenGL(buffer.GetType()), bindingIndex, buffer.GetBufferId(), elementOffset * buffer.GetLayout().GetStride(), buffer.GetAllocatedSize());
+        glBindBufferRange(OpenGLCommon::BufferTypeToOpenGL(buffer.GetType()), bindingIndex, buffer.GetBufferId(), elementOffset * buffer.GetLayout().GetStride(), elementCount * buffer.GetLayout().GetStride());
     }
 
     void OpenGLFramebuffer::BindShaderTextureResource(u32 bindingIndex, Texture* _texture)
     {
         HE_PROFILE_FUNCTION();
+        HE_ENGINE_ASSERT(m_BoundPipeline != nullptr, "Must call BindPipeline before BindShaderResource");
 
         OpenGLTexture& texture = static_cast<OpenGLTexture&>(*_texture);
 
         glActiveTexture(GL_TEXTURE0 + bindingIndex);
-        glBindTexture(GL_TEXTURE_2D, texture.GetTextureId());
+        glBindTexture(texture.GetTarget(), texture.GetTextureId());
+    }
+
+    void OpenGLFramebuffer::BindShaderTextureLayerResource(u32 bindingIndex, Texture* _texture, u32 layerIndex)
+    {
+        HE_PROFILE_FUNCTION();
+        HE_ENGINE_ASSERT(m_BoundPipeline != nullptr, "Must call BindPipeline before BindShaderResource");
+
+        OpenGLTexture& texture = static_cast<OpenGLTexture&>(*_texture);
+
+        glActiveTexture(GL_TEXTURE0 + bindingIndex);
+        glBindTexture(GL_TEXTURE_2D, texture.GetLayerTextureId(layerIndex, 0));
     }
 
     void OpenGLFramebuffer::BindSubpassInputAttachment(u32 bindingIndex, SubpassAttachment attachment)
     {
+        HE_PROFILE_FUNCTION();
+        HE_ENGINE_ASSERT(m_BoundPipeline != nullptr, "Must call BindPipeline before BindShaderResource");
+
         glActiveTexture(GL_TEXTURE0 + bindingIndex);
         if (attachment.Type == SubpassAttachmentType::Depth)
             glBindTexture(GL_TEXTURE_2D, m_DepthAttachmentData[attachment.AttachmentIndex].HasResolve ? m_DepthAttachmentData[attachment.AttachmentIndex].BlitImage : m_DepthAttachmentData[attachment.AttachmentIndex].Image);
         else
             glBindTexture(GL_TEXTURE_2D, m_AttachmentData[attachment.AttachmentIndex].HasResolve ? m_AttachmentData[attachment.AttachmentIndex].BlitImage : m_AttachmentData[attachment.AttachmentIndex].Image);
+    }
+
+    void OpenGLFramebuffer::FlushBindings()
+    {
+        HE_ENGINE_ASSERT(m_BoundPipeline != nullptr, "Must call BindPipeline and bind all resources before FlushBindings");
+
+        m_FlushedThisFrame = true;
     }
 
     void* OpenGLFramebuffer::GetColorAttachmentImGuiHandle(u32 attachmentIndex)
@@ -277,6 +323,8 @@ namespace Heart
     {
         m_CurrentSubpass++;
 
+        HE_ENGINE_ASSERT(m_CurrentSubpass < m_Info.Subpasses.size(), "Attempting to start a subpass that does not exist");
+
         // if using a multisampled buffer, perform a framebuffer blit (copy) operation on the previous subpass
         if (m_CurrentSubpass > 0)
             BlitFramebuffers(m_CurrentSubpass - 1);
@@ -286,6 +334,10 @@ namespace Heart
 
         // enable draw for all attachments
         glDrawBuffers(GetSubpassOutputColorAttachmentCount(m_CurrentSubpass), m_CachedAttachmentHandles.data());
+
+        m_FlushedThisFrame = false;
+        m_BoundPipeline = nullptr;
+        m_BoundPipelineName = "";
     }
 
     Ref<GraphicsPipeline> OpenGLFramebuffer::InternalInitializeGraphicsPipeline(const GraphicsPipelineCreateInfo& createInfo)
@@ -298,29 +350,39 @@ namespace Heart
     void OpenGLFramebuffer::CreateAttachmentTextures(OpenGLFramebufferAttachment& attachment)
     {
         int mainTextureTarget = attachment.HasResolve ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
-        glCreateTextures(mainTextureTarget, 1, &attachment.Image);
 
-        glBindTexture(mainTextureTarget, attachment.Image);
+        // create the associated images for the framebuffer
+        // if we are using an external texture, that texture will be the resolve image in the case of a multisampled framebuffer
+        // for one sample, we will render directly to that image
 
-        if (attachment.HasResolve)
-            glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, m_ImageSamples, attachment.ColorFormatInternal, m_ActualWidth, m_ActualHeight, GL_FALSE);
-        else
+        bool shouldResolveExternal = attachment.ExternalTexture && attachment.HasResolve;
+        bool shouldCreateBaseTexture = !attachment.ExternalTexture || shouldResolveExternal;
+        bool shouldCreateResolveTexture = attachment.HasResolve && !attachment.ExternalTexture;
+
+        if (shouldCreateBaseTexture)
         {
-            if (attachment.IsDepthAttachment)
-                glTexStorage2D(GL_TEXTURE_2D, 1, attachment.ColorFormatInternal, m_ActualWidth, m_ActualHeight);
-            else
-                glTexImage2D(GL_TEXTURE_2D, 0, attachment.ColorFormatInternal, m_ActualWidth, m_ActualHeight, 0, attachment.ColorFormat, GL_UNSIGNED_BYTE, NULL);
-            
+            glCreateTextures(mainTextureTarget, 1, &attachment.Image);
+            glBindTexture(mainTextureTarget, attachment.Image);
 
-            // TODO: dynamic filtering
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            if (attachment.HasResolve)
+                glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, m_ImageSamples, attachment.ColorFormatInternal, m_ActualWidth, m_ActualHeight, GL_FALSE);
+            else
+            {
+                if (attachment.IsDepthAttachment)
+                    glTexStorage2D(GL_TEXTURE_2D, 1, attachment.ColorFormatInternal, m_ActualWidth, m_ActualHeight);
+                else
+                    glTexImage2D(GL_TEXTURE_2D, 0, attachment.ColorFormatInternal, m_ActualWidth, m_ActualHeight, 0, attachment.ColorFormat, GL_UNSIGNED_BYTE, NULL);
+                
+
+                // TODO: dynamic filtering
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            }
         }
 
-        if (attachment.HasResolve)
+        if (shouldCreateResolveTexture)
         {
             glCreateTextures(GL_TEXTURE_2D, 1, &attachment.BlitImage);
-
             glBindTexture(GL_TEXTURE_2D, attachment.BlitImage);
 
             if (attachment.IsDepthAttachment)
@@ -332,12 +394,22 @@ namespace Heart
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         }
+
+        if (shouldResolveExternal)
+            attachment.BlitImage = attachment.ExternalTexture->GetLayerTextureId(attachment.ExternalTextureLayer, attachment.ExternalTextureMip);
+        else if (attachment.ExternalTexture)
+            attachment.Image = attachment.ExternalTexture->GetLayerTextureId(attachment.ExternalTextureLayer, attachment.ExternalTextureMip);
     }
 
     void OpenGLFramebuffer::CleanupAttachmentTextures(OpenGLFramebufferAttachment& attachment)
     {
-        glDeleteTextures(1, &attachment.Image);
-        if (attachment.HasResolve)
+        bool shouldResolveExternal = attachment.ExternalTexture && attachment.HasResolve;
+        bool hasBaseTexture = !attachment.ExternalTexture || shouldResolveExternal;
+        bool hasResolveTexture = attachment.HasResolve && !attachment.ExternalTexture;
+
+        if (hasBaseTexture)
+            glDeleteTextures(1, &attachment.Image);
+        if (hasResolveTexture)
             glDeleteTextures(1, &attachment.BlitImage);
     }
 

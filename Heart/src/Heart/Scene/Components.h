@@ -9,6 +9,11 @@
 
 namespace Heart
 {
+    // -----------------------
+    // To have it officially written, the components all entities MUST have are:
+    // Id, Name, Transform
+    // -----------------------
+
     struct IdComponent
     {
         UUID UUID;
@@ -45,7 +50,7 @@ namespace Heart
 
     struct MeshComponent
     {
-        UUID Mesh;
+        UUID Mesh = 0;
         std::vector<UUID> Materials;
     };
 }

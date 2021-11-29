@@ -1,6 +1,8 @@
 #include "htpch.h"
 #include "SceneRenderer.h"
 
+#include "Heart/Core/App.h"
+#include "Heart/Core/Timing.h"
 #include "Heart/Renderer/Renderer.h"
 #include "Heart/Scene/Components.h"
 #include "Heart/Scene/Entity.h"
@@ -15,23 +17,126 @@ namespace Heart
 {
     SceneRenderer::SceneRenderer()
     {
-        // register resources
-        AssetManager::RegisterAsset(Asset::Type::Texture, "DefaultTexture.png", true, true);
-        AssetManager::RegisterAsset(Asset::Type::Material, "DefaultMaterial.hemat", true, true);
-        AssetManager::RegisterAsset(Asset::Type::Shader, "PBR.vert", false, true);
-        AssetManager::RegisterAsset(Asset::Type::Shader, "PBR.frag", false, true);
-        AssetManager::RegisterAsset(Asset::Type::Shader, "FullscreenTriangle.vert", false, true);
-        AssetManager::RegisterAsset(Asset::Type::Shader, "PBRTransparentColor.frag", false, true);
-        AssetManager::RegisterAsset(Asset::Type::Shader, "TransparentComposite.frag", false, true);
+        SubscribeToEmitter(&App::Get());
+        Initialize();
+    }
 
-        // register default shaders
-        AssetManager::RegisterAsset(Asset::Type::Shader, "assets/shaders/main.vert");
-        AssetManager::RegisterAsset(Asset::Type::Shader, "assets/shaders/main.frag");
-        AssetManager::RegisterAsset(Asset::Type::Shader, "assets/shaders/color.frag");
-        AssetManager::RegisterAsset(Asset::Type::Shader, "assets/shaders/composite.frag");
-        AssetManager::RegisterAsset(Asset::Type::Shader, "assets/shaders/fulltriangle.vert");
+    SceneRenderer::~SceneRenderer()
+    {
+        UnsubscribeFromEmitter(&App::Get());
+        Shutdown();
+    }
 
-        // graphics pipeline
+    void SceneRenderer::OnEvent(Event& event)
+    {
+        event.Map<AppGraphicsInitEvent>(HE_BIND_EVENT_FN(SceneRenderer::OnAppGraphicsInit));
+        event.Map<AppGraphicsShutdownEvent>(HE_BIND_EVENT_FN(SceneRenderer::OnAppGraphicsShutdown));
+    }
+
+    bool SceneRenderer::OnAppGraphicsInit(AppGraphicsInitEvent& event)
+    {
+        if (!m_Initialized)
+            Initialize();
+        return false;
+    }
+
+    bool SceneRenderer::OnAppGraphicsShutdown(AppGraphicsShutdownEvent& event)
+    {
+        Shutdown();
+        return false;
+    }
+
+    void SceneRenderer::Initialize()
+    {
+        m_Initialized = true;
+
+        // Create default environment map cubemap object
+        m_DefaultEnvironmentMap = Texture::Create({ 512, 512, 4, false, 6, 5 });
+
+        // Initialize data buffers
+        BufferLayout frameDataLayout = {
+            { BufferDataType::Mat4 }, // proj matrix
+            { BufferDataType::Mat4 }, // view matrix
+            { BufferDataType::Float4 }, // camera pos
+            { BufferDataType::Float2 }, // screen size
+            { BufferDataType::Bool }, // reverse depth
+            { BufferDataType::Bool } // padding
+        };
+        BufferLayout objectDataLayout = {
+            { BufferDataType::Mat4 }, // transform
+            { BufferDataType::Float4 } // [0]: entityId
+        };
+        BufferLayout materialDataLayout = {
+            { BufferDataType::Float4 }, // base color
+            { BufferDataType::Float4 }, // emissive factor
+            { BufferDataType::Float4 }, // texcoord transform
+            { BufferDataType::Float4 }, // has PBR textures
+            { BufferDataType::Float4 }, // has textures
+            { BufferDataType::Float4 } // scalars
+        };
+        BufferLayout indirectDataLayout = {
+            { BufferDataType::UInt }, // index count
+            { BufferDataType::UInt }, // instance count
+            { BufferDataType::UInt }, // first index
+            { BufferDataType::Int }, // vertex offset
+            { BufferDataType::UInt } // first instance
+        };
+        m_FrameDataBuffer = Buffer::Create(Buffer::Type::Uniform, BufferUsageType::Dynamic, frameDataLayout, 1, nullptr);
+        m_ObjectDataBuffer = Buffer::Create(Buffer::Type::Storage, BufferUsageType::Dynamic, objectDataLayout, 5000, nullptr);
+        m_MaterialDataBuffer = Buffer::Create(Buffer::Type::Storage, BufferUsageType::Dynamic, materialDataLayout, 5000, nullptr);
+        m_IndirectBuffer = Buffer::Create(Buffer::Type::Indirect, BufferUsageType::Dynamic, indirectDataLayout, 1000, nullptr);
+        InitializeGridBuffers();
+
+        // Create the main framebuffer
+        FramebufferCreateInfo fbCreateInfo = {
+            {
+                { false, { 0.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::RGBA8 },
+                { true, { -1.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::R32F },
+                { false, { 0.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::RGBA16F },
+                { false, { 1.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::R16F }
+            },
+            {
+                {}
+            },
+            {
+                { {}, { { SubpassAttachmentType::Color, 0 } } }, // environment map
+                { {}, { { SubpassAttachmentType::Color, 0 } } }, // grid
+                { {}, { { SubpassAttachmentType::Depth, 0 }, { SubpassAttachmentType::Color, 0 }, { SubpassAttachmentType::Color, 1 } } }, // opaque
+                { {}, { { SubpassAttachmentType::Depth, 0 }, { SubpassAttachmentType::Color, 1 }, { SubpassAttachmentType::Color, 2 }, { SubpassAttachmentType::Color, 3 } } }, // transparent color
+                { { { SubpassAttachmentType::Color, 2 }, { SubpassAttachmentType::Color, 3 } }, { { SubpassAttachmentType::Depth, 0 }, { SubpassAttachmentType::Color, 0 } } } // composite
+            },
+            0, 0,
+            MsaaSampleCount::None
+        };
+        m_FinalFramebuffer = Framebuffer::Create(fbCreateInfo);
+
+        // Register pipelines
+        GraphicsPipelineCreateInfo envMapPipeline = {
+            AssetManager::GetAssetUUID("Skybox.vert", true),
+            AssetManager::GetAssetUUID("Skybox.frag", true),
+            true,
+            VertexTopology::TriangleList,
+            Heart::Mesh::GetVertexLayout(),
+            { { false } },
+            false,
+            false,
+            CullMode::None,
+            WindingOrder::Clockwise,
+            0
+        };
+        GraphicsPipelineCreateInfo gridPipeline = {
+            AssetManager::GetAssetUUID("Grid.vert", true),
+            AssetManager::GetAssetUUID("Grid.frag", true),
+            true,
+            VertexTopology::LineList,
+            { BufferDataType::Float3 },
+            { { false } },
+            false,
+            false,
+            CullMode::None,
+            WindingOrder::Clockwise,
+            1
+        };
         GraphicsPipelineCreateInfo pbrPipeline = {
             AssetManager::GetAssetUUID("PBR.vert", true),
             AssetManager::GetAssetUUID("PBR.frag", true),
@@ -43,7 +148,7 @@ namespace Heart
             true,
             CullMode::Backface,
             WindingOrder::Clockwise,
-            0
+            2
         };
         GraphicsPipelineCreateInfo transparencyColorPipeline = {
             AssetManager::GetAssetUUID("PBR.vert", true),
@@ -56,7 +161,7 @@ namespace Heart
             true,
             CullMode::None,
             WindingOrder::Clockwise,
-            1
+            3
         };
         GraphicsPipelineCreateInfo transparencyCompositePipeline = {
             AssetManager::GetAssetUUID("FullscreenTriangle.vert", true),
@@ -69,202 +174,403 @@ namespace Heart
             false,
             CullMode::None,
             WindingOrder::Clockwise,
-            2
+            4
         };
-
-        // per frame data buffer layout
-        BufferLayout frameDataLayout = {
-            { BufferDataType::Mat4 },
-            { BufferDataType::Mat4 },
-            { BufferDataType::Float2 },
-            { BufferDataType::Float2 }
-        };
-
-        // per object data buffer layout
-        BufferLayout objectDataLayout = {
-            { BufferDataType::Mat4 }, // transform
-            { BufferDataType::Int }, // entityId
-            { BufferDataType::Float3 } // padding
-        };
-
-        BufferLayout materialDataLayout = {
-            { BufferDataType::Float4 }, // material: baseColor
-            { BufferDataType::Float }, // material: roughness
-            { BufferDataType::Float }, // material: metalness
-            { BufferDataType::Float2 }, // material: texCoordScale
-            { BufferDataType::Float2 }, // material: texCoordOffset
-            { BufferDataType::Bool }, // material: hasAlbedo
-            { BufferDataType::Bool }, // material: hasRoughness
-            { BufferDataType::Bool }, // material: hasMetalness
-            { BufferDataType::Bool }, // material: hasNormal
-            { BufferDataType::Float2 } // material: padding
-        };
-
-        m_FrameDataBuffer = Buffer::Create(Buffer::Type::Uniform, BufferUsageType::Dynamic, frameDataLayout, 1, nullptr);
-        m_ObjectDataBuffer = Buffer::Create(Buffer::Type::Storage, BufferUsageType::Dynamic, objectDataLayout, 2000, nullptr);
-        m_MaterialDataBuffer = Buffer::Create(Buffer::Type::Storage, BufferUsageType::Dynamic, materialDataLayout, 2000, nullptr);
-
-        // framebuffer
-        FramebufferCreateInfo fbCreateInfo = {
-            {
-                { { 0.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::RGBA8, false },
-                { { -1.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::R32F, true },
-                { { 0.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::RGBA32F, false },
-                { { 1.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::R32F, false }
-            },
-            {
-                {}
-            },
-            {
-                { {}, { { SubpassAttachmentType::Depth, 0 }, { SubpassAttachmentType::Color, 0 }, { SubpassAttachmentType::Color, 1 } } }, // opaque
-                { {}, { { SubpassAttachmentType::Depth, 0 }, { SubpassAttachmentType::Color, 1 }, { SubpassAttachmentType::Color, 2 }, { SubpassAttachmentType::Color, 3 } } }, // transparent color
-                { { { SubpassAttachmentType::Color, 2 }, { SubpassAttachmentType::Color, 3 } }, { { SubpassAttachmentType::Depth, 0 }, { SubpassAttachmentType::Color, 0 } } } // composite
-            }
-        };
-        fbCreateInfo.Width = 0;
-        fbCreateInfo.Height = 0;
-        fbCreateInfo.SampleCount = MsaaSampleCount::None;
-        m_FinalFramebuffer = Framebuffer::Create(fbCreateInfo);
+        m_FinalFramebuffer->RegisterGraphicsPipeline("skybox", envMapPipeline);
+        m_FinalFramebuffer->RegisterGraphicsPipeline("grid", gridPipeline);
         m_FinalFramebuffer->RegisterGraphicsPipeline("pbr", pbrPipeline);
         m_FinalFramebuffer->RegisterGraphicsPipeline("pbrTpColor", transparencyColorPipeline);
         m_FinalFramebuffer->RegisterGraphicsPipeline("tpComposite", transparencyCompositePipeline);
     }
 
-    SceneRenderer::~SceneRenderer()
+    void SceneRenderer::Shutdown()
     {
-        
+        m_Initialized = false;
+
+        m_DefaultEnvironmentMap.reset();
+        m_FinalFramebuffer.reset();
+        m_FrameDataBuffer.reset();
+        m_ObjectDataBuffer.reset();
+        m_MaterialDataBuffer.reset();
+        m_IndirectBuffer.reset();
+
+        m_GridVertices.reset();
+        m_GridIndices.reset();
     }
 
-    void SceneRenderer::RenderScene(GraphicsContext& context, Scene* scene, glm::mat4 view, glm::mat4 viewProjection)
+    void SceneRenderer::RenderScene(GraphicsContext& context, Scene* scene, const Camera& camera, glm::vec3 cameraPosition, bool drawGrid)
     {
         HE_PROFILE_FUNCTION();
+        auto timer = Heart::AggregateTimer("SceneRenderer::RenderScene");
 
         HE_ENGINE_ASSERT(scene, "Scene cannot be nullptr");
 
-        m_FinalFramebuffer->Bind();
-        m_FinalFramebuffer->BindPipeline("pbr");
+        // Reset in-flight frame data
+        m_Scene = scene;
+        m_EnvironmentMap = scene->GetEnvironmentMap();
+        m_IndirectBatches.clear();
+        m_DeferredIndirectBatches.clear();
+        for (auto& list : m_EntityListPool)
+            list.clear();
 
-        FrameData frameData = { viewProjection, view, m_FinalFramebuffer->GetSize(), Renderer::IsUsingReverseDepth() };
+        // Set the global data for this frame
+        FrameData frameData = { camera.GetProjectionMatrix(), camera.GetViewMatrix(), glm::vec4(cameraPosition, 1.f), m_FinalFramebuffer->GetSize(), Renderer::IsUsingReverseDepth() };
         m_FrameDataBuffer->SetData(&frameData, 1, 0);
 
-        m_FinalFramebuffer->BindShaderBufferResource(0, 0, m_FrameDataBuffer.get());
+        // Bind the main framebuffer
+        m_FinalFramebuffer->Bind();
 
-        // default texture binds
-        m_FinalFramebuffer->BindShaderTextureResource(3, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
+        // Render the skybox if set
+        if (m_EnvironmentMap)
+            RenderEnvironmentMap();
 
-        std::vector<CachedRender> transparentMeshes;
-        auto group = scene->GetRegistry().group<TransformComponent, MeshComponent>();
-        u32 objectIndex = 0;
-        u32 materialIndex = 0;
+        // Draw the grid if set
+        m_FinalFramebuffer->StartNextSubpass();
+        if (drawGrid)   
+            RenderGrid();
+
+        // Recalculate the indirect render batches
+        CalculateBatches();
+
+        // Batches pass
+        m_FinalFramebuffer->StartNextSubpass();
+        RenderBatches();
+
+        // Composite pass
+        m_FinalFramebuffer->StartNextSubpass();
+        Composite();
+
+        // Submit the framebuffer
+        Renderer::Api().RenderFramebuffers(context, { m_FinalFramebuffer.get() });
+    }
+
+    void SceneRenderer::CalculateBatches()
+    {
+        HE_PROFILE_FUNCTION();
+
+        // Loop over each mesh component / submesh, hash the mesh & material, and place the entity in a batch
+        // associated with the mesh & material. At this stage, Batch.First is unused and Batch.Count indicates
+        // how many instances there are
+        u32 batchIndex = 0;
+        auto group = m_Scene->GetRegistry().group<TransformComponent, MeshComponent>();
         for (auto entity : group)
         {
             auto [transform, mesh] = group.get<TransformComponent, MeshComponent>(entity);
 
+            // Skip invalid meshes
             auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>(mesh.Mesh);
             if (!meshAsset || !meshAsset->IsValid()) continue;
-
-            m_FinalFramebuffer->BindShaderBufferResource(1, objectIndex, m_ObjectDataBuffer.get());
-
-            // store transform at offset in buffer
-            ObjectData objectData = { scene->GetEntityCachedTransform({ scene, entity }), static_cast<int>(entity) };
-            m_ObjectDataBuffer->SetData(&objectData, 1, objectIndex);
 
             for (u32 i = 0; i < meshAsset->GetSubmeshCount(); i++)
             {
                 auto& meshData = meshAsset->GetSubmesh(i);
 
-                UUID finalMaterialId = meshAsset->GetDefaultMaterials()[meshData.GetMaterialIndex()];
-                if (mesh.Materials.size() > meshData.GetMaterialIndex())
-                    finalMaterialId = mesh.Materials[meshData.GetMaterialIndex()];
+                // Create a hash based on the submesh and its material if applicable
+                u64 hash = mesh.Mesh ^ (i * 123192);
+                if (meshData.GetMaterialIndex() < mesh.Materials.size())
+                    hash ^= mesh.Materials[meshData.GetMaterialIndex()];
 
-                auto materialAsset = AssetManager::RetrieveAsset<MaterialAsset>(finalMaterialId);
-                if (materialAsset && materialAsset->IsValid())
+                // Get/create a batch associated with this hash
+                auto& batch = m_IndirectBatches[hash];
+
+                // Update the batch information if this is the first entity being added to it
+                if (batch.Count == 0)
                 {
-                    if (materialAsset->GetMaterial().IsTransparent())
+                    // Retrieve a vector from the pool
+                    batch.EntityListIndex = batchIndex;
+                    if (batchIndex >= m_EntityListPool.size())
+                        m_EntityListPool.emplace_back();
+
+                    // Set the material & mesh associated with this batch
+                    batch.Mesh = &meshData;
+                    batch.Material = &meshAsset->GetDefaultMaterials()[meshData.GetMaterialIndex()]; // default material
+                    if (mesh.Materials.size() > meshData.GetMaterialIndex())
                     {
-                        transparentMeshes.emplace_back(finalMaterialId, mesh.Mesh, i, objectData);
-                        continue;
+                        auto materialAsset = AssetManager::RetrieveAsset<MaterialAsset>(mesh.Materials[meshData.GetMaterialIndex()]);
+                        if (materialAsset && materialAsset->IsValid())
+                            batch.Material = &materialAsset->GetMaterial();
                     }
 
-                    auto& materialData = materialAsset->GetMaterial().GetMaterialData();
-
-                    auto albedoAsset = AssetManager::RetrieveAsset<TextureAsset>(materialAsset->GetMaterial().GetAlbedoTexture());
-                    materialData.HasAlbedo = albedoAsset && albedoAsset->IsValid();
-                    if (materialData.HasAlbedo)
-                        m_FinalFramebuffer->BindShaderTextureResource(3, albedoAsset->GetTexture());
-
-                    m_MaterialDataBuffer->SetData(&materialData, 1, materialIndex);
+                    batchIndex++;
                 }
-                else // default material
-                    m_MaterialDataBuffer->SetData(&AssetManager::RetrieveAsset<MaterialAsset>("DefaultMaterial.hemat", true)->GetMaterial().GetMaterialData(), 1, materialIndex);
+                
+                // Push the associated entity to the associated vector from the pool
+                batch.Count++;
+                m_EntityListPool[batch.EntityListIndex].emplace_back(static_cast<u32>(entity));
+            }
+        }
 
-                m_FinalFramebuffer->BindShaderBufferResource(2, materialIndex, m_MaterialDataBuffer.get());
+        // Loop over the calculated batches and populate the indirect buffer with draw commands. Because we are instancing, we need to make sure each object/material data
+        // element gets placed contiguously for each indirect draw call. At this stage, Batch.First is the index of the indirect draw command in the buffer and
+        // Batch.Count will equal 1 because it represents how many draw commands are in each batch
+        u32 commandIndex = 0;
+        u32 renderId = 0;
+        for (auto& pair : m_IndirectBatches)
+        {
+            // Update the draw command index
+            pair.second.First = commandIndex;
 
-                Renderer::Api().BindVertexBuffer(*meshData.GetVertexBuffer());
-                Renderer::Api().BindIndexBuffer(*meshData.GetIndexBuffer());
+            // Popupate the indirect buffer
+            IndexedIndirectCommand command = {
+                pair.second.Mesh->GetIndexBuffer()->GetAllocatedCount(),
+                pair.second.Count, 0, 0, renderId
+            };
+            m_IndirectBuffer->SetData(&command, 1, commandIndex);
+            commandIndex++;
 
-                // draw
-                Renderer::Api().DrawIndexed(
-                    meshData.GetIndexBuffer()->GetAllocatedCount(),
-                    meshData.GetVertexBuffer()->GetAllocatedCount(),
-                    0, 0, 1
-                );
+            // Contiguiously set the instance data for each entity associated with this batch
+            auto& entityList = m_EntityListPool[pair.second.EntityListIndex];
+            for (auto& entity : entityList)
+            {
+                // Object data
+                ObjectData objectData = { m_Scene->GetEntityCachedTransform({ m_Scene, entity }), { entity, 0.f, 0.f, 0.f } };
+                m_ObjectDataBuffer->SetData(&objectData, 1, renderId);
 
-                materialIndex++;
+                // Material data
+                if (pair.second.Material)
+                {
+                    auto& materialData = pair.second.Material->GetMaterialData();
+
+                    auto albedoAsset = AssetManager::RetrieveAsset<TextureAsset>(pair.second.Material->GetAlbedoTexture());
+                    materialData.SetHasAlbedo(albedoAsset && albedoAsset->IsValid());
+
+                    auto metallicRoughnessAsset = AssetManager::RetrieveAsset<TextureAsset>(pair.second.Material->GetMetallicRoughnessTexture());
+                    materialData.SetHasMetallicRoughness(metallicRoughnessAsset && metallicRoughnessAsset->IsValid());
+
+                    auto normalAsset = AssetManager::RetrieveAsset<TextureAsset>(pair.second.Material->GetNormalTexture());
+                    materialData.SetHasNormal(normalAsset && normalAsset->IsValid());
+
+                    auto emissiveAsset = AssetManager::RetrieveAsset<TextureAsset>(pair.second.Material->GetEmissiveTexture());
+                    materialData.SetHasEmissive(emissiveAsset && emissiveAsset->IsValid());
+
+                    auto occlusionAsset = AssetManager::RetrieveAsset<TextureAsset>(pair.second.Material->GetOcclusionTexture());
+                    materialData.SetHasOcclusion(occlusionAsset && occlusionAsset->IsValid());
+
+                    m_MaterialDataBuffer->SetData(&materialData, 1, renderId);
+                }
+                else
+                    m_MaterialDataBuffer->SetData(&AssetManager::RetrieveAsset<MaterialAsset>("DefaultMaterial.hemat", true)->GetMaterial().GetMaterialData(), 1, renderId);
+
+                renderId++;
             }
 
-            objectIndex++;
+            // Change the count to represent the number of draw commands
+            pair.second.Count = 1;
+        }
+    }
+
+    void SceneRenderer::RenderEnvironmentMap()
+    {
+        m_FinalFramebuffer->BindPipeline("skybox");
+        m_FinalFramebuffer->BindShaderBufferResource(0, 0, 1, m_FrameDataBuffer.get());
+        m_FinalFramebuffer->BindShaderTextureResource(1, m_EnvironmentMap->GetPrefilterCubemap());
+
+        auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>("DefaultCube.gltf", true);
+        auto& meshData = meshAsset->GetSubmesh(0);
+
+        m_FinalFramebuffer->FlushBindings();
+
+        Renderer::Api().BindVertexBuffer(*meshData.GetVertexBuffer());
+        Renderer::Api().BindIndexBuffer(*meshData.GetIndexBuffer());
+        Renderer::Api().DrawIndexed(
+            meshData.GetIndexBuffer()->GetAllocatedCount(),
+            0, 0, 1
+        );
+    }
+
+    void SceneRenderer::RenderGrid()
+    {
+        // Bind grid pipeline
+        m_FinalFramebuffer->BindPipeline("grid");
+
+        // Bind frame data
+        m_FinalFramebuffer->BindShaderBufferResource(0, 0, 1, m_FrameDataBuffer.get());
+
+        m_FinalFramebuffer->FlushBindings();
+
+        // Draw
+        Renderer::Api().SetLineWidth(2.f);
+        Renderer::Api().BindVertexBuffer(*m_GridVertices);
+        Renderer::Api().BindIndexBuffer(*m_GridIndices);
+        Renderer::Api().DrawIndexed(
+            m_GridIndices->GetAllocatedCount(),
+            0, 0, 1
+        );
+    }
+    
+    void SceneRenderer::BindMaterial(Material* material)
+    {
+        HE_PROFILE_FUNCTION();
+
+        auto& materialData = material->GetMaterialData();
+
+        if (materialData.HasAlbedo())
+        {
+            auto albedoAsset = AssetManager::RetrieveAsset<TextureAsset>(material->GetAlbedoTexture());
+            m_FinalFramebuffer->BindShaderTextureResource(3, albedoAsset->GetTexture());
+        }
+        
+        if (materialData.HasMetallicRoughness())
+        {
+            auto metallicRoughnessAsset = AssetManager::RetrieveAsset<TextureAsset>(material->GetMetallicRoughnessTexture());
+            m_FinalFramebuffer->BindShaderTextureResource(4, metallicRoughnessAsset->GetTexture());
         }
 
+        if (materialData.HasNormal())
+        {
+            auto normalAsset = AssetManager::RetrieveAsset<TextureAsset>(material->GetNormalTexture());
+            m_FinalFramebuffer->BindShaderTextureResource(5, normalAsset->GetTexture());
+        }
+
+        if (materialData.HasEmissive())
+        {
+            auto emissiveAsset = AssetManager::RetrieveAsset<TextureAsset>(material->GetEmissiveTexture());
+            m_FinalFramebuffer->BindShaderTextureResource(6, emissiveAsset->GetTexture());
+        }
+
+        if (materialData.HasOcclusion())
+        {
+            auto occlusionAsset = AssetManager::RetrieveAsset<TextureAsset>(material->GetOcclusionTexture());
+            m_FinalFramebuffer->BindShaderTextureResource(7, occlusionAsset->GetTexture());
+        }
+    }
+
+    void SceneRenderer::BindPBRDefaults()
+    {
+        // Bind frame data
+        m_FinalFramebuffer->BindShaderBufferResource(0, 0, 1, m_FrameDataBuffer.get());
+
+        // Bind object data
+        m_FinalFramebuffer->BindShaderBufferResource(1, 0, m_ObjectDataBuffer->GetAllocatedCount(), m_ObjectDataBuffer.get());
+        m_FinalFramebuffer->BindShaderBufferResource(2, 0, m_MaterialDataBuffer->GetAllocatedCount(), m_MaterialDataBuffer.get());
+
+        // Default texture binds
+        m_FinalFramebuffer->BindShaderTextureResource(3, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
+        m_FinalFramebuffer->BindShaderTextureResource(4, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
+        m_FinalFramebuffer->BindShaderTextureResource(5, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
+        m_FinalFramebuffer->BindShaderTextureResource(6, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
+        m_FinalFramebuffer->BindShaderTextureResource(7, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
+        if (m_EnvironmentMap)
+        {
+            m_FinalFramebuffer->BindShaderTextureResource(8, m_EnvironmentMap->GetIrradianceCubemap());
+            m_FinalFramebuffer->BindShaderTextureResource(9, m_EnvironmentMap->GetPrefilterCubemap());
+            m_FinalFramebuffer->BindShaderTextureResource(10, m_EnvironmentMap->GetBRDFTexture());
+        }
+        else
+        {
+            m_FinalFramebuffer->BindShaderTextureResource(8, m_DefaultEnvironmentMap.get());
+            m_FinalFramebuffer->BindShaderTextureResource(9, m_DefaultEnvironmentMap.get());
+            m_FinalFramebuffer->BindShaderTextureLayerResource(10, m_DefaultEnvironmentMap.get(), 0);
+        }
+    }
+
+    void SceneRenderer::RenderBatches()
+    {
+        HE_PROFILE_FUNCTION();
+        
+        // Bind opaque PBR pipeline
+        m_FinalFramebuffer->BindPipeline("pbr");
+
+        // Bind defaults
+        BindPBRDefaults();
+
+        // Initial (opaque) batches pass
+        for (auto& pair : m_IndirectBatches)
+        {
+            auto& batch = pair.second;
+
+            if (batch.Material)
+            {
+                if (batch.Material->IsTranslucent())
+                {
+                    m_DeferredIndirectBatches.emplace_back(&batch);
+                    continue;
+                }
+                BindMaterial(batch.Material);
+            }
+
+            m_FinalFramebuffer->FlushBindings();
+
+            // Draw
+            Renderer::Api().BindVertexBuffer(*batch.Mesh->GetVertexBuffer());
+            Renderer::Api().BindIndexBuffer(*batch.Mesh->GetIndexBuffer());
+            Renderer::Api().DrawIndexedIndirect(m_IndirectBuffer.get(), batch.First, batch.Count);
+        }
+
+        // Secondary (translucent) batches pass
         m_FinalFramebuffer->StartNextSubpass();
         m_FinalFramebuffer->BindPipeline("pbrTpColor");
-        
-        // default texture binds
-        m_FinalFramebuffer->BindShaderTextureResource(3, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
+        BindPBRDefaults();
 
-        m_FinalFramebuffer->BindShaderBufferResource(0, 0, m_FrameDataBuffer.get());
-
-        for (auto& mesh : transparentMeshes)
+        for (auto batch : m_DeferredIndirectBatches)
         {
-            auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>(mesh.Mesh);
-            auto& meshData = meshAsset->GetSubmesh(mesh.SubmeshIndex);
-            auto materialAsset = AssetManager::RetrieveAsset<MaterialAsset>(mesh.Material);
-            auto& materialData = materialAsset->GetMaterial().GetMaterialData();
+            if (batch->Material)
+                BindMaterial(batch->Material);
 
-            auto albedoAsset = AssetManager::RetrieveAsset<TextureAsset>(materialAsset->GetMaterial().GetAlbedoTexture());
-            materialData.HasAlbedo = albedoAsset && albedoAsset->IsValid();
-            if (materialData.HasAlbedo)
-                m_FinalFramebuffer->BindShaderTextureResource(3, albedoAsset->GetTexture());
+            m_FinalFramebuffer->FlushBindings();
 
-            m_FinalFramebuffer->BindShaderBufferResource(1, objectIndex, m_ObjectDataBuffer.get());
-            m_ObjectDataBuffer->SetData(&mesh.ObjectData, 1, objectIndex);
-
-            m_FinalFramebuffer->BindShaderBufferResource(2, materialIndex, m_MaterialDataBuffer.get());
-            m_MaterialDataBuffer->SetData(&materialData, 1, materialIndex);
-
-            Renderer::Api().BindVertexBuffer(*meshData.GetVertexBuffer());
-            Renderer::Api().BindIndexBuffer(*meshData.GetIndexBuffer());
-
-            // draw
-            Renderer::Api().DrawIndexed(
-                meshData.GetIndexBuffer()->GetAllocatedCount(),
-                meshData.GetVertexBuffer()->GetAllocatedCount(),
-                0, 0, 1
-            );
-
-            objectIndex++;
-            materialIndex++;
+            // Draw
+            Renderer::Api().BindVertexBuffer(*batch->Mesh->GetVertexBuffer());
+            Renderer::Api().BindIndexBuffer(*batch->Mesh->GetIndexBuffer());
+            Renderer::Api().DrawIndexedIndirect(m_IndirectBuffer.get(), batch->First, batch->Count);
         }
-        
-        m_FinalFramebuffer->StartNextSubpass();
+    }
+
+    void SceneRenderer::Composite()
+    {
+        // Bind alpha compositing pipeline
         m_FinalFramebuffer->BindPipeline("tpComposite");
 
-        m_FinalFramebuffer->BindShaderBufferResource(0, 0, m_FrameDataBuffer.get());
+        // Bind frame data
+        m_FinalFramebuffer->BindShaderBufferResource(0, 0, 1, m_FrameDataBuffer.get());
+
+        // Bind the input attachments from the transparent pass
         m_FinalFramebuffer->BindSubpassInputAttachment(1, { SubpassAttachmentType::Color, 2 });
         m_FinalFramebuffer->BindSubpassInputAttachment(2, { SubpassAttachmentType::Color, 3 });
 
-        Renderer::Api().Draw(3, 0, 1);
+        m_FinalFramebuffer->FlushBindings();
 
-        Renderer::Api().RenderFramebuffers(context, { m_FinalFramebuffer.get() });
+        // Draw the fullscreen triangle
+        Renderer::Api().Draw(3, 0, 1);
+    }
+
+    void SceneRenderer::InitializeGridBuffers()
+    {
+        // Default size (TODO: parameterize)
+        u32 gridSize = 20;
+
+        std::vector<glm::vec3> vertices;
+        vertices.reserve(static_cast<size_t>(pow(gridSize + 1, 2)));
+        std::vector<u32> indices;
+        
+        // Calculate the grid with a line list
+        glm::vec3 pos = { gridSize * -0.5f, 0.f, gridSize * -0.5f };
+        u32 vertexIndex = 0;
+        for (u32 i = 0; i <= gridSize; i++)
+        {
+            for (u32 j = 0; j <= gridSize; j++)
+            {
+                vertices.emplace_back(pos);
+
+                if (j != 0)
+                {
+                    indices.emplace_back(vertexIndex);
+                    indices.emplace_back(vertexIndex - 1);
+                }
+                if (i != 0)
+                {
+                    indices.emplace_back(vertexIndex);
+                    indices.emplace_back(vertexIndex - gridSize - 1);
+                }
+
+                pos.x += 1.f;
+                vertexIndex++;
+            }
+            pos.x = gridSize * -0.5f;
+            pos.z += 1.f;
+        }
+
+        m_GridVertices = Buffer::Create(Buffer::Type::Vertex, BufferUsageType::Static, { BufferDataType::Float3 }, static_cast<u32>(vertices.size()), (void*)vertices.data());
+        m_GridIndices = Buffer::CreateIndexBuffer(BufferUsageType::Static, static_cast<u32>(indices.size()), (void*)indices.data());
     }
 }

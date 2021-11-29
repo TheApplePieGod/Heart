@@ -63,5 +63,7 @@ namespace Heart
         int m_SavedWindowSizeAndPosition[4]; // used when toggling fullscreen
         WindowData m_WindowData;
         GLFWwindow* m_Window;
+
+        friend class App;
     };
 }
