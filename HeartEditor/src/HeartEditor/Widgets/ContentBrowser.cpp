@@ -238,6 +238,7 @@ namespace Widgets
         ImGui::PopStyleColor();
 
         // Card right click popup
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 5.f, 5.f });
         if (ImGui::BeginPopupContextItem(entryName.c_str()))
         {
             // Disabling this for now until we get a confirm dialog
@@ -259,6 +260,7 @@ namespace Widgets
 
             ImGui::EndPopup();
         }
+        ImGui::PopStyleVar();
  
         // Center and wrap the filename if we are not renaming
         ImGui::PushTextWrapPos(ImGui::GetCursorPos().x + ImGui::GetItemRectSize().x);
