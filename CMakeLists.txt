@@ -6,6 +6,15 @@ project(
     DESCRIPTION "A 3d game engine"
 )
 
+option(BUILD_DOCS "Build documentation" ON)
+if(BUILD_DOCS)
+    find_package(Doxygen)
+
+    if(DOXYGEN_FOUND)
+        add_subdirectory("docs")
+    endif()
+endif()
+
 add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)

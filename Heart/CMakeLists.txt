@@ -18,6 +18,7 @@ include_directories("lib/json/include")
 include_directories("$ENV{VULKAN_SDK}/Include")
 
 # Build dependencies
+set(GLFW_BUILD_DOCS OFF)
 add_subdirectory("lib/GLFW")
 add_subdirectory("lib/glm")
 add_subdirectory("lib/imgui")
