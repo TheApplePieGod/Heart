@@ -26,6 +26,5 @@ else()
     message("Building HeartEngine in Release mode")
 endif()
 
-
 add_subdirectory("HeartEditor")
 add_subdirectory("Heart")

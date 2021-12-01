@@ -94,3 +94,39 @@ target_precompile_headers(Engine
 )
 
 target_compile_features(Engine PUBLIC cxx_std_17)
+
+# Installation
+include(CMakePackageConfigHelpers)
+include(GNUInstallDirs)
+
+install(
+    TARGETS Engine glm imgui spdlog glad imguizmo nlohmann_json
+    EXPORT EngineTargets
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+install(DIRECTORY src/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
+install(
+    EXPORT EngineTargets
+    FILE EngineTargets.cmake
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/HeartEngine
+    NAMESPACE HeartEngine::
+)
+
+# configure_package_config_file( 
+#     ${CMAKE_CURRENT_BINARY_DIR}/EngineConfig.cmake.in
+#     ${CMAKE_CURRENT_BINARY_DIR}/HeartConfig.cmake
+#     INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/HeartEngine
+# )
+write_basic_package_version_file(
+    ${CMAKE_CURRENT_BINARY_DIR}/HeartConfigVersion.cmake
+    VERSION 0.1.0
+    COMPATIBILITY SameMajorVersion
+)
+install(
+    FILES ${CMAKE_CURRENT_BINARY_DIR}/HeartConfig.cmake
+          ${CMAKE_CURRENT_BINARY_DIR}/HeartConfigVersion.cmake
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/HeartEngine
+)

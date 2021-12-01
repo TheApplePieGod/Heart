@@ -2,10 +2,18 @@
 
 # Heart
 
-Heart is a cross-platform C++ 3D game engine. It can be used to create games using the editor, or it can be used as a C++ library for a custom use case.
+Heart is a cross-platform C++ 3D game engine. It can be used to create games using the editor or as a powerful rendering API library.
 
+Some style and design choices for the engine were inspired by [TheCherno](https://www.youtube.com/user/TheChernoProject) (check him out!)
 
 ## Table of Contents
 
+## Introduction
 
-### Some style and design choices inspired by https://github.com/TheCherno
+asdf
+
+## Integration
+
+
+
+### Requirements
