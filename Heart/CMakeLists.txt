@@ -1,21 +1,21 @@
 project(Engine)
 
-# Main includes
-include_directories("src")
-include_directories(".")
-
-# Dependency includes
-include_directories("lib")
-include_directories("lib/GLFW/include")
-include_directories("lib/glm")
-include_directories("lib/imgui")
-include_directories("lib/spdlog/include")
-include_directories("lib/Glad/include")
-include_directories("lib/optick/src")
-include_directories("lib/entt/src")
-include_directories("lib/imguizmo")
-include_directories("lib/json/include")
-include_directories("$ENV{VULKAN_SDK}/Include")
+set(ENGINE_INCLUDE_DIRS
+  "."
+  "src"
+  "lib"
+  "lib/GLFW/include"
+  "lib/glm"
+  "lib/imgui"
+  "lib/spdlog/include"
+  "lib/Glad/include"
+  "lib/optick/src"
+  "lib/entt/src"
+  "lib/imguizmo"
+  "lib/json/include"
+  "$ENV{VULKAN_SDK}/Include"
+)
+include_directories(${ENGINE_INCLUDE_DIRS})
 
 # Build dependencies
 set(GLFW_BUILD_DOCS OFF)
@@ -48,6 +48,12 @@ file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp" "src/*.h" "htpch.h")
 #add_executable(Engine "${SOURCES}" "${DEPENDENCY_SOURCES}" "src/Heart/Core/EntryPoint.cpp")
 add_library(Engine "${SOURCES}" "${DEPENDENCY_SOURCES}")
 
+target_include_directories(
+  Engine
+  PUBLIC
+  "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
+)
+
 # Locate vulkansdk libraries
 find_library(vulkan
   NAMES "vulkan-1"
@@ -55,6 +61,10 @@ find_library(vulkan
 )
 find_library(shaderc
   NAMES "shaderc_shared"
+  PATHS "$ENV{VULKAN_SDK}/Lib"
+)
+find_library(spirvglsl
+  NAMES "spirv-cross-glsl"
   PATHS "$ENV{VULKAN_SDK}/Lib"
 )
 
@@ -71,10 +81,6 @@ else()
   )
   target_link_libraries(Engine ${spirvcore})
 endif()
-find_library(spirvglsl
-  NAMES "spirv-cross-glsl"
-  PATHS "$ENV{VULKAN_SDK}/Lib"
-)
 
 # Link dependencies
 target_link_libraries(Engine glfw)
@@ -96,30 +102,35 @@ target_precompile_headers(Engine
 target_compile_features(Engine PUBLIC cxx_std_17)
 
 # Installation
-include(CMakePackageConfigHelpers)
 include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
 
 install(
-    TARGETS Engine glm imgui spdlog glad imguizmo nlohmann_json
+    TARGETS Engine glm imgui spdlog glad imguizmo nlohmann_json glfw OptickCore
     EXPORT EngineTargets
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
-install(DIRECTORY src/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-
+install(
+  DIRECTORY src/
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+  FILES_MATCHING
+  PATTERN "*.h"
+)
 install(
     EXPORT EngineTargets
     FILE EngineTargets.cmake
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/HeartEngine
     NAMESPACE HeartEngine::
 )
-
-# configure_package_config_file( 
-#     ${CMAKE_CURRENT_BINARY_DIR}/EngineConfig.cmake.in
-#     ${CMAKE_CURRENT_BINARY_DIR}/HeartConfig.cmake
-#     INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/HeartEngine
-# )
+configure_package_config_file( 
+    "HeartConfig.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/HeartConfig.cmake"
+    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/HeartEngine
+    PATH_VARS
+    CMAKE_INSTALL_LIBDIR
+)
 write_basic_package_version_file(
     ${CMAKE_CURRENT_BINARY_DIR}/HeartConfigVersion.cmake
     VERSION 0.1.0
