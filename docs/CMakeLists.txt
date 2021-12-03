@@ -1,7 +1,7 @@
 set(DOXYGEN_SOURCE1 "../Heart/src")
 set(DOXYGEN_SOURCE2 "../HeartEditor/src")
 set(DOXYGEN_HOMEPAGE "../README.md")
-set(DOXYGEN_DOCS_FOLDER ${CMAKE_CURRENT_SOURCE_DIR})
+set(DOXYGEN_DOCS_FOLDER ${CMAKE_CURRENT_BINARY_DIR})
 
 configure_file(doxy.in doxy.cfg @ONLY)
 

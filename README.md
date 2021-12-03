@@ -1,10 +1,22 @@
-![Logo](logo.png)
+![Logo](images/logo.png)
 
 # Heart
 
-Heart is a cross-platform C++ 3D game engine. It can be used to create games using the editor or as a powerful rendering API library.
+Heart is a cross-platform C++ 3D game engine. It can be used to create games using the editor or as a powerful rendering API library with built-in physically-based rendering functionality.
 
-Some style and internal design choices for the engine were inspired by [TheCherno](https://www.youtube.com/user/TheChernoProject) (check him out!)
+# Screenshots
+
+## Sponza Scene
+![Sponza Scene](images/screenshot1.png)
+
+## Spheres Scene
+![Spheres Scene](images/screenshot2.png)
+
+## Helmet Scene
+![Helmet Scene](images/screenshot3.png)
+
+## Material Editor
+![Material Editor](images/screenshot4.png)
 
 # Table of Contents
 
@@ -19,7 +31,12 @@ Some style and internal design choices for the engine were inspired by [TheChern
 
 # Introduction
 
-asdf
+As an aspiring graphics programmer with some level of experience, I decided I wanted to go all-in and create a full blown game engine. Taking some inspiration from [TheCherno](https://www.youtube.com/user/TheChernoProject) (check him out!), I have created a (very WIP) cross-platform game engine library & GUI editor that supports multiple rendering APIs.
+
+- Platforms (x64): `Windows`
+    - Coming soon: `Linux`
+- Render APIs: `OpenGL`, `Vulkan`
+    - Coming eventually: `Metal`
 
 # Getting Started
 
@@ -28,24 +45,24 @@ Setting up Heart Engine is relatively simple, and it utilizes CMake and git subm
 ## Requirements
 
 - Compiler using C++17 or higher
-- CMake 3.14 or higher
+- [CMake](https://cmake.org/download/) 3.16 or higher
 - [VulkanSDK](https://vulkan.lunarg.com/) >= 1.2.198
     - Make sure to include the 64-bit debuggable shader API libraries when installing
-- Currently supported platforms: Windows (x64)
 
 ## General Setup
 
 Regardless of how you intend to use Heart Engine, you'll want to follow these initial setup steps first.
 
 1. Clone the repo using the `--recursive` flag to ensure all submodules are downloaded
-2. Make sure the VulkanSDK is accessable in your PATH via ${VULKAN_SDK} (this should happen automatically with the installer)
-3. Create a `build` directory in the project root and cd into it
+2. Make sure the VulkanSDK is accessable in your PATH via `${VULKAN_SDK}` (this should happen automatically with the installer)
+3. Create a `build` directory in the project root
 
 ## Editor Setup
 
 If you are planning on building and using the editor, you'll want to run the following commands:
 ```
-$ cmake ../ -DCMAKE_BUILD_TYPE=Release -DBUILD_EDITOR=1
+$ cd build
+$ cmake .. -DCMAKE_BUILD_TYPE=Release -DHEART_BUILD_EDITOR=1
 $ cmake --build . --config Release
 ```
 
@@ -55,9 +72,10 @@ Make sure to copy the default `imgui.ini` file from the `HeartEditor` directory 
 
 ## Library Setup
 
-If you are planning on installing the Heart Engine library, you'll want to run the following commands in an administrator command prompt:
+If you are planning on [installing](https://cmake.org/cmake/help/latest/command/install.html) the Heart Engine library, you'll want to run the following commands in an administrator command prompt:
 ```
-$ cmake ../ -DCMAKE_BUILD_TYPE=Debug -DBUILD_EDITOR=0
+$ cd build
+$ cmake .. -DCMAKE_BUILD_TYPE=Debug -DHEART_BUILD_EDITOR=0
 $ cmake --build . --config Debug
 $ cmake --install . --config Debug
 ```
@@ -93,10 +111,15 @@ add_custom_command(
 )
 ```
 
+> ### Note for installing: in order to use higher-level engine classes like `SceneRenderer` and `EnvironmentMap` which rely on certain shaders and textures, you will need to copy the engine's `resources` folder located in the `Heart` directory to your target's executable folder. 
+
 Otherwise, [add_subdirectory](https://cmake.org/cmake/help/latest/command/add_subdirectory.html) should be sufficient if using git submodules or another form of package management.
+```cmake
+add_subdirectory("path-to-Heart")
+target_link_libraries(MyTarget PUBLIC Heart::Engine)
+```
 
 Here is a simple example of using the library to create an app:
-
 ```cpp
 #include "Heart/Core/App.h"
 
@@ -112,11 +135,16 @@ int main(int argc, char** argv)
 }
 ```
 
-> ### Note: In order to use higher-level engine classes like `SceneRenderer` and `EnvironmentMap` which rely on certain shaders and textures, you will need to copy the engine's `resources` folder located in the `Heart` directory to your target's executable folder. 
-
 # Documentation
 
-Documenation is built using [Doxygen](https://www.doxygen.nl/).
+Documenation is built using [Doxygen](https://www.doxygen.nl/). To build, run the following commands:
+```
+$ cd build
+$ cmake .. -DHEART_BUILD_DOCS=1
+$ cmake --build .
+```
+
+The docs should then be available in `build/docs/html`. Open up the `index.html` file in a browser to start browsing.
 
 # License
 

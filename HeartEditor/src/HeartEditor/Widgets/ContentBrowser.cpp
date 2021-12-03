@@ -258,6 +258,10 @@ namespace Widgets
                 m_ShouldRename = true;
             }
 
+            auto assetType = Heart::AssetManager::DeduceAssetTypeFromFile(entryName);
+            if (assetType == Heart::Asset::Type::Material && ImGui::MenuItem("Open in Editor"))
+                ((Widgets::MaterialEditor&)Editor::GetWindow("Material Editor")).SetSelectedMaterial(Heart::AssetManager::RegisterAsset(assetType, path));
+
             ImGui::EndPopup();
         }
         ImGui::PopStyleVar();

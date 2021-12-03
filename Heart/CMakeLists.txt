@@ -36,6 +36,7 @@ include(GNUInstallDirs)
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp" "src/*.h" "src/hepch.h")
 #add_executable(Engine "${SOURCES}" "${DEPENDENCY_SOURCES}" "src/Heart/Core/EntryPoint.cpp")
 add_library(Engine "${SOURCES}" "${DEPENDENCY_SOURCES}")
+add_library(Heart::Engine ALIAS Engine)
 
 target_compile_features(Engine PUBLIC cxx_std_17)
 
@@ -113,6 +114,7 @@ target_precompile_headers(
 # Installation
 include(CMakePackageConfigHelpers)
 
+set(JSON_Install ON) # Make sure the json lib installs the proper files
 install(
   TARGETS Engine glm imgui spdlog glad imguizmo nlohmann_json glfw OptickCore
   EXPORT EngineTargets

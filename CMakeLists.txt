@@ -6,10 +6,10 @@ project(
     DESCRIPTION "A 3d game engine"
 )
 
-option(BUILD_DOCS "Build documentation" OFF)
-option(BUILD_EDITOR "Build the editor" ON)
+option(HEART_BUILD_DOCS "Build documentation" OFF)
+option(HEART_BUILD_EDITOR "Build the editor" ON)
 
-if(BUILD_DOCS)
+if(HEART_BUILD_DOCS)
     find_package(Doxygen)
 
     if(DOXYGEN_FOUND)
@@ -30,6 +30,6 @@ else()
 endif()
 
 add_subdirectory("Heart")
-if (BUILD_EDITOR)
+if (HEART_BUILD_EDITOR)
     add_subdirectory("HeartEditor")
 endif()

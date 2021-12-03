@@ -20,3 +20,6 @@ target_include_directories(
 )
 
 target_link_libraries(Editor Engine)
+
+# PCH
+target_precompile_headers(Editor REUSE_FROM Engine)
