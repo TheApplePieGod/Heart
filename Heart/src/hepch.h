@@ -37,4 +37,5 @@
 
 #ifdef HE_PLATFORM_WINDOWS
 	#include <Windows.h>
+	#include <ShlObj.h>
 #endif
