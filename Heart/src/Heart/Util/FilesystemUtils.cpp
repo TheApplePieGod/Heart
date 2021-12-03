@@ -1,13 +1,8 @@
-#include "htpch.h"
+#include "hepch.h"
 #include "FilesystemUtils.h"
 
 #include "Heart/Core/App.h"
 #include "GLFW/glfw3native.h"
-
-#ifdef HE_PLATFORM_WINDOWS
-#include <Windows.h>
-#include <ShlObj.h>
-#endif
 
 namespace Heart
 {

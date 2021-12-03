@@ -1,12 +1,8 @@
-#include "htpch.h"
+#include "hepch.h"
 #include "App.h"
 
 #include "Heart/Core/Timing.h"
 #include "Heart/Asset/AssetManager.h"
-
-#ifdef HE_PLATFORM_WINDOWS
-#include <Windows.h>
-#endif
 
 namespace Heart
 {

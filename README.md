@@ -55,12 +55,64 @@ Make sure to copy the default `imgui.ini` file from the `HeartEditor` directory 
 
 ## Library Setup
 
-If you are planning on using the Heart Engine library, you'll want to run the following commands in an administrator command prompt:
+If you are planning on installing the Heart Engine library, you'll want to run the following commands in an administrator command prompt:
 ```
 $ cmake ../ -DCMAKE_BUILD_TYPE=Debug -DBUILD_EDITOR=0
 $ cmake --build . --config Debug
 $ cmake --install . --config Debug
 ```
+
+You should then be able to include the engine in your project like so:
+```cmake
+# Locate the engine package
+find_package(Heart REQUIRED)
+
+# Locate the threads package which is required by dependencies of Heart
+find_package(Threads REQUIRED)
+
+# Link all of the engine libraries
+target_link_libraries(MyTarget PUBLIC Heart::Engine)
+
+# Use the same precompiled headers that are used in the engine
+# Feel free to skip this step and use your own PCH, but you'll need
+# to include many of the headers in the provided PCH in order to use
+# the engine's headers properly
+target_precompile_headers(
+    MyTarget
+    PRIVATE
+    "$<BUILD_INTERFACE:hepch.h>"
+)
+
+# Copy the Optick profiling library's DLL to your target's
+# executable directory
+add_custom_command(
+    TARGET MyTarget POST_BUILD 
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    $<TARGET_FILE:Heart::OptickCore>              
+    $<TARGET_FILE_DIR:MyTarget>
+)
+```
+
+Otherwise, [add_subdirectory](https://cmake.org/cmake/help/latest/command/add_subdirectory.html) should be sufficient if using git submodules or another form of package management.
+
+Here is a simple example of using the library to create an app:
+
+```cpp
+#include "Heart/Core/App.h"
+
+int main(int argc, char** argv)
+{
+    Heart::Logger::Initialize();
+
+    Heart::App* app = new Heart::App();
+    app->Run();
+    delete app;
+    
+    return 0;
+}
+```
+
+> ### Note: In order to use higher-level engine classes like `SceneRenderer` and `EnvironmentMap` which rely on certain shaders and textures, you will need to copy the engine's `resources` folder located in the `Heart` directory to your target's executable folder. 
 
 # Documentation
 
