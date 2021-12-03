@@ -4,6 +4,9 @@
 
 Heart is a cross-platform C++ 3D game engine. It can be used to create games using the editor or as a powerful rendering API library with built-in physically-based rendering functionality.
 
+<!--
+@cond TURN_OFF_DOXYGEN
+-->
 # Screenshots
 
 ## Sponza Scene
@@ -28,6 +31,9 @@ Heart is a cross-platform C++ 3D game engine. It can be used to create games usi
     - [Library Setup](#Library-Setup)
 - [Documentation](#Documentation)
 - [License](#License)
+<!--
+@endcond TURN_OFF_DOXYGEN
+-->
 
 # Introduction
 
