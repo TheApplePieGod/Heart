@@ -80,6 +80,16 @@ namespace Heart
          * @return The UUID of the newly registered asset.
          */
         static UUID RegisterAsset(Asset::Type type, const std::string& path, bool persistent = false, bool isResource = false);
+
+        /**
+         * @brief Register all assets in a directory and all subdirectories
+         * 
+         * DeduceAssetTypeFromFile() will be called for every file
+         * 
+         * @param directory The absolute path of the directory to scan
+         * @param persistent Mark all assets as persistent (will never automatically unload).
+         * @param isResource Store all assets as resources.
+         */
         static void RegisterAssetsInDirectory(const std::filesystem::path& directory, bool persistent = false, bool isResource = false);
 
         static void RenameAsset(const std::string& oldPath, const std::string& newPath);
