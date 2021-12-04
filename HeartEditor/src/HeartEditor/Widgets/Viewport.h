@@ -1,8 +1,6 @@
 #pragma once
 
 #include "HeartEditor/Widgets/Widget.h"
-#include "HeartEditor/EditorCamera.h"
-#include "Heart/Core/Timestep.h"
 #include "imgui/imgui.h"
 #include "imguizmo/ImGuizmo.h"
 #include "glm/vec2.hpp"
@@ -10,6 +8,11 @@
 namespace Heart
 {
     class SceneRenderer;
+}
+
+namespace HeartEditor
+{
+    class EditorCamera;
 }
 
 namespace HeartEditor

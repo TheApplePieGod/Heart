@@ -3,7 +3,10 @@
 
 #include "HeartEditor/Editor.h"
 #include "HeartEditor/EditorApp.h"
+#include "Heart/Core/Window.h"
 #include "Heart/Renderer/Renderer.h"
+#include "Heart/Renderer/Framebuffer.h"
+#include "Heart/Renderer/SceneRenderer.h"
 #include "Heart/Scene/Components.h"
 #include "Heart/Scene/Entity.h"
 #include "Heart/Input/Input.h"
@@ -12,6 +15,8 @@
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/TextureAsset.h"
 #include "Heart/Asset/SceneAsset.h"
+#include "Heart/Events/KeyboardEvents.h"
+#include "Heart/Events/MouseEvents.h"
 #include "imgui/imgui_internal.h"
 
 #include "HeartEditor/Widgets/SceneHierarchyPanel.h"

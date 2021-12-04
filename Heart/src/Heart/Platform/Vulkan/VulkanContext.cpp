@@ -2,6 +2,7 @@
 #include "VulkanContext.h"
 
 #include "Heart/Core/Timing.h"
+#include "Heart/Platform/Vulkan/VulkanFramebuffer.h"
 #include "imgui/imgui.h"
 #include "imgui/backends/imgui_impl_vulkan.h"
 #include "GLFW/glfw3.h"

@@ -11,6 +11,9 @@
 
 namespace Heart
 {
+    // TODO: make this a parameter?
+    const u32 MAX_FRAMES_IN_FLIGHT = 3;
+
     struct VulkanCommon
     {
         struct QueueFamilyIndices

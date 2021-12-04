@@ -1,14 +1,13 @@
 #pragma once
 
 #include "Heart/Renderer/Framebuffer.h"
-#include "Heart/Platform/Vulkan/VulkanTexture.h"
-#include "Heart/Platform/Vulkan/VulkanSwapChain.h"
 #include "Heart/Platform/Vulkan/VulkanCommon.h"
-#include "Heart/Platform/Vulkan/VulkanBuffer.h"
-#include "Heart/Platform/Vulkan/VulkanGraphicsPipeline.h"
 
 namespace Heart
 {
+    class VulkanTexture;
+    class VulkanBuffer;
+    class VulkanGraphicsPipeline;
     class VulkanFramebuffer : public Framebuffer
     {
     public:

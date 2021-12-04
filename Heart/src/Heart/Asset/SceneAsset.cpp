@@ -4,6 +4,7 @@
 #include "Heart/Util/FilesystemUtils.h"
 #include "Heart/Asset/AssetManager.h"
 #include "nlohmann/json.hpp"
+#include "Heart/Scene/Scene.h"
 #include "Heart/Scene/Entity.h"
 
 namespace Heart

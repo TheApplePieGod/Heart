@@ -2,7 +2,6 @@
 
 #include "Heart/Renderer/Buffer.h"
 #include "Heart/Platform/Vulkan/VulkanCommon.h"
-#include "Heart/Platform/Vulkan/VulkanSwapChain.h"
 
 namespace Heart
 {    

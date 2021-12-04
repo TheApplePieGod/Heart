@@ -6,6 +6,8 @@
 #include "Heart/Renderer/Renderer.h"
 #include "Heart/Platform/Vulkan/VulkanContext.h"
 #include "imgui/backends/imgui_impl_glfw.h"
+#include "Heart/Core/Window.h"
+#include "GLFW/glfw3.h"
 
 namespace Heart
 {

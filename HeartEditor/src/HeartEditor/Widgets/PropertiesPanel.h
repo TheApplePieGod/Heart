@@ -2,7 +2,6 @@
 
 #include "HeartEditor/Widgets/Widget.h"
 #include "HeartEditor/Editor.h"
-#include "Heart/Scene/Scene.h"
 #include "Heart/Scene/Entity.h"
 #include "Heart/Scene/Components.h"
 #include "imgui/imgui.h"

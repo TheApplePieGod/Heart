@@ -1,8 +1,6 @@
 #include "hepch.h"
 #include "Entity.h"
 
-#include "Heart/Scene/Scene.h"
-
 namespace Heart
 {
     Entity::Entity(Scene* scene, entt::entity handle)

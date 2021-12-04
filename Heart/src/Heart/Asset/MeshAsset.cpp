@@ -5,6 +5,7 @@
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/MaterialAsset.h"
 #include "Heart/Asset/TextureAsset.h"
+#include "Heart/Renderer/Texture.h"
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtx/quaternion.hpp"

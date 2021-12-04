@@ -2,7 +2,6 @@
 
 #include "Heart/Renderer/Shader.h"
 #include "Heart/Platform/Vulkan/VulkanCommon.h"
-#include "Heart/Platform/Vulkan/VulkanSwapChain.h"
 
 #define MAX_DESCRIPTOR_ARRAY_COUNT 20
 #define MAX_UNIQUE_DESCRIPTORS 100

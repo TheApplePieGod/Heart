@@ -1,10 +1,10 @@
 #pragma once
 
 #include "Heart/Asset/Asset.h"
-#include "Heart/Scene/Scene.h"
 
 namespace Heart
 {
+    class Scene;
     class SceneAsset : public Asset
     {
     public:

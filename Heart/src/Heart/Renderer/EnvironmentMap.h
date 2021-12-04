@@ -1,18 +1,18 @@
 #pragma once
 
 #include "Heart/Core/UUID.h"
-#include "Heart/Renderer/Texture.h"
-#include "Heart/Renderer/Framebuffer.h"
-#include "Heart/Renderer/Buffer.h"
 #include "Heart/Events/EventEmitter.h"
-#include "Heart/Events/AppEvents.h"
-
 #include "glm/mat4x4.hpp"
 #include "glm/vec4.hpp"
 #include "glm/vec3.hpp"
 
 namespace Heart
 {
+    class Texture;
+    class Buffer;
+    class Framebuffer;
+    class AppGraphicsInitEvent;
+    class AppGraphicsShutdownEvent;
     class EnvironmentMap : public EventListener
     {
     public:

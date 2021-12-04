@@ -1,19 +1,14 @@
 #pragma once
 
-#include "Heart/Core/Layer.h"
-#include "Heart/Core/Timing.h"
-#include "Heart/Core/UUID.h"
-#include "HeartEditor/EditorCamera.h"
-#include "Heart/Events/KeyboardEvents.h"
-#include "Heart/Events/MouseEvents.h"
-#include "Heart/Scene/Scene.h"
-#include "Heart/Scene/Entity.h"
-#include "Heart/Renderer/SceneRenderer.h"
-#include "Heart/Renderer/EnvironmentMap.h"
-#include "imgui/imgui.h"
-#include "imguizmo/ImGuizmo.h"
-
 #include "HeartEditor/MenuBar.h"
+#include "Heart/Core/Layer.h"
+
+namespace Heart
+{
+    class KeyPressedEvent;
+    class MouseButtonPressedEvent;
+    class MouseButtonReleasedEvent;
+}
 
 namespace HeartEditor
 {

@@ -1,7 +1,8 @@
 {
     "cmake.configureOnOpen": true,
     "cmake.configureSettings": {
-        "CMAKE_BUILD_TYPE": "${buildType}"
+        "CMAKE_BUILD_TYPE": "${buildType}",
+        "HEART_BUILD_DOCS": false
     },
     "files.associations": {
         "iostream": "cpp",

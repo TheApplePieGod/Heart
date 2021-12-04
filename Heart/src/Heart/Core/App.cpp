@@ -1,7 +1,12 @@
 #include "hepch.h"
 #include "App.h"
 
+#include "Heart/Core/Layer.h"
+#include "Heart/Core/Window.h"
 #include "Heart/Core/Timing.h"
+#include "Heart/ImGui/ImGuiInstance.h"
+#include "Heart/Events/WindowEvents.h"
+#include "Heart/Events/AppEvents.h"
 #include "Heart/Asset/AssetManager.h"
 
 namespace Heart

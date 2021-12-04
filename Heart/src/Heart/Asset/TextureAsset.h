@@ -1,10 +1,10 @@
 #pragma once
 
 #include "Heart/Asset/Asset.h"
-#include "Heart/Renderer/Texture.h"
 
 namespace Heart
 {
+    class Texture;
     class TextureAsset : public Asset
     {
     public:

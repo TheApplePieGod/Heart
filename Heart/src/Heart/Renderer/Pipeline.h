@@ -2,7 +2,6 @@
 
 #include "Heart/Renderer/Shader.h"
 #include "Heart/Renderer/Buffer.h"
-#include "Heart/Renderer/Texture.h"
 #include "Heart/Core/UUID.h"
 
 namespace Heart
