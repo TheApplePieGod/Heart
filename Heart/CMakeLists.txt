@@ -55,7 +55,7 @@ target_include_directories(
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/entt/src>"
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/imguizmo>"
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/json/include>"
-  "$<BUILD_INTERFACE:$ENV{VULKAN_SDK}/Include>"
+  "$<BUILD_INTERFACE:$ENV{VULKAN_SDK}/include>"
 
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/GLFW/include>"
@@ -67,33 +67,56 @@ target_include_directories(
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/entt/src>"
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/imguizmo>"
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/json/include>"
-  "$<INSTALL_INTERFACE:$ENV{VULKAN_SDK}/Include>"
+  "$<INSTALL_INTERFACE:$ENV{VULKAN_SDK}/include>"
 )
 
 # Locate vulkansdk libraries
-find_library(vulkan
-  NAMES "vulkan-1"
-  PATHS "$ENV{VULKAN_SDK}/Lib"
-)
-find_library(shaderc
-  NAMES "shaderc_shared"
-  PATHS "$ENV{VULKAN_SDK}/Lib"
-)
-find_library(spirvglsl
-  NAMES "spirv-cross-glsl"
-  PATHS "$ENV{VULKAN_SDK}/Lib"
-)
-
-if (${CMAKE_BUILD_TYPE} MATCHES Debug)
-  find_library(spirvcored
-    NAMES "spirv-cross-cored"
-    PATHS "$ENV{VULKAN_SDK}/Lib"
+if (WIN32)
+  find_library(vulkan
+    NAMES "vulkan-1"
+    PATHS "$ENV{VULKAN_SDK}/lib"
   )
-  target_link_libraries(Engine ${spirvcored})
+  find_library(shaderc
+    NAMES "shaderc_shared"
+    PATHS "$ENV{VULKAN_SDK}/lib"
+  )
+  find_library(spirvglsl
+    NAMES "spirv-cross-glsl"
+    PATHS "$ENV{VULKAN_SDK}/lib"
+  )
+else()
+  find_library(vulkan
+    NAMES "libvulkan.so"
+    PATHS "$ENV{VULKAN_SDK}/lib"
+  )
+  find_library(shaderc
+    NAMES "libshaderc_shared.so"
+    PATHS "$ENV{VULKAN_SDK}/lib"
+  )
+  find_library(spirvglsl
+    NAMES "libspirv-cross-glsl.so"
+    PATHS "$ENV{VULKAN_SDK}/lib"
+  )
+endif()
+
+if (WIN32)
+  if (${CMAKE_BUILD_TYPE} MATCHES Debug)
+    find_library(spirvcored
+      NAMES "spirv-cross-cored"
+      PATHS "$ENV{VULKAN_SDK}/lib"
+    )
+    target_link_libraries(Engine ${spirvcored})
+  else()
+    find_library(spirvcore
+      NAMES "spirv-cross-core"
+      PATHS "$ENV{VULKAN_SDK}/lib"
+    )
+    target_link_libraries(Engine ${spirvcore})
+  endif()
 else()
   find_library(spirvcore
-    NAMES "spirv-cross-core"
-    PATHS "$ENV{VULKAN_SDK}/Lib"
+    NAMES "libspirv-cross-core.a"
+    PATHS "$ENV{VULKAN_SDK}/lib"
   )
   target_link_libraries(Engine ${spirvcore})
 endif()
