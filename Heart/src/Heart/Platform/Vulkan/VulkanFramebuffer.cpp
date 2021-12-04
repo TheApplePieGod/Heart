@@ -45,7 +45,7 @@ namespace Heart
             attachmentData.HasResolve = false; //m_ImageSamples > VK_SAMPLE_COUNT_1_BIT;
             attachmentData.CPUVisible = false;
             attachmentData.IsDepthAttachment = true;
-            attachmentData.ExternalTexture = false;
+            attachmentData.ExternalTexture = nullptr;
 
             CreateAttachmentImages(attachmentData);
 
