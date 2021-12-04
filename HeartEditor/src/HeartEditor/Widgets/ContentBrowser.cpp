@@ -1,4 +1,4 @@
-#include "htpch.h"
+#include "hepch.h"
 #include "ContentBrowser.h"
 
 #include "HeartEditor/Editor.h"
@@ -257,6 +257,10 @@ namespace Widgets
                 m_Rename = entryName;
                 m_ShouldRename = true;
             }
+
+            auto assetType = Heart::AssetManager::DeduceAssetTypeFromFile(entryName);
+            if (assetType == Heart::Asset::Type::Material && ImGui::MenuItem("Open in Editor"))
+                ((Widgets::MaterialEditor&)Editor::GetWindow("Material Editor")).SetSelectedMaterial(Heart::AssetManager::RegisterAsset(assetType, path));
 
             ImGui::EndPopup();
         }

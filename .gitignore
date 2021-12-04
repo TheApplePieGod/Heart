@@ -6,3 +6,4 @@ build/*
 emsdk/*
 HeartEditor/assets/*
 !HeartEditor/assets/shaders
+docs/html/*

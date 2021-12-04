@@ -1,4 +1,4 @@
-#include "htpch.h"
+#include "hepch.h"
 #include "OpenGLCommon.h"
 
 #include "glad/glad.h"
