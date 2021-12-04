@@ -3,7 +3,7 @@
 
 #include "Heart/Core/App.h"
 #include "Heart/Core/Window.h"
-#include "glfw/glfw3.h"
+#include "GLFW/glfw3.h"
 
 namespace Heart
 {

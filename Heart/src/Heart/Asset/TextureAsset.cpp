@@ -40,7 +40,12 @@ namespace Heart
         };
         m_Texture = Texture::Create(createInfo, pixels);
 
-        m_Data = pixels;
+        if (floatComponents)
+            delete[] (float*)pixels;
+        else
+            delete[] (unsigned char*)pixels;
+
+        //m_Data = pixels;
         m_Loaded = true;
         m_Loading = false;
         m_Valid = true;
@@ -51,7 +56,7 @@ namespace Heart
         if (!m_Loaded) return;
 
         m_Texture.reset();
-        delete[] m_Data;
+        //delete[] m_Data;
         m_Data = nullptr;
         m_Valid = false;
         m_Loaded = false;
