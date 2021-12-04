@@ -72,7 +72,7 @@ namespace Heart
 
                 // Parent component
                 if (loaded.contains("parentComponent"))
-                    entity.AddComponent<ParentComponent>(loaded["parentComponent"]["id"]);
+                    entity.AddComponent<ParentComponent>(static_cast<UUID>(loaded["parentComponent"]["id"]));
 
                 // Child component
                 if (loaded.contains("childComponent"))
@@ -81,7 +81,7 @@ namespace Heart
                     std::vector<UUID> ids;
                     ids.reserve(children.size());
                     for (auto& childId : children)
-                        ids.emplace_back(childId);
+                        ids.emplace_back(static_cast<UUID>(childId));
                     entity.AddComponent<ChildComponent>(ids);
                 }
 
