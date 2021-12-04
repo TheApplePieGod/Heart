@@ -327,7 +327,8 @@ namespace Heart
 
     std::vector<const char*> VulkanContext::ConfigureValidationLayers()
     {
-        std::vector<const char*> validationLayers = { "VK_LAYER_KHRONOS_validation" };
+        std::array<const char*, 1> requestedLayers = { "VK_LAYER_KHRONOS_validation" };
+        std::vector<const char*> finalLayers;
 
         u32 supportedLayerCount;
         vkEnumerateInstanceLayerProperties(&supportedLayerCount, nullptr);
@@ -335,12 +336,19 @@ namespace Heart
         vkEnumerateInstanceLayerProperties(&supportedLayerCount, supportedLayers.data());
 
         // check for compatability
-        for (int i = 0; i < validationLayers.size(); i++)
+        for (auto rl : requestedLayers)
         {
-            HE_ENGINE_ASSERT(std::find_if(supportedLayers.begin(), supportedLayers.end(), [&validationLayers, &i](const VkLayerProperties& arg) { return strcmp(arg.layerName, validationLayers[i]); }) != supportedLayers.end());
+            for (auto sl : supportedLayers)
+            {
+                if (strcmp(rl, sl.layerName))
+                {
+                    finalLayers.emplace_back(rl);
+                    break;
+                }
+            }
         }
 
-        return validationLayers;
+        return finalLayers;
     }
 
 }
