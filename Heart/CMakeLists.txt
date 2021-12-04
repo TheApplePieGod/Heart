@@ -94,7 +94,7 @@ else()
     PATHS "$ENV{VULKAN_SDK}/lib"
   )
   find_library(spirvglsl
-    NAMES "libspirv-cross-glsl.so"
+    NAMES "libspirv-cross-glsl.a"
     PATHS "$ENV{VULKAN_SDK}/lib"
   )
 endif()
