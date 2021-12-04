@@ -157,7 +157,7 @@ namespace Heart
         const char** glfwExtensions;
         glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
-        // check for compatability
+        // check for compatability (TODO: make this better)
         for (u32 i = 0; i < glfwExtensionCount; i++)
         {
             HE_ENGINE_ASSERT(std::find_if(supportedExtensions.begin(), supportedExtensions.end(), [&glfwExtensions, &i](const VkExtensionProperties& arg) { return strcmp(arg.extensionName, glfwExtensions[i]); }) != supportedExtensions.end());
@@ -340,7 +340,7 @@ namespace Heart
         {
             for (auto sl : supportedLayers)
             {
-                if (strcmp(rl, sl.layerName))
+                if (strcmp(rl, sl.layerName) == 0)
                 {
                     finalLayers.emplace_back(rl);
                     break;
