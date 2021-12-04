@@ -60,7 +60,7 @@ namespace Heart
             for (auto& loaded : field)
             {
                 // REQUIRED: Id & name components
-                UUID id = loaded["idComponent"]["id"];
+                UUID id = static_cast<UUID>(loaded["idComponent"]["id"]);
                 std::string name = loaded["nameComponent"]["name"];
                 auto entity = scene->CreateEntityWithUUID(name, id);
 
