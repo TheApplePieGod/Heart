@@ -113,15 +113,17 @@ namespace Heart
 
     void VulkanContext::CreateImGuiDescriptorPool()
     {
+        u32 maxSets = 1000;
+
         std::array<VkDescriptorPoolSize, 1> poolSizes{};
         poolSizes[0].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        poolSizes[0].descriptorCount = static_cast<u32>(m_VulkanSwapChain.GetImageCount());
+        poolSizes[0].descriptorCount = maxSets;
 
         VkDescriptorPoolCreateInfo poolInfo{};
         poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
         poolInfo.poolSizeCount = static_cast<u32>(poolSizes.size());
         poolInfo.pPoolSizes = poolSizes.data();
-        poolInfo.maxSets = 1000;
+        poolInfo.maxSets = maxSets;
         poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
 
         HE_VULKAN_CHECK_RESULT(vkCreateDescriptorPool(s_VulkanDevice.Device(), &poolInfo, nullptr, &m_ImGuiDescriptorPool));

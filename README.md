@@ -1,33 +1,39 @@
-![Logo](images/logo.png)
+![Logo](https://raw.githubusercontent.com/TheApplePieGod/Heart/9fe3deb4328aec3de7c1d669e7117341dfab88f3/images/logo.png)
 
 # Heart
 
 Heart is a cross-platform C++ 3D game engine. It can be used to create games using the editor or as a powerful rendering API library with built-in physically-based rendering functionality.
 
+<!--
+@cond TURN_OFF_DOXYGEN
+-->
 # Screenshots
 
 ## Sponza Scene
-![Sponza Scene](images/screenshot1.png)
+![Sponza Scene](https://raw.githubusercontent.com/TheApplePieGod/Heart/9fe3deb4328aec3de7c1d669e7117341dfab88f3/images/screenshot1.png)
 
 ## Spheres Scene
-![Spheres Scene](images/screenshot2.png)
+![Spheres Scene](https://raw.githubusercontent.com/TheApplePieGod/Heart/9fe3deb4328aec3de7c1d669e7117341dfab88f3/images/screenshot2.png)
 
 ## Helmet Scene
-![Helmet Scene](images/screenshot3.png)
+![Helmet Scene](https://raw.githubusercontent.com/TheApplePieGod/Heart/9fe3deb4328aec3de7c1d669e7117341dfab88f3/images/screenshot3.png)
 
 ## Material Editor
-![Material Editor](images/screenshot4.png)
+![Material Editor](https://raw.githubusercontent.com/TheApplePieGod/Heart/9fe3deb4328aec3de7c1d669e7117341dfab88f3/images/screenshot4.png)
 
 # Table of Contents
 
 - [Introduction](#Introduction)
 - [Getting Started](#Getting-Started)
-    - [Requirements](##Requirements)
-    - [General Setup](##General-Setup)
-    - [Editor Setup](##Editor-Setup)
-    - [Library Setup](##Library-Setup)
+    - [Requirements](#Requirements)
+    - [General Setup](#General-Setup)
+    - [Editor Setup](#Editor-Setup)
+    - [Library Setup](#Library-Setup)
 - [Documentation](#Documentation)
 - [License](#License)
+<!--
+@endcond TURN_OFF_DOXYGEN
+-->
 
 # Introduction
 
