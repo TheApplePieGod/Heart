@@ -43,14 +43,22 @@ namespace Heart
     {
         #ifdef HE_PLATFORM_WINDOWS
             return Win32OpenDialog(initialPath, title, defaultFileName, extension, false, true);
+        #elif defined(HE_PLATFORM_LINUX)
+            return LinuxOpenDialog(initialPath, title, defaultFileName, extension, false, true);
         #endif
+
+        return "";
     }
 
     std::string FilesystemUtils::OpenFileDialog(const std::string& initialPath, const std::string& title, const std::string& extension)
     {
         #ifdef HE_PLATFORM_WINDOWS
             return Win32OpenDialog(initialPath, title, "", extension, false, false);
+        #elif defined(HE_PLATFORM_LINUX)
+            return LinuxOpenDialog(initialPath, title, "", extension, false, false);
         #endif
+        
+        return "";
     }
 
     // https://cpp.hotexamples.com/examples/-/IFileDialog/-/cpp-ifiledialog-class-examples.html
@@ -58,7 +66,11 @@ namespace Heart
     {
         #ifdef HE_PLATFORM_WINDOWS
             return Win32OpenDialog(initialPath, title, "", "", true, false);
+        #elif defined(HE_PLATFORM_LINUX)
+            return LinuxOpenDialog(initialPath, title, "", "", true, false);
         #endif
+
+        return "";
     }
 
     std::string FilesystemUtils::Win32OpenDialog(const std::string& initialPath, const std::string& title, const std::string& defaultFileName, const std::string& extension, bool folder, bool save)
@@ -133,6 +145,27 @@ namespace Heart
                 pDialog->Release();
             if (pItem)
                 pItem->Release();
+        #endif
+        return outputPath;
+    }
+
+    std::string FilesystemUtils::LinuxOpenDialog(const std::string& initialPath, const std::string& title, const std::string& defaultFileName, const std::string& extension, bool folder, bool save)
+    {
+        HE_ENGINE_ASSERT(!folder || !save, "Cannot open a dialog with folder and save flags set to true");
+
+        std::string outputPath = "";
+        #ifdef HE_PLATFORM_LINUX
+            const char zenityPath[] = "usr/bin/zenity";
+            char command[2048];
+
+            sprintf_s(command, "%s --file-selection %s %s --filename=\"%s\" --modal --title=\"%s\" ", zenityPath, folder ? "--directory" : "", save ? "--save" : "", defaultFileName.c_str(), title.c_str());
+
+            char filename[1024];
+            FILE* f = popen(command, "r");
+            fgets(filename, 1024, f);
+            pclose(f);
+
+            outputPath = filename;
         #endif
         return outputPath;
     }
