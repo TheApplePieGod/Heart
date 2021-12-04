@@ -1,6 +1,7 @@
 #include "hepch.h"
 #include "VulkanSwapChain.h"
 
+#include "Heart/Core/Timing.h"
 #include "Heart/Platform/Vulkan/VulkanContext.h"
 #include "GLFW/glfw3.h"
 
@@ -396,6 +397,7 @@ namespace Heart
     void VulkanSwapChain::BeginFrame()
     {
         HE_PROFILE_FUNCTION();
+        auto timer = AggregateTimer("VulkanSwapChain::BeginFrame");
 
         VulkanDevice& device = VulkanContext::GetDevice();
 
@@ -502,6 +504,7 @@ namespace Heart
     void VulkanSwapChain::Present()
     {
         HE_PROFILE_FUNCTION();
+        auto timer = AggregateTimer("VulkanSwapChain::Present");
         
         VulkanDevice& device = VulkanContext::GetDevice();
 
