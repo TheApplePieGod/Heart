@@ -171,7 +171,7 @@ namespace Heart
             {
                 sprintf(
                     command,
-                    "%s --file-selection %s --filename=\"%s.%s\" --file-filter=\"%s | *.%s\" --modal --confirm-overwrite --title=\"%s\" ",
+                    "%s --file-selection %s --filename=\"%s.%s\" --file-filter=\"All files | *.*\" --file-filter=\"%s | *.%s\" --modal --confirm-overwrite --title=\"%s\" ",
                     zenityPath,
                     save ? "--save" : "",
                     defaultFileName.c_str(),
