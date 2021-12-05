@@ -158,17 +158,29 @@ namespace Heart
             const char zenityPath[] = "/usr/bin/zenity";
             char command[2048];
 
-            sprintf(
-                command,
-                "%s --file-selection %s %s --filename=\"%s.%s\" --file-filter=\"\"*.*\" \"*.%s\"\" --modal --confirm-overwrite --title=\"%s\" ",
-                zenityPath,
-                folder ? "--directory" : "",
-                save ? "--save" : "",
-                defaultFileName.c_str(),
-                extension.c_str(),
-                extension.c_str(),
-                title.c_str()
-            );
+            if (folder)
+            {
+                sprintf(
+                    command,
+                    "%s --file-selection --directory --modal --confirm-overwrite --title=\"%s\" ",
+                    zenityPath,
+                    title.c_str()
+                );
+            }
+            else
+            {
+                sprintf(
+                    command,
+                    "%s --file-selection %s --filename=\"%s.%s\" --file-filter=\"%s | *.%s\" --modal --confirm-overwrite --title=\"%s\" ",
+                    zenityPath,
+                    save ? "--save" : "",
+                    defaultFileName.c_str(),
+                    extension.c_str(),
+                    extension.c_str(),
+                    extension.c_str(),
+                    title.c_str()
+                );
+            }
 
             char filename[1024];
             filename[0] = 0;
