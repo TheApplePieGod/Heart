@@ -155,7 +155,7 @@ namespace Heart
 
         std::string outputPath = "";
         #ifdef HE_PLATFORM_LINUX
-            const char zenityPath[] = "usr/bin/zenity";
+            const char zenityPath[] = "/usr/bin/zenity";
             char command[2048];
 
             sprintf(command, "%s --file-selection %s %s --filename=\"%s\" --modal --title=\"%s\" ", zenityPath, folder ? "--directory" : "", save ? "--save" : "", defaultFileName.c_str(), title.c_str());
