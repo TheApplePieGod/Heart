@@ -166,6 +166,7 @@ namespace Heart
                 save ? "--save" : "",
                 defaultFileName.c_str(),
                 extension.c_str(),
+                extension.c_str(),
                 title.c_str()
             );
 
