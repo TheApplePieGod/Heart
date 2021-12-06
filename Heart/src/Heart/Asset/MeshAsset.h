@@ -12,6 +12,12 @@ namespace Heart
     class MeshAsset : public Asset
     {
     public:
+        /**
+         * @brief Default constructor.
+         * 
+         * @param path The path of the asset relative to the project directory.
+         * @param absolutePath The absolute filesystem path of the asset.
+         */
         MeshAsset(const std::string& path, const std::string& absolutePath)
             : Asset(path, absolutePath)
         { m_Type = Type::Mesh; }
@@ -19,10 +25,22 @@ namespace Heart
         void Load() override;
         void Unload() override;
 
-        Mesh& GetSubmesh(u32 index) { return m_Submeshes[index]; }
-        u32 GetSubmeshCount() const { return static_cast<u32>(m_Submeshes.size()); }
-        u32 GetMaxMaterials() const { return static_cast<u32>(m_DefaultMaterials.size()); }
-        std::vector<Material>& GetDefaultMaterials() { return m_DefaultMaterials; }
+        /**
+         * @brief Get a submesh of the loaded mesh at the specified index.
+         * 
+         * @param index The index of the submesh.
+         * @return A reference to the submesh. 
+         */
+        inline Mesh& GetSubmesh(u32 index) { return m_Submeshes[index]; }
+
+        /*! @brief Get the total number of submeshes of the loaded mesh. */
+        inline u32 GetSubmeshCount() const { return static_cast<u32>(m_Submeshes.size()); }
+
+        /*! @brief Get the total number of material slots of the loaded mesh. */
+        inline u32 GetMaxMaterials() const { return static_cast<u32>(m_DefaultMaterials.size()); }
+
+        /*! @brief Get a reference to the default materials loaded with the mesh. */
+        inline std::vector<Material>& GetDefaultMaterials() { return m_DefaultMaterials; }
 
     private:
         struct BufferView
