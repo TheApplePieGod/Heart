@@ -2,7 +2,8 @@
 #include "Input.h"
 
 #include "Heart/Core/App.h"
-#include "glfw/glfw3.h"
+#include "Heart/Core/Window.h"
+#include "GLFW/glfw3.h"
 
 namespace Heart
 {

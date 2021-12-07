@@ -6,6 +6,8 @@
 #include "Heart/Events/MouseEvents.h"
 #include "Heart/Input/Input.h"
 #include "Heart/Renderer/Renderer.h"
+#include "Heart/Renderer/GraphicsContext.h"
+#include "GLFW/glfw3.h"
 
 namespace Heart
 {
@@ -211,5 +213,15 @@ namespace Heart
     void Window::ToggleFullscreen()
     {
         SetFullscreen(!IsFullscreen());
+    }
+
+    bool Window::IsFullscreen()
+    {
+        return glfwGetWindowMonitor(m_Window) != nullptr;
+    }
+
+    double Window::GetWindowTime()
+    {
+        return glfwGetTime();
     }
 }

@@ -2,9 +2,11 @@
 #include "Framebuffer.h"
 
 #include "Heart/Renderer/Renderer.h"
+#include "Heart/Renderer/Pipeline.h"
 #include "Heart/Platform/Vulkan/VulkanFramebuffer.h"
 #include "Heart/Platform/OpenGL/OpenGLFramebuffer.h"
 #include "Heart/Core/Window.h"
+#include "Heart/Events/WindowEvents.h"
 
 namespace Heart
 {

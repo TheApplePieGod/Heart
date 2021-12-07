@@ -1,21 +1,30 @@
 #pragma once
 
-#include "Heart/Core/Layer.h"
-#include "Heart/Core/Window.h"
-#include "Heart/Events/Event.h"
-#include "Heart/Events/WindowEvents.h"
-#include "Heart/Events/AppEvents.h"
-#include "Heart/ImGui/ImGuiInstance.h"
+#include "Heart/Core/Timestep.h"
+#include "Heart/Events/EventEmitter.h"
 #include "Heart/Renderer/Renderer.h"
 
 extern int main(int argc, char** argv);
 
 namespace Heart
 {
+    class Layer;
+    class ImGuiInstance;
+    class Window;
+    struct WindowSettings;
+    class WindowResizeEvent;
+    class WindowCloseEvent;
     class App : public EventListener, public EventEmitter
     {
     public:
+        /**
+         * @brief Default constructor.
+         * 
+         * @param windowName The initial name of the window.
+         */
         App(const std::string& windowName = "Heart Engine");
+
+        /*! @brief Default destructor. */
         ~App();
 
         void PushLayer(const Ref<Layer>& layer);

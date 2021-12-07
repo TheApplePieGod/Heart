@@ -5,15 +5,29 @@
 
 namespace Heart
 {
+    /**
+     * @brief The static manager of all assets in the engine.
+     * 
+     * The manager will automatically handle the lifecycle of assets and their data
+     * while providing a simple interface for retrieving them. The manager stores two different
+     * types of assets: resources and regular assets. A resource is still an asset, but it is
+     * one that explicitly builds with the engine and therefore is assumed to always exist.
+     * A resource always lives in the {s_ResourceDirectory} directory in the executable path.
+     * A regular asset, however, is not assumed to exist and lives rooted under the {s_AssetsDirectory}
+     * directory, which can be modified at runtime.
+     */
     class AssetManager
     {
     public:
+        /*! @brief The internal representation of an asset inside the path registry. */
         struct AssetEntry
         {
             Ref<Asset> Asset;
             u64 LoadedFrame;
             bool Persistent;
         };
+
+        /*! @brief The internal representation of an asset inside the UUID registry. */
         struct UUIDEntry
         {
             std::string Path;
@@ -22,38 +36,182 @@ namespace Heart
         };
 
     public:
+        /*! @brief Initialize the manager. */
         static void Initialize();
+
+        /*! @brief Shutdown the manager. */
         static void Shutdown();
+
+        /*! @brief Call Unload() on all of the registered assets. */
         static void UnloadAllAssets();
+
+        /*! @brief Call Load() on all of the registered assets. */
         static void LoadAllAssets();
+
+        /*! @brief Call Unload() on all of the registered resources. */
         static void UnloadAllResources();
+
+        /*! @brief Call Load() on all of the registered resources. */
         static void LoadAllResources();
+
+        /**
+         * @brief Gets called every frame.
+         * 
+         * Iterates over all of the registered assets and unloads them if they
+         * have not been referenced in a while. This is a WIP feature and will
+         * likely change in the future.
+         */
         static void OnUpdate();
 
+        /*! @brief Get the current project directory. */
         inline static const std::string& GetAssetsDirectory() { return s_AssetsDirectory; }
+
+        /*! @brief Get a reference to the internal asset UUID registry. */
         inline static const std::unordered_map<UUID, UUIDEntry>& GetUUIDRegistry() { return s_UUIDs; }
         inline static std::string GetAbsolutePath(const std::string& relative) { return std::filesystem::path(s_AssetsDirectory).append(relative).generic_u8string(); }
 
+        /**
+         * @brief Register an asset in the manager's registry.
+         * 
+         * Because these resources and regular assets are stored independently, it is impossible
+         * to have naming collisions. For example, registering a resource at 'folder/Test.png' will
+         * not prevent you from registering a regular asset with the same path because they are distinguished
+         * by the isResource flag.
+         * 
+         * @note Registering the asset will not load its data.
+         * 
+         * @param type The type of the asset.
+         * @param path The path of the asset relative to the project directory.
+         * @param persistent Mark this asset as persistent (will never automatically unload).
+         * @param isResource Store this asset as a resource.
+         * @return The UUID of the newly registered asset.
+         */
         static UUID RegisterAsset(Asset::Type type, const std::string& path, bool persistent = false, bool isResource = false);
+
+        /**
+         * @brief Register all assets in a directory and all subdirectories.
+         * 
+         * DeduceAssetTypeFromFile() will be called for every file, and only assets
+         * that match a predefined file type will be registered.
+         * 
+         * @param directory The absolute path of the directory to scan.
+         * @param persistent Mark all assets as persistent (will never automatically unload).
+         * @param isResource Store all assets as resources.
+         */
         static void RegisterAssetsInDirectory(const std::filesystem::path& directory, bool persistent = false, bool isResource = false);
 
+        /**
+         * @brief Change the name and/or path of a registered non-resource asset.
+         * 
+         * @note This will not reload the asset's data.
+         * 
+         * @param oldPath The old path of the asset relative to the project directory.
+         * @param newPath The new path of the asset relative to the project directory.
+         */
         static void RenameAsset(const std::string& oldPath, const std::string& newPath);
+
+        /**
+         * @brief Change the project directory.
+         * 
+         * This is a destructive action. It will call Unload() on all assets, remove all registered
+         * assets (not resources), and call RegisterAssetsInDirectory() on the new project directory.
+         * 
+         * @param directory The absolute path of the new project directory.
+         */
         static void UpdateAssetsDirectory(const std::string& directory);
 
+        /**
+         * @brief Get the associated asset type of a file.
+         * 
+         * @note The path can be either relative or absolute, as long as it contains the filename somewhere in it.
+         * 
+         * @param path The path of the asset.
+         * @return The type of the asset or Asset::Type::None if it is unassociated.
+         */
         static Asset::Type DeduceAssetTypeFromFile(const std::string& path);
 
+        /**
+         * @brief Get the UUID of a registered asset from its filepath.
+         * 
+         * @param path The filepath of the registered asset relative to the project directory.
+         * @param isResource Whether or not this path references a resource asset.
+         * @return The UUID of the registered path or zero if it could not be located.
+         */
         static UUID GetAssetUUID(const std::string& path, bool isResource = false);
+
+        /**
+         * @brief Get the path of a registered asset from its UUID.
+         * 
+         * @warning There is no distinction between paths of resources and regular assets, so make
+         *          sure to call IsAssetAnEngineResource() to make the distinction.
+         * 
+         * @param uuid The UUID of the registered asset.
+         * @return The path of the asset relative to the project directory or an empty string if it could not be located.
+         */
         static std::string GetPathFromUUID(UUID uuid);
+
+        /**
+         * @brief Check if a UUID points to a resource asset.
+         * 
+         * @param uuid The UUID of the asset.
+         * @return True if the UUID points to a resource, false if otherwise.
+         */
         static bool IsAssetAnEngineResource(UUID uuid);
 
+        /**
+         * @brief Retrieve an asset from a path.
+         * 
+         * Retrieving an asset will call Load() on it and make sure that it has been loaded. However, the asset may
+         * fail to load, which is why it is important to also check Asset->IsValid() first.
+         * 
+         * @param path The path of the asset relative to the project directory.
+         * @param isResource Whether or not this path references a resource asset.
+         * @return The pointer to the asset or nullptr if it could not be located. 
+         */
         static Asset* RetrieveAsset(const std::string& path, bool isResource = false);
+
+        /**
+         * @brief Retrieve an asset from a path.
+         * 
+         * Retrieving an asset will call Load() on it and make sure that it has been loaded. However, the asset may
+         * fail to load, which is why it is important to also check Asset->IsValid() first.
+         * 
+         * @tparam T The asset class to cast the pointer to upon retrieval.
+         * @param path The path of the asset relative to the project directory.
+         * @param isResource Whether or not this path references a resource asset.
+         * @return The pointer to the asset or nullptr if it could not be located. 
+         */
         template<typename T>
         static T* RetrieveAsset(const std::string& path, bool isResource = false)
         {
             return static_cast<T*>(RetrieveAsset(path, isResource));
         }
 
+        /**
+         * @brief Retrieve an asset from a UUID.
+         * 
+         * A UUID is agnostic to a resource/regular asset, which means the distinction does not need to be specified upon retrieval.
+         * Retrieving an asset will call Load() on it and make sure that it has been loaded. However, the asset may
+         * fail to load, which is why it is important to also check Asset->IsValid() first.
+         * 
+         * @param uuid The UUID of the asset.
+         * @param async Whether or not to load this asset asynchronously (NOT USED)
+         * @return The pointer to the asset or nullptr if it could not be located
+         */
         static Asset* RetrieveAsset(UUID uuid, bool async = false);
+
+        /**
+         * @brief Retrieve an asset from a UUID.
+         * 
+         * A UUID is agnostic to a resource/regular asset, which means the distinction does not need to be specified upon retrieval.
+         * Retrieving an asset will call Load() on it and make sure that it has been loaded. However, the asset may
+         * fail to load, which is why it is important to also check Asset->IsValid() first.
+         * 
+         * @tparam T The asset class to cast the pointer to upon retrieval.
+         * @param uuid The UUID of the asset.
+         * @param async Whether or not to load this asset asynchronously (NOT USED)
+         * @return The pointer to the asset or nullptr if it could not be located
+         */
         template<typename T>
         static T* RetrieveAsset(UUID uuid, bool async = false)
         {

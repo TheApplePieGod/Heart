@@ -1,13 +1,16 @@
 #pragma once
 
 #include "HeartEditor/Widgets/Widget.h"
-#include "Heart/Renderer/SceneRenderer.h"
 #include "Heart/Core/UUID.h"
 #include "Heart/Core/Camera.h"
 #include "Heart/Scene/Entity.h"
-#include "Heart/Renderer/EnvironmentMap.h"
 #include "Heart/Renderer/Material.h"
 #include "imgui/imgui.h"
+
+namespace Heart
+{
+    class SceneRenderer;
+}
 
 namespace HeartEditor
 {

@@ -1,10 +1,7 @@
 #pragma once
 
-#include "Heart/Renderer/GraphicsContext.h"
-#include "Heart/Renderer/Pipeline.h"
 #include "Heart/Renderer/Texture.h"
 #include "Heart/Events/EventEmitter.h"
-#include "Heart/Events/WindowEvents.h"
 #include "glm/vec4.hpp"
 #include "glm/vec2.hpp"
 
@@ -64,6 +61,9 @@ namespace Heart
         MsaaSampleCount SampleCount = MsaaSampleCount::None; // will be clamped to device max supported sample count
     };
 
+    class WindowResizeEvent;
+    class GraphicsPipeline;
+    struct GraphicsPipelineCreateInfo;
     class Framebuffer : public EventListener
     {
     public:

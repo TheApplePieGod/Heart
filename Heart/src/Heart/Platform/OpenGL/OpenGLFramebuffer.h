@@ -1,12 +1,12 @@
 #pragma once
 
 #include "Heart/Renderer/Framebuffer.h"
-#include "Heart/Platform/OpenGL/OpenGLBuffer.h"
-#include "Heart/Platform/OpenGL/OpenGLTexture.h"
-#include "Heart/Platform/OpenGL/OpenGLGraphicsPipeline.h"
 
 namespace Heart
 {
+    class OpenGLBuffer;
+    class OpenGLTexture;
+    class OpenGLGraphicsPipeline;
     class OpenGLFramebuffer : public Framebuffer
     {
     public:

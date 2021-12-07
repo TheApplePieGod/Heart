@@ -4,10 +4,10 @@
 #include "Heart/Platform/Vulkan/VulkanDevice.h"
 #include "Heart/Platform/Vulkan/VulkanSwapChain.h"
 #include "Heart/Platform/Vulkan/VulkanCommon.h"
-#include "Heart/Platform/Vulkan/VulkanFramebuffer.h"
 
 namespace Heart
 {
+    class VulkanFramebuffer;
     class VulkanContext : public GraphicsContext
     {
     public:

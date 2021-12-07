@@ -3,9 +3,6 @@
 #include "HeartEditor/EditorApp.h"
 #include "Heart/Core/Log.h"
 
-
-#ifdef HE_PLATFORM_WINDOWS
-
 int main(int argc, char** argv)
 {
     Heart::Logger::Initialize();
@@ -16,5 +13,3 @@ int main(int argc, char** argv)
     
     return 0;
 }
-
-#endif

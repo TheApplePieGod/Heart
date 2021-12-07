@@ -1,10 +1,8 @@
 #pragma once
 
-#include "Heart/Core/Window.h"
-
 namespace Heart
 {
-    // For now, this class only utilizes the main window & graphics context
+    class Window;
     class ImGuiInstance
     {
     public:

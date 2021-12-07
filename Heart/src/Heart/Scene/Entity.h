@@ -3,10 +3,10 @@
 #include "Heart/Core/UUID.h"
 #include "entt/entt.hpp"
 #include "Heart/Scene/Components.h"
+#include "Heart/Scene/Scene.h"
 
 namespace Heart
 {
-    class Scene;
     class Entity
     {
     public:

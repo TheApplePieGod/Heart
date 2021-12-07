@@ -4,6 +4,9 @@
 #include "Heart/Core/Window.h"
 #include "Heart/Platform/Vulkan/VulkanContext.h"
 #include "Heart/Platform/Vulkan/VulkanDevice.h"
+#include "Heart/Platform/Vulkan/VulkanTexture.h"
+#include "Heart/Platform/Vulkan/VulkanBuffer.h"
+#include "Heart/Platform/Vulkan/VulkanGraphicsPipeline.h"
 #include "Heart/Core/App.h"
 #include "Heart/Renderer/Renderer.h"
 #include "imgui/backends/imgui_impl_vulkan.h"
@@ -42,7 +45,7 @@ namespace Heart
             attachmentData.HasResolve = false; //m_ImageSamples > VK_SAMPLE_COUNT_1_BIT;
             attachmentData.CPUVisible = false;
             attachmentData.IsDepthAttachment = true;
-            attachmentData.ExternalTexture = false;
+            attachmentData.ExternalTexture = nullptr;
 
             CreateAttachmentImages(attachmentData);
 

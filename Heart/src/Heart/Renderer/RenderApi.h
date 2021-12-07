@@ -1,11 +1,10 @@
 #pragma once
 
-#include "Heart/Renderer/GraphicsContext.h"
-#include "Heart/Renderer/Buffer.h"
-#include "Heart/Renderer/Framebuffer.h"
-
 namespace Heart
 {
+    class Buffer;
+    class Framebuffer;
+    class GraphicsContext;
     class RenderApi
     {
     public:

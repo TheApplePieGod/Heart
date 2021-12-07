@@ -1,10 +1,10 @@
 #pragma once
 
 #include "Heart/Renderer/RenderApi.h"
-#include "Heart/Renderer/GraphicsContext.h"
 
 namespace Heart
 {
+    class GraphicsContext;
     class Renderer
     {
     public:

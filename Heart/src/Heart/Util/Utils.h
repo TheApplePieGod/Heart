@@ -4,7 +4,6 @@ namespace Heart
 {
     struct Utils
     {
-        
 
     };
 }

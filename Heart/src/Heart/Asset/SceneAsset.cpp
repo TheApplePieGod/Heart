@@ -4,6 +4,7 @@
 #include "Heart/Util/FilesystemUtils.h"
 #include "Heart/Asset/AssetManager.h"
 #include "nlohmann/json.hpp"
+#include "Heart/Scene/Scene.h"
 #include "Heart/Scene/Entity.h"
 
 namespace Heart
@@ -59,7 +60,7 @@ namespace Heart
             for (auto& loaded : field)
             {
                 // REQUIRED: Id & name components
-                UUID id = loaded["idComponent"]["id"];
+                UUID id = static_cast<UUID>(loaded["idComponent"]["id"]);
                 std::string name = loaded["nameComponent"]["name"];
                 auto entity = scene->CreateEntityWithUUID(name, id);
 
@@ -71,7 +72,7 @@ namespace Heart
 
                 // Parent component
                 if (loaded.contains("parentComponent"))
-                    entity.AddComponent<ParentComponent>(loaded["parentComponent"]["id"]);
+                    entity.AddComponent<ParentComponent>(static_cast<UUID>(loaded["parentComponent"]["id"]));
 
                 // Child component
                 if (loaded.contains("childComponent"))
@@ -80,7 +81,7 @@ namespace Heart
                     std::vector<UUID> ids;
                     ids.reserve(children.size());
                     for (auto& childId : children)
-                        ids.emplace_back(childId);
+                        ids.emplace_back(static_cast<UUID>(childId));
                     entity.AddComponent<ChildComponent>(ids);
                 }
 

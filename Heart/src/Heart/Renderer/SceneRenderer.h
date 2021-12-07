@@ -1,22 +1,23 @@
 #pragma once
 
-#include "Heart/Scene/Scene.h"
-#include "Heart/Renderer/GraphicsContext.h"
-#include "Heart/Renderer/Framebuffer.h"
-#include "Heart/Renderer/Buffer.h"
-#include "Heart/Renderer/Texture.h"
-#include "Heart/Renderer/Material.h"
-#include "Heart/Renderer/Mesh.h"
-#include "Heart/Renderer/EnvironmentMap.h"
-#include "Heart/Core/Camera.h"
 #include "Heart/Events/EventEmitter.h"
-#include "Heart/Events/AppEvents.h"
 #include "glm/vec2.hpp"
 #include "glm/vec3.hpp"
 #include "glm/mat4x4.hpp"
 
 namespace Heart
 {
+    class Scene;
+    class GraphicsContext;
+    class Framebuffer;
+    class Buffer;
+    class Texture;
+    class Material;
+    class Mesh;
+    class EnvironmentMap;
+    class Camera;
+    class AppGraphicsInitEvent;
+    class AppGraphicsShutdownEvent;
     class SceneRenderer : public EventListener
     {
     public:

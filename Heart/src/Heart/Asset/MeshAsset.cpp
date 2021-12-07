@@ -5,6 +5,7 @@
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/MaterialAsset.h"
 #include "Heart/Asset/TextureAsset.h"
+#include "Heart/Renderer/Texture.h"
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtx/quaternion.hpp"
@@ -85,14 +86,19 @@ namespace Heart
         std::vector<BufferView> bufferViews;
         for (auto& view : j["bufferViews"])
         {
-            bufferViews.emplace_back(view["buffer"], view["byteLength"], view.contains("byteOffset") ? view["byteOffset"] : 0);
+            u32 byteOffset = 0;
+            if (view.contains("byteOffset"))
+                byteOffset = view["byteOffset"];
+            bufferViews.emplace_back(view["buffer"], view["byteLength"], byteOffset);
         }
 
         // parse accessors
         std::vector<Accessor> accessors;
         for (auto& accessor : j["accessors"])
         {
-            u32 byteOffset = accessor.contains("byteOffset") ? accessor["byteOffset"] : 0;
+            u32 byteOffset = 0;
+            if (accessor.contains("byteOffset"))
+                byteOffset = accessor["byteOffset"];
             accessors.emplace_back(accessor["bufferView"], byteOffset, accessor["count"], accessor["componentType"]);
         }
 
@@ -125,7 +131,10 @@ namespace Heart
         {
             for (auto& texture : j["textures"])
             {
-                textureViews.emplace_back(texture.contains("sampler") ? texture["sampler"] : 0, texture["source"]);
+                u32 samplerIndex = 0;
+                if (texture.contains("sampler"))
+                    samplerIndex = texture["sampler"];
+                textureViews.emplace_back(samplerIndex, texture["source"]);
             }
         }
 
@@ -221,7 +230,9 @@ namespace Heart
 
                 u32 indexOffset = 0;
                 u32 vertexOffset = 0;
-                u32 materialIndex = primitive.contains("material") ? primitive["material"] : 0;
+                u32 materialIndex = 0;
+                if (primitive.contains("material"))
+                    materialIndex = primitive["material"];
                 parseData.MaterialIndex = materialIndex;
 
                 // Points = 0, Lines, LineLoop, LineStrip, Triangles, TriangleStrip, TriangleFan

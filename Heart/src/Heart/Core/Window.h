@@ -1,9 +1,8 @@
 #pragma once
 
 #include "Heart/Events/EventEmitter.h"
-#include "Heart/Renderer/GraphicsContext.h"
-#include "GLFW/glfw3.h"
 
+class GLFWwindow;
 namespace Heart
 {
     struct WindowSettings
@@ -26,6 +25,7 @@ namespace Heart
         EventCallbackFunction EmitEvent;
     };
 
+    class GraphicsContext;
     class Window : public EventEmitter
     {
     public:
@@ -40,14 +40,14 @@ namespace Heart
         void EnableCursor();
         void SetFullscreen(bool fullscreen);
         void ToggleFullscreen();
-        inline bool IsFullscreen() const { return glfwGetWindowMonitor(m_Window) != nullptr; }
+        bool IsFullscreen();
 
         inline GraphicsContext& GetContext() const { return *m_GraphicsContext; }
         inline GLFWwindow* GetWindowHandle() const { return m_Window; }
         inline u32 GetWidth() const { return m_WindowData.Width; }
         inline u32 GetHeight() const { return m_WindowData.Height; }
         inline std::string GetTitle() const { return m_WindowData.Title; }
-        inline double GetWindowTime() const { return glfwGetTime(); }
+        double GetWindowTime();
 
     public:
         static Ref<Window> Create(const WindowSettings& settings);
