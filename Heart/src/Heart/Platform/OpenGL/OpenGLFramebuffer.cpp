@@ -218,11 +218,13 @@ namespace Heart
         m_BoundPipelineName = name;
     }
 
+    // TODO: assert checking that bound resource matches reflection data element
     void OpenGLFramebuffer::BindShaderBufferResource(u32 bindingIndex, u32 elementOffset, u32 elementCount, Buffer* _buffer)
     {
         HE_PROFILE_FUNCTION();
         HE_ENGINE_ASSERT(m_BoundPipeline != nullptr, "Must call BindPipeline before BindShaderResource");
         HE_ENGINE_ASSERT(elementCount + elementOffset <= _buffer->GetAllocatedCount(), "ElementCount + ElementOffset must be <= buffer allocated count");
+        HE_ENGINE_ASSERT(_buffer->GetType() == Buffer::Type::Uniform || _buffer->GetType() == Buffer::Type::Storage, "Buffer bind must be either a uniform or storage buffer");
 
         OpenGLBuffer& buffer = static_cast<OpenGLBuffer&>(*_buffer);
 

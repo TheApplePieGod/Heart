@@ -19,9 +19,17 @@ namespace Heart
         // create the descriptor set layout and cache the associated pool sizes
         std::vector<VkDescriptorSetLayoutBinding> bindings;
         std::unordered_map<VkDescriptorType, u32> descriptorCounts;
+        u32 lastBindingIndex = 0;
         for (auto& element : reflectionData)
         {
             BindingData bindingData{};
+            bindingData.Exists = true;
+
+            while (element.BindingIndex - lastBindingIndex > 1)
+            {
+                m_Bindings.emplace_back();
+                lastBindingIndex++;
+            }
 
             VkDescriptorSetLayoutBinding binding{};
             binding.binding = element.BindingIndex;
@@ -52,6 +60,7 @@ namespace Heart
             }
 
             m_Bindings.emplace_back(bindingData);
+            lastBindingIndex = element.BindingIndex;
         }
 
         VkDescriptorSetLayoutCreateInfo layoutInfo{};

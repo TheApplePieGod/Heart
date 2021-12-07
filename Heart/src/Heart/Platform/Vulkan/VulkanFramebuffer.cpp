@@ -434,8 +434,10 @@ namespace Heart
         HE_PROFILE_FUNCTION();
 
         HE_ENGINE_ASSERT(elementCount + elementOffset <= buffer->GetAllocatedCount(), "ElementCount + ElementOffset must be <= buffer allocated count");
+        HE_ENGINE_ASSERT(buffer->GetType() == Buffer::Type::Uniform || buffer->GetType() == Buffer::Type::Storage, "Buffer bind must be either a uniform or storage buffer");
 
-        BindShaderResource(bindingIndex, ShaderResourceType::UniformBuffer, buffer, true, buffer->GetLayout().GetStride() * elementOffset, buffer->GetLayout().GetStride() * elementCount); // uniform vs structured buffer doesn't matter here
+        ShaderResourceType bufferType = buffer->GetType() == Buffer::Type::Uniform ? ShaderResourceType::UniformBuffer : ShaderResourceType::StorageBuffer;
+        BindShaderResource(bindingIndex, bufferType, buffer, true, buffer->GetLayout().GetStride() * elementOffset, buffer->GetLayout().GetStride() * elementCount);
     }
 
     void VulkanFramebuffer::BindShaderTextureResource(u32 bindingIndex, Texture* texture)
@@ -467,6 +469,8 @@ namespace Heart
 
         if (!descriptorSet.DoesBindingExist(bindingIndex))
             return; // silently ignore, TODO: warning once in the console when this happens
+
+        HE_ENGINE_ASSERT(descriptorSet.IsResourceCorrectType(bindingIndex, resourceType), "Attempting to bind a resource that does not match the bind index type");
 
         if (useOffset && (resourceType == ShaderResourceType::UniformBuffer || resourceType == ShaderResourceType::StorageBuffer))
             descriptorSet.UpdateDynamicOffset(bindingIndex, offset);
