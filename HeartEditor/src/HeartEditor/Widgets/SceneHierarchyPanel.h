@@ -1,7 +1,6 @@
 #pragma once
 
 #include "HeartEditor/Widgets/Widget.h"
-#include "Heart/Scene/Scene.h"
 #include "Heart/Scene/Entity.h"
 
 namespace HeartEditor

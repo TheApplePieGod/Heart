@@ -1,6 +1,7 @@
 #include "hepch.h"
 #include "VulkanSwapChain.h"
 
+#include "Heart/Core/Timing.h"
 #include "Heart/Platform/Vulkan/VulkanContext.h"
 #include "GLFW/glfw3.h"
 
@@ -396,6 +397,7 @@ namespace Heart
     void VulkanSwapChain::BeginFrame()
     {
         HE_PROFILE_FUNCTION();
+        auto timer = AggregateTimer("VulkanSwapChain::BeginFrame");
 
         VulkanDevice& device = VulkanContext::GetDevice();
 
@@ -502,6 +504,7 @@ namespace Heart
     void VulkanSwapChain::Present()
     {
         HE_PROFILE_FUNCTION();
+        auto timer = AggregateTimer("VulkanSwapChain::Present");
         
         VulkanDevice& device = VulkanContext::GetDevice();
 
@@ -582,23 +585,54 @@ namespace Heart
 
     VkSurfaceFormatKHR VulkanSwapChain::ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats)
     {
-        for (const auto& availableFormat : formats)
-        {
-            if (availableFormat.format == VK_FORMAT_R8G8B8A8_SRGB && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
-                return availableFormat;
-        }
+        HE_ENGINE_ASSERT(formats.size() > 0, "Swapchain has no supported surface formats");
 
-        return formats[0];
+        std::array<VkFormat, 4> preferredFormats = { VK_FORMAT_B8G8R8A8_UNORM, VK_FORMAT_R8G8B8A8_UNORM, VK_FORMAT_B8G8R8_UNORM, VK_FORMAT_R8G8B8_UNORM };
+        VkColorSpaceKHR colorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
+
+        // If only VK_FORMAT_UNDEFINED is available, we can select any format
+        if (formats.size() == 1)
+        {
+            if (formats[0].format == VK_FORMAT_UNDEFINED)
+                return { preferredFormats[0], colorSpace }; // Most preferred format
+            else
+                return formats[0];
+        }
+        else
+        {
+            // Search for preferred formats in order and return the first one that is available
+            for (auto pf : preferredFormats)
+            {
+                for (auto af : formats)
+                {
+                    if (af.format == pf && af.colorSpace == colorSpace)
+                        return af;
+                }
+            }
+
+            // Return the first available
+            return formats[0];
+        }
     }
 
     VkPresentModeKHR VulkanSwapChain::ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& presentModes)
     {
-        for (const auto& availablePresentMode : presentModes)
+        HE_ENGINE_ASSERT(presentModes.size() > 0, "Swapchain has no supported present modes");
+
+        // (from ImGui) Even thought mailbox seems to get us maximum framerate with a single window, it halves framerate with a second window etc. (w/ Nvidia and SDK 1.82.1)
+        std::array<VkPresentModeKHR, 3> preferredModes = { VK_PRESENT_MODE_MAILBOX_KHR, VK_PRESENT_MODE_IMMEDIATE_KHR, VK_PRESENT_MODE_FIFO_KHR };
+
+        // Search for preferred modes in order and return the first one that is available
+        for (auto pm : preferredModes)
         {
-            if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR)
-                return availablePresentMode;
+            for (auto am : presentModes)
+            {
+                if (am == pm)
+                    return pm;
+            }
         }
 
+        // Return the default mode
         return VK_PRESENT_MODE_FIFO_KHR;
     }
 

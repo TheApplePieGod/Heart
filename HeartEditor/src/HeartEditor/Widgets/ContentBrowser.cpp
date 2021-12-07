@@ -3,6 +3,7 @@
 
 #include "HeartEditor/Editor.h"
 #include "HeartEditor/EditorApp.h"
+#include "Heart/Renderer/Texture.h"
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/TextureAsset.h"
 #include "Heart/Asset/MaterialAsset.h"
@@ -60,8 +61,9 @@ namespace Widgets
             for (const auto& entry : std::filesystem::directory_iterator(std::filesystem::path(Heart::AssetManager::GetAssetsDirectory()).append(m_DirectoryStack[m_DirectoryStackIndex])))
                 m_DirectoryList.push_back(entry);
         }
-        catch (std::exception e) // likely failed to open directory so just reset
+        catch (std::filesystem::filesystem_error e) // likely failed to open directory so just reset
         {
+            HE_ENGINE_LOG_ERROR("Failed to scan directory: {0}", e.what());
             m_DirectoryStack.resize(1);
             m_DirectoryStackIndex = 0;
         }  

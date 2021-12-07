@@ -20,6 +20,7 @@
 #include <mutex>
 #include <shared_mutex>
 #include <random>
+#include <thread>
 
 #include <string>
 #include <regex>

@@ -13,7 +13,8 @@ namespace Heart
         VkInstance instance = VulkanContext::GetInstance();
 
         // setup physical device
-        std::vector<const char*> deviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME };
+        std::vector<const char*> deviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME /*, VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME*/ };
+        OptionalDeviceFeatures optionalFeatures;
         auto validationLayers = VulkanContext::ConfigureValidationLayers();
         {
             // get devices
@@ -26,7 +27,7 @@ namespace Heart
             // find first compatible device
             for (const auto& device: devices)
             {
-                if (IsDeviceSuitable(device, mainWindowSurface, deviceExtensions))
+                if (IsDeviceSuitable(device, mainWindowSurface, deviceExtensions, optionalFeatures))
                 {
                     m_PhysicalDevice = device;
                     vkGetPhysicalDeviceProperties(device, &m_PhysicalDeviceProperties);
@@ -34,7 +35,7 @@ namespace Heart
                     break;
                 }
             }
-            HE_ENGINE_ASSERT(m_PhysicalDevice != VK_NULL_HANDLE);
+            HE_ENGINE_ASSERT(m_PhysicalDevice != VK_NULL_HANDLE, "Could not find a suitable GPU");
         }
 
         // setup logical device & queues
@@ -55,28 +56,31 @@ namespace Heart
                 queueCreateInfos.push_back(queueCreateInfo);
             }
 
-            // enabled device features
             VkPhysicalDeviceFeatures deviceFeatures{};
-            deviceFeatures.samplerAnisotropy = VK_TRUE;
+
+            // required device features
             deviceFeatures.independentBlend = VK_TRUE;
-            deviceFeatures.shaderSampledImageArrayDynamicIndexing = VK_TRUE;
-            deviceFeatures.wideLines = VK_TRUE;
             deviceFeatures.multiDrawIndirect = VK_TRUE;
+            //deviceFeatures.shaderSampledImageArrayDynamicIndexing = VK_TRUE;
+
+            // optional device features
+            deviceFeatures.samplerAnisotropy = optionalFeatures.SamplerAnisotropy;
+            deviceFeatures.wideLines = optionalFeatures.WideLines;
             
             VkPhysicalDeviceRobustness2FeaturesEXT robustnessFeatures{};
             robustnessFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT;
             robustnessFeatures.pNext = nullptr;
 
-            VkPhysicalDeviceDescriptorIndexingFeaturesEXT indexingFeatures{};
-            indexingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT;
-            indexingFeatures.pNext = nullptr;
-            indexingFeatures.descriptorBindingPartiallyBound = VK_TRUE;
-            indexingFeatures.runtimeDescriptorArray = VK_TRUE;
+            // VkPhysicalDeviceDescriptorIndexingFeaturesEXT indexingFeatures{};
+            // indexingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT;
+            // indexingFeatures.pNext = nullptr;
+            // indexingFeatures.descriptorBindingPartiallyBound = VK_TRUE;
+            // indexingFeatures.runtimeDescriptorArray = VK_TRUE;
 
             // finally create device
             VkDeviceCreateInfo createInfo{};
             createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-            createInfo.pNext = &indexingFeatures;
+            //createInfo.pNext = &indexingFeatures;
             createInfo.pQueueCreateInfos = queueCreateInfos.data();
             createInfo.queueCreateInfoCount = static_cast<u32>(queueCreateInfos.size());;
             createInfo.pEnabledFeatures = &deviceFeatures;
@@ -104,7 +108,7 @@ namespace Heart
         m_Initialized = true;
     }
 
-    bool VulkanDevice::IsDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface, const std::vector<const char*>& deviceExtensions)
+    bool VulkanDevice::IsDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface, const std::vector<const char*>& deviceExtensions, OptionalDeviceFeatures& outOptionalFeatures)
     {
         VkPhysicalDeviceProperties deviceProperties;
         vkGetPhysicalDeviceProperties(device, &deviceProperties);
@@ -138,16 +142,17 @@ namespace Heart
         VulkanCommon::SwapChainSupportDetails swapDetails = VulkanCommon::GetSwapChainSupport(device, surface);
         bool swapChainAdequate = !swapDetails.Formats.empty() && !swapDetails.PresentModes.empty();
 
+        outOptionalFeatures.SamplerAnisotropy = deviceFeatures.samplerAnisotropy;
+        outOptionalFeatures.WideLines = deviceFeatures.wideLines;
+
         return (
             indices.IsComplete() &&
             swapChainAdequate &&
-            deviceFeatures.samplerAnisotropy &&
             deviceFeatures.independentBlend &&
-            deviceFeatures.shaderSampledImageArrayDynamicIndexing &&
-            deviceFeatures.wideLines &&
-            deviceFeatures.multiDrawIndirect &&
-            indexingFeatures.descriptorBindingPartiallyBound &&
-            indexingFeatures.runtimeDescriptorArray
+            //deviceFeatures.shaderSampledImageArrayDynamicIndexing &&
+            deviceFeatures.multiDrawIndirect
+            //indexingFeatures.descriptorBindingPartiallyBound &&
+            //indexingFeatures.runtimeDescriptorArray
         );
     }
 

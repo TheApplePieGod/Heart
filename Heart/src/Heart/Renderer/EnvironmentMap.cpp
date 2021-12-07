@@ -2,6 +2,10 @@
 #include "EnvironmentMap.h"
 
 #include "Heart/Core/App.h"
+#include "Heart/Renderer/Texture.h"
+#include "Heart/Renderer/Framebuffer.h"
+#include "Heart/Renderer/Pipeline.h"
+#include "Heart/Renderer/Buffer.h"
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/TextureAsset.h"
 #include "Heart/Asset/MeshAsset.h"
@@ -10,6 +14,7 @@
 #include "Heart/Core/Camera.h"
 #include "Heart/Core/Window.h"
 #include "Heart/Core/Timing.h"
+#include "Heart/Events/AppEvents.h"
 
 namespace Heart
 {

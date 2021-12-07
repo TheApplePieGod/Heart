@@ -2,7 +2,10 @@
 #include "MaterialEditor.h"
 
 #include "HeartEditor/EditorApp.h"
+#include "Heart/Core/Window.h"
 #include "Heart/Renderer/Renderer.h"
+#include "Heart/Renderer/Framebuffer.h"
+#include "Heart/Renderer/SceneRenderer.h"
 #include "Heart/Scene/Components.h"
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/MaterialAsset.h"

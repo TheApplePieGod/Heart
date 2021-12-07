@@ -3,7 +3,10 @@
 
 #include "HeartEditor/Editor.h"
 #include "HeartEditor/EditorApp.h"
+#include "Heart/Core/Window.h"
 #include "Heart/Renderer/Renderer.h"
+#include "Heart/Renderer/Framebuffer.h"
+#include "Heart/Renderer/SceneRenderer.h"
 #include "Heart/Scene/Components.h"
 #include "Heart/Scene/Entity.h"
 #include "Heart/Input/Input.h"
@@ -12,6 +15,8 @@
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/TextureAsset.h"
 #include "Heart/Asset/SceneAsset.h"
+#include "Heart/Events/KeyboardEvents.h"
+#include "Heart/Events/MouseEvents.h"
 #include "imgui/imgui_internal.h"
 
 #include "HeartEditor/Widgets/SceneHierarchyPanel.h"
@@ -63,19 +68,19 @@ namespace HeartEditor
             Heart::CreateRef<Widgets::SceneSettings>("Scene Settings", true)
         );
 
-        //auto entity = m_ActiveScene->CreateEntity("Test Entity");
-        //entity.AddComponent<Heart::MeshComponent>();
-        //entity.GetComponent<Heart::MeshComponent>().Mesh = Heart::AssetManager::GetAssetUUID("assets/meshes/Sponza/glTF/Sponza.gltf");
+        // auto entity = Editor::GetActiveScene().CreateEntity("Test Entity");
+        // entity.AddComponent<Heart::MeshComponent>();
+        // entity.GetComponent<Heart::MeshComponent>().Mesh = Heart::AssetManager::GetAssetUUID("assets/meshes/Sponza/glTF/Sponza.gltf");
 
-        //auto entity = m_ActiveScene->CreateEntity("Cube Entity");
-        //entity.AddComponent<Heart::MeshComponent>();
-        //entity.GetComponent<Heart::MeshComponent>().Mesh = Heart::AssetManager::GetAssetUUID("DefaultCube.gltf", true);
+        // auto entity = Editor::GetActiveScene().CreateEntity("Cube Entity");
+        // entity.AddComponent<Heart::MeshComponent>();
+        // entity.GetComponent<Heart::MeshComponent>().Mesh = Heart::AssetManager::GetAssetUUID("DefaultCube.gltf", true);
 
         // int max = 100;
         // int scaleMax = 2;
         // for (int i = 0; i < 150; i++)
         // {
-        //     Heart::Entity entity = m_ActiveScene->CreateEntity("Entity " + std::to_string(i));
+        //     Heart::Entity entity = Editor::GetActiveScene().CreateEntity("Entity " + std::to_string(i));
         //     entity.AddComponent<Heart::MeshComponent>().Mesh = Heart::AssetManager::GetAssetUUID("assets/meshes/Sponza/glTF/Sponza.gltf");
         //     glm::vec3 translation = { rand() % (max * 2) - max, 0.f, rand() % (max * 2) - max };
         //     glm::vec3 rotation = { 1.f, 1.f, 1.f }; //{ rand() % (180 * 2) - 180, rand() % (180 * 2) - 180, rand() % (180 * 2) - 180 };

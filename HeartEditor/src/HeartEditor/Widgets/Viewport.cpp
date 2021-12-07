@@ -3,9 +3,12 @@
 
 #include "HeartEditor/EditorApp.h"
 #include "HeartEditor/Editor.h"
+#include "HeartEditor/EditorCamera.h"
+#include "Heart/Core/Window.h"
 #include "Heart/Scene/Scene.h"
 #include "Heart/Renderer/Renderer.h"
 #include "Heart/Renderer/SceneRenderer.h"
+#include "Heart/Renderer/Framebuffer.h"
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/TextureAsset.h"
 #include "Heart/Asset/SceneAsset.h"

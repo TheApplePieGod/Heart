@@ -1,14 +1,6 @@
 #pragma once
 
-#include "HeartEditor/Widgets/Widget.h"
-#include "HeartEditor/EditorCamera.h"
 #include "Heart/Scene/Entity.h"
-#include "Heart/Scene/Scene.h"
-#include "Heart/Core/UUID.h"
-#include "Heart/Core/Timestep.h"
-#include "imgui/imgui.h"
-#include "imguizmo/ImGuizmo.h"
-#include "glm/vec2.hpp"
 
 namespace HeartEditor
 {
@@ -17,6 +9,8 @@ namespace HeartEditor
         Heart::Entity SelectedEntity;
     };
 
+    class EditorCamera;
+    class Widget;
     class Editor
     {
     public:

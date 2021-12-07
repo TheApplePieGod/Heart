@@ -2,6 +2,7 @@
 #include "VulkanContext.h"
 
 #include "Heart/Core/Timing.h"
+#include "Heart/Platform/Vulkan/VulkanFramebuffer.h"
 #include "imgui/imgui.h"
 #include "imgui/backends/imgui_impl_vulkan.h"
 #include "GLFW/glfw3.h"
@@ -113,15 +114,17 @@ namespace Heart
 
     void VulkanContext::CreateImGuiDescriptorPool()
     {
+        u32 maxSets = 1000;
+
         std::array<VkDescriptorPoolSize, 1> poolSizes{};
         poolSizes[0].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        poolSizes[0].descriptorCount = static_cast<u32>(m_VulkanSwapChain.GetImageCount());
+        poolSizes[0].descriptorCount = maxSets;
 
         VkDescriptorPoolCreateInfo poolInfo{};
         poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
         poolInfo.poolSizeCount = static_cast<u32>(poolSizes.size());
         poolInfo.pPoolSizes = poolSizes.data();
-        poolInfo.maxSets = 1000;
+        poolInfo.maxSets = maxSets;
         poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
 
         HE_VULKAN_CHECK_RESULT(vkCreateDescriptorPool(s_VulkanDevice.Device(), &poolInfo, nullptr, &m_ImGuiDescriptorPool));
@@ -154,7 +157,7 @@ namespace Heart
         const char** glfwExtensions;
         glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
-        // check for compatability
+        // check for compatability (TODO: make this better)
         for (u32 i = 0; i < glfwExtensionCount; i++)
         {
             HE_ENGINE_ASSERT(std::find_if(supportedExtensions.begin(), supportedExtensions.end(), [&glfwExtensions, &i](const VkExtensionProperties& arg) { return strcmp(arg.extensionName, glfwExtensions[i]); }) != supportedExtensions.end());
@@ -324,7 +327,8 @@ namespace Heart
 
     std::vector<const char*> VulkanContext::ConfigureValidationLayers()
     {
-        std::vector<const char*> validationLayers = { "VK_LAYER_KHRONOS_validation" };
+        std::array<const char*, 1> requestedLayers = { "VK_LAYER_KHRONOS_validation" };
+        std::vector<const char*> finalLayers;
 
         u32 supportedLayerCount;
         vkEnumerateInstanceLayerProperties(&supportedLayerCount, nullptr);
@@ -332,12 +336,19 @@ namespace Heart
         vkEnumerateInstanceLayerProperties(&supportedLayerCount, supportedLayers.data());
 
         // check for compatability
-        for (int i = 0; i < validationLayers.size(); i++)
+        for (auto rl : requestedLayers)
         {
-            HE_ENGINE_ASSERT(std::find_if(supportedLayers.begin(), supportedLayers.end(), [&validationLayers, &i](const VkLayerProperties& arg) { return strcmp(arg.layerName, validationLayers[i]); }) != supportedLayers.end());
+            for (auto sl : supportedLayers)
+            {
+                if (strcmp(rl, sl.layerName) == 0)
+                {
+                    finalLayers.emplace_back(rl);
+                    break;
+                }
+            }
         }
 
-        return validationLayers;
+        return finalLayers;
     }
 
 }

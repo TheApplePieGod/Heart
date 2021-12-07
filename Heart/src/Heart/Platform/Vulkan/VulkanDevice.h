@@ -26,7 +26,14 @@ namespace Heart
         inline const VkPhysicalDeviceProperties& PhysicalDeviceProperties() const { return m_PhysicalDeviceProperties; }
 
     private:
-        bool IsDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface, const std::vector<const char*>& deviceExtensions);
+        struct OptionalDeviceFeatures
+        {
+            bool SamplerAnisotropy;
+            bool WideLines;
+        };
+
+    private:
+        bool IsDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface, const std::vector<const char*>& deviceExtensions, OptionalDeviceFeatures& outOptionalFeatures);
         VkSampleCountFlagBits GetMaxSampleCount();
 
     private:

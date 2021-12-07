@@ -1,7 +1,6 @@
 #pragma once
 
 #include "HeartEditor/Widgets/Widget.h"
-#include "Heart/Renderer/Texture.h"
 #include "glm/vec2.hpp"
 
 namespace HeartEditor

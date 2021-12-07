@@ -46,6 +46,7 @@ namespace Heart
             attachmentData.HasResolve = m_ImageSamples > 1; // createInfo.SampleCount != MsaaSampleCount::None;
             attachmentData.CPUVisible = false;
             attachmentData.IsDepthAttachment = true;
+            attachmentData.ExternalTexture = nullptr;
 
             CreateAttachmentTextures(attachmentData);
 

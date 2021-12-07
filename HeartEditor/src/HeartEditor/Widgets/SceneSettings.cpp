@@ -22,7 +22,9 @@ namespace Widgets
 
         auto& activeScene = Editor::GetActiveScene();
 
-        Heart::UUID mapId = activeScene.GetEnvironmentMap() ? activeScene.GetEnvironmentMap()->GetMapAsset() : 0;
+        Heart::UUID mapId = 0;
+        if (activeScene.GetEnvironmentMap())
+            mapId = activeScene.GetEnvironmentMap()->GetMapAsset();
         ImGui::Text("Environment map:");
         ImGui::SameLine();
         Heart::ImGuiUtils::AssetPicker(
