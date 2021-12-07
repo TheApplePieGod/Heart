@@ -17,7 +17,14 @@ namespace Heart
     class App : public EventListener, public EventEmitter
     {
     public:
+        /**
+         * @brief Default constructor.
+         * 
+         * @param windowName The initial name of the window.
+         */
         App(const std::string& windowName = "Heart Engine");
+
+        /*! @brief Default destructor. */
         ~App();
 
         void PushLayer(const Ref<Layer>& layer);
