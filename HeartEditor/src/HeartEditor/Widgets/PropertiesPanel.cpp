@@ -89,15 +89,16 @@ namespace Widgets
             if (ImGui::BeginPopup("AddComponent"))
             {
                 if (ImGui::MenuItem("Mesh Component"))
-                {
                     selectedEntity.AddComponent<Heart::MeshComponent>();
-                }
+                if (ImGui::MenuItem("Point Light Component"))
+                    selectedEntity.AddComponent<Heart::PointLightComponent>();
 
                 ImGui::EndPopup();
             }
 
             RenderTransformComponent();
             RenderMeshComponent();
+            RenderPointLightComponent();
         }
 
         ImGui::End();
@@ -111,7 +112,7 @@ namespace Widgets
         if (selectedEntity.HasComponent<Heart::TransformComponent>())
         {
             bool headerOpen = ImGui::CollapsingHeader("Transform");
-            if (!RenderComponentPopup<Heart::MeshComponent>("TransformPopup", false) && headerOpen)
+            if (!RenderComponentPopup<Heart::TransformComponent>("TransformPopup", false) && headerOpen)
             {
                 glm::vec3 translation = selectedEntity.GetPosition();
                 glm::vec3 rotation = selectedEntity.GetRotation();
@@ -239,6 +240,50 @@ namespace Widgets
                 else
                     ImGui::TextColored({ 0.9f, 0.1f, 0.1f, 1.f }, "Invalid Mesh");
                 
+                ImGui::Unindent();
+            }
+        }
+    }
+
+    void PropertiesPanel::RenderPointLightComponent()
+    {
+        auto selectedEntity = Editor::GetState().SelectedEntity;
+        if (selectedEntity.HasComponent<Heart::PointLightComponent>())
+        {
+            bool headerOpen = ImGui::CollapsingHeader("Point Light");
+            if (!RenderComponentPopup<Heart::PointLightComponent>("PointLightPopup", true) && headerOpen)
+            {
+                auto& lightComp = selectedEntity.GetComponent<Heart::PointLightComponent>();
+
+                ImGui::Indent();
+
+                ImGui::Text("Is Active");
+                ImGui::SameLine();
+                ImGui::Checkbox("##Active", &lightComp.Active);
+
+                ImGui::Text("Color");
+                ImGui::SameLine();
+                ImGui::ColorEdit3("##Color", (float*)&lightComp.Color);
+
+                ImGui::Text("Intensity");
+                ImGui::SameLine();
+                ImGui::DragFloat("##Intensity", &lightComp.Color.a, 0.5f, 0.f, 100.f);
+
+                ImGui::Text("Attenuation");
+                ImGui::Separator();
+
+                ImGui::Text("Constant");
+                ImGui::SameLine();
+                ImGui::DragFloat("##ConstantAtten", &lightComp.ConstantAttenuation, 0.005f, 0.f, 2.f);
+
+                ImGui::Text("Linear");
+                ImGui::SameLine();
+                ImGui::DragFloat("##LinearAtten", &lightComp.LinearAttenuation, 0.005f, 0.f, 2.f);
+
+                ImGui::Text("Quadratic");
+                ImGui::SameLine();
+                ImGui::DragFloat("##QuadAtten", &lightComp.QuadraticAttenuation, 0.005f, 0.f, 2.f);
+
                 ImGui::Unindent();
             }
         }

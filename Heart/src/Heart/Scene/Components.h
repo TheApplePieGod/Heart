@@ -53,4 +53,15 @@ namespace Heart
         UUID Mesh = 0;
         std::vector<UUID> Materials;
     };
+
+    struct PointLightComponent
+    {
+        // TODO: ambient & specular colors
+        glm::vec4 Color = { 1.f, 1.f, 1.f, 1.f }; // intensity is stored in the alpha component of the color
+
+        bool Active = true;
+        float ConstantAttenuation = 1.0f;
+        float LinearAttenuation = 0.7f;
+        float QuadraticAttenuation = 1.8f;
+    };
 }

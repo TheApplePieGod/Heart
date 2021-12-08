@@ -70,19 +70,29 @@ namespace Heart
             { BufferDataType::Float4 }, // camera pos
             { BufferDataType::Float2 }, // screen size
             { BufferDataType::Bool }, // reverse depth
-            { BufferDataType::Bool } // padding
+            { BufferDataType::Float }, // sun intensity
+            { BufferDataType::Float4 }, // sun angle
+            { BufferDataType::Float4 } // sun color
         };
         BufferLayout objectDataLayout = {
             { BufferDataType::Mat4 }, // transform
             { BufferDataType::Float4 } // [0]: entityId
         };
         BufferLayout materialDataLayout = {
-            { BufferDataType::Float4 }, // base color
+            { BufferDataType::Float4 }, // position
             { BufferDataType::Float4 }, // emissive factor
             { BufferDataType::Float4 }, // texcoord transform
             { BufferDataType::Float4 }, // has PBR textures
             { BufferDataType::Float4 }, // has textures
             { BufferDataType::Float4 } // scalars
+        };
+        BufferLayout lightingDataLayout = {
+            { BufferDataType::Float4 }, // base color
+            { BufferDataType::Float4 }, // color
+            { BufferDataType::Bool }, // active
+            { BufferDataType::Float }, // constant attenuation
+            { BufferDataType::Float }, // linear attenuation
+            { BufferDataType::Float } // quadratic attenuation
         };
         BufferLayout indirectDataLayout = {
             { BufferDataType::UInt }, // index count
@@ -94,6 +104,7 @@ namespace Heart
         m_FrameDataBuffer = Buffer::Create(Buffer::Type::Uniform, BufferUsageType::Dynamic, frameDataLayout, 1, nullptr);
         m_ObjectDataBuffer = Buffer::Create(Buffer::Type::Storage, BufferUsageType::Dynamic, objectDataLayout, 5000, nullptr);
         m_MaterialDataBuffer = Buffer::Create(Buffer::Type::Storage, BufferUsageType::Dynamic, materialDataLayout, 5000, nullptr);
+        m_LightingDataBuffer = Buffer::Create(Buffer::Type::Storage, BufferUsageType::Dynamic, lightingDataLayout, 500, nullptr);
         m_IndirectBuffer = Buffer::Create(Buffer::Type::Indirect, BufferUsageType::Dynamic, indirectDataLayout, 1000, nullptr);
         InitializeGridBuffers();
 
@@ -202,6 +213,7 @@ namespace Heart
         m_FrameDataBuffer.reset();
         m_ObjectDataBuffer.reset();
         m_MaterialDataBuffer.reset();
+        m_LightingDataBuffer.reset();
         m_IndirectBuffer.reset();
 
         m_GridVertices.reset();
@@ -224,8 +236,15 @@ namespace Heart
             list.clear();
 
         // Set the global data for this frame
-        FrameData frameData = { camera.GetProjectionMatrix(), camera.GetViewMatrix(), glm::vec4(cameraPosition, 1.f), m_FinalFramebuffer->GetSize(), Renderer::IsUsingReverseDepth() };
-        m_FrameDataBuffer->SetData(&frameData, 1, 0);
+        FrameData frameData = {
+            camera.GetProjectionMatrix(), camera.GetViewMatrix(), glm::vec4(cameraPosition, 1.f),
+            m_FinalFramebuffer->GetSize(),
+            Renderer::IsUsingReverseDepth(),
+            m_Scene->GetSunIntensity(),
+            glm::vec4(m_Scene->GetSunAngle(), 0.f),
+            glm::vec4(m_Scene->GetSunColor(), 0.f)
+        };
+        m_FrameDataBuffer->SetElements(&frameData, 1, 0);
 
         // Bind the main framebuffer
         m_FinalFramebuffer->Bind();
@@ -238,6 +257,9 @@ namespace Heart
         m_FinalFramebuffer->StartNextSubpass();
         if (drawGrid)   
             RenderGrid();
+
+        // Update the light buffer with lights  (TODO: that are on screen)
+        UpdateLightingBuffer();
 
         // Recalculate the indirect render batches
         CalculateBatches();
@@ -252,6 +274,30 @@ namespace Heart
 
         // Submit the framebuffer
         Renderer::Api().RenderFramebuffers(context, { m_FinalFramebuffer.get() });
+    }
+
+    void SceneRenderer::UpdateLightingBuffer()
+    {
+        u32 lightIndex = 1;
+        auto view = m_Scene->GetRegistry().view<TransformComponent, PointLightComponent>();
+        for (auto entity : view)
+        {
+            auto [transform, light] = view.get<TransformComponent, PointLightComponent>(entity);
+            
+            if (!light.Active) continue;
+            
+            // Update the translation part of the light struct
+            m_LightingDataBuffer->SetBytes(&transform.Translation, sizeof(transform.Translation), lightIndex * m_LightingDataBuffer->GetLayout().GetStride());
+
+            // Update the rest of the light data after the transform
+            m_LightingDataBuffer->SetBytes(&light, sizeof(light), lightIndex * m_LightingDataBuffer->GetLayout().GetStride() + sizeof(glm::vec4));
+
+            lightIndex++;
+        }
+
+        // Update the first element of the light buffer to contain the number of lights
+        float lightCount = static_cast<float>(lightIndex - 1);
+        m_LightingDataBuffer->SetBytes(&lightCount, sizeof(float), 0);
     }
 
     void SceneRenderer::CalculateBatches()
@@ -325,7 +371,7 @@ namespace Heart
                 pair.second.Mesh->GetIndexBuffer()->GetAllocatedCount(),
                 pair.second.Count, 0, 0, renderId
             };
-            m_IndirectBuffer->SetData(&command, 1, commandIndex);
+            m_IndirectBuffer->SetElements(&command, 1, commandIndex);
             commandIndex++;
 
             // Contiguiously set the instance data for each entity associated with this batch
@@ -334,7 +380,7 @@ namespace Heart
             {
                 // Object data
                 ObjectData objectData = { m_Scene->GetEntityCachedTransform({ m_Scene, entity }), { entity, 0.f, 0.f, 0.f } };
-                m_ObjectDataBuffer->SetData(&objectData, 1, renderId);
+                m_ObjectDataBuffer->SetElements(&objectData, 1, renderId);
 
                 // Material data
                 if (pair.second.Material)
@@ -356,10 +402,10 @@ namespace Heart
                     auto occlusionAsset = AssetManager::RetrieveAsset<TextureAsset>(pair.second.Material->GetOcclusionTexture());
                     materialData.SetHasOcclusion(occlusionAsset && occlusionAsset->IsValid());
 
-                    m_MaterialDataBuffer->SetData(&materialData, 1, renderId);
+                    m_MaterialDataBuffer->SetElements(&materialData, 1, renderId);
                 }
                 else
-                    m_MaterialDataBuffer->SetData(&AssetManager::RetrieveAsset<MaterialAsset>("DefaultMaterial.hemat", true)->GetMaterial().GetMaterialData(), 1, renderId);
+                    m_MaterialDataBuffer->SetElements(&AssetManager::RetrieveAsset<MaterialAsset>("DefaultMaterial.hemat", true)->GetMaterial().GetMaterialData(), 1, renderId);
 
                 renderId++;
             }
@@ -417,31 +463,31 @@ namespace Heart
         if (materialData.HasAlbedo())
         {
             auto albedoAsset = AssetManager::RetrieveAsset<TextureAsset>(material->GetAlbedoTexture());
-            m_FinalFramebuffer->BindShaderTextureResource(3, albedoAsset->GetTexture());
+            m_FinalFramebuffer->BindShaderTextureResource(4, albedoAsset->GetTexture());
         }
         
         if (materialData.HasMetallicRoughness())
         {
             auto metallicRoughnessAsset = AssetManager::RetrieveAsset<TextureAsset>(material->GetMetallicRoughnessTexture());
-            m_FinalFramebuffer->BindShaderTextureResource(4, metallicRoughnessAsset->GetTexture());
+            m_FinalFramebuffer->BindShaderTextureResource(5, metallicRoughnessAsset->GetTexture());
         }
 
         if (materialData.HasNormal())
         {
             auto normalAsset = AssetManager::RetrieveAsset<TextureAsset>(material->GetNormalTexture());
-            m_FinalFramebuffer->BindShaderTextureResource(5, normalAsset->GetTexture());
+            m_FinalFramebuffer->BindShaderTextureResource(6, normalAsset->GetTexture());
         }
 
         if (materialData.HasEmissive())
         {
             auto emissiveAsset = AssetManager::RetrieveAsset<TextureAsset>(material->GetEmissiveTexture());
-            m_FinalFramebuffer->BindShaderTextureResource(6, emissiveAsset->GetTexture());
+            m_FinalFramebuffer->BindShaderTextureResource(7, emissiveAsset->GetTexture());
         }
 
         if (materialData.HasOcclusion())
         {
             auto occlusionAsset = AssetManager::RetrieveAsset<TextureAsset>(material->GetOcclusionTexture());
-            m_FinalFramebuffer->BindShaderTextureResource(7, occlusionAsset->GetTexture());
+            m_FinalFramebuffer->BindShaderTextureResource(8, occlusionAsset->GetTexture());
         }
     }
 
@@ -452,25 +498,30 @@ namespace Heart
 
         // Bind object data
         m_FinalFramebuffer->BindShaderBufferResource(1, 0, m_ObjectDataBuffer->GetAllocatedCount(), m_ObjectDataBuffer.get());
+
+        // Bind material data
         m_FinalFramebuffer->BindShaderBufferResource(2, 0, m_MaterialDataBuffer->GetAllocatedCount(), m_MaterialDataBuffer.get());
+        
+        // Bind lighting data
+        m_FinalFramebuffer->BindShaderBufferResource(3, 0, m_LightingDataBuffer->GetAllocatedCount(), m_LightingDataBuffer.get());
 
         // Default texture binds
-        m_FinalFramebuffer->BindShaderTextureResource(3, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
         m_FinalFramebuffer->BindShaderTextureResource(4, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
         m_FinalFramebuffer->BindShaderTextureResource(5, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
         m_FinalFramebuffer->BindShaderTextureResource(6, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
         m_FinalFramebuffer->BindShaderTextureResource(7, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
+        m_FinalFramebuffer->BindShaderTextureResource(8, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
         if (m_EnvironmentMap)
         {
-            m_FinalFramebuffer->BindShaderTextureResource(8, m_EnvironmentMap->GetIrradianceCubemap());
-            m_FinalFramebuffer->BindShaderTextureResource(9, m_EnvironmentMap->GetPrefilterCubemap());
-            m_FinalFramebuffer->BindShaderTextureResource(10, m_EnvironmentMap->GetBRDFTexture());
+            m_FinalFramebuffer->BindShaderTextureResource(9, m_EnvironmentMap->GetIrradianceCubemap());
+            m_FinalFramebuffer->BindShaderTextureResource(10, m_EnvironmentMap->GetPrefilterCubemap());
+            m_FinalFramebuffer->BindShaderTextureResource(11, m_EnvironmentMap->GetBRDFTexture());
         }
         else
         {
-            m_FinalFramebuffer->BindShaderTextureResource(8, m_DefaultEnvironmentMap.get());
             m_FinalFramebuffer->BindShaderTextureResource(9, m_DefaultEnvironmentMap.get());
-            m_FinalFramebuffer->BindShaderTextureLayerResource(10, m_DefaultEnvironmentMap.get(), 0);
+            m_FinalFramebuffer->BindShaderTextureResource(10, m_DefaultEnvironmentMap.get());
+            m_FinalFramebuffer->BindShaderTextureLayerResource(11, m_DefaultEnvironmentMap.get(), 0);
         }
     }
 

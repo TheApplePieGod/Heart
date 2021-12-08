@@ -11,7 +11,7 @@ namespace Heart
         VulkanBuffer(Type type, BufferUsageType usage, const BufferLayout& layout, u32 elementCount, void* initialData);
         ~VulkanBuffer() override;
 
-        void SetData(void* data, u32 elementCount, u32 elementOffset) override;
+        void SetBytes(void* data, u32 byteCount, u32 byteOffset) override;
 
         VkBuffer GetBuffer();
         VkBuffer GetStagingBuffer();

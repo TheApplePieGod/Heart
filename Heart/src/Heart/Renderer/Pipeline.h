@@ -102,6 +102,7 @@ namespace Heart
         inline bool IsDepthWriteEnabled() const { return m_Info.DepthWrite; }
         inline u32 GetVertexLayoutStride() const { return m_Info.VertexLayout.GetStride(); }
         inline const std::vector<AttachmentBlendState>& GetBlendStates() const { return m_Info.BlendStates; }
+        inline const std::vector<ReflectionDataElement>& GetReflectionData() const { return m_ProgramReflectionData; }
 
     protected:
         GraphicsPipelineCreateInfo m_Info;

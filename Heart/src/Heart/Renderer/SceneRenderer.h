@@ -28,7 +28,9 @@ namespace Heart
             glm::vec4 CameraPos;
             glm::vec2 ScreenSize;
             bool ReverseDepth;
-            bool padding;
+            float SunIntensity;
+            glm::vec4 SunAngle;
+            glm::vec4 SunColor;
         };
         struct ObjectData
         {
@@ -68,6 +70,7 @@ namespace Heart
         void Initialize();
         void Shutdown();
 
+        void UpdateLightingBuffer();
         void CalculateBatches();
         void BindMaterial(Material* material);
         void BindPBRDefaults();
@@ -90,6 +93,7 @@ namespace Heart
         Ref<Buffer> m_FrameDataBuffer;
         Ref<Buffer> m_ObjectDataBuffer;
         Ref<Buffer> m_MaterialDataBuffer;
+        Ref<Buffer> m_LightingDataBuffer;
         Ref<Buffer> m_IndirectBuffer;
 
         // grid

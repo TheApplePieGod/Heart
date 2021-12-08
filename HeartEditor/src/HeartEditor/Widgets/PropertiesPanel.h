@@ -22,6 +22,7 @@ namespace Widgets
     private:
         void RenderTransformComponent();
         void RenderMeshComponent();
+        void RenderPointLightComponent();
 
         void RenderXYZSlider(const std::string& name, f32* x, f32* y, f32* z, f32 min, f32 max, f32 step);
 

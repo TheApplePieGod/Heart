@@ -9,6 +9,15 @@ struct Material {
     vec4 scalars; // [0]: metalness, [1]: roughness, [2]: alphaClipThreshold
 };
 
+struct Light {
+    vec4 position;
+    vec4 color;
+    bool isActive;
+    float constantAttenuation;
+    float linearAttenuation;
+    float quadraticAttenuation;
+};
+
 layout(location = 0) in vec2 texCoord;
 layout(location = 1) in flat int entityId;
 layout(location = 2) in float depth;
@@ -21,14 +30,18 @@ layout(location = 7) in flat int instance;
 layout(binding = 2) readonly buffer MaterialBuffer {
     Material materials[];
 } materialBuffer;
-layout(binding = 3) uniform sampler2D albedoTex;
-layout(binding = 4) uniform sampler2D metallicRoughnessTex;
-layout(binding = 5) uniform sampler2D normalTex;
-layout(binding = 6) uniform sampler2D emissiveTex;
-layout(binding = 7) uniform sampler2D occlusionTex;
-layout(binding = 8) uniform samplerCube irradianceMap;
-layout(binding = 9) uniform samplerCube prefilterMap;
-layout(binding = 10) uniform sampler2D brdfLUT;
+layout(binding = 3) readonly buffer LightingBuffer {
+    Light lights[];
+} lightingBuffer;
+
+layout(binding = 4) uniform sampler2D albedoTex;
+layout(binding = 5) uniform sampler2D metallicRoughnessTex;
+layout(binding = 6) uniform sampler2D normalTex;
+layout(binding = 7) uniform sampler2D emissiveTex;
+layout(binding = 8) uniform sampler2D occlusionTex;
+layout(binding = 9) uniform samplerCube irradianceMap;
+layout(binding = 10) uniform samplerCube prefilterMap;
+layout(binding = 11) uniform sampler2D brdfLUT;
 
 #define PI 3.1415926
 
@@ -134,6 +147,27 @@ vec3 ACESFilm(vec3 x)
     return clamp((x*(a*x+b))/(x*(c*x+d)+e), vec3(0.f), vec3(1.f));
 }
 
+vec3 CalcLightContribution(vec3 albedo, vec3 F0, vec3 lightColor, float intensity, float attenuation, vec3 L, vec3 V, vec3 N, float metalness, float roughness)
+{
+    vec3 H = normalize(V + L);
+    vec3 F = FresnelSchlick(max(dot(H, V), 0.0), F0);
+    vec3 radiance = lightColor * attenuation * intensity;
+
+    float NDF = DistributionGGX(N, H, roughness);
+    float G = GeometrySmith(N, V, L, roughness);
+
+    vec3 numerator = NDF * G * F;
+    float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.0001;
+    vec3 specular = numerator / denominator;
+
+    vec3 kS = F;
+    vec3 kD = vec3(1.0) - kS;
+    kD *= 1.0 - metalness;
+
+    float NdotL = max(dot(N, L), 0.0); 
+    return (kD * albedo / PI + specular) * radiance * NdotL;
+}
+
 vec4 GetFinalColor()
 {
     vec4 baseColor = GetAlbedo();
@@ -166,28 +200,45 @@ vec4 GetFinalColor()
     // ------------------------------
     // Begin per light code
     // ------------------------------
+    finalContribution += CalcLightContribution(baseColor.rgb, F0, frameBuffer.data.sunColor.rgb, frameBuffer.data.sunIntensity, 1.f, normalize(frameBuffer.data.sunAngle.xyz), V, N, metalness, roughness);
+    int lightCount = int(lightingBuffer.lights[0].position.x);
+    for (int i = 1; i <= lightCount; i++)
     {
-        vec3 lightColor = vec3(0.6f, 0.7f, 0.99f);
-        //vec3 lightColor = vec3(0.95f, 0.5f, 0.1f);
-        vec3 L = normalize(vec3(0.5f, 0.5f, 0.f)); // directional light
-        vec3 H = normalize(V + L);
-        vec3 F = FresnelSchlick(max(dot(H, V), 0.0), F0);
-        vec3 radiance = lightColor * 2.f;
-
-        float NDF = DistributionGGX(N, H, roughness);
-        float G = GeometrySmith(N, V, L, roughness);
-
-        vec3 numerator = NDF * G * F;
-        float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.0001;
-        vec3 specular = numerator / denominator;
-
-        vec3 kS = F;
-        vec3 kD = vec3(1.0) - kS;
-        kD *= 1.0 - metalness;
-
-        float NdotL = max(dot(N, L), 0.0); 
-        finalContribution += (kD * baseColor.rgb / PI + specular) * radiance * NdotL;
+        float dist = length(lightingBuffer.lights[i].position.xyz - worldPos);
+        float attenuation = 1.f / (lightingBuffer.lights[i].constantAttenuation + lightingBuffer.lights[i].linearAttenuation * dist + lightingBuffer.lights[i].quadraticAttenuation * dist * dist);
+        finalContribution += CalcLightContribution(
+            baseColor.rgb,
+            F0,
+            lightingBuffer.lights[i].color.rgb,
+            lightingBuffer.lights[i].color.a,
+            attenuation,
+            normalize(lightingBuffer.lights[i].position.xyz - worldPos),
+            V, N,
+            metalness, roughness
+        );
     }
+    // {
+    //     vec3 lightColor = vec3(0.6f, 0.7f, 0.99f);
+    //     //vec3 lightColor = vec3(0.95f, 0.5f, 0.1f);
+    //     vec3 L = normalize(vec3(0.5f, 0.5f, 0.f)); // directional light
+    //     vec3 H = normalize(V + L);
+    //     vec3 F = FresnelSchlick(max(dot(H, V), 0.0), F0);
+    //     vec3 radiance = lightColor * 2.f;
+
+    //     float NDF = DistributionGGX(N, H, roughness);
+    //     float G = GeometrySmith(N, V, L, roughness);
+
+    //     vec3 numerator = NDF * G * F;
+    //     float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.0001;
+    //     vec3 specular = numerator / denominator;
+
+    //     vec3 kS = F;
+    //     vec3 kD = vec3(1.0) - kS;
+    //     kD *= 1.0 - metalness;
+
+    //     float NdotL = max(dot(N, L), 0.0); 
+    //     finalContribution += (kD * baseColor.rgb / PI + specular) * radiance * NdotL;
+    // }
     
     // ambient lighting
     vec3 F = FresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness);

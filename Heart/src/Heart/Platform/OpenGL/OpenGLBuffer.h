@@ -10,7 +10,7 @@ namespace Heart
         OpenGLBuffer(Type type, BufferUsageType usage, const BufferLayout& layout, u32 elementCount, void* initialData);
         ~OpenGLBuffer() override;
 
-        void SetData(void* data, u32 elementCount, u32 elementOffset) override;
+        void SetBytes(void* data, u32 byteCount, u32 byteOffset) override;
 
         inline u32 GetBufferId() const { return m_BufferId; }
 

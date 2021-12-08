@@ -45,14 +45,18 @@ namespace Heart
         glDeleteBuffers(1, &m_BufferId);
     }
 
-    void OpenGLBuffer::SetData(void* data, u32 elementCount, u32 elementOffset)
+    void OpenGLBuffer::SetBytes(void* data, u32 byteCount, u32 byteOffset)
     {
         HE_PROFILE_FUNCTION();
         
-        HE_ENGINE_ASSERT(elementCount + elementOffset <= m_AllocatedCount, "Attempting to set data on buffer which is larger than allocated size");
+        if (m_Usage == BufferUsageType::Static)
+        {
+            HE_ENGINE_LOG_WARN("Attemting to update buffer that is marked as static");
+            return;
+        }
 
         glBindBuffer(OpenGLCommon::BufferTypeToOpenGL(m_Type), m_BufferId);
-        glBufferSubData(OpenGLCommon::BufferTypeToOpenGL(m_Type), m_Layout.GetStride() * elementOffset, m_Layout.GetStride() * elementCount, data);
+        glBufferSubData(OpenGLCommon::BufferTypeToOpenGL(m_Type), byteOffset, byteCount, data);
         glBindBuffer(OpenGLCommon::BufferTypeToOpenGL(m_Type), 0);
     }
 }
