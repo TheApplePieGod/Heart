@@ -44,7 +44,7 @@ namespace Heart
 
         void OnEvent(Event& event) override;
 
-        inline Framebuffer& GetFinalFramebuffer() { return *m_FinalFramebuffer; }
+        inline Framebuffer& GetFinalFramebuffer() { return *m_PostBloomFramebuffer; }
 
     private:
         struct IndirectBatch
@@ -77,6 +77,7 @@ namespace Heart
         void RenderGrid();
         void RenderBatches();
         void Composite();
+        void Bloom(GraphicsContext& context);
 
         void InitializeGridBuffers();
 
@@ -86,8 +87,16 @@ namespace Heart
     private:
         bool m_Initialized = false;
 
-        Ref<Texture> m_DefaultEnvironmentMap;
         Ref<Framebuffer> m_FinalFramebuffer;
+        Ref<Framebuffer> m_HorizontalBloomFramebuffer;
+        Ref<Framebuffer> m_VerticalBloomFramebuffer;
+        Ref<Framebuffer> m_PostBloomFramebuffer;
+
+        Ref<Texture> m_DefaultEnvironmentMap;
+        Ref<Texture> m_PreBloomTexture;
+        Ref<Texture> m_BloomTexture1;
+        Ref<Texture> m_BloomTexture2;
+
         Ref<Buffer> m_FrameDataBuffer;
         Ref<Buffer> m_ObjectDataBuffer;
         Ref<Buffer> m_MaterialDataBuffer;

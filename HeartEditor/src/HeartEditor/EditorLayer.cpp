@@ -76,6 +76,10 @@ namespace HeartEditor
         // entity.AddComponent<Heart::MeshComponent>();
         // entity.GetComponent<Heart::MeshComponent>().Mesh = Heart::AssetManager::GetAssetUUID("DefaultCube.gltf", true);
 
+        // auto& lightComp = entity.AddComponent<Heart::LightComponent>();
+        // lightComp.Color.a = 100.f;
+        // lightComp.LightType = Heart::LightComponent::Type::Directional;
+
         // int max = 10;
         // for (int i = 0; i < 5; i++)
         // {

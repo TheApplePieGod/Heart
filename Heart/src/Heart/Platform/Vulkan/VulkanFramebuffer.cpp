@@ -289,7 +289,7 @@ namespace Heart
      
             VkCommandBufferBeginInfo beginInfo{};
             beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-            beginInfo.flags = 0;
+            beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
             beginInfo.pInheritanceInfo = nullptr;
 
             HE_VULKAN_CHECK_RESULT(vkBeginCommandBuffer(buffer, &beginInfo));
@@ -329,33 +329,36 @@ namespace Heart
     {
         HE_PROFILE_FUNCTION();
 
-        HE_ENGINE_ASSERT(!m_SubmittedThisFrame, "Cannot submit framebuffer twice in the same frame");
-        HE_ENGINE_ASSERT(m_BoundThisFrame, "Cannot submit framebuffer that has not been bound this frame");
+        //HE_ENGINE_ASSERT(!m_SubmittedThisFrame, "Cannot submit framebuffer twice in the same frame");
+        HE_ENGINE_ASSERT(m_SubmittedThisFrame || m_BoundThisFrame, "Cannot submit framebuffer that has not been bound this frame");
         HE_ENGINE_ASSERT(m_CurrentSubpass == m_Info.Subpasses.size() - 1, "Attempting to submit a framebuffer without completing all subpasses");
 
         VulkanDevice& device = VulkanContext::GetDevice();
         VkCommandBuffer buffer = GetCommandBuffer();
 
-        vkCmdEndRenderPass(buffer);
+        if (!m_SubmittedThisFrame)
+        {
+            vkCmdEndRenderPass(buffer);
 
-        // copy all CPU visible attachments to their respective buffers        
-        for (auto& attachment : m_AttachmentData)
-            CopyAttachmentToBuffer(attachment);
-        for (auto& attachment : m_DepthAttachmentData)
-            CopyAttachmentToBuffer(attachment);
+            // copy all CPU visible attachments to their respective buffers        
+            for (auto& attachment : m_AttachmentData)
+                CopyAttachmentToBuffer(attachment);
+            for (auto& attachment : m_DepthAttachmentData)
+                CopyAttachmentToBuffer(attachment);
 
-        // execute any commands that need to be synced with this framebuffer (i.e. Texture::RegenerateMipMapsSync)
-        for (auto cmdBuf : m_AuxiliaryCommandBuffers[m_InFlightFrameIndex])
-            vkCmdExecuteCommands(buffer, 1, &cmdBuf);
+            // execute any commands that need to be synced with this framebuffer (i.e. Texture::RegenerateMipMapsSync)
+            for (auto cmdBuf : m_AuxiliaryCommandBuffers[m_InFlightFrameIndex])
+                vkCmdExecuteCommands(buffer, 1, &cmdBuf);
 
-        HE_VULKAN_CHECK_RESULT(vkEndCommandBuffer(buffer));
+            HE_VULKAN_CHECK_RESULT(vkEndCommandBuffer(buffer));
 
-        m_BoundPipeline = nullptr;
-        m_BoundPipelineName = "";
-        m_BoundThisFrame = false;
-        m_SubmittedThisFrame = true;
-        m_FlushedThisFrame = false;
-        m_CurrentSubpass = 0;
+            m_BoundPipeline = nullptr;
+            m_BoundPipelineName = "";
+            m_BoundThisFrame = false;
+            m_SubmittedThisFrame = true;
+            m_FlushedThisFrame = false;
+            m_CurrentSubpass = 0;
+        }
     }
 
     void VulkanFramebuffer::CopyAttachmentToBuffer(VulkanFramebufferAttachment& attachmentData)

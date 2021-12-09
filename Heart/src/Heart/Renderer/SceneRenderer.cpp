@@ -107,25 +107,31 @@ namespace Heart
         m_IndirectBuffer = Buffer::Create(Buffer::Type::Indirect, BufferUsageType::Dynamic, indirectDataLayout, 1000, nullptr);
         InitializeGridBuffers();
 
+        m_PreBloomTexture = Texture::Create({ 1024, 1024, 4, true, 1, 1 });
+        m_BloomTexture1 = Texture::Create({ 1024, 1024, 4, true, 1, 1 });
+        m_BloomTexture2 = Texture::Create({ 1024, 1024, 4, true, 1, 1 });
+
         // Create the main framebuffer
         FramebufferCreateInfo fbCreateInfo = {
             {
-                { false, { 0.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::RGBA8 },
-                { true, { -1.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::R32F },
-                { false, { 0.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::RGBA16F },
-                { false, { 1.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::R16F }
+                { false, { 0.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::RGBA8 }, // final [0]
+                { true, { -1.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::R32F }, // entity id [1]
+                { false, { 0.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::RGBA16F }, // transparency data [2]
+                { false, { 1.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::R16F }, // transparency data [3]
+                { false, { 0.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::None, m_PreBloomTexture }, // pre-bloom target [4]
+                { false, { 0.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::None, m_BloomTexture1 }, // bright colors target [5]
             },
             {
                 {}
             },
             {
-                { {}, { { SubpassAttachmentType::Color, 0 } } }, // environment map
-                { {}, { { SubpassAttachmentType::Color, 0 } } }, // grid
-                { {}, { { SubpassAttachmentType::Depth, 0 }, { SubpassAttachmentType::Color, 0 }, { SubpassAttachmentType::Color, 1 } } }, // opaque
+                { {}, { { SubpassAttachmentType::Color, 4 } } }, // environment map
+                { {}, { { SubpassAttachmentType::Color, 4 } } }, // grid
+                { {}, { { SubpassAttachmentType::Depth, 0 }, { SubpassAttachmentType::Color, 4 }, { SubpassAttachmentType::Color, 5 }, { SubpassAttachmentType::Color, 1 } } }, // opaque
                 { {}, { { SubpassAttachmentType::Depth, 0 }, { SubpassAttachmentType::Color, 1 }, { SubpassAttachmentType::Color, 2 }, { SubpassAttachmentType::Color, 3 } } }, // transparent color
-                { { { SubpassAttachmentType::Color, 2 }, { SubpassAttachmentType::Color, 3 } }, { { SubpassAttachmentType::Depth, 0 }, { SubpassAttachmentType::Color, 0 } } } // composite
+                { { { SubpassAttachmentType::Color, 2 }, { SubpassAttachmentType::Color, 3 } }, { { SubpassAttachmentType::Depth, 0 }, { SubpassAttachmentType::Color, 4 } } }, // composite
             },
-            0, 0,
+            1024, 1024,
             MsaaSampleCount::None
         };
         m_FinalFramebuffer = Framebuffer::Create(fbCreateInfo);
@@ -163,7 +169,7 @@ namespace Heart
             true,
             VertexTopology::TriangleList,
             Heart::Mesh::GetVertexLayout(),
-            { { false }, { false } },
+            { { false }, { false }, { false } },
             true,
             true,
             CullMode::Backface,
@@ -196,19 +202,106 @@ namespace Heart
             WindingOrder::Clockwise,
             4
         };
+        
         m_FinalFramebuffer->RegisterGraphicsPipeline("skybox", envMapPipeline);
         m_FinalFramebuffer->RegisterGraphicsPipeline("grid", gridPipeline);
         m_FinalFramebuffer->RegisterGraphicsPipeline("pbr", pbrPipeline);
         m_FinalFramebuffer->RegisterGraphicsPipeline("pbrTpColor", transparencyColorPipeline);
         m_FinalFramebuffer->RegisterGraphicsPipeline("tpComposite", transparencyCompositePipeline);
+
+        // Create the horizontal bloom pass framebuffer
+        FramebufferCreateInfo bloomFbCreateInfo = {
+            {
+                { false, { 0.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::None, m_BloomTexture2 },
+            },
+            {
+                {}
+            },
+            {
+                { {}, { { SubpassAttachmentType::Color, 0 } } }
+            },
+            1024, 1024,
+            MsaaSampleCount::None
+        };
+        m_HorizontalBloomFramebuffer = Framebuffer::Create(bloomFbCreateInfo);
+        bloomFbCreateInfo.ColorAttachments[0].Texture = m_BloomTexture1;
+        m_VerticalBloomFramebuffer = Framebuffer::Create(bloomFbCreateInfo);
+
+        GraphicsPipelineCreateInfo bloomHorizontal = {
+            AssetManager::GetAssetUUID("FullscreenTriangle.vert", true),
+            AssetManager::GetAssetUUID("GaussianBlurHorizontal.frag", true),
+            false,
+            VertexTopology::TriangleList,
+            Heart::Mesh::GetVertexLayout(),
+            { { false } },
+            false,
+            false,
+            CullMode::None,
+            WindingOrder::Clockwise,
+            0
+        };
+        m_HorizontalBloomFramebuffer->RegisterGraphicsPipeline("bloomHorizontal", bloomHorizontal);
+
+        GraphicsPipelineCreateInfo bloomVertical = {
+            AssetManager::GetAssetUUID("FullscreenTriangle.vert", true),
+            AssetManager::GetAssetUUID("GaussianBlurVertical.frag", true),
+            false,
+            VertexTopology::TriangleList,
+            Heart::Mesh::GetVertexLayout(),
+            { { false } },
+            false,
+            false,
+            CullMode::None,
+            WindingOrder::Clockwise,
+            0
+        };
+        m_VerticalBloomFramebuffer->RegisterGraphicsPipeline("bloomVertical", bloomVertical);
+
+        FramebufferCreateInfo postBloomFbCreateInfo = {
+            {
+                { false, { 0.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::RGBA8 }
+            },
+            {
+                {}
+            },
+            {
+                { {}, { { SubpassAttachmentType::Color, 0 } } }
+            },
+            1024, 1024,
+            MsaaSampleCount::None
+        };
+        m_PostBloomFramebuffer = Framebuffer::Create(postBloomFbCreateInfo);
+
+        GraphicsPipelineCreateInfo bloomComposite = {
+            AssetManager::GetAssetUUID("FullscreenTriangle.vert", true),
+            AssetManager::GetAssetUUID("BloomComposite.frag", true),
+            false,
+            VertexTopology::TriangleList,
+            Heart::Mesh::GetVertexLayout(),
+            { { false } },
+            false,
+            false,
+            CullMode::None,
+            WindingOrder::Clockwise,
+            0
+        };
+        m_PostBloomFramebuffer->RegisterGraphicsPipeline("bloomComposite", bloomComposite);
     }
 
     void SceneRenderer::Shutdown()
     {
         m_Initialized = false;
 
-        m_DefaultEnvironmentMap.reset();
         m_FinalFramebuffer.reset();
+        m_HorizontalBloomFramebuffer.reset();
+        m_VerticalBloomFramebuffer.reset();
+        m_PostBloomFramebuffer.reset();
+        
+        m_DefaultEnvironmentMap.reset();
+        m_PreBloomTexture.reset();
+        m_BloomTexture1.reset();
+        m_BloomTexture2.reset();
+
         m_FrameDataBuffer.reset();
         m_ObjectDataBuffer.reset();
         m_MaterialDataBuffer.reset();
@@ -270,6 +363,9 @@ namespace Heart
 
         // Submit the framebuffer
         Renderer::Api().RenderFramebuffers(context, { m_FinalFramebuffer.get() });
+
+        // Bloom
+        Bloom(context);
     }
 
     void SceneRenderer::UpdateLightingBuffer()
@@ -603,6 +699,61 @@ namespace Heart
 
         // Draw the fullscreen triangle
         Renderer::Api().Draw(3, 0, 1);
+    }
+
+    void SceneRenderer::Bloom(GraphicsContext& context)
+    {
+        // Record the framebuffer commands
+        {
+            m_HorizontalBloomFramebuffer->Bind();
+
+            m_HorizontalBloomFramebuffer->BindPipeline("bloomHorizontal");
+
+            m_HorizontalBloomFramebuffer->BindShaderBufferResource(0, 0, 1, m_FrameDataBuffer.get());
+
+            m_HorizontalBloomFramebuffer->BindShaderTextureResource(1, m_BloomTexture1.get());
+
+            m_HorizontalBloomFramebuffer->FlushBindings();
+
+            // Draw the fullscreen triangle
+            Renderer::Api().Draw(3, 0, 1);
+
+            m_VerticalBloomFramebuffer->Bind();
+
+            m_VerticalBloomFramebuffer->BindPipeline("bloomVertical");
+
+            m_VerticalBloomFramebuffer->BindShaderBufferResource(0, 0, 1, m_FrameDataBuffer.get());
+
+            m_VerticalBloomFramebuffer->BindShaderTextureResource(1, m_BloomTexture2.get());
+
+            m_VerticalBloomFramebuffer->FlushBindings();
+
+            // Draw the fullscreen triangle
+            Renderer::Api().Draw(3, 0, 1);
+        }
+
+        u32 samples = 10;
+        for (u32 i = 0; i < samples; i++)
+        {
+            Renderer::Api().RenderFramebuffers(context, { m_HorizontalBloomFramebuffer.get() });
+            Renderer::Api().RenderFramebuffers(context, { m_VerticalBloomFramebuffer.get() });
+        }
+
+        m_PostBloomFramebuffer->Bind();
+
+        m_PostBloomFramebuffer->BindPipeline("bloomComposite");
+
+        m_PostBloomFramebuffer->BindShaderBufferResource(0, 0, 1, m_FrameDataBuffer.get());
+
+        m_PostBloomFramebuffer->BindShaderTextureResource(1, m_PreBloomTexture.get());
+        m_PostBloomFramebuffer->BindShaderTextureResource(2, m_BloomTexture1.get());
+
+        m_PostBloomFramebuffer->FlushBindings();
+
+        // Draw the fullscreen triangle
+        Renderer::Api().Draw(3, 0, 1);
+
+        Renderer::Api().RenderFramebuffers(context, { m_PostBloomFramebuffer.get() });
     }
 
     void SceneRenderer::InitializeGridBuffers()
