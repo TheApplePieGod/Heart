@@ -46,6 +46,11 @@ namespace Heart
 				* glm::toMat4(glm::quat(glm::radians(Rotation)))
 				* glm::scale(glm::mat4(1.0f), Scale);
         }
+
+        inline glm::vec3 GetForwardVector() const
+        {
+            return glm::normalize(glm::vec3(glm::toMat4(glm::quat(glm::radians(Rotation))) * glm::vec4(0.f, 0.f, 1.f, 1.f)));
+        }
     };
 
     struct MeshComponent
@@ -54,12 +59,22 @@ namespace Heart
         std::vector<UUID> Materials;
     };
 
-    struct PointLightComponent
+    struct LightComponent
     {
+        enum class Type
+        {
+            Disabled = 0,
+            Directional = 1,
+            Point = 2
+        };
+        inline static const char* TypeStrings[] = {
+            "Disabled", "Directional", "Point"
+        };
+
         // TODO: ambient & specular colors
         glm::vec4 Color = { 1.f, 1.f, 1.f, 1.f }; // intensity is stored in the alpha component of the color
 
-        bool Active = true;
+        Type LightType = Type::Point;
         float ConstantAttenuation = 1.0f;
         float LinearAttenuation = 0.7f;
         float QuadraticAttenuation = 1.8f;

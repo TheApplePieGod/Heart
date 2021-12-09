@@ -90,15 +90,15 @@ namespace Widgets
             {
                 if (ImGui::MenuItem("Mesh Component"))
                     selectedEntity.AddComponent<Heart::MeshComponent>();
-                if (ImGui::MenuItem("Point Light Component"))
-                    selectedEntity.AddComponent<Heart::PointLightComponent>();
+                if (ImGui::MenuItem("Light Component"))
+                    selectedEntity.AddComponent<Heart::LightComponent>();
 
                 ImGui::EndPopup();
             }
 
             RenderTransformComponent();
             RenderMeshComponent();
-            RenderPointLightComponent();
+            RenderLightComponent();
         }
 
         ImGui::End();
@@ -245,21 +245,34 @@ namespace Widgets
         }
     }
 
-    void PropertiesPanel::RenderPointLightComponent()
+    void PropertiesPanel::RenderLightComponent()
     {
         auto selectedEntity = Editor::GetState().SelectedEntity;
-        if (selectedEntity.HasComponent<Heart::PointLightComponent>())
+        if (selectedEntity.HasComponent<Heart::LightComponent>())
         {
-            bool headerOpen = ImGui::CollapsingHeader("Point Light");
-            if (!RenderComponentPopup<Heart::PointLightComponent>("PointLightPopup", true) && headerOpen)
+            bool headerOpen = ImGui::CollapsingHeader("Light");
+            if (!RenderComponentPopup<Heart::LightComponent>("PointLightPopup", true) && headerOpen)
             {
-                auto& lightComp = selectedEntity.GetComponent<Heart::PointLightComponent>();
+                auto& lightComp = selectedEntity.GetComponent<Heart::LightComponent>();
 
                 ImGui::Indent();
 
-                ImGui::Text("Is Active");
+                ImGui::Text("Light Type:");
                 ImGui::SameLine();
-                ImGui::Checkbox("##Active", &lightComp.Active);
+                bool popupOpened = ImGui::Button(HE_ENUM_TO_STRING(Heart::LightComponent, lightComp.LightType));
+                if (popupOpened)
+                    ImGui::OpenPopup("LightTypeSelect");
+            
+                if (ImGui::BeginPopup("LightTypeSelect"))
+                {
+                    if (ImGui::MenuItem("Disabled"))
+                        lightComp.LightType = Heart::LightComponent::Type::Disabled;
+                    if (ImGui::MenuItem("Directional"))
+                        lightComp.LightType = Heart::LightComponent::Type::Directional;
+                    if (ImGui::MenuItem("Point"))
+                        lightComp.LightType = Heart::LightComponent::Type::Point;
+                    ImGui::EndPopup();
+                }
 
                 ImGui::Text("Color");
                 ImGui::SameLine();

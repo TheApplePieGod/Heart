@@ -68,7 +68,7 @@ namespace HeartEditor
             Heart::CreateRef<Widgets::SceneSettings>("Scene Settings", true)
         );
 
-        // auto entity = Editor::GetActiveScene().CreateEntity("Test Entity");
+        // auto entity = Editor::GetActiveScene().CreateEntity("Sponza");
         // entity.AddComponent<Heart::MeshComponent>();
         // entity.GetComponent<Heart::MeshComponent>().Mesh = Heart::AssetManager::GetAssetUUID("assets/meshes/Sponza/glTF/Sponza.gltf");
 
@@ -76,16 +76,14 @@ namespace HeartEditor
         // entity.AddComponent<Heart::MeshComponent>();
         // entity.GetComponent<Heart::MeshComponent>().Mesh = Heart::AssetManager::GetAssetUUID("DefaultCube.gltf", true);
 
-        // int max = 100;
-        // int scaleMax = 2;
-        // for (int i = 0; i < 150; i++)
+        // int max = 10;
+        // for (int i = 0; i < 5; i++)
         // {
-        //     Heart::Entity entity = Editor::GetActiveScene().CreateEntity("Entity " + std::to_string(i));
-        //     entity.AddComponent<Heart::MeshComponent>().Mesh = Heart::AssetManager::GetAssetUUID("assets/meshes/Sponza/glTF/Sponza.gltf");
-        //     glm::vec3 translation = { rand() % (max * 2) - max, 0.f, rand() % (max * 2) - max };
-        //     glm::vec3 rotation = { 1.f, 1.f, 1.f }; //{ rand() % (180 * 2) - 180, rand() % (180 * 2) - 180, rand() % (180 * 2) - 180 };
-        //     glm::vec3 scale = { 1.f, 1.f, 1.f };
-        //     entity.SetTransform(translation, rotation, scale);
+        //     Heart::Entity entity = Editor::GetActiveScene().CreateEntity("Light " + std::to_string(i));
+        //     auto& comp = entity.AddComponent<Heart::PointLightComponent>();
+        //     //comp.LinearAttenuation = 1.f;
+        //     comp.Color = { (rand() % 255) / 255.f, (rand() % 255) / 255.f, (rand() % 255) / 255.f, rand() % 50 };
+        //     entity.SetPosition({ rand() % (max * 2) - max, rand() % (max * 2) - max, rand() % (max * 2) - max });
         // }
     }
 

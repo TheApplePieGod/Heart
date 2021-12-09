@@ -22,9 +22,29 @@ namespace Heart
         m_Scene->m_Registry.destroy(m_EntityHandle);
     }
 
-    glm::mat4x4 Entity::GetWorldTransformMatrix()
+    const glm::mat4x4& Entity::GetWorldTransformMatrix()
     {
-        return m_Scene->m_CachedTransforms[m_EntityHandle];
+        return m_Scene->m_CachedTransforms[m_EntityHandle].Transform;
+    }
+
+    glm::vec3 Entity::GetWorldPosition()
+    {
+        return m_Scene->m_CachedTransforms[m_EntityHandle].Position;
+    }
+
+    glm::vec3 Entity::GetWorldRotation()
+    {
+        return m_Scene->m_CachedTransforms[m_EntityHandle].Rotation;
+    }
+
+    glm::vec3 Entity::GetWorldScale()
+    {
+        return m_Scene->m_CachedTransforms[m_EntityHandle].Scale;
+    }
+
+    glm::vec3 Entity::GetWorldForwardVector()
+    {
+        return glm::normalize(glm::vec3(glm::toMat4(glm::quat(glm::radians(m_Scene->m_CachedTransforms[m_EntityHandle].Rotation))) * glm::vec4(0.f, 0.f, 1.f, 1.f)));
     }
 
     void Entity::SetPosition(glm::vec3 pos)

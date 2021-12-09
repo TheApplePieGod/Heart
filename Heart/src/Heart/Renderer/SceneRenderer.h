@@ -28,9 +28,7 @@ namespace Heart
             glm::vec4 CameraPos;
             glm::vec2 ScreenSize;
             bool ReverseDepth;
-            float SunIntensity;
-            glm::vec4 SunAngle;
-            glm::vec4 SunColor;
+            float padding;
         };
         struct ObjectData
         {

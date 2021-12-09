@@ -70,9 +70,7 @@ namespace Heart
             { BufferDataType::Float4 }, // camera pos
             { BufferDataType::Float2 }, // screen size
             { BufferDataType::Bool }, // reverse depth
-            { BufferDataType::Float }, // sun intensity
-            { BufferDataType::Float4 }, // sun angle
-            { BufferDataType::Float4 } // sun color
+            { BufferDataType::Float }, // padding
         };
         BufferLayout objectDataLayout = {
             { BufferDataType::Mat4 }, // transform
@@ -87,9 +85,10 @@ namespace Heart
             { BufferDataType::Float4 } // scalars
         };
         BufferLayout lightingDataLayout = {
-            { BufferDataType::Float4 }, // base color
+            { BufferDataType::Float4 }, // position
+            { BufferDataType::Float4 }, // rotation
             { BufferDataType::Float4 }, // color
-            { BufferDataType::Bool }, // active
+            { BufferDataType::Int }, // light type
             { BufferDataType::Float }, // constant attenuation
             { BufferDataType::Float }, // linear attenuation
             { BufferDataType::Float } // quadratic attenuation
@@ -239,10 +238,7 @@ namespace Heart
         FrameData frameData = {
             camera.GetProjectionMatrix(), camera.GetViewMatrix(), glm::vec4(cameraPosition, 1.f),
             m_FinalFramebuffer->GetSize(),
-            Renderer::IsUsingReverseDepth(),
-            m_Scene->GetSunIntensity(),
-            glm::vec4(m_Scene->GetSunAngle(), 0.f),
-            glm::vec4(m_Scene->GetSunColor(), 0.f)
+            Renderer::IsUsingReverseDepth()
         };
         m_FrameDataBuffer->SetElements(&frameData, 1, 0);
 
@@ -278,19 +274,33 @@ namespace Heart
 
     void SceneRenderer::UpdateLightingBuffer()
     {
+        HE_PROFILE_FUNCTION();
+
         u32 lightIndex = 1;
-        auto view = m_Scene->GetRegistry().view<TransformComponent, PointLightComponent>();
-        for (auto entity : view)
+        auto view = m_Scene->GetRegistry().view<TransformComponent, LightComponent>();
+        for (auto entityHandle : view)
         {
-            auto [transform, light] = view.get<TransformComponent, PointLightComponent>(entity);
-            
-            if (!light.Active) continue;
-            
+            Entity entity = { m_Scene, entityHandle };
+            auto [transform, light] = view.get<TransformComponent, LightComponent>(entityHandle);
+            u32 offset = lightIndex * m_LightingDataBuffer->GetLayout().GetStride();
+
+            if (light.LightType == LightComponent::Type::Disabled) continue;
+
             // Update the translation part of the light struct
-            m_LightingDataBuffer->SetBytes(&transform.Translation, sizeof(transform.Translation), lightIndex * m_LightingDataBuffer->GetLayout().GetStride());
+            m_LightingDataBuffer->SetBytes(&entity.GetWorldPosition(), sizeof(glm::vec3), offset);
+            offset += sizeof(glm::vec4);
+
+            // Update the light direction if the light is not a point light
+            if (light.LightType != LightComponent::Type::Point)
+            {
+                // Negate the forward vector so it points in the direction of the light's +Z
+                glm::vec3 forwardVector = -entity.GetWorldForwardVector();
+                m_LightingDataBuffer->SetBytes(&forwardVector, sizeof(forwardVector), offset);
+            }
+            offset += sizeof(glm::vec4);
 
             // Update the rest of the light data after the transform
-            m_LightingDataBuffer->SetBytes(&light, sizeof(light), lightIndex * m_LightingDataBuffer->GetLayout().GetStride() + sizeof(glm::vec4));
+            m_LightingDataBuffer->SetBytes(&light, sizeof(light), offset);
 
             lightIndex++;
         }
@@ -419,7 +429,7 @@ namespace Heart
     {
         m_FinalFramebuffer->BindPipeline("skybox");
         m_FinalFramebuffer->BindShaderBufferResource(0, 0, 1, m_FrameDataBuffer.get());
-        m_FinalFramebuffer->BindShaderTextureResource(1, m_EnvironmentMap->GetPrefilterCubemap());
+        m_FinalFramebuffer->BindShaderTextureResource(1, m_EnvironmentMap->GetEnvironmentCubemap());
 
         auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>("DefaultCube.gltf", true);
         auto& meshData = meshAsset->GetSubmesh(0);

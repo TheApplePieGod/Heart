@@ -3,6 +3,7 @@
 
 #include "Heart/Scene/Entity.h"
 #include "Heart/Scene/Components.h"
+#include "glm/gtx/matrix_decompose.hpp"
 
 namespace Heart
 {
@@ -63,6 +64,7 @@ namespace Heart
 
         CopyComponent<TransformComponent>(source.GetHandle(), newEntityHandle);
         CopyComponent<MeshComponent>(source.GetHandle(), newEntityHandle);
+        CopyComponent<LightComponent>(source.GetHandle(), newEntityHandle);
 
         CacheEntityTransform(newEntity);
 
@@ -215,12 +217,41 @@ namespace Heart
     
     const glm::mat4& Scene::GetEntityCachedTransform(Entity entity)
     {
-        return m_CachedTransforms[entity.GetHandle()];
+        return m_CachedTransforms[entity.GetHandle()].Transform;
+    }
+
+    glm::vec3 Scene::GetEntityCachedPosition(Entity entity)
+    {
+        return m_CachedTransforms[entity.GetHandle()].Position;
+    }
+
+    glm::vec3 Scene::GetEntityCachedRotation(Entity entity)
+    {
+        return m_CachedTransforms[entity.GetHandle()].Rotation;
+    }
+
+    glm::vec3 Scene::GetEntityCachedScale(Entity entity)
+    {
+        return m_CachedTransforms[entity.GetHandle()].Scale;
     }
 
     void Scene::CacheEntityTransform(Entity entity, bool propagateToChildren)
     {
-        m_CachedTransforms[entity.GetHandle()] = CalculateEntityTransform(entity);
+        glm::mat4 transform = CalculateEntityTransform(entity);
+
+        glm::vec3 skew, translation, scale;
+        glm::vec4 perspective;
+        glm::quat rotation;
+    
+        // Decompose the transform so we can cache the world space values of each component
+        glm::decompose(transform, scale, rotation, translation, skew, perspective);
+
+        m_CachedTransforms[entity.GetHandle()] = {
+            transform,
+            translation,
+            glm::degrees(glm::eulerAngles(rotation)),
+            scale
+        };
 
         if (propagateToChildren && entity.HasComponent<ChildComponent>())
         {

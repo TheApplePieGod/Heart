@@ -4,9 +4,7 @@ struct FrameData {
     vec4 cameraPos;
     vec2 screenSize;
     bool reverseDepth;
-    float sunIntensity;
-    vec4 sunAngle;
-    vec4 sunColor;
+    float padding;
 };
 
 layout(binding = 0) readonly uniform FrameBuffer {
