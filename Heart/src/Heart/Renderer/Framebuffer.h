@@ -42,9 +42,9 @@ namespace Heart
         ColorFormat Format;
 
         // required if a texture should be used as a render target
-        Ref<Texture> Texture;
-        u32 LayerIndex;
-        u32 MipLevel;
+        Ref<Texture> Texture = nullptr;
+        u32 LayerIndex = 0;
+        u32 MipLevel = 0;
     };
 
     struct FramebufferDepthAttachment
@@ -87,6 +87,8 @@ namespace Heart
 
         virtual void ClearOutputAttachment(u32 outputAttachmentIndex, bool clearDepth) = 0;
         virtual void StartNextSubpass() = 0;
+
+        void Resize(u32 width, u32 height);
 
         template<typename T>
         T ReadColorAttachmentPixel(u32 attachmentIndex, u32 x, u32 y, u32 component)

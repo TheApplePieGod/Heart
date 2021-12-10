@@ -21,10 +21,11 @@ namespace Heart
             stbi_set_flip_vertically_on_load(false);
 
         void* pixels = nullptr;
+        int width, height, channels;
         if (floatComponents)
-            pixels = stbi_loadf(m_AbsolutePath.c_str(), &m_Width, &m_Height, &m_Channels, m_DesiredChannelCount);
+            pixels = stbi_loadf(m_AbsolutePath.c_str(), &width, &height, &channels, m_DesiredChannelCount);
         else
-            pixels = stbi_load(m_AbsolutePath.c_str(), &m_Width, &m_Height, &m_Channels, m_DesiredChannelCount);
+            pixels = stbi_load(m_AbsolutePath.c_str(), &width, &height, &channels, m_DesiredChannelCount);
         if (pixels == nullptr)
         {
             HE_ENGINE_LOG_ERROR("Failed to load texture at path {0}", m_AbsolutePath);
@@ -34,7 +35,7 @@ namespace Heart
         }
 
         TextureCreateInfo createInfo = {
-            m_Width, m_Height, m_DesiredChannelCount,
+            static_cast<u32>(width), static_cast<u32>(height), static_cast<u32>(m_DesiredChannelCount),
             floatComponents,
             1, 0
         };

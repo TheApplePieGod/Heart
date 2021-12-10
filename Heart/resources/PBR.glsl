@@ -227,7 +227,7 @@ vec4 GetFinalColor()
 
         vec3 numerator = NDF * G * F;
         float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.0001;
-        vec3 specular = min(vec3(1.f), numerator / denominator);
+        vec3 specular = min(vec3(1.f), numerator / denominator); // limit specular intensity for bloom
 
         vec3 kS = F;
         vec3 kD = vec3(1.0) - kS;
@@ -249,7 +249,7 @@ vec4 GetFinalColor()
     
     vec3 prefilteredColor = textureLod(prefilterMap, R,  roughness * MAX_REFLECTION_LOD).rgb;   
     vec2 envBRDF = texture(brdfLUT, vec2(max(dot(N, V), 0.0), roughness)).rg;
-    vec3 specular = min(vec3(1.f), prefilteredColor * (F * envBRDF.x + envBRDF.y));
+    vec3 specular = min(vec3(1.f), prefilteredColor * (F * envBRDF.x + envBRDF.y)); // limit specular intensity for bloom
     vec3 ambient = (kD * diffuse + specular) * occlusion; // specular
 
     vec3 finalColor = ambient + finalContribution;

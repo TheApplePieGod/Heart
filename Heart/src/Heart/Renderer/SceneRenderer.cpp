@@ -2,6 +2,7 @@
 #include "SceneRenderer.h"
 
 #include "Heart/Core/App.h"
+#include "Heart/Core/Window.h"
 #include "Heart/Core/Timing.h"
 #include "Heart/Renderer/GraphicsContext.h"
 #include "Heart/Renderer/Framebuffer.h"
@@ -12,6 +13,7 @@
 #include "Heart/Renderer/EnvironmentMap.h"
 #include "Heart/Core/Camera.h"
 #include "Heart/Events/AppEvents.h"
+#include "Heart/Events/WindowEvents.h"
 #include "Heart/Renderer/Renderer.h"
 #include "Heart/Renderer/Pipeline.h"
 #include "Heart/Scene/Components.h"
@@ -28,12 +30,18 @@ namespace Heart
     SceneRenderer::SceneRenderer()
     {
         SubscribeToEmitter(&App::Get());
+        SubscribeToEmitter(&Window::GetMainWindow()); // We manually handle window resizes here
+
+        m_RenderWidth = Window::GetMainWindow().GetWidth();
+        m_RenderHeight = Window::GetMainWindow().GetHeight();
+
         Initialize();
     }
 
     SceneRenderer::~SceneRenderer()
     {
         UnsubscribeFromEmitter(&App::Get());
+        UnsubscribeFromEmitter(&Window::GetMainWindow());
         Shutdown();
     }
 
@@ -41,6 +49,7 @@ namespace Heart
     {
         event.Map<AppGraphicsInitEvent>(HE_BIND_EVENT_FN(SceneRenderer::OnAppGraphicsInit));
         event.Map<AppGraphicsShutdownEvent>(HE_BIND_EVENT_FN(SceneRenderer::OnAppGraphicsShutdown));
+        event.Map<WindowResizeEvent>(HE_BIND_EVENT_FN(SceneRenderer::OnWindowResize));
     }
 
     bool SceneRenderer::OnAppGraphicsInit(AppGraphicsInitEvent& event)
@@ -53,6 +62,18 @@ namespace Heart
     bool SceneRenderer::OnAppGraphicsShutdown(AppGraphicsShutdownEvent& event)
     {
         Shutdown();
+        return false;
+    }
+
+    bool SceneRenderer::OnWindowResize(WindowResizeEvent& event)
+    {
+        if (event.GetWidth() == 0 || event.GetHeight() == 0)
+            return false;
+
+        m_RenderWidth = event.GetWidth();
+        m_RenderHeight = event.GetHeight();
+        m_ShouldResize = true;
+
         return false;
     }
 
@@ -71,6 +92,12 @@ namespace Heart
             { BufferDataType::Float2 }, // screen size
             { BufferDataType::Bool }, // reverse depth
             { BufferDataType::Float }, // padding
+        };
+        BufferLayout bloomDataLayout = {
+            { BufferDataType::UInt }, // mip level
+            { BufferDataType::Bool }, // reverse depth
+            { BufferDataType::Float }, // blur scale
+            { BufferDataType::Float } // blur strength
         };
         BufferLayout objectDataLayout = {
             { BufferDataType::Mat4 }, // transform
@@ -101,16 +128,71 @@ namespace Heart
             { BufferDataType::UInt } // first instance
         };
         m_FrameDataBuffer = Buffer::Create(Buffer::Type::Uniform, BufferUsageType::Dynamic, frameDataLayout, 1, nullptr);
+        m_BloomDataBuffer = Buffer::Create(Buffer::Type::Storage, BufferUsageType::Dynamic, bloomDataLayout, 10, nullptr);
         m_ObjectDataBuffer = Buffer::Create(Buffer::Type::Storage, BufferUsageType::Dynamic, objectDataLayout, 5000, nullptr);
         m_MaterialDataBuffer = Buffer::Create(Buffer::Type::Storage, BufferUsageType::Dynamic, materialDataLayout, 5000, nullptr);
         m_LightingDataBuffer = Buffer::Create(Buffer::Type::Storage, BufferUsageType::Dynamic, lightingDataLayout, 500, nullptr);
         m_IndirectBuffer = Buffer::Create(Buffer::Type::Indirect, BufferUsageType::Dynamic, indirectDataLayout, 1000, nullptr);
         InitializeGridBuffers();
 
-        m_PreBloomTexture = Texture::Create({ 1024, 1024, 4, true, 1, 1 });
-        m_BloomTexture1 = Texture::Create({ 1024, 1024, 4, true, 1, 1 });
-        m_BloomTexture2 = Texture::Create({ 1024, 1024, 4, true, 1, 1 });
+        CreateTextures();
 
+        CreateFramebuffers();
+    }
+
+    void SceneRenderer::Shutdown()
+    {
+        m_Initialized = false;
+
+        CleanupFramebuffers();
+        
+        m_DefaultEnvironmentMap.reset();
+        CleanupTextures();
+
+        m_FrameDataBuffer.reset();
+        m_BloomDataBuffer.reset();
+        m_ObjectDataBuffer.reset();
+        m_MaterialDataBuffer.reset();
+        m_LightingDataBuffer.reset();
+        m_IndirectBuffer.reset();
+
+        m_GridVertices.reset();
+        m_GridIndices.reset();
+    }
+
+    void SceneRenderer::Resize()
+    {
+        if (!m_Initialized) return;
+        m_ShouldResize = false;
+
+        CleanupFramebuffers();
+        CleanupTextures();
+
+        CreateTextures();
+        CreateFramebuffers();
+    }
+
+    void SceneRenderer::CreateTextures()
+    {
+        TextureSamplerState samplerState;
+        samplerState.UVWWrap = { SamplerWrapMode::ClampToBorder, SamplerWrapMode::ClampToBorder, SamplerWrapMode::ClampToBorder };
+
+        m_PreBloomTexture = Texture::Create({ m_RenderWidth, m_RenderHeight, 4, true, 1, 1, samplerState });
+        m_BrightColorsTexture = Texture::Create({ m_RenderWidth, m_RenderHeight, 4, true, 1, m_BloomMipCount, samplerState });
+        m_BloomBufferTexture = Texture::Create({ m_RenderWidth, m_RenderHeight, 4, true, 1, m_BloomMipCount - 1, samplerState });
+        m_FinalTexture = Texture::Create({ m_RenderWidth, m_RenderHeight, 4, true, 1, 1, samplerState });
+    }
+
+    void SceneRenderer::CleanupTextures()
+    {
+        m_PreBloomTexture.reset();
+        m_BrightColorsTexture.reset();
+        m_BloomBufferTexture.reset();
+        m_FinalTexture.reset();
+    }
+
+    void SceneRenderer::CreateFramebuffers()
+    {
         // Create the main framebuffer
         FramebufferCreateInfo fbCreateInfo = {
             {
@@ -119,19 +201,19 @@ namespace Heart
                 { false, { 0.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::RGBA16F }, // transparency data [2]
                 { false, { 1.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::R16F }, // transparency data [3]
                 { false, { 0.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::None, m_PreBloomTexture }, // pre-bloom target [4]
-                { false, { 0.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::None, m_BloomTexture1 }, // bright colors target [5]
+                { false, { 0.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::None, m_BrightColorsTexture }, // bright colors target [5]
             },
             {
                 {}
             },
             {
-                { {}, { { SubpassAttachmentType::Color, 4 } } }, // environment map
+                { {}, { { SubpassAttachmentType::Color, 4 }, { SubpassAttachmentType::Color, 5 } } }, // environment map
                 { {}, { { SubpassAttachmentType::Color, 4 } } }, // grid
                 { {}, { { SubpassAttachmentType::Depth, 0 }, { SubpassAttachmentType::Color, 4 }, { SubpassAttachmentType::Color, 5 }, { SubpassAttachmentType::Color, 1 } } }, // opaque
                 { {}, { { SubpassAttachmentType::Depth, 0 }, { SubpassAttachmentType::Color, 1 }, { SubpassAttachmentType::Color, 2 }, { SubpassAttachmentType::Color, 3 } } }, // transparent color
                 { { { SubpassAttachmentType::Color, 2 }, { SubpassAttachmentType::Color, 3 } }, { { SubpassAttachmentType::Depth, 0 }, { SubpassAttachmentType::Color, 4 } } }, // composite
             },
-            1024, 1024,
+            m_RenderWidth, m_RenderHeight,
             MsaaSampleCount::None
         };
         m_FinalFramebuffer = Framebuffer::Create(fbCreateInfo);
@@ -143,7 +225,7 @@ namespace Heart
             true,
             VertexTopology::TriangleList,
             Heart::Mesh::GetVertexLayout(),
-            { { false } },
+            { { false }, { false } },
             false,
             false,
             CullMode::None,
@@ -209,10 +291,10 @@ namespace Heart
         m_FinalFramebuffer->RegisterGraphicsPipeline("pbrTpColor", transparencyColorPipeline);
         m_FinalFramebuffer->RegisterGraphicsPipeline("tpComposite", transparencyCompositePipeline);
 
-        // Create the horizontal bloom pass framebuffer
+        // Create the bloom framebuffers
         FramebufferCreateInfo bloomFbCreateInfo = {
             {
-                { false, { 0.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::None, m_BloomTexture2 },
+                { false, { 0.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::None, m_BloomBufferTexture, 0,  },
             },
             {
                 {}
@@ -220,16 +302,13 @@ namespace Heart
             {
                 { {}, { { SubpassAttachmentType::Color, 0 } } }
             },
-            1024, 1024,
+            m_RenderWidth, m_RenderHeight,
             MsaaSampleCount::None
         };
-        m_HorizontalBloomFramebuffer = Framebuffer::Create(bloomFbCreateInfo);
-        bloomFbCreateInfo.ColorAttachments[0].Texture = m_BloomTexture1;
-        m_VerticalBloomFramebuffer = Framebuffer::Create(bloomFbCreateInfo);
 
         GraphicsPipelineCreateInfo bloomHorizontal = {
-            AssetManager::GetAssetUUID("FullscreenTriangle.vert", true),
-            AssetManager::GetAssetUUID("GaussianBlurHorizontal.frag", true),
+            AssetManager::GetAssetUUID("Bloom.vert", true),
+            AssetManager::GetAssetUUID("BloomHorizontal.frag", true),
             false,
             VertexTopology::TriangleList,
             Heart::Mesh::GetVertexLayout(),
@@ -240,11 +319,9 @@ namespace Heart
             WindingOrder::Clockwise,
             0
         };
-        m_HorizontalBloomFramebuffer->RegisterGraphicsPipeline("bloomHorizontal", bloomHorizontal);
-
         GraphicsPipelineCreateInfo bloomVertical = {
-            AssetManager::GetAssetUUID("FullscreenTriangle.vert", true),
-            AssetManager::GetAssetUUID("GaussianBlurVertical.frag", true),
+            AssetManager::GetAssetUUID("Bloom.vert", true),
+            AssetManager::GetAssetUUID("BloomVertical.frag", true),
             false,
             VertexTopology::TriangleList,
             Heart::Mesh::GetVertexLayout(),
@@ -255,26 +332,9 @@ namespace Heart
             WindingOrder::Clockwise,
             0
         };
-        m_VerticalBloomFramebuffer->RegisterGraphicsPipeline("bloomVertical", bloomVertical);
-
-        FramebufferCreateInfo postBloomFbCreateInfo = {
-            {
-                { false, { 0.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::RGBA8 }
-            },
-            {
-                {}
-            },
-            {
-                { {}, { { SubpassAttachmentType::Color, 0 } } }
-            },
-            1024, 1024,
-            MsaaSampleCount::None
-        };
-        m_PostBloomFramebuffer = Framebuffer::Create(postBloomFbCreateInfo);
-
-        GraphicsPipelineCreateInfo bloomComposite = {
-            AssetManager::GetAssetUUID("FullscreenTriangle.vert", true),
-            AssetManager::GetAssetUUID("BloomComposite.frag", true),
+        GraphicsPipelineCreateInfo bloomVerticalComposite = {
+            AssetManager::GetAssetUUID("Bloom.vert", true),
+            AssetManager::GetAssetUUID("BloomVerticalComposite.frag", true),
             false,
             VertexTopology::TriangleList,
             Heart::Mesh::GetVertexLayout(),
@@ -285,41 +345,64 @@ namespace Heart
             WindingOrder::Clockwise,
             0
         };
-        m_PostBloomFramebuffer->RegisterGraphicsPipeline("bloomComposite", bloomComposite);
+
+        // Start at the second lowest mip level
+        for (int i = m_BloomMipCount - 2; i >= 0; i--)
+        {
+            // Output will be same size as mip level
+            bloomFbCreateInfo.Width = static_cast<u32>(m_BrightColorsTexture->GetWidth() * pow(0.5f, i));
+            bloomFbCreateInfo.Height = static_cast<u32>(m_BrightColorsTexture->GetHeight() * pow(0.5f, i));
+
+            // Write to the same mip level in the bloom buffer but read from one level below
+            bloomFbCreateInfo.ColorAttachments[0].MipLevel = i; 
+
+            // Always output to the buffer texture
+            bloomFbCreateInfo.ColorAttachments[0].Texture = m_BloomBufferTexture;
+
+            auto horizontal = Framebuffer::Create(bloomFbCreateInfo);
+            horizontal->RegisterGraphicsPipeline("bloomHorizontal", bloomHorizontal);
+
+            if (i == 0) // If we are on the last iteration, output directly to the output texture
+            {
+                bloomFbCreateInfo.ColorAttachments[0].Texture = m_FinalTexture;
+                bloomFbCreateInfo.SampleCount = MsaaSampleCount::None;
+            }
+            else // Otherwise we are outputting to the bright color texture
+                bloomFbCreateInfo.ColorAttachments[0].Texture = m_BrightColorsTexture;
+
+            auto vertical = Framebuffer::Create(bloomFbCreateInfo);
+            if (i == 0) // If we are on the last iteration, we want to run the composite version of the blur shader
+                vertical->RegisterGraphicsPipeline("bloomVertical", bloomVerticalComposite);
+            else
+                vertical->RegisterGraphicsPipeline("bloomVertical", bloomVertical);
+
+            m_BloomFramebuffers.push_back({ horizontal, vertical });
+        }
     }
 
-    void SceneRenderer::Shutdown()
+    void SceneRenderer::CleanupFramebuffers()
     {
-        m_Initialized = false;
-
         m_FinalFramebuffer.reset();
-        m_HorizontalBloomFramebuffer.reset();
-        m_VerticalBloomFramebuffer.reset();
-        m_PostBloomFramebuffer.reset();
-        
-        m_DefaultEnvironmentMap.reset();
-        m_PreBloomTexture.reset();
-        m_BloomTexture1.reset();
-        m_BloomTexture2.reset();
-
-        m_FrameDataBuffer.reset();
-        m_ObjectDataBuffer.reset();
-        m_MaterialDataBuffer.reset();
-        m_LightingDataBuffer.reset();
-        m_IndirectBuffer.reset();
-
-        m_GridVertices.reset();
-        m_GridIndices.reset();
+        for (auto& bufs : m_BloomFramebuffers)
+        {
+            bufs[0].reset();
+            bufs[1].reset();
+        }
+        m_BloomFramebuffers.clear();
     }
 
-    void SceneRenderer::RenderScene(GraphicsContext& context, Scene* scene, const Camera& camera, glm::vec3 cameraPosition, bool drawGrid)
+    void SceneRenderer::RenderScene(GraphicsContext& context, Scene* scene, const Camera& camera, glm::vec3 cameraPosition, const SceneRenderSettings& renderSettings)
     {
         HE_PROFILE_FUNCTION();
         auto timer = Heart::AggregateTimer("SceneRenderer::RenderScene");
 
         HE_ENGINE_ASSERT(scene, "Scene cannot be nullptr");
 
+        if (m_ShouldResize)
+            Resize();
+
         // Reset in-flight frame data
+        m_SceneRenderSettings = renderSettings;
         m_Scene = scene;
         m_EnvironmentMap = scene->GetEnvironmentMap();
         m_IndirectBatches.clear();
@@ -344,7 +427,7 @@ namespace Heart
 
         // Draw the grid if set
         m_FinalFramebuffer->StartNextSubpass();
-        if (drawGrid)   
+        if (renderSettings.DrawGrid)   
             RenderGrid();
 
         // Update the light buffer with lights  (TODO: that are on screen)
@@ -360,6 +443,9 @@ namespace Heart
         // Composite pass
         m_FinalFramebuffer->StartNextSubpass();
         Composite();
+
+        // Create the mipmaps of the bright colors output for bloom
+        m_BrightColorsTexture->RegenerateMipMapsSync(m_FinalFramebuffer.get());
 
         // Submit the framebuffer
         Renderer::Api().RenderFramebuffers(context, { m_FinalFramebuffer.get() });
@@ -703,57 +789,46 @@ namespace Heart
 
     void SceneRenderer::Bloom(GraphicsContext& context)
     {
-        // Record the framebuffer commands
+        for (size_t i = 0; i < m_BloomFramebuffers.size(); i++)
         {
-            m_HorizontalBloomFramebuffer->Bind();
+            auto& framebuffers = m_BloomFramebuffers[i];
 
-            m_HorizontalBloomFramebuffer->BindPipeline("bloomHorizontal");
+            // Use the framedata buffer to push the lower mip level that we are sampling from 
+            BloomData bloomData{};
+            bloomData.ReverseDepth = Renderer::IsUsingReverseDepth();
+            bloomData.BlurScale = m_SceneRenderSettings.BloomBlurScale;
+            bloomData.BlurStrength = m_SceneRenderSettings.BloomBlurStrength;
+            bloomData.MipLevel = static_cast<float>(m_BloomFramebuffers.size() - i); // Reverse the index because we start rendering the lowest mip first
+            m_BloomDataBuffer->SetElements(&bloomData, 1, i * 2);
 
-            m_HorizontalBloomFramebuffer->BindShaderBufferResource(0, 0, 1, m_FrameDataBuffer.get());
-
-            m_HorizontalBloomFramebuffer->BindShaderTextureResource(1, m_BloomTexture1.get());
-
-            m_HorizontalBloomFramebuffer->FlushBindings();
-
-            // Draw the fullscreen triangle
+            // Horizontal framebuffer
+            framebuffers[0]->Bind();
+            framebuffers[0]->BindPipeline("bloomHorizontal");
+            framebuffers[0]->BindShaderBufferResource(0, i * 2, 1, m_BloomDataBuffer.get());
+            framebuffers[0]->BindShaderTextureResource(1, m_BrightColorsTexture.get()); // Read from bright color target
+            framebuffers[0]->FlushBindings();
             Renderer::Api().Draw(3, 0, 1);
 
-            m_VerticalBloomFramebuffer->Bind();
+            // Render
+            Renderer::Api().RenderFramebuffers(context, { framebuffers[0].get() });
 
-            m_VerticalBloomFramebuffer->BindPipeline("bloomVertical");
+            // Use the bloomData buffer to push the current mip level that we are sampling from 
+            bloomData.MipLevel = static_cast<float>(m_BloomFramebuffers.size() - 1 - i); // Reverse the index because we start rendering the lowest mip first
+            m_BloomDataBuffer->SetElements(&bloomData, 1, i * 2 + 1);
 
-            m_VerticalBloomFramebuffer->BindShaderBufferResource(0, 0, 1, m_FrameDataBuffer.get());
-
-            m_VerticalBloomFramebuffer->BindShaderTextureResource(1, m_BloomTexture2.get());
-
-            m_VerticalBloomFramebuffer->FlushBindings();
-
-            // Draw the fullscreen triangle
+            // Vertical framebuffer
+            framebuffers[1]->Bind();
+            framebuffers[1]->BindPipeline("bloomVertical");
+            framebuffers[1]->BindShaderBufferResource(0, i * 2 + 1, 1, m_BloomDataBuffer.get());
+            framebuffers[1]->BindShaderTextureResource(1, m_BloomBufferTexture.get());
+            if (i == m_BloomFramebuffers.size() - 1)
+                framebuffers[1]->BindShaderTextureResource(2, m_PreBloomTexture.get()); // Bind the pre bloom texture if this is the last iteration
+            framebuffers[1]->FlushBindings();
             Renderer::Api().Draw(3, 0, 1);
+
+            // Render
+            Renderer::Api().RenderFramebuffers(context, { framebuffers[1].get() });
         }
-
-        u32 samples = 10;
-        for (u32 i = 0; i < samples; i++)
-        {
-            Renderer::Api().RenderFramebuffers(context, { m_HorizontalBloomFramebuffer.get() });
-            Renderer::Api().RenderFramebuffers(context, { m_VerticalBloomFramebuffer.get() });
-        }
-
-        m_PostBloomFramebuffer->Bind();
-
-        m_PostBloomFramebuffer->BindPipeline("bloomComposite");
-
-        m_PostBloomFramebuffer->BindShaderBufferResource(0, 0, 1, m_FrameDataBuffer.get());
-
-        m_PostBloomFramebuffer->BindShaderTextureResource(1, m_PreBloomTexture.get());
-        m_PostBloomFramebuffer->BindShaderTextureResource(2, m_BloomTexture1.get());
-
-        m_PostBloomFramebuffer->FlushBindings();
-
-        // Draw the fullscreen triangle
-        Renderer::Api().Draw(3, 0, 1);
-
-        Renderer::Api().RenderFramebuffers(context, { m_PostBloomFramebuffer.get() });
     }
 
     void SceneRenderer::InitializeGridBuffers()

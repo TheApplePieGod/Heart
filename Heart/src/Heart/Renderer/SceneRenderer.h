@@ -7,6 +7,15 @@
 
 namespace Heart
 {
+    struct SceneRenderSettings
+    {
+        bool DrawGrid = true;
+        
+        bool BloomEnable = true;
+        float BloomBlurStrength = 1.f;
+        float BloomBlurScale = 2.f;
+    };
+
     class Scene;
     class GraphicsContext;
     class Framebuffer;
@@ -18,6 +27,7 @@ namespace Heart
     class Camera;
     class AppGraphicsInitEvent;
     class AppGraphicsShutdownEvent;
+    class WindowResizeEvent;
     class SceneRenderer : public EventListener
     {
     public:
@@ -30,6 +40,13 @@ namespace Heart
             bool ReverseDepth;
             float padding;
         };
+        struct BloomData
+        {
+            u32 MipLevel;
+            bool ReverseDepth;
+            float BlurScale;
+            float BlurStrength;
+        };
         struct ObjectData
         {
             glm::mat4 Model;
@@ -40,11 +57,12 @@ namespace Heart
         SceneRenderer();
         ~SceneRenderer();
 
-        void RenderScene(GraphicsContext& context, Scene* scene, const Camera& camera, glm::vec3 cameraPosition, bool drawGrid);
+        void RenderScene(GraphicsContext& context, Scene* scene, const Camera& camera, glm::vec3 cameraPosition, const SceneRenderSettings& renderSettings);
 
         void OnEvent(Event& event) override;
 
-        inline Framebuffer& GetFinalFramebuffer() { return *m_PostBloomFramebuffer; }
+        inline Framebuffer& GetFinalFramebuffer() { return *m_FinalFramebuffer; }
+        inline Texture& GetFinalTexture() { return *m_FinalTexture; }
 
     private:
         struct IndirectBatch
@@ -67,6 +85,11 @@ namespace Heart
     private:
         void Initialize();
         void Shutdown();
+        void Resize();
+        void CreateTextures();
+        void CleanupTextures();
+        void CreateFramebuffers();
+        void CleanupFramebuffers();
 
         void UpdateLightingBuffer();
         void CalculateBatches();
@@ -83,21 +106,22 @@ namespace Heart
 
         bool OnAppGraphicsInit(AppGraphicsInitEvent& event);
         bool OnAppGraphicsShutdown(AppGraphicsShutdownEvent& event);
+        bool OnWindowResize(WindowResizeEvent& event);
 
     private:
         bool m_Initialized = false;
 
         Ref<Framebuffer> m_FinalFramebuffer;
-        Ref<Framebuffer> m_HorizontalBloomFramebuffer;
-        Ref<Framebuffer> m_VerticalBloomFramebuffer;
-        Ref<Framebuffer> m_PostBloomFramebuffer;
+        std::vector<std::array<Ref<Framebuffer>, 2>> m_BloomFramebuffers; // one for each mip level and one for horizontal / vertical passes
 
         Ref<Texture> m_DefaultEnvironmentMap;
         Ref<Texture> m_PreBloomTexture;
-        Ref<Texture> m_BloomTexture1;
-        Ref<Texture> m_BloomTexture2;
+        Ref<Texture> m_BrightColorsTexture;
+        Ref<Texture> m_BloomBufferTexture;
+        Ref<Texture> m_FinalTexture;
 
         Ref<Buffer> m_FrameDataBuffer;
+        Ref<Buffer> m_BloomDataBuffer;
         Ref<Buffer> m_ObjectDataBuffer;
         Ref<Buffer> m_MaterialDataBuffer;
         Ref<Buffer> m_LightingDataBuffer;
@@ -113,5 +137,11 @@ namespace Heart
         std::unordered_map<u64, IndirectBatch> m_IndirectBatches;
         std::vector<IndirectBatch*> m_DeferredIndirectBatches;
         std::vector<std::vector<u32>> m_EntityListPool;
+        SceneRenderSettings m_SceneRenderSettings;
+
+        const u32 m_BloomMipCount = 6;
+        bool m_ShouldResize = false;
+        u32 m_RenderWidth = 0;
+        u32 m_RenderHeight = 0;
     };
 }

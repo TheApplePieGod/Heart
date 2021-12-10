@@ -238,13 +238,13 @@ namespace Heart
         
         VkSamplerCreateInfo samplerInfo{};
         samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-        samplerInfo.magFilter = VulkanCommon::SamplerFilterToVulkan(m_SamplerState.MagFilter);
-        samplerInfo.minFilter = VulkanCommon::SamplerFilterToVulkan(m_SamplerState.MinFilter);
-        samplerInfo.addressModeU = VulkanCommon::SamplerWrapModeToVulkan(m_SamplerState.UVWWrap[0]);
-        samplerInfo.addressModeV = VulkanCommon::SamplerWrapModeToVulkan(m_SamplerState.UVWWrap[1]);
-        samplerInfo.addressModeW = VulkanCommon::SamplerWrapModeToVulkan(m_SamplerState.UVWWrap[2]);
-        samplerInfo.anisotropyEnable = m_SamplerState.AnisotropyEnable;
-        samplerInfo.maxAnisotropy = std::min(static_cast<float>(m_SamplerState.MaxAnisotropy), properties.limits.maxSamplerAnisotropy);
+        samplerInfo.magFilter = VulkanCommon::SamplerFilterToVulkan(m_Info.SamplerState.MagFilter);
+        samplerInfo.minFilter = VulkanCommon::SamplerFilterToVulkan(m_Info.SamplerState.MinFilter);
+        samplerInfo.addressModeU = VulkanCommon::SamplerWrapModeToVulkan(m_Info.SamplerState.UVWWrap[0]);
+        samplerInfo.addressModeV = VulkanCommon::SamplerWrapModeToVulkan(m_Info.SamplerState.UVWWrap[1]);
+        samplerInfo.addressModeW = VulkanCommon::SamplerWrapModeToVulkan(m_Info.SamplerState.UVWWrap[2]);
+        samplerInfo.anisotropyEnable = m_Info.SamplerState.AnisotropyEnable;
+        samplerInfo.maxAnisotropy = std::min(static_cast<float>(m_Info.SamplerState.MaxAnisotropy), properties.limits.maxSamplerAnisotropy);
         samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
         samplerInfo.unnormalizedCoordinates = VK_FALSE;
         samplerInfo.compareEnable = VK_FALSE;

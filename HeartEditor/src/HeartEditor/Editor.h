@@ -1,12 +1,14 @@
 #pragma once
 
 #include "Heart/Scene/Entity.h"
+#include "Heart/Renderer/SceneRenderer.h"
 
 namespace HeartEditor
 {
     struct EditorState
     {
         Heart::Entity SelectedEntity;
+        Heart::SceneRenderSettings RenderSettings;
     };
 
     class EditorCamera;
