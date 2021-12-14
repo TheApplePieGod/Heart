@@ -21,7 +21,8 @@ namespace Heart
         inline VkDescriptorSet GetMostRecentDescriptorSet() const { return m_MostRecentDescriptorSet; }
         inline void UpdateDynamicOffset(u32 bindingIndex, u32 offset) { m_DynamicOffsets[m_Bindings[bindingIndex].OffsetIndex] = offset; }
         inline const std::vector<u32>& GetDynamicOffsets() const { return m_DynamicOffsets; }
-        inline bool DoesBindingExist(u32 bindingIndex) const { return bindingIndex < m_Bindings.size(); }
+        inline bool DoesBindingExist(u32 bindingIndex) const { return bindingIndex < m_Bindings.size() && m_Bindings[bindingIndex].Exists; }
+        inline bool IsResourceCorrectType(u32 bindingIndex, ShaderResourceType resourceType) const { return VulkanCommon::ShaderResourceTypeToVulkan(resourceType) == m_CachedDescriptorWrites[m_Bindings[bindingIndex].DescriptorWriteMapping].descriptorType; }
         inline bool CanFlush() const { return m_WritesReadyCount == m_CachedDescriptorWrites.size(); }
 
     private:
@@ -32,8 +33,9 @@ namespace Heart
         };
         struct BindingData
         {
-            size_t DescriptorWriteMapping;
-            size_t OffsetIndex;
+            bool Exists = false;
+            size_t DescriptorWriteMapping = 0;
+            size_t OffsetIndex = 0;
         };
 
     private:

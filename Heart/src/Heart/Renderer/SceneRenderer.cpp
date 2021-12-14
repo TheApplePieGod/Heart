@@ -2,6 +2,7 @@
 #include "SceneRenderer.h"
 
 #include "Heart/Core/App.h"
+#include "Heart/Core/Window.h"
 #include "Heart/Core/Timing.h"
 #include "Heart/Renderer/GraphicsContext.h"
 #include "Heart/Renderer/Framebuffer.h"
@@ -12,6 +13,7 @@
 #include "Heart/Renderer/EnvironmentMap.h"
 #include "Heart/Core/Camera.h"
 #include "Heart/Events/AppEvents.h"
+#include "Heart/Events/WindowEvents.h"
 #include "Heart/Renderer/Renderer.h"
 #include "Heart/Renderer/Pipeline.h"
 #include "Heart/Scene/Components.h"
@@ -28,12 +30,18 @@ namespace Heart
     SceneRenderer::SceneRenderer()
     {
         SubscribeToEmitter(&App::Get());
+        SubscribeToEmitter(&Window::GetMainWindow()); // We manually handle window resizes here
+
+        m_RenderWidth = Window::GetMainWindow().GetWidth();
+        m_RenderHeight = Window::GetMainWindow().GetHeight();
+
         Initialize();
     }
 
     SceneRenderer::~SceneRenderer()
     {
         UnsubscribeFromEmitter(&App::Get());
+        UnsubscribeFromEmitter(&Window::GetMainWindow());
         Shutdown();
     }
 
@@ -41,6 +49,7 @@ namespace Heart
     {
         event.Map<AppGraphicsInitEvent>(HE_BIND_EVENT_FN(SceneRenderer::OnAppGraphicsInit));
         event.Map<AppGraphicsShutdownEvent>(HE_BIND_EVENT_FN(SceneRenderer::OnAppGraphicsShutdown));
+        event.Map<WindowResizeEvent>(HE_BIND_EVENT_FN(SceneRenderer::OnWindowResize));
     }
 
     bool SceneRenderer::OnAppGraphicsInit(AppGraphicsInitEvent& event)
@@ -53,6 +62,18 @@ namespace Heart
     bool SceneRenderer::OnAppGraphicsShutdown(AppGraphicsShutdownEvent& event)
     {
         Shutdown();
+        return false;
+    }
+
+    bool SceneRenderer::OnWindowResize(WindowResizeEvent& event)
+    {
+        if (event.GetWidth() == 0 || event.GetHeight() == 0)
+            return false;
+
+        m_RenderWidth = event.GetWidth();
+        m_RenderHeight = event.GetHeight();
+        m_ShouldResize = true;
+
         return false;
     }
 
@@ -70,19 +91,34 @@ namespace Heart
             { BufferDataType::Float4 }, // camera pos
             { BufferDataType::Float2 }, // screen size
             { BufferDataType::Bool }, // reverse depth
-            { BufferDataType::Bool } // padding
+            { BufferDataType::Float }, // padding
+        };
+        BufferLayout bloomDataLayout = {
+            { BufferDataType::UInt }, // mip level
+            { BufferDataType::Bool }, // reverse depth
+            { BufferDataType::Float }, // blur scale
+            { BufferDataType::Float } // blur strength
         };
         BufferLayout objectDataLayout = {
             { BufferDataType::Mat4 }, // transform
             { BufferDataType::Float4 } // [0]: entityId
         };
         BufferLayout materialDataLayout = {
-            { BufferDataType::Float4 }, // base color
+            { BufferDataType::Float4 }, // position
             { BufferDataType::Float4 }, // emissive factor
             { BufferDataType::Float4 }, // texcoord transform
             { BufferDataType::Float4 }, // has PBR textures
             { BufferDataType::Float4 }, // has textures
             { BufferDataType::Float4 } // scalars
+        };
+        BufferLayout lightingDataLayout = {
+            { BufferDataType::Float4 }, // position
+            { BufferDataType::Float4 }, // rotation
+            { BufferDataType::Float4 }, // color
+            { BufferDataType::Int }, // light type
+            { BufferDataType::Float }, // constant attenuation
+            { BufferDataType::Float }, // linear attenuation
+            { BufferDataType::Float } // quadratic attenuation
         };
         BufferLayout indirectDataLayout = {
             { BufferDataType::UInt }, // index count
@@ -92,30 +128,94 @@ namespace Heart
             { BufferDataType::UInt } // first instance
         };
         m_FrameDataBuffer = Buffer::Create(Buffer::Type::Uniform, BufferUsageType::Dynamic, frameDataLayout, 1, nullptr);
+        m_BloomDataBuffer = Buffer::Create(Buffer::Type::Storage, BufferUsageType::Dynamic, bloomDataLayout, 50, nullptr);
         m_ObjectDataBuffer = Buffer::Create(Buffer::Type::Storage, BufferUsageType::Dynamic, objectDataLayout, 5000, nullptr);
         m_MaterialDataBuffer = Buffer::Create(Buffer::Type::Storage, BufferUsageType::Dynamic, materialDataLayout, 5000, nullptr);
+        m_LightingDataBuffer = Buffer::Create(Buffer::Type::Storage, BufferUsageType::Dynamic, lightingDataLayout, 500, nullptr);
         m_IndirectBuffer = Buffer::Create(Buffer::Type::Indirect, BufferUsageType::Dynamic, indirectDataLayout, 1000, nullptr);
         InitializeGridBuffers();
 
+        CreateTextures();
+
+        CreateFramebuffers();
+    }
+
+    void SceneRenderer::Shutdown()
+    {
+        m_Initialized = false;
+
+        CleanupFramebuffers();
+        
+        m_DefaultEnvironmentMap.reset();
+        CleanupTextures();
+
+        m_FrameDataBuffer.reset();
+        m_BloomDataBuffer.reset();
+        m_ObjectDataBuffer.reset();
+        m_MaterialDataBuffer.reset();
+        m_LightingDataBuffer.reset();
+        m_IndirectBuffer.reset();
+
+        m_GridVertices.reset();
+        m_GridIndices.reset();
+    }
+
+    void SceneRenderer::Resize()
+    {
+        if (!m_Initialized) return;
+        m_ShouldResize = false;
+
+        CleanupFramebuffers();
+        CleanupTextures();
+
+        CreateTextures();
+        CreateFramebuffers();
+    }
+
+    void SceneRenderer::CreateTextures()
+    {
+        TextureSamplerState samplerState;
+        samplerState.UVWWrap = { SamplerWrapMode::ClampToBorder, SamplerWrapMode::ClampToBorder, SamplerWrapMode::ClampToBorder };
+
+        m_PreBloomTexture = Texture::Create({ m_RenderWidth, m_RenderHeight, 4, true, 1, 1, samplerState });
+        m_BrightColorsTexture = Texture::Create({ m_RenderWidth, m_RenderHeight, 4, true, 1, m_BloomMipCount, samplerState });
+        m_BloomBufferTexture = Texture::Create({ m_RenderWidth, m_RenderHeight, 4, true, 1, m_BloomMipCount, samplerState });
+        m_BloomUpsampleBufferTexture = Texture::Create({ m_RenderWidth, m_RenderHeight, 4, true, 1, m_BloomMipCount - 1, samplerState });
+        m_FinalTexture = Texture::Create({ m_RenderWidth, m_RenderHeight, 4, true, 1, 1, samplerState });
+    }
+
+    void SceneRenderer::CleanupTextures()
+    {
+        m_PreBloomTexture.reset();
+        m_BrightColorsTexture.reset();
+        m_BloomBufferTexture.reset();
+        m_BloomUpsampleBufferTexture.reset();
+        m_FinalTexture.reset();
+    }
+
+    void SceneRenderer::CreateFramebuffers()
+    {
         // Create the main framebuffer
         FramebufferCreateInfo fbCreateInfo = {
             {
-                { false, { 0.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::RGBA8 },
-                { true, { -1.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::R32F },
-                { false, { 0.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::RGBA16F },
-                { false, { 1.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::R16F }
+                { false, { 0.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::RGBA8 }, // final [0]
+                { true, { -1.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::R32F }, // entity id [1]
+                { false, { 0.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::RGBA16F }, // transparency data [2]
+                { false, { 1.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::R16F }, // transparency data [3]
+                { false, { 0.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::None, m_PreBloomTexture }, // pre-bloom target [4]
+                { false, { 0.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::None, m_BrightColorsTexture }, // bright colors target [5]
             },
             {
                 {}
             },
             {
-                { {}, { { SubpassAttachmentType::Color, 0 } } }, // environment map
-                { {}, { { SubpassAttachmentType::Color, 0 } } }, // grid
-                { {}, { { SubpassAttachmentType::Depth, 0 }, { SubpassAttachmentType::Color, 0 }, { SubpassAttachmentType::Color, 1 } } }, // opaque
+                { {}, { { SubpassAttachmentType::Color, 4 }, { SubpassAttachmentType::Color, 5 } } }, // environment map
+                { {}, { { SubpassAttachmentType::Color, 4 } } }, // grid
+                { {}, { { SubpassAttachmentType::Depth, 0 }, { SubpassAttachmentType::Color, 4 }, { SubpassAttachmentType::Color, 5 }, { SubpassAttachmentType::Color, 1 } } }, // opaque
                 { {}, { { SubpassAttachmentType::Depth, 0 }, { SubpassAttachmentType::Color, 1 }, { SubpassAttachmentType::Color, 2 }, { SubpassAttachmentType::Color, 3 } } }, // transparent color
-                { { { SubpassAttachmentType::Color, 2 }, { SubpassAttachmentType::Color, 3 } }, { { SubpassAttachmentType::Depth, 0 }, { SubpassAttachmentType::Color, 0 } } } // composite
+                { { { SubpassAttachmentType::Color, 2 }, { SubpassAttachmentType::Color, 3 } }, { { SubpassAttachmentType::Depth, 0 }, { SubpassAttachmentType::Color, 4 } } }, // composite
             },
-            0, 0,
+            m_RenderWidth, m_RenderHeight,
             MsaaSampleCount::None
         };
         m_FinalFramebuffer = Framebuffer::Create(fbCreateInfo);
@@ -127,7 +227,7 @@ namespace Heart
             true,
             VertexTopology::TriangleList,
             Heart::Mesh::GetVertexLayout(),
-            { { false } },
+            { { false }, { false } },
             false,
             false,
             CullMode::None,
@@ -153,7 +253,7 @@ namespace Heart
             true,
             VertexTopology::TriangleList,
             Heart::Mesh::GetVertexLayout(),
-            { { false }, { false } },
+            { { false }, { false }, { false } },
             true,
             true,
             CullMode::Backface,
@@ -186,36 +286,132 @@ namespace Heart
             WindingOrder::Clockwise,
             4
         };
+        
         m_FinalFramebuffer->RegisterGraphicsPipeline("skybox", envMapPipeline);
         m_FinalFramebuffer->RegisterGraphicsPipeline("grid", gridPipeline);
         m_FinalFramebuffer->RegisterGraphicsPipeline("pbr", pbrPipeline);
         m_FinalFramebuffer->RegisterGraphicsPipeline("pbrTpColor", transparencyColorPipeline);
         m_FinalFramebuffer->RegisterGraphicsPipeline("tpComposite", transparencyCompositePipeline);
+
+        // Create the bloom framebuffers
+        FramebufferCreateInfo bloomFbCreateInfo = {
+            {
+                { false, { 0.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::None, m_BloomBufferTexture, 0, 0 },
+            },
+            {
+                {}
+            },
+            {
+                { {}, { { SubpassAttachmentType::Color, 0 } } }
+            },
+            m_RenderWidth, m_RenderHeight,
+            MsaaSampleCount::None
+        };
+
+        GraphicsPipelineCreateInfo bloomHorizontal = {
+            AssetManager::GetAssetUUID("Bloom.vert", true),
+            AssetManager::GetAssetUUID("BloomHorizontal.frag", true),
+            false,
+            VertexTopology::TriangleList,
+            Heart::Mesh::GetVertexLayout(),
+            { { false } },
+            false,
+            false,
+            CullMode::None,
+            WindingOrder::Clockwise,
+            0
+        };
+        
+        GraphicsPipelineCreateInfo bloomHorizontalUpscale = bloomHorizontal;
+        bloomHorizontalUpscale.FragmentShaderAsset = AssetManager::GetAssetUUID("BloomHorizontalUpscale.frag", true);
+        bloomHorizontalUpscale.BlendStates.push_back({ false });
+
+        GraphicsPipelineCreateInfo bloomHorizontalDoubleUpscale = bloomHorizontal;
+        bloomHorizontalDoubleUpscale.FragmentShaderAsset = AssetManager::GetAssetUUID("BloomHorizontalDoubleUpscale.frag", true);
+        bloomHorizontalDoubleUpscale.BlendStates.push_back({ false });
+
+        GraphicsPipelineCreateInfo bloomVertical = bloomHorizontal;
+        bloomVertical.FragmentShaderAsset = AssetManager::GetAssetUUID("BloomVertical.frag", true);
+
+        GraphicsPipelineCreateInfo bloomVerticalComposite = bloomHorizontal;
+        bloomVerticalComposite.FragmentShaderAsset = AssetManager::GetAssetUUID("BloomVerticalComposite.frag", true);
+
+        // Start at the lowest mip level
+        for (int i = m_BloomMipCount - 1; i >= 0; i--)
+        {
+            // Output will be same size as mip level
+            bloomFbCreateInfo.Width = static_cast<u32>(m_BrightColorsTexture->GetWidth() * pow(0.5f, i));
+            bloomFbCreateInfo.Height = static_cast<u32>(m_BrightColorsTexture->GetHeight() * pow(0.5f, i));
+
+            // Write to the same mip level in the bloom buffer but read from one level below
+            bloomFbCreateInfo.ColorAttachments[0].MipLevel = i; 
+
+            // Output to the buffer texture
+            bloomFbCreateInfo.ColorAttachments[0].Texture = m_BloomBufferTexture;
+            if (i < m_BloomMipCount - 1)
+            {
+                // Starting after the bottom mip level, push back the second color attachment which will be the upsample buffer
+                bloomFbCreateInfo.ColorAttachments.push_back(
+                    { false, { 0.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::None, m_BloomUpsampleBufferTexture, 0, static_cast<u32>(i) }
+                );
+                bloomFbCreateInfo.Subpasses[0].OutputAttachments.push_back(
+                    { SubpassAttachmentType::Color, 1 }
+                );
+            }
+
+            auto horizontal = Framebuffer::Create(bloomFbCreateInfo);
+            if (i == m_BloomMipCount - 1) // If we are on the first iteration, we want to run the basic horizontal shader
+                horizontal->RegisterGraphicsPipeline("bloomHorizontal", bloomHorizontal);
+            else if (i == m_BloomMipCount - 2) // If we are on the second iteration, we want to run the bright color upscale shader
+                horizontal->RegisterGraphicsPipeline("bloomHorizontal", bloomHorizontalUpscale);
+            else // Otherwise we want to run the shader that upscales both the bright color and the upsample buffer
+                horizontal->RegisterGraphicsPipeline("bloomHorizontal", bloomHorizontalDoubleUpscale);
+
+            // Get rid of the second color attachment for the vertical pass
+            bloomFbCreateInfo.ColorAttachments.resize(1);
+            bloomFbCreateInfo.Subpasses[0].OutputAttachments.resize(1);
+
+            if (i == 0) // If we are on the last iteration, output directly to the output texture
+            {
+                bloomFbCreateInfo.ColorAttachments[0].Texture = m_FinalTexture;
+                bloomFbCreateInfo.SampleCount = MsaaSampleCount::None;
+            }
+            else // Otherwise we are outputting to the bright color texture
+                bloomFbCreateInfo.ColorAttachments[0].Texture = m_BrightColorsTexture;
+
+            auto vertical = Framebuffer::Create(bloomFbCreateInfo);
+            if (i == 0) // If we are on the last iteration, we want to run the composite version of the blur shader
+                vertical->RegisterGraphicsPipeline("bloomVertical", bloomVerticalComposite);
+            else
+                vertical->RegisterGraphicsPipeline("bloomVertical", bloomVertical);
+
+            m_BloomFramebuffers.push_back({ horizontal, vertical });
+        }
     }
 
-    void SceneRenderer::Shutdown()
+    void SceneRenderer::CleanupFramebuffers()
     {
-        m_Initialized = false;
-
-        m_DefaultEnvironmentMap.reset();
         m_FinalFramebuffer.reset();
-        m_FrameDataBuffer.reset();
-        m_ObjectDataBuffer.reset();
-        m_MaterialDataBuffer.reset();
-        m_IndirectBuffer.reset();
-
-        m_GridVertices.reset();
-        m_GridIndices.reset();
+        for (auto& bufs : m_BloomFramebuffers)
+        {
+            bufs[0].reset();
+            bufs[1].reset();
+        }
+        m_BloomFramebuffers.clear();
     }
 
-    void SceneRenderer::RenderScene(GraphicsContext& context, Scene* scene, const Camera& camera, glm::vec3 cameraPosition, bool drawGrid)
+    void SceneRenderer::RenderScene(GraphicsContext& context, Scene* scene, const Camera& camera, glm::vec3 cameraPosition, const SceneRenderSettings& renderSettings)
     {
         HE_PROFILE_FUNCTION();
         auto timer = Heart::AggregateTimer("SceneRenderer::RenderScene");
 
         HE_ENGINE_ASSERT(scene, "Scene cannot be nullptr");
 
+        if (m_ShouldResize)
+            Resize();
+
         // Reset in-flight frame data
+        m_SceneRenderSettings = renderSettings;
         m_Scene = scene;
         m_EnvironmentMap = scene->GetEnvironmentMap();
         m_IndirectBatches.clear();
@@ -224,8 +420,12 @@ namespace Heart
             list.clear();
 
         // Set the global data for this frame
-        FrameData frameData = { camera.GetProjectionMatrix(), camera.GetViewMatrix(), glm::vec4(cameraPosition, 1.f), m_FinalFramebuffer->GetSize(), Renderer::IsUsingReverseDepth() };
-        m_FrameDataBuffer->SetData(&frameData, 1, 0);
+        FrameData frameData = {
+            camera.GetProjectionMatrix(), camera.GetViewMatrix(), glm::vec4(cameraPosition, 1.f),
+            m_FinalFramebuffer->GetSize(),
+            Renderer::IsUsingReverseDepth()
+        };
+        m_FrameDataBuffer->SetElements(&frameData, 1, 0);
 
         // Bind the main framebuffer
         m_FinalFramebuffer->Bind();
@@ -236,8 +436,11 @@ namespace Heart
 
         // Draw the grid if set
         m_FinalFramebuffer->StartNextSubpass();
-        if (drawGrid)   
+        if (renderSettings.DrawGrid)   
             RenderGrid();
+
+        // Update the light buffer with lights  (TODO: that are on screen)
+        UpdateLightingBuffer();
 
         // Recalculate the indirect render batches
         CalculateBatches();
@@ -250,8 +453,52 @@ namespace Heart
         m_FinalFramebuffer->StartNextSubpass();
         Composite();
 
+        // Create the mipmaps of the bright colors output for bloom
+        m_BrightColorsTexture->RegenerateMipMapsSync(m_FinalFramebuffer.get());
+
         // Submit the framebuffer
         Renderer::Api().RenderFramebuffers(context, { m_FinalFramebuffer.get() });
+
+        // Bloom
+        Bloom(context);
+    }
+
+    void SceneRenderer::UpdateLightingBuffer()
+    {
+        HE_PROFILE_FUNCTION();
+
+        u32 lightIndex = 1;
+        auto view = m_Scene->GetRegistry().view<TransformComponent, LightComponent>();
+        for (auto entityHandle : view)
+        {
+            Entity entity = { m_Scene, entityHandle };
+            auto [transform, light] = view.get<TransformComponent, LightComponent>(entityHandle);
+            u32 offset = lightIndex * m_LightingDataBuffer->GetLayout().GetStride();
+
+            if (light.LightType == LightComponent::Type::Disabled) continue;
+
+            // Update the translation part of the light struct
+            m_LightingDataBuffer->SetBytes(&entity.GetWorldPosition(), sizeof(glm::vec3), offset);
+            offset += sizeof(glm::vec4);
+
+            // Update the light direction if the light is not a point light
+            if (light.LightType != LightComponent::Type::Point)
+            {
+                // Negate the forward vector so it points in the direction of the light's +Z
+                glm::vec3 forwardVector = -entity.GetWorldForwardVector();
+                m_LightingDataBuffer->SetBytes(&forwardVector, sizeof(forwardVector), offset);
+            }
+            offset += sizeof(glm::vec4);
+
+            // Update the rest of the light data after the transform
+            m_LightingDataBuffer->SetBytes(&light, sizeof(light), offset);
+
+            lightIndex++;
+        }
+
+        // Update the first element of the light buffer to contain the number of lights
+        float lightCount = static_cast<float>(lightIndex - 1);
+        m_LightingDataBuffer->SetBytes(&lightCount, sizeof(float), 0);
     }
 
     void SceneRenderer::CalculateBatches()
@@ -325,7 +572,7 @@ namespace Heart
                 pair.second.Mesh->GetIndexBuffer()->GetAllocatedCount(),
                 pair.second.Count, 0, 0, renderId
             };
-            m_IndirectBuffer->SetData(&command, 1, commandIndex);
+            m_IndirectBuffer->SetElements(&command, 1, commandIndex);
             commandIndex++;
 
             // Contiguiously set the instance data for each entity associated with this batch
@@ -334,7 +581,7 @@ namespace Heart
             {
                 // Object data
                 ObjectData objectData = { m_Scene->GetEntityCachedTransform({ m_Scene, entity }), { entity, 0.f, 0.f, 0.f } };
-                m_ObjectDataBuffer->SetData(&objectData, 1, renderId);
+                m_ObjectDataBuffer->SetElements(&objectData, 1, renderId);
 
                 // Material data
                 if (pair.second.Material)
@@ -356,10 +603,10 @@ namespace Heart
                     auto occlusionAsset = AssetManager::RetrieveAsset<TextureAsset>(pair.second.Material->GetOcclusionTexture());
                     materialData.SetHasOcclusion(occlusionAsset && occlusionAsset->IsValid());
 
-                    m_MaterialDataBuffer->SetData(&materialData, 1, renderId);
+                    m_MaterialDataBuffer->SetElements(&materialData, 1, renderId);
                 }
                 else
-                    m_MaterialDataBuffer->SetData(&AssetManager::RetrieveAsset<MaterialAsset>("DefaultMaterial.hemat", true)->GetMaterial().GetMaterialData(), 1, renderId);
+                    m_MaterialDataBuffer->SetElements(&AssetManager::RetrieveAsset<MaterialAsset>("DefaultMaterial.hemat", true)->GetMaterial().GetMaterialData(), 1, renderId);
 
                 renderId++;
             }
@@ -373,7 +620,7 @@ namespace Heart
     {
         m_FinalFramebuffer->BindPipeline("skybox");
         m_FinalFramebuffer->BindShaderBufferResource(0, 0, 1, m_FrameDataBuffer.get());
-        m_FinalFramebuffer->BindShaderTextureResource(1, m_EnvironmentMap->GetPrefilterCubemap());
+        m_FinalFramebuffer->BindShaderTextureResource(1, m_EnvironmentMap->GetEnvironmentCubemap());
 
         auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>("DefaultCube.gltf", true);
         auto& meshData = meshAsset->GetSubmesh(0);
@@ -417,31 +664,31 @@ namespace Heart
         if (materialData.HasAlbedo())
         {
             auto albedoAsset = AssetManager::RetrieveAsset<TextureAsset>(material->GetAlbedoTexture());
-            m_FinalFramebuffer->BindShaderTextureResource(3, albedoAsset->GetTexture());
+            m_FinalFramebuffer->BindShaderTextureResource(4, albedoAsset->GetTexture());
         }
         
         if (materialData.HasMetallicRoughness())
         {
             auto metallicRoughnessAsset = AssetManager::RetrieveAsset<TextureAsset>(material->GetMetallicRoughnessTexture());
-            m_FinalFramebuffer->BindShaderTextureResource(4, metallicRoughnessAsset->GetTexture());
+            m_FinalFramebuffer->BindShaderTextureResource(5, metallicRoughnessAsset->GetTexture());
         }
 
         if (materialData.HasNormal())
         {
             auto normalAsset = AssetManager::RetrieveAsset<TextureAsset>(material->GetNormalTexture());
-            m_FinalFramebuffer->BindShaderTextureResource(5, normalAsset->GetTexture());
+            m_FinalFramebuffer->BindShaderTextureResource(6, normalAsset->GetTexture());
         }
 
         if (materialData.HasEmissive())
         {
             auto emissiveAsset = AssetManager::RetrieveAsset<TextureAsset>(material->GetEmissiveTexture());
-            m_FinalFramebuffer->BindShaderTextureResource(6, emissiveAsset->GetTexture());
+            m_FinalFramebuffer->BindShaderTextureResource(7, emissiveAsset->GetTexture());
         }
 
         if (materialData.HasOcclusion())
         {
             auto occlusionAsset = AssetManager::RetrieveAsset<TextureAsset>(material->GetOcclusionTexture());
-            m_FinalFramebuffer->BindShaderTextureResource(7, occlusionAsset->GetTexture());
+            m_FinalFramebuffer->BindShaderTextureResource(8, occlusionAsset->GetTexture());
         }
     }
 
@@ -452,25 +699,30 @@ namespace Heart
 
         // Bind object data
         m_FinalFramebuffer->BindShaderBufferResource(1, 0, m_ObjectDataBuffer->GetAllocatedCount(), m_ObjectDataBuffer.get());
+
+        // Bind material data
         m_FinalFramebuffer->BindShaderBufferResource(2, 0, m_MaterialDataBuffer->GetAllocatedCount(), m_MaterialDataBuffer.get());
+        
+        // Bind lighting data
+        m_FinalFramebuffer->BindShaderBufferResource(3, 0, m_LightingDataBuffer->GetAllocatedCount(), m_LightingDataBuffer.get());
 
         // Default texture binds
-        m_FinalFramebuffer->BindShaderTextureResource(3, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
         m_FinalFramebuffer->BindShaderTextureResource(4, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
         m_FinalFramebuffer->BindShaderTextureResource(5, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
         m_FinalFramebuffer->BindShaderTextureResource(6, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
         m_FinalFramebuffer->BindShaderTextureResource(7, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
+        m_FinalFramebuffer->BindShaderTextureResource(8, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
         if (m_EnvironmentMap)
         {
-            m_FinalFramebuffer->BindShaderTextureResource(8, m_EnvironmentMap->GetIrradianceCubemap());
-            m_FinalFramebuffer->BindShaderTextureResource(9, m_EnvironmentMap->GetPrefilterCubemap());
-            m_FinalFramebuffer->BindShaderTextureResource(10, m_EnvironmentMap->GetBRDFTexture());
+            m_FinalFramebuffer->BindShaderTextureResource(9, m_EnvironmentMap->GetIrradianceCubemap());
+            m_FinalFramebuffer->BindShaderTextureResource(10, m_EnvironmentMap->GetPrefilterCubemap());
+            m_FinalFramebuffer->BindShaderTextureResource(11, m_EnvironmentMap->GetBRDFTexture());
         }
         else
         {
-            m_FinalFramebuffer->BindShaderTextureResource(8, m_DefaultEnvironmentMap.get());
             m_FinalFramebuffer->BindShaderTextureResource(9, m_DefaultEnvironmentMap.get());
-            m_FinalFramebuffer->BindShaderTextureLayerResource(10, m_DefaultEnvironmentMap.get(), 0);
+            m_FinalFramebuffer->BindShaderTextureResource(10, m_DefaultEnvironmentMap.get());
+            m_FinalFramebuffer->BindShaderTextureLayerResource(11, m_DefaultEnvironmentMap.get(), 0, 0);
         }
     }
 
@@ -542,6 +794,55 @@ namespace Heart
 
         // Draw the fullscreen triangle
         Renderer::Api().Draw(3, 0, 1);
+    }
+
+    void SceneRenderer::Bloom(GraphicsContext& context)
+    {
+        for (size_t i = 0; i < m_BloomFramebuffers.size(); i++)
+        {
+            auto& framebuffers = m_BloomFramebuffers[i];
+
+            // Use the bloomData buffer to push the lower mip level that we are sampling from 
+            BloomData bloomData{};
+            bloomData.ReverseDepth = Renderer::IsUsingReverseDepth();
+            bloomData.BlurScale = m_SceneRenderSettings.BloomBlurScale;
+            bloomData.BlurStrength = m_SceneRenderSettings.BloomBlurStrength;
+            bloomData.MipLevel = static_cast<u32>(m_BloomFramebuffers.size() - 1 - i); // Reverse the index because we start rendering the lowest mip first
+            m_BloomDataBuffer->SetElements(&bloomData, 1, i);
+
+            // Horizontal framebuffer
+            framebuffers[0]->Bind();
+            framebuffers[0]->BindPipeline("bloomHorizontal");
+            framebuffers[0]->BindShaderBufferResource(0, i, 1, m_BloomDataBuffer.get());
+            framebuffers[0]->BindShaderTextureResource(1, m_BrightColorsTexture.get()); // Read from bright color target
+            if (i > 1)
+            {
+                // Bind the upsample texture if this is at least the third iteration so we can upsample
+                framebuffers[0]->BindShaderTextureLayerResource(2, m_BloomUpsampleBufferTexture.get(), 0, bloomData.MipLevel + 1);
+            }
+            framebuffers[0]->FlushBindings();
+            Renderer::Api().Draw(3, 0, 1);
+
+            // Render
+            Renderer::Api().RenderFramebuffers(context, { framebuffers[0].get() });
+
+            // Vertical framebuffer
+            framebuffers[1]->Bind();
+            framebuffers[1]->BindPipeline("bloomVertical");
+            framebuffers[1]->BindShaderBufferResource(0, i, 1, m_BloomDataBuffer.get());
+            framebuffers[1]->BindShaderTextureResource(1, m_BloomBufferTexture.get());
+            if (i == m_BloomFramebuffers.size() - 1)
+            {
+                // Bind the pre bloom & upsample texture if this is the last iteration
+                framebuffers[1]->BindShaderTextureResource(2, m_PreBloomTexture.get());
+                framebuffers[1]->BindShaderTextureResource(3, m_BloomUpsampleBufferTexture.get());
+            }
+            framebuffers[1]->FlushBindings();
+            Renderer::Api().Draw(3, 0, 1);
+
+            // Render
+            Renderer::Api().RenderFramebuffers(context, { framebuffers[1].get() });
+        }
     }
 
     void SceneRenderer::InitializeGridBuffers()

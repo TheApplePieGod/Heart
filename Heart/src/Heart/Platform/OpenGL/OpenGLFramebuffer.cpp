@@ -218,11 +218,13 @@ namespace Heart
         m_BoundPipelineName = name;
     }
 
+    // TODO: assert checking that bound resource matches reflection data element
     void OpenGLFramebuffer::BindShaderBufferResource(u32 bindingIndex, u32 elementOffset, u32 elementCount, Buffer* _buffer)
     {
         HE_PROFILE_FUNCTION();
         HE_ENGINE_ASSERT(m_BoundPipeline != nullptr, "Must call BindPipeline before BindShaderResource");
         HE_ENGINE_ASSERT(elementCount + elementOffset <= _buffer->GetAllocatedCount(), "ElementCount + ElementOffset must be <= buffer allocated count");
+        HE_ENGINE_ASSERT(_buffer->GetType() == Buffer::Type::Uniform || _buffer->GetType() == Buffer::Type::Storage, "Buffer bind must be either a uniform or storage buffer");
 
         OpenGLBuffer& buffer = static_cast<OpenGLBuffer&>(*_buffer);
 
@@ -241,7 +243,7 @@ namespace Heart
         glBindTexture(texture.GetTarget(), texture.GetTextureId());
     }
 
-    void OpenGLFramebuffer::BindShaderTextureLayerResource(u32 bindingIndex, Texture* _texture, u32 layerIndex)
+    void OpenGLFramebuffer::BindShaderTextureLayerResource(u32 bindingIndex, Texture* _texture, u32 layerIndex, u32 mipLevel)
     {
         HE_PROFILE_FUNCTION();
         HE_ENGINE_ASSERT(m_BoundPipeline != nullptr, "Must call BindPipeline before BindShaderResource");
@@ -249,7 +251,7 @@ namespace Heart
         OpenGLTexture& texture = static_cast<OpenGLTexture&>(*_texture);
 
         glActiveTexture(GL_TEXTURE0 + bindingIndex);
-        glBindTexture(GL_TEXTURE_2D, texture.GetLayerTextureId(layerIndex, 0));
+        glBindTexture(GL_TEXTURE_2D, texture.GetLayerTextureId(layerIndex, mipLevel));
     }
 
     void OpenGLFramebuffer::BindSubpassInputAttachment(u32 bindingIndex, SubpassAttachment attachment)

@@ -179,8 +179,8 @@ namespace Heart
                 }
                 else
                 {
-                    outputAttachmentRefs.push_back({ m_AttachmentData[attachment.AttachmentIndex].ImageAttachmentIndex, VK_IMAGE_LAYOUT_GENERAL });
-                    outputResolveAttachmentRefs.push_back({ m_AttachmentData[attachment.AttachmentIndex].HasResolve ? m_AttachmentData[attachment.AttachmentIndex].ResolveImageAttachmentIndex : VK_ATTACHMENT_UNUSED, VK_IMAGE_LAYOUT_GENERAL });
+                    outputAttachmentRefs.push_back({ m_AttachmentData[attachment.AttachmentIndex].ImageAttachmentIndex, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
+                    outputResolveAttachmentRefs.push_back({ m_AttachmentData[attachment.AttachmentIndex].HasResolve ? m_AttachmentData[attachment.AttachmentIndex].ResolveImageAttachmentIndex : VK_ATTACHMENT_UNUSED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
                     outputAttachmentCount++;
                 }
 
@@ -214,30 +214,11 @@ namespace Heart
             }
             if (i == subpasses.size() - 1)
             {
-                // if (i == 0)
-                //     dependencies[i].dstSubpass = 0;
-                // else
-                //     dependencies[i].dstSubpass = VK_SUBPASS_EXTERNAL;
                 dependencies[i].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT; //| VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
                 dependencies[i].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
                 dependencies[i].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
             }
         }
-
-        // subpasses[0] = {};
-        // subpasses[0].pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-        // subpasses[0].colorAttachmentCount = static_cast<u32>(colorAttachmentRefs.size());
-        // subpasses[0].pColorAttachments = colorAttachmentRefs.data();
-        // subpasses[0].pResolveAttachments = resolveAttachmentRefs.data();
-        // subpasses[0].pDepthStencilAttachment = &depthAttachmentRef;
-
-        // dependencies[0] = {};
-        // dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
-        // dependencies[0].dstSubpass = 0;
-        // dependencies[0].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-        // dependencies[0].srcAccessMask = 0;
-        // dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-        // dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
         VkRenderPassCreateInfo renderPassInfo{};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
@@ -289,7 +270,7 @@ namespace Heart
      
             VkCommandBufferBeginInfo beginInfo{};
             beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-            beginInfo.flags = 0;
+            beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
             beginInfo.pInheritanceInfo = nullptr;
 
             HE_VULKAN_CHECK_RESULT(vkBeginCommandBuffer(buffer, &beginInfo));
@@ -330,32 +311,35 @@ namespace Heart
         HE_PROFILE_FUNCTION();
 
         HE_ENGINE_ASSERT(!m_SubmittedThisFrame, "Cannot submit framebuffer twice in the same frame");
-        HE_ENGINE_ASSERT(m_BoundThisFrame, "Cannot submit framebuffer that has not been bound this frame");
+        HE_ENGINE_ASSERT(m_SubmittedThisFrame || m_BoundThisFrame, "Cannot submit framebuffer that has not been bound this frame");
         HE_ENGINE_ASSERT(m_CurrentSubpass == m_Info.Subpasses.size() - 1, "Attempting to submit a framebuffer without completing all subpasses");
 
         VulkanDevice& device = VulkanContext::GetDevice();
         VkCommandBuffer buffer = GetCommandBuffer();
 
-        vkCmdEndRenderPass(buffer);
+        if (!m_SubmittedThisFrame)
+        {
+            vkCmdEndRenderPass(buffer);
 
-        // copy all CPU visible attachments to their respective buffers        
-        for (auto& attachment : m_AttachmentData)
-            CopyAttachmentToBuffer(attachment);
-        for (auto& attachment : m_DepthAttachmentData)
-            CopyAttachmentToBuffer(attachment);
+            // copy all CPU visible attachments to their respective buffers        
+            for (auto& attachment : m_AttachmentData)
+                CopyAttachmentToBuffer(attachment);
+            for (auto& attachment : m_DepthAttachmentData)
+                CopyAttachmentToBuffer(attachment);
 
-        // execute any commands that need to be synced with this framebuffer (i.e. Texture::RegenerateMipMapsSync)
-        for (auto cmdBuf : m_AuxiliaryCommandBuffers[m_InFlightFrameIndex])
-            vkCmdExecuteCommands(buffer, 1, &cmdBuf);
+            // execute any commands that need to be synced with this framebuffer (i.e. Texture::RegenerateMipMapsSync)
+            for (auto cmdBuf : m_AuxiliaryCommandBuffers[m_InFlightFrameIndex])
+                vkCmdExecuteCommands(buffer, 1, &cmdBuf);
 
-        HE_VULKAN_CHECK_RESULT(vkEndCommandBuffer(buffer));
+            HE_VULKAN_CHECK_RESULT(vkEndCommandBuffer(buffer));
 
-        m_BoundPipeline = nullptr;
-        m_BoundPipelineName = "";
-        m_BoundThisFrame = false;
-        m_SubmittedThisFrame = true;
-        m_FlushedThisFrame = false;
-        m_CurrentSubpass = 0;
+            m_BoundPipeline = nullptr;
+            m_BoundPipelineName = "";
+            m_BoundThisFrame = false;
+            m_SubmittedThisFrame = true;
+            m_FlushedThisFrame = false;
+            m_CurrentSubpass = 0;
+        }
     }
 
     void VulkanFramebuffer::CopyAttachmentToBuffer(VulkanFramebufferAttachment& attachmentData)
@@ -434,8 +418,10 @@ namespace Heart
         HE_PROFILE_FUNCTION();
 
         HE_ENGINE_ASSERT(elementCount + elementOffset <= buffer->GetAllocatedCount(), "ElementCount + ElementOffset must be <= buffer allocated count");
+        HE_ENGINE_ASSERT(buffer->GetType() == Buffer::Type::Uniform || buffer->GetType() == Buffer::Type::Storage, "Buffer bind must be either a uniform or storage buffer");
 
-        BindShaderResource(bindingIndex, ShaderResourceType::UniformBuffer, buffer, true, buffer->GetLayout().GetStride() * elementOffset, buffer->GetLayout().GetStride() * elementCount); // uniform vs structured buffer doesn't matter here
+        ShaderResourceType bufferType = buffer->GetType() == Buffer::Type::Uniform ? ShaderResourceType::UniformBuffer : ShaderResourceType::StorageBuffer;
+        BindShaderResource(bindingIndex, bufferType, buffer, true, buffer->GetLayout().GetStride() * elementOffset, buffer->GetLayout().GetStride() * elementCount);
     }
 
     void VulkanFramebuffer::BindShaderTextureResource(u32 bindingIndex, Texture* texture)
@@ -445,11 +431,11 @@ namespace Heart
         BindShaderResource(bindingIndex, ShaderResourceType::Texture, texture, false, 0, 0);
     }
 
-    void VulkanFramebuffer::BindShaderTextureLayerResource(u32 bindingIndex, Texture* texture, u32 layerIndex)
+    void VulkanFramebuffer::BindShaderTextureLayerResource(u32 bindingIndex, Texture* texture, u32 layerIndex, u32 mipLevel)
     {
         HE_PROFILE_FUNCTION();
 
-        BindShaderResource(bindingIndex, ShaderResourceType::Texture, texture, true, layerIndex, 0);
+        BindShaderResource(bindingIndex, ShaderResourceType::Texture, texture, true, layerIndex, mipLevel);
     }
 
     void VulkanFramebuffer::BindSubpassInputAttachment(u32 bindingIndex, SubpassAttachment attachment)
@@ -467,6 +453,8 @@ namespace Heart
 
         if (!descriptorSet.DoesBindingExist(bindingIndex))
             return; // silently ignore, TODO: warning once in the console when this happens
+
+        HE_ENGINE_ASSERT(descriptorSet.IsResourceCorrectType(bindingIndex, resourceType), "Attempting to bind a resource that does not match the bind index type");
 
         if (useOffset && (resourceType == ShaderResourceType::UniformBuffer || resourceType == ShaderResourceType::StorageBuffer))
             descriptorSet.UpdateDynamicOffset(bindingIndex, offset);

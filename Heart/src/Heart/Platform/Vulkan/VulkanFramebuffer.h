@@ -18,7 +18,7 @@ namespace Heart
         void BindPipeline(const std::string& name) override;
         void BindShaderBufferResource(u32 bindingIndex, u32 offset, u32 elementCount, Buffer* buffer) override;
         void BindShaderTextureResource(u32 bindingIndex, Texture* texture) override;
-        void BindShaderTextureLayerResource(u32 bindingIndex, Texture* texture, u32 layerIndex) override;
+        void BindShaderTextureLayerResource(u32 bindingIndex, Texture* texture, u32 layerIndex, u32 mipLevel) override;
         void BindSubpassInputAttachment(u32 bindingIndex, SubpassAttachment attachment) override;
         void FlushBindings() override;
 

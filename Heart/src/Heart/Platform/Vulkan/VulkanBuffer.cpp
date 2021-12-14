@@ -153,12 +153,11 @@ namespace Heart
         return accessingIndex;
     }
 
-    void VulkanBuffer::SetData(void* data, u32 elementCount, u32 elementOffset)
+    void VulkanBuffer::SetBytes(void* data, u32 byteCount, u32 byteOffset)
     {
         HE_PROFILE_FUNCTION();
         
         // TODO: dynamic resizing
-        HE_ENGINE_ASSERT(elementCount + elementOffset <= m_AllocatedCount, "Attempting to set data on buffer which is larger than allocated size");
         if (m_Usage == BufferUsageType::Static)
         {
             HE_ENGINE_LOG_WARN("Attemting to update buffer that is marked as static");
@@ -172,7 +171,7 @@ namespace Heart
 
         u32 accessingIndex = GetAccessingIndex();
 
-        memcpy((char*)m_MappedMemory[accessingIndex] + m_Layout.GetStride() * elementOffset, data, m_Layout.GetStride() * elementCount);
+        memcpy((char*)m_MappedMemory[accessingIndex] + byteOffset, data, byteCount);
 
         if (m_UsesStaging)
             FlushWrites(m_StagingBuffers[accessingIndex], m_Buffers[accessingIndex]);

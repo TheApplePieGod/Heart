@@ -44,7 +44,7 @@ namespace Widgets
             &Editor::GetActiveScene(),
             *m_EditorCamera,
             m_EditorCamera->GetPosition(),
-            true
+            Editor::GetState().RenderSettings
         );
         
         // calculate viewport bounds & aspect ratio
@@ -71,7 +71,8 @@ namespace Widgets
 
         // draw the rendered texture
         ImGui::Image(
-            m_SceneRenderer->GetFinalFramebuffer().GetColorAttachmentImGuiHandle(0),
+            //m_SceneRenderer->GetFinalFramebuffer().GetColorAttachmentImGuiHandle(0),
+            m_SceneRenderer->GetFinalTexture().GetImGuiHandle(),
             { m_ViewportSize.x, m_ViewportSize.y }
         );
 

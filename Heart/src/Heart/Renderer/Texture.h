@@ -68,10 +68,12 @@ namespace Heart
 
     struct TextureCreateInfo
     {
-        int Width, Height, Channels;
+        u32 Width, Height, Channels;
         bool FloatComponents;
         u32 ArrayCount;
         u32 MipCount; // set to zero to deduce mip count
+
+        TextureSamplerState SamplerState;
     };
 
     class Framebuffer;
@@ -88,14 +90,15 @@ namespace Heart
 
         inline void* GetImGuiHandle(u32 layerIndex = 0) const { return m_LayerImGuiHandles[layerIndex]; }
         inline u32 GetArrayCount() const { return m_Info.ArrayCount; }
-        inline u32 GetWidth() const { return static_cast<u32>(m_Info.Width); }
-        inline u32 GetHeight() const { return static_cast<u32>(m_Info.Height); }
+        inline u32 GetWidth() const { return m_Info.Width; }
+        inline u32 GetHeight() const { return m_Info.Height; }
+        inline u32 GetMipCount() const { return m_Info.MipCount; }
         inline u32 GetMipWidth(u32 mipLevel) const { return std::max(static_cast<u32>(m_Info.Width * pow(0.5f, mipLevel)), 0U); }
         inline u32 GetMipHeight(u32 mipLevel) const { return std::max(static_cast<u32>(m_Info.Height * pow(0.5f, mipLevel)), 0U); }
-        inline u32 GetChannels() const { return static_cast<u32>(m_Info.Channels); }
+        inline u32 GetChannels() const { return m_Info.Channels; }
         inline bool HasTransparency() const { return m_HasTransparency; }
         inline bool HasTranslucency() const { return m_HasTranslucency; }
-        inline const TextureSamplerState& GetSamplerState() const { return m_SamplerState; }
+        inline const TextureSamplerState& GetSamplerState() const { return m_Info.SamplerState; }
 
     public:
         static Ref<Texture> Create(const TextureCreateInfo& createInfo, void* initialData = nullptr);
@@ -109,6 +112,5 @@ namespace Heart
         std::vector<void*> m_LayerImGuiHandles;
         bool m_HasTransparency = false;
         bool m_HasTranslucency = false;
-        TextureSamplerState m_SamplerState;
     };
 }

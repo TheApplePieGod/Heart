@@ -89,15 +89,16 @@ namespace Widgets
             if (ImGui::BeginPopup("AddComponent"))
             {
                 if (ImGui::MenuItem("Mesh Component"))
-                {
                     selectedEntity.AddComponent<Heart::MeshComponent>();
-                }
+                if (ImGui::MenuItem("Light Component"))
+                    selectedEntity.AddComponent<Heart::LightComponent>();
 
                 ImGui::EndPopup();
             }
 
             RenderTransformComponent();
             RenderMeshComponent();
+            RenderLightComponent();
         }
 
         ImGui::End();
@@ -111,7 +112,7 @@ namespace Widgets
         if (selectedEntity.HasComponent<Heart::TransformComponent>())
         {
             bool headerOpen = ImGui::CollapsingHeader("Transform");
-            if (!RenderComponentPopup<Heart::MeshComponent>("TransformPopup", false) && headerOpen)
+            if (!RenderComponentPopup<Heart::TransformComponent>("TransformPopup", false) && headerOpen)
             {
                 glm::vec3 translation = selectedEntity.GetPosition();
                 glm::vec3 rotation = selectedEntity.GetRotation();
@@ -239,6 +240,63 @@ namespace Widgets
                 else
                     ImGui::TextColored({ 0.9f, 0.1f, 0.1f, 1.f }, "Invalid Mesh");
                 
+                ImGui::Unindent();
+            }
+        }
+    }
+
+    void PropertiesPanel::RenderLightComponent()
+    {
+        auto selectedEntity = Editor::GetState().SelectedEntity;
+        if (selectedEntity.HasComponent<Heart::LightComponent>())
+        {
+            bool headerOpen = ImGui::CollapsingHeader("Light");
+            if (!RenderComponentPopup<Heart::LightComponent>("PointLightPopup", true) && headerOpen)
+            {
+                auto& lightComp = selectedEntity.GetComponent<Heart::LightComponent>();
+
+                ImGui::Indent();
+
+                ImGui::Text("Light Type:");
+                ImGui::SameLine();
+                bool popupOpened = ImGui::Button(HE_ENUM_TO_STRING(Heart::LightComponent, lightComp.LightType));
+                if (popupOpened)
+                    ImGui::OpenPopup("LightTypeSelect");
+            
+                if (ImGui::BeginPopup("LightTypeSelect"))
+                {
+                    if (ImGui::MenuItem("Disabled"))
+                        lightComp.LightType = Heart::LightComponent::Type::Disabled;
+                    if (ImGui::MenuItem("Directional"))
+                        lightComp.LightType = Heart::LightComponent::Type::Directional;
+                    if (ImGui::MenuItem("Point"))
+                        lightComp.LightType = Heart::LightComponent::Type::Point;
+                    ImGui::EndPopup();
+                }
+
+                ImGui::Text("Color");
+                ImGui::SameLine();
+                ImGui::ColorEdit3("##Color", (float*)&lightComp.Color);
+
+                ImGui::Text("Intensity");
+                ImGui::SameLine();
+                ImGui::DragFloat("##Intensity", &lightComp.Color.a, 0.5f, 0.f, 100.f);
+
+                ImGui::Text("Attenuation");
+                ImGui::Separator();
+
+                ImGui::Text("Constant");
+                ImGui::SameLine();
+                ImGui::DragFloat("##ConstantAtten", &lightComp.ConstantAttenuation, 0.005f, 0.f, 2.f);
+
+                ImGui::Text("Linear");
+                ImGui::SameLine();
+                ImGui::DragFloat("##LinearAtten", &lightComp.LinearAttenuation, 0.005f, 0.f, 2.f);
+
+                ImGui::Text("Quadratic");
+                ImGui::SameLine();
+                ImGui::DragFloat("##QuadAtten", &lightComp.QuadraticAttenuation, 0.005f, 0.f, 2.f);
+
                 ImGui::Unindent();
             }
         }

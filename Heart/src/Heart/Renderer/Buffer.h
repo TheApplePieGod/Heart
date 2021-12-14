@@ -125,7 +125,8 @@ namespace Heart
         {}
         virtual ~Buffer() = default;
 
-        virtual void SetData(void* data, u32 elementCount, u32 elementOffset) = 0;
+        void SetElements(void* data, u32 elementCount, u32 elementOffset);
+        virtual void SetBytes(void* data, u32 byteCount, u32 byteOffset) = 0;
 
         inline Type GetType() const { return m_Type; }
         inline BufferLayout& GetLayout() { return m_Layout; }

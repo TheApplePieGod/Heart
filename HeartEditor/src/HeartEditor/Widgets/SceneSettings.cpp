@@ -6,6 +6,7 @@
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Util/FilesystemUtils.h"
 #include "Heart/Util/ImGuiUtils.h"
+#include "glm/trigonometric.hpp"
 
 namespace HeartEditor
 {
@@ -39,6 +40,24 @@ namespace Widgets
                 activeScene.SetEnvironmentMap(selected);
             }
         );
+
+        ImGui::Separator();
+
+        ImGui::Text("Draw Grid");
+        ImGui::SameLine();
+        ImGui::Checkbox("##DrawGrid", &Editor::GetState().RenderSettings.DrawGrid);
+
+        ImGui::Text("Bloom Enable");
+        ImGui::SameLine();
+        ImGui::Checkbox("##BloomEnable", &Editor::GetState().RenderSettings.BloomEnable);
+
+        ImGui::Text("Bloom Blur Scale");
+        ImGui::SameLine();
+        ImGui::DragFloat("##BBScale", &Editor::GetState().RenderSettings.BloomBlurScale, 0.1f, 0.f, 50.f);
+
+        ImGui::Text("Bloom Blur Strength");
+        ImGui::SameLine();
+        ImGui::DragFloat("##BBStren", &Editor::GetState().RenderSettings.BloomBlurStrength, 0.1f, 0.f, 50.f);
 
         ImGui::End();
         ImGui::PopStyleVar();
