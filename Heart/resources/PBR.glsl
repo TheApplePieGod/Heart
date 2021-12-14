@@ -177,7 +177,7 @@ vec4 GetFinalColor()
     baseColor.rgb = pow(baseColor.rgb, vec3(2.2)); // compensate for gamma correction
     Clip(baseColor.a);
 
-    float roughness = GetRoughness();
+    float roughness = clamp(GetRoughness(), 0.08f, 1.f);
     float metalness = GetMetalness();
     vec3 emissive = GetEmissive();
     float occlusion = GetOcclusion();

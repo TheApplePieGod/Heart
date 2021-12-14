@@ -128,7 +128,7 @@ namespace Heart
             { BufferDataType::UInt } // first instance
         };
         m_FrameDataBuffer = Buffer::Create(Buffer::Type::Uniform, BufferUsageType::Dynamic, frameDataLayout, 1, nullptr);
-        m_BloomDataBuffer = Buffer::Create(Buffer::Type::Storage, BufferUsageType::Dynamic, bloomDataLayout, 10, nullptr);
+        m_BloomDataBuffer = Buffer::Create(Buffer::Type::Storage, BufferUsageType::Dynamic, bloomDataLayout, 50, nullptr);
         m_ObjectDataBuffer = Buffer::Create(Buffer::Type::Storage, BufferUsageType::Dynamic, objectDataLayout, 5000, nullptr);
         m_MaterialDataBuffer = Buffer::Create(Buffer::Type::Storage, BufferUsageType::Dynamic, materialDataLayout, 5000, nullptr);
         m_LightingDataBuffer = Buffer::Create(Buffer::Type::Storage, BufferUsageType::Dynamic, lightingDataLayout, 500, nullptr);
@@ -179,7 +179,8 @@ namespace Heart
 
         m_PreBloomTexture = Texture::Create({ m_RenderWidth, m_RenderHeight, 4, true, 1, 1, samplerState });
         m_BrightColorsTexture = Texture::Create({ m_RenderWidth, m_RenderHeight, 4, true, 1, m_BloomMipCount, samplerState });
-        m_BloomBufferTexture = Texture::Create({ m_RenderWidth, m_RenderHeight, 4, true, 1, m_BloomMipCount - 1, samplerState });
+        m_BloomBufferTexture = Texture::Create({ m_RenderWidth, m_RenderHeight, 4, true, 1, m_BloomMipCount, samplerState });
+        m_BloomUpsampleBufferTexture = Texture::Create({ m_RenderWidth, m_RenderHeight, 4, true, 1, m_BloomMipCount - 1, samplerState });
         m_FinalTexture = Texture::Create({ m_RenderWidth, m_RenderHeight, 4, true, 1, 1, samplerState });
     }
 
@@ -188,6 +189,7 @@ namespace Heart
         m_PreBloomTexture.reset();
         m_BrightColorsTexture.reset();
         m_BloomBufferTexture.reset();
+        m_BloomUpsampleBufferTexture.reset();
         m_FinalTexture.reset();
     }
 
@@ -294,7 +296,7 @@ namespace Heart
         // Create the bloom framebuffers
         FramebufferCreateInfo bloomFbCreateInfo = {
             {
-                { false, { 0.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::None, m_BloomBufferTexture, 0,  },
+                { false, { 0.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::None, m_BloomBufferTexture, 0, 0 },
             },
             {
                 {}
@@ -319,35 +321,23 @@ namespace Heart
             WindingOrder::Clockwise,
             0
         };
-        GraphicsPipelineCreateInfo bloomVertical = {
-            AssetManager::GetAssetUUID("Bloom.vert", true),
-            AssetManager::GetAssetUUID("BloomVertical.frag", true),
-            false,
-            VertexTopology::TriangleList,
-            Heart::Mesh::GetVertexLayout(),
-            { { false } },
-            false,
-            false,
-            CullMode::None,
-            WindingOrder::Clockwise,
-            0
-        };
-        GraphicsPipelineCreateInfo bloomVerticalComposite = {
-            AssetManager::GetAssetUUID("Bloom.vert", true),
-            AssetManager::GetAssetUUID("BloomVerticalComposite.frag", true),
-            false,
-            VertexTopology::TriangleList,
-            Heart::Mesh::GetVertexLayout(),
-            { { false } },
-            false,
-            false,
-            CullMode::None,
-            WindingOrder::Clockwise,
-            0
-        };
+        
+        GraphicsPipelineCreateInfo bloomHorizontalUpscale = bloomHorizontal;
+        bloomHorizontalUpscale.FragmentShaderAsset = AssetManager::GetAssetUUID("BloomHorizontalUpscale.frag", true);
+        bloomHorizontalUpscale.BlendStates.push_back({ false });
 
-        // Start at the second lowest mip level
-        for (int i = m_BloomMipCount - 2; i >= 0; i--)
+        GraphicsPipelineCreateInfo bloomHorizontalDoubleUpscale = bloomHorizontal;
+        bloomHorizontalDoubleUpscale.FragmentShaderAsset = AssetManager::GetAssetUUID("BloomHorizontalDoubleUpscale.frag", true);
+        bloomHorizontalDoubleUpscale.BlendStates.push_back({ false });
+
+        GraphicsPipelineCreateInfo bloomVertical = bloomHorizontal;
+        bloomVertical.FragmentShaderAsset = AssetManager::GetAssetUUID("BloomVertical.frag", true);
+
+        GraphicsPipelineCreateInfo bloomVerticalComposite = bloomHorizontal;
+        bloomVerticalComposite.FragmentShaderAsset = AssetManager::GetAssetUUID("BloomVerticalComposite.frag", true);
+
+        // Start at the lowest mip level
+        for (int i = m_BloomMipCount - 1; i >= 0; i--)
         {
             // Output will be same size as mip level
             bloomFbCreateInfo.Width = static_cast<u32>(m_BrightColorsTexture->GetWidth() * pow(0.5f, i));
@@ -356,11 +346,30 @@ namespace Heart
             // Write to the same mip level in the bloom buffer but read from one level below
             bloomFbCreateInfo.ColorAttachments[0].MipLevel = i; 
 
-            // Always output to the buffer texture
+            // Output to the buffer texture
             bloomFbCreateInfo.ColorAttachments[0].Texture = m_BloomBufferTexture;
+            if (i < m_BloomMipCount - 1)
+            {
+                // Starting after the bottom mip level, push back the second color attachment which will be the upsample buffer
+                bloomFbCreateInfo.ColorAttachments.push_back(
+                    { false, { 0.f, 0.f, 0.f, 0.f }, Heart::ColorFormat::None, m_BloomUpsampleBufferTexture, 0, static_cast<u32>(i) }
+                );
+                bloomFbCreateInfo.Subpasses[0].OutputAttachments.push_back(
+                    { SubpassAttachmentType::Color, 1 }
+                );
+            }
 
             auto horizontal = Framebuffer::Create(bloomFbCreateInfo);
-            horizontal->RegisterGraphicsPipeline("bloomHorizontal", bloomHorizontal);
+            if (i == m_BloomMipCount - 1) // If we are on the first iteration, we want to run the basic horizontal shader
+                horizontal->RegisterGraphicsPipeline("bloomHorizontal", bloomHorizontal);
+            else if (i == m_BloomMipCount - 2) // If we are on the second iteration, we want to run the bright color upscale shader
+                horizontal->RegisterGraphicsPipeline("bloomHorizontal", bloomHorizontalUpscale);
+            else // Otherwise we want to run the shader that upscales both the bright color and the upsample buffer
+                horizontal->RegisterGraphicsPipeline("bloomHorizontal", bloomHorizontalDoubleUpscale);
+
+            // Get rid of the second color attachment for the vertical pass
+            bloomFbCreateInfo.ColorAttachments.resize(1);
+            bloomFbCreateInfo.Subpasses[0].OutputAttachments.resize(1);
 
             if (i == 0) // If we are on the last iteration, output directly to the output texture
             {
@@ -713,7 +722,7 @@ namespace Heart
         {
             m_FinalFramebuffer->BindShaderTextureResource(9, m_DefaultEnvironmentMap.get());
             m_FinalFramebuffer->BindShaderTextureResource(10, m_DefaultEnvironmentMap.get());
-            m_FinalFramebuffer->BindShaderTextureLayerResource(11, m_DefaultEnvironmentMap.get(), 0);
+            m_FinalFramebuffer->BindShaderTextureLayerResource(11, m_DefaultEnvironmentMap.get(), 0, 0);
         }
     }
 
@@ -793,36 +802,41 @@ namespace Heart
         {
             auto& framebuffers = m_BloomFramebuffers[i];
 
-            // Use the framedata buffer to push the lower mip level that we are sampling from 
+            // Use the bloomData buffer to push the lower mip level that we are sampling from 
             BloomData bloomData{};
             bloomData.ReverseDepth = Renderer::IsUsingReverseDepth();
             bloomData.BlurScale = m_SceneRenderSettings.BloomBlurScale;
             bloomData.BlurStrength = m_SceneRenderSettings.BloomBlurStrength;
-            bloomData.MipLevel = static_cast<float>(m_BloomFramebuffers.size() - i); // Reverse the index because we start rendering the lowest mip first
-            m_BloomDataBuffer->SetElements(&bloomData, 1, i * 2);
+            bloomData.MipLevel = static_cast<u32>(m_BloomFramebuffers.size() - 1 - i); // Reverse the index because we start rendering the lowest mip first
+            m_BloomDataBuffer->SetElements(&bloomData, 1, i);
 
             // Horizontal framebuffer
             framebuffers[0]->Bind();
             framebuffers[0]->BindPipeline("bloomHorizontal");
-            framebuffers[0]->BindShaderBufferResource(0, i * 2, 1, m_BloomDataBuffer.get());
+            framebuffers[0]->BindShaderBufferResource(0, i, 1, m_BloomDataBuffer.get());
             framebuffers[0]->BindShaderTextureResource(1, m_BrightColorsTexture.get()); // Read from bright color target
+            if (i > 1)
+            {
+                // Bind the upsample texture if this is at least the third iteration so we can upsample
+                framebuffers[0]->BindShaderTextureLayerResource(2, m_BloomUpsampleBufferTexture.get(), 0, bloomData.MipLevel + 1);
+            }
             framebuffers[0]->FlushBindings();
             Renderer::Api().Draw(3, 0, 1);
 
             // Render
             Renderer::Api().RenderFramebuffers(context, { framebuffers[0].get() });
 
-            // Use the bloomData buffer to push the current mip level that we are sampling from 
-            bloomData.MipLevel = static_cast<float>(m_BloomFramebuffers.size() - 1 - i); // Reverse the index because we start rendering the lowest mip first
-            m_BloomDataBuffer->SetElements(&bloomData, 1, i * 2 + 1);
-
             // Vertical framebuffer
             framebuffers[1]->Bind();
             framebuffers[1]->BindPipeline("bloomVertical");
-            framebuffers[1]->BindShaderBufferResource(0, i * 2 + 1, 1, m_BloomDataBuffer.get());
+            framebuffers[1]->BindShaderBufferResource(0, i, 1, m_BloomDataBuffer.get());
             framebuffers[1]->BindShaderTextureResource(1, m_BloomBufferTexture.get());
             if (i == m_BloomFramebuffers.size() - 1)
-                framebuffers[1]->BindShaderTextureResource(2, m_PreBloomTexture.get()); // Bind the pre bloom texture if this is the last iteration
+            {
+                // Bind the pre bloom & upsample texture if this is the last iteration
+                framebuffers[1]->BindShaderTextureResource(2, m_PreBloomTexture.get());
+                framebuffers[1]->BindShaderTextureResource(3, m_BloomUpsampleBufferTexture.get());
+            }
             framebuffers[1]->FlushBindings();
             Renderer::Api().Draw(3, 0, 1);
 

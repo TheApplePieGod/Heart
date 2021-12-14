@@ -179,8 +179,8 @@ namespace Heart
                 }
                 else
                 {
-                    outputAttachmentRefs.push_back({ m_AttachmentData[attachment.AttachmentIndex].ImageAttachmentIndex, VK_IMAGE_LAYOUT_GENERAL });
-                    outputResolveAttachmentRefs.push_back({ m_AttachmentData[attachment.AttachmentIndex].HasResolve ? m_AttachmentData[attachment.AttachmentIndex].ResolveImageAttachmentIndex : VK_ATTACHMENT_UNUSED, VK_IMAGE_LAYOUT_GENERAL });
+                    outputAttachmentRefs.push_back({ m_AttachmentData[attachment.AttachmentIndex].ImageAttachmentIndex, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
+                    outputResolveAttachmentRefs.push_back({ m_AttachmentData[attachment.AttachmentIndex].HasResolve ? m_AttachmentData[attachment.AttachmentIndex].ResolveImageAttachmentIndex : VK_ATTACHMENT_UNUSED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
                     outputAttachmentCount++;
                 }
 
@@ -214,30 +214,11 @@ namespace Heart
             }
             if (i == subpasses.size() - 1)
             {
-                // if (i == 0)
-                //     dependencies[i].dstSubpass = 0;
-                // else
-                //     dependencies[i].dstSubpass = VK_SUBPASS_EXTERNAL;
                 dependencies[i].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT; //| VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
                 dependencies[i].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
                 dependencies[i].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
             }
         }
-
-        // subpasses[0] = {};
-        // subpasses[0].pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-        // subpasses[0].colorAttachmentCount = static_cast<u32>(colorAttachmentRefs.size());
-        // subpasses[0].pColorAttachments = colorAttachmentRefs.data();
-        // subpasses[0].pResolveAttachments = resolveAttachmentRefs.data();
-        // subpasses[0].pDepthStencilAttachment = &depthAttachmentRef;
-
-        // dependencies[0] = {};
-        // dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
-        // dependencies[0].dstSubpass = 0;
-        // dependencies[0].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-        // dependencies[0].srcAccessMask = 0;
-        // dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-        // dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
         VkRenderPassCreateInfo renderPassInfo{};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
@@ -450,11 +431,11 @@ namespace Heart
         BindShaderResource(bindingIndex, ShaderResourceType::Texture, texture, false, 0, 0);
     }
 
-    void VulkanFramebuffer::BindShaderTextureLayerResource(u32 bindingIndex, Texture* texture, u32 layerIndex)
+    void VulkanFramebuffer::BindShaderTextureLayerResource(u32 bindingIndex, Texture* texture, u32 layerIndex, u32 mipLevel)
     {
         HE_PROFILE_FUNCTION();
 
-        BindShaderResource(bindingIndex, ShaderResourceType::Texture, texture, true, layerIndex, 0);
+        BindShaderResource(bindingIndex, ShaderResourceType::Texture, texture, true, layerIndex, mipLevel);
     }
 
     void VulkanFramebuffer::BindSubpassInputAttachment(u32 bindingIndex, SubpassAttachment attachment)

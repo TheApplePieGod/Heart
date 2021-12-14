@@ -243,7 +243,7 @@ namespace Heart
         glBindTexture(texture.GetTarget(), texture.GetTextureId());
     }
 
-    void OpenGLFramebuffer::BindShaderTextureLayerResource(u32 bindingIndex, Texture* _texture, u32 layerIndex)
+    void OpenGLFramebuffer::BindShaderTextureLayerResource(u32 bindingIndex, Texture* _texture, u32 layerIndex, u32 mipLevel)
     {
         HE_PROFILE_FUNCTION();
         HE_ENGINE_ASSERT(m_BoundPipeline != nullptr, "Must call BindPipeline before BindShaderResource");
@@ -251,7 +251,7 @@ namespace Heart
         OpenGLTexture& texture = static_cast<OpenGLTexture&>(*_texture);
 
         glActiveTexture(GL_TEXTURE0 + bindingIndex);
-        glBindTexture(GL_TEXTURE_2D, texture.GetLayerTextureId(layerIndex, 0));
+        glBindTexture(GL_TEXTURE_2D, texture.GetLayerTextureId(layerIndex, mipLevel));
     }
 
     void OpenGLFramebuffer::BindSubpassInputAttachment(u32 bindingIndex, SubpassAttachment attachment)

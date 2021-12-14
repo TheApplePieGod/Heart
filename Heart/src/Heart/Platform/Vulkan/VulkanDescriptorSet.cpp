@@ -162,7 +162,7 @@ namespace Heart
                     m_CachedImageInfos[imageInfoBaseIndex + i].sampler = texture->GetSampler();
                     m_CachedImageInfos[imageInfoBaseIndex + i].imageLayout = texture->GetCurrentLayout();
                     if (useOffset)
-                        m_CachedImageInfos[imageInfoBaseIndex + i].imageView = texture->GetLayerImageView(offset, 0);
+                        m_CachedImageInfos[imageInfoBaseIndex + i].imageView = texture->GetLayerImageView(offset, size); // size is the mip level here
                     else
                         m_CachedImageInfos[imageInfoBaseIndex + i].imageView = texture->GetImageView();
                 }

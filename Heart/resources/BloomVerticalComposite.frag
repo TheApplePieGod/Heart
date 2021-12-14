@@ -6,6 +6,7 @@ layout(location = 0) in vec2 texCoord;
 #include "BloomBuffer.glsl"
 
 layout(binding = 2) uniform sampler2D preBloom;
+layout(binding = 3) uniform sampler2D upsampleTex;
 
 layout(location = 0) out vec4 outColor;
 
@@ -23,8 +24,10 @@ vec3 ACESFilm(vec3 x)
 // adapted from https://learnopengl.com/Advanced-Lighting/Bloom
 void main() {
     vec3 finalBloomColor = GaussianVertical(texCoord, bloomBuffer.data.mipLevel, bloomBuffer.data.blurScale, bloomBuffer.data.blurStrength);
+    vec3 bloomComposite = finalBloomColor + texture(upsampleTex, texCoord).rgb;
+
     vec3 hdrColor = texture(preBloom, texCoord).rgb;      
-    hdrColor += finalBloomColor; // additive blending
+    hdrColor += bloomComposite; // additive blending
 
     // tone mapping
     vec3 result = ACESFilm(hdrColor);

@@ -118,6 +118,7 @@ namespace Heart
         Ref<Texture> m_PreBloomTexture;
         Ref<Texture> m_BrightColorsTexture;
         Ref<Texture> m_BloomBufferTexture;
+        Ref<Texture> m_BloomUpsampleBufferTexture;
         Ref<Texture> m_FinalTexture;
 
         Ref<Buffer> m_FrameDataBuffer;
@@ -139,7 +140,7 @@ namespace Heart
         std::vector<std::vector<u32>> m_EntityListPool;
         SceneRenderSettings m_SceneRenderSettings;
 
-        const u32 m_BloomMipCount = 6;
+        const u32 m_BloomMipCount = 5;
         bool m_ShouldResize = false;
         u32 m_RenderWidth = 0;
         u32 m_RenderHeight = 0;

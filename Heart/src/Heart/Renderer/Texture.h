@@ -92,6 +92,7 @@ namespace Heart
         inline u32 GetArrayCount() const { return m_Info.ArrayCount; }
         inline u32 GetWidth() const { return m_Info.Width; }
         inline u32 GetHeight() const { return m_Info.Height; }
+        inline u32 GetMipCount() const { return m_Info.MipCount; }
         inline u32 GetMipWidth(u32 mipLevel) const { return std::max(static_cast<u32>(m_Info.Width * pow(0.5f, mipLevel)), 0U); }
         inline u32 GetMipHeight(u32 mipLevel) const { return std::max(static_cast<u32>(m_Info.Height * pow(0.5f, mipLevel)), 0U); }
         inline u32 GetChannels() const { return m_Info.Channels; }

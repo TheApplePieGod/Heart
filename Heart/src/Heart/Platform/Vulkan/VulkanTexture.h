@@ -23,6 +23,8 @@ namespace Heart
         inline VkImage GetImage() const { return m_Image; }
         inline VkDeviceMemory GetImageMemory() const { return m_ImageMemory; }
 
+        inline void SetCurrentLayout(VkImageLayout layout) { m_CurrentLayout = layout; }
+
     private:
         void CreateTexture(void* data);
         void CreateSampler();

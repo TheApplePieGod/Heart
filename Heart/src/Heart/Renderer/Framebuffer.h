@@ -56,7 +56,7 @@ namespace Heart
 
         std::vector<FramebufferColorAttachment> ColorAttachments;
         std::vector<FramebufferDepthAttachment> DepthAttachments;
-        std::vector<Subpass> Subpasses; // leave empty for no 
+        std::vector<Subpass> Subpasses; // leave empty for no
         u32 Width, Height = 0; // set to zero to match screen width and height
         MsaaSampleCount SampleCount = MsaaSampleCount::None; // will be clamped to device max supported sample count
     };
@@ -75,8 +75,8 @@ namespace Heart
 
         // must be called after BindPipeline()
         virtual void BindShaderBufferResource(u32 bindingIndex, u32 elementOffset, u32 elementCount, Buffer* buffer) = 0;
-        virtual void BindShaderTextureResource(u32 bindingIndex, Texture* texture) = 0;
-        virtual void BindShaderTextureLayerResource(u32 bindingIndex, Texture* texture, u32 layerIndex) = 0;
+        virtual void BindShaderTextureResource(u32 bindingIndex, Texture* texture) = 0; // do not call on a texture you are both reading and writing from
+        virtual void BindShaderTextureLayerResource(u32 bindingIndex, Texture* texture, u32 layerIndex, u32 mipLevel) = 0;
         virtual void BindSubpassInputAttachment(u32 bindingIndex, SubpassAttachment attachment) = 0;
         virtual void FlushBindings() = 0;
 
@@ -108,7 +108,7 @@ namespace Heart
         inline glm::vec2 GetSize() const { return { m_ActualWidth, m_ActualHeight }; }
 
         u32 GetSubpassOutputColorAttachmentCount(u32 subpassIndex) const
-        { 
+        {
             u32 count = 0;
             for (auto& attachment : m_Info.Subpasses[subpassIndex].OutputAttachments)
                 if (attachment.Type == SubpassAttachmentType::Color)
@@ -116,7 +116,7 @@ namespace Heart
             return count;
         }
         bool HasOutputDepthAttachment(u32 subpassIndex) const
-        { 
+        {
             u32 count = 0;
             for (auto& attachment : m_Info.Subpasses[subpassIndex].OutputAttachments)
                 if (attachment.Type == SubpassAttachmentType::Depth)
