@@ -132,6 +132,7 @@ namespace Heart
             return;
         boundResource.Resource = resource;
         boundResource.Offset = offset;
+        boundResource.Size = size;
 
         //HE_ENGINE_ASSERT(m_DescriptorWriteMappings.find(bindingIndex) != m_DescriptorWriteMappings.end(), "Attempting to update a shader resource binding that doesn't exist");
 
@@ -270,6 +271,7 @@ namespace Heart
         {
             hash ^= std::hash<intptr_t>{}((intptr_t)pair.second.Resource);
             hash ^= std::hash<intptr_t>{}((intptr_t)(pair.second.Offset * 250798));
+            hash ^= std::hash<intptr_t>{}((intptr_t)(pair.second.Size * 812893));
         }
 
         return hash;

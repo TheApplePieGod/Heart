@@ -82,7 +82,7 @@ namespace Heart
         m_Initialized = true;
 
         // Create default environment map cubemap object
-        m_DefaultEnvironmentMap = Texture::Create({ 512, 512, 4, false, 6, 5 });
+        m_DefaultEnvironmentMap = Texture::Create({ 512, 512, 4, BufferDataType::UInt8, 6, 5 });
 
         // Initialize data buffers
         BufferLayout frameDataLayout = {
@@ -177,11 +177,11 @@ namespace Heart
         TextureSamplerState samplerState;
         samplerState.UVWWrap = { SamplerWrapMode::ClampToBorder, SamplerWrapMode::ClampToBorder, SamplerWrapMode::ClampToBorder };
 
-        m_PreBloomTexture = Texture::Create({ m_RenderWidth, m_RenderHeight, 4, true, 1, 1, samplerState });
-        m_BrightColorsTexture = Texture::Create({ m_RenderWidth, m_RenderHeight, 4, true, 1, m_BloomMipCount, samplerState });
-        m_BloomBufferTexture = Texture::Create({ m_RenderWidth, m_RenderHeight, 4, true, 1, m_BloomMipCount, samplerState });
-        m_BloomUpsampleBufferTexture = Texture::Create({ m_RenderWidth, m_RenderHeight, 4, true, 1, m_BloomMipCount - 1, samplerState });
-        m_FinalTexture = Texture::Create({ m_RenderWidth, m_RenderHeight, 4, true, 1, 1, samplerState });
+        m_PreBloomTexture = Texture::Create({ m_RenderWidth, m_RenderHeight, 4, BufferDataType::HalfFloat, 1, 1, samplerState });
+        m_BrightColorsTexture = Texture::Create({ m_RenderWidth, m_RenderHeight, 4, BufferDataType::HalfFloat, 1, m_BloomMipCount, samplerState });
+        m_BloomBufferTexture = Texture::Create({ m_RenderWidth, m_RenderHeight, 4, BufferDataType::HalfFloat, 1, m_BloomMipCount, samplerState });
+        m_BloomUpsampleBufferTexture = Texture::Create({ m_RenderWidth, m_RenderHeight, 4, BufferDataType::HalfFloat, 1, m_BloomMipCount - 1, samplerState });
+        m_FinalTexture = Texture::Create({ m_RenderWidth, m_RenderHeight, 4, BufferDataType::UInt8, 1, 1, samplerState });
     }
 
     void SceneRenderer::CleanupTextures()

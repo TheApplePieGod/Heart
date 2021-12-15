@@ -19,10 +19,10 @@ namespace Heart
         if (m_MipLevels > maxMipLevels || m_MipLevels == 0)
             m_MipLevels = maxMipLevels;
 
-        int type = m_Info.FloatComponents ? GL_FLOAT : GL_UNSIGNED_BYTE;
-        m_Format = GL_RGBA;
-        m_InternalFormat = m_Info.FloatComponents ? GL_RGBA32F : GL_RGBA8;
-        m_GeneralFormat = m_Info.FloatComponents ? ColorFormat::RGBA32F : ColorFormat::RGBA8;
+        int type = OpenGLCommon::BufferDataTypeToBaseOpenGL(createInfo.DataType);
+        m_GeneralFormat = BufferDataTypeColorFormat(createInfo.DataType);
+        m_Format = OpenGLCommon::ColorFormatToOpenGL(m_GeneralFormat);
+        m_InternalFormat = OpenGLCommon::ColorFormatToInternalOpenGL(m_GeneralFormat);
 
         m_Target = GL_TEXTURE_2D;
         if (m_Info.ArrayCount > 1)

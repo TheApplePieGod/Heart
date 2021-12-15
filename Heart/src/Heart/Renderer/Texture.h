@@ -66,10 +66,23 @@ namespace Heart
         return BufferDataType::None;
     }
 
+    static ColorFormat BufferDataTypeColorFormat(BufferDataType type)
+    {
+        switch (type)
+        {
+            case BufferDataType::UInt8: return ColorFormat::RGBA8;
+            case BufferDataType::Float: return ColorFormat::RGBA32F;
+            case BufferDataType::HalfFloat: return ColorFormat::RGBA16F;
+        }
+
+        HE_ENGINE_ASSERT(false, "BufferDataTypeColorFormat unsupported BufferDataType");
+        return ColorFormat::None;
+    }
+
     struct TextureCreateInfo
     {
         u32 Width, Height, Channels;
-        bool FloatComponents;
+        BufferDataType DataType;
         u32 ArrayCount;
         u32 MipCount; // set to zero to deduce mip count
 

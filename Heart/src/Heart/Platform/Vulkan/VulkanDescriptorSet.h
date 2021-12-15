@@ -30,6 +30,7 @@ namespace Heart
         {
             void* Resource;
             u32 Offset;
+            u32 Size;
         };
         struct BindingData
         {

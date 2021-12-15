@@ -112,8 +112,10 @@ namespace Heart
     {
         VulkanDevice& device = VulkanContext::GetDevice();
         VkDeviceSize imageSize = m_Info.Width * m_Info.Height * m_Info.Channels;
-        m_Format = m_Info.FloatComponents ? VK_FORMAT_R32G32B32A32_SFLOAT : VK_FORMAT_R8G8B8A8_UNORM;
-        m_GeneralFormat = m_Info.FloatComponents ? ColorFormat::RGBA32F : ColorFormat::RGBA8;
+        m_GeneralFormat = BufferDataTypeColorFormat(m_Info.DataType);
+        m_Format = VulkanCommon::ColorFormatToVulkan(m_GeneralFormat);
+        if (m_Format == VK_FORMAT_R8G8B8A8_SRGB)
+            m_Format = VK_FORMAT_R8G8B8A8_UNORM; // we want to use unorm for textures
 
         VkBuffer stagingBuffer;
         VkDeviceMemory stagingBufferMemory;
@@ -124,12 +126,13 @@ namespace Heart
             m_MipLevels = maxMipLevels;
 
         // create image & staging buffer and transfer the data into the first layer
+        u32 componentSize = BufferDataTypeSize(m_Info.DataType);
         if (data != nullptr)
         {
             VulkanCommon::CreateBuffer(
                 device.Device(),
                 device.PhysicalDevice(),
-                imageSize * (m_Info.FloatComponents ? sizeof(float) : sizeof(unsigned char)),
+                imageSize * componentSize,
                 VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                 stagingBuffer,
@@ -138,7 +141,7 @@ namespace Heart
             VulkanCommon::MapAndWriteBufferMemory(
                 device.Device(),
                 data,
-                m_Info.FloatComponents ? sizeof(float) : sizeof(unsigned char),
+                componentSize,
                 static_cast<u32>(imageSize),
                 stagingBufferMemory,
                 0

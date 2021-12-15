@@ -139,38 +139,6 @@ void Clip(float alpha)
         discard;
 }
 
-// https://knarkowicz.wordpress.com/2016/01/06/aces-filmic-tone-mapping-curve/
-vec3 ACESFilm(vec3 x)
-{
-    float a = 2.51f;
-    float b = 0.03f;
-    float c = 2.43f;
-    float d = 0.59f;
-    float e = 0.14f;
-    return clamp((x*(a*x+b))/(x*(c*x+d)+e), vec3(0.f), vec3(1.f));
-}
-
-vec3 CalcLightContribution(vec3 albedo, vec3 F0, vec3 lightColor, float intensity, float attenuation, vec3 L, vec3 V, vec3 N, float metalness, float roughness)
-{
-    vec3 H = normalize(V + L);
-    vec3 F = FresnelSchlick(max(dot(H, V), 0.0), F0);
-    vec3 radiance = lightColor * attenuation * intensity;
-
-    float NDF = DistributionGGX(N, H, roughness);
-    float G = GeometrySmith(N, V, L, roughness);
-
-    vec3 numerator = NDF * G * F;
-    float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.0001;
-    vec3 specular = numerator / denominator;
-
-    vec3 kS = F;
-    vec3 kD = vec3(1.0) - kS;
-    kD *= 1.0 - metalness;
-
-    float NdotL = max(dot(N, L), 0.0); 
-    return (kD * albedo / PI + specular) * radiance * NdotL;
-}
-
 vec4 GetFinalColor()
 {
     vec4 baseColor = GetAlbedo();
@@ -190,8 +158,12 @@ vec4 GetFinalColor()
     mat3x3 tbn = mat3x3(nb, nt, nn);
 
     vec3 N = nn;
+    vec3 bump = vec3(0.f);
     if (materialBuffer.materials[instance].hasTextures[0] == 1.f) // has normal
-        N = normalize(tbn * (texture(normalTex, (texCoord + materialBuffer.materials[instance].texCoordTransform.zw) * materialBuffer.materials[instance].texCoordTransform.xy).xyz * 2.0 - 1.0));
+    {
+        bump = texture(normalTex, (texCoord + materialBuffer.materials[instance].texCoordTransform.zw) * materialBuffer.materials[instance].texCoordTransform.xy).xyz * 2.0 - 1.0;
+        N = normalize(tbn * bump);
+    }
 
     const float MAX_REFLECTION_LOD = 4.0;
     vec3 R = reflect(-V, N); 
@@ -253,13 +225,6 @@ vec4 GetFinalColor()
     vec3 ambient = (kD * diffuse + specular) * occlusion; // specular
 
     vec3 finalColor = ambient + finalContribution;
-
-    // tonemapping
-    //finalColor = ACESFilm(finalColor);
-    // finalColor = finalColor / (finalColor + vec3(1.0));
-
-    // gamma correction
-    //finalColor = pow(finalColor, vec3(0.4545));
 
     return vec4(finalColor + emissive, baseColor.a);
 }

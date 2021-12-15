@@ -59,10 +59,10 @@ namespace Heart
         m_Initialized = true;
 
         // Create texture & cubemap targets
-        m_EnvironmentMap = Texture::Create({ 512, 512, 4, true, 6, 0 });
-        m_IrradianceMap = Texture::Create({ 256, 256, 4, true, 6, 1 });
-        m_PrefilterMap = Texture::Create({ 256, 256, 4, true, 6, 5 });
-        m_BRDFTexture = Texture::Create({ 512, 512, 4, true, 1, 1 });
+        m_EnvironmentMap = Texture::Create({ 512, 512, 4, BufferDataType::HalfFloat, 6, 0 });
+        m_IrradianceMap = Texture::Create({ 256, 256, 4, BufferDataType::HalfFloat, 6, 1 });
+        m_PrefilterMap = Texture::Create({ 256, 256, 4, BufferDataType::HalfFloat, 6, 5 });
+        m_BRDFTexture = Texture::Create({ 512, 512, 4, BufferDataType::HalfFloat, 1, 1 });
 
         // Create the cubemap data buffer to hold data for each face render
         BufferLayout cubemapDataLayout = {

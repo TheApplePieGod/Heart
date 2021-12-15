@@ -25,7 +25,7 @@ namespace Heart
     void Texture::ScanForTransparency(int width, int height, int channels, void* data)
     {
         // TODO: change this possibly?
-        if (m_Info.FloatComponents) return;
+        if (m_Info.DataType != BufferDataType::UInt8) return;
 
         unsigned char* pixels = (unsigned char*)data;
         int size = width * height * channels;

@@ -428,12 +428,30 @@ namespace Heart
     {
         HE_PROFILE_FUNCTION();
         
+        HE_ENGINE_ASSERT(
+            std::find_if(
+                m_Info.ColorAttachments.begin(),
+                m_Info.ColorAttachments.end(),
+                [texture](FramebufferColorAttachment& att){ return att.Texture.get() == texture; }
+            ) == m_Info.ColorAttachments.end(),
+            "Cannot bind a texture resource that is currently being written to (use BindShaderTextureLayerResource)"
+        );
+
         BindShaderResource(bindingIndex, ShaderResourceType::Texture, texture, false, 0, 0);
     }
 
     void VulkanFramebuffer::BindShaderTextureLayerResource(u32 bindingIndex, Texture* texture, u32 layerIndex, u32 mipLevel)
     {
         HE_PROFILE_FUNCTION();
+
+        HE_ENGINE_ASSERT(
+            std::find_if(
+                m_Info.ColorAttachments.begin(),
+                m_Info.ColorAttachments.end(),
+                [texture, layerIndex, mipLevel](FramebufferColorAttachment& att){ return att.Texture.get() == texture && att.LayerIndex == layerIndex && att.MipLevel == mipLevel; }
+            ) == m_Info.ColorAttachments.end(),
+            "Cannot bind a texture resource that is currently being written to (mip level & layer must not be a current color attachment)"
+        );
 
         BindShaderResource(bindingIndex, ShaderResourceType::Texture, texture, true, layerIndex, mipLevel);
     }
