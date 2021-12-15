@@ -6,7 +6,8 @@ const float weights[5] = { 0.227027, 0.1945946, 0.1216216, 0.054054, 0.016216 };
 // adapted from https://learnopengl.com/Advanced-Lighting/Bloom
 vec3 GaussianHorizontal(vec2 texCoords, uint mip, float blurScale, float blurStrength) {
     vec2 texOffset = 1.0 / textureSize(image, int(mip)) * blurScale; // Size of single texel
-    vec3 result = textureLod(image, texCoords, mip).rgb * weights[0]; // Current fragment's contribution
+    vec3 originialResult = textureLod(image, texCoords, mip).rgb * weights[0]; // Current fragment's contribution
+    vec3 result = originialResult;
 
     for (int i = 1; i < 5; i++)
     {

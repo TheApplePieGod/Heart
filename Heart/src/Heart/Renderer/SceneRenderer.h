@@ -13,7 +13,7 @@ namespace Heart
         
         bool BloomEnable = true;
         float BloomBlurStrength = 1.f;
-        float BloomBlurScale = 2.f;
+        float BloomBlurScale = 1.f;
     };
 
     class Scene;
