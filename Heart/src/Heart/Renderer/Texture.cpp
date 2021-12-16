@@ -9,8 +9,6 @@ namespace Heart
 {
     Ref<Texture> Texture::Create(const TextureCreateInfo& createInfo, void* initialData)
     {
-        HE_ENGINE_ASSERT(createInfo.Channels == 4, "Non 4 channel textures are not supported");
-
         switch (Renderer::GetApiType())
         {
             default:

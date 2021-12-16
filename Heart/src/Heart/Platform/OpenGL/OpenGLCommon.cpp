@@ -74,11 +74,13 @@ namespace Heart
             { HE_ENGINE_ASSERT(false, "OpenGL does not support specified BufferDataType"); } break;
             case BufferDataType::Bool: return GL_BOOL;
             case BufferDataType::UInt: return GL_UNSIGNED_INT;
+            case BufferDataType::UInt8: return GL_UNSIGNED_BYTE;
             case BufferDataType::Double: return GL_DOUBLE;
             case BufferDataType::Int: return GL_INT;
             case BufferDataType::Int2: return GL_INT;
             case BufferDataType::Int3: return GL_INT;
             case BufferDataType::Int4: return GL_INT;
+            case BufferDataType::HalfFloat: return GL_HALF_FLOAT;
             case BufferDataType::Float: return GL_FLOAT;
             case BufferDataType::Float2: return GL_FLOAT;
             case BufferDataType::Float3: return GL_FLOAT;

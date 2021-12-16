@@ -335,6 +335,7 @@ namespace Heart
             HE_VULKAN_CHECK_RESULT(vkCreateSemaphore(device.Device(), &semaphoreInfo, nullptr, &m_ImageAvailableSemaphores[i]));
             HE_VULKAN_CHECK_RESULT(vkCreateSemaphore(device.Device(), &semaphoreInfo, nullptr, &m_RenderFinishedSemaphores[i]));
             HE_VULKAN_CHECK_RESULT(vkCreateFence(device.Device(), &fenceInfo, nullptr, &m_InFlightFences[i]));
+            HE_VULKAN_CHECK_RESULT(vkCreateFence(device.Device(), &fenceInfo, nullptr, &m_InFlightTransferFences[i]));
         }
     }
 
@@ -347,6 +348,7 @@ namespace Heart
             vkDestroySemaphore(device.Device(), m_ImageAvailableSemaphores[i], nullptr);
             vkDestroySemaphore(device.Device(), m_RenderFinishedSemaphores[i], nullptr);
             vkDestroyFence(device.Device(), m_InFlightFences[i], nullptr);
+            vkDestroyFence(device.Device(), m_InFlightTransferFences[i], nullptr);
         }
 
         for (auto semaphore : m_AuxiliaryRenderFinishedSemaphores)
@@ -413,6 +415,9 @@ namespace Heart
 
         // wait for this frame image to complete
         vkWaitForFences(device.Device(), 1, &m_InFlightFences[m_InFlightFrameIndex], VK_TRUE, UINT64_MAX);
+
+        // wait for any remaining transfers to complete
+        vkWaitForFences(device.Device(), 1, &m_InFlightTransferFences[m_InFlightFrameIndex], VK_TRUE, UINT64_MAX);
 
         // check if a previous frame is using this image (i.e. there is its fence to wait on)
         if (m_ImagesInFlight[m_PresentImageIndex] != VK_NULL_HANDLE)
@@ -497,8 +502,8 @@ namespace Heart
         m_InFlightFrameIndex = (m_InFlightFrameIndex + 1) % MAX_FRAMES_IN_FLIGHT;
 
         // clear the submitted command buffers
-        m_AuxiliaryCommandBuffers.clear();
-        m_AuxiliaryCommandBufferCounts.clear();
+        m_SubmittedCommandBufferCounts.clear();
+        m_SubmittedCommandBuffers.clear();
     }
 
     void VulkanSwapChain::Present()
@@ -508,26 +513,42 @@ namespace Heart
         
         VulkanDevice& device = VulkanContext::GetDevice();
 
-        std::vector<VkSubmitInfo> submitInfos(m_AuxiliaryCommandBufferCounts.size() + 1);
-        std::vector<VkSemaphore> waitSemaphores(m_AuxiliaryCommandBufferCounts.size());
-        VkPipelineStageFlags auxWaitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-        size_t auxiliaryBufferIndex = 0;
-        for (size_t i = 0; i < m_AuxiliaryCommandBufferCounts.size(); i++)
+        std::vector<VkSubmitInfo> submitInfos(m_SubmittedCommandBufferCounts.size() + 1);
+        std::vector<VkSubmitInfo> transferSubmitInfos;
+        std::vector<VkSemaphore> waitSemaphores(m_SubmittedCommandBufferCounts.size());
+        VkPipelineStageFlags drawWaitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+        VkPipelineStageFlags transferWaitStages[] = { VK_PIPELINE_STAGE_TRANSFER_BIT };
+        size_t bufferSubmitIndex = 0;
+        for (size_t i = 0; i < m_SubmittedCommandBufferCounts.size(); i++)
         {
-            size_t submissionCount = m_AuxiliaryCommandBufferCounts[i];
+            size_t submissionCount = m_SubmittedCommandBufferCounts[i];
             waitSemaphores[i] = GetAuxiliaryRenderSemaphore(i);
+
+            auto& bufferSubmit = m_SubmittedCommandBuffers[bufferSubmitIndex];
 
             submitInfos[i] = {};
             submitInfos[i].sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-            submitInfos[i].pWaitDstStageMask = auxWaitStages;
+            submitInfos[i].pWaitDstStageMask = drawWaitStages;
             submitInfos[i].commandBufferCount = static_cast<u32>(submissionCount);
-            submitInfos[i].pCommandBuffers = m_AuxiliaryCommandBuffers.data() + auxiliaryBufferIndex;
+            submitInfos[i].pCommandBuffers = &bufferSubmit.DrawBuffer;
             submitInfos[i].waitSemaphoreCount = i == 0 ? 0 : 1;
             submitInfos[i].pWaitSemaphores = i > 0 ? &waitSemaphores[i - 1] : nullptr;
             submitInfos[i].signalSemaphoreCount = 1;
             submitInfos[i].pSignalSemaphores = &waitSemaphores[i];
 
-            auxiliaryBufferIndex += submissionCount;
+            if (bufferSubmit.TransferBuffer)
+            {
+                VkSubmitInfo transferSubmitInfo{};
+                transferSubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+                transferSubmitInfo.pWaitDstStageMask = transferWaitStages;
+                transferSubmitInfo.commandBufferCount = static_cast<u32>(submissionCount);
+                transferSubmitInfo.pCommandBuffers = &bufferSubmit.TransferBuffer;
+                transferSubmitInfo.waitSemaphoreCount = 1;
+                transferSubmitInfo.pWaitSemaphores = &waitSemaphores[i];
+                transferSubmitInfos.emplace_back(transferSubmitInfo);
+            }
+
+            bufferSubmitIndex += submissionCount;
         }
         
         // final render submission
@@ -547,7 +568,10 @@ namespace Heart
         finalSubmitInfo.pSignalSemaphores = finalSignalSemaphores;
 
         vkResetFences(device.Device(), 1, &m_InFlightFences[m_InFlightFrameIndex]);
+        vkResetFences(device.Device(), 1, &m_InFlightTransferFences[m_InFlightFrameIndex]);
         HE_VULKAN_CHECK_RESULT(vkQueueSubmit(device.GraphicsQueue(), static_cast<u32>(submitInfos.size()), submitInfos.data(), m_InFlightFences[m_InFlightFrameIndex]));
+        if (!transferSubmitInfos.empty())
+            HE_VULKAN_CHECK_RESULT(vkQueueSubmit(device.TransferQueue(), static_cast<u32>(transferSubmitInfos.size()), transferSubmitInfos.data(), m_InFlightTransferFences[m_InFlightFrameIndex]));
 
         VkSwapchainKHR swapChains[] = { m_SwapChain };
         VkPresentInfoKHR presentInfo{};
@@ -570,10 +594,10 @@ namespace Heart
         //vkQueueWaitIdle(device.PresentQueue());
     }
 
-    void VulkanSwapChain::SubmitCommandBuffers(const std::vector<VkCommandBuffer>& buffers)
+    void VulkanSwapChain::SubmitCommandBuffers(const std::vector<CommandBufferSubmit>& submits)
     {
-        m_AuxiliaryCommandBufferCounts.emplace_back(buffers.size());
-        m_AuxiliaryCommandBuffers.insert(m_AuxiliaryCommandBuffers.end(), buffers.begin(), buffers.end());
+        m_SubmittedCommandBufferCounts.emplace_back(submits.size());
+        m_SubmittedCommandBuffers.insert(m_SubmittedCommandBuffers.end(), submits.begin(), submits.end());
     }
 
     void VulkanSwapChain::InvalidateSwapChain(u32 newWidth, u32 newHeight)

@@ -70,7 +70,7 @@ namespace Heart
             attachmentData.ColorFormat = attachment.Texture ? attachmentData.ExternalTexture->GetFormat() : OpenGLCommon::ColorFormatToOpenGL(attachment.Format);
             attachmentData.ColorFormatInternal = attachment.Texture ? attachmentData.ExternalTexture->GetInternalFormat() : OpenGLCommon::ColorFormatToInternalOpenGL(attachment.Format);
             attachmentData.HasResolve = m_ImageSamples > 1;
-            attachmentData.CPUVisible = attachment.AllowCPURead;
+            attachmentData.CPUVisible = attachment.Texture ? attachmentData.ExternalTexture->CanCPURead() : attachment.AllowCPURead;
             attachmentData.IsDepthAttachment = false;
 
             CreateAttachmentTextures(attachmentData);
@@ -288,10 +288,7 @@ namespace Heart
         HE_ENGINE_ASSERT(attachmentIndex < m_AttachmentData.size(), "Color attachment of pixel read out of range");
         HE_ENGINE_ASSERT(m_AttachmentData[attachmentIndex].CPUVisible, "Cannot read pixel data of attachment that does not have 'AllowCPURead' enabled");
 
-        if (m_AttachmentData[attachmentIndex].PixelBufferMapping == nullptr)
-            m_AttachmentData[attachmentIndex].PixelBufferMapping = glMapNamedBuffer(m_AttachmentData[attachmentIndex].PixelBuffers[(App::Get().GetFrameCount() + 1) % 2]->GetBufferId(), GL_READ_ONLY);
-
-        return m_AttachmentData[attachmentIndex].PixelBufferMapping;
+        return m_AttachmentData[attachmentIndex].PixelBuffers[(App::Get().GetFrameCount() + 1) % 2]->Map(true);
     }
 
     void OpenGLFramebuffer::ClearOutputAttachment(u32 outputAttachmentIndex, bool clearDepth)
@@ -299,13 +296,13 @@ namespace Heart
         u32 attachmentIndex = 0;
         for (size_t i = 0; i < m_Info.Subpasses[m_CurrentSubpass].OutputAttachments.size(); i++)
         {
-            if (m_Info.Subpasses[m_CurrentSubpass].OutputAttachments[i].Type == SubpassAttachmentType::Color)
-                attachmentIndex++;
             if (attachmentIndex == outputAttachmentIndex)
             {
                 attachmentIndex = m_Info.Subpasses[m_CurrentSubpass].OutputAttachments[i].AttachmentIndex;
                 break;
             }
+            if (m_Info.Subpasses[m_CurrentSubpass].OutputAttachments[i].Type == SubpassAttachmentType::Color)
+                attachmentIndex++;
         }
 
         auto& attachment = m_AttachmentData[attachmentIndex];
@@ -421,11 +418,7 @@ namespace Heart
         if (!attachment.CPUVisible) return;
 
         // unmap any buffers that were mapped this frame
-        if (attachment.PixelBufferMapping != nullptr)
-        {
-            glUnmapNamedBuffer(attachment.PixelBuffers[(App::Get().GetFrameCount() + 1) % 2]->GetBufferId());
-            attachment.PixelBufferMapping = nullptr;
-        }
+        attachment.PixelBuffers[(App::Get().GetFrameCount() + 1) % 2]->Unmap();
 
         // start the async read for cpu visible attachments
         glBindFramebuffer(GL_READ_FRAMEBUFFER, m_PBOFramebuffer);

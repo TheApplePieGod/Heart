@@ -42,6 +42,7 @@ namespace Heart
 
     OpenGLBuffer::~OpenGLBuffer()
     {
+        Unmap();
         glDeleteBuffers(1, &m_BufferId);
     }
 
@@ -58,5 +59,19 @@ namespace Heart
         glBindBuffer(OpenGLCommon::BufferTypeToOpenGL(m_Type), m_BufferId);
         glBufferSubData(OpenGLCommon::BufferTypeToOpenGL(m_Type), byteOffset, byteCount, data);
         glBindBuffer(OpenGLCommon::BufferTypeToOpenGL(m_Type), 0);
+    }
+
+    void* OpenGLBuffer::Map(bool readOnly)
+    {
+        if (!m_MappedMemory)
+            m_MappedMemory = glMapNamedBuffer(m_BufferId, readOnly ? GL_READ_ONLY : GL_READ_WRITE);
+        return m_MappedMemory;
+    }
+
+    void OpenGLBuffer::Unmap()
+    {
+        if (!m_MappedMemory) return;
+        glUnmapNamedBuffer(m_BufferId);
+        m_MappedMemory = nullptr;
     }
 }

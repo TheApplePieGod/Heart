@@ -51,6 +51,10 @@ namespace Widgets
         ImGui::SameLine();
         ImGui::Checkbox("##BloomEnable", &Editor::GetState().RenderSettings.BloomEnable);
 
+        ImGui::Text("Bloom Threshold");
+        ImGui::SameLine();
+        ImGui::DragFloat("##BloomThresh", &Editor::GetState().RenderSettings.BloomThreshold, 0.1f, 0.f, 5.f);
+
         ImGui::Text("Bloom Blur Scale");
         ImGui::SameLine();
         ImGui::DragFloat("##BBScale", &Editor::GetState().RenderSettings.BloomBlurScale, 0.1f, 0.f, 50.f);

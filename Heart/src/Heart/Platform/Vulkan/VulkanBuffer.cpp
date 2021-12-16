@@ -27,7 +27,8 @@ namespace Heart
                         HE_ENGINE_ASSERT(false);
                     }
                 }
-            }
+                m_UsesStaging = false;
+            } break;
             case Type::Storage:
             {
                 if (elementCount > 1)
@@ -39,9 +40,13 @@ namespace Heart
                         HE_ENGINE_ASSERT(false);
                     }
                 }
-            }
+                m_UsesStaging = false;
+            } break;
             case Type::Pixel:
-            { m_UsesStaging = false; } break;
+            {
+                m_UsesStaging = true;
+                m_StagingDirection = StagingDirection::GPUToCPU;
+            } break;
             case Type::Indirect:
             { m_UsesStaging = false; } break;
             case Type::Vertex:
@@ -54,9 +59,9 @@ namespace Heart
 
         HE_ENGINE_ASSERT(usage == BufferUsageType::Static || usage == BufferUsageType::Dynamic, "Vulkan does not support specified BufferUsageType");
 
-        // we only need one buffer when dealing with static data
-        size_t bufferCount = usage == BufferUsageType::Static ? 1 : m_Buffers.size();
-        for (size_t i = 0; i < bufferCount; i++)
+        // we only need one buffer when dealing with static data or a pixel buffer
+        m_BufferCount = (usage == BufferUsageType::Static || type == Type::Pixel) ? 1 : m_Buffers.size();
+        for (size_t i = 0; i < m_BufferCount; i++)
         {
             CreateBuffer(bufferSize, m_Buffers[i], m_BufferMemory[i], m_StagingBuffers[i], m_StagingBufferMemory[i]);
 
@@ -92,8 +97,7 @@ namespace Heart
         VulkanDevice& device = VulkanContext::GetDevice();
         VulkanContext::Sync();
 
-        size_t bufferCount = m_Usage == BufferUsageType::Static ? 1 : m_Buffers.size();
-        for (size_t i = 0; i < bufferCount; i++)
+        for (size_t i = 0; i < m_BufferCount; i++)
         {
             if (m_UsesStaging && m_StagingDirection == StagingDirection::CPUToGPU)
             {
@@ -126,7 +130,10 @@ namespace Heart
             case Type::Storage:
             { VulkanCommon::CreateBuffer(device.Device(), device.PhysicalDevice(), size, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, outBuffer, outMemory); } break;
             case Type::Pixel:
-            { VulkanCommon::CreateBuffer(device.Device(), device.PhysicalDevice(), size, VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, outBuffer, outMemory); } break;
+            {
+                VulkanCommon::CreateBuffer(device.Device(), device.PhysicalDevice(), size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, outStagingBuffer, outStagingMemory);
+                VulkanCommon::CreateBuffer(device.Device(), device.PhysicalDevice(), size, VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, outBuffer, outMemory);
+            } break;
             case Type::Indirect:
             { VulkanCommon::CreateBuffer(device.Device(), device.PhysicalDevice(), size, VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, outBuffer, outMemory); } break;
             case Type::Vertex:
@@ -145,7 +152,7 @@ namespace Heart
     u32 VulkanBuffer::GetAccessingIndex()
     {
         u32 accessingIndex = 0;
-        if (m_Usage == BufferUsageType::Dynamic)
+        if (m_BufferCount != 1)
         {
             UpdateFrameIndex();
             accessingIndex = m_InFlightFrameIndex;
@@ -175,6 +182,13 @@ namespace Heart
 
         if (m_UsesStaging)
             FlushWrites(m_StagingBuffers[accessingIndex], m_Buffers[accessingIndex]);
+    }
+
+    void VulkanBuffer::TransferData()
+    {
+        HE_ENGINE_ASSERT(m_UsesStaging, "Cannot transfer data on a buffer that does not use a staging buffer");
+
+        FlushWrites(GetStagingBuffer(), GetBuffer());
     }
 
     VkBuffer VulkanBuffer::GetBuffer()

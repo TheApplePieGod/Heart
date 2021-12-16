@@ -4,7 +4,7 @@
 
 namespace Heart
 {
-    class Framebuffer;
+    class OpenGLBuffer;
     class OpenGLTexture : public Texture
     {
     public:
@@ -13,6 +13,8 @@ namespace Heart
 
         void RegenerateMipMaps() override;
         void RegenerateMipMapsSync(Framebuffer* buffer) override { RegenerateMipMaps(); }
+
+        void* GetPixelData() override;
 
         inline u32 GetTextureId() const { return m_TextureId; }
         inline int GetTarget() const { return m_Target; }
@@ -23,6 +25,7 @@ namespace Heart
 
     private:
         std::vector<u32> m_ViewTextures;
+        std::array<Ref<OpenGLBuffer>, 2> m_PixelBuffers;
 
         ColorFormat m_GeneralFormat;
         int m_Format;

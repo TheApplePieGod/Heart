@@ -66,16 +66,29 @@ namespace Heart
         return BufferDataType::None;
     }
 
-    static ColorFormat BufferDataTypeColorFormat(BufferDataType type)
+    static ColorFormat BufferDataTypeColorFormat(BufferDataType type, u32 channelCount)
     {
-        switch (type)
+        HE_ENGINE_ASSERT(channelCount == 1 || channelCount == 4, "Channel counts of 2 or 3 are not supported");
+        if (channelCount == 1)
         {
-            case BufferDataType::UInt8: return ColorFormat::RGBA8;
-            case BufferDataType::Float: return ColorFormat::RGBA32F;
-            case BufferDataType::HalfFloat: return ColorFormat::RGBA16F;
+            switch (type)
+            {
+                //case BufferDataType::UInt8: return ColorFormat::;
+                case BufferDataType::Float: return ColorFormat::R32F;
+                case BufferDataType::HalfFloat: return ColorFormat::R16F;
+            }
+        }
+        else
+        {
+            switch (type)
+            {
+                case BufferDataType::UInt8: return ColorFormat::RGBA8;
+                case BufferDataType::Float: return ColorFormat::RGBA32F;
+                case BufferDataType::HalfFloat: return ColorFormat::RGBA16F;
+            }
         }
 
-        HE_ENGINE_ASSERT(false, "BufferDataTypeColorFormat unsupported BufferDataType");
+        HE_ENGINE_ASSERT(false, "BufferDataTypeColorFormat unsupported BufferDataType and ChannelCount combination");
         return ColorFormat::None;
     }
 
@@ -85,7 +98,7 @@ namespace Heart
         BufferDataType DataType;
         u32 ArrayCount;
         u32 MipCount; // set to zero to deduce mip count
-
+        bool AllowCPURead = false;
         TextureSamplerState SamplerState;
     };
 
@@ -101,6 +114,17 @@ namespace Heart
         virtual void RegenerateMipMaps() = 0;
         virtual void RegenerateMipMapsSync(Framebuffer* buffer) = 0; // sync with framebuffer drawing
 
+        // texture must be created with 'AllowCPURead' enabled
+        virtual void* GetPixelData() = 0;
+
+        template<typename T>
+        T ReadPixel(u32 x, u32 y, u32 component)
+        {
+            T* data = (T*)GetPixelData();
+            u32 index = m_Info.Channels * (y * m_Info.Width + x);
+            return data[index + component];
+        }
+
         inline void* GetImGuiHandle(u32 layerIndex = 0) const { return m_LayerImGuiHandles[layerIndex]; }
         inline u32 GetArrayCount() const { return m_Info.ArrayCount; }
         inline u32 GetWidth() const { return m_Info.Width; }
@@ -109,6 +133,7 @@ namespace Heart
         inline u32 GetMipWidth(u32 mipLevel) const { return std::max(static_cast<u32>(m_Info.Width * pow(0.5f, mipLevel)), 0U); }
         inline u32 GetMipHeight(u32 mipLevel) const { return std::max(static_cast<u32>(m_Info.Height * pow(0.5f, mipLevel)), 0U); }
         inline u32 GetChannels() const { return m_Info.Channels; }
+        inline bool CanCPURead() const { return m_Info.AllowCPURead; }
         inline bool HasTransparency() const { return m_HasTransparency; }
         inline bool HasTranslucency() const { return m_HasTranslucency; }
         inline const TextureSamplerState& GetSamplerState() const { return m_Info.SamplerState; }

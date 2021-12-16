@@ -113,14 +113,14 @@ namespace Heart
 
         VulkanContext& context = static_cast<VulkanContext&>(_context);
 
-        std::vector<VkCommandBuffer> submittingBuffers;
+        std::vector<CommandBufferSubmit> submits;
         for (auto& _buffer : framebuffers)
         {
             VulkanFramebuffer* buffer = static_cast<VulkanFramebuffer*>(_buffer);
             buffer->Submit();
-            submittingBuffers.emplace_back(buffer->GetCommandBuffer());
+            submits.push_back({ buffer->GetCommandBuffer(), buffer->GetTransferCommandBuffer() });
         }
 
-        context.GetSwapChain().SubmitCommandBuffers(submittingBuffers);
+        context.GetSwapChain().SubmitCommandBuffers(submits);
     }
 }

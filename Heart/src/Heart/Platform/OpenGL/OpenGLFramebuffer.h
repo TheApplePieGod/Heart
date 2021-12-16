@@ -45,7 +45,6 @@ namespace Heart
             bool CPUVisible;
             bool IsDepthAttachment;
             std::array<Ref<OpenGLBuffer>, 2> PixelBuffers;
-            void* PixelBufferMapping = nullptr;
             OpenGLTexture* ExternalTexture;
             u32 ExternalTextureLayer;
             u32 ExternalTextureMip;

@@ -35,10 +35,10 @@ namespace Heart
     struct FramebufferColorAttachment
     {
         // mandatory
-        bool AllowCPURead;
         glm::vec4 ClearColor;
 
         // required if not providing a texture
+        bool AllowCPURead;
         ColorFormat Format;
 
         // required if a texture should be used as a render target

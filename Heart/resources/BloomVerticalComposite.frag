@@ -32,7 +32,7 @@ void main() {
     // tone mapping
     vec3 result = ACESFilm(hdrColor);
 
-    // also gamma correct while we're at it       
+    // gamma correction     
     result = pow(result, vec3(0.4545));
     outColor = vec4(result, 1.0);
 }

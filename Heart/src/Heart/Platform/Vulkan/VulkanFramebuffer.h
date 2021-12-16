@@ -32,6 +32,7 @@ namespace Heart
         inline VkFramebuffer GetFramebuffer() const { return m_Framebuffer; }
         inline VkRenderPass GetRenderPass() const { return m_RenderPass; }
         inline VkCommandBuffer GetCommandBuffer() { UpdateFrameIndex(); return m_CommandBuffers[m_InFlightFrameIndex]; }
+        inline VkCommandBuffer GetTransferCommandBuffer() { UpdateFrameIndex(); return m_TransferCommandBuffers[m_InFlightFrameIndex]; }
         inline bool CanDraw() const { return m_FlushedThisFrame; }
         inline VulkanGraphicsPipeline* GetBoundPipeline() { return m_BoundPipeline; }
         inline void PushAuxiliaryCommandBuffer(VkCommandBuffer buffer) { UpdateFrameIndex(); m_AuxiliaryCommandBuffers[m_InFlightFrameIndex].push_back(buffer); }
@@ -87,7 +88,8 @@ namespace Heart
         VkRenderPass m_RenderPass;
         VulkanGraphicsPipeline* m_BoundPipeline = nullptr;
         std::string m_BoundPipelineName = "";
-        std::array<VkCommandBuffer, MAX_FRAMES_IN_FLIGHT> m_CommandBuffers;
+        std::array<VkCommandBuffer, MAX_FRAMES_IN_FLIGHT> m_CommandBuffers{};
+        std::array<VkCommandBuffer, MAX_FRAMES_IN_FLIGHT> m_TransferCommandBuffers{};
         std::vector<VulkanFramebufferAttachment> m_AttachmentData;
         std::vector<VulkanFramebufferAttachment> m_DepthAttachmentData;
         std::vector<VkClearValue> m_CachedClearValues;

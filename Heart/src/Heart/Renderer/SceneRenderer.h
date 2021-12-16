@@ -14,6 +14,7 @@ namespace Heart
         bool BloomEnable = true;
         float BloomBlurStrength = 1.f;
         float BloomBlurScale = 1.f;
+        float BloomThreshold = 1.f;
     };
 
     class Scene;
@@ -38,7 +39,7 @@ namespace Heart
             glm::vec4 CameraPos;
             glm::vec2 ScreenSize;
             bool ReverseDepth;
-            float padding;
+            float BloomThreshold;
         };
         struct BloomData
         {
@@ -61,8 +62,8 @@ namespace Heart
 
         void OnEvent(Event& event) override;
 
-        inline Framebuffer& GetFinalFramebuffer() { return *m_FinalFramebuffer; }
         inline Texture& GetFinalTexture() { return *m_FinalTexture; }
+        inline Texture& GetEntityIdsTexture() { return *m_EntityIdsTexture; }
 
     private:
         struct IndirectBatch
@@ -111,7 +112,7 @@ namespace Heart
     private:
         bool m_Initialized = false;
 
-        Ref<Framebuffer> m_FinalFramebuffer;
+        Ref<Framebuffer> m_MainFramebuffer;
         std::vector<std::array<Ref<Framebuffer>, 2>> m_BloomFramebuffers; // one for each mip level and one for horizontal / vertical passes
 
         Ref<Texture> m_DefaultEnvironmentMap;
@@ -119,7 +120,9 @@ namespace Heart
         Ref<Texture> m_BrightColorsTexture;
         Ref<Texture> m_BloomBufferTexture;
         Ref<Texture> m_BloomUpsampleBufferTexture;
+
         Ref<Texture> m_FinalTexture;
+        Ref<Texture> m_EntityIdsTexture;
 
         Ref<Buffer> m_FrameDataBuffer;
         Ref<Buffer> m_BloomDataBuffer;

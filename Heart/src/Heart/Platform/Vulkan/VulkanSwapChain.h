@@ -4,26 +4,33 @@
 
 namespace Heart
 {
+    struct SwapChainData
+    {
+        VkFormat ImageFormat;
+        VkExtent2D Extent;
+        std::vector<VkImage> Images;
+        std::vector<VkImageView> ImageViews;
+        std::vector<VkFramebuffer> Framebuffers;
+        std::vector<VkCommandBuffer> CommandBuffers;
+    };
+    struct CommandBufferSubmit
+    {
+        // The buffer holding graphics commands
+        VkCommandBuffer DrawBuffer;
+
+        // The buffer holding transfer commands that rely on the completion of the draw buffer
+        VkCommandBuffer TransferBuffer;
+    };
+
     class VulkanSwapChain
     {
-    public:
-        struct SwapChainData
-        {
-            VkFormat ImageFormat;
-            VkExtent2D Extent;
-            std::vector<VkImage> Images;
-            std::vector<VkImageView> ImageViews;
-            std::vector<VkFramebuffer> Framebuffers;
-            std::vector<VkCommandBuffer> CommandBuffers;
-        };
-
     public:
         void Initialize(int width, int height, VkSurfaceKHR surface);
         void Shutdown();
 
         void BeginFrame();
         void EndFrame();
-        void SubmitCommandBuffers(const std::vector<VkCommandBuffer>& buffers);
+        void SubmitCommandBuffers(const std::vector<CommandBufferSubmit>& submits);
 
         void InvalidateSwapChain(u32 newWidth, u32 newHeight);
 
@@ -72,12 +79,13 @@ namespace Heart
         SwapChainData m_SwapChainData;
         VkRenderPass m_RenderPass;
         std::array<VkCommandBuffer, MAX_FRAMES_IN_FLIGHT> m_CommandBuffers; // secondary
-        std::vector<VkCommandBuffer> m_AuxiliaryCommandBuffers = {}; // collection of all submitted primary commandbuffers
-        std::vector<size_t> m_AuxiliaryCommandBufferCounts = {}; // amount of buffers per submit call to create a dependency chain
+        std::vector<CommandBufferSubmit> m_SubmittedCommandBuffers = {}; // collection of all submitted commandbuffers
+        std::vector<size_t> m_SubmittedCommandBufferCounts = {}; // amount of buffers per submit call to create a dependency chain
         std::array<VkSemaphore, MAX_FRAMES_IN_FLIGHT> m_ImageAvailableSemaphores;
         std::array<VkSemaphore, MAX_FRAMES_IN_FLIGHT> m_RenderFinishedSemaphores;
         std::vector<VkSemaphore> m_AuxiliaryRenderFinishedSemaphores = {};
         std::array<VkFence, MAX_FRAMES_IN_FLIGHT> m_InFlightFences;
+        std::array<VkFence, MAX_FRAMES_IN_FLIGHT> m_InFlightTransferFences;
         std::vector<VkFence> m_ImagesInFlight = {};
         u32 m_PresentImageIndex;
         bool m_ShouldPresentThisFrame;

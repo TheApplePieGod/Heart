@@ -321,7 +321,24 @@ namespace Heart
         );
     }
 
-    void VulkanCommon::CopyBufferToImage(VkDevice device, VkCommandPool commandPool, VkQueue transferQueue, VkBuffer srcBuffer, VkImage dstImage, uint32_t width, uint32_t height)
+    void VulkanCommon::CopyBufferToBuffer(VkCommandBuffer cmdBuffer, VkBuffer srcBuffer, VkBuffer dstBuffer, u32 size)
+    {
+        VkBufferCopy region{};
+        region.srcOffset = 0;
+        region.dstOffset = 0;
+        region.size = size;
+
+        vkCmdCopyBuffer(cmdBuffer, srcBuffer, dstBuffer, 1, &region);
+    }
+
+    void VulkanCommon::CopyBufferToBuffer(VkDevice device, VkCommandPool commandPool, VkQueue transferQueue, VkBuffer srcBuffer, VkBuffer dstBuffer, u32 size)
+    {
+        VkCommandBuffer commandBuffer = BeginSingleTimeCommands(device, commandPool);
+        CopyBufferToBuffer(commandBuffer, srcBuffer, dstBuffer, size);
+        EndSingleTimeCommands(device, commandPool, commandBuffer, transferQueue);
+    }
+
+    void VulkanCommon::CopyBufferToImage(VkDevice device, VkCommandPool commandPool, VkQueue transferQueue, VkBuffer srcBuffer, VkImage dstImage, u32 width, u32 height)
     {
         VkCommandBuffer commandBuffer = BeginSingleTimeCommands(device, commandPool);
 

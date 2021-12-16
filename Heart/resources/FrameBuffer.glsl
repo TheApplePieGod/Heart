@@ -4,7 +4,7 @@ struct FrameData {
     vec4 cameraPos;
     vec2 screenSize;
     bool reverseDepth;
-    float padding;
+    float bloomThreshold;
 };
 
 layout(binding = 0) readonly uniform FrameBuffer {

@@ -1,6 +1,8 @@
 #include "hepch.h"
 #include "OpenGLTexture.h"
 
+#include "Heart/Core/App.h"
+#include "Heart/Platform/OpenGL/OpenGLBuffer.h"
 #include "Heart/Platform/OpenGL/OpenGLCommon.h"
 #include "glad/glad.h"
 #include "stb_image/stb_image.h"
@@ -20,9 +22,24 @@ namespace Heart
             m_MipLevels = maxMipLevels;
 
         int type = OpenGLCommon::BufferDataTypeToBaseOpenGL(createInfo.DataType);
-        m_GeneralFormat = BufferDataTypeColorFormat(createInfo.DataType);
+        m_GeneralFormat = BufferDataTypeColorFormat(createInfo.DataType, m_Info.Channels);
         m_Format = OpenGLCommon::ColorFormatToOpenGL(m_GeneralFormat);
         m_InternalFormat = OpenGLCommon::ColorFormatToInternalOpenGL(m_GeneralFormat);
+
+        // if the texture is cpu visible, create the readonly buffer
+        if (createInfo.AllowCPURead)
+        {
+            for (size_t i = 0; i < m_PixelBuffers.size(); i++)
+            {
+                m_PixelBuffers[i] = std::dynamic_pointer_cast<OpenGLBuffer>(Buffer::Create(
+                    Buffer::Type::Pixel,
+                    BufferUsageType::Dynamic,
+                    { m_Info.DataType },
+                    m_Info.Width * m_Info.Height * m_Info.Channels,
+                    initialData
+                ));
+            }
+        }
 
         m_Target = GL_TEXTURE_2D;
         if (m_Info.ArrayCount > 1)
@@ -90,8 +107,20 @@ namespace Heart
         glBindTexture(m_Target, 0);
     }
 
+    void* OpenGLTexture::GetPixelData()
+    {
+        HE_ENGINE_ASSERT(m_Info.AllowCPURead, "Cannot read pixel data of texture that does not have 'AllowCPURead' enabled");
+
+        // Any unmapping will be handled in the framebuffer that draws to this image if applicable
+        return m_PixelBuffers[(App::Get().GetFrameCount() + 1) % 2]->Map(true);
+    }
+
     OpenGLTexture::~OpenGLTexture()
     {
+        if (m_Info.AllowCPURead)
+            for (auto& buffer : m_PixelBuffers)
+                buffer->Unmap();
+
         glDeleteTextures(1, &m_TextureId);
     }
 }

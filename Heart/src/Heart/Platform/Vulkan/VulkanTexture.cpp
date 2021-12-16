@@ -2,6 +2,7 @@
 #include "VulkanTexture.h"
 
 #include "Heart/Platform/Vulkan/VulkanFramebuffer.h"
+#include "Heart/Platform/Vulkan/VulkanBuffer.h"
 #include "Heart/Platform/Vulkan/VulkanContext.h"
 #include "Heart/Platform/Vulkan/VulkanDevice.h"
 #include "stb_image/stb_image.h"
@@ -108,11 +109,18 @@ namespace Heart
         framebuffer->PushAuxiliaryCommandBuffer(cmdBuffer);
     }
 
+    void* VulkanTexture::GetPixelData()
+    {
+        HE_ENGINE_ASSERT(m_Info.AllowCPURead, "Cannot read pixel data of texture that does not have 'AllowCPURead' enabled");
+
+        return m_CpuBuffer->GetMappedMemory();
+    }
+
     void VulkanTexture::CreateTexture(void* data)
     {
         VulkanDevice& device = VulkanContext::GetDevice();
         VkDeviceSize imageSize = m_Info.Width * m_Info.Height * m_Info.Channels;
-        m_GeneralFormat = BufferDataTypeColorFormat(m_Info.DataType);
+        m_GeneralFormat = BufferDataTypeColorFormat(m_Info.DataType, m_Info.Channels);
         m_Format = VulkanCommon::ColorFormatToVulkan(m_GeneralFormat);
         if (m_Format == VK_FORMAT_R8G8B8A8_SRGB)
             m_Format = VK_FORMAT_R8G8B8A8_UNORM; // we want to use unorm for textures
@@ -124,6 +132,18 @@ namespace Heart
         u32 maxMipLevels = static_cast<u32>(floor(log2(std::max(m_Info.Width, m_Info.Height)))) + 1;
         if (m_MipLevels > maxMipLevels || m_MipLevels == 0)
             m_MipLevels = maxMipLevels;
+
+        // if the texture is cpu visible, create the readonly buffer
+        if (m_Info.AllowCPURead)
+        {
+            m_CpuBuffer = std::dynamic_pointer_cast<VulkanBuffer>(Buffer::Create(
+                Buffer::Type::Pixel,
+                BufferUsageType::Dynamic,
+                { m_Info.DataType },
+                m_Info.Width * m_Info.Height * m_Info.Channels,
+                data
+            ));
+        }
 
         // create image & staging buffer and transfer the data into the first layer
         u32 componentSize = BufferDataTypeSize(m_Info.DataType);

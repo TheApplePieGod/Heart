@@ -77,12 +77,12 @@ namespace Heart
         // ------------------------------------------------------------------
         FramebufferCreateInfo cubemapFbCreateInfo = {
             {
-                { false, { 0.f, 0.f, 0.f, 0.f }, ColorFormat::None, m_EnvironmentMap, 0 },
-                { false, { 0.f, 0.f, 0.f, 0.f }, ColorFormat::None, m_EnvironmentMap, 1 },
-                { false, { 0.f, 0.f, 0.f, 0.f }, ColorFormat::None, m_EnvironmentMap, 2 },
-                { false, { 0.f, 0.f, 0.f, 0.f }, ColorFormat::None, m_EnvironmentMap, 3 },
-                { false, { 0.f, 0.f, 0.f, 0.f }, ColorFormat::None, m_EnvironmentMap, 4 },
-                { false, { 0.f, 0.f, 0.f, 0.f }, ColorFormat::None, m_EnvironmentMap, 5 }
+                { { 0.f, 0.f, 0.f, 0.f }, false, ColorFormat::None, m_EnvironmentMap, 0 },
+                { { 0.f, 0.f, 0.f, 0.f }, false, ColorFormat::None, m_EnvironmentMap, 1 },
+                { { 0.f, 0.f, 0.f, 0.f }, false, ColorFormat::None, m_EnvironmentMap, 2 },
+                { { 0.f, 0.f, 0.f, 0.f }, false, ColorFormat::None, m_EnvironmentMap, 3 },
+                { { 0.f, 0.f, 0.f, 0.f }, false, ColorFormat::None, m_EnvironmentMap, 4 },
+                { { 0.f, 0.f, 0.f, 0.f }, false, ColorFormat::None, m_EnvironmentMap, 5 }
             },
             {},
             {
@@ -122,12 +122,12 @@ namespace Heart
         // ---------------------------------------------------------------------------------------
         FramebufferCreateInfo irradianceFbCreateInfo = {
             {
-                { false, { 0.f, 0.f, 0.f, 0.f }, ColorFormat::None, m_IrradianceMap, 0 },
-                { false, { 0.f, 0.f, 0.f, 0.f }, ColorFormat::None, m_IrradianceMap, 1 },
-                { false, { 0.f, 0.f, 0.f, 0.f }, ColorFormat::None, m_IrradianceMap, 2 },
-                { false, { 0.f, 0.f, 0.f, 0.f }, ColorFormat::None, m_IrradianceMap, 3 },
-                { false, { 0.f, 0.f, 0.f, 0.f }, ColorFormat::None, m_IrradianceMap, 4 },
-                { false, { 0.f, 0.f, 0.f, 0.f }, ColorFormat::None, m_IrradianceMap, 5 }
+                { { 0.f, 0.f, 0.f, 0.f }, false, ColorFormat::None, m_IrradianceMap, 0 },
+                { { 0.f, 0.f, 0.f, 0.f }, false, ColorFormat::None, m_IrradianceMap, 1 },
+                { { 0.f, 0.f, 0.f, 0.f }, false, ColorFormat::None, m_IrradianceMap, 2 },
+                { { 0.f, 0.f, 0.f, 0.f }, false, ColorFormat::None, m_IrradianceMap, 3 },
+                { { 0.f, 0.f, 0.f, 0.f }, false, ColorFormat::None, m_IrradianceMap, 4 },
+                { { 0.f, 0.f, 0.f, 0.f }, false, ColorFormat::None, m_IrradianceMap, 5 }
             },
             {},
             {
@@ -196,7 +196,7 @@ namespace Heart
         {
             prefilterFbCreateInfo.ColorAttachments.clear();
             for (u32 j = 0; j < 6; j++) // each face
-                prefilterFbCreateInfo.ColorAttachments.push_back({ false, { 0.f, 0.f, 0.f, 0.f }, ColorFormat::None, m_PrefilterMap, j, i });
+                prefilterFbCreateInfo.ColorAttachments.push_back({ { 0.f, 0.f, 0.f, 0.f }, false, ColorFormat::None, m_PrefilterMap, j, i });
             prefilterFbCreateInfo.Width = static_cast<u32>(m_PrefilterMap->GetWidth() * pow(0.5f, i));
             prefilterFbCreateInfo.Height = static_cast<u32>(m_PrefilterMap->GetHeight() * pow(0.5f, i));
 
@@ -213,7 +213,7 @@ namespace Heart
         // ----------------------------------------------------------------------------------------------------------------------
         FramebufferCreateInfo brdfFbCreateInfo = {
             {
-                { false, { 0.f, 0.f, 0.f, 0.f }, ColorFormat::None, m_BRDFTexture }
+                { { 0.f, 0.f, 0.f, 0.f }, false, ColorFormat::None, m_BRDFTexture }
             },
             {},
             {

@@ -5,6 +5,7 @@
 
 namespace Heart
 {
+    class VulkanBuffer;
     class VulkanTexture : public Texture
     {
     public:
@@ -14,6 +15,8 @@ namespace Heart
         void RegenerateMipMaps() override;
         void RegenerateMipMapsSync(Framebuffer* buffer) override;
 
+        void* GetPixelData() override;
+
         inline VkImageView GetImageView() const { return m_ImageView; }
         inline VkImageView GetLayerImageView(u32 layerIndex, u32 mipLevel) const { return m_LayerViews[layerIndex * m_MipLevels + mipLevel]; }
         inline VkImageLayout GetCurrentLayout() const { return m_CurrentLayout; }
@@ -22,6 +25,7 @@ namespace Heart
         inline VkFormat GetFormat() const { return m_Format; }
         inline VkImage GetImage() const { return m_Image; }
         inline VkDeviceMemory GetImageMemory() const { return m_ImageMemory; }
+        inline Ref<VulkanBuffer> GetCpuBuffer() const { return m_CpuBuffer; }
 
         inline void SetCurrentLayout(VkImageLayout layout) { m_CurrentLayout = layout; }
 
@@ -38,5 +42,6 @@ namespace Heart
         std::vector<VkImageView> m_LayerViews;
         VkImageLayout m_CurrentLayout;
         VkSampler m_Sampler;
+        Ref<VulkanBuffer> m_CpuBuffer;
     };
 }

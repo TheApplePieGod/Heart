@@ -90,7 +90,7 @@ namespace Heart
             attachmentData.GeneralColorFormat = attachment.Texture ? attachmentData.ExternalTexture->GetGeneralFormat() : attachment.Format;
             attachmentData.ColorFormat = colorFormat;
             attachmentData.HasResolve = m_ImageSamples > VK_SAMPLE_COUNT_1_BIT;
-            attachmentData.CPUVisible = attachment.AllowCPURead;
+            attachmentData.CPUVisible = attachmentData.ExternalTexture ? attachmentData.ExternalTexture->CanCPURead() : attachment.AllowCPURead;
             attachmentData.IsDepthAttachment = false;
 
             CreateAttachmentImages(attachmentData);
@@ -314,23 +314,58 @@ namespace Heart
         HE_ENGINE_ASSERT(m_SubmittedThisFrame || m_BoundThisFrame, "Cannot submit framebuffer that has not been bound this frame");
         HE_ENGINE_ASSERT(m_CurrentSubpass == m_Info.Subpasses.size() - 1, "Attempting to submit a framebuffer without completing all subpasses");
 
-        VulkanDevice& device = VulkanContext::GetDevice();
-        VkCommandBuffer buffer = GetCommandBuffer();
-
         if (!m_SubmittedThisFrame)
         {
+            VulkanDevice& device = VulkanContext::GetDevice();
+            VkCommandBuffer buffer = GetCommandBuffer();
+            VkCommandBuffer transferBuffer = GetTransferCommandBuffer();
+
             vkCmdEndRenderPass(buffer);
 
-            // copy all CPU visible attachments to their respective buffers        
-            for (auto& attachment : m_AttachmentData)
-                CopyAttachmentToBuffer(attachment);
-            for (auto& attachment : m_DepthAttachmentData)
-                CopyAttachmentToBuffer(attachment);
+            // if the transfer buffer is null, then we have no CPU visible attachments, so don't bother running this code
+            if (transferBuffer)
+            {
+                // begin the transfer command buffer
+                VkCommandBufferBeginInfo beginInfo{};
+                beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+                beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
+                beginInfo.pInheritanceInfo = nullptr;
+
+                HE_VULKAN_CHECK_RESULT(vkBeginCommandBuffer(transferBuffer, &beginInfo));
+
+                // copy all CPU visible attachments to their respective buffers        
+                for (auto& attachment : m_AttachmentData)
+                {
+                    if (!attachment.CPUVisible) continue;
+                    CopyAttachmentToBuffer(attachment);
+                    VulkanCommon::CopyBufferToBuffer(
+                        transferBuffer,
+                        attachment.AttachmentBuffer->GetStagingBuffer(),
+                        attachment.AttachmentBuffer->GetBuffer(),
+                        attachment.AttachmentBuffer->GetAllocatedSize()
+                    );
+                }
+                for (auto& attachment : m_DepthAttachmentData)
+                {
+                    if (!attachment.CPUVisible) continue;
+                    CopyAttachmentToBuffer(attachment);
+                    VulkanCommon::CopyBufferToBuffer(
+                        transferBuffer,
+                        attachment.AttachmentBuffer->GetStagingBuffer(),
+                        attachment.AttachmentBuffer->GetBuffer(),
+                        attachment.AttachmentBuffer->GetAllocatedSize()
+                    );
+                }
+
+                // end the transfer command buffer
+                HE_VULKAN_CHECK_RESULT(vkEndCommandBuffer(transferBuffer));
+            }
 
             // execute any commands that need to be synced with this framebuffer (i.e. Texture::RegenerateMipMapsSync)
             for (auto cmdBuf : m_AuxiliaryCommandBuffers[m_InFlightFrameIndex])
                 vkCmdExecuteCommands(buffer, 1, &cmdBuf);
 
+            // end the main command buffer
             HE_VULKAN_CHECK_RESULT(vkEndCommandBuffer(buffer));
 
             m_BoundPipeline = nullptr;
@@ -344,9 +379,6 @@ namespace Heart
 
     void VulkanFramebuffer::CopyAttachmentToBuffer(VulkanFramebufferAttachment& attachmentData)
     {
-        if (!attachmentData.CPUVisible)
-            return;
-
         VkCommandBuffer buffer = GetCommandBuffer();
 
         VkBufferImageCopy copyData{};
@@ -381,7 +413,7 @@ namespace Heart
         bufferBarrier.sType           = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
         bufferBarrier.srcAccessMask   = 0;
         bufferBarrier.dstAccessMask   = VK_ACCESS_TRANSFER_WRITE_BIT;
-        bufferBarrier.buffer          = attachmentData.AttachmentBuffer->GetBuffer();
+        bufferBarrier.buffer          = attachmentData.AttachmentBuffer->GetStagingBuffer();
         bufferBarrier.size            = attachmentData.AttachmentBuffer->GetAllocatedSize();
 
         vkCmdPipelineBarrier(buffer,
@@ -394,7 +426,7 @@ namespace Heart
             &bufferBarrier,
             1,
             &imageBarrier);
-        vkCmdCopyImageToBuffer(buffer, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, attachmentData.AttachmentBuffer->GetBuffer(), 1, &copyData);
+        vkCmdCopyImageToBuffer(buffer, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, attachmentData.AttachmentBuffer->GetStagingBuffer(), 1, &copyData);
         //VulkanCommon::TransitionImageLayout(VulkanContext::GetDevice().Device(), buffer, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     }
 
@@ -581,6 +613,18 @@ namespace Heart
         allocInfo.commandBufferCount = static_cast<u32>(m_CommandBuffers.size());
 
         HE_VULKAN_CHECK_RESULT(vkAllocateCommandBuffers(device.Device(), &allocInfo, m_CommandBuffers.data()));
+
+        // only allocate the transfer command buffers if we have any cpu visible attachments
+        for (auto& attachment : m_Info.ColorAttachments)
+        {
+            if (attachment.AllowCPURead)
+            {
+                allocInfo.commandPool = VulkanContext::GetTransferPool();
+                allocInfo.commandBufferCount = static_cast<u32>(m_TransferCommandBuffers.size());
+                HE_VULKAN_CHECK_RESULT(vkAllocateCommandBuffers(device.Device(), &allocInfo, m_TransferCommandBuffers.data()));
+                break;
+            }
+        } 
     }
 
     void VulkanFramebuffer::FreeCommandBuffers()
@@ -588,6 +632,8 @@ namespace Heart
         VulkanDevice& device = VulkanContext::GetDevice();
 
         vkFreeCommandBuffers(device.Device(), VulkanContext::GetGraphicsPool(), static_cast<u32>(m_CommandBuffers.size()), m_CommandBuffers.data());
+        if (GetTransferCommandBuffer())
+            vkFreeCommandBuffers(device.Device(), VulkanContext::GetTransferPool(), static_cast<u32>(m_TransferCommandBuffers.size()), m_TransferCommandBuffers.data());
     }
 
     void VulkanFramebuffer::CreateAttachmentImages(VulkanFramebufferAttachment& attachmentData)
@@ -643,12 +689,17 @@ namespace Heart
 
         if (attachmentData.CPUVisible)
         {
-            attachmentData.AttachmentBuffer = std::dynamic_pointer_cast<VulkanBuffer>(Buffer::Create(
-                Buffer::Type::Pixel,
-                BufferUsageType::Dynamic,
-                { ColorFormatBufferDataType(attachmentData.GeneralColorFormat) },
-                m_ActualWidth * m_ActualHeight * ColorFormatComponents(attachmentData.GeneralColorFormat)
-            ));
+            if (attachmentData.ExternalTexture)
+                attachmentData.AttachmentBuffer = attachmentData.ExternalTexture->GetCpuBuffer();
+            else
+            {
+                attachmentData.AttachmentBuffer = std::dynamic_pointer_cast<VulkanBuffer>(Buffer::Create(
+                    Buffer::Type::Pixel,
+                    BufferUsageType::Dynamic,
+                    { ColorFormatBufferDataType(attachmentData.GeneralColorFormat) },
+                    m_ActualWidth * m_ActualHeight * ColorFormatComponents(attachmentData.GeneralColorFormat)
+                ));
+            }
         }
 
         // create associated image views
