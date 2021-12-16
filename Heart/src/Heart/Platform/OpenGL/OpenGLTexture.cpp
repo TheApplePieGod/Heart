@@ -53,7 +53,7 @@ namespace Heart
         float maxAnisotropy;
         glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY, &maxAnisotropy);
 
-        // TODO: paramaterize
+        // apply sampler params to the main texture
         glTexParameteri(m_Target, GL_TEXTURE_WRAP_S, OpenGLCommon::SamplerWrapModeToOpenGL(m_Info.SamplerState.UVWWrap[0]));	
         glTexParameteri(m_Target, GL_TEXTURE_WRAP_T, OpenGLCommon::SamplerWrapModeToOpenGL(m_Info.SamplerState.UVWWrap[1]));
         glTexParameteri(m_Target, GL_TEXTURE_WRAP_R, OpenGLCommon::SamplerWrapModeToOpenGL(m_Info.SamplerState.UVWWrap[2]));
@@ -91,6 +91,15 @@ namespace Heart
             for (u32 j = 0; j < m_MipLevels; j++)
             {
                 glTextureView(m_ViewTextures[viewIndex], GL_TEXTURE_2D, m_TextureId, m_InternalFormat, j, 1, i, 1);
+
+                // apply the sampler params to each view because they do not inherit
+                glTextureParameteri(m_ViewTextures[viewIndex], GL_TEXTURE_WRAP_S, OpenGLCommon::SamplerWrapModeToOpenGL(m_Info.SamplerState.UVWWrap[0]));	
+                glTextureParameteri(m_ViewTextures[viewIndex], GL_TEXTURE_WRAP_T, OpenGLCommon::SamplerWrapModeToOpenGL(m_Info.SamplerState.UVWWrap[1]));
+                glTextureParameteri(m_ViewTextures[viewIndex], GL_TEXTURE_WRAP_R, OpenGLCommon::SamplerWrapModeToOpenGL(m_Info.SamplerState.UVWWrap[2]));
+                glTextureParameteri(m_ViewTextures[viewIndex], GL_TEXTURE_MIN_FILTER, OpenGLCommon::SamplerFilterToOpenGLWithMipmap(m_Info.SamplerState.MinFilter));
+                glTextureParameteri(m_ViewTextures[viewIndex], GL_TEXTURE_MAG_FILTER, OpenGLCommon::SamplerFilterToOpenGL(m_Info.SamplerState.MagFilter));
+                glTextureParameterf(m_ViewTextures[viewIndex], GL_TEXTURE_MAX_ANISOTROPY, m_Info.SamplerState.AnisotropyEnable ? std::min(maxAnisotropy, static_cast<float>(m_Info.SamplerState.MaxAnisotropy)) : 1);
+
                 if (j == 0)
                     m_LayerImGuiHandles.emplace_back((void*)static_cast<size_t>(m_ViewTextures[viewIndex]));
                 viewIndex++;

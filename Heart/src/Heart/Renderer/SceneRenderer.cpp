@@ -212,6 +212,7 @@ namespace Heart
                 {}
             },
             {
+                // TODO: transparent pass bloom contribution
                 { {}, { { SubpassAttachmentType::Color, 3 }, { SubpassAttachmentType::Color, 4 } } }, // environment map
                 { {}, { { SubpassAttachmentType::Color, 3 } } }, // grid
                 { {}, { { SubpassAttachmentType::Depth, 0 }, { SubpassAttachmentType::Color, 3 }, { SubpassAttachmentType::Color, 4 }, { SubpassAttachmentType::Color, 0 } } }, // opaque
