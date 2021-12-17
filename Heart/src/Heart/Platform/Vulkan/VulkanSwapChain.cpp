@@ -336,6 +336,7 @@ namespace Heart
             HE_VULKAN_CHECK_RESULT(vkCreateSemaphore(device.Device(), &semaphoreInfo, nullptr, &m_RenderFinishedSemaphores[i]));
             HE_VULKAN_CHECK_RESULT(vkCreateFence(device.Device(), &fenceInfo, nullptr, &m_InFlightFences[i]));
             HE_VULKAN_CHECK_RESULT(vkCreateFence(device.Device(), &fenceInfo, nullptr, &m_InFlightTransferFences[i]));
+            HE_VULKAN_CHECK_RESULT(vkCreateFence(device.Device(), &fenceInfo, nullptr, &m_InFlightComputeFences[i]));
         }
     }
 
@@ -349,6 +350,7 @@ namespace Heart
             vkDestroySemaphore(device.Device(), m_RenderFinishedSemaphores[i], nullptr);
             vkDestroyFence(device.Device(), m_InFlightFences[i], nullptr);
             vkDestroyFence(device.Device(), m_InFlightTransferFences[i], nullptr);
+            vkDestroyFence(device.Device(), m_InFlightComputeFences[i], nullptr);
         }
 
         for (auto semaphore : m_AuxiliaryRenderFinishedSemaphores)
@@ -371,6 +373,24 @@ namespace Heart
         }
 
         return m_AuxiliaryRenderFinishedSemaphores[arrayIndex];
+    }
+
+    VkSemaphore VulkanSwapChain::GetAuxiliaryComputeSemaphore(size_t renderIndex)
+    {
+        VulkanDevice& device = VulkanContext::GetDevice();
+
+        VkSemaphoreCreateInfo semaphoreInfo{};
+        semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+        size_t arrayIndex = renderIndex * MAX_FRAMES_IN_FLIGHT + m_InFlightFrameIndex;
+        while (arrayIndex >= m_AuxiliaryComputeFinishedSemaphores.size())
+        {
+            VkSemaphore semaphore;
+            HE_VULKAN_CHECK_RESULT(vkCreateSemaphore(device.Device(), &semaphoreInfo, nullptr, &semaphore));
+            m_AuxiliaryComputeFinishedSemaphores.push_back(semaphore);
+        }
+
+        return m_AuxiliaryComputeFinishedSemaphores[arrayIndex];
     }
 
     void VulkanSwapChain::RecreateSwapChain()
@@ -418,6 +438,9 @@ namespace Heart
 
         // wait for any remaining transfers to complete
         vkWaitForFences(device.Device(), 1, &m_InFlightTransferFences[m_InFlightFrameIndex], VK_TRUE, UINT64_MAX);
+
+        // wait for any remaining compute shaders to complete
+        vkWaitForFences(device.Device(), 1, &m_InFlightComputeFences[m_InFlightFrameIndex], VK_TRUE, UINT64_MAX);
 
         // check if a previous frame is using this image (i.e. there is its fence to wait on)
         if (m_ImagesInFlight[m_PresentImageIndex] != VK_NULL_HANDLE)
@@ -502,8 +525,8 @@ namespace Heart
         m_InFlightFrameIndex = (m_InFlightFrameIndex + 1) % MAX_FRAMES_IN_FLIGHT;
 
         // clear the submitted command buffers
-        m_SubmittedCommandBufferCounts.clear();
         m_SubmittedCommandBuffers.clear();
+        m_FramebufferSubmissions.clear();
     }
 
     void VulkanSwapChain::Present()
@@ -513,51 +536,92 @@ namespace Heart
         
         VulkanDevice& device = VulkanContext::GetDevice();
 
-        std::vector<VkSubmitInfo> submitInfos(m_SubmittedCommandBufferCounts.size() + 1);
+        std::vector<VkSubmitInfo> submitInfos(m_FramebufferSubmissions.size() + 1);
         std::vector<VkSubmitInfo> transferSubmitInfos;
-        std::vector<VkSemaphore> waitSemaphores(m_SubmittedCommandBufferCounts.size());
+        std::vector<VkSubmitInfo> computeSubmitInfos;
+        std::vector<VkSemaphore> auxDrawSemaphores(m_FramebufferSubmissions.size());
+        std::vector<VkSemaphore> auxCompSemaphores(m_FramebufferSubmissions.size() * 2);
         VkPipelineStageFlags drawWaitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
         VkPipelineStageFlags transferWaitStages[] = { VK_PIPELINE_STAGE_TRANSFER_BIT };
-        size_t bufferSubmitIndex = 0;
-        for (size_t i = 0; i < m_SubmittedCommandBufferCounts.size(); i++)
+        VkPipelineStageFlags computePreWaitStages[] = { VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT };
+        VkPipelineStageFlags computePostWaitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+        for (size_t i = 0; i < m_FramebufferSubmissions.size(); i++)
         {
-            size_t submissionCount = m_SubmittedCommandBufferCounts[i];
-            waitSemaphores[i] = GetAuxiliaryRenderSemaphore(i);
+            auto& subData = m_FramebufferSubmissions[i];
+            auxDrawSemaphores[i] = GetAuxiliaryRenderSemaphore(i);
 
-            auto& bufferSubmit = m_SubmittedCommandBuffers[bufferSubmitIndex];
+            bool preCompute = subData.PreRenderComputeBufferCount > 0;
+            bool postCompute = subData.PostRenderComputeBufferCount > 0;
 
+            if (preCompute)
+            {
+                auxCompSemaphores[i * 2] = GetAuxiliaryComputeSemaphore(i * 2);
+
+                VkSubmitInfo preRenderComputeSubmit{};
+                preRenderComputeSubmit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+                preRenderComputeSubmit.pWaitDstStageMask = computePreWaitStages;
+                preRenderComputeSubmit.commandBufferCount = subData.PreRenderComputeBufferCount;
+                preRenderComputeSubmit.pCommandBuffers = m_SubmittedCommandBuffers.data() + subData.PreRenderComputeBufferStartIndex;
+                preRenderComputeSubmit.waitSemaphoreCount = 1;
+                preRenderComputeSubmit.pWaitSemaphores = i > 0 ? &auxDrawSemaphores[i - 1] : nullptr; // wait for the previous frame to finish
+                preRenderComputeSubmit.signalSemaphoreCount = 1;
+                preRenderComputeSubmit.pSignalSemaphores = &auxCompSemaphores[i];
+                computeSubmitInfos.emplace_back(preRenderComputeSubmit);
+            }
+
+            if (postCompute)
+            {
+                auxCompSemaphores[i * 2 + 1] = GetAuxiliaryComputeSemaphore(i * 2 + 1);
+
+                VkSubmitInfo postRenderComputeSubmit{};
+                postRenderComputeSubmit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+                postRenderComputeSubmit.pWaitDstStageMask = computePostWaitStages;
+                postRenderComputeSubmit.commandBufferCount = subData.PostRenderComputeBufferCount;
+                postRenderComputeSubmit.pCommandBuffers = m_SubmittedCommandBuffers.data() + subData.PostRenderComputeBufferStartIndex;
+                postRenderComputeSubmit.waitSemaphoreCount = 1;
+                postRenderComputeSubmit.pWaitSemaphores = &auxCompSemaphores[i * 2 + 1];
+                postRenderComputeSubmit.signalSemaphoreCount = 1;
+                postRenderComputeSubmit.pSignalSemaphores = &auxDrawSemaphores[i];
+                computeSubmitInfos.emplace_back(postRenderComputeSubmit);
+            }
+
+            // TODO: optimize this so each submission has its own signal semaphore
             submitInfos[i] = {};
             submitInfos[i].sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
             submitInfos[i].pWaitDstStageMask = drawWaitStages;
-            submitInfos[i].commandBufferCount = static_cast<u32>(submissionCount);
-            submitInfos[i].pCommandBuffers = &bufferSubmit.DrawBuffer;
+            submitInfos[i].commandBufferCount = subData.DrawBufferCount;
+            submitInfos[i].pCommandBuffers = m_SubmittedCommandBuffers.data() + subData.DrawBufferStartIndex;
             submitInfos[i].waitSemaphoreCount = i == 0 ? 0 : 1;
-            submitInfos[i].pWaitSemaphores = i > 0 ? &waitSemaphores[i - 1] : nullptr;
+            if (preCompute)
+                submitInfos[i].pWaitSemaphores = &auxCompSemaphores[i];
+            else
+                submitInfos[i].pWaitSemaphores = i > 0 ? &auxDrawSemaphores[i - 1] : nullptr;
             submitInfos[i].signalSemaphoreCount = 1;
-            submitInfos[i].pSignalSemaphores = &waitSemaphores[i];
+            if (postCompute)
+                submitInfos[i].pSignalSemaphores = &auxCompSemaphores[i * 2 + 1];
+            else
+                submitInfos[i].pSignalSemaphores = &auxDrawSemaphores[i];
 
-            if (bufferSubmit.TransferBuffer)
+            if (subData.TransferBufferCount > 0)
             {
                 VkSubmitInfo transferSubmitInfo{};
                 transferSubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
                 transferSubmitInfo.pWaitDstStageMask = transferWaitStages;
-                transferSubmitInfo.commandBufferCount = static_cast<u32>(submissionCount);
-                transferSubmitInfo.pCommandBuffers = &bufferSubmit.TransferBuffer;
+                transferSubmitInfo.commandBufferCount = subData.TransferBufferCount;
+                transferSubmitInfo.pCommandBuffers = m_SubmittedCommandBuffers.data() + subData.TransferBufferStartIndex;
                 transferSubmitInfo.waitSemaphoreCount = 1;
-                transferSubmitInfo.pWaitSemaphores = &waitSemaphores[i];
+                transferSubmitInfo.pWaitSemaphores = &auxDrawSemaphores[i];
                 transferSubmitInfos.emplace_back(transferSubmitInfo);
             }
-
-            bufferSubmitIndex += submissionCount;
         }
         
         // final render submission
         VkSubmitInfo& finalSubmitInfo = submitInfos.back();
-        VkSemaphore finalWaitSemaphores[] = { m_ImageAvailableSemaphores[m_InFlightFrameIndex], waitSemaphores.empty() ? nullptr : waitSemaphores.back() };
+        VkSemaphore finalWaitSemaphores[] = { m_ImageAvailableSemaphores[m_InFlightFrameIndex], auxDrawSemaphores.empty() ? nullptr : auxDrawSemaphores.back() };
         VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
         finalSubmitInfo = {};
         finalSubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        finalSubmitInfo.waitSemaphoreCount = waitSemaphores.empty() ? 1 : 2;
+        finalSubmitInfo.waitSemaphoreCount = auxDrawSemaphores.empty() ? 1 : 2;
         finalSubmitInfo.pWaitSemaphores = finalWaitSemaphores;
         finalSubmitInfo.pWaitDstStageMask = waitStages;
         finalSubmitInfo.commandBufferCount = 1;
@@ -568,10 +632,17 @@ namespace Heart
         finalSubmitInfo.pSignalSemaphores = finalSignalSemaphores;
 
         vkResetFences(device.Device(), 1, &m_InFlightFences[m_InFlightFrameIndex]);
-        vkResetFences(device.Device(), 1, &m_InFlightTransferFences[m_InFlightFrameIndex]);
         HE_VULKAN_CHECK_RESULT(vkQueueSubmit(device.GraphicsQueue(), static_cast<u32>(submitInfos.size()), submitInfos.data(), m_InFlightFences[m_InFlightFrameIndex]));
         if (!transferSubmitInfos.empty())
+        {
+            vkResetFences(device.Device(), 1, &m_InFlightTransferFences[m_InFlightFrameIndex]);
             HE_VULKAN_CHECK_RESULT(vkQueueSubmit(device.TransferQueue(), static_cast<u32>(transferSubmitInfos.size()), transferSubmitInfos.data(), m_InFlightTransferFences[m_InFlightFrameIndex]));
+        }
+        if (!computeSubmitInfos.empty())
+        {
+            vkResetFences(device.Device(), 1, &m_InFlightComputeFences[m_InFlightFrameIndex]);
+            HE_VULKAN_CHECK_RESULT(vkQueueSubmit(device.ComputeQueue(), static_cast<u32>(computeSubmitInfos.size()), computeSubmitInfos.data(), m_InFlightComputeFences[m_InFlightFrameIndex]));
+        }
 
         VkSwapchainKHR swapChains[] = { m_SwapChain };
         VkPresentInfoKHR presentInfo{};
@@ -594,10 +665,42 @@ namespace Heart
         //vkQueueWaitIdle(device.PresentQueue());
     }
 
-    void VulkanSwapChain::SubmitCommandBuffers(const std::vector<CommandBufferSubmit>& submits)
+    void VulkanSwapChain::SubmitCommandBuffers(const std::vector<VulkanFramebufferSubmit>& submits)
     {
-        m_SubmittedCommandBufferCounts.emplace_back(submits.size());
-        m_SubmittedCommandBuffers.insert(m_SubmittedCommandBuffers.end(), submits.begin(), submits.end());
+        FramebufferSubmissionData subData{};
+    
+        subData.DrawBufferStartIndex = static_cast<u32>(m_SubmittedCommandBuffers.size());
+        for (auto& submit : submits)
+        {
+            m_SubmittedCommandBuffers.push_back(submit.DrawBuffer);
+            subData.DrawBufferCount++;
+        }
+
+        subData.TransferBufferStartIndex = static_cast<u32>(m_SubmittedCommandBuffers.size());
+        for (auto& submit : submits)
+        {
+            if (!submit.TransferBuffer) continue;
+            m_SubmittedCommandBuffers.push_back(submit.TransferBuffer);
+            subData.TransferBufferCount++;
+        }
+
+        subData.PreRenderComputeBufferStartIndex = static_cast<u32>(m_SubmittedCommandBuffers.size());
+        for (auto& submit : submits)
+        {
+            if (!submit.PreRenderComputeBuffer) continue;
+            m_SubmittedCommandBuffers.push_back(submit.PreRenderComputeBuffer);
+            subData.PreRenderComputeBufferCount++;
+        }
+
+        subData.PostRenderComputeBufferStartIndex = static_cast<u32>(m_SubmittedCommandBuffers.size());
+        for (auto& submit : submits)
+        {
+            if (!submit.PostRenderComputeBuffer) continue;
+            m_SubmittedCommandBuffers.push_back(submit.PostRenderComputeBuffer);
+            subData.PostRenderComputeBufferCount++;
+        }
+
+        m_FramebufferSubmissions.push_back(subData);
     }
 
     void VulkanSwapChain::InvalidateSwapChain(u32 newWidth, u32 newHeight)

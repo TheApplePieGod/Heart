@@ -396,11 +396,6 @@ namespace Heart
     void SceneRenderer::CleanupFramebuffers()
     {
         m_MainFramebuffer.reset();
-        for (auto& bufs : m_BloomFramebuffers)
-        {
-            bufs[0].reset();
-            bufs[1].reset();
-        }
         m_BloomFramebuffers.clear();
     }
 
@@ -463,7 +458,7 @@ namespace Heart
             m_BrightColorsTexture->RegenerateMipMapsSync(m_MainFramebuffer.get());
 
         // Submit the framebuffer
-        Renderer::Api().RenderFramebuffers(context, { m_MainFramebuffer.get() });
+        Renderer::Api().RenderFramebuffers(context, { { m_MainFramebuffer.get() } });
 
         // Bloom
         Bloom(context);
@@ -832,7 +827,7 @@ namespace Heart
                 Renderer::Api().Draw(3, 0, 1);
 
                 // Render
-                Renderer::Api().RenderFramebuffers(context, { framebuffers[0].get() });
+                Renderer::Api().RenderFramebuffers(context, { { framebuffers[0].get() } });
 
                 // Vertical framebuffer
                 framebuffers[1]->Bind();
@@ -849,7 +844,7 @@ namespace Heart
                 Renderer::Api().Draw(3, 0, 1);
 
                 // Render
-                Renderer::Api().RenderFramebuffers(context, { framebuffers[1].get() });
+                Renderer::Api().RenderFramebuffers(context, { { framebuffers[1].get() } });
             }
         }
         else
@@ -859,7 +854,7 @@ namespace Heart
             // Clear the horizontal blur texture so that the final composite shader only inputs from the HDR output
             framebuffers[0]->Bind();
             framebuffers[0]->ClearOutputAttachment(0, false);
-            Renderer::Api().RenderFramebuffers(context, { framebuffers[0].get() });
+            Renderer::Api().RenderFramebuffers(context, { { framebuffers[0].get() } });
 
             framebuffers[1]->Bind();
             framebuffers[1]->BindPipeline("bloomVertical");
@@ -871,7 +866,7 @@ namespace Heart
             Renderer::Api().Draw(3, 0, 1);
 
             // Render
-            Renderer::Api().RenderFramebuffers(context, { framebuffers[1].get() });
+            Renderer::Api().RenderFramebuffers(context, { { framebuffers[1].get() } });
         }
     }
 

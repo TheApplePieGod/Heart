@@ -59,8 +59,8 @@ namespace Heart
 
         HE_ENGINE_ASSERT(usage == BufferUsageType::Static || usage == BufferUsageType::Dynamic, "Vulkan does not support specified BufferUsageType");
 
-        // we only need one buffer when dealing with static data or a pixel buffer
-        m_BufferCount = (usage == BufferUsageType::Static || type == Type::Pixel) ? 1 : m_Buffers.size();
+        // we only need one buffer when dealing with static data
+        m_BufferCount = usage == BufferUsageType::Static ? 1 : m_Buffers.size();
         for (size_t i = 0; i < m_BufferCount; i++)
         {
             CreateBuffer(bufferSize, m_Buffers[i], m_BufferMemory[i], m_StagingBuffers[i], m_StagingBufferMemory[i]);

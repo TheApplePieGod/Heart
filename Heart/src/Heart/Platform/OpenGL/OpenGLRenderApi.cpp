@@ -116,17 +116,17 @@ namespace Heart
         glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
     }
 
-    void OpenGLRenderApi::RenderFramebuffers(GraphicsContext& _context, const std::vector<Framebuffer*>& framebuffers)
+    void OpenGLRenderApi::RenderFramebuffers(GraphicsContext& _context, const std::vector<FramebufferSubmission>& submissions)
     {
-        HE_PROFILE_FUNCTION();
-        auto timer = AggregateTimer("OpenGLRenderApi::RenderFramebuffers");
+        // HE_PROFILE_FUNCTION();
+        // auto timer = AggregateTimer("OpenGLRenderApi::RenderFramebuffers");
         
-        for (auto& _buffer : framebuffers)
-        {
-            OpenGLFramebuffer* buffer = static_cast<OpenGLFramebuffer*>(_buffer);
-            buffer->Submit();
-        }
+        // for (auto& _buffer : framebuffers)
+        // {
+        //     OpenGLFramebuffer* buffer = static_cast<OpenGLFramebuffer*>(_buffer);
+        //     buffer->Submit();
+        // }
 
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        // glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 }

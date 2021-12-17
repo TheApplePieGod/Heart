@@ -69,7 +69,7 @@ namespace Heart
 
     struct ComputePipelineCreateInfo
     {
-        
+        UUID ComputeShaderAsset;
     };
 
     class Pipeline
@@ -82,8 +82,14 @@ namespace Heart
 
     public:
         virtual ~Pipeline() = default;
+
+        inline const std::vector<ReflectionDataElement>& GetReflectionData() const { return m_ProgramReflectionData; }
+
+    protected:
+        std::vector<ReflectionDataElement> m_ProgramReflectionData;
     };
 
+    class Texture;
     class GraphicsPipeline : public Pipeline
     {
     public:
@@ -102,11 +108,9 @@ namespace Heart
         inline bool IsDepthWriteEnabled() const { return m_Info.DepthWrite; }
         inline u32 GetVertexLayoutStride() const { return m_Info.VertexLayout.GetStride(); }
         inline const std::vector<AttachmentBlendState>& GetBlendStates() const { return m_Info.BlendStates; }
-        inline const std::vector<ReflectionDataElement>& GetReflectionData() const { return m_ProgramReflectionData; }
 
     protected:
         GraphicsPipelineCreateInfo m_Info;
-        std::vector<ReflectionDataElement> m_ProgramReflectionData; // program = vertex+fragment shaders
 
     private:
         void ConsolidateReflectionData();
@@ -120,10 +124,28 @@ namespace Heart
         {}
         virtual ~ComputePipeline() = default;
 
+        virtual void Bind() = 0;
+
+        virtual void BindShaderBufferResource(u32 bindingIndex, u32 elementOffset, u32 elementCount, Buffer* buffer) = 0;
+        virtual void BindShaderTextureResource(u32 bindingIndex, Texture* texture) = 0;
+        virtual void BindShaderTextureLayerResource(u32 bindingIndex, Texture* texture, u32 layerIndex, u32 mipLevel) = 0;
+        virtual void FlushBindings() = 0;
+
+        inline u32 GetDispatchCountX() const { return m_DispatchCountX; }
+        inline u32 GetDispatchCountY() const { return m_DispatchCountY; }
+        inline u32 GetDispatchCountZ() const { return m_DispatchCountZ; }
+        inline void SetDispatchCountX(u32 count) { m_DispatchCountX = count; }
+        inline void SetDispatchCountY(u32 count) { m_DispatchCountY = count; }
+        inline void SetDispatchCountZ(u32 count) { m_DispatchCountZ = count; }
+        inline void SetDispatchCount(u32 x, u32 y, u32 z) { m_DispatchCountX = x; m_DispatchCountY = y; m_DispatchCountZ = z; }
+
     public:
         static Ref<ComputePipeline> Create(const ComputePipelineCreateInfo& createInfo);
 
     protected:
         ComputePipelineCreateInfo m_Info;
+        u32 m_DispatchCountX = 1;
+        u32 m_DispatchCountY = 1;
+        u32 m_DispatchCountZ = 1;
     };
 }

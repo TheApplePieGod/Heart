@@ -318,7 +318,7 @@ namespace Heart
 
         m_EnvironmentMap->RegenerateMipMapsSync(m_CubemapFramebuffer.get());
 
-        Renderer::Api().RenderFramebuffers(Window::GetMainWindow().GetContext(), { m_CubemapFramebuffer.get() });
+        Renderer::Api().RenderFramebuffers(Window::GetMainWindow().GetContext(), { { m_CubemapFramebuffer.get() } });
 
         // ------------------------------------------------------------------
         // Precalculate environment irradiance
@@ -351,7 +351,7 @@ namespace Heart
             cubeDataIndex++;
         }
 
-        Renderer::Api().RenderFramebuffers(Window::GetMainWindow().GetContext(), { m_IrradianceMapFramebuffer.get() });
+        Renderer::Api().RenderFramebuffers(Window::GetMainWindow().GetContext(), { { m_IrradianceMapFramebuffer.get() } });
 
         // ------------------------------------------------------------------
         // Prefilter the environment map based on roughness
@@ -388,7 +388,7 @@ namespace Heart
                 cubeDataIndex++;
             }
 
-            Renderer::Api().RenderFramebuffers(Window::GetMainWindow().GetContext(), { m_PrefilterFramebuffers[i].get() });
+            Renderer::Api().RenderFramebuffers(Window::GetMainWindow().GetContext(), { { m_PrefilterFramebuffers[i].get() } });
         }
 
         // ------------------------------------------------------------------
@@ -404,6 +404,6 @@ namespace Heart
         m_BRDFFramebuffer->FlushBindings();
 
         Renderer::Api().Draw(3, 0, 1);
-        Renderer::Api().RenderFramebuffers(Window::GetMainWindow().GetContext(), { m_BRDFFramebuffer.get() });
+        Renderer::Api().RenderFramebuffers(Window::GetMainWindow().GetContext(), { { m_BRDFFramebuffer.get() } });
     }
 }

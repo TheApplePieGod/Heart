@@ -4,7 +4,16 @@ namespace Heart
 {
     class Buffer;
     class Framebuffer;
+    class ComputePipeline;
     class GraphicsContext;
+
+    struct FramebufferSubmission
+    {
+        Framebuffer* Framebuffer;
+        ComputePipeline* PreRenderComputePipeline = nullptr;
+        ComputePipeline* PostRenderComputePipeline = nullptr;
+    };
+
     class RenderApi
     {
     public:
@@ -33,7 +42,9 @@ namespace Heart
 
         virtual void DrawIndexedIndirect(Buffer* indirectBuffer, u32 commandOffset, u32 drawCount) = 0;
 
-        virtual void RenderFramebuffers(GraphicsContext& context, const std::vector<Framebuffer*>& framebuffers) = 0;
+        virtual void RenderFramebuffers(GraphicsContext& context, const std::vector<FramebufferSubmission>& submissions) = 0;
+
+        virtual void DispatchComputePipelines(GraphicsContext& context, const std::vector<ComputePipeline*>& pipelines) = 0;
 
     private:
         
