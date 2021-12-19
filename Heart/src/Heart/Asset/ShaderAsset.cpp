@@ -13,6 +13,8 @@ namespace Heart
             m_ShaderType = Shader::Type::Vertex;
         else if (m_Extension == ".frag")
             m_ShaderType = Shader::Type::Fragment;
+        else if (m_Extension == ".comp")
+            m_ShaderType = Shader::Type::Compute;
     }
 
     void ShaderAsset::Load()

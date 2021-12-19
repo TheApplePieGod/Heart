@@ -212,6 +212,8 @@ namespace Heart
 
     VkDescriptorPool VulkanDescriptorSet::CreateDescriptorPool()
     {
+        if (m_CachedPoolSizes.empty()) return nullptr; // no descriptors so don't create pool
+
         VulkanDevice& device = VulkanContext::GetDevice();
 
         VkDescriptorPoolCreateInfo poolInfo{};

@@ -83,10 +83,6 @@ namespace Heart
     public:
         virtual ~Pipeline() = default;
 
-        inline const std::vector<ReflectionDataElement>& GetReflectionData() const { return m_ProgramReflectionData; }
-
-    protected:
-        std::vector<ReflectionDataElement> m_ProgramReflectionData;
     };
 
     class Texture;
@@ -108,9 +104,11 @@ namespace Heart
         inline bool IsDepthWriteEnabled() const { return m_Info.DepthWrite; }
         inline u32 GetVertexLayoutStride() const { return m_Info.VertexLayout.GetStride(); }
         inline const std::vector<AttachmentBlendState>& GetBlendStates() const { return m_Info.BlendStates; }
+        inline const std::vector<ReflectionDataElement>& GetReflectionData() const { return m_ProgramReflectionData; }
 
     protected:
         GraphicsPipelineCreateInfo m_Info;
+        std::vector<ReflectionDataElement> m_ProgramReflectionData; // program being vertex + fragment shaders
 
     private:
         void ConsolidateReflectionData();

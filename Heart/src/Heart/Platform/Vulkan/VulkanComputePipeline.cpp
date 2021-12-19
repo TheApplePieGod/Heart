@@ -17,10 +17,10 @@ namespace Heart
     {
         VulkanDevice& device = VulkanContext::GetDevice();
 
-        m_DescriptorSet.Initialize(m_ProgramReflectionData);
-
         auto computeShader = AssetManager::RetrieveAsset<ShaderAsset>(createInfo.ComputeShaderAsset)->GetShader();
         VkPipelineShaderStageCreateInfo shaderStage = VulkanCommon::DefineShaderStage(static_cast<VulkanShader*>(computeShader)->GetShaderModule(), VK_SHADER_STAGE_COMPUTE_BIT);
+
+        m_DescriptorSet.Initialize(computeShader->GetReflectionData());
 
         std::vector<VkDescriptorSetLayout> layouts;
         layouts.emplace_back(m_DescriptorSet.GetLayout());
@@ -151,10 +151,16 @@ namespace Heart
     {
         HE_PROFILE_FUNCTION();
 
+        HE_ENGINE_ASSERT(m_BoundThisFrame, "Cannot submit a compute pipeline that has not been bound this frame");
+        HE_ENGINE_ASSERT(m_FlushedThisFrame, "Compute pipeline is not ready for dispatch (did you bind & flush all of your shader resources?)");
+
         if (!m_SubmittedThisFrame)
         {
             VulkanDevice& device = VulkanContext::GetDevice();
             VkCommandBuffer buffer = GetCommandBuffer();
+
+            // bind the pipeline
+            vkCmdBindPipeline(buffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_Pipeline);
 
             // dispatch
             vkCmdDispatch(

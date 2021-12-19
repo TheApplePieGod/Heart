@@ -35,26 +35,58 @@ namespace Heart
         std::vector<VkQueueFamilyProperties> supportedQueueFamilies(supportedQueueFamilyCount);
         vkGetPhysicalDeviceQueueFamilyProperties(device, &supportedQueueFamilyCount, supportedQueueFamilies.data());
 
+        // pass over the supported families and populate indices with the first available option
         int i = 0;
         for (const auto& family : supportedQueueFamilies)
         {
-            if (indices.IsComplete())
-                break;
+            if (indices.IsComplete()) break;
 
             if (family.queueFlags & VK_QUEUE_GRAPHICS_BIT)
+            {
                 indices.GraphicsFamily = i;
+                indices.GraphicsQueueCount = family.queueCount;
+            }
 
             if (family.queueFlags & VK_QUEUE_COMPUTE_BIT)
+            {
                 indices.ComputeFamily = i;
+                indices.ComputeQueueCount = family.queueCount;
+            }
 
             if (family.queueFlags & VK_QUEUE_TRANSFER_BIT)
+            {
                 indices.TransferFamily = i;
+                indices.TransferQueueCount = family.queueCount;
+            }
 
             VkBool32 presentSupport = false;
             vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
             if (presentSupport)
+            {
                 indices.PresentFamily = i;
+                indices.PresentQueueCount = family.queueCount;
+            }
             
+            i++;
+        }
+
+        i = 0;
+        for (const auto& family : supportedQueueFamilies)
+        {
+            // prioritize families that support compute but not graphics
+            if (family.queueFlags & VK_QUEUE_COMPUTE_BIT && !(family.queueFlags & VK_QUEUE_GRAPHICS_BIT))
+            {
+                indices.ComputeFamily = i;
+                indices.ComputeQueueCount = family.queueCount;
+            }
+
+            // prioritize families that support transfer only
+            if (family.queueFlags & VK_QUEUE_TRANSFER_BIT && !(family.queueFlags & VK_QUEUE_GRAPHICS_BIT) && !(family.queueFlags & VK_QUEUE_COMPUTE_BIT))
+            {
+                indices.TransferFamily = i;
+                indices.TransferQueueCount = family.queueCount;
+            }
+
             i++;
         }
 
@@ -580,6 +612,7 @@ namespace Heart
             case ShaderResourceAccessType::Vertex: return VK_SHADER_STAGE_VERTEX_BIT;
             case ShaderResourceAccessType::Fragment: return VK_SHADER_STAGE_FRAGMENT_BIT;
             case ShaderResourceAccessType::Both: return (VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+            case ShaderResourceAccessType::Compute: return VK_SHADER_STAGE_COMPUTE_BIT;
         }
 
         return VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM;

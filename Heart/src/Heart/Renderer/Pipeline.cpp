@@ -4,7 +4,7 @@
 #include "Heart/Renderer/Renderer.h"
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/ShaderAsset.h"
-#include "Heart/Platform/Vulkan/VulkanGraphicsPipeline.h"
+#include "Heart/Platform/Vulkan/VulkanComputePipeline.h"
 
 namespace Heart
 {
@@ -14,8 +14,8 @@ namespace Heart
         {
             default:
             { HE_ENGINE_ASSERT(false, "Cannot create ComputePipeline: selected ApiType is not supported"); return nullptr; }
-            //case RenderApi::Type::Vulkan:
-            //{ return CreateRef<VulkanComputePipeline>(createInfo); }
+            case RenderApi::Type::Vulkan:
+            { return CreateRef<VulkanComputePipeline>(createInfo); }
         }
     }
 

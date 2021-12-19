@@ -123,6 +123,8 @@ namespace Heart
             VulkanComputePipeline* postComp = submission.PostRenderComputePipeline ? static_cast<VulkanComputePipeline*>(submission.PostRenderComputePipeline) : nullptr;
             VulkanFramebuffer* buffer = static_cast<VulkanFramebuffer*>(submission.Framebuffer);
             buffer->Submit();
+            if (preComp) preComp->Submit();
+            if (postComp) postComp->Submit();
 
             submits.push_back({
                 buffer->GetCommandBuffer(),

@@ -23,6 +23,11 @@ namespace Heart
             std::optional<u32> ComputeFamily;
             std::optional<u32> TransferFamily;
             
+            u32 GraphicsQueueCount;
+            u32 PresentQueueCount;
+            u32 ComputeQueueCount;
+            u32 TransferQueueCount;
+
             bool IsComplete()
             {
                 return (

@@ -12,7 +12,7 @@ namespace Heart
         bool DrawGrid = true;
         
         bool BloomEnable = true;
-        float BloomBlurStrength = 1.f;
+        float BloomBlurStrength = 0.2f;
         float BloomBlurScale = 1.f;
         float BloomThreshold = 1.f;
     };
@@ -20,6 +20,7 @@ namespace Heart
     class Scene;
     class GraphicsContext;
     class Framebuffer;
+    class ComputePipeline;
     class Buffer;
     class Texture;
     class Material;
@@ -114,6 +115,9 @@ namespace Heart
 
         Ref<Framebuffer> m_MainFramebuffer;
         std::vector<std::array<Ref<Framebuffer>, 2>> m_BloomFramebuffers; // one for each mip level and one for horizontal / vertical passes
+
+        Ref<ComputePipeline> m_ComputePipeline;
+        Ref<Buffer> m_ComputeBuffer;
 
         Ref<Texture> m_DefaultEnvironmentMap;
         Ref<Texture> m_PreBloomTexture;

@@ -20,8 +20,8 @@ namespace Heart
 
         s_EngineLogger = CreateRef<spdlog::logger>("ENGINE", logSinks.begin(), logSinks.end());
         spdlog::register_logger(s_EngineLogger);
-        s_EngineLogger->set_level(spdlog::level::trace);
-        s_EngineLogger->flush_on(spdlog::level::trace);
+        s_EngineLogger->set_level(spdlog::level::info);
+        s_EngineLogger->flush_on(spdlog::level::info);
 
         s_ClientLogger = CreateRef<spdlog::logger>("CLIENT", logSinks.begin(), logSinks.end());
         spdlog::register_logger(s_ClientLogger);

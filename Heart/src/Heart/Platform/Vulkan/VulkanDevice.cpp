@@ -13,7 +13,7 @@ namespace Heart
         VkInstance instance = VulkanContext::GetInstance();
 
         // setup physical device
-        std::vector<const char*> deviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME /*, VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME*/ };
+        std::vector<const char*> deviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME /*, VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME*/ };
         OptionalDeviceFeatures optionalFeatures;
         auto validationLayers = VulkanContext::ConfigureValidationLayers();
         {
@@ -41,19 +41,29 @@ namespace Heart
         // setup logical device & queues
         {
             VulkanCommon::QueueFamilyIndices indices = VulkanCommon::GetQueueFamilies(m_PhysicalDevice, mainWindowSurface);
-            float queuePriority = 1.0f;
+            
+            std::vector<float> queuePriorities;
+            queuePriorities.reserve(MAX_FRAMES_IN_FLIGHT * 4);
 
             // info for creating queues
-            std::unordered_set<u32> uniqueFamilies = { indices.GraphicsFamily.value(), indices.PresentFamily.value(), indices.ComputeFamily.value() };
+            std::unordered_map<u32, u32> uniqueFamilies;
+            uniqueFamilies[indices.PresentFamily.value()] = std::min(indices.PresentQueueCount, MAX_FRAMES_IN_FLIGHT);
+            uniqueFamilies[indices.GraphicsFamily.value()] = std::min(indices.GraphicsQueueCount, MAX_FRAMES_IN_FLIGHT);
+            uniqueFamilies[indices.ComputeFamily.value()] = std::min(indices.ComputeQueueCount, MAX_FRAMES_IN_FLIGHT);
+            uniqueFamilies[indices.TransferFamily.value()] = std::min(indices.TransferQueueCount, MAX_FRAMES_IN_FLIGHT);
+
             std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-            for (u32 family : uniqueFamilies)
+            for (auto& pair : uniqueFamilies)
             {
                 VkDeviceQueueCreateInfo queueCreateInfo{};
                 queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-                queueCreateInfo.queueFamilyIndex = family;
-                queueCreateInfo.queueCount = 1;
-                queueCreateInfo.pQueuePriorities = &queuePriority;
+                queueCreateInfo.queueFamilyIndex = pair.first;
+                queueCreateInfo.queueCount = pair.second;
+                queueCreateInfo.pQueuePriorities = queuePriorities.data() + queuePriorities.size();
                 queueCreateInfos.push_back(queueCreateInfo);
+
+                for (u32 i = 0; i < pair.second; i++)
+                    queuePriorities.push_back(1.0);
             }
 
             VkPhysicalDeviceFeatures deviceFeatures{};
@@ -67,20 +77,21 @@ namespace Heart
             deviceFeatures.samplerAnisotropy = optionalFeatures.SamplerAnisotropy;
             deviceFeatures.wideLines = optionalFeatures.WideLines;
             
-            VkPhysicalDeviceRobustness2FeaturesEXT robustnessFeatures{};
-            robustnessFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT;
-            robustnessFeatures.pNext = nullptr;
-
             // VkPhysicalDeviceDescriptorIndexingFeaturesEXT indexingFeatures{};
             // indexingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT;
             // indexingFeatures.pNext = nullptr;
             // indexingFeatures.descriptorBindingPartiallyBound = VK_TRUE;
             // indexingFeatures.runtimeDescriptorArray = VK_TRUE;
 
+            VkPhysicalDeviceTimelineSemaphoreFeaturesKHR timelineSemaphoreFeatures{};
+            timelineSemaphoreFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES_KHR;
+            timelineSemaphoreFeatures.pNext = nullptr;
+            timelineSemaphoreFeatures.timelineSemaphore = VK_TRUE;
+
             // finally create device
             VkDeviceCreateInfo createInfo{};
             createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-            //createInfo.pNext = &indexingFeatures;
+            createInfo.pNext = &timelineSemaphoreFeatures;
             createInfo.pQueueCreateInfos = queueCreateInfos.data();
             createInfo.queueCreateInfoCount = static_cast<u32>(queueCreateInfos.size());;
             createInfo.pEnabledFeatures = &deviceFeatures;
@@ -99,10 +110,14 @@ namespace Heart
             m_PresentQueueIndex = indices.PresentFamily.value();
             m_ComputeQueueIndex = indices.ComputeFamily.value();
             m_TransferQueueIndex = indices.TransferFamily.value();
-            vkGetDeviceQueue(m_LogicalDevice, m_GraphicsQueueIndex, 0, &m_GraphicsQueue);
-            vkGetDeviceQueue(m_LogicalDevice, m_PresentQueueIndex, 0, &m_PresentQueue);
-            vkGetDeviceQueue(m_LogicalDevice, m_ComputeQueueIndex, 0, &m_ComputeQueue);
-            vkGetDeviceQueue(m_LogicalDevice, m_TransferQueueIndex, 0, &m_TransferQueue);
+
+            for (u32 i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+            {
+                vkGetDeviceQueue(m_LogicalDevice, m_PresentQueueIndex, std::min(i, indices.PresentQueueCount - 1), &m_PresentQueues[i]);
+                vkGetDeviceQueue(m_LogicalDevice, m_GraphicsQueueIndex, std::min(i, indices.GraphicsQueueCount - 1), &m_GraphicsQueues[i]);
+                vkGetDeviceQueue(m_LogicalDevice, m_ComputeQueueIndex, std::min(i, indices.ComputeQueueCount - 1), &m_ComputeQueues[i]);
+                vkGetDeviceQueue(m_LogicalDevice, m_TransferQueueIndex, std::min(i, indices.TransferQueueCount - 1), &m_TransferQueues[i]);
+            }
         }
 
         m_Initialized = true;

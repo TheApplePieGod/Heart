@@ -85,8 +85,11 @@ namespace Heart
         std::string basePath = std::filesystem::path(path).parent_path().generic_u8string();
         options.SetIncluder(CreateScope<ShaderIncluder>(basePath));
 
-        // TODO: dynamic option for this
-        options.SetOptimizationLevel(shaderc_optimization_level_performance);
+        #ifdef HE_DEBUG
+            options.SetOptimizationLevel(shaderc_optimization_level_zero);
+        #else
+            options.SetOptimizationLevel(shaderc_optimization_level_performance);
+        #endif
         std::string sourceCode = FilesystemUtils::ReadFileToString(path);
         if (sourceCode == "")
         {
@@ -101,6 +104,7 @@ namespace Heart
             { HE_ENGINE_ASSERT(false, "Can't compile unsupported shader type"); } break;
             case Type::Vertex: { shaderKind = shaderc_glsl_vertex_shader; } break;
             case Type::Fragment: { shaderKind = shaderc_glsl_fragment_shader; } break;
+            case Type::Compute: { shaderKind = shaderc_glsl_compute_shader; } break;
         }
 
         shaderc::PreprocessedSourceCompilationResult preprocessedResult = compiler.PreprocessGlsl(sourceCode, shaderKind, path.c_str(), options);
@@ -153,6 +157,8 @@ namespace Heart
         ShaderResourceAccessType accessType = ShaderResourceAccessType::Vertex;
         if (shaderType == Type::Fragment)
             accessType = ShaderResourceAccessType::Fragment;
+        else if (shaderType == Type::Compute)
+            accessType = ShaderResourceAccessType::Compute;
 
 		HE_ENGINE_LOG_TRACE("GLSL {0} shader @ {1}", TypeStrings[static_cast<u16>(shaderType)], m_Path);
 		HE_ENGINE_LOG_TRACE("    {0} uniform buffers", resources.uniform_buffers.size());

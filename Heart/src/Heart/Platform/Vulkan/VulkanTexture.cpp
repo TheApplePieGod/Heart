@@ -54,8 +54,8 @@ namespace Heart
 
         VulkanCommon::TransitionImageLayout(
             device.Device(),
-            VulkanContext::GetTransferPool(),
-            device.TransferQueue(),
+            VulkanContext::GetGraphicsPool(),
+            device.GraphicsQueue(),
             m_Image,
             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
@@ -183,8 +183,8 @@ namespace Heart
         );
         VulkanCommon::TransitionImageLayout(
             device.Device(),
-            VulkanContext::GetTransferPool(),
-            device.TransferQueue(),
+            VulkanContext::GetGraphicsPool(),
+            device.GraphicsQueue(),
             m_Image,
             VK_IMAGE_LAYOUT_UNDEFINED,
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
@@ -195,8 +195,8 @@ namespace Heart
         {
             VulkanCommon::CopyBufferToImage(
                 device.Device(),
-                VulkanContext::GetTransferPool(),
-                device.TransferQueue(),
+                VulkanContext::GetGraphicsPool(),
+                device.GraphicsQueue(),
                 stagingBuffer,
                 m_Image,
                 static_cast<u32>(m_Info.Width), static_cast<u32>(m_Info.Height)
@@ -217,8 +217,8 @@ namespace Heart
         {
             VulkanCommon::TransitionImageLayout(
                 device.Device(),
-                VulkanContext::GetTransferPool(),
-                device.TransferQueue(),
+                VulkanContext::GetGraphicsPool(),
+                device.GraphicsQueue(),
                 m_Image,
                 VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,

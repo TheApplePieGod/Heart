@@ -133,11 +133,19 @@ namespace Heart
         m_MaterialDataBuffer = Buffer::Create(Buffer::Type::Storage, BufferUsageType::Dynamic, materialDataLayout, 5000, nullptr);
         m_LightingDataBuffer = Buffer::Create(Buffer::Type::Storage, BufferUsageType::Dynamic, lightingDataLayout, 500, nullptr);
         m_IndirectBuffer = Buffer::Create(Buffer::Type::Indirect, BufferUsageType::Dynamic, indirectDataLayout, 1000, nullptr);
+        m_ComputeBuffer = Buffer::Create(Buffer::Type::Storage, BufferUsageType::Dynamic, {{ BufferDataType::Float4 }}, 50, nullptr);
         InitializeGridBuffers();
 
         CreateTextures();
 
         CreateFramebuffers();
+
+        // Create compute pipelines
+        ComputePipelineCreateInfo compCreate = {
+            AssetManager::GetAssetUUID("Test.comp", true)
+        };
+        m_ComputePipeline = ComputePipeline::Create(compCreate);
+        m_ComputePipeline->SetDispatchCountX(64);
     }
 
     void SceneRenderer::Shutdown()
@@ -155,6 +163,9 @@ namespace Heart
         m_MaterialDataBuffer.reset();
         m_LightingDataBuffer.reset();
         m_IndirectBuffer.reset();
+
+        m_ComputePipeline.reset();
+        m_ComputeBuffer.reset();
 
         m_GridVertices.reset();
         m_GridIndices.reset();
@@ -457,8 +468,12 @@ namespace Heart
         if (m_SceneRenderSettings.BloomEnable)
             m_BrightColorsTexture->RegenerateMipMapsSync(m_MainFramebuffer.get());
 
+        // m_ComputePipeline->Bind();
+        // m_ComputePipeline->BindShaderBufferResource(0, 0, m_ComputeBuffer->GetAllocatedCount(), m_ComputeBuffer.get());
+        // m_ComputePipeline->FlushBindings();
+
         // Submit the framebuffer
-        Renderer::Api().RenderFramebuffers(context, { { m_MainFramebuffer.get() } });
+        Renderer::Api().RenderFramebuffers(context, { { m_MainFramebuffer.get() /*, m_ComputePipeline.get()*/ } });
 
         // Bloom
         Bloom(context);

@@ -2,6 +2,7 @@
 #include "VulkanSwapChain.h"
 
 #include "Heart/Core/Timing.h"
+#include "Heart/Core/App.h"
 #include "Heart/Platform/Vulkan/VulkanContext.h"
 #include "GLFW/glfw3.h"
 
@@ -361,8 +362,15 @@ namespace Heart
     {
         VulkanDevice& device = VulkanContext::GetDevice();
 
+        VkSemaphoreTypeCreateInfo timelineType{};
+        timelineType.sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO;
+        timelineType.pNext = NULL;
+        timelineType.semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE;
+        timelineType.initialValue = 0;
+
         VkSemaphoreCreateInfo semaphoreInfo{};
         semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+        semaphoreInfo.pNext = &timelineType;
 
         size_t arrayIndex = renderIndex * MAX_FRAMES_IN_FLIGHT + m_InFlightFrameIndex;
         while (arrayIndex >= m_AuxiliaryRenderFinishedSemaphores.size())
@@ -379,8 +387,15 @@ namespace Heart
     {
         VulkanDevice& device = VulkanContext::GetDevice();
 
+        VkSemaphoreTypeCreateInfo timelineType{};
+        timelineType.sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO;
+        timelineType.pNext = NULL;
+        timelineType.semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE;
+        timelineType.initialValue = 0;
+
         VkSemaphoreCreateInfo semaphoreInfo{};
         semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+        semaphoreInfo.pNext = &timelineType;
 
         size_t arrayIndex = renderIndex * MAX_FRAMES_IN_FLIGHT + m_InFlightFrameIndex;
         while (arrayIndex >= m_AuxiliaryComputeFinishedSemaphores.size())
@@ -536,6 +551,15 @@ namespace Heart
         
         VulkanDevice& device = VulkanContext::GetDevice();
 
+        u64 waitValue = App::Get().GetFrameCount() + 1;
+        u64 signalValue = App::Get().GetFrameCount() + 1;
+        VkTimelineSemaphoreSubmitInfo timelineSubmitInfo{};
+        timelineSubmitInfo.sType = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO;
+        timelineSubmitInfo.waitSemaphoreValueCount = 1;
+        timelineSubmitInfo.pWaitSemaphoreValues = &waitValue;
+        timelineSubmitInfo.signalSemaphoreValueCount = 1;
+        timelineSubmitInfo.pSignalSemaphoreValues = &signalValue;
+
         std::vector<VkSubmitInfo> submitInfos(m_FramebufferSubmissions.size() + 1);
         std::vector<VkSubmitInfo> transferSubmitInfos;
         std::vector<VkSubmitInfo> computeSubmitInfos;
@@ -543,8 +567,7 @@ namespace Heart
         std::vector<VkSemaphore> auxCompSemaphores(m_FramebufferSubmissions.size() * 2);
         VkPipelineStageFlags drawWaitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
         VkPipelineStageFlags transferWaitStages[] = { VK_PIPELINE_STAGE_TRANSFER_BIT };
-        VkPipelineStageFlags computePreWaitStages[] = { VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT };
-        VkPipelineStageFlags computePostWaitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+        VkPipelineStageFlags computeWaitStages[] = { VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT };
         for (size_t i = 0; i < m_FramebufferSubmissions.size(); i++)
         {
             auto& subData = m_FramebufferSubmissions[i];
@@ -559,13 +582,14 @@ namespace Heart
 
                 VkSubmitInfo preRenderComputeSubmit{};
                 preRenderComputeSubmit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-                preRenderComputeSubmit.pWaitDstStageMask = computePreWaitStages;
+                preRenderComputeSubmit.pNext = &timelineSubmitInfo;
+                preRenderComputeSubmit.pWaitDstStageMask = computeWaitStages;
                 preRenderComputeSubmit.commandBufferCount = subData.PreRenderComputeBufferCount;
                 preRenderComputeSubmit.pCommandBuffers = m_SubmittedCommandBuffers.data() + subData.PreRenderComputeBufferStartIndex;
                 preRenderComputeSubmit.waitSemaphoreCount = 1;
                 preRenderComputeSubmit.pWaitSemaphores = i > 0 ? &auxDrawSemaphores[i - 1] : nullptr; // wait for the previous frame to finish
                 preRenderComputeSubmit.signalSemaphoreCount = 1;
-                preRenderComputeSubmit.pSignalSemaphores = &auxCompSemaphores[i];
+                preRenderComputeSubmit.pSignalSemaphores = &auxCompSemaphores[i * 2];
                 computeSubmitInfos.emplace_back(preRenderComputeSubmit);
             }
 
@@ -575,11 +599,12 @@ namespace Heart
 
                 VkSubmitInfo postRenderComputeSubmit{};
                 postRenderComputeSubmit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-                postRenderComputeSubmit.pWaitDstStageMask = computePostWaitStages;
+                postRenderComputeSubmit.pNext = &timelineSubmitInfo;
+                postRenderComputeSubmit.pWaitDstStageMask = computeWaitStages;
                 postRenderComputeSubmit.commandBufferCount = subData.PostRenderComputeBufferCount;
                 postRenderComputeSubmit.pCommandBuffers = m_SubmittedCommandBuffers.data() + subData.PostRenderComputeBufferStartIndex;
                 postRenderComputeSubmit.waitSemaphoreCount = 1;
-                postRenderComputeSubmit.pWaitSemaphores = &auxCompSemaphores[i * 2 + 1];
+                postRenderComputeSubmit.pWaitSemaphores = &auxCompSemaphores[i * 2];
                 postRenderComputeSubmit.signalSemaphoreCount = 1;
                 postRenderComputeSubmit.pSignalSemaphores = &auxDrawSemaphores[i];
                 computeSubmitInfos.emplace_back(postRenderComputeSubmit);
@@ -588,12 +613,13 @@ namespace Heart
             // TODO: optimize this so each submission has its own signal semaphore
             submitInfos[i] = {};
             submitInfos[i].sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+            submitInfos[i].pNext = &timelineSubmitInfo;
             submitInfos[i].pWaitDstStageMask = drawWaitStages;
             submitInfos[i].commandBufferCount = subData.DrawBufferCount;
             submitInfos[i].pCommandBuffers = m_SubmittedCommandBuffers.data() + subData.DrawBufferStartIndex;
-            submitInfos[i].waitSemaphoreCount = i == 0 ? 0 : 1;
+            //submitInfos[i].waitSemaphoreCount = (i == 0 && !preCompute) ? 0 : 1;
             if (preCompute)
-                submitInfos[i].pWaitSemaphores = &auxCompSemaphores[i];
+                submitInfos[i].pWaitSemaphores = &auxCompSemaphores[i * 2];
             else
                 submitInfos[i].pWaitSemaphores = i > 0 ? &auxDrawSemaphores[i - 1] : nullptr;
             submitInfos[i].signalSemaphoreCount = 1;
@@ -606,21 +632,32 @@ namespace Heart
             {
                 VkSubmitInfo transferSubmitInfo{};
                 transferSubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+                transferSubmitInfo.pNext = &timelineSubmitInfo;
                 transferSubmitInfo.pWaitDstStageMask = transferWaitStages;
                 transferSubmitInfo.commandBufferCount = subData.TransferBufferCount;
                 transferSubmitInfo.pCommandBuffers = m_SubmittedCommandBuffers.data() + subData.TransferBufferStartIndex;
-                transferSubmitInfo.waitSemaphoreCount = 1;
-                transferSubmitInfo.pWaitSemaphores = &auxDrawSemaphores[i];
+                transferSubmitInfo.waitSemaphoreCount = 0;
+                if (postCompute)
+                    transferSubmitInfo.pWaitSemaphores = &auxCompSemaphores[i * 2 + 1];
+                else
+                    transferSubmitInfo.pWaitSemaphores = &auxDrawSemaphores[i];
                 transferSubmitInfos.emplace_back(transferSubmitInfo);
             }
         }
         
         // final render submission
+        u64 waitValues[2] = { App::Get().GetFrameCount() + 1, App::Get().GetFrameCount() + 1 };
+        VkTimelineSemaphoreSubmitInfo finalTimelineSubmitInfo{};
+        finalTimelineSubmitInfo.sType = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO;
+        finalTimelineSubmitInfo.waitSemaphoreValueCount = 2;
+        finalTimelineSubmitInfo.pWaitSemaphoreValues = waitValues;
+
         VkSubmitInfo& finalSubmitInfo = submitInfos.back();
         VkSemaphore finalWaitSemaphores[] = { m_ImageAvailableSemaphores[m_InFlightFrameIndex], auxDrawSemaphores.empty() ? nullptr : auxDrawSemaphores.back() };
         VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
         finalSubmitInfo = {};
         finalSubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        finalSubmitInfo.pNext = &finalTimelineSubmitInfo;
         finalSubmitInfo.waitSemaphoreCount = auxDrawSemaphores.empty() ? 1 : 2;
         finalSubmitInfo.pWaitSemaphores = finalWaitSemaphores;
         finalSubmitInfo.pWaitDstStageMask = waitStages;
@@ -632,17 +669,18 @@ namespace Heart
         finalSubmitInfo.pSignalSemaphores = finalSignalSemaphores;
 
         vkResetFences(device.Device(), 1, &m_InFlightFences[m_InFlightFrameIndex]);
-        HE_VULKAN_CHECK_RESULT(vkQueueSubmit(device.GraphicsQueue(), static_cast<u32>(submitInfos.size()), submitInfos.data(), m_InFlightFences[m_InFlightFrameIndex]));
-        if (!transferSubmitInfos.empty())
-        {
-            vkResetFences(device.Device(), 1, &m_InFlightTransferFences[m_InFlightFrameIndex]);
-            HE_VULKAN_CHECK_RESULT(vkQueueSubmit(device.TransferQueue(), static_cast<u32>(transferSubmitInfos.size()), transferSubmitInfos.data(), m_InFlightTransferFences[m_InFlightFrameIndex]));
-        }
+        HE_VULKAN_CHECK_RESULT(vkQueueSubmit(device.GraphicsQueue(m_InFlightFrameIndex), static_cast<u32>(submitInfos.size()), submitInfos.data(), m_InFlightFences[m_InFlightFrameIndex]));
         if (!computeSubmitInfos.empty())
         {
             vkResetFences(device.Device(), 1, &m_InFlightComputeFences[m_InFlightFrameIndex]);
-            HE_VULKAN_CHECK_RESULT(vkQueueSubmit(device.ComputeQueue(), static_cast<u32>(computeSubmitInfos.size()), computeSubmitInfos.data(), m_InFlightComputeFences[m_InFlightFrameIndex]));
+            HE_VULKAN_CHECK_RESULT(vkQueueSubmit(device.ComputeQueue(m_InFlightFrameIndex), static_cast<u32>(computeSubmitInfos.size()), computeSubmitInfos.data(), m_InFlightComputeFences[m_InFlightFrameIndex]));
         }
+        if (!transferSubmitInfos.empty())
+        {
+            vkResetFences(device.Device(), 1, &m_InFlightTransferFences[m_InFlightFrameIndex]);
+            HE_VULKAN_CHECK_RESULT(vkQueueSubmit(device.TransferQueue(m_InFlightFrameIndex), static_cast<u32>(transferSubmitInfos.size()), transferSubmitInfos.data(), m_InFlightTransferFences[m_InFlightFrameIndex]));
+        }
+        
 
         VkSwapchainKHR swapChains[] = { m_SwapChain };
         VkPresentInfoKHR presentInfo{};
@@ -653,7 +691,7 @@ namespace Heart
         presentInfo.pSwapchains = swapChains;
         presentInfo.pImageIndices = &m_PresentImageIndex;
 
-        VkResult result = vkQueuePresentKHR(device.PresentQueue(), &presentInfo);
+        VkResult result = vkQueuePresentKHR(device.PresentQueue(m_InFlightFrameIndex), &presentInfo);
         if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || m_SwapChainInvalid)
         {
             m_SwapChainInvalid = false;
