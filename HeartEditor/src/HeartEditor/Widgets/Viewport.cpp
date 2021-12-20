@@ -142,7 +142,11 @@ namespace Widgets
 
         Heart::ImGuiUtils::AssetDropTarget(
             Heart::Asset::Type::Scene,
-            [](const std::string& path) { Editor::SetActiveScene(Heart::AssetManager::RetrieveAsset<Heart::SceneAsset>(Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Scene, path))->GetScene()); }
+            [](const std::string& path)
+            {
+                Editor::SetActiveScene(Heart::AssetManager::RetrieveAsset<Heart::SceneAsset>(Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Scene, path))->GetScene());
+                Editor::GetState().SelectedEntity = Heart::Entity();
+            }
         );
 
         // draw the imguizmo if an entity is selected

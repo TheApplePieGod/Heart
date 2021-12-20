@@ -81,7 +81,7 @@ namespace Heart
         void Recreate();
 
         void UpdateFrameIndex();
-        void Submit();
+        void Submit(ComputePipeline* postRenderComputePipeline);
         void CopyAttachmentToBuffer(VulkanFramebufferAttachment& attachmentData);
 
     private:

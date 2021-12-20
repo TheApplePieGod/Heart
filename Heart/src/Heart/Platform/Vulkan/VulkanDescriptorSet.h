@@ -60,7 +60,7 @@ namespace Heart
         std::array<std::vector<VkDescriptorPool>, MAX_FRAMES_IN_FLIGHT> m_DescriptorPools;
         VkDescriptorSet m_MostRecentDescriptorSet;
 
-        std::vector<VkDescriptorSet> m_AvailableSets;
+        std::array<std::vector<VkDescriptorSet>, MAX_FRAMES_IN_FLIGHT> m_AvailableSets;
         std::vector<VkDescriptorPoolSize> m_CachedPoolSizes;
         std::vector<VkWriteDescriptorSet> m_CachedDescriptorWrites;
         std::array<VkDescriptorBufferInfo, MAX_UNIQUE_DESCRIPTORS> m_CachedBufferInfos;
@@ -70,8 +70,8 @@ namespace Heart
         u64 m_LastResetFrame = 0;
         u32 m_InFlightFrameIndex = 0;
         size_t m_WritesReadyCount = 0;
-        size_t m_AvailableSetIndex = 0;
-        size_t m_AvailablePoolIndex = 0;
+        std::array<size_t, MAX_FRAMES_IN_FLIGHT> m_AvailableSetIndex{};
+        std::array<size_t, MAX_FRAMES_IN_FLIGHT> m_AvailablePoolIndex{};
 
         std::vector<BindingData> m_Bindings;
         std::unordered_map<u32, BoundResource> m_BoundResources;

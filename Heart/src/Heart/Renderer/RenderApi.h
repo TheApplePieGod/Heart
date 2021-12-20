@@ -10,7 +10,6 @@ namespace Heart
     struct FramebufferSubmission
     {
         Framebuffer* Framebuffer;
-        ComputePipeline* PreRenderComputePipeline = nullptr;
         ComputePipeline* PostRenderComputePipeline = nullptr;
     };
 

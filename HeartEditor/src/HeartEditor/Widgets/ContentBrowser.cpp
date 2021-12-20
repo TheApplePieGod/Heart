@@ -232,7 +232,10 @@ namespace Widgets
                     Heart::UUID assetId = Heart::AssetManager::RegisterAsset(assetType, path);
                     auto asset = Heart::AssetManager::RetrieveAsset<Heart::SceneAsset>(assetId);
                     if (asset && asset->IsValid())
+                    {
                         Editor::SetActiveScene(asset->GetScene());
+                        Editor::GetState().SelectedEntity = Heart::Entity();
+                    }
                 }
             }
         }

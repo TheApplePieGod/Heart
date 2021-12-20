@@ -86,7 +86,8 @@ namespace Heart
             m_CachedPoolSizes.emplace_back(poolSize);
         }
 
-        m_AvailableSets.resize(m_MaxSetsPerPool);
+        for (u32 frame = 0; frame < MAX_FRAMES_IN_FLIGHT; frame++)
+            m_AvailableSets[frame].resize(m_MaxSetsPerPool);
 
         // create the initial descriptor pools per frame
         for (size_t i = 0; i < m_DescriptorPools.size(); i++)
@@ -254,31 +255,31 @@ namespace Heart
     VkDescriptorSet VulkanDescriptorSet::AllocateSet()
     {
         // generate if we go over the size limit or if this is the first allocation of the frame
-        if (m_AvailablePoolIndex == 0 || m_AvailableSetIndex >= m_AvailableSets.size())
+        if (m_AvailablePoolIndex[m_InFlightFrameIndex] == 0 || m_AvailableSetIndex[m_InFlightFrameIndex] >= m_AvailableSets[m_InFlightFrameIndex].size())
         {
-            m_AvailableSetIndex = 0;
+            m_AvailableSetIndex[m_InFlightFrameIndex] = 0;
 
-            if (m_AvailablePoolIndex >= m_DescriptorPools[m_InFlightFrameIndex].size())
+            if (m_AvailablePoolIndex[m_InFlightFrameIndex] >= m_DescriptorPools[m_InFlightFrameIndex].size())
                 PushDescriptorPool();
 
             VulkanDevice& device = VulkanContext::GetDevice();
             VkDescriptorSetAllocateInfo allocInfo{};
             allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-            allocInfo.descriptorPool = m_DescriptorPools[m_InFlightFrameIndex][m_AvailablePoolIndex++];
+            allocInfo.descriptorPool = m_DescriptorPools[m_InFlightFrameIndex][m_AvailablePoolIndex[m_InFlightFrameIndex]++];
             allocInfo.descriptorSetCount = m_MaxSetsPerPool;
             allocInfo.pSetLayouts = m_CachedSetLayouts.data();
 
-            VkResult result = vkAllocateDescriptorSets(device.Device(), &allocInfo, m_AvailableSets.data());
+            VkResult result = vkAllocateDescriptorSets(device.Device(), &allocInfo, m_AvailableSets[m_InFlightFrameIndex].data());
         }
-        return m_AvailableSets[m_AvailableSetIndex++];
+        return m_AvailableSets[m_InFlightFrameIndex][m_AvailableSetIndex[m_InFlightFrameIndex]++];
     }
 
     void VulkanDescriptorSet::ClearPools(u32 inFlightFrameIndex)
     {
         VulkanDevice& device = VulkanContext::GetDevice();
 
-        m_AvailableSetIndex = 0;
-        m_AvailablePoolIndex = 0;
+        m_AvailableSetIndex[inFlightFrameIndex] = 0;
+        m_AvailablePoolIndex[inFlightFrameIndex] = 0;
         m_CachedDescriptorSets[inFlightFrameIndex].clear();
 
         for (auto& pool : m_DescriptorPools[inFlightFrameIndex])

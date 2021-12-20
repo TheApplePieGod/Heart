@@ -573,43 +573,6 @@ namespace Heart
             auto& subData = m_FramebufferSubmissions[i];
             auxDrawSemaphores[i] = GetAuxiliaryRenderSemaphore(i);
 
-            bool preCompute = subData.PreRenderComputeBufferCount > 0;
-            bool postCompute = subData.PostRenderComputeBufferCount > 0;
-
-            if (preCompute)
-            {
-                auxCompSemaphores[i * 2] = GetAuxiliaryComputeSemaphore(i * 2);
-
-                VkSubmitInfo preRenderComputeSubmit{};
-                preRenderComputeSubmit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-                preRenderComputeSubmit.pNext = &timelineSubmitInfo;
-                preRenderComputeSubmit.pWaitDstStageMask = computeWaitStages;
-                preRenderComputeSubmit.commandBufferCount = subData.PreRenderComputeBufferCount;
-                preRenderComputeSubmit.pCommandBuffers = m_SubmittedCommandBuffers.data() + subData.PreRenderComputeBufferStartIndex;
-                preRenderComputeSubmit.waitSemaphoreCount = i > 0 ? 1 : 0;
-                preRenderComputeSubmit.pWaitSemaphores = i > 0 ? &auxDrawSemaphores[i - 1] : nullptr; // wait for the previous frame to finish
-                preRenderComputeSubmit.signalSemaphoreCount = 1;
-                preRenderComputeSubmit.pSignalSemaphores = &auxCompSemaphores[i * 2];
-                computeSubmitInfos.emplace_back(preRenderComputeSubmit);
-            }
-
-            if (postCompute)
-            {
-                auxCompSemaphores[i * 2 + 1] = GetAuxiliaryComputeSemaphore(i * 2 + 1);
-
-                VkSubmitInfo postRenderComputeSubmit{};
-                postRenderComputeSubmit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-                postRenderComputeSubmit.pNext = &timelineSubmitInfo;
-                postRenderComputeSubmit.pWaitDstStageMask = computeWaitStages;
-                postRenderComputeSubmit.commandBufferCount = subData.PostRenderComputeBufferCount;
-                postRenderComputeSubmit.pCommandBuffers = m_SubmittedCommandBuffers.data() + subData.PostRenderComputeBufferStartIndex;
-                postRenderComputeSubmit.waitSemaphoreCount = 1;
-                postRenderComputeSubmit.pWaitSemaphores = &auxCompSemaphores[i * 2];
-                postRenderComputeSubmit.signalSemaphoreCount = 1;
-                postRenderComputeSubmit.pSignalSemaphores = &auxDrawSemaphores[i];
-                computeSubmitInfos.emplace_back(postRenderComputeSubmit);
-            }
-
             // TODO: optimize this so each submission has its own signal semaphore
             submitInfos[i] = {};
             submitInfos[i].sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -617,16 +580,10 @@ namespace Heart
             submitInfos[i].pWaitDstStageMask = drawWaitStages;
             submitInfos[i].commandBufferCount = subData.DrawBufferCount;
             submitInfos[i].pCommandBuffers = m_SubmittedCommandBuffers.data() + subData.DrawBufferStartIndex;
-            submitInfos[i].waitSemaphoreCount = (i == 0 && !preCompute) ? 0 : 1;
-            if (preCompute)
-                submitInfos[i].pWaitSemaphores = &auxCompSemaphores[i * 2];
-            else
-                submitInfos[i].pWaitSemaphores = i > 0 ? &auxDrawSemaphores[i - 1] : nullptr;
+            submitInfos[i].waitSemaphoreCount = i == 0 ? 0 : 1;
+            submitInfos[i].pWaitSemaphores = i > 0 ? &auxDrawSemaphores[i - 1] : nullptr;
             submitInfos[i].signalSemaphoreCount = 1;
-            if (postCompute)
-                submitInfos[i].pSignalSemaphores = &auxCompSemaphores[i * 2 + 1];
-            else
-                submitInfos[i].pSignalSemaphores = &auxDrawSemaphores[i];
+            submitInfos[i].pSignalSemaphores = &auxDrawSemaphores[i];
 
             if (subData.TransferBufferCount > 0)
             {
@@ -637,10 +594,7 @@ namespace Heart
                 transferSubmitInfo.commandBufferCount = subData.TransferBufferCount;
                 transferSubmitInfo.pCommandBuffers = m_SubmittedCommandBuffers.data() + subData.TransferBufferStartIndex;
                 transferSubmitInfo.waitSemaphoreCount = 1;
-                if (postCompute)
-                    transferSubmitInfo.pWaitSemaphores = &auxCompSemaphores[i * 2 + 1];
-                else
-                    transferSubmitInfo.pWaitSemaphores = &auxDrawSemaphores[i];
+                transferSubmitInfo.pWaitSemaphores = &auxDrawSemaphores[i];
                 transferSubmitInfos.emplace_back(transferSubmitInfo);
             }
         }
@@ -719,22 +673,6 @@ namespace Heart
             if (!submit.TransferBuffer) continue;
             m_SubmittedCommandBuffers.push_back(submit.TransferBuffer);
             subData.TransferBufferCount++;
-        }
-
-        subData.PreRenderComputeBufferStartIndex = static_cast<u32>(m_SubmittedCommandBuffers.size());
-        for (auto& submit : submits)
-        {
-            if (!submit.PreRenderComputeBuffer) continue;
-            m_SubmittedCommandBuffers.push_back(submit.PreRenderComputeBuffer);
-            subData.PreRenderComputeBufferCount++;
-        }
-
-        subData.PostRenderComputeBufferStartIndex = static_cast<u32>(m_SubmittedCommandBuffers.size());
-        for (auto& submit : submits)
-        {
-            if (!submit.PostRenderComputeBuffer) continue;
-            m_SubmittedCommandBuffers.push_back(submit.PostRenderComputeBuffer);
-            subData.PostRenderComputeBufferCount++;
         }
 
         m_FramebufferSubmissions.push_back(subData);

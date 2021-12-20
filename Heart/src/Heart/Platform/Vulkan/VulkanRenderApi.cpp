@@ -119,18 +119,12 @@ namespace Heart
         {
             HE_ENGINE_ASSERT(submission.Framebuffer, "Cannot submit a nullptr framebuffer");
 
-            VulkanComputePipeline* preComp = submission.PreRenderComputePipeline ? static_cast<VulkanComputePipeline*>(submission.PreRenderComputePipeline) : nullptr;
-            VulkanComputePipeline* postComp = submission.PostRenderComputePipeline ? static_cast<VulkanComputePipeline*>(submission.PostRenderComputePipeline) : nullptr;
             VulkanFramebuffer* buffer = static_cast<VulkanFramebuffer*>(submission.Framebuffer);
-            buffer->Submit();
-            if (preComp) preComp->Submit();
-            if (postComp) postComp->Submit();
+            buffer->Submit(submission.PostRenderComputePipeline);
 
             submits.push_back({
                 buffer->GetCommandBuffer(),
-                buffer->GetTransferCommandBuffer(),
-                preComp ? preComp->GetCommandBuffer() : nullptr,
-                postComp ? postComp->GetCommandBuffer() : nullptr
+                buffer->GetTransferCommandBuffer()
             });
         }
 

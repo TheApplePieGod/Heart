@@ -123,7 +123,7 @@ namespace Heart
     void VulkanComputePipeline::BindShaderResource(u32 bindingIndex, ShaderResourceType resourceType, void* resource, bool useOffset, u32 offset, u32 size)
     {
         HE_ENGINE_ASSERT(resource != nullptr, "Cannot bind a null resource to a shader");
-         
+
         if (!m_DescriptorSet.DoesBindingExist(bindingIndex))
             return; // silently ignore, TODO: warning once in the console when this happens
 
@@ -172,11 +172,11 @@ namespace Heart
     {
         HE_PROFILE_FUNCTION();
 
-        HE_ENGINE_ASSERT(m_BoundThisFrame, "Cannot submit a compute pipeline that has not been bound this frame");
-        HE_ENGINE_ASSERT(m_FlushedThisFrame, "Compute pipeline is not ready for dispatch (did you bind & flush all of your shader resources?)");
-
         if (!m_SubmittedThisFrame)
         {
+            HE_ENGINE_ASSERT(m_BoundThisFrame, "Cannot submit a compute pipeline that has not been bound this frame");
+            HE_ENGINE_ASSERT(m_FlushedThisFrame, "Compute pipeline is not ready for dispatch (did you bind & flush all of your shader resources?)");
+
             VulkanDevice& device = VulkanContext::GetDevice();
             VkCommandBuffer buffer = GetCommandBuffer();
             VkCommandBuffer inlineBuffer = GetInlineCommandBuffer();

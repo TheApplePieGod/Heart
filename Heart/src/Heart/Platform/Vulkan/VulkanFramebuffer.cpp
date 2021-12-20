@@ -336,7 +336,7 @@ namespace Heart
         }
     }
 
-    void VulkanFramebuffer::Submit()
+    void VulkanFramebuffer::Submit(ComputePipeline* postRenderComputePipeline)
     {
         HE_PROFILE_FUNCTION();
 
@@ -351,6 +351,22 @@ namespace Heart
             VkCommandBuffer transferBuffer = GetTransferCommandBuffer();
 
             vkCmdEndRenderPass(buffer);
+
+            // run the post render compute if applicable
+            if (postRenderComputePipeline)
+            {
+                VulkanComputePipeline* comp = (VulkanComputePipeline*)postRenderComputePipeline;
+                vkCmdPipelineBarrier(
+                    GetCommandBuffer(),
+                    VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT,
+                    VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                    0, 0, nullptr, 0, nullptr, 0, nullptr
+                );
+
+                comp->Submit();
+                VkCommandBuffer pipelineBuf = comp->GetInlineCommandBuffer();
+                vkCmdExecuteCommands(VulkanContext::GetBoundFramebuffer()->GetCommandBuffer(), 1, &pipelineBuf);
+            }
 
             // if the transfer buffer is null, then we have no CPU visible attachments, so don't bother running this code
             if (transferBuffer)

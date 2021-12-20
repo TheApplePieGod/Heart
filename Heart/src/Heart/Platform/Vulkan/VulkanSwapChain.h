@@ -20,10 +20,6 @@ namespace Heart
 
         // The buffer holding transfer commands that rely on the completion of the draw buffer
         VkCommandBuffer TransferBuffer = nullptr;
-
-        // Compute pipelines to sync with rendering either pre or post (optional)
-        VkCommandBuffer PreRenderComputeBuffer = nullptr;
-        VkCommandBuffer PostRenderComputeBuffer = nullptr;
     };
     struct VulkanComputePipelineSubmit
     {
@@ -57,11 +53,6 @@ namespace Heart
 
             u32 TransferBufferStartIndex;
             u32 TransferBufferCount;
-
-            u32 PreRenderComputeBufferStartIndex;
-            u32 PreRenderComputeBufferCount;
-            u32 PostRenderComputeBufferStartIndex;
-            u32 PostRenderComputeBufferCount;  
         };
         struct ComputeSubmissionData
         {

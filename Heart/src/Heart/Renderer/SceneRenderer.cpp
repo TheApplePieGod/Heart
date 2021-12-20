@@ -473,7 +473,7 @@ namespace Heart
             m_BrightColorsTexture->RegenerateMipMapsSync(m_MainFramebuffer.get());
 
         // Submit the framebuffer
-        Renderer::Api().RenderFramebuffers(context, { { m_MainFramebuffer.get() } });
+        Renderer::Api().RenderFramebuffers(context, { { m_MainFramebuffer.get(), m_ComputePipeline.get() } });
 
         // Bloom
         Bloom(context);
