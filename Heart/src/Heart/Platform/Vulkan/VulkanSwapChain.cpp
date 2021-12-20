@@ -644,7 +644,9 @@ namespace Heart
         presentInfo.pSwapchains = swapChains;
         presentInfo.pImageIndices = &m_PresentImageIndex;
 
-        VkResult result = vkQueuePresentKHR(device.PresentQueue(m_InFlightFrameIndex), &presentInfo);
+        // Present to the same queue because using different queues seems to cause issues. There seems to be
+        // no performance loss anyways
+        VkResult result = vkQueuePresentKHR(device.PresentQueue(), &presentInfo);
         if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || m_SwapChainInvalid)
         {
             m_SwapChainInvalid = false;
