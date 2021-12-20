@@ -12,7 +12,7 @@
 namespace Heart
 {
     // TODO: make this a parameter?
-    const u32 MAX_FRAMES_IN_FLIGHT = 3;
+    const u32 MAX_FRAMES_IN_FLIGHT = 2;
 
     struct VulkanCommon
     {
@@ -80,4 +80,4 @@ namespace Heart
     };
 }
 
-#define HE_VULKAN_CHECK_RESULT(func) { auto result = func; if (result != 0) { HE_ENGINE_LOG_ERROR("Vulkan function failed with error {0}", result); HE_ENGINE_ASSERT(false); } }
+#define HE_VULKAN_CHECK_RESULT(func) { auto result = func; if (result != VK_SUCCESS) { HE_ENGINE_LOG_ERROR("Vulkan function failed with error {0}", result); HE_ENGINE_ASSERT(false); } }

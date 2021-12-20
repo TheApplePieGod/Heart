@@ -61,6 +61,7 @@ namespace Heart
             { HE_ENGINE_ASSERT(false, "OpenGL does not support specified ShaderType"); } break;
             case Shader::Type::Vertex : return GL_VERTEX_SHADER;
             case Shader::Type::Fragment: return GL_FRAGMENT_SHADER;
+            case Shader::Type::Compute: return GL_COMPUTE_SHADER;
         }
 
         return -1;

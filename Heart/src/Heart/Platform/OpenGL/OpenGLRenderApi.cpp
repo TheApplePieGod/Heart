@@ -6,6 +6,7 @@
 #include "Heart/Platform/OpenGL/OpenGLBuffer.h"
 #include "Heart/Platform/OpenGL/OpenGLContext.h"
 #include "Heart/Platform/OpenGL/OpenGLGraphicsPipeline.h"
+#include "Heart/Platform/OpenGL/OpenGLComputePipeline.h"
 #include "Heart/Platform/OpenGL/OpenGLCommon.h"
 #include "Heart/Platform/OpenGL/OpenGLFramebuffer.h"
 
@@ -118,15 +119,20 @@ namespace Heart
 
     void OpenGLRenderApi::RenderFramebuffers(GraphicsContext& _context, const std::vector<FramebufferSubmission>& submissions)
     {
-        // HE_PROFILE_FUNCTION();
-        // auto timer = AggregateTimer("OpenGLRenderApi::RenderFramebuffers");
+        HE_PROFILE_FUNCTION();
+        auto timer = AggregateTimer("OpenGLRenderApi::RenderFramebuffers");
         
-        // for (auto& _buffer : framebuffers)
-        // {
-        //     OpenGLFramebuffer* buffer = static_cast<OpenGLFramebuffer*>(_buffer);
-        //     buffer->Submit();
-        // }
+        for (auto& submission : submissions)
+        {
+            OpenGLFramebuffer* buffer = static_cast<OpenGLFramebuffer*>(submission.Framebuffer);
+            buffer->Submit();
+            if (submission.PostRenderComputePipeline)
+            {
+                OpenGLComputePipeline* comp = static_cast<OpenGLComputePipeline*>(submission.PostRenderComputePipeline);
+                comp->Submit();
+            }
+        }
 
-        // glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 }

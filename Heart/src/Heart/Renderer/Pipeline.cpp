@@ -5,6 +5,7 @@
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/ShaderAsset.h"
 #include "Heart/Platform/Vulkan/VulkanComputePipeline.h"
+#include "Heart/Platform/OpenGL/OpenGLComputePipeline.h"
 
 namespace Heart
 {
@@ -16,8 +17,8 @@ namespace Heart
             { HE_ENGINE_ASSERT(false, "Cannot create ComputePipeline: selected ApiType is not supported"); return nullptr; }
             case RenderApi::Type::Vulkan:
             { return CreateRef<VulkanComputePipeline>(createInfo); }
-            //case RenderApi::Type::OpenGL:
-            //{ return nullptr; }
+            case RenderApi::Type::OpenGL:
+            { return CreateRef<OpenGLComputePipeline>(createInfo); }
         }
         
         return nullptr;

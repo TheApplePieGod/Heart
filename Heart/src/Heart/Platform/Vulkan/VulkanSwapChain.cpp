@@ -651,7 +651,7 @@ namespace Heart
             RecreateSwapChain();
         }
         else
-            HE_ENGINE_ASSERT(result == VK_SUCCESS);
+        { HE_ENGINE_ASSERT(result == VK_SUCCESS); }
 
         //vkQueueWaitIdle(device.PresentQueue());
     }

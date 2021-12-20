@@ -172,11 +172,12 @@ namespace Heart
     {
         HE_PROFILE_FUNCTION();
 
+        HE_ENGINE_ASSERT(!m_SubmittedThisFrame, "Cannot submit compute pipeline twice in the same frame");
+        HE_ENGINE_ASSERT(m_BoundThisFrame, "Cannot submit a compute pipeline that has not been bound this frame");
+        HE_ENGINE_ASSERT(m_FlushedThisFrame, "Compute pipeline is not ready for dispatch (did you bind & flush all of your shader resources?)");
+
         if (!m_SubmittedThisFrame)
         {
-            HE_ENGINE_ASSERT(m_BoundThisFrame, "Cannot submit a compute pipeline that has not been bound this frame");
-            HE_ENGINE_ASSERT(m_FlushedThisFrame, "Compute pipeline is not ready for dispatch (did you bind & flush all of your shader resources?)");
-
             VulkanDevice& device = VulkanContext::GetDevice();
             VkCommandBuffer buffer = GetCommandBuffer();
             VkCommandBuffer inlineBuffer = GetInlineCommandBuffer();

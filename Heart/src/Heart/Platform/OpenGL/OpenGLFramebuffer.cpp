@@ -6,6 +6,7 @@
 #include "Heart/Core/Window.h"
 #include "Heart/Renderer/Renderer.h"
 #include "Heart/Platform/OpenGL/OpenGLGraphicsPipeline.h"
+#include "Heart/Platform/OpenGL/OpenGLComputePipeline.h"
 #include "Heart/Platform/OpenGL/OpenGLContext.h"
 #include "Heart/Platform/OpenGL/OpenGLBuffer.h"
 #include "Heart/Platform/OpenGL/OpenGLTexture.h"
@@ -109,6 +110,12 @@ namespace Heart
 
         if (m_CurrentSubpass == -1)
         {
+            if (preRenderComputePipeline)
+            {
+                OpenGLComputePipeline* comp = static_cast<OpenGLComputePipeline*>(preRenderComputePipeline);
+                comp->Submit();
+            }
+
             // clear each attachment with the provided color
             for (size_t i = 0; i < m_AttachmentData.size(); i++)
                 glClearTexImage(m_AttachmentData[i].Image, 0, m_AttachmentData[i].ColorFormat, GL_FLOAT, &m_Info.ColorAttachments[i].ClearColor);
