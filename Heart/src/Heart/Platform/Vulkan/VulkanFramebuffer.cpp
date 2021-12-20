@@ -285,12 +285,17 @@ namespace Heart
 
             if (preRenderComputePipeline)
             {
+                VkMemoryBarrier barrier{};
+                barrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+                barrier.srcAccessMask = VK_ACCESS_MEMORY_WRITE_BIT;
+                barrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+
                 VulkanComputePipeline* comp = (VulkanComputePipeline*)preRenderComputePipeline;
                 vkCmdPipelineBarrier(
                     GetCommandBuffer(),
                     VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT,
                     VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                    0, 0, nullptr, 0, nullptr, 0, nullptr
+                    0, 1, &barrier, 0, nullptr, 0, nullptr
                 );
 
                 comp->Submit();
@@ -301,7 +306,7 @@ namespace Heart
                     VulkanContext::GetBoundFramebuffer()->GetCommandBuffer(),
                     VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                     VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT,
-                    0, 0, nullptr, 0, nullptr, 0, nullptr
+                    0, 1, &barrier, 0, nullptr, 0, nullptr
                 );
             }
 
@@ -356,16 +361,29 @@ namespace Heart
             if (postRenderComputePipeline)
             {
                 VulkanComputePipeline* comp = (VulkanComputePipeline*)postRenderComputePipeline;
+
+                VkMemoryBarrier barrier{};
+                barrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+                barrier.srcAccessMask = VK_ACCESS_MEMORY_WRITE_BIT;
+                barrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+
                 vkCmdPipelineBarrier(
                     GetCommandBuffer(),
                     VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT,
                     VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                    0, 0, nullptr, 0, nullptr, 0, nullptr
+                    0, 1, &barrier, 0, nullptr, 0, nullptr
                 );
 
                 comp->Submit();
                 VkCommandBuffer pipelineBuf = comp->GetInlineCommandBuffer();
                 vkCmdExecuteCommands(VulkanContext::GetBoundFramebuffer()->GetCommandBuffer(), 1, &pipelineBuf);
+
+                vkCmdPipelineBarrier(
+                    GetCommandBuffer(),
+                    VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                    VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT,
+                    0, 1, &barrier, 0, nullptr, 0, nullptr
+                );
             }
 
             // if the transfer buffer is null, then we have no CPU visible attachments, so don't bother running this code

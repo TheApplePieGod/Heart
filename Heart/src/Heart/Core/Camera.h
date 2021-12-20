@@ -2,6 +2,7 @@
 
 #include "glm/mat4x4.hpp"
 #include "glm/vec3.hpp"
+#include "glm/vec4.hpp"
 
 /*
 * Default coordinate system
@@ -51,9 +52,12 @@ namespace Heart
         inline glm::mat4 GetViewMatrix() const { return m_ViewMatrix; }
         inline glm::mat4 GetViewMatrixInvertedY() const { return m_ViewMatrixInvertedY; }
         inline glm::vec3 GetForwardVector() const { return m_ForwardVector; }
+        inline const std::array<glm::vec3, 8>& GetFrustumCorners() const { return m_FrustumCorners; }
+        inline const std::array<glm::vec4, 6>& GetFrustumPlanes() const { return m_FrustumPlanes; }
 
     protected:
         void UpdateProjectionMatrix();
+        void ComputeFrustum(glm::vec3 position);
 
     protected:
         const glm::vec3 m_XAxis = { 1.f, 0.f, 0.f };
@@ -71,5 +75,9 @@ namespace Heart
         glm::vec3 m_ForwardVector = m_DefaultForwardVector;
         glm::vec3 m_RightVector = m_DefaultRightVector;
         glm::vec3 m_UpVector = m_DefaultUpVector;
+
+        // world space
+        std::array<glm::vec3, 8> m_FrustumCorners;
+        std::array<glm::vec4, 6> m_FrustumPlanes; // L R T B N F
     };
 }

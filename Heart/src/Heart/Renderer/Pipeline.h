@@ -83,6 +83,13 @@ namespace Heart
     public:
         virtual ~Pipeline() = default;
 
+        inline const std::vector<ReflectionDataElement>& GetReflectionData() const { return m_ProgramReflectionData; }
+
+    protected:
+        void SortReflectionData();
+
+    protected:
+        std::vector<ReflectionDataElement> m_ProgramReflectionData;
     };
 
     class Texture;
@@ -104,11 +111,9 @@ namespace Heart
         inline bool IsDepthWriteEnabled() const { return m_Info.DepthWrite; }
         inline u32 GetVertexLayoutStride() const { return m_Info.VertexLayout.GetStride(); }
         inline const std::vector<AttachmentBlendState>& GetBlendStates() const { return m_Info.BlendStates; }
-        inline const std::vector<ReflectionDataElement>& GetReflectionData() const { return m_ProgramReflectionData; }
 
     protected:
         GraphicsPipelineCreateInfo m_Info;
-        std::vector<ReflectionDataElement> m_ProgramReflectionData; // program being vertex + fragment shaders
 
     private:
         void ConsolidateReflectionData();
@@ -119,7 +124,10 @@ namespace Heart
     public:
         ComputePipeline(const ComputePipelineCreateInfo& createInfo)
             : m_Info(createInfo)
-        {}
+        {
+            HE_ENGINE_ASSERT(createInfo.ComputeShaderAsset != 0, "Must specify a compute shader asset");
+            ConsolidateReflectionData();
+        }
         virtual ~ComputePipeline() = default;
 
         virtual void Bind() = 0;
@@ -145,5 +153,8 @@ namespace Heart
         u32 m_DispatchCountX = 1;
         u32 m_DispatchCountY = 1;
         u32 m_DispatchCountZ = 1;
+
+    private:
+        void ConsolidateReflectionData();
     };
 }

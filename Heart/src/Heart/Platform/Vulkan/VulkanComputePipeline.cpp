@@ -17,10 +17,10 @@ namespace Heart
     {
         VulkanDevice& device = VulkanContext::GetDevice();
 
+        m_DescriptorSet.Initialize(m_ProgramReflectionData);
+
         auto computeShader = AssetManager::RetrieveAsset<ShaderAsset>(createInfo.ComputeShaderAsset)->GetShader();
         VkPipelineShaderStageCreateInfo shaderStage = VulkanCommon::DefineShaderStage(static_cast<VulkanShader*>(computeShader)->GetShaderModule(), VK_SHADER_STAGE_COMPUTE_BIT);
-
-        m_DescriptorSet.Initialize(computeShader->GetReflectionData());
 
         std::vector<VkDescriptorSetLayout> layouts;
         layouts.emplace_back(m_DescriptorSet.GetLayout());
@@ -100,7 +100,7 @@ namespace Heart
         HE_PROFILE_FUNCTION();
 
         HE_ENGINE_ASSERT(elementCount + elementOffset <= buffer->GetAllocatedCount(), "ElementCount + ElementOffset must be <= buffer allocated count");
-        HE_ENGINE_ASSERT(buffer->GetType() == Buffer::Type::Uniform || buffer->GetType() == Buffer::Type::Storage, "Buffer bind must be either a uniform or storage buffer");
+        HE_ENGINE_ASSERT(buffer->GetType() == Buffer::Type::Uniform || buffer->GetType() == Buffer::Type::Storage || buffer->GetType() == Buffer::Type::Indirect, "Buffer bind must be a uniform, storage, or indirect buffer");
 
         ShaderResourceType bufferType = buffer->GetType() == Buffer::Type::Uniform ? ShaderResourceType::UniformBuffer : ShaderResourceType::StorageBuffer;
         BindShaderResource(bindingIndex, bufferType, buffer, true, buffer->GetLayout().GetStride() * elementOffset, buffer->GetLayout().GetStride() * elementCount);

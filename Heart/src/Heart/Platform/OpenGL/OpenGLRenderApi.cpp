@@ -128,8 +128,12 @@ namespace Heart
             buffer->Submit();
             if (submission.PostRenderComputePipeline)
             {
+                glMemoryBarrier(GL_ALL_BARRIER_BITS);
+
                 OpenGLComputePipeline* comp = static_cast<OpenGLComputePipeline*>(submission.PostRenderComputePipeline);
                 comp->Submit();
+
+                glMemoryBarrier(GL_ALL_BARRIER_BITS);
             }
         }
 

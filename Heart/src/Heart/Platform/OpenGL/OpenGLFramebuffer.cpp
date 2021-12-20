@@ -112,8 +112,13 @@ namespace Heart
         {
             if (preRenderComputePipeline)
             {
+                glMemoryBarrier(GL_ALL_BARRIER_BITS);
+                
                 OpenGLComputePipeline* comp = static_cast<OpenGLComputePipeline*>(preRenderComputePipeline);
                 comp->Submit();
+                
+                // todo: all barriers are probably unnecessary
+                glMemoryBarrier(GL_ALL_BARRIER_BITS);
             }
 
             // clear each attachment with the provided color

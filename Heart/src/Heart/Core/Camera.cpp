@@ -2,6 +2,7 @@
 #include "Camera.h"
 
 #include "Heart/Renderer/Renderer.h"
+#include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtx/rotate_vector.hpp"
 #include "glm/gtx/quaternion.hpp"
@@ -69,8 +70,60 @@ namespace Heart
         }
     }
 
+    // this could really be done in projection space and then projected once the view matrix changes
+    void Camera::ComputeFrustum(glm::vec3 position)
+    {
+        HE_PROFILE_FUNCTION();
+
+        glm::vec3 nc = position + m_ForwardVector * m_NearClip;
+        glm::vec3 fc = position + m_ForwardVector * m_FarClip;
+
+        float nearHeight = 2 * tan(glm::radians(m_FOV) * 0.5) * m_NearClip;
+        float farHeight = 2 * tan(glm::radians(m_FOV) * 0.5) * m_FarClip;
+        float nearWidth = nearHeight * m_AspectRatio;
+        float farWidth = farHeight * m_AspectRatio;
+
+        // far
+        m_FrustumCorners[0] = fc + (m_UpVector * farHeight * 0.5f) - (m_RightVector * farWidth * 0.5f); // tl
+        m_FrustumCorners[1] = fc + (m_UpVector * farHeight * 0.5f) + (m_RightVector * farWidth * 0.5f); // tr
+        m_FrustumCorners[2] = fc - (m_UpVector * farHeight * 0.5f) - (m_RightVector * farWidth * 0.5f); // bl
+        m_FrustumCorners[3] = fc - (m_UpVector * farHeight * 0.5f) + (m_RightVector * farWidth * 0.5f); // br
+
+        // near
+        m_FrustumCorners[4] = nc + (m_UpVector * nearHeight * 0.5f) - (m_RightVector * nearWidth * 0.5f); // tl
+        m_FrustumCorners[5] = nc + (m_UpVector * nearHeight * 0.5f) + (m_RightVector * nearWidth * 0.5f); // tr
+        m_FrustumCorners[6] = nc - (m_UpVector * nearHeight * 0.5f) - (m_RightVector * nearWidth * 0.5f); // bl
+        m_FrustumCorners[7] = nc - (m_UpVector * nearHeight * 0.5f) + (m_RightVector * nearWidth * 0.5f); // br
+
+        // left
+        glm::vec3 cross = glm::normalize(glm::cross(m_FrustumCorners[4] - m_FrustumCorners[6], m_FrustumCorners[0] - m_FrustumCorners[6]));
+        m_FrustumPlanes[0] = glm::vec4(cross, -glm::dot(cross, m_FrustumCorners[6]));
+
+        // right
+        cross = glm::normalize(glm::cross(m_FrustumCorners[1] - m_FrustumCorners[7], m_FrustumCorners[5] - m_FrustumCorners[7]));
+        m_FrustumPlanes[1] = glm::vec4(cross, -glm::dot(cross, m_FrustumCorners[7]));
+
+        // top
+        cross = glm::normalize(glm::cross(m_FrustumCorners[4] - m_FrustumCorners[0], m_FrustumCorners[1] - m_FrustumCorners[0]));
+        m_FrustumPlanes[2] = glm::vec4(cross, -glm::dot(cross, m_FrustumCorners[0]));
+
+        // bottom
+        cross = glm::normalize(glm::cross(m_FrustumCorners[3] - m_FrustumCorners[2], m_FrustumCorners[6] - m_FrustumCorners[2]));
+        m_FrustumPlanes[3] = glm::vec4(cross, -glm::dot(cross, m_FrustumCorners[2]));
+
+        // near
+        cross = glm::normalize(glm::cross(m_FrustumCorners[5] - m_FrustumCorners[6], m_FrustumCorners[4] - m_FrustumCorners[6]));
+        m_FrustumPlanes[4] = glm::vec4(cross, -glm::dot(cross, m_FrustumCorners[6]));
+
+        // far
+        cross = glm::normalize(glm::cross(m_FrustumCorners[0] - m_FrustumCorners[2], m_FrustumCorners[1] - m_FrustumCorners[2]));
+        m_FrustumPlanes[5] = glm::vec4(cross, -glm::dot(cross, m_FrustumCorners[2]));
+    }
+
     void Camera::UpdateViewMatrix(f32 xRotation, f32 yRotation, glm::vec3 position)
     {
+        HE_PROFILE_FUNCTION();
+
         // rotate the camera's axes via a quaternion
         glm::vec3 rotation = { -yRotation, xRotation, 0.f };
         glm::quat q = glm::quat(glm::radians(rotation));
@@ -101,6 +154,8 @@ namespace Heart
             0.f, 0.f, 1.f, 0.f,
             0.f, 0.f, 0.f, 1.f
         ) * m_ViewMatrix;
+
+        ComputeFrustum(position);
     }
 
     void Camera::UpdateViewMatrix(glm::vec3 centerPoint, f32 radius, f32 xRotation, f32 yRotation)

@@ -53,6 +53,12 @@ namespace Heart
         {
             glm::mat4 Model;
             glm::vec4 Data;
+            glm::vec4 BoundingSphere;
+        };
+        struct CullData
+        {
+            std::array<glm::vec4, 6> FrustumPlanes;
+            glm::vec4 Data;
         };
 
     public:
@@ -82,6 +88,15 @@ namespace Heart
             u32 FirstIndex;
             int VertexOffset;
             u32 FirstInstance;
+
+            u32 padding1;
+            glm::vec2 padding2;
+        };
+        struct InstanceData
+        {
+            u32 ObjectId;
+            u32 BatchId;
+            glm::vec2 padding;  
         };
 
     private:
@@ -98,6 +113,7 @@ namespace Heart
         void BindMaterial(Material* material);
         void BindPBRDefaults();
 
+        void SetupCullCompute();
         void RenderEnvironmentMap();
         void RenderGrid();
         void RenderBatches();
@@ -116,8 +132,11 @@ namespace Heart
         Ref<Framebuffer> m_MainFramebuffer;
         std::vector<std::array<Ref<Framebuffer>, 2>> m_BloomFramebuffers; // one for each mip level and one for horizontal / vertical passes
 
-        Ref<ComputePipeline> m_ComputePipeline;
-        Ref<Buffer> m_ComputeBuffer;
+        Ref<ComputePipeline> m_ComputeCullPipeline;
+        Ref<Buffer> m_CullDataBuffer;
+        Ref<Buffer> m_InstanceDataBuffer;
+        Ref<Buffer> m_FinalInstanceBuffer;
+        Ref<Buffer> m_IndirectBuffer;
 
         Ref<Texture> m_DefaultEnvironmentMap;
         Ref<Texture> m_PreBloomTexture;
@@ -133,7 +152,6 @@ namespace Heart
         Ref<Buffer> m_ObjectDataBuffer;
         Ref<Buffer> m_MaterialDataBuffer;
         Ref<Buffer> m_LightingDataBuffer;
-        Ref<Buffer> m_IndirectBuffer;
 
         // grid
         Ref<Buffer> m_GridVertices;
@@ -142,10 +160,12 @@ namespace Heart
         // in-flight frame data
         Scene* m_Scene;
         EnvironmentMap* m_EnvironmentMap;
+        const Camera* m_Camera;
         std::unordered_map<u64, IndirectBatch> m_IndirectBatches;
         std::vector<IndirectBatch*> m_DeferredIndirectBatches;
         std::vector<std::vector<u32>> m_EntityListPool;
         SceneRenderSettings m_SceneRenderSettings;
+        u32 m_RenderedInstanceCount;
 
         const u32 m_BloomMipCount = 5;
         bool m_ShouldResize = false;

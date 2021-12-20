@@ -24,6 +24,14 @@ namespace Heart
         return nullptr;
     }
 
+    void Pipeline::SortReflectionData()
+    {
+        std::sort(m_ProgramReflectionData.begin(), m_ProgramReflectionData.end(), [](const ReflectionDataElement& a, const ReflectionDataElement& b)
+        {
+            return a.BindingIndex < b.BindingIndex;
+        });
+    }
+
     void GraphicsPipeline::ConsolidateReflectionData()
     {
         auto vertShader = AssetManager::RetrieveAsset<ShaderAsset>(m_Info.VertexShaderAsset)->GetShader();
@@ -49,9 +57,16 @@ namespace Heart
                 m_ProgramReflectionData.push_back(fragData);
         }
 
-        std::sort(m_ProgramReflectionData.begin(), m_ProgramReflectionData.end(), [](const ReflectionDataElement& a, const ReflectionDataElement& b)
-        {
-            return a.BindingIndex < b.BindingIndex;
-        });
+        SortReflectionData();
+    }
+
+    void ComputePipeline::ConsolidateReflectionData()
+    {
+        auto compShader = AssetManager::RetrieveAsset<ShaderAsset>(m_Info.ComputeShaderAsset)->GetShader();
+
+        m_ProgramReflectionData.clear();
+        m_ProgramReflectionData.insert(m_ProgramReflectionData.end(), compShader->GetReflectionData().begin(), compShader->GetReflectionData().end());
+
+        SortReflectionData();
     }
 }

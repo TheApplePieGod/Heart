@@ -101,7 +101,8 @@ namespace Heart
         };
         BufferLayout objectDataLayout = {
             { BufferDataType::Mat4 }, // transform
-            { BufferDataType::Float4 } // [0]: entityId
+            { BufferDataType::Float4 }, // [0]: entityId
+            { BufferDataType::Float4 }, // boundingSphere
         };
         BufferLayout materialDataLayout = {
             { BufferDataType::Float4 }, // position
@@ -125,15 +126,35 @@ namespace Heart
             { BufferDataType::UInt }, // instance count
             { BufferDataType::UInt }, // first index
             { BufferDataType::Int }, // vertex offset
-            { BufferDataType::UInt } // first instance
+            { BufferDataType::UInt }, // first instance
+            { BufferDataType::UInt }, // padding
+            { BufferDataType::Float2 } // padding
         };
+        BufferLayout instanceDataLayout = {
+            { BufferDataType::UInt }, // object id
+            { BufferDataType::UInt }, // batch id
+            { BufferDataType::Float2 }, // padding
+        };
+        BufferLayout cullDataLayout = {
+            { BufferDataType::Float4 }, // frustum planes [0]
+            { BufferDataType::Float4 }, // frustum planes [1]
+            { BufferDataType::Float4 }, // frustum planes [2]
+            { BufferDataType::Float4 }, // frustum planes [3]
+            { BufferDataType::Float4 }, // frustum planes [4]
+            { BufferDataType::Float4 }, // frustum planes [5]
+            { BufferDataType::Float4 } // [0]: drawCount
+        };
+
+        u32 maxObjects = 5000;
         m_FrameDataBuffer = Buffer::Create(Buffer::Type::Uniform, BufferUsageType::Dynamic, frameDataLayout, 1, nullptr);
         m_BloomDataBuffer = Buffer::Create(Buffer::Type::Storage, BufferUsageType::Dynamic, bloomDataLayout, 50, nullptr);
-        m_ObjectDataBuffer = Buffer::Create(Buffer::Type::Storage, BufferUsageType::Dynamic, objectDataLayout, 5000, nullptr);
-        m_MaterialDataBuffer = Buffer::Create(Buffer::Type::Storage, BufferUsageType::Dynamic, materialDataLayout, 5000, nullptr);
+        m_ObjectDataBuffer = Buffer::Create(Buffer::Type::Storage, BufferUsageType::Dynamic, objectDataLayout, maxObjects, nullptr);
+        m_MaterialDataBuffer = Buffer::Create(Buffer::Type::Storage, BufferUsageType::Dynamic, materialDataLayout, maxObjects, nullptr);
         m_LightingDataBuffer = Buffer::Create(Buffer::Type::Storage, BufferUsageType::Dynamic, lightingDataLayout, 500, nullptr);
-        m_IndirectBuffer = Buffer::Create(Buffer::Type::Indirect, BufferUsageType::Dynamic, indirectDataLayout, 1000, nullptr);
-        m_ComputeBuffer = Buffer::Create(Buffer::Type::Storage, BufferUsageType::Dynamic, {{ BufferDataType::Float4 }}, 50, nullptr);
+        m_CullDataBuffer = Buffer::Create(Buffer::Type::Uniform, BufferUsageType::Dynamic, cullDataLayout, 1, nullptr);
+        m_InstanceDataBuffer = Buffer::Create(Buffer::Type::Storage, BufferUsageType::Dynamic, instanceDataLayout, maxObjects, nullptr);
+        m_FinalInstanceBuffer = Buffer::Create(Buffer::Type::Storage, BufferUsageType::Dynamic, { BufferDataType::Float4 }, maxObjects, nullptr);
+        m_IndirectBuffer = Buffer::Create(Buffer::Type::Indirect, BufferUsageType::Dynamic, indirectDataLayout, maxObjects, nullptr);
         InitializeGridBuffers();
 
         CreateTextures();
@@ -142,10 +163,9 @@ namespace Heart
 
         // Create compute pipelines
         ComputePipelineCreateInfo compCreate = {
-            AssetManager::GetAssetUUID("Test.comp", true)
+            AssetManager::GetAssetUUID("IndirectCull.comp", true)
         };
-        m_ComputePipeline = ComputePipeline::Create(compCreate);
-        m_ComputePipeline->SetDispatchCountX(64);
+        m_ComputeCullPipeline = ComputePipeline::Create(compCreate);
     }
 
     void SceneRenderer::Shutdown()
@@ -162,10 +182,12 @@ namespace Heart
         m_ObjectDataBuffer.reset();
         m_MaterialDataBuffer.reset();
         m_LightingDataBuffer.reset();
-        m_IndirectBuffer.reset();
 
-        m_ComputePipeline.reset();
-        m_ComputeBuffer.reset();
+        m_ComputeCullPipeline.reset();
+        m_CullDataBuffer.reset();
+        m_InstanceDataBuffer.reset();
+        m_FinalInstanceBuffer.reset();
+        m_IndirectBuffer.reset();
 
         m_GridVertices.reset();
         m_GridIndices.reset();
@@ -423,6 +445,7 @@ namespace Heart
         // Reset in-flight frame data
         m_SceneRenderSettings = renderSettings;
         m_Scene = scene;
+        m_Camera = &camera;
         m_EnvironmentMap = scene->GetEnvironmentMap();
         m_IndirectBatches.clear();
         m_DeferredIndirectBatches.clear();
@@ -438,12 +461,16 @@ namespace Heart
         };
         m_FrameDataBuffer->SetElements(&frameData, 1, 0);
 
-        m_ComputePipeline->Bind();
-        m_ComputePipeline->BindShaderBufferResource(0, 0, m_ComputeBuffer->GetAllocatedCount(), m_ComputeBuffer.get());
-        m_ComputePipeline->FlushBindings();
+        // Update the light buffer with lights  (TODO: that are on screen)
+        UpdateLightingBuffer();
+
+        // Recalculate the indirect render batches
+        CalculateBatches();
+
+        SetupCullCompute();
 
         // Bind the main framebuffer
-        m_MainFramebuffer->Bind(m_ComputePipeline.get());
+        m_MainFramebuffer->Bind(m_ComputeCullPipeline.get());
 
         // Render the skybox if set
         if (m_EnvironmentMap)
@@ -453,12 +480,6 @@ namespace Heart
         m_MainFramebuffer->StartNextSubpass();
         if (renderSettings.DrawGrid)   
             RenderGrid();
-
-        // Update the light buffer with lights  (TODO: that are on screen)
-        UpdateLightingBuffer();
-
-        // Recalculate the indirect render batches
-        CalculateBatches();
 
         // Batches pass
         m_MainFramebuffer->StartNextSubpass();
@@ -521,6 +542,8 @@ namespace Heart
     {
         HE_PROFILE_FUNCTION();
 
+        m_RenderedInstanceCount = 0;
+
         // Loop over each mesh component / submesh, hash the mesh & material, and place the entity in a batch
         // associated with the mesh & material. At this stage, Batch.First is unused and Batch.Count indicates
         // how many instances there are
@@ -539,7 +562,7 @@ namespace Heart
                 auto& meshData = meshAsset->GetSubmesh(i);
 
                 // Create a hash based on the submesh and its material if applicable
-                u64 hash = mesh.Mesh ^ (i * 123192);
+                u64 hash = mesh.Mesh ^ (i * 45787893);
                 if (meshData.GetMaterialIndex() < mesh.Materials.size())
                     hash ^= mesh.Materials[meshData.GetMaterialIndex()];
 
@@ -567,8 +590,10 @@ namespace Heart
                     batchIndex++;
                 }
                 
-                // Push the associated entity to the associated vector from the pool
                 batch.Count++;
+                m_RenderedInstanceCount++;
+
+                // Push the associated entity to the associated vector from the pool
                 m_EntityListPool[batch.EntityListIndex].emplace_back(static_cast<u32>(entity));
             }
         }
@@ -577,7 +602,7 @@ namespace Heart
         // element gets placed contiguously for each indirect draw call. At this stage, Batch.First is the index of the indirect draw command in the buffer and
         // Batch.Count will equal 1 because it represents how many draw commands are in each batch
         u32 commandIndex = 0;
-        u32 renderId = 0;
+        u32 objectId = 0;
         for (auto& pair : m_IndirectBatches)
         {
             // Update the draw command index
@@ -586,18 +611,32 @@ namespace Heart
             // Popupate the indirect buffer
             IndexedIndirectCommand command = {
                 pair.second.Mesh->GetIndexBuffer()->GetAllocatedCount(),
-                pair.second.Count, 0, 0, renderId
+                0, 0, 0, objectId
             };
             m_IndirectBuffer->SetElements(&command, 1, commandIndex);
-            commandIndex++;
 
             // Contiguiously set the instance data for each entity associated with this batch
             auto& entityList = m_EntityListPool[pair.second.EntityListIndex];
-            for (auto& entity : entityList)
+            for (auto& _entity : entityList)
             {
+                Entity entity = { m_Scene, _entity };
+
                 // Object data
-                ObjectData objectData = { m_Scene->GetEntityCachedTransform({ m_Scene, entity }), { entity, 0.f, 0.f, 0.f } };
-                m_ObjectDataBuffer->SetElements(&objectData, 1, renderId);
+                glm::vec3 scale = entity.GetScale();
+                glm::vec4 boundingSphere = pair.second.Mesh->GetBoundingSphere();
+                boundingSphere.w *= std::max(std::max(scale.x, scale.y), scale.z); // Extend the bounding sphere to fit the largest scale 
+                ObjectData objectData = {
+                    m_Scene->GetEntityCachedTransform(entity),
+                    { _entity, 0.f, 0.f, 0.f },
+                    boundingSphere
+                };
+                m_ObjectDataBuffer->SetElements(&objectData, 1, objectId);
+
+                // Instance data
+                InstanceData instanceData = {
+                    objectId, commandIndex
+                };
+                m_InstanceDataBuffer->SetElements(&instanceData, 1, objectId);
 
                 // Material data
                 if (pair.second.Material)
@@ -619,17 +658,38 @@ namespace Heart
                     auto occlusionAsset = AssetManager::RetrieveAsset<TextureAsset>(pair.second.Material->GetOcclusionTexture());
                     materialData.SetHasOcclusion(occlusionAsset && occlusionAsset->IsValid());
 
-                    m_MaterialDataBuffer->SetElements(&materialData, 1, renderId);
+                    m_MaterialDataBuffer->SetElements(&materialData, 1, objectId);
                 }
                 else
-                    m_MaterialDataBuffer->SetElements(&AssetManager::RetrieveAsset<MaterialAsset>("DefaultMaterial.hemat", true)->GetMaterial().GetMaterialData(), 1, renderId);
+                    m_MaterialDataBuffer->SetElements(&AssetManager::RetrieveAsset<MaterialAsset>("DefaultMaterial.hemat", true)->GetMaterial().GetMaterialData(), 1, objectId);
 
-                renderId++;
+                objectId++;
             }
 
             // Change the count to represent the number of draw commands
             pair.second.Count = 1;
+
+            commandIndex++;
         }
+    }
+
+    void SceneRenderer::SetupCullCompute()
+    {
+        CullData cullData = {
+            m_Camera->GetFrustumPlanes(),
+            { m_RenderedInstanceCount, 0.f, 0.f, 0.f }
+        };
+        m_CullDataBuffer->SetElements(&cullData, 1, 0);
+
+        m_ComputeCullPipeline->Bind();
+        m_ComputeCullPipeline->BindShaderBufferResource(0, 0, 1, m_CullDataBuffer.get());
+        m_ComputeCullPipeline->BindShaderBufferResource(1, 0, m_ObjectDataBuffer->GetAllocatedCount(), m_ObjectDataBuffer.get());
+        m_ComputeCullPipeline->BindShaderBufferResource(2, 0, m_IndirectBuffer->GetAllocatedCount(), m_IndirectBuffer.get());
+        m_ComputeCullPipeline->BindShaderBufferResource(3, 0, m_InstanceDataBuffer->GetAllocatedCount(), m_InstanceDataBuffer.get());
+        m_ComputeCullPipeline->BindShaderBufferResource(4, 0, m_FinalInstanceBuffer->GetAllocatedCount(), m_FinalInstanceBuffer.get());
+        m_ComputeCullPipeline->FlushBindings();
+
+        m_ComputeCullPipeline->SetDispatchCountX(m_RenderedInstanceCount / 128 + 1);
     }
 
     void SceneRenderer::RenderEnvironmentMap()
@@ -715,6 +775,9 @@ namespace Heart
 
         // Bind object data
         m_MainFramebuffer->BindShaderBufferResource(1, 0, m_ObjectDataBuffer->GetAllocatedCount(), m_ObjectDataBuffer.get());
+
+        // Bind culled instance map data
+        m_MainFramebuffer->BindShaderBufferResource(12, 0, m_FinalInstanceBuffer->GetAllocatedCount(), m_FinalInstanceBuffer.get());
 
         // Bind material data
         m_MainFramebuffer->BindShaderBufferResource(2, 0, m_MaterialDataBuffer->GetAllocatedCount(), m_MaterialDataBuffer.get());

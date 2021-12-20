@@ -54,12 +54,16 @@ namespace Heart
     {
         HE_PROFILE_FUNCTION();
         HE_ENGINE_ASSERT(elementCount + elementOffset <= _buffer->GetAllocatedCount(), "ElementCount + ElementOffset must be <= buffer allocated count");
-        HE_ENGINE_ASSERT(_buffer->GetType() == Buffer::Type::Uniform || _buffer->GetType() == Buffer::Type::Storage, "Buffer bind must be either a uniform or storage buffer");
+        HE_ENGINE_ASSERT(_buffer->GetType() == Buffer::Type::Uniform || _buffer->GetType() == Buffer::Type::Storage || _buffer->GetType() == Buffer::Type::Indirect, "Buffer bind must be either a uniform, storage, or indirect buffer");
 
         OpenGLBuffer& buffer = static_cast<OpenGLBuffer&>(*_buffer);
 
-        glBindBufferBase(OpenGLCommon::BufferTypeToOpenGL(buffer.GetType()), bindingIndex, buffer.GetBufferId());
-        glBindBufferRange(OpenGLCommon::BufferTypeToOpenGL(buffer.GetType()), bindingIndex, buffer.GetBufferId(), elementOffset * buffer.GetLayout().GetStride(), elementCount * buffer.GetLayout().GetStride());
+        int bufferType = OpenGLCommon::BufferTypeToOpenGL(buffer.GetType());
+        if (buffer.GetType() == Buffer::Type::Indirect)
+            bufferType = GL_SHADER_STORAGE_BUFFER; // indirect buffers need to be bound as storage buffers
+
+        glBindBufferBase(bufferType, bindingIndex, buffer.GetBufferId());
+        glBindBufferRange(bufferType, bindingIndex, buffer.GetBufferId(), elementOffset * buffer.GetLayout().GetStride(), elementCount * buffer.GetLayout().GetStride());
     }
 
     void OpenGLComputePipeline::BindShaderTextureResource(u32 bindingIndex, Texture* _texture)
