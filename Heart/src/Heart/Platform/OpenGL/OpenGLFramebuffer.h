@@ -13,7 +13,7 @@ namespace Heart
         OpenGLFramebuffer(const FramebufferCreateInfo& createInfo);
         ~OpenGLFramebuffer() override;
 
-        void Bind() override;
+        void Bind(ComputePipeline* preRenderComputePipeline = nullptr) override;
         void BindPipeline(const std::string& name) override;
         void BindShaderBufferResource(u32 bindingIndex, u32 offset, u32 elementCount, Buffer* buffer) override;
         void BindShaderTextureResource(u32 bindingIndex, Texture* texture) override;

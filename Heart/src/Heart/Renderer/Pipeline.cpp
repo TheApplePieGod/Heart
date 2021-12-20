@@ -16,7 +16,11 @@ namespace Heart
             { HE_ENGINE_ASSERT(false, "Cannot create ComputePipeline: selected ApiType is not supported"); return nullptr; }
             case RenderApi::Type::Vulkan:
             { return CreateRef<VulkanComputePipeline>(createInfo); }
+            //case RenderApi::Type::OpenGL:
+            //{ return nullptr; }
         }
+        
+        return nullptr;
     }
 
     void GraphicsPipeline::ConsolidateReflectionData()

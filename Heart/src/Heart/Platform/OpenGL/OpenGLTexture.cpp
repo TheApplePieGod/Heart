@@ -100,8 +100,7 @@ namespace Heart
                 glTextureParameteri(m_ViewTextures[viewIndex], GL_TEXTURE_MAG_FILTER, OpenGLCommon::SamplerFilterToOpenGL(m_Info.SamplerState.MagFilter));
                 glTextureParameterf(m_ViewTextures[viewIndex], GL_TEXTURE_MAX_ANISOTROPY, m_Info.SamplerState.AnisotropyEnable ? std::min(maxAnisotropy, static_cast<float>(m_Info.SamplerState.MaxAnisotropy)) : 1);
 
-                if (j == 0)
-                    m_LayerImGuiHandles.emplace_back((void*)static_cast<size_t>(m_ViewTextures[viewIndex]));
+                m_ImGuiHandles.emplace_back((void*)static_cast<size_t>(m_ViewTextures[viewIndex]));
                 viewIndex++;
             }
         }
@@ -122,6 +121,11 @@ namespace Heart
 
         // Any unmapping will be handled in the framebuffer that draws to this image if applicable
         return m_PixelBuffers[(App::Get().GetFrameCount() + 1) % 2]->Map(true);
+    }
+
+    void* OpenGLTexture::GetImGuiHandle(u32 layerIndex, u32 mipLevel)
+    {
+        return m_ImGuiHandles[layerIndex * m_MipLevels + mipLevel];
     }
 
     OpenGLTexture::~OpenGLTexture()

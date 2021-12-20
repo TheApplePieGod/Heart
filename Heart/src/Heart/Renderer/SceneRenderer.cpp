@@ -82,7 +82,7 @@ namespace Heart
         m_Initialized = true;
 
         // Create default environment map cubemap object
-        m_DefaultEnvironmentMap = Texture::Create({ 512, 512, 4, BufferDataType::UInt8, 6, 5 });
+        m_DefaultEnvironmentMap = Texture::Create({ 512, 512, 4, BufferDataType::UInt8, BufferUsageType::Static, 6, 5 });
 
         // Initialize data buffers
         BufferLayout frameDataLayout = {
@@ -188,13 +188,13 @@ namespace Heart
         TextureSamplerState samplerState;
         samplerState.UVWWrap = { SamplerWrapMode::ClampToBorder, SamplerWrapMode::ClampToBorder, SamplerWrapMode::ClampToBorder };
 
-        m_PreBloomTexture = Texture::Create({ m_RenderWidth, m_RenderHeight, 4, BufferDataType::HalfFloat, 1, 1, false, samplerState });
-        m_BrightColorsTexture = Texture::Create({ m_RenderWidth, m_RenderHeight, 4, BufferDataType::HalfFloat, 1, m_BloomMipCount, false, samplerState });
-        m_BloomBufferTexture = Texture::Create({ m_RenderWidth, m_RenderHeight, 4, BufferDataType::HalfFloat, 1, m_BloomMipCount, false, samplerState });
-        m_BloomUpsampleBufferTexture = Texture::Create({ m_RenderWidth, m_RenderHeight, 4, BufferDataType::HalfFloat, 1, m_BloomMipCount - 1, false, samplerState });
+        m_PreBloomTexture = Texture::Create({ m_RenderWidth, m_RenderHeight, 4, BufferDataType::HalfFloat, BufferUsageType::Dynamic, 1, 1, false, samplerState });
+        m_BrightColorsTexture = Texture::Create({ m_RenderWidth, m_RenderHeight, 4, BufferDataType::HalfFloat, BufferUsageType::Dynamic, 1, m_BloomMipCount, false, samplerState });
+        m_BloomBufferTexture = Texture::Create({ m_RenderWidth, m_RenderHeight, 4, BufferDataType::HalfFloat, BufferUsageType::Dynamic, 1, m_BloomMipCount, false, samplerState });
+        m_BloomUpsampleBufferTexture = Texture::Create({ m_RenderWidth, m_RenderHeight, 4, BufferDataType::HalfFloat, BufferUsageType::Dynamic, 1, m_BloomMipCount - 1, false, samplerState });
 
-        m_FinalTexture = Texture::Create({ m_RenderWidth, m_RenderHeight, 4, BufferDataType::UInt8, 1, 1, false, samplerState });
-        m_EntityIdsTexture = Texture::Create({ m_RenderWidth, m_RenderHeight, 1, BufferDataType::Float, 1, 1, true, samplerState });
+        m_FinalTexture = Texture::Create({ m_RenderWidth, m_RenderHeight, 4, BufferDataType::UInt8, BufferUsageType::Dynamic, 1, 1, false, samplerState });
+        m_EntityIdsTexture = Texture::Create({ m_RenderWidth, m_RenderHeight, 1, BufferDataType::Float, BufferUsageType::Dynamic, 1, 1, true, samplerState });
     }
 
     void SceneRenderer::CleanupTextures()
@@ -438,8 +438,12 @@ namespace Heart
         };
         m_FrameDataBuffer->SetElements(&frameData, 1, 0);
 
+        m_ComputePipeline->Bind();
+        m_ComputePipeline->BindShaderBufferResource(0, 0, m_ComputeBuffer->GetAllocatedCount(), m_ComputeBuffer.get());
+        m_ComputePipeline->FlushBindings();
+
         // Bind the main framebuffer
-        m_MainFramebuffer->Bind();
+        m_MainFramebuffer->Bind(m_ComputePipeline.get());
 
         // Render the skybox if set
         if (m_EnvironmentMap)
@@ -468,12 +472,8 @@ namespace Heart
         if (m_SceneRenderSettings.BloomEnable)
             m_BrightColorsTexture->RegenerateMipMapsSync(m_MainFramebuffer.get());
 
-        // m_ComputePipeline->Bind();
-        // m_ComputePipeline->BindShaderBufferResource(0, 0, m_ComputeBuffer->GetAllocatedCount(), m_ComputeBuffer.get());
-        // m_ComputePipeline->FlushBindings();
-
         // Submit the framebuffer
-        Renderer::Api().RenderFramebuffers(context, { { m_MainFramebuffer.get() /*, m_ComputePipeline.get()*/ } });
+        Renderer::Api().RenderFramebuffers(context, { { m_MainFramebuffer.get() } });
 
         // Bloom
         Bloom(context);

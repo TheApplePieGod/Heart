@@ -47,6 +47,10 @@ namespace Heart
 
         HE_VULKAN_CHECK_RESULT(vkAllocateCommandBuffers(device.Device(), &allocInfo, m_CommandBuffers.data()));
 
+        allocInfo.commandPool = VulkanContext::GetGraphicsPool();
+        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_SECONDARY;
+
+        HE_VULKAN_CHECK_RESULT(vkAllocateCommandBuffers(device.Device(), &allocInfo, m_InlineCommandBuffers.data()));
     }
 
     VulkanComputePipeline::~VulkanComputePipeline()
@@ -58,6 +62,7 @@ namespace Heart
         vkDestroyPipelineLayout(device.Device(), m_PipelineLayout, nullptr);
 
         vkFreeCommandBuffers(device.Device(), VulkanContext::GetComputePool(), static_cast<u32>(m_CommandBuffers.size()), m_CommandBuffers.data());
+        vkFreeCommandBuffers(device.Device(), VulkanContext::GetGraphicsPool(), static_cast<u32>(m_InlineCommandBuffers.size()), m_InlineCommandBuffers.data());
 
         m_DescriptorSet.Shutdown();
     }
@@ -71,17 +76,22 @@ namespace Heart
         HE_ENGINE_ASSERT(!m_SubmittedThisFrame, "Cannot bind a framebuffer that has already been submitted");
 
         VkCommandBuffer buffer = GetCommandBuffer();
+        VkCommandBuffer inlineBuffer = GetInlineCommandBuffer();
 
         if (!m_BoundThisFrame)
         {
             m_BoundThisFrame = true;
      
+            VkCommandBufferInheritanceInfo inheritanceInfo{};
+            inheritanceInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO;
+
             VkCommandBufferBeginInfo beginInfo{};
             beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
             beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
-            beginInfo.pInheritanceInfo = nullptr;
+            beginInfo.pInheritanceInfo = &inheritanceInfo;
 
             HE_VULKAN_CHECK_RESULT(vkBeginCommandBuffer(buffer, &beginInfo));
+            HE_VULKAN_CHECK_RESULT(vkBeginCommandBuffer(inlineBuffer, &beginInfo));
         }
     }
 
@@ -111,7 +121,9 @@ namespace Heart
     }
 
     void VulkanComputePipeline::BindShaderResource(u32 bindingIndex, ShaderResourceType resourceType, void* resource, bool useOffset, u32 offset, u32 size)
-    {        
+    {
+        HE_ENGINE_ASSERT(resource != nullptr, "Cannot bind a null resource to a shader");
+         
         if (!m_DescriptorSet.DoesBindingExist(bindingIndex))
             return; // silently ignore, TODO: warning once in the console when this happens
 
@@ -143,6 +155,15 @@ namespace Heart
             static_cast<u32>(m_DescriptorSet.GetDynamicOffsets().size()),
             m_DescriptorSet.GetDynamicOffsets().data()
         );
+        vkCmdBindDescriptorSets(
+            GetInlineCommandBuffer(),
+            VK_PIPELINE_BIND_POINT_COMPUTE,
+            m_PipelineLayout,
+            0, 1,
+            sets,
+            static_cast<u32>(m_DescriptorSet.GetDynamicOffsets().size()),
+            m_DescriptorSet.GetDynamicOffsets().data()
+        );
 
         m_FlushedThisFrame = true;
     }
@@ -158,9 +179,11 @@ namespace Heart
         {
             VulkanDevice& device = VulkanContext::GetDevice();
             VkCommandBuffer buffer = GetCommandBuffer();
+            VkCommandBuffer inlineBuffer = GetInlineCommandBuffer();
 
             // bind the pipeline
             vkCmdBindPipeline(buffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_Pipeline);
+            vkCmdBindPipeline(inlineBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_Pipeline);
 
             // dispatch
             vkCmdDispatch(
@@ -169,9 +192,16 @@ namespace Heart
                 std::min(m_DispatchCountY, device.PhysicalDeviceProperties().limits.maxComputeWorkGroupCount[1]),
                 std::min(m_DispatchCountZ, device.PhysicalDeviceProperties().limits.maxComputeWorkGroupCount[2])
             );
+            vkCmdDispatch(
+                inlineBuffer,
+                std::min(m_DispatchCountX, device.PhysicalDeviceProperties().limits.maxComputeWorkGroupCount[0]),
+                std::min(m_DispatchCountY, device.PhysicalDeviceProperties().limits.maxComputeWorkGroupCount[1]),
+                std::min(m_DispatchCountZ, device.PhysicalDeviceProperties().limits.maxComputeWorkGroupCount[2])
+            );
 
             // end the main command buffer
             HE_VULKAN_CHECK_RESULT(vkEndCommandBuffer(buffer));
+            HE_VULKAN_CHECK_RESULT(vkEndCommandBuffer(inlineBuffer));
 
             m_BoundThisFrame = false;
             m_SubmittedThisFrame = true;

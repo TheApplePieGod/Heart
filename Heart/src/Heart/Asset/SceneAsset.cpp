@@ -108,6 +108,11 @@ namespace Heart
                     entity.AddComponent<LightComponent>(comp);
                 }
             }
+
+            // make sure all the transforms get cached
+            scene->GetRegistry().each([scene](auto handle) {
+                scene->CacheEntityTransform({ scene.get(), handle });
+            });
         }
 
         // parse settings

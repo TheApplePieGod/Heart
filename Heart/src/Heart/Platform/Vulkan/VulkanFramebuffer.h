@@ -14,7 +14,7 @@ namespace Heart
         VulkanFramebuffer(const FramebufferCreateInfo& createInfo);
         ~VulkanFramebuffer() override;
 
-        void Bind() override;
+        void Bind(ComputePipeline* preRenderComputePipeline = nullptr) override;
         void BindPipeline(const std::string& name) override;
         void BindShaderBufferResource(u32 bindingIndex, u32 offset, u32 elementCount, Buffer* buffer) override;
         void BindShaderTextureResource(u32 bindingIndex, Texture* texture) override;
@@ -29,7 +29,7 @@ namespace Heart
 
         void StartNextSubpass() override;
 
-        inline VkFramebuffer GetFramebuffer() const { return m_Framebuffer; }
+        inline VkFramebuffer GetFramebuffer() { UpdateFrameIndex(); return m_Framebuffers[m_InFlightFrameIndex]; }
         inline VkRenderPass GetRenderPass() const { return m_RenderPass; }
         inline VkCommandBuffer GetCommandBuffer() { UpdateFrameIndex(); return m_CommandBuffers[m_InFlightFrameIndex]; }
         inline VkCommandBuffer GetTransferCommandBuffer() { UpdateFrameIndex(); return m_TransferCommandBuffers[m_InFlightFrameIndex]; }
@@ -38,6 +38,7 @@ namespace Heart
         inline void PushAuxiliaryCommandBuffer(VkCommandBuffer buffer) { UpdateFrameIndex(); m_AuxiliaryCommandBuffers[m_InFlightFrameIndex].push_back(buffer); }
         inline bool WasBoundThisFrame() const { return m_BoundThisFrame; }
         inline bool WasSubmittedThisFrame() const { return m_SubmittedThisFrame; }
+        inline VkPipelineStageFlagBits GetCurrentPipelineStage() const { return m_CurrentPipelineStage; }
 
     protected:
         Ref<GraphicsPipeline> InternalInitializeGraphicsPipeline(const GraphicsPipelineCreateInfo& createInfo) override;
@@ -71,7 +72,7 @@ namespace Heart
         void AllocateCommandBuffers();
         void FreeCommandBuffers();
 
-        void CreateAttachmentImages(VulkanFramebufferAttachment& attachmentData);
+        void CreateAttachmentImages(VulkanFramebufferAttachment& attachmentData, u32 inFlightFrameIndex);
         void CleanupAttachmentImages(VulkanFramebufferAttachment& attachmentData);
 
         void CreateFramebuffer();
@@ -84,22 +85,23 @@ namespace Heart
         void CopyAttachmentToBuffer(VulkanFramebufferAttachment& attachmentData);
 
     private:
-        VkFramebuffer m_Framebuffer;
+        std::array<VkFramebuffer, MAX_FRAMES_IN_FLIGHT> m_Framebuffers;
         VkRenderPass m_RenderPass;
         VulkanGraphicsPipeline* m_BoundPipeline = nullptr;
         std::string m_BoundPipelineName = "";
         std::array<VkCommandBuffer, MAX_FRAMES_IN_FLIGHT> m_CommandBuffers{};
         std::array<VkCommandBuffer, MAX_FRAMES_IN_FLIGHT> m_TransferCommandBuffers{};
-        std::vector<VulkanFramebufferAttachment> m_AttachmentData;
-        std::vector<VulkanFramebufferAttachment> m_DepthAttachmentData;
+        std::array<std::vector<VulkanFramebufferAttachment>, MAX_FRAMES_IN_FLIGHT> m_AttachmentData;
+        std::array<std::vector<VulkanFramebufferAttachment>, MAX_FRAMES_IN_FLIGHT> m_DepthAttachmentData;
         std::vector<VkClearValue> m_CachedClearValues;
-        std::vector<VkImageView> m_CachedImageViews;
+        std::array<std::vector<VkImageView>, MAX_FRAMES_IN_FLIGHT> m_CachedImageViews;
         std::array<std::vector<VkCommandBuffer>, MAX_FRAMES_IN_FLIGHT> m_AuxiliaryCommandBuffers;
 
         u32 m_CurrentSubpass = 0;
         u64 m_LastUpdateFrame = 0;
         u32 m_InFlightFrameIndex = 0;
         VkSampleCountFlagBits m_ImageSamples;
+        VkPipelineStageFlagBits m_CurrentPipelineStage = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
         bool m_SubmittedThisFrame = false;
         bool m_BoundThisFrame = false;
         bool m_FlushedThisFrame = false;

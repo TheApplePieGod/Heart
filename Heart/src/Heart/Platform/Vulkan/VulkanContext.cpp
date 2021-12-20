@@ -19,6 +19,7 @@ namespace Heart
     VulkanFramebuffer* VulkanContext::s_BoundFramebuffer = nullptr;
     VkSampler VulkanContext::s_DefaultSampler;
     std::deque<std::function<void()>> VulkanContext::s_DeleteQueue;
+    EventEmitter VulkanContext::s_EventEmitter;
 
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
         VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -114,7 +115,7 @@ namespace Heart
 
     void VulkanContext::CreateImGuiDescriptorPool()
     {
-        u32 maxSets = 1000;
+        u32 maxSets = 10000;
 
         std::array<VkDescriptorPoolSize, 1> poolSizes{};
         poolSizes[0].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;

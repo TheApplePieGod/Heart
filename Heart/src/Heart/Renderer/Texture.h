@@ -96,6 +96,7 @@ namespace Heart
     {
         u32 Width, Height, Channels;
         BufferDataType DataType;
+        BufferUsageType UsageType;
         u32 ArrayCount;
         u32 MipCount; // set to zero to deduce mip count
         bool AllowCPURead = false;
@@ -125,7 +126,8 @@ namespace Heart
             return data[index + component];
         }
 
-        inline void* GetImGuiHandle(u32 layerIndex = 0) const { return m_LayerImGuiHandles[layerIndex]; }
+        virtual void* GetImGuiHandle(u32 layerIndex = 0, u32 mipLevel = 0) = 0;
+        
         inline u32 GetArrayCount() const { return m_Info.ArrayCount; }
         inline u32 GetWidth() const { return m_Info.Width; }
         inline u32 GetHeight() const { return m_Info.Height; }
@@ -147,7 +149,6 @@ namespace Heart
     protected:
         TextureCreateInfo m_Info;
         u32 m_MipLevels;
-        std::vector<void*> m_LayerImGuiHandles;
         bool m_HasTransparency = false;
         bool m_HasTranslucency = false;
     };

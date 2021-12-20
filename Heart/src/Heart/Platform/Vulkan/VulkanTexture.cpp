@@ -1,6 +1,9 @@
 #include "hepch.h"
 #include "VulkanTexture.h"
 
+#include "Heart/Core/App.h"
+#include "Heart/Core/Window.h"
+#include "Heart/Events/GraphicsEvents.h"
 #include "Heart/Platform/Vulkan/VulkanFramebuffer.h"
 #include "Heart/Platform/Vulkan/VulkanBuffer.h"
 #include "Heart/Platform/Vulkan/VulkanContext.h"
@@ -22,11 +25,13 @@ namespace Heart
     {
         // Copy required variables for lambda
         auto sampler = m_Sampler;
-        auto imGuiHandles = m_LayerImGuiHandles;
+        auto imGuiHandles = m_ImGuiHandles;
         auto layerViews = m_LayerViews;
-        auto imageView = m_ImageView;
-        auto image = m_Image;
+        auto imageViews = m_ImageViews;
+        auto images = m_Images;
         auto imageMemory = m_ImageMemory;
+        auto imageCount = m_ImageCount;
+        void* pointer = this;
 
         VulkanContext::PushDeleteQueue([=]()
         {
@@ -34,15 +39,21 @@ namespace Heart
 
             vkDestroySampler(device.Device(), sampler, nullptr);
 
-            for (auto handle : imGuiHandles)
-                ImGui_ImplVulkan_RemoveTexture(handle);
+            for (u32 frame = 0; frame < imageCount; frame++)
+            {
+                for (auto handle : imGuiHandles[frame])
+                    ImGui_ImplVulkan_RemoveTexture(handle);
 
-            for (auto view : layerViews)
-                vkDestroyImageView(device.Device(), view, nullptr);
+                for (auto view : layerViews[frame])
+                    vkDestroyImageView(device.Device(), view, nullptr);
 
-            vkDestroyImageView(device.Device(), imageView, nullptr);
-            vkDestroyImage(device.Device(), image, nullptr);
-            vkFreeMemory(device.Device(), imageMemory, nullptr);
+                vkDestroyImageView(device.Device(), imageViews[frame], nullptr);
+                vkDestroyImage(device.Device(), images[frame], nullptr);
+                vkFreeMemory(device.Device(), imageMemory[frame], nullptr);
+            }
+
+            TextureDeletedEvent event(pointer);
+            VulkanContext::EmitEvent(event);
         });
     }
 
@@ -56,7 +67,7 @@ namespace Heart
             device.Device(),
             VulkanContext::GetGraphicsPool(),
             device.GraphicsQueue(),
-            m_Image,
+            GetImage(),
             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
             m_MipLevels,
@@ -67,7 +78,7 @@ namespace Heart
             device.PhysicalDevice(),
             VulkanContext::GetGraphicsPool(),
             device.GraphicsQueue(),
-            m_Image,
+            GetImage(),
             m_Format,
             m_Info.Width, m_Info.Height,
             m_MipLevels,
@@ -89,7 +100,7 @@ namespace Heart
         VulkanCommon::TransitionImageLayout(
             device.Device(),
             cmdBuffer,
-            m_Image,
+            GetImage(),
             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
             m_MipLevels,
@@ -99,7 +110,7 @@ namespace Heart
             device.Device(),
             device.PhysicalDevice(),
             cmdBuffer,
-            m_Image,
+            GetImage(),
             m_Format,
             m_Info.Width, m_Info.Height,
             m_MipLevels,
@@ -114,6 +125,12 @@ namespace Heart
         HE_ENGINE_ASSERT(m_Info.AllowCPURead, "Cannot read pixel data of texture that does not have 'AllowCPURead' enabled");
 
         return m_CpuBuffer->GetMappedMemory();
+    }
+
+    void* VulkanTexture::GetImGuiHandle(u32 layerIndex, u32 mipLevel)
+    {
+        UpdateFrameIndex();
+        return m_ImGuiHandles[m_InFlightFrameIndex][layerIndex * m_MipLevels + mipLevel];
     }
 
     void VulkanTexture::CreateTexture(void* data)
@@ -133,6 +150,8 @@ namespace Heart
         if (m_MipLevels > maxMipLevels || m_MipLevels == 0)
             m_MipLevels = maxMipLevels;
 
+        m_ImageCount = m_Info.UsageType == BufferUsageType::Dynamic ? MAX_FRAMES_IN_FLIGHT : 1;
+
         // if the texture is cpu visible, create the readonly buffer
         if (m_Info.AllowCPURead)
         {
@@ -144,6 +163,8 @@ namespace Heart
                 data
             ));
         }
+
+        CreateSampler();
 
         // create image & staging buffer and transfer the data into the first layer
         u32 componentSize = BufferDataTypeSize(m_Info.DataType);
@@ -167,64 +188,81 @@ namespace Heart
                 0
             );
         }
-        VulkanCommon::CreateImage(
-            device.Device(),
-            device.PhysicalDevice(),
-            m_Info.Width, m_Info.Height,
-            m_Format,
-            m_MipLevels,
-            m_Info.ArrayCount,
-            VK_SAMPLE_COUNT_1_BIT,
-            VK_IMAGE_TILING_OPTIMAL,
-            VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-            m_Image, m_ImageMemory,
-            VK_IMAGE_LAYOUT_UNDEFINED
-        );
-        VulkanCommon::TransitionImageLayout(
-            device.Device(),
-            VulkanContext::GetGraphicsPool(),
-            device.GraphicsQueue(),
-            m_Image,
-            VK_IMAGE_LAYOUT_UNDEFINED,
-            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            m_MipLevels,
-            m_Info.ArrayCount
-        );
-        if (data != nullptr)
+        for (u32 frame = 0; frame < m_ImageCount; frame++)
         {
-            VulkanCommon::CopyBufferToImage(
-                device.Device(),
-                VulkanContext::GetGraphicsPool(),
-                device.GraphicsQueue(),
-                stagingBuffer,
-                m_Image,
-                static_cast<u32>(m_Info.Width), static_cast<u32>(m_Info.Height)
-            );
-            VulkanCommon::GenerateMipmaps(
+            VkImage& image = m_Images[frame];
+            VkDeviceMemory& imageMemory = m_ImageMemory[frame];
+
+            VulkanCommon::CreateImage(
                 device.Device(),
                 device.PhysicalDevice(),
-                VulkanContext::GetGraphicsPool(),
-                device.GraphicsQueue(),
-                m_Image,
-                m_Format,
                 m_Info.Width, m_Info.Height,
+                m_Format,
                 m_MipLevels,
-                m_Info.ArrayCount
+                m_Info.ArrayCount,
+                VK_SAMPLE_COUNT_1_BIT,
+                VK_IMAGE_TILING_OPTIMAL,
+                VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                image, imageMemory,
+                VK_IMAGE_LAYOUT_UNDEFINED
             );
-        }
-        else
-        {
             VulkanCommon::TransitionImageLayout(
                 device.Device(),
                 VulkanContext::GetGraphicsPool(),
                 device.GraphicsQueue(),
-                m_Image,
+                image,
+                VK_IMAGE_LAYOUT_UNDEFINED,
                 VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                 m_MipLevels,
                 m_Info.ArrayCount
             );
+            if (data != nullptr)
+            {
+                VulkanCommon::CopyBufferToImage(
+                    device.Device(),
+                    VulkanContext::GetGraphicsPool(),
+                    device.GraphicsQueue(),
+                    stagingBuffer,
+                    image,
+                    static_cast<u32>(m_Info.Width), static_cast<u32>(m_Info.Height)
+                );
+                VulkanCommon::GenerateMipmaps(
+                    device.Device(),
+                    device.PhysicalDevice(),
+                    VulkanContext::GetGraphicsPool(),
+                    device.GraphicsQueue(),
+                    image,
+                    m_Format,
+                    m_Info.Width, m_Info.Height,
+                    m_MipLevels,
+                    m_Info.ArrayCount
+                );
+            }
+            else
+            {
+                VulkanCommon::TransitionImageLayout(
+                    device.Device(),
+                    VulkanContext::GetGraphicsPool(),
+                    device.GraphicsQueue(),
+                    image,
+                    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                    m_MipLevels,
+                    m_Info.ArrayCount
+                );
+            }
+
+            m_ImageViews[frame] = VulkanCommon::CreateImageView(device.Device(), image, m_Format, m_MipLevels, 0, m_Info.ArrayCount, 0, VK_IMAGE_ASPECT_COLOR_BIT);
+            for (u32 i = 0; i < m_Info.ArrayCount; i++)
+            {
+                for (u32 j = 0; j < m_MipLevels; j++)
+                {
+                    VkImageView layerView = VulkanCommon::CreateImageView(device.Device(), image, m_Format, 1, j, 1, i, VK_IMAGE_ASPECT_COLOR_BIT);
+                    m_LayerViews[frame].emplace_back(layerView);
+                    m_ImGuiHandles[frame].emplace_back(ImGui_ImplVulkan_AddTexture(m_Sampler, layerView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL));
+                }
+            }
         }
 
         // destroy the staging buffer
@@ -233,23 +271,6 @@ namespace Heart
             vkDestroyBuffer(device.Device(), stagingBuffer, nullptr);
             vkFreeMemory(device.Device(), stagingBufferMemory, nullptr);
         }
-
-        CreateSampler();
-
-        // generate the general image view & one for each layer / mipmap
-        m_ImageView = VulkanCommon::CreateImageView(device.Device(), m_Image, m_Format, m_MipLevels, 0, m_Info.ArrayCount, 0, VK_IMAGE_ASPECT_COLOR_BIT);
-        for (u32 i = 0; i < m_Info.ArrayCount; i++)
-        {
-            for (u32 j = 0; j < m_MipLevels; j++)
-            {
-                VkImageView layerView = VulkanCommon::CreateImageView(device.Device(), m_Image, m_Format, 1, j, 1, i, VK_IMAGE_ASPECT_COLOR_BIT);
-                m_LayerViews.emplace_back(layerView);
-                if (j == 0)
-                    m_LayerImGuiHandles.emplace_back(ImGui_ImplVulkan_AddTexture(m_Sampler, layerView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL));
-            }
-        }
-
-        m_CurrentLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     }
 
     void VulkanTexture::CreateSampler()
@@ -278,5 +299,19 @@ namespace Heart
         samplerInfo.maxLod = static_cast<float>(m_MipLevels);
 
         HE_VULKAN_CHECK_RESULT(vkCreateSampler(device.Device(), &samplerInfo, nullptr, &m_Sampler));
+    }
+
+    void VulkanTexture::UpdateFrameIndex()
+    {
+        if (m_ImageCount == 1) return;
+
+        if (App::Get().GetFrameCount() != m_LastUpdateFrame)
+        {
+            // it is a new frame so we need to get the new flight frame index
+            VulkanContext& mainContext = static_cast<VulkanContext&>(Window::GetMainWindow().GetContext());
+
+            m_InFlightFrameIndex = mainContext.GetSwapChain().GetInFlightFrameIndex();
+            m_LastUpdateFrame = App::Get().GetFrameCount();
+        }
     }
 }

@@ -586,7 +586,7 @@ namespace Heart
                 preRenderComputeSubmit.pWaitDstStageMask = computeWaitStages;
                 preRenderComputeSubmit.commandBufferCount = subData.PreRenderComputeBufferCount;
                 preRenderComputeSubmit.pCommandBuffers = m_SubmittedCommandBuffers.data() + subData.PreRenderComputeBufferStartIndex;
-                preRenderComputeSubmit.waitSemaphoreCount = 1;
+                preRenderComputeSubmit.waitSemaphoreCount = i > 0 ? 1 : 0;
                 preRenderComputeSubmit.pWaitSemaphores = i > 0 ? &auxDrawSemaphores[i - 1] : nullptr; // wait for the previous frame to finish
                 preRenderComputeSubmit.signalSemaphoreCount = 1;
                 preRenderComputeSubmit.pSignalSemaphores = &auxCompSemaphores[i * 2];
@@ -617,7 +617,7 @@ namespace Heart
             submitInfos[i].pWaitDstStageMask = drawWaitStages;
             submitInfos[i].commandBufferCount = subData.DrawBufferCount;
             submitInfos[i].pCommandBuffers = m_SubmittedCommandBuffers.data() + subData.DrawBufferStartIndex;
-            //submitInfos[i].waitSemaphoreCount = (i == 0 && !preCompute) ? 0 : 1;
+            submitInfos[i].waitSemaphoreCount = (i == 0 && !preCompute) ? 0 : 1;
             if (preCompute)
                 submitInfos[i].pWaitSemaphores = &auxCompSemaphores[i * 2];
             else
@@ -636,7 +636,7 @@ namespace Heart
                 transferSubmitInfo.pWaitDstStageMask = transferWaitStages;
                 transferSubmitInfo.commandBufferCount = subData.TransferBufferCount;
                 transferSubmitInfo.pCommandBuffers = m_SubmittedCommandBuffers.data() + subData.TransferBufferStartIndex;
-                transferSubmitInfo.waitSemaphoreCount = 0;
+                transferSubmitInfo.waitSemaphoreCount = 1;
                 if (postCompute)
                     transferSubmitInfo.pWaitSemaphores = &auxCompSemaphores[i * 2 + 1];
                 else
@@ -680,7 +680,6 @@ namespace Heart
             vkResetFences(device.Device(), 1, &m_InFlightTransferFences[m_InFlightFrameIndex]);
             HE_VULKAN_CHECK_RESULT(vkQueueSubmit(device.TransferQueue(m_InFlightFrameIndex), static_cast<u32>(transferSubmitInfos.size()), transferSubmitInfos.data(), m_InFlightTransferFences[m_InFlightFrameIndex]));
         }
-        
 
         VkSwapchainKHR swapChains[] = { m_SwapChain };
         VkPresentInfoKHR presentInfo{};

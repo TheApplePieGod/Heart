@@ -37,6 +37,7 @@ namespace Heart
         TextureCreateInfo createInfo = {
             static_cast<u32>(width), static_cast<u32>(height), static_cast<u32>(m_DesiredChannelCount),
             floatComponents ? BufferDataType::Float : BufferDataType::UInt8,
+            BufferUsageType::Static,
             1, 0
         };
         m_Texture = Texture::Create(createInfo, pixels);

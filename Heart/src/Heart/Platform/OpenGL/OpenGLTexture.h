@@ -16,6 +16,8 @@ namespace Heart
 
         void* GetPixelData() override;
 
+        void* GetImGuiHandle(u32 layerIndex = 0, u32 mipLevel = 0) override;
+
         inline u32 GetTextureId() const { return m_TextureId; }
         inline int GetTarget() const { return m_Target; }
         inline u32 GetLayerTextureId(u32 layerIndex, u32 mipLevel) const { return m_ViewTextures[layerIndex * m_MipLevels + mipLevel]; }
@@ -26,6 +28,7 @@ namespace Heart
     private:
         std::vector<u32> m_ViewTextures;
         std::array<Ref<OpenGLBuffer>, 2> m_PixelBuffers;
+        std::vector<void*> m_ImGuiHandles;
 
         ColorFormat m_GeneralFormat;
         int m_Format;

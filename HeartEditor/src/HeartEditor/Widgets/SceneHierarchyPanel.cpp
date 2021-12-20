@@ -27,7 +27,8 @@ namespace Widgets
 
         ImGui::BeginChild("HierarchyChild");
         for (auto entity : view)
-            RenderEntity(entity);
+            if (RenderEntity(entity))
+                break;
         ImGui::EndChild();
 
         // top level drag drop for parenting to root
@@ -53,7 +54,7 @@ namespace Widgets
         ImGui::PopStyleVar();
     }
 
-    void SceneHierarchyPanel::RenderEntity(entt::entity entity)
+    bool SceneHierarchyPanel::RenderEntity(entt::entity entity)
     {
         Heart::Scene& activeScene = Editor::GetActiveScene();
 
@@ -105,10 +106,12 @@ namespace Widgets
             ImGui::EndPopup();
         }
 
+        if (justDestroyed) return true;
+
         // recursively render children components
         if (open)
         {
-            if (hasChildren && !justDestroyed)
+            if (hasChildren)
             {
                 auto& childComp = activeScene.GetRegistry().get<Heart::ChildComponent>(entity);
                 for (auto uuid : childComp.Children)
@@ -116,6 +119,8 @@ namespace Widgets
             }
             ImGui::TreePop();
         }
+
+        return false;
     }
 }
 }

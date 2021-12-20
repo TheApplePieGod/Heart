@@ -137,6 +137,35 @@ namespace Heart
         context.GetSwapChain().SubmitCommandBuffers(submits);
     }
 
+    // void VulkanRenderApi::RenderComputePipelines(const std::vector<ComputePipeline*>& pipelines)
+    // {
+    //     HE_PROFILE_FUNCTION();
+    //     auto timer = AggregateTimer("VulkanRenderApi::RenderComputePipelines");
+
+    //     vkCmdPipelineBarrier(
+    //         VulkanContext::GetBoundFramebuffer()->GetCommandBuffer(),
+    //         VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT,
+    //         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+    //         0, 0, nullptr, 0, nullptr, 0, nullptr
+    //     );
+
+    //     for (auto& _pipeline : pipelines)
+    //     {
+    //         VulkanComputePipeline* pipeline = static_cast<VulkanComputePipeline*>(_pipeline);
+    //         pipeline->Submit();
+
+    //         VkCommandBuffer pipelineBuf = pipeline->GetInlineCommandBuffer();
+    //         vkCmdExecuteCommands(VulkanContext::GetBoundFramebuffer()->GetCommandBuffer(), 1, &pipelineBuf);            
+    //     }
+
+    //     vkCmdPipelineBarrier(
+    //         VulkanContext::GetBoundFramebuffer()->GetCommandBuffer(),
+    //         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+    //         VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT,
+    //         0, 0, nullptr, 0, nullptr, 0, nullptr
+    //     );
+    // }
+
     void VulkanRenderApi::DispatchComputePipelines(GraphicsContext& _context, const std::vector<ComputePipeline*>& pipelines)
     {
         // HE_PROFILE_FUNCTION();

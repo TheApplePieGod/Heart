@@ -100,7 +100,7 @@ namespace Heart
             CleanupAttachmentTextures(attachmentData);
     }
 
-    void OpenGLFramebuffer::Bind()
+    void OpenGLFramebuffer::Bind(ComputePipeline* preRenderComputePipeline)
     {
         HE_PROFILE_FUNCTION();
 

@@ -22,6 +22,7 @@ namespace Heart
         void Submit();
 
         inline VkCommandBuffer GetCommandBuffer() { UpdateFrameIndex(); return m_CommandBuffers[m_InFlightFrameIndex]; }
+        inline VkCommandBuffer GetInlineCommandBuffer() { UpdateFrameIndex(); return m_InlineCommandBuffers[m_InFlightFrameIndex]; }
         inline VkPipeline GetPipeline() const { return m_Pipeline; }
         inline VkPipelineLayout GetLayout() const { return m_PipelineLayout; }
         inline VulkanDescriptorSet& GetVulkanDescriptorSet() { return m_DescriptorSet; }
@@ -35,6 +36,7 @@ namespace Heart
 
         VkPipelineLayout m_PipelineLayout;
         VkPipeline m_Pipeline;
+        std::array<VkCommandBuffer, MAX_FRAMES_IN_FLIGHT> m_InlineCommandBuffers{};
         std::array<VkCommandBuffer, MAX_FRAMES_IN_FLIGHT> m_CommandBuffers{};
 
         u64 m_LastUpdateFrame = 0;

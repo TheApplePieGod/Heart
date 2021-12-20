@@ -63,6 +63,7 @@ namespace Heart
 
     class WindowResizeEvent;
     class GraphicsPipeline;
+    class ComputePipeline;
     struct GraphicsPipelineCreateInfo;
     class Framebuffer : public EventListener
     {
@@ -70,7 +71,7 @@ namespace Heart
         Framebuffer(const FramebufferCreateInfo& createInfo);
         virtual ~Framebuffer();
 
-        virtual void Bind() = 0;
+        virtual void Bind(ComputePipeline* preRenderComputePipeline = nullptr) = 0;
         virtual void BindPipeline(const std::string& name) = 0;
 
         // must be called after BindPipeline()

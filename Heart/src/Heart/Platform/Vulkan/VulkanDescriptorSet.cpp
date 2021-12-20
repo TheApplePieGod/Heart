@@ -7,6 +7,7 @@
 #include "Heart/Platform/Vulkan/VulkanFramebuffer.h"
 #include "Heart/Core/Window.h"
 #include "Heart/Core/App.h"
+#include "Heart/Events/GraphicsEvents.h"
 
 namespace Heart
 {
@@ -14,8 +15,9 @@ namespace Heart
     {
         VulkanDevice& device = VulkanContext::GetDevice();
 
-        // reflection data should give us sorted binding indexes so we can make some shortcuts here
+        SubscribeToEmitter(&VulkanContext::GetEventEmitter());
 
+        // reflection data should give us sorted binding indexes so we can make some shortcuts here
         // create the descriptor set layout and cache the associated pool sizes
         std::vector<VkDescriptorSetLayoutBinding> bindings;
         std::unordered_map<VkDescriptorType, u32> descriptorCounts;
@@ -96,6 +98,8 @@ namespace Heart
         VulkanDevice& device = VulkanContext::GetDevice();
         VulkanContext::Sync();
 
+        UnsubscribeFromEmitter(&VulkanContext::GetEventEmitter());
+
         for (size_t i = 0; i < m_DescriptorPools.size(); i++)
         {
             for (auto& pool : m_DescriptorPools[i])
@@ -107,6 +111,21 @@ namespace Heart
         vkDestroyDescriptorSetLayout(device.Device(), m_DescriptorSetLayout, nullptr);
     }
 
+    void VulkanDescriptorSet::OnEvent(Event& event)
+    {
+        event.Map<TextureDeletedEvent>(HE_BIND_EVENT_FN(VulkanDescriptorSet::OnTextureDeleted));
+    }
+
+    bool VulkanDescriptorSet::OnTextureDeleted(TextureDeletedEvent& event)
+    {
+        // Because we don't clear descriptors each frame, we need to clear them when a texture is deleted
+        // so we don't run the risk of using a deleted resource. TODO: only clear related descriptors
+        for (u32 frame = 0; frame < MAX_FRAMES_IN_FLIGHT; frame++)
+            ClearPools(frame);
+
+        return false;
+    }
+
     void VulkanDescriptorSet::UpdateShaderResource(u32 bindingIndex, ShaderResourceType resourceType, void* resource, bool useOffset, u32 offset, u32 size)
     {
         HE_PROFILE_FUNCTION();
@@ -114,9 +133,12 @@ namespace Heart
         VulkanDevice& device = VulkanContext::GetDevice();
         if (App::Get().GetFrameCount() != m_LastResetFrame)
         {
-            // it is a new frame so we need to clear out the descriptor pools
-            ClearPools();
+            VulkanContext& mainContext = static_cast<VulkanContext&>(Window::GetMainWindow().GetContext()); // we need the main context here to sync the inflightframeindex
+
+            // Do not clear pools each frame anymore
+            //ClearPools(m_InFlightFrameIndex);
             m_LastResetFrame = App::Get().GetFrameCount();
+            m_InFlightFrameIndex = mainContext.GetSwapChain().GetInFlightFrameIndex();
             m_BoundResources.clear();
             
             m_WritesReadyCount = 0;
@@ -128,7 +150,7 @@ namespace Heart
         }
 
         auto& boundResource = m_BoundResources[bindingIndex];
-        if (boundResource.Resource == resource && boundResource.Offset == offset) // don't do anything if this resource is already bound
+        if (boundResource.Resource == resource && boundResource.Offset == offset && boundResource.Size == size) // don't do anything if this resource is already bound
             return;
         boundResource.Resource = resource;
         boundResource.Offset = offset;
@@ -161,7 +183,7 @@ namespace Heart
                 for (u32 i = 0; i < texture->GetArrayCount(); i++)
                 {
                     m_CachedImageInfos[imageInfoBaseIndex + i].sampler = texture->GetSampler();
-                    m_CachedImageInfos[imageInfoBaseIndex + i].imageLayout = texture->GetCurrentLayout();
+                    m_CachedImageInfos[imageInfoBaseIndex + i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
                     if (useOffset)
                         m_CachedImageInfos[imageInfoBaseIndex + i].imageView = texture->GetLayerImageView(offset, size); // size is the mip level here
                     else
@@ -192,10 +214,10 @@ namespace Heart
     {
         HE_ENGINE_ASSERT(CanFlush(), "Cannot flush bindings until all binding slots have been bound");
 
-        size_t hash = HashBindings();
-        if (m_CachedDescriptorSets.find(hash) != m_CachedDescriptorSets.end())
+        u64 hash = HashBindings();
+        if (m_CachedDescriptorSets[m_InFlightFrameIndex].find(hash) != m_CachedDescriptorSets[m_InFlightFrameIndex].end())
         {
-            m_MostRecentDescriptorSet = m_CachedDescriptorSets[hash];
+            m_MostRecentDescriptorSet = m_CachedDescriptorSets[m_InFlightFrameIndex][hash];
             return;
         }
 
@@ -207,7 +229,7 @@ namespace Heart
         
         vkUpdateDescriptorSets(device.Device(), static_cast<u32>(m_CachedDescriptorWrites.size()), m_CachedDescriptorWrites.data(), 0, nullptr);
 
-        m_CachedDescriptorSets[hash] = m_MostRecentDescriptorSet;
+        m_CachedDescriptorSets[m_InFlightFrameIndex][hash] = m_MostRecentDescriptorSet;
     }
 
     VkDescriptorPool VulkanDescriptorSet::CreateDescriptorPool()
@@ -251,29 +273,28 @@ namespace Heart
         return m_AvailableSets[m_AvailableSetIndex++];
     }
 
-    void VulkanDescriptorSet::ClearPools()
+    void VulkanDescriptorSet::ClearPools(u32 inFlightFrameIndex)
     {
         VulkanDevice& device = VulkanContext::GetDevice();
-        VulkanContext& mainContext = static_cast<VulkanContext&>(Window::GetMainWindow().GetContext()); // we need the main context here to sync the inflightframeindex
 
-        m_InFlightFrameIndex = mainContext.GetSwapChain().GetInFlightFrameIndex();
         m_AvailableSetIndex = 0;
         m_AvailablePoolIndex = 0;
-        m_CachedDescriptorSets.clear();
+        m_CachedDescriptorSets[inFlightFrameIndex].clear();
 
-        for (auto& pool : m_DescriptorPools[m_InFlightFrameIndex])
+        for (auto& pool : m_DescriptorPools[inFlightFrameIndex])
             vkResetDescriptorPool(device.Device(), pool, 0);
     }
 
-    size_t VulkanDescriptorSet::HashBindings()
+    u64 VulkanDescriptorSet::HashBindings()
     {
-        size_t hash = 0;
+        u64 hash = 0;
 
         for (auto pair : m_BoundResources)
         {
-            hash ^= std::hash<intptr_t>{}((intptr_t)pair.second.Resource);
-            hash ^= std::hash<intptr_t>{}((intptr_t)(pair.second.Offset * 250798));
-            hash ^= std::hash<intptr_t>{}((intptr_t)(pair.second.Size * 812893));
+            hash ^= pair.first * 783165634527ull;
+            hash ^= (u64)pair.second.Resource;
+            hash ^= pair.second.Offset * 2503245432798ull;
+            hash ^= pair.second.Size * 81254323893ull;
         }
 
         return hash;
