@@ -292,10 +292,10 @@ namespace Heart
 
         for (auto pair : m_BoundResources)
         {
-            hash ^= pair.first * 783165634527ull;
-            hash ^= (u64)pair.second.Resource;
-            hash ^= pair.second.Offset * 2503245432798ull;
-            hash ^= pair.second.Size * 81254323893ull;
+            hash ^= pair.first * 783165634527u;
+            hash ^= (u64)pair.second.Resource + 0x9e3779b9;
+            hash ^= pair.second.Offset * 2503245432798u;
+            hash ^= pair.second.Size * 81254323893u;
         }
 
         return hash;
