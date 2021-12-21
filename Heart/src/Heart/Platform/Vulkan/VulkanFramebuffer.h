@@ -25,6 +25,9 @@ namespace Heart
         void* GetColorAttachmentImGuiHandle(u32 attachmentIndex) override;
         void* GetColorAttachmentPixelData(u32 attachmentIndex) override;
 
+        double GetPerformanceTimestamp() override;
+        double GetSubpassPerformanceTimestamp(u32 subpassIndex) override;
+
         void ClearOutputAttachment(u32 outputAttachmentIndex, bool clearDepth) override;
 
         void StartNextSubpass() override;
@@ -96,7 +99,10 @@ namespace Heart
         std::vector<VkClearValue> m_CachedClearValues;
         std::array<std::vector<VkImageView>, MAX_FRAMES_IN_FLIGHT> m_CachedImageViews;
         std::array<std::vector<VkCommandBuffer>, MAX_FRAMES_IN_FLIGHT> m_AuxiliaryCommandBuffers;
+        std::array<VkQueryPool, MAX_FRAMES_IN_FLIGHT> m_QueryPools;
 
+        std::vector<double> m_PerformanceTimestamps;
+        u32 m_QueryPoolSize = 0;
         u32 m_CurrentSubpass = 0;
         u64 m_LastUpdateFrame = 0;
         u32 m_InFlightFrameIndex = 0;

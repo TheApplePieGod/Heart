@@ -24,6 +24,9 @@ namespace Heart
         void* GetColorAttachmentImGuiHandle(u32 attachmentIndex) override;
         void* GetColorAttachmentPixelData(u32 attachmentIndex) override;
 
+        double GetPerformanceTimestamp() override;
+        double GetSubpassPerformanceTimestamp(u32 subpassIndex) override;
+
         void ClearOutputAttachment(u32 outputAttachmentIndex, bool clearDepth) override;
         void StartNextSubpass() override;
         
@@ -63,7 +66,7 @@ namespace Heart
         void CreatePixelBuffers(OpenGLFramebufferAttachment& attachment);
         void CleanupPixelBuffers(OpenGLFramebufferAttachment& attachment);
 
-        void Submit();
+        void Submit(ComputePipeline* postRenderComputePipeline);
         void Recreate();
         void BlitFramebuffers(int subpassIndex);
 
@@ -74,6 +77,9 @@ namespace Heart
         std::vector<OpenGLFramebufferAttachment> m_AttachmentData;
         std::vector<OpenGLFramebufferAttachment> m_DepthAttachmentData;
         std::vector<u32> m_CachedAttachmentHandles;
+
+        std::array<std::vector<u32>, 2> m_QueryIds;
+        std::vector<double> m_PerformanceTimestamps;
 
         int m_ImageSamples = 1;
         int m_CurrentSubpass = -1;

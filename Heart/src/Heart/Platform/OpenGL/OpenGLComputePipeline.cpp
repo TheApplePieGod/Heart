@@ -38,11 +38,19 @@ namespace Heart
             HE_ENGINE_LOG_ERROR("Failed to link OpenGL program: {0}", infoLog.data());
             HE_ENGINE_ASSERT(false);
         }
+
+        // generate timestamp queries
+        if (m_Info.AllowPerformanceQuerying)
+            for (size_t i = 0; i < m_QueryIds.size(); i++)
+                glGenQueries(static_cast<int>(m_QueryIds[i].size()), m_QueryIds[i].data());
     }
 
     OpenGLComputePipeline::~OpenGLComputePipeline()
     {
         glDeleteProgram(m_ProgramId);
+        if (m_Info.AllowPerformanceQuerying)
+            for (size_t i = 0; i < m_QueryIds.size(); i++)
+                glDeleteQueries(static_cast<int>(m_QueryIds[i].size()), m_QueryIds[i].data());
     }
 
     void OpenGLComputePipeline::Bind()
@@ -95,16 +103,36 @@ namespace Heart
     {
         HE_PROFILE_FUNCTION();
 
+        u64 frameIndex = App::Get().GetFrameCount() % 2;
+
         int maxCountX, maxCountY, maxCountZ = 0;
         glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 0, &maxCountX);
         glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 1, &maxCountY);
         glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 2, &maxCountZ);
+
+        if (m_Info.AllowPerformanceQuerying)
+            glQueryCounter(m_QueryIds[frameIndex][0], GL_TIMESTAMP);
+
+        glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
         glDispatchCompute(
             std::min(static_cast<u32>(maxCountX), m_DispatchCountX),
             std::min(static_cast<u32>(maxCountY), m_DispatchCountY),
             std::min(static_cast<u32>(maxCountZ), m_DispatchCountZ)
         );
+
+        glMemoryBarrier(GL_ALL_BARRIER_BITS);
+
+        if (m_Info.AllowPerformanceQuerying)
+        {
+            glQueryCounter(m_QueryIds[frameIndex][1], GL_TIMESTAMP);
+
+            u64 t1 = 0;
+            u64 t2 = 0;
+            glGetQueryObjectui64v(m_QueryIds[frameIndex][0], GL_QUERY_RESULT, &t1);
+            glGetQueryObjectui64v(m_QueryIds[frameIndex][1], GL_QUERY_RESULT, &t2);
+            m_PerformanceTimestamp = (t2 - t1) * 0.000001;
+        }
 
         m_FlushedThisFrame = false;
     }

@@ -236,6 +236,20 @@ namespace Heart
           
         HE_VULKAN_CHECK_RESULT(vkCreateRenderPass(device.Device(), &renderPassInfo, nullptr, &m_RenderPass));
 
+        if (m_Info.AllowPerformanceQuerying)
+        {
+            m_QueryPoolSize = static_cast<u32>(m_Info.Subpasses.size() + 1);
+
+            VkQueryPoolCreateInfo poolInfo{};
+            poolInfo.sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
+            poolInfo.queryType = VK_QUERY_TYPE_TIMESTAMP;
+            poolInfo.queryCount = m_QueryPoolSize;
+                        
+            for (u32 frame = 0; frame < MAX_FRAMES_IN_FLIGHT; frame++)
+                HE_VULKAN_CHECK_RESULT(vkCreateQueryPool(device.Device(), &poolInfo, nullptr, &m_QueryPools[frame]));
+            m_PerformanceTimestamps.resize(m_Info.Subpasses.size() + 1, 0.0);
+        }
+
         CreateFramebuffer();
     }
 
@@ -252,6 +266,9 @@ namespace Heart
                 CleanupAttachmentImages(attachmentData);
             for (auto& attachmentData : m_DepthAttachmentData[frame])
                 CleanupAttachmentImages(attachmentData);
+
+            if (m_Info.AllowPerformanceQuerying)
+                vkDestroyQueryPool(device.Device(), m_QueryPools[frame], nullptr);
         }
 
         vkDestroyRenderPass(device.Device(), m_RenderPass, nullptr);
@@ -285,12 +302,15 @@ namespace Heart
 
             if (preRenderComputePipeline)
             {
+                VulkanComputePipeline* comp = (VulkanComputePipeline*)preRenderComputePipeline;
+
+                comp->WriteInitialTimestamp(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
+
                 VkMemoryBarrier barrier{};
                 barrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
                 barrier.srcAccessMask = VK_ACCESS_MEMORY_WRITE_BIT;
                 barrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
 
-                VulkanComputePipeline* comp = (VulkanComputePipeline*)preRenderComputePipeline;
                 vkCmdPipelineBarrier(
                     GetCommandBuffer(),
                     VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT,
@@ -298,15 +318,18 @@ namespace Heart
                     0, 1, &barrier, 0, nullptr, 0, nullptr
                 );
 
-                comp->Submit();
+                comp->Submit(VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT, true);
                 VkCommandBuffer pipelineBuf = comp->GetInlineCommandBuffer();
                 vkCmdExecuteCommands(VulkanContext::GetBoundFramebuffer()->GetCommandBuffer(), 1, &pipelineBuf);
+            }
 
-                vkCmdPipelineBarrier(
-                    VulkanContext::GetBoundFramebuffer()->GetCommandBuffer(),
-                    VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                    VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT,
-                    0, 1, &barrier, 0, nullptr, 0, nullptr
+            if (m_Info.AllowPerformanceQuerying)
+            {
+                vkCmdWriteTimestamp(
+                    buffer,
+                    VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                    m_QueryPools[m_InFlightFrameIndex],
+                    0
                 );
             }
 
@@ -357,10 +380,22 @@ namespace Heart
 
             vkCmdEndRenderPass(buffer);
 
+            if (m_Info.AllowPerformanceQuerying)
+            {
+                vkCmdWriteTimestamp(
+                    GetCommandBuffer(),
+                    VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                    m_QueryPools[m_InFlightFrameIndex],
+                    m_CurrentSubpass + 1
+                );
+            }
+
             // run the post render compute if applicable
             if (postRenderComputePipeline)
             {
                 VulkanComputePipeline* comp = (VulkanComputePipeline*)postRenderComputePipeline;
+
+                comp->WriteInitialTimestamp(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
 
                 VkMemoryBarrier barrier{};
                 barrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
@@ -374,16 +409,9 @@ namespace Heart
                     0, 1, &barrier, 0, nullptr, 0, nullptr
                 );
 
-                comp->Submit();
+                comp->Submit(VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT, true);
                 VkCommandBuffer pipelineBuf = comp->GetInlineCommandBuffer();
                 vkCmdExecuteCommands(VulkanContext::GetBoundFramebuffer()->GetCommandBuffer(), 1, &pipelineBuf);
-
-                vkCmdPipelineBarrier(
-                    GetCommandBuffer(),
-                    VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                    VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT,
-                    0, 1, &barrier, 0, nullptr, 0, nullptr
-                );
             }
 
             // if the transfer buffer is null, then we have no CPU visible attachments, so don't bother running this code
@@ -431,6 +459,36 @@ namespace Heart
 
             // end the main command buffer
             HE_VULKAN_CHECK_RESULT(vkEndCommandBuffer(buffer));
+
+            if (m_Info.AllowPerformanceQuerying)
+            {
+                std::vector<u64> results(m_QueryPoolSize);
+                vkGetQueryPoolResults(
+                    device.Device(),
+                    m_QueryPools[m_InFlightFrameIndex],
+                    0, m_QueryPoolSize,
+                    sizeof(u64) * results.size(), results.data(),
+                    sizeof(u64),
+                    VK_QUERY_RESULT_64_BIT
+                );
+
+                for (size_t i = 0; i < m_PerformanceTimestamps.size(); i++)
+                {
+                    double timestamp = device.PhysicalDeviceProperties().limits.timestampPeriod;
+                    if (i == 0) // overall timestamp uses first and last results
+                        timestamp *= results.back() - results.front();
+                    else
+                        timestamp *= results[i] - results[i - 1];
+                    m_PerformanceTimestamps[i] = timestamp * 0.000001;
+                }
+
+                vkResetQueryPool(
+                    device.Device(),
+                    m_QueryPools[m_InFlightFrameIndex],
+                    0,
+                    m_QueryPoolSize
+                );
+            }
 
             m_CurrentPipelineStage = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
             m_BoundPipeline = nullptr;
@@ -625,10 +683,35 @@ namespace Heart
         return m_AttachmentData[m_InFlightFrameIndex][attachmentIndex].AttachmentBuffer->GetMappedMemory();
     }
 
+    double VulkanFramebuffer::GetPerformanceTimestamp()
+    {
+        HE_ENGINE_ASSERT(m_Info.AllowPerformanceQuerying, "Cannot get performance timestamp unless the framebuffer was created with 'AllowPerformanceQuerying' enabled");
+
+        return m_PerformanceTimestamps[0];
+    }
+
+    double VulkanFramebuffer::GetSubpassPerformanceTimestamp(u32 subpassIndex)
+    {
+        HE_ENGINE_ASSERT(m_Info.AllowPerformanceQuerying, "Cannot get performance timestamp unless the framebuffer was created with 'AllowPerformanceQuerying' enabled");
+        HE_ENGINE_ASSERT(subpassIndex < m_Info.Subpasses.size(), "Subpass index out of range");
+
+        return m_PerformanceTimestamps[subpassIndex + 1];
+    }
+
     void VulkanFramebuffer::StartNextSubpass()
     {
         m_CurrentSubpass++;
         HE_ENGINE_ASSERT(m_CurrentSubpass < m_Info.Subpasses.size(), "Attempting to start a subpass that does not exist");
+
+        if (m_Info.AllowPerformanceQuerying)
+        {
+            vkCmdWriteTimestamp(
+                GetCommandBuffer(),
+                VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                m_QueryPools[m_InFlightFrameIndex],
+                m_CurrentSubpass
+            );
+        }
 
         vkCmdNextSubpass(GetCommandBuffer(), VK_SUBPASS_CONTENTS_INLINE);
 

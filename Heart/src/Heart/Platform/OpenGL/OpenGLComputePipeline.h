@@ -21,6 +21,7 @@ namespace Heart
 
     private:
         u32 m_ProgramId;
+        std::array<std::array<u32, 2>, 2> m_QueryIds;
 
         bool m_FlushedThisFrame = false;
     };

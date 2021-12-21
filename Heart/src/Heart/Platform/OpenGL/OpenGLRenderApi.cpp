@@ -125,16 +125,7 @@ namespace Heart
         for (auto& submission : submissions)
         {
             OpenGLFramebuffer* buffer = static_cast<OpenGLFramebuffer*>(submission.Framebuffer);
-            buffer->Submit();
-            if (submission.PostRenderComputePipeline)
-            {
-                glMemoryBarrier(GL_ALL_BARRIER_BITS);
-
-                OpenGLComputePipeline* comp = static_cast<OpenGLComputePipeline*>(submission.PostRenderComputePipeline);
-                comp->Submit();
-
-                glMemoryBarrier(GL_ALL_BARRIER_BITS);
-            }
+            buffer->Submit(submission.PostRenderComputePipeline);
         }
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);

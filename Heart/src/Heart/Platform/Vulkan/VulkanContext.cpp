@@ -55,7 +55,6 @@ namespace Heart
             s_VulkanDevice.Initialize(m_Surface);
 
             InitializeCommandPools();
-
             CreateDefaultSampler();
         }
         else
@@ -145,7 +144,7 @@ namespace Heart
         //appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
         appInfo.pEngineName = "Heart";
         appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-        appInfo.apiVersion = VK_API_VERSION_1_1;
+        appInfo.apiVersion = VK_API_VERSION_1_2;
 
         // get api extension support
         u32 supportedExtensionCount = 0;

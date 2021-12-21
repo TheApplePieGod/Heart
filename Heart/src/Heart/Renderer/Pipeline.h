@@ -70,6 +70,7 @@ namespace Heart
     struct ComputePipelineCreateInfo
     {
         UUID ComputeShaderAsset;
+        bool AllowPerformanceQuerying = false;
     };
 
     class Pipeline
@@ -137,6 +138,9 @@ namespace Heart
         virtual void BindShaderTextureLayerResource(u32 bindingIndex, Texture* texture, u32 layerIndex, u32 mipLevel) = 0;
         virtual void FlushBindings() = 0;
 
+        // pipeline must be created with 'AllowPerformanceQuerying' enabled
+        double GetPerformanceTimestamp();
+
         inline u32 GetDispatchCountX() const { return m_DispatchCountX; }
         inline u32 GetDispatchCountY() const { return m_DispatchCountY; }
         inline u32 GetDispatchCountZ() const { return m_DispatchCountZ; }
@@ -153,6 +157,7 @@ namespace Heart
         u32 m_DispatchCountX = 1;
         u32 m_DispatchCountY = 1;
         u32 m_DispatchCountZ = 1;
+        double m_PerformanceTimestamp = 0.0;
 
     private:
         void ConsolidateReflectionData();

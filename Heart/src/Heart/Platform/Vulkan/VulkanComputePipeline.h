@@ -19,7 +19,10 @@ namespace Heart
         void BindShaderTextureLayerResource(u32 bindingIndex, Texture* texture, u32 layerIndex, u32 mipLevel) override;
         void FlushBindings() override;
 
-        void Submit();
+        void Submit(VkPipelineStageFlagBits srcStage, VkPipelineStageFlagBits dstStage, bool useInline);
+
+        // necessary to allow barrier flexability
+        void WriteInitialTimestamp(VkPipelineStageFlagBits pipelineStage);
 
         inline VkCommandBuffer GetCommandBuffer() { UpdateFrameIndex(); return m_CommandBuffers[m_InFlightFrameIndex]; }
         inline VkCommandBuffer GetInlineCommandBuffer() { UpdateFrameIndex(); return m_InlineCommandBuffers[m_InFlightFrameIndex]; }
@@ -38,6 +41,7 @@ namespace Heart
         VkPipeline m_Pipeline;
         std::array<VkCommandBuffer, MAX_FRAMES_IN_FLIGHT> m_InlineCommandBuffers{};
         std::array<VkCommandBuffer, MAX_FRAMES_IN_FLIGHT> m_CommandBuffers{};
+        std::array<VkQueryPool, MAX_FRAMES_IN_FLIGHT> m_QueryPools;
 
         u64 m_LastUpdateFrame = 0;
         u32 m_InFlightFrameIndex = 0;

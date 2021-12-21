@@ -90,13 +90,13 @@ namespace HeartEditor
         //     entity.SetPosition({ rand() % (max * 2) - max, rand() % (max * 2) - max, rand() % (max * 2) - max });
         // }
 
-        // int max = 100;
-        // for (int i = 0; i < 200; i++)
-        // {
-        //     Heart::Entity entity = Editor::GetActiveScene().CreateEntity("Mesh " + std::to_string(i));
-        //     auto& comp = entity.AddComponent<Heart::MeshComponent>().Mesh = Heart::AssetManager::GetAssetUUID("assets/meshes/Sponza/glTF/Sponza.gltf");
-        //     entity.SetPosition({ rand() % (max * 2) - max, rand() % (max * 2) - max, rand() % (max * 2) - max });
-        // }
+        int max = 100;
+        for (int i = 0; i < 400; i++)
+        {
+            Heart::Entity entity = Editor::GetActiveScene().CreateEntity("Mesh " + std::to_string(i));
+            auto& comp = entity.AddComponent<Heart::MeshComponent>().Mesh = Heart::AssetManager::GetAssetUUID("assets/meshes/Sponza/glTF/Sponza.gltf");
+            entity.SetPosition({ rand() % (max * 2) - max, rand() % (max * 2) - max, rand() % (max * 2) - max });
+        }
     }
 
     EditorLayer::~EditorLayer()

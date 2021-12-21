@@ -88,15 +88,17 @@ namespace Heart
             // indexingFeatures.descriptorBindingPartiallyBound = VK_TRUE;
             // indexingFeatures.runtimeDescriptorArray = VK_TRUE;
 
-            VkPhysicalDeviceTimelineSemaphoreFeaturesKHR timelineSemaphoreFeatures{};
-            timelineSemaphoreFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES_KHR;
-            timelineSemaphoreFeatures.pNext = nullptr;
-            timelineSemaphoreFeatures.timelineSemaphore = VK_TRUE;
+            VkPhysicalDeviceVulkan12Features vulkan12Features{};
+            vulkan12Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+            vulkan12Features.pNext = nullptr;
+            vulkan12Features.timelineSemaphore = VK_TRUE;
+            vulkan12Features.hostQueryReset = VK_TRUE;
+            vulkan12Features.samplerFilterMinmax = VK_TRUE;
 
             // finally create device
             VkDeviceCreateInfo createInfo{};
             createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-            createInfo.pNext = &timelineSemaphoreFeatures;
+            createInfo.pNext = &vulkan12Features;
             createInfo.pQueueCreateInfos = queueCreateInfos.data();
             createInfo.queueCreateInfoCount = static_cast<u32>(queueCreateInfos.size());;
             createInfo.pEnabledFeatures = &deviceFeatures;
@@ -164,7 +166,7 @@ namespace Heart
 
         outOptionalFeatures.SamplerAnisotropy = deviceFeatures.samplerAnisotropy;
         outOptionalFeatures.WideLines = deviceFeatures.wideLines;
-
+        
         return (
             indices.IsComplete() &&
             swapChainAdequate &&

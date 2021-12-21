@@ -148,7 +148,7 @@ namespace Heart
             { BufferDataType::Float4 } // [0]: drawCount
         };
 
-        u32 maxObjects = 5000;
+        u32 maxObjects = 10000;
         m_FrameDataBuffer = Buffer::Create(Buffer::Type::Uniform, BufferUsageType::Dynamic, frameDataLayout, 1, nullptr);
         m_BloomDataBuffer = Buffer::Create(Buffer::Type::Storage, BufferUsageType::Dynamic, bloomDataLayout, 50, nullptr);
         m_ObjectDataBuffer = Buffer::Create(Buffer::Type::Storage, BufferUsageType::Dynamic, objectDataLayout, maxObjects, nullptr);
@@ -166,7 +166,8 @@ namespace Heart
 
         // Create compute pipelines
         ComputePipelineCreateInfo compCreate = {
-            AssetManager::GetAssetUUID("IndirectCull.comp", true)
+            AssetManager::GetAssetUUID("IndirectCull.comp", true),
+            true
         };
         m_ComputeCullPipeline = ComputePipeline::Create(compCreate);
     }
@@ -256,7 +257,8 @@ namespace Heart
                 { { { SubpassAttachmentType::Color, 1 }, { SubpassAttachmentType::Color, 2 } }, { { SubpassAttachmentType::Depth, 0 }, { SubpassAttachmentType::Color, 3 }, { SubpassAttachmentType::Color, 4 } } }, // composite
             },
             m_RenderWidth, m_RenderHeight,
-            MsaaSampleCount::None
+            MsaaSampleCount::None,
+            true
         };
         m_MainFramebuffer = Framebuffer::Create(fbCreateInfo);
 
@@ -471,6 +473,7 @@ namespace Heart
         // Recalculate the indirect render batches
         CalculateBatches();
 
+        // Run the cull shader if enabled
         if (m_SceneRenderSettings.CullEnable)
         {
             SetupCullCompute();
@@ -618,7 +621,7 @@ namespace Heart
             // Popupate the indirect buffer
             IndexedIndirectCommand command = {
                 pair.second.Mesh->GetIndexBuffer()->GetAllocatedCount(),
-                m_SceneRenderSettings.CullEnable ? 0 : pair.second.Count,
+                m_SceneRenderSettings.CullEnable ? 0 : pair.second.Count, // If we are culling, we set instance count to zero because the shader will populate it
                 0, 0, objectId
             };
             m_IndirectBuffer->SetElements(&command, 1, commandIndex);
@@ -640,7 +643,7 @@ namespace Heart
                 };
                 m_ObjectDataBuffer->SetElements(&objectData, 1, objectId);
 
-                // Instance data
+                // Populate the instance data buffer if we are culling
                 if (m_SceneRenderSettings.CullEnable)
                 {
                     InstanceData instanceData = {

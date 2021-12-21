@@ -35,38 +35,6 @@ namespace Heart
     class SceneRenderer : public EventListener
     {
     public:
-        struct FrameData
-        {
-            glm::mat4 Proj;
-            glm::mat4 View;
-            glm::vec4 CameraPos;
-            glm::vec2 ScreenSize;
-            bool ReverseDepth;
-            float BloomThreshold;
-            bool CullEnable;
-            bool padding1;
-            glm::vec2 padding2;
-        };
-        struct BloomData
-        {
-            u32 MipLevel;
-            bool ReverseDepth;
-            float BlurScale;
-            float BlurStrength;
-        };
-        struct ObjectData
-        {
-            glm::mat4 Model;
-            glm::vec4 Data;
-            glm::vec4 BoundingSphere;
-        };
-        struct CullData
-        {
-            std::array<glm::vec4, 6> FrustumPlanes;
-            glm::vec4 Data;
-        };
-
-    public:
         SceneRenderer();
         ~SceneRenderer();
 
@@ -102,6 +70,36 @@ namespace Heart
             u32 ObjectId;
             u32 BatchId;
             glm::vec2 padding;  
+        };
+        struct FrameData
+        {
+            glm::mat4 Proj;
+            glm::mat4 View;
+            glm::vec4 CameraPos;
+            glm::vec2 ScreenSize;
+            bool ReverseDepth;
+            float BloomThreshold;
+            bool CullEnable;
+            bool padding1;
+            glm::vec2 padding2;
+        };
+        struct BloomData
+        {
+            u32 MipLevel;
+            bool ReverseDepth;
+            float BlurScale;
+            float BlurStrength;
+        };
+        struct ObjectData
+        {
+            glm::mat4 Model;
+            glm::vec4 Data;
+            glm::vec4 BoundingSphere;
+        };
+        struct CullData
+        {
+            std::array<glm::vec4, 6> FrustumPlanes;
+            glm::vec4 Data;
         };
 
     private:

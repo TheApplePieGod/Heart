@@ -10,6 +10,8 @@ namespace Heart
     Scope<RenderApi> Renderer::s_RenderApi;
     RenderApi::Type Renderer::s_RenderApiType;
     bool Renderer::s_UseReverseDepth = true;
+    std::map<std::string, RenderStatistic> Renderer::s_RenderStatistics;
+    std::map<std::string, RenderStatistic> Renderer::s_RenderStatisticsLastFrame;
 
     void Renderer::Initialize(RenderApi::Type apiType)
     {
@@ -30,6 +32,12 @@ namespace Heart
     void Renderer::Shutdown()
     {
         
+    }
+
+    void Renderer::ClearStatistics()
+    {
+        s_RenderStatisticsLastFrame = s_RenderStatistics;
+        s_RenderStatistics.clear();
     }
 
     void Renderer::OnWindowResize(GraphicsContext& context, u32 width, u32 height)

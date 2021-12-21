@@ -60,6 +60,13 @@ namespace Heart
         SortReflectionData();
     }
 
+    double ComputePipeline::GetPerformanceTimestamp()
+    {
+        HE_ENGINE_ASSERT(m_Info.AllowPerformanceQuerying, "Cannot get performance timestamp unless the pipeline was created with 'AllowPerformanceQuerying' enabled");
+
+        return m_PerformanceTimestamp;
+    }
+
     void ComputePipeline::ConsolidateReflectionData()
     {
         auto compShader = AssetManager::RetrieveAsset<ShaderAsset>(m_Info.ComputeShaderAsset)->GetShader();

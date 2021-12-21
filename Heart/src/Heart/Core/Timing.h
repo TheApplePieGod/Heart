@@ -79,20 +79,19 @@ namespace Heart
                 s_AggregateTimes[name] = 0;
         }
 
-        inline static const std::unordered_map<std::string, double>& GetTimeMap() { return s_AggregateTimesLastFrame; }
+        inline static const std::map<std::string, double>& GetTimeMap() { return s_AggregateTimesLastFrame; }
         inline static void ClearTimeMap() { std::unique_lock lock(s_Mutex); s_AggregateTimes.clear(); }
 
         inline static void ResetAggregateTimes()
         {
             std::unique_lock lock(s_Mutex);
             s_AggregateTimesLastFrame = s_AggregateTimes;
-            for (auto& pair : s_AggregateTimes)
-                pair.second = 0;
+            s_AggregateTimes.clear();
         }
 
     private:
-        static std::unordered_map<std::string, double> s_AggregateTimes; // stored in millis
-        static std::unordered_map<std::string, double> s_AggregateTimesLastFrame;
+        static std::map<std::string, double> s_AggregateTimes; // stored in millis
+        static std::map<std::string, double> s_AggregateTimesLastFrame;
         static std::shared_mutex s_Mutex;
     };
 }

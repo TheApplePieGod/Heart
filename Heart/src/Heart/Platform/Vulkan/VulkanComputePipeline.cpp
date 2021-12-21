@@ -51,6 +51,17 @@ namespace Heart
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_SECONDARY;
 
         HE_VULKAN_CHECK_RESULT(vkAllocateCommandBuffers(device.Device(), &allocInfo, m_InlineCommandBuffers.data()));
+
+        if (m_Info.AllowPerformanceQuerying)
+        {
+            VkQueryPoolCreateInfo poolInfo{};
+            poolInfo.sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
+            poolInfo.queryType = VK_QUERY_TYPE_TIMESTAMP;
+            poolInfo.queryCount = 2;
+
+            for (u32 frame = 0; frame < MAX_FRAMES_IN_FLIGHT; frame++)
+                HE_VULKAN_CHECK_RESULT(vkCreateQueryPool(device.Device(), &poolInfo, nullptr, &m_QueryPools[frame]));
+        }
     }
 
     VulkanComputePipeline::~VulkanComputePipeline()
@@ -63,6 +74,10 @@ namespace Heart
 
         vkFreeCommandBuffers(device.Device(), VulkanContext::GetComputePool(), static_cast<u32>(m_CommandBuffers.size()), m_CommandBuffers.data());
         vkFreeCommandBuffers(device.Device(), VulkanContext::GetGraphicsPool(), static_cast<u32>(m_InlineCommandBuffers.size()), m_InlineCommandBuffers.data());
+
+        if (m_Info.AllowPerformanceQuerying)
+            for (u32 frame = 0; frame < MAX_FRAMES_IN_FLIGHT; frame++)
+                vkDestroyQueryPool(device.Device(), m_QueryPools[frame], nullptr);
 
         m_DescriptorSet.Shutdown();
     }
@@ -168,7 +183,7 @@ namespace Heart
         m_FlushedThisFrame = true;
     }
 
-    void VulkanComputePipeline::Submit()
+    void VulkanComputePipeline::Submit(VkPipelineStageFlagBits srcStage, VkPipelineStageFlagBits dstStage, bool useInline)
     {
         HE_PROFILE_FUNCTION();
 
@@ -180,11 +195,18 @@ namespace Heart
         {
             VulkanDevice& device = VulkanContext::GetDevice();
             VkCommandBuffer buffer = GetCommandBuffer();
-            VkCommandBuffer inlineBuffer = GetInlineCommandBuffer();
+            
+            // we don't care about the primary command buffer so just end it right away
+            if (useInline)
+            {
+                HE_VULKAN_CHECK_RESULT(vkEndCommandBuffer(buffer));
+                buffer = GetInlineCommandBuffer();
+            }
+            else // otherwise end the inline command buffer because we don't care about it
+                HE_VULKAN_CHECK_RESULT(vkEndCommandBuffer(GetInlineCommandBuffer()));
 
             // bind the pipeline
             vkCmdBindPipeline(buffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_Pipeline);
-            vkCmdBindPipeline(inlineBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_Pipeline);
 
             // dispatch
             vkCmdDispatch(
@@ -193,21 +215,75 @@ namespace Heart
                 std::min(m_DispatchCountY, device.PhysicalDeviceProperties().limits.maxComputeWorkGroupCount[1]),
                 std::min(m_DispatchCountZ, device.PhysicalDeviceProperties().limits.maxComputeWorkGroupCount[2])
             );
-            vkCmdDispatch(
-                inlineBuffer,
-                std::min(m_DispatchCountX, device.PhysicalDeviceProperties().limits.maxComputeWorkGroupCount[0]),
-                std::min(m_DispatchCountY, device.PhysicalDeviceProperties().limits.maxComputeWorkGroupCount[1]),
-                std::min(m_DispatchCountZ, device.PhysicalDeviceProperties().limits.maxComputeWorkGroupCount[2])
+
+            // perform the sync here so we can write the timestamp
+            VkMemoryBarrier barrier{};
+            barrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+            barrier.srcAccessMask = VK_ACCESS_MEMORY_WRITE_BIT;
+            barrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+
+            vkCmdPipelineBarrier(
+                buffer,
+                srcStage,
+                dstStage,
+                0, 1, &barrier, 0, nullptr, 0, nullptr
+            );
+
+            vkCmdWriteTimestamp(
+                buffer,
+                dstStage,
+                m_QueryPools[m_InFlightFrameIndex],
+                1
             );
 
             // end the main command buffer
             HE_VULKAN_CHECK_RESULT(vkEndCommandBuffer(buffer));
-            HE_VULKAN_CHECK_RESULT(vkEndCommandBuffer(inlineBuffer));
+
+            if (m_Info.AllowPerformanceQuerying)
+            {
+                u64 buf[2]{};
+                vkGetQueryPoolResults(
+                    device.Device(),
+                    m_QueryPools[m_InFlightFrameIndex],
+                    0, 2,
+                    sizeof(buf), buf,
+                    sizeof(u64),
+                    VK_QUERY_RESULT_64_BIT
+                );
+                double timestamp = (buf[1] - buf[0]) * device.PhysicalDeviceProperties().limits.timestampPeriod;
+                m_PerformanceTimestamp = timestamp * 0.000001;
+
+                vkResetQueryPool(
+                    device.Device(),
+                    m_QueryPools[m_InFlightFrameIndex],
+                    0,
+                    2
+                );
+            }
 
             m_BoundThisFrame = false;
             m_SubmittedThisFrame = true;
             m_FlushedThisFrame = false;
         }
+    }
+
+    void VulkanComputePipeline::WriteInitialTimestamp(VkPipelineStageFlagBits pipelineStage)
+    {
+        if (!m_Info.AllowPerformanceQuerying) return;
+
+        vkCmdWriteTimestamp(
+            GetCommandBuffer(),
+            pipelineStage,
+            m_QueryPools[m_InFlightFrameIndex],
+            0
+        );
+
+        vkCmdWriteTimestamp(
+            GetInlineCommandBuffer(),
+            pipelineStage,
+            m_QueryPools[m_InFlightFrameIndex],
+            0
+        );
     }
 
     void VulkanComputePipeline::UpdateFrameIndex()
