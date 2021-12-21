@@ -280,4 +280,18 @@ namespace Heart
 
         return -1;
     }
+
+    int OpenGLCommon::SamplerReductionModeToOpenGL(SamplerReductionMode mode)
+    {
+        switch (mode)
+        {
+            default:
+            { HE_ENGINE_ASSERT(false, "OpenGL does not support specified SamplerReductionMode"); } break;
+            case SamplerReductionMode::WeightedAverage: return GL_WEIGHTED_AVERAGE_ARB;
+            case SamplerReductionMode::Min: return GL_MIN;
+            case SamplerReductionMode::Max: return GL_MAX;
+        }
+
+        return -1;
+    }
 }

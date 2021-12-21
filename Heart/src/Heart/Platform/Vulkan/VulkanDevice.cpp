@@ -13,7 +13,12 @@ namespace Heart
         VkInstance instance = VulkanContext::GetInstance();
 
         // setup physical device
-        std::vector<const char*> deviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME /*, VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME*/ };
+        std::vector<const char*> deviceExtensions = {
+            VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+            VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME,
+            VK_EXT_SAMPLER_FILTER_MINMAX_EXTENSION_NAME
+            /*, VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME*/
+        };
         OptionalDeviceFeatures optionalFeatures;
         auto validationLayers = VulkanContext::ConfigureValidationLayers();
         {

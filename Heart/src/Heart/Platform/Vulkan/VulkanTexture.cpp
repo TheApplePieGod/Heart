@@ -280,8 +280,13 @@ namespace Heart
         VkPhysicalDeviceProperties properties{};
         vkGetPhysicalDeviceProperties(device.PhysicalDevice(), &properties);
         
+        VkSamplerReductionModeCreateInfo reductionInfo{};
+        reductionInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_REDUCTION_MODE_CREATE_INFO;
+        reductionInfo.reductionMode = VulkanCommon::SamplerReductionModeToVulkan(m_Info.SamplerState.ReductionMode);
+        
         VkSamplerCreateInfo samplerInfo{};
         samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+        samplerInfo.pNext = &reductionInfo;
         samplerInfo.magFilter = VulkanCommon::SamplerFilterToVulkan(m_Info.SamplerState.MagFilter);
         samplerInfo.minFilter = VulkanCommon::SamplerFilterToVulkan(m_Info.SamplerState.MinFilter);
         samplerInfo.addressModeU = VulkanCommon::SamplerWrapModeToVulkan(m_Info.SamplerState.UVWWrap[0]);

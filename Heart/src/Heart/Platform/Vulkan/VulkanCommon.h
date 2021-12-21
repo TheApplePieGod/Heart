@@ -77,6 +77,7 @@ namespace Heart
         static VkBlendOp BlendOperationToVulkan(BlendOperation op);
         static VkFilter SamplerFilterToVulkan(SamplerFilter filter);
         static VkSamplerAddressMode SamplerWrapModeToVulkan(SamplerWrapMode mode);
+        static VkSamplerReductionMode SamplerReductionModeToVulkan(SamplerReductionMode mode);
     };
 }
 

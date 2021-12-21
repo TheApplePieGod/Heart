@@ -684,4 +684,18 @@ namespace Heart
 
         return VK_SAMPLER_ADDRESS_MODE_MAX_ENUM;
     }
+
+    VkSamplerReductionMode VulkanCommon::SamplerReductionModeToVulkan(SamplerReductionMode mode)
+    {
+        switch (mode)
+        {
+            default:
+            { HE_ENGINE_ASSERT(false, "Vulkan does not support specified SamplerReductionMode"); } break;
+            case SamplerReductionMode::WeightedAverage: return VK_SAMPLER_REDUCTION_MODE_WEIGHTED_AVERAGE;
+            case SamplerReductionMode::Min: return VK_SAMPLER_REDUCTION_MODE_MIN;
+            case SamplerReductionMode::Max: return VK_SAMPLER_REDUCTION_MODE_MAX;
+        }
+
+        return VK_SAMPLER_REDUCTION_MODE_MAX_ENUM;
+    }
 }

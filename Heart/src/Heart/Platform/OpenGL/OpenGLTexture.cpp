@@ -59,6 +59,7 @@ namespace Heart
         glTexParameteri(m_Target, GL_TEXTURE_WRAP_R, OpenGLCommon::SamplerWrapModeToOpenGL(m_Info.SamplerState.UVWWrap[2]));
         glTexParameteri(m_Target, GL_TEXTURE_MIN_FILTER, OpenGLCommon::SamplerFilterToOpenGLWithMipmap(m_Info.SamplerState.MinFilter));
         glTexParameteri(m_Target, GL_TEXTURE_MAG_FILTER, OpenGLCommon::SamplerFilterToOpenGL(m_Info.SamplerState.MagFilter));
+        glTexParameteri(m_Target, GL_TEXTURE_REDUCTION_MODE_ARB, OpenGLCommon::SamplerReductionModeToOpenGL(m_Info.SamplerState.ReductionMode));
         glTexParameterf(m_Target, GL_TEXTURE_MAX_ANISOTROPY, m_Info.SamplerState.AnisotropyEnable ? std::min(maxAnisotropy, static_cast<float>(m_Info.SamplerState.MaxAnisotropy)) : 1);
 
         if (m_Info.ArrayCount == 1)
@@ -98,6 +99,7 @@ namespace Heart
                 glTextureParameteri(m_ViewTextures[viewIndex], GL_TEXTURE_WRAP_R, OpenGLCommon::SamplerWrapModeToOpenGL(m_Info.SamplerState.UVWWrap[2]));
                 glTextureParameteri(m_ViewTextures[viewIndex], GL_TEXTURE_MIN_FILTER, OpenGLCommon::SamplerFilterToOpenGLWithMipmap(m_Info.SamplerState.MinFilter));
                 glTextureParameteri(m_ViewTextures[viewIndex], GL_TEXTURE_MAG_FILTER, OpenGLCommon::SamplerFilterToOpenGL(m_Info.SamplerState.MagFilter));
+                glTextureParameteri(m_ViewTextures[viewIndex], GL_TEXTURE_REDUCTION_MODE_ARB, OpenGLCommon::SamplerReductionModeToOpenGL(m_Info.SamplerState.ReductionMode));
                 glTextureParameterf(m_ViewTextures[viewIndex], GL_TEXTURE_MAX_ANISOTROPY, m_Info.SamplerState.AnisotropyEnable ? std::min(maxAnisotropy, static_cast<float>(m_Info.SamplerState.MaxAnisotropy)) : 1);
 
                 m_ImGuiHandles.emplace_back((void*)static_cast<size_t>(m_ViewTextures[viewIndex]));

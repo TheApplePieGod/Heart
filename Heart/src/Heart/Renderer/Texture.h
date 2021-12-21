@@ -27,11 +27,20 @@ namespace Heart
         MirroredRepeat
     };
 
+    enum class SamplerReductionMode
+    {
+        None = 0,
+        WeightedAverage,
+        Min,
+        Max
+    };
+
     struct TextureSamplerState
     {
         SamplerFilter MinFilter = SamplerFilter::Linear;
         SamplerFilter MagFilter = SamplerFilter::Linear;
         std::array<SamplerWrapMode, 3> UVWWrap = { SamplerWrapMode::Repeat, SamplerWrapMode::Repeat, SamplerWrapMode::Repeat };
+        SamplerReductionMode ReductionMode = SamplerReductionMode::WeightedAverage;
         bool AnisotropyEnable = true;
         u32 MaxAnisotropy = 8;
     };
