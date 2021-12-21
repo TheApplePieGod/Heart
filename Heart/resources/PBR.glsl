@@ -145,7 +145,7 @@ vec4 GetFinalColor()
     baseColor.rgb = pow(baseColor.rgb, vec3(2.2)); // compensate for gamma correction
     Clip(baseColor.a);
 
-    float roughness = clamp(GetRoughness(), 0.01f, 1.f);
+    float roughness = GetRoughness();
     float metalness = GetMetalness();
     vec3 emissive = GetEmissive();
     float occlusion = GetOcclusion();
@@ -171,7 +171,7 @@ vec4 GetFinalColor()
     vec3 nDfdy = dFdy(N.xyz);
     float slopeSquare = max(dot(nDfdx, nDfdx), dot(nDfdy, nDfdy));
     float geometricRoughnessFactor = pow(clamp(slopeSquare, 0.0, 1.0), 0.333);
-    float filteredRoughness = max(roughness, geometricRoughnessFactor) + 0.0005;
+    float filteredRoughness = clamp(max(roughness, geometricRoughnessFactor) + 0.0005, 0.01f, 1.f);
 
     // contribution from all lights
     int lightCount = int(lightingBuffer.lights[0].position.x);
@@ -222,8 +222,8 @@ vec4 GetFinalColor()
     
     vec3 prefilteredColor = textureLod(prefilterMap, R,  filteredRoughness * MAX_REFLECTION_LOD).rgb;   
     vec2 envBRDF = texture(brdfLUT, vec2(max(dot(N, V), 0.0), filteredRoughness)).rg;
-    vec3 specular = min(vec3(100.f), prefilteredColor * (F * envBRDF.x + envBRDF.y)); // limit specular intensity for bloom
-    vec3 ambient = (kD * diffuse + specular) * occlusion; // specular
+    vec3 specular = min(vec3(1.f), prefilteredColor * (F * envBRDF.x + envBRDF.y)); // limit specular intensity for bloom
+    vec3 ambient = (kD * diffuse + specular) * occlusion;
 
     vec3 finalColor = ambient + finalContribution;
 

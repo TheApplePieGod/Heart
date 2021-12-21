@@ -44,6 +44,9 @@ namespace Heart
 
         inline Texture& GetFinalTexture() { return *m_FinalTexture; }
         inline Texture& GetEntityIdsTexture() { return *m_EntityIdsTexture; }
+        inline Framebuffer& GetMainFramebuffer() { return *m_MainFramebuffer; }
+        inline ComputePipeline& GetCullPipeline() { return *m_ComputeCullPipeline; }
+        inline std::vector<std::array<Ref<Framebuffer>, 2>>& GetBloomFramebuffers() { return m_BloomFramebuffers; }
 
     private:
         struct IndirectBatch

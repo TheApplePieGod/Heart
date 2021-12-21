@@ -398,8 +398,9 @@ namespace Heart
         m_BRDFFramebuffer->BindPipeline("0");  
 
         CubemapData mapData = { cubemapCam.GetProjectionMatrix(), cubemapCam.GetViewMatrix(), glm::vec4(Renderer::IsUsingReverseDepth(), 0.f, 0.f, 0.f) };
-        m_CubemapDataBuffer->SetElements(&mapData, 1, cubeDataIndex++);
+        m_CubemapDataBuffer->SetElements(&mapData, 1, cubeDataIndex);
         m_BRDFFramebuffer->BindShaderBufferResource(0, cubeDataIndex, 1, m_CubemapDataBuffer.get());
+        cubeDataIndex++;
 
         m_BRDFFramebuffer->FlushBindings();
 

@@ -347,7 +347,8 @@ namespace Heart
                 { {}, { { SubpassAttachmentType::Color, 0 } } }
             },
             m_RenderWidth, m_RenderHeight,
-            MsaaSampleCount::None
+            MsaaSampleCount::None,
+            true
         };
 
         GraphicsPipelineCreateInfo bloomHorizontal = {
@@ -416,7 +417,7 @@ namespace Heart
             if (i == 0) // If we are on the last iteration, output directly to the output texture
             {
                 bloomFbCreateInfo.ColorAttachments[0].Texture = m_FinalTexture;
-                bloomFbCreateInfo.SampleCount = MsaaSampleCount::Four;
+                bloomFbCreateInfo.SampleCount = MsaaSampleCount::None;
             }
             else // Otherwise we are outputting to the bright color texture
                 bloomFbCreateInfo.ColorAttachments[0].Texture = m_BrightColorsTexture;

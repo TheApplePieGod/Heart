@@ -6,6 +6,8 @@
 #include "HeartEditor/EditorCamera.h"
 #include "Heart/Input/Input.h"
 #include "Heart/Core/Timing.h"
+#include "Heart/Renderer/Framebuffer.h"
+#include "Heart/Renderer/Pipeline.h"
 #include "imgui/imgui.h"
 
 #include "HeartEditor/Widgets/Viewport.h"
@@ -44,10 +46,24 @@ namespace Widgets
         ImGui::Text("VP Hover: %s", viewport.IsHovered() ? "true" : "false");
         ImGui::Unindent();
 
-        ImGui::Text("Timing:");
+        ImGui::Text("CPU Timing:");
         ImGui::Indent();
         for (auto& pair : Heart::AggregateTimer::GetTimeMap())
             ImGui::Text("%s: %.1fms", pair.first.c_str(), pair.second);
+        ImGui::Unindent();
+
+        ImGui::Text("GPU Timing:");
+        ImGui::Indent();
+        ImGui::Text("Frustum cull: %.2fms", viewport.GetSceneRenderer().GetCullPipeline().GetPerformanceTimestamp());
+        ImGui::Text("Opaque Pass: %.2fms", viewport.GetSceneRenderer().GetMainFramebuffer().GetSubpassPerformanceTimestamp(2));
+        ImGui::Text("Translucent Pass: %.2fms", viewport.GetSceneRenderer().GetMainFramebuffer().GetSubpassPerformanceTimestamp(3));
+        double bloomTiming = 0.0;
+        for (auto& bufs : viewport.GetSceneRenderer().GetBloomFramebuffers())
+        {
+            bloomTiming += bufs[0]->GetPerformanceTimestamp();
+            bloomTiming += bufs[1]->GetPerformanceTimestamp();
+        }
+        ImGui::Text("Bloom Pass: %.2fms", bloomTiming);
         ImGui::Unindent();
 
         ImGui::End();
