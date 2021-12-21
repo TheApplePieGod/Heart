@@ -91,7 +91,10 @@ namespace Heart
             { BufferDataType::Float4 }, // camera pos
             { BufferDataType::Float2 }, // screen size
             { BufferDataType::Bool }, // reverse depth
-            { BufferDataType::Float }, // padding
+            { BufferDataType::Float }, // bloom threshold
+            { BufferDataType::Bool }, // cull enable
+            { BufferDataType::Bool }, // padding
+            { BufferDataType::Float2 } // padding
         };
         BufferLayout bloomDataLayout = {
             { BufferDataType::UInt }, // mip level
@@ -250,7 +253,7 @@ namespace Heart
                 { {}, { { SubpassAttachmentType::Color, 3 } } }, // grid
                 { {}, { { SubpassAttachmentType::Depth, 0 }, { SubpassAttachmentType::Color, 3 }, { SubpassAttachmentType::Color, 4 }, { SubpassAttachmentType::Color, 0 } } }, // opaque
                 { {}, { { SubpassAttachmentType::Depth, 0 }, { SubpassAttachmentType::Color, 0 }, { SubpassAttachmentType::Color, 1 }, { SubpassAttachmentType::Color, 2 } } }, // transparent color
-                { { { SubpassAttachmentType::Color, 1 }, { SubpassAttachmentType::Color, 2 } }, { { SubpassAttachmentType::Depth, 0 }, { SubpassAttachmentType::Color, 3 } } }, // composite
+                { { { SubpassAttachmentType::Color, 1 }, { SubpassAttachmentType::Color, 2 } }, { { SubpassAttachmentType::Depth, 0 }, { SubpassAttachmentType::Color, 3 }, { SubpassAttachmentType::Color, 4 } } }, // composite
             },
             m_RenderWidth, m_RenderHeight,
             MsaaSampleCount::None
@@ -316,7 +319,7 @@ namespace Heart
             false,
             VertexTopology::TriangleList,
             Heart::Mesh::GetVertexLayout(),
-            { { true, BlendFactor::OneMinusSrcAlpha, BlendFactor::SrcAlpha, BlendFactor::SrcAlpha, BlendFactor::OneMinusSrcAlpha } },
+            { { true, BlendFactor::OneMinusSrcAlpha, BlendFactor::SrcAlpha, BlendFactor::SrcAlpha, BlendFactor::OneMinusSrcAlpha }, { false } },
             true,
             false,
             CullMode::None,
@@ -411,7 +414,7 @@ namespace Heart
             if (i == 0) // If we are on the last iteration, output directly to the output texture
             {
                 bloomFbCreateInfo.ColorAttachments[0].Texture = m_FinalTexture;
-                bloomFbCreateInfo.SampleCount = MsaaSampleCount::None;
+                bloomFbCreateInfo.SampleCount = MsaaSampleCount::Four;
             }
             else // Otherwise we are outputting to the bright color texture
                 bloomFbCreateInfo.ColorAttachments[0].Texture = m_BrightColorsTexture;
@@ -457,7 +460,8 @@ namespace Heart
             camera.GetProjectionMatrix(), camera.GetViewMatrix(), glm::vec4(cameraPosition, 1.f),
             m_MainFramebuffer->GetSize(),
             Renderer::IsUsingReverseDepth(),
-            m_SceneRenderSettings.BloomThreshold
+            m_SceneRenderSettings.BloomThreshold,
+            m_SceneRenderSettings.CullEnable
         };
         m_FrameDataBuffer->SetElements(&frameData, 1, 0);
 
@@ -467,10 +471,13 @@ namespace Heart
         // Recalculate the indirect render batches
         CalculateBatches();
 
-        SetupCullCompute();
-
-        // Bind the main framebuffer
-        m_MainFramebuffer->Bind(m_ComputeCullPipeline.get());
+        if (m_SceneRenderSettings.CullEnable)
+        {
+            SetupCullCompute();
+            m_MainFramebuffer->Bind(m_ComputeCullPipeline.get());
+        }
+        else
+            m_MainFramebuffer->Bind();
 
         // Render the skybox if set
         if (m_EnvironmentMap)
@@ -611,7 +618,8 @@ namespace Heart
             // Popupate the indirect buffer
             IndexedIndirectCommand command = {
                 pair.second.Mesh->GetIndexBuffer()->GetAllocatedCount(),
-                0, 0, 0, objectId
+                m_SceneRenderSettings.CullEnable ? 0 : pair.second.Count,
+                0, 0, objectId
             };
             m_IndirectBuffer->SetElements(&command, 1, commandIndex);
 
@@ -633,10 +641,13 @@ namespace Heart
                 m_ObjectDataBuffer->SetElements(&objectData, 1, objectId);
 
                 // Instance data
-                InstanceData instanceData = {
-                    objectId, commandIndex
-                };
-                m_InstanceDataBuffer->SetElements(&instanceData, 1, objectId);
+                if (m_SceneRenderSettings.CullEnable)
+                {
+                    InstanceData instanceData = {
+                        objectId, commandIndex
+                    };
+                    m_InstanceDataBuffer->SetElements(&instanceData, 1, objectId);
+                }
 
                 // Material data
                 if (pair.second.Material)

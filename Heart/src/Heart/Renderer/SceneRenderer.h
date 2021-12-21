@@ -15,6 +15,8 @@ namespace Heart
         float BloomBlurStrength = 0.2f;
         float BloomBlurScale = 1.f;
         float BloomThreshold = 1.f;
+
+        bool CullEnable = true;
     };
 
     class Scene;
@@ -41,6 +43,9 @@ namespace Heart
             glm::vec2 ScreenSize;
             bool ReverseDepth;
             float BloomThreshold;
+            bool CullEnable;
+            bool padding1;
+            glm::vec2 padding2;
         };
         struct BloomData
         {

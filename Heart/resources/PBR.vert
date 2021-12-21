@@ -24,7 +24,9 @@ void main() {
         int instanceIndex = gl_BaseInstance + gl_InstanceID;
     #endif
 
-    int objectId = int(instanceBuffer.objectIds[instanceIndex].x);
+    int objectId = instanceIndex;
+    if (frameBuffer.data.cullEnable)
+        objectId = int(instanceBuffer.objectIds[instanceIndex].x);
 
     worldPos = (objectBuffer.objects[objectId].model * vec4(inPosition, 1.0)).xyz;
     vec4 viewPos = (frameBuffer.data.view * vec4(worldPos, 1.0));

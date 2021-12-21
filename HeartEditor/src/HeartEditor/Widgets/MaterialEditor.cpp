@@ -69,6 +69,10 @@ namespace Widgets
                 m_CachedMaterial = materialAsset->GetMaterial();
             }
 
+            Heart::SceneRenderSettings renderSettings;
+            renderSettings.DrawGrid = false;
+            renderSettings.CullEnable = false;
+
             // Updates
             m_LastMaterial = m_SelectedMaterial;
             m_FirstRender = false;
@@ -79,7 +83,7 @@ namespace Widgets
                 m_Scene.get(),
                 m_SceneCamera,
                 m_SceneCameraPosition,
-                Heart::SceneRenderSettings() // default settings
+                renderSettings
             );
         }
 

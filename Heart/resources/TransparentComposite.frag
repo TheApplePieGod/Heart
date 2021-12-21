@@ -4,7 +4,8 @@
 
 layout(location = 0) in vec2 texCoord;
 
-layout(location = 0) out vec4 outColor;
+layout(location = 0) out vec4 outHDRColor;
+layout(location = 1) out vec4 outBrightColor;
 
 #ifdef VULKAN
 layout (input_attachment_index = 0, binding = 1) uniform subpassInput texColor;
@@ -23,5 +24,13 @@ void main() {
     float reveal = texture(texWeights, gl_FragCoord.xy / frameBuffer.data.screenSize).r;
     #endif
 
-    outColor = vec4(accum.rgb / max(accum.a, 1e-5), reveal);
+    // reversed because of blend
+    if (reveal > 0.9999) discard;
+
+    outHDRColor = vec4(accum.rgb / max(accum.a, 1e-5), reveal);
+    float brightness = dot(outHDRColor.rgb, vec3(0.2126, 0.7152, 0.0722));
+    if(brightness > frameBuffer.data.bloomThreshold)
+        outBrightColor = vec4(outHDRColor.rgb, 1.0);
+    else
+        outBrightColor = vec4(0.0, 0.0, 0.0, 1.0);
 }

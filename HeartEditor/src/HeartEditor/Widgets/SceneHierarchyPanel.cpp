@@ -106,7 +106,11 @@ namespace Widgets
             ImGui::EndPopup();
         }
 
-        if (justDestroyed) return true;
+        if (justDestroyed)
+        {
+            ImGui::TreePop();
+            return true;
+        }
 
         // recursively render children components
         if (open)

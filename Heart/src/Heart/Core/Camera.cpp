@@ -194,5 +194,7 @@ namespace Heart
             0.f, 0.f, 1.f, 0.f,
             0.f, 0.f, 0.f, 1.f
         ) * m_ViewMatrix;
+
+        ComputeFrustum(circularPosition);
     }
 }

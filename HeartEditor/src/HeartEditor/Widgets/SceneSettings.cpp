@@ -63,6 +63,10 @@ namespace Widgets
         ImGui::SameLine();
         ImGui::DragFloat("##BBStren", &Editor::GetState().RenderSettings.BloomBlurStrength, 0.1f, 0.f, 50.f);
 
+        ImGui::Text("Cull Enable");
+        ImGui::SameLine();
+        ImGui::Checkbox("##CullEnable", &Editor::GetState().RenderSettings.CullEnable);
+
         ImGui::End();
         ImGui::PopStyleVar();
     }
