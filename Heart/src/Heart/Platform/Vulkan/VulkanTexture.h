@@ -48,6 +48,7 @@ namespace Heart
         VkSampler m_Sampler;
         Ref<VulkanBuffer> m_CpuBuffer;
 
+        s64 m_DataSize = 0;
         u64 m_LastUpdateFrame = 0;
         u32 m_InFlightFrameIndex = 0;
         u32 m_ImageCount = 0;

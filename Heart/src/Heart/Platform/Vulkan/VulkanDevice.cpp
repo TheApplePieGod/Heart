@@ -93,7 +93,7 @@ namespace Heart
             vulkan12Features.pNext = nullptr;
             vulkan12Features.timelineSemaphore = VK_TRUE;
             vulkan12Features.hostQueryReset = VK_TRUE;
-            vulkan12Features.samplerFilterMinmax = VK_TRUE;
+            vulkan12Features.samplerFilterMinmax = VK_TRUE;            
 
             // finally create device
             VkDeviceCreateInfo createInfo{};
@@ -145,6 +145,15 @@ namespace Heart
         deviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
         deviceFeatures2.pNext = &indexingFeatures;
         vkGetPhysicalDeviceFeatures2(device, &deviceFeatures2);
+
+        // VkPhysicalDeviceMemoryBudgetPropertiesEXT budgetProps{};
+        // budgetProps.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_BUDGET_PROPERTIES_EXT;
+
+        // VkPhysicalDeviceMemoryProperties2 memProps{};
+        // memProps.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PROPERTIES_2;
+        // memProps.pNext = &budgetProps;
+
+        // vkGetPhysicalDeviceMemoryProperties2(device, &memProps);
 
         // get hardware extension support
         u32 supportedExtensionCount = 0;

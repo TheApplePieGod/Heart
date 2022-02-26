@@ -4,6 +4,7 @@
 #include "Heart/Core/App.h"
 #include "Heart/Core/Window.h"
 #include "Heart/Events/GraphicsEvents.h"
+#include "Heart/Renderer/Renderer.h"
 #include "Heart/Platform/Vulkan/VulkanFramebuffer.h"
 #include "Heart/Platform/Vulkan/VulkanBuffer.h"
 #include "Heart/Platform/Vulkan/VulkanContext.h"
@@ -19,6 +20,9 @@ namespace Heart
         if (initialData != nullptr)
             ScanForTransparency(createInfo.Width, createInfo.Height, createInfo.Channels, initialData);
         CreateTexture(initialData);
+
+        Renderer::PushStatistic("Loaded Textures", 1);
+        Renderer::PushStatistic("Texture Memory", m_DataSize);
     }
 
     VulkanTexture::~VulkanTexture()
@@ -31,6 +35,7 @@ namespace Heart
         auto images = m_Images;
         auto imageMemory = m_ImageMemory;
         auto imageCount = m_ImageCount;
+        auto dataSize = m_DataSize;
         void* pointer = this;
 
         VulkanContext::PushDeleteQueue([=]()
@@ -54,6 +59,9 @@ namespace Heart
 
             TextureDeletedEvent event(pointer);
             VulkanContext::EmitEvent(event);
+
+            Renderer::PushStatistic("Loaded Textures", -1);
+            Renderer::PushStatistic("Texture Memory", -dataSize);
         });
     }
 
@@ -166,8 +174,13 @@ namespace Heart
 
         CreateSampler();
 
-        // create image & staging buffer and transfer the data into the first layer
+        // calculate memory footprint of the texture
         u32 componentSize = BufferDataTypeSize(m_Info.DataType);
+        for (u32 i = 0; i < m_MipLevels; i++)
+            m_DataSize += GetMipWidth(i) * GetMipHeight(i) * m_Info.Channels * componentSize;
+        m_DataSize *= m_Info.ArrayCount * m_ImageCount;
+
+        // create image & staging buffer and transfer the data into the first layer
         if (data != nullptr)
         {
             VulkanCommon::CreateBuffer(

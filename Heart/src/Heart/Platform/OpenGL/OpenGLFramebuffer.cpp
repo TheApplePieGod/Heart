@@ -579,14 +579,19 @@ namespace Heart
         {
             if (attachment.CPUVisible)
             {
-                for (size_t i = 0; i < attachment.PixelBuffers.size(); i++)
+                if (attachment.ExternalTexture)
+                    attachment.PixelBuffers = attachment.ExternalTexture->GetPixelBuffers();
+                else
                 {
-                    attachment.PixelBuffers[i] = std::dynamic_pointer_cast<OpenGLBuffer>(Buffer::Create(
-                        Buffer::Type::Pixel,
-                        BufferUsageType::Dynamic,
-                        { ColorFormatBufferDataType(attachment.GeneralColorFormat) },
-                        m_ActualWidth * m_ActualHeight * ColorFormatComponents(attachment.GeneralColorFormat)
-                    ));
+                    for (size_t i = 0; i < attachment.PixelBuffers.size(); i++)
+                    {
+                        attachment.PixelBuffers[i] = std::dynamic_pointer_cast<OpenGLBuffer>(Buffer::Create(
+                            Buffer::Type::Pixel,
+                            BufferUsageType::Dynamic,
+                            { ColorFormatBufferDataType(attachment.GeneralColorFormat) },
+                            m_ActualWidth * m_ActualHeight * ColorFormatComponents(attachment.GeneralColorFormat)
+                        ));
+                    }
                 }
             }
         }

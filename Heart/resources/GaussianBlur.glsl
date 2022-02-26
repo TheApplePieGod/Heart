@@ -1,4 +1,3 @@
-
 layout(binding = 1) uniform sampler2D image;
 
 const float weights[5] = { 0.227027, 0.1945946, 0.1216216, 0.054054, 0.016216 };
@@ -27,6 +26,6 @@ vec3 GaussianVertical(vec2 texCoords, uint mip, float blurScale, float blurStren
         result += textureLod(image, texCoords + vec2(0.0, texOffset.y * i), mip).rgb * weights[i] * blurStrength;
         result += textureLod(image, texCoords - vec2(0.0, texOffset.y * i), mip).rgb * weights[i] * blurStrength;
     }
-
+    
     return result;
 }

@@ -60,6 +60,7 @@ namespace Heart
         u32 Width, Height = 0; // set to zero to match screen width and height
         MsaaSampleCount SampleCount = MsaaSampleCount::None; // will be clamped to device max supported sample count
         bool AllowPerformanceQuerying = false;
+        bool AllowStatisticsQuerying = false;
     };
 
     class WindowResizeEvent;

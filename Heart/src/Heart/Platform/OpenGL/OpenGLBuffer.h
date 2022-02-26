@@ -18,6 +18,7 @@ namespace Heart
         inline void* GetMappedMemory() { return m_MappedMemory; }
 
     private:
+        s64 m_DataSize = 0;
         u32 m_BufferId;
         void* m_MappedMemory = nullptr;
     };

@@ -6,6 +6,7 @@
 #include "HeartEditor/EditorCamera.h"
 #include "Heart/Input/Input.h"
 #include "Heart/Core/Timing.h"
+#include "Heart/Renderer/Renderer.h"
 #include "Heart/Renderer/Framebuffer.h"
 #include "Heart/Renderer/Pipeline.h"
 #include "imgui/imgui.h"
@@ -64,6 +65,12 @@ namespace Widgets
             bloomTiming += bufs[1]->GetPerformanceTimestamp();
         }
         ImGui::Text("Bloom Pass: %.2fms", bloomTiming);
+        ImGui::Unindent();
+
+        ImGui::Text("Render Statistics:");
+        ImGui::Indent();
+        for (auto& pair : Heart::Renderer::GetStatistics())
+            ImGui::Text("%s: %lld", pair.first.c_str(), pair.second);
         ImGui::Unindent();
 
         ImGui::End();

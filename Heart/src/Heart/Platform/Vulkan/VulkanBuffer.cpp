@@ -1,6 +1,7 @@
 #include "hepch.h"
 #include "VulkanBuffer.h"
 
+#include "Heart/Renderer/Renderer.h"
 #include "Heart/Platform/Vulkan/VulkanContext.h"
 #include "Heart/Core/App.h"
 #include "Heart/Core/Window.h"
@@ -90,6 +91,11 @@ namespace Heart
                 }
             }
         }
+
+        m_DataSize = bufferSize * m_BufferCount;    
+
+        Renderer::PushStatistic("Buffers", 1);
+        Renderer::PushStatistic("Buffer Memory", m_DataSize);
     }
 
     VulkanBuffer::~VulkanBuffer()
@@ -116,6 +122,9 @@ namespace Heart
             vkDestroyBuffer(device.Device(), m_Buffers[i], nullptr);
             vkFreeMemory(device.Device(), m_BufferMemory[i], nullptr);  
         }
+
+        Renderer::PushStatistic("Buffers", -1);
+        Renderer::PushStatistic("Buffer Memory", -m_DataSize);
     }
 
     void VulkanBuffer::CreateBuffer(VkDeviceSize size, VkBuffer& outBuffer, VkDeviceMemory& outMemory, VkBuffer& outStagingBuffer, VkDeviceMemory& outStagingMemory)

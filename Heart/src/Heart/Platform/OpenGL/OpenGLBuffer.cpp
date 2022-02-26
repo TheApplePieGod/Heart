@@ -2,6 +2,7 @@
 #include "OpenGLBuffer.h"
 
 #include "glad/glad.h"
+#include "Heart/Renderer/Renderer.h"
 #include "Heart/Platform/OpenGL/OpenGLCommon.h"
 
 namespace Heart
@@ -38,12 +39,20 @@ namespace Heart
         glBindBuffer(OpenGLCommon::BufferTypeToOpenGL(type), m_BufferId);
         glBufferData(OpenGLCommon::BufferTypeToOpenGL(type), layout.GetStride() * elementCount, initialData, OpenGLCommon::BufferUsageTypeToOpenGL(usage));
         glBindBuffer(OpenGLCommon::BufferTypeToOpenGL(type), 0);
+
+        m_DataSize = elementCount * layout.GetStride();
+
+        Renderer::PushStatistic("Buffers", 1);
+        Renderer::PushStatistic("Buffer Memory", m_DataSize);
     }
 
     OpenGLBuffer::~OpenGLBuffer()
     {
         Unmap();
         glDeleteBuffers(1, &m_BufferId);
+
+        Renderer::PushStatistic("Buffers", -1);
+        Renderer::PushStatistic("Buffer Memory", -m_DataSize);
     }
 
     void OpenGLBuffer::SetBytes(void* data, u32 byteCount, u32 byteOffset)

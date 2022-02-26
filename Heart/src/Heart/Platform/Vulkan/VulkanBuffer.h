@@ -39,6 +39,7 @@ namespace Heart
         std::array<VkBuffer, MAX_FRAMES_IN_FLIGHT> m_StagingBuffers;
         std::array<VkDeviceMemory, MAX_FRAMES_IN_FLIGHT> m_StagingBufferMemory;
         std::array<void*, MAX_FRAMES_IN_FLIGHT> m_MappedMemory;
+        s64 m_DataSize = 0;
         u64 m_LastUpdateFrame = 0;
         u32 m_InFlightFrameIndex = 0;
         u32 m_BufferCount = 0;

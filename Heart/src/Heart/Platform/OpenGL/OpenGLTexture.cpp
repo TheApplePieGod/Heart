@@ -108,6 +108,13 @@ namespace Heart
         }
 
         glBindTexture(m_Target, 0);
+
+        for (u32 i = 0; i < m_MipLevels; i++)
+            m_DataSize += GetMipWidth(i) * GetMipHeight(i) * m_Info.Channels * BufferDataTypeSize(m_Info.DataType);
+        m_DataSize *= m_Info.ArrayCount;
+
+        Renderer::PushStatistic("Loaded Textures", 1);
+        Renderer::PushStatistic("Texture Memory", m_DataSize);
     }
 
     void OpenGLTexture::RegenerateMipMaps()
@@ -137,5 +144,8 @@ namespace Heart
                 buffer->Unmap();
 
         glDeleteTextures(1, &m_TextureId);
+
+        Renderer::PushStatistic("Loaded Textures", -1);
+        Renderer::PushStatistic("Texture Memory", -m_DataSize);
     }
 }
