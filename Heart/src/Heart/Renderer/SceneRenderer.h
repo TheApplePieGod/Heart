@@ -12,13 +12,17 @@ namespace Heart
         bool DrawGrid = true;
         
         bool BloomEnable = true;
-        float BloomBlurStrength = 1.f;
-        float BloomBlurScale = 2.f;
+        float BloomBlurStrength = 0.2f;
+        float BloomBlurScale = 1.f;
+        float BloomThreshold = 1.f;
+
+        bool CullEnable = true;
     };
 
     class Scene;
     class GraphicsContext;
     class Framebuffer;
+    class ComputePipeline;
     class Buffer;
     class Texture;
     class Material;
@@ -31,29 +35,6 @@ namespace Heart
     class SceneRenderer : public EventListener
     {
     public:
-        struct FrameData
-        {
-            glm::mat4 Proj;
-            glm::mat4 View;
-            glm::vec4 CameraPos;
-            glm::vec2 ScreenSize;
-            bool ReverseDepth;
-            float padding;
-        };
-        struct BloomData
-        {
-            u32 MipLevel;
-            bool ReverseDepth;
-            float BlurScale;
-            float BlurStrength;
-        };
-        struct ObjectData
-        {
-            glm::mat4 Model;
-            glm::vec4 Data;
-        };
-
-    public:
         SceneRenderer();
         ~SceneRenderer();
 
@@ -61,8 +42,11 @@ namespace Heart
 
         void OnEvent(Event& event) override;
 
-        inline Framebuffer& GetFinalFramebuffer() { return *m_FinalFramebuffer; }
         inline Texture& GetFinalTexture() { return *m_FinalTexture; }
+        inline Texture& GetEntityIdsTexture() { return *m_EntityIdsTexture; }
+        inline Framebuffer& GetMainFramebuffer() { return *m_MainFramebuffer; }
+        inline ComputePipeline& GetCullPipeline() { return *m_ComputeCullPipeline; }
+        inline std::vector<std::array<Ref<Framebuffer>, 2>>& GetBloomFramebuffers() { return m_BloomFramebuffers; }
 
     private:
         struct IndirectBatch
@@ -80,6 +64,45 @@ namespace Heart
             u32 FirstIndex;
             int VertexOffset;
             u32 FirstInstance;
+
+            u32 padding1;
+            glm::vec2 padding2;
+        };
+        struct InstanceData
+        {
+            u32 ObjectId;
+            u32 BatchId;
+            glm::vec2 padding;  
+        };
+        struct FrameData
+        {
+            glm::mat4 Proj;
+            glm::mat4 View;
+            glm::vec4 CameraPos;
+            glm::vec2 ScreenSize;
+            bool ReverseDepth;
+            float BloomThreshold;
+            bool CullEnable;
+            bool padding1;
+            glm::vec2 padding2;
+        };
+        struct BloomData
+        {
+            u32 MipLevel;
+            bool ReverseDepth;
+            float BlurScale;
+            float BlurStrength;
+        };
+        struct ObjectData
+        {
+            glm::mat4 Model;
+            glm::vec4 Data;
+            glm::vec4 BoundingSphere;
+        };
+        struct CullData
+        {
+            std::array<glm::vec4, 6> FrustumPlanes;
+            glm::vec4 Data;
         };
 
     private:
@@ -96,6 +119,7 @@ namespace Heart
         void BindMaterial(Material* material);
         void BindPBRDefaults();
 
+        void SetupCullCompute();
         void RenderEnvironmentMap();
         void RenderGrid();
         void RenderBatches();
@@ -111,22 +135,29 @@ namespace Heart
     private:
         bool m_Initialized = false;
 
-        Ref<Framebuffer> m_FinalFramebuffer;
+        Ref<Framebuffer> m_MainFramebuffer;
         std::vector<std::array<Ref<Framebuffer>, 2>> m_BloomFramebuffers; // one for each mip level and one for horizontal / vertical passes
+
+        Ref<ComputePipeline> m_ComputeCullPipeline;
+        Ref<Buffer> m_CullDataBuffer;
+        Ref<Buffer> m_InstanceDataBuffer;
+        Ref<Buffer> m_FinalInstanceBuffer;
+        Ref<Buffer> m_IndirectBuffer;
 
         Ref<Texture> m_DefaultEnvironmentMap;
         Ref<Texture> m_PreBloomTexture;
         Ref<Texture> m_BrightColorsTexture;
         Ref<Texture> m_BloomBufferTexture;
         Ref<Texture> m_BloomUpsampleBufferTexture;
+
         Ref<Texture> m_FinalTexture;
+        Ref<Texture> m_EntityIdsTexture;
 
         Ref<Buffer> m_FrameDataBuffer;
         Ref<Buffer> m_BloomDataBuffer;
         Ref<Buffer> m_ObjectDataBuffer;
         Ref<Buffer> m_MaterialDataBuffer;
         Ref<Buffer> m_LightingDataBuffer;
-        Ref<Buffer> m_IndirectBuffer;
 
         // grid
         Ref<Buffer> m_GridVertices;
@@ -135,10 +166,12 @@ namespace Heart
         // in-flight frame data
         Scene* m_Scene;
         EnvironmentMap* m_EnvironmentMap;
+        const Camera* m_Camera;
         std::unordered_map<u64, IndirectBatch> m_IndirectBatches;
         std::vector<IndirectBatch*> m_DeferredIndirectBatches;
         std::vector<std::vector<u32>> m_EntityListPool;
         SceneRenderSettings m_SceneRenderSettings;
+        u32 m_RenderedInstanceCount;
 
         const u32 m_BloomMipCount = 5;
         bool m_ShouldResize = false;

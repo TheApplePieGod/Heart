@@ -232,7 +232,10 @@ namespace Widgets
                     Heart::UUID assetId = Heart::AssetManager::RegisterAsset(assetType, path);
                     auto asset = Heart::AssetManager::RetrieveAsset<Heart::SceneAsset>(assetId);
                     if (asset && asset->IsValid())
+                    {
                         Editor::SetActiveScene(asset->GetScene());
+                        Editor::GetState().SelectedEntity = Heart::Entity();
+                    }
                 }
             }
         }
@@ -262,7 +265,7 @@ namespace Widgets
 
             auto assetType = Heart::AssetManager::DeduceAssetTypeFromFile(entryName);
             if (assetType == Heart::Asset::Type::Material && ImGui::MenuItem("Open in Editor"))
-                ((Widgets::MaterialEditor&)Editor::GetWindow("Material Editor")).SetSelectedMaterial(Heart::AssetManager::RegisterAsset(assetType, path));
+                ((Widgets::MaterialEditor&)Editor::GetWindow("Material Editor")).SetSelectedMaterial(Heart::AssetManager::RegisterAsset(assetType, Heart::AssetManager::GetRelativePath(path)));
 
             ImGui::EndPopup();
         }

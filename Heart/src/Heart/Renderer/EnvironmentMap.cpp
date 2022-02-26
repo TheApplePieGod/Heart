@@ -59,10 +59,10 @@ namespace Heart
         m_Initialized = true;
 
         // Create texture & cubemap targets
-        m_EnvironmentMap = Texture::Create({ 512, 512, 4, true, 6, 0 });
-        m_IrradianceMap = Texture::Create({ 256, 256, 4, true, 6, 1 });
-        m_PrefilterMap = Texture::Create({ 256, 256, 4, true, 6, 5 });
-        m_BRDFTexture = Texture::Create({ 512, 512, 4, true, 1, 1 });
+        m_EnvironmentMap = Texture::Create({ 512, 512, 4, BufferDataType::HalfFloat, BufferUsageType::Static, 6, 0 });
+        m_IrradianceMap = Texture::Create({ 256, 256, 4, BufferDataType::HalfFloat, BufferUsageType::Static, 6, 1 });
+        m_PrefilterMap = Texture::Create({ 256, 256, 4, BufferDataType::HalfFloat, BufferUsageType::Static, 6, 5 });
+        m_BRDFTexture = Texture::Create({ 512, 512, 4, BufferDataType::HalfFloat, BufferUsageType::Static, 1, 1 });
 
         // Create the cubemap data buffer to hold data for each face render
         BufferLayout cubemapDataLayout = {
@@ -77,12 +77,12 @@ namespace Heart
         // ------------------------------------------------------------------
         FramebufferCreateInfo cubemapFbCreateInfo = {
             {
-                { false, { 0.f, 0.f, 0.f, 0.f }, ColorFormat::None, m_EnvironmentMap, 0 },
-                { false, { 0.f, 0.f, 0.f, 0.f }, ColorFormat::None, m_EnvironmentMap, 1 },
-                { false, { 0.f, 0.f, 0.f, 0.f }, ColorFormat::None, m_EnvironmentMap, 2 },
-                { false, { 0.f, 0.f, 0.f, 0.f }, ColorFormat::None, m_EnvironmentMap, 3 },
-                { false, { 0.f, 0.f, 0.f, 0.f }, ColorFormat::None, m_EnvironmentMap, 4 },
-                { false, { 0.f, 0.f, 0.f, 0.f }, ColorFormat::None, m_EnvironmentMap, 5 }
+                { { 0.f, 0.f, 0.f, 0.f }, false, ColorFormat::None, m_EnvironmentMap, 0 },
+                { { 0.f, 0.f, 0.f, 0.f }, false, ColorFormat::None, m_EnvironmentMap, 1 },
+                { { 0.f, 0.f, 0.f, 0.f }, false, ColorFormat::None, m_EnvironmentMap, 2 },
+                { { 0.f, 0.f, 0.f, 0.f }, false, ColorFormat::None, m_EnvironmentMap, 3 },
+                { { 0.f, 0.f, 0.f, 0.f }, false, ColorFormat::None, m_EnvironmentMap, 4 },
+                { { 0.f, 0.f, 0.f, 0.f }, false, ColorFormat::None, m_EnvironmentMap, 5 }
             },
             {},
             {
@@ -122,12 +122,12 @@ namespace Heart
         // ---------------------------------------------------------------------------------------
         FramebufferCreateInfo irradianceFbCreateInfo = {
             {
-                { false, { 0.f, 0.f, 0.f, 0.f }, ColorFormat::None, m_IrradianceMap, 0 },
-                { false, { 0.f, 0.f, 0.f, 0.f }, ColorFormat::None, m_IrradianceMap, 1 },
-                { false, { 0.f, 0.f, 0.f, 0.f }, ColorFormat::None, m_IrradianceMap, 2 },
-                { false, { 0.f, 0.f, 0.f, 0.f }, ColorFormat::None, m_IrradianceMap, 3 },
-                { false, { 0.f, 0.f, 0.f, 0.f }, ColorFormat::None, m_IrradianceMap, 4 },
-                { false, { 0.f, 0.f, 0.f, 0.f }, ColorFormat::None, m_IrradianceMap, 5 }
+                { { 0.f, 0.f, 0.f, 0.f }, false, ColorFormat::None, m_IrradianceMap, 0 },
+                { { 0.f, 0.f, 0.f, 0.f }, false, ColorFormat::None, m_IrradianceMap, 1 },
+                { { 0.f, 0.f, 0.f, 0.f }, false, ColorFormat::None, m_IrradianceMap, 2 },
+                { { 0.f, 0.f, 0.f, 0.f }, false, ColorFormat::None, m_IrradianceMap, 3 },
+                { { 0.f, 0.f, 0.f, 0.f }, false, ColorFormat::None, m_IrradianceMap, 4 },
+                { { 0.f, 0.f, 0.f, 0.f }, false, ColorFormat::None, m_IrradianceMap, 5 }
             },
             {},
             {
@@ -196,7 +196,7 @@ namespace Heart
         {
             prefilterFbCreateInfo.ColorAttachments.clear();
             for (u32 j = 0; j < 6; j++) // each face
-                prefilterFbCreateInfo.ColorAttachments.push_back({ false, { 0.f, 0.f, 0.f, 0.f }, ColorFormat::None, m_PrefilterMap, j, i });
+                prefilterFbCreateInfo.ColorAttachments.push_back({ { 0.f, 0.f, 0.f, 0.f }, false, ColorFormat::None, m_PrefilterMap, j, i });
             prefilterFbCreateInfo.Width = static_cast<u32>(m_PrefilterMap->GetWidth() * pow(0.5f, i));
             prefilterFbCreateInfo.Height = static_cast<u32>(m_PrefilterMap->GetHeight() * pow(0.5f, i));
 
@@ -213,7 +213,7 @@ namespace Heart
         // ----------------------------------------------------------------------------------------------------------------------
         FramebufferCreateInfo brdfFbCreateInfo = {
             {
-                { false, { 0.f, 0.f, 0.f, 0.f }, ColorFormat::None, m_BRDFTexture }
+                { { 0.f, 0.f, 0.f, 0.f }, false, ColorFormat::None, m_BRDFTexture }
             },
             {},
             {
@@ -318,7 +318,7 @@ namespace Heart
 
         m_EnvironmentMap->RegenerateMipMapsSync(m_CubemapFramebuffer.get());
 
-        Renderer::Api().RenderFramebuffers(Window::GetMainWindow().GetContext(), { m_CubemapFramebuffer.get() });
+        Renderer::Api().RenderFramebuffers(Window::GetMainWindow().GetContext(), { { m_CubemapFramebuffer.get() } });
 
         // ------------------------------------------------------------------
         // Precalculate environment irradiance
@@ -351,7 +351,7 @@ namespace Heart
             cubeDataIndex++;
         }
 
-        Renderer::Api().RenderFramebuffers(Window::GetMainWindow().GetContext(), { m_IrradianceMapFramebuffer.get() });
+        Renderer::Api().RenderFramebuffers(Window::GetMainWindow().GetContext(), { { m_IrradianceMapFramebuffer.get() } });
 
         // ------------------------------------------------------------------
         // Prefilter the environment map based on roughness
@@ -388,7 +388,7 @@ namespace Heart
                 cubeDataIndex++;
             }
 
-            Renderer::Api().RenderFramebuffers(Window::GetMainWindow().GetContext(), { m_PrefilterFramebuffers[i].get() });
+            Renderer::Api().RenderFramebuffers(Window::GetMainWindow().GetContext(), { { m_PrefilterFramebuffers[i].get() } });
         }
 
         // ------------------------------------------------------------------
@@ -398,12 +398,13 @@ namespace Heart
         m_BRDFFramebuffer->BindPipeline("0");  
 
         CubemapData mapData = { cubemapCam.GetProjectionMatrix(), cubemapCam.GetViewMatrix(), glm::vec4(Renderer::IsUsingReverseDepth(), 0.f, 0.f, 0.f) };
-        m_CubemapDataBuffer->SetElements(&mapData, 1, cubeDataIndex++);
+        m_CubemapDataBuffer->SetElements(&mapData, 1, cubeDataIndex);
         m_BRDFFramebuffer->BindShaderBufferResource(0, cubeDataIndex, 1, m_CubemapDataBuffer.get());
+        cubeDataIndex++;
 
         m_BRDFFramebuffer->FlushBindings();
 
         Renderer::Api().Draw(3, 0, 1);
-        Renderer::Api().RenderFramebuffers(Window::GetMainWindow().GetContext(), { m_BRDFFramebuffer.get() });
+        Renderer::Api().RenderFramebuffers(Window::GetMainWindow().GetContext(), { { m_BRDFFramebuffer.get() } });
     }
 }

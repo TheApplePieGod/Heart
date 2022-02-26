@@ -4,6 +4,7 @@
 #include "Heart/Core/Layer.h"
 #include "Heart/Core/Window.h"
 #include "Heart/Core/Timing.h"
+#include "Heart/Renderer/Renderer.h"
 #include "Heart/ImGui/ImGuiInstance.h"
 #include "Heart/Events/WindowEvents.h"
 #include "Heart/Events/AppEvents.h"
@@ -26,7 +27,7 @@ namespace Heart
         #endif
 
         WindowSettings windowSettings = WindowSettings(windowName);
-        InitializeGraphicsApi(RenderApi::Type::Vulkan, windowSettings);
+        InitializeGraphicsApi(RenderApi::Type::OpenGL, windowSettings);
 
         AssetManager::Initialize();
 

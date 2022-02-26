@@ -25,7 +25,6 @@ namespace Heart
 
         bool IsSubscribed(EventListener* listener) const;
 
-    protected:
         void Emit(Event& event);
 
     private:

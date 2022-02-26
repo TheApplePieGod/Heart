@@ -1,6 +1,8 @@
 #include "hepch.h"
 #include "OpenGLTexture.h"
 
+#include "Heart/Core/App.h"
+#include "Heart/Platform/OpenGL/OpenGLBuffer.h"
 #include "Heart/Platform/OpenGL/OpenGLCommon.h"
 #include "glad/glad.h"
 #include "stb_image/stb_image.h"
@@ -19,10 +21,25 @@ namespace Heart
         if (m_MipLevels > maxMipLevels || m_MipLevels == 0)
             m_MipLevels = maxMipLevels;
 
-        int type = m_Info.FloatComponents ? GL_FLOAT : GL_UNSIGNED_BYTE;
-        m_Format = GL_RGBA;
-        m_InternalFormat = m_Info.FloatComponents ? GL_RGBA32F : GL_RGBA8;
-        m_GeneralFormat = m_Info.FloatComponents ? ColorFormat::RGBA32F : ColorFormat::RGBA8;
+        int type = OpenGLCommon::BufferDataTypeToBaseOpenGL(createInfo.DataType);
+        m_GeneralFormat = BufferDataTypeColorFormat(createInfo.DataType, m_Info.Channels);
+        m_Format = OpenGLCommon::ColorFormatToOpenGL(m_GeneralFormat);
+        m_InternalFormat = OpenGLCommon::ColorFormatToInternalOpenGL(m_GeneralFormat);
+
+        // if the texture is cpu visible, create the readonly buffer
+        if (createInfo.AllowCPURead)
+        {
+            for (size_t i = 0; i < m_PixelBuffers.size(); i++)
+            {
+                m_PixelBuffers[i] = std::dynamic_pointer_cast<OpenGLBuffer>(Buffer::Create(
+                    Buffer::Type::Pixel,
+                    BufferUsageType::Dynamic,
+                    { m_Info.DataType },
+                    m_Info.Width * m_Info.Height * m_Info.Channels,
+                    initialData
+                ));
+            }
+        }
 
         m_Target = GL_TEXTURE_2D;
         if (m_Info.ArrayCount > 1)
@@ -36,12 +53,13 @@ namespace Heart
         float maxAnisotropy;
         glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY, &maxAnisotropy);
 
-        // TODO: paramaterize
+        // apply sampler params to the main texture
         glTexParameteri(m_Target, GL_TEXTURE_WRAP_S, OpenGLCommon::SamplerWrapModeToOpenGL(m_Info.SamplerState.UVWWrap[0]));	
         glTexParameteri(m_Target, GL_TEXTURE_WRAP_T, OpenGLCommon::SamplerWrapModeToOpenGL(m_Info.SamplerState.UVWWrap[1]));
         glTexParameteri(m_Target, GL_TEXTURE_WRAP_R, OpenGLCommon::SamplerWrapModeToOpenGL(m_Info.SamplerState.UVWWrap[2]));
         glTexParameteri(m_Target, GL_TEXTURE_MIN_FILTER, OpenGLCommon::SamplerFilterToOpenGLWithMipmap(m_Info.SamplerState.MinFilter));
         glTexParameteri(m_Target, GL_TEXTURE_MAG_FILTER, OpenGLCommon::SamplerFilterToOpenGL(m_Info.SamplerState.MagFilter));
+        glTexParameteri(m_Target, GL_TEXTURE_REDUCTION_MODE_ARB, OpenGLCommon::SamplerReductionModeToOpenGL(m_Info.SamplerState.ReductionMode));
         glTexParameterf(m_Target, GL_TEXTURE_MAX_ANISOTROPY, m_Info.SamplerState.AnisotropyEnable ? std::min(maxAnisotropy, static_cast<float>(m_Info.SamplerState.MaxAnisotropy)) : 1);
 
         if (m_Info.ArrayCount == 1)
@@ -74,13 +92,29 @@ namespace Heart
             for (u32 j = 0; j < m_MipLevels; j++)
             {
                 glTextureView(m_ViewTextures[viewIndex], GL_TEXTURE_2D, m_TextureId, m_InternalFormat, j, 1, i, 1);
-                if (j == 0)
-                    m_LayerImGuiHandles.emplace_back((void*)static_cast<size_t>(m_ViewTextures[viewIndex]));
+
+                // apply the sampler params to each view because they do not inherit
+                glTextureParameteri(m_ViewTextures[viewIndex], GL_TEXTURE_WRAP_S, OpenGLCommon::SamplerWrapModeToOpenGL(m_Info.SamplerState.UVWWrap[0]));	
+                glTextureParameteri(m_ViewTextures[viewIndex], GL_TEXTURE_WRAP_T, OpenGLCommon::SamplerWrapModeToOpenGL(m_Info.SamplerState.UVWWrap[1]));
+                glTextureParameteri(m_ViewTextures[viewIndex], GL_TEXTURE_WRAP_R, OpenGLCommon::SamplerWrapModeToOpenGL(m_Info.SamplerState.UVWWrap[2]));
+                glTextureParameteri(m_ViewTextures[viewIndex], GL_TEXTURE_MIN_FILTER, OpenGLCommon::SamplerFilterToOpenGLWithMipmap(m_Info.SamplerState.MinFilter));
+                glTextureParameteri(m_ViewTextures[viewIndex], GL_TEXTURE_MAG_FILTER, OpenGLCommon::SamplerFilterToOpenGL(m_Info.SamplerState.MagFilter));
+                glTextureParameteri(m_ViewTextures[viewIndex], GL_TEXTURE_REDUCTION_MODE_ARB, OpenGLCommon::SamplerReductionModeToOpenGL(m_Info.SamplerState.ReductionMode));
+                glTextureParameterf(m_ViewTextures[viewIndex], GL_TEXTURE_MAX_ANISOTROPY, m_Info.SamplerState.AnisotropyEnable ? std::min(maxAnisotropy, static_cast<float>(m_Info.SamplerState.MaxAnisotropy)) : 1);
+
+                m_ImGuiHandles.emplace_back((void*)static_cast<size_t>(m_ViewTextures[viewIndex]));
                 viewIndex++;
             }
         }
 
         glBindTexture(m_Target, 0);
+
+        for (u32 i = 0; i < m_MipLevels; i++)
+            m_DataSize += GetMipWidth(i) * GetMipHeight(i) * m_Info.Channels * BufferDataTypeSize(m_Info.DataType);
+        m_DataSize *= m_Info.ArrayCount;
+
+        Renderer::PushStatistic("Loaded Textures", 1);
+        Renderer::PushStatistic("Texture Memory", m_DataSize);
     }
 
     void OpenGLTexture::RegenerateMipMaps()
@@ -90,8 +124,28 @@ namespace Heart
         glBindTexture(m_Target, 0);
     }
 
+    void* OpenGLTexture::GetPixelData()
+    {
+        HE_ENGINE_ASSERT(m_Info.AllowCPURead, "Cannot read pixel data of texture that does not have 'AllowCPURead' enabled");
+
+        // Any unmapping will be handled in the framebuffer that draws to this image if applicable
+        return m_PixelBuffers[(App::Get().GetFrameCount() + 1) % 2]->Map(true);
+    }
+
+    void* OpenGLTexture::GetImGuiHandle(u32 layerIndex, u32 mipLevel)
+    {
+        return m_ImGuiHandles[layerIndex * m_MipLevels + mipLevel];
+    }
+
     OpenGLTexture::~OpenGLTexture()
     {
+        if (m_Info.AllowCPURead)
+            for (auto& buffer : m_PixelBuffers)
+                buffer->Unmap();
+
         glDeleteTextures(1, &m_TextureId);
+
+        Renderer::PushStatistic("Loaded Textures", -1);
+        Renderer::PushStatistic("Texture Memory", -m_DataSize);
     }
 }

@@ -33,6 +33,7 @@ namespace Widgets
             {
                 // Unload the scene
                 Editor::SetActiveScene(Heart::CreateRef<Heart::Scene>());
+                Editor::GetState().SelectedEntity = Heart::Entity();
 
                 // Call switch on the app
                 EditorApp::Get().SwitchAssetsDirectory(path);

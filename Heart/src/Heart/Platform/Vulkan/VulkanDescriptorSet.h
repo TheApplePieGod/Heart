@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Heart/Events/EventEmitter.h"
 #include "Heart/Renderer/Shader.h"
 #include "Heart/Platform/Vulkan/VulkanCommon.h"
 
@@ -8,7 +9,8 @@
 
 namespace Heart
 {
-    class VulkanDescriptorSet
+    class TextureDeletedEvent;
+    class VulkanDescriptorSet : public EventListener
     {
     public:
         void Initialize(const std::vector<ReflectionDataElement>& reflectionData);
@@ -16,6 +18,8 @@ namespace Heart
 
         void UpdateShaderResource(u32 bindingIndex, ShaderResourceType resourceType, void* resource, bool useOffset, u32 offset, u32 size);
         void FlushBindings();
+
+        void OnEvent(Event& event) override;
 
         inline VkDescriptorSetLayout GetLayout() const { return m_DescriptorSetLayout; };
         inline VkDescriptorSet GetMostRecentDescriptorSet() const { return m_MostRecentDescriptorSet; }
@@ -30,6 +34,7 @@ namespace Heart
         {
             void* Resource;
             u32 Offset;
+            u32 Size;
         };
         struct BindingData
         {
@@ -42,8 +47,9 @@ namespace Heart
         VkDescriptorPool CreateDescriptorPool();
         inline void PushDescriptorPool() { m_DescriptorPools[m_InFlightFrameIndex].emplace_back(CreateDescriptorPool()); }
         VkDescriptorSet AllocateSet();
-        void ClearPools();
-        size_t HashBindings();
+        void ClearPools(u32 inFlightFrameIndex);
+        u64 HashBindings();
+        bool OnTextureDeleted(TextureDeletedEvent& event);
 
     private:
         // TODO: parameterize?
@@ -54,18 +60,18 @@ namespace Heart
         std::array<std::vector<VkDescriptorPool>, MAX_FRAMES_IN_FLIGHT> m_DescriptorPools;
         VkDescriptorSet m_MostRecentDescriptorSet;
 
-        std::vector<VkDescriptorSet> m_AvailableSets;
+        std::array<std::vector<VkDescriptorSet>, MAX_FRAMES_IN_FLIGHT> m_AvailableSets;
         std::vector<VkDescriptorPoolSize> m_CachedPoolSizes;
         std::vector<VkWriteDescriptorSet> m_CachedDescriptorWrites;
         std::array<VkDescriptorBufferInfo, MAX_UNIQUE_DESCRIPTORS> m_CachedBufferInfos;
         std::array<VkDescriptorImageInfo, MAX_DESCRIPTOR_ARRAY_COUNT * MAX_UNIQUE_DESCRIPTORS> m_CachedImageInfos;
-        std::unordered_map<size_t, VkDescriptorSet> m_CachedDescriptorSets;
+        std::array<std::unordered_map<u64, VkDescriptorSet>, MAX_FRAMES_IN_FLIGHT> m_CachedDescriptorSets;
 
         u64 m_LastResetFrame = 0;
         u32 m_InFlightFrameIndex = 0;
         size_t m_WritesReadyCount = 0;
-        size_t m_AvailableSetIndex = 0;
-        size_t m_AvailablePoolIndex = 0;
+        std::array<size_t, MAX_FRAMES_IN_FLIGHT> m_AvailableSetIndex{};
+        std::array<size_t, MAX_FRAMES_IN_FLIGHT> m_AvailablePoolIndex{};
 
         std::vector<BindingData> m_Bindings;
         std::unordered_map<u32, BoundResource> m_BoundResources;

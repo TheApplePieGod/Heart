@@ -17,7 +17,7 @@ namespace Widgets
         void OnImGuiRender() override;
 
     private:
-        void RenderEntity(entt::entity entity);
+        bool RenderEntity(entt::entity entity);
     };
 }
 }

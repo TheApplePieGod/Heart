@@ -89,6 +89,14 @@ namespace HeartEditor
         //     comp.Color = { (rand() % 255) / 255.f, (rand() % 255) / 255.f, (rand() % 255) / 255.f, rand() % 50 };
         //     entity.SetPosition({ rand() % (max * 2) - max, rand() % (max * 2) - max, rand() % (max * 2) - max });
         // }
+
+        // int max = 100;
+        // for (int i = 0; i < 400; i++)
+        // {
+        //     Heart::Entity entity = Editor::GetActiveScene().CreateEntity("Mesh " + std::to_string(i));
+        //     auto& comp = entity.AddComponent<Heart::MeshComponent>().Mesh = Heart::AssetManager::GetAssetUUID("assets/meshes/Sponza/glTF/Sponza.gltf");
+        //     entity.SetPosition({ rand() % (max * 2) - max, rand() % (max * 2) - max, rand() % (max * 2) - max });
+        // }
     }
 
     EditorLayer::~EditorLayer()
@@ -175,11 +183,11 @@ namespace HeartEditor
             glm::vec2 size = viewport.GetSize();
 
             // the image is scaled down in the viewport, so we need to adjust what pixel we are sampling from
-            // u32 sampleX = static_cast<u32>(mousePos.x / size.x * viewport.GetSceneRenderer().GetFinalFramebuffer().GetWidth());
-            // u32 sampleY = static_cast<u32>(mousePos.y / size.y * viewport.GetSceneRenderer().GetFinalFramebuffer().GetHeight());
+            u32 sampleX = static_cast<u32>(mousePos.x / size.x * viewport.GetSceneRenderer().GetEntityIdsTexture().GetWidth());
+            u32 sampleY = static_cast<u32>(mousePos.y / size.y * viewport.GetSceneRenderer().GetEntityIdsTexture().GetHeight());
 
-            // f32 entityId = viewport.GetSceneRenderer().GetFinalFramebuffer().ReadColorAttachmentPixel<f32>(1, sampleX, sampleY, 0);
-            // Editor::GetState().SelectedEntity = entityId == -1.f ? Heart::Entity() : Heart::Entity(&Editor::GetActiveScene(), static_cast<u32>(entityId));
+            f32 entityId = viewport.GetSceneRenderer().GetEntityIdsTexture().ReadPixel<f32>(sampleX, sampleY, 0);
+            Editor::GetState().SelectedEntity = entityId == -1.f ? Heart::Entity() : Heart::Entity(&Editor::GetActiveScene(), static_cast<u32>(entityId));
         }
 
         return true;

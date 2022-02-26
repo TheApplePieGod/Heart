@@ -4,26 +4,37 @@
 
 namespace Heart
 {
+    struct SwapChainData
+    {
+        VkFormat ImageFormat;
+        VkExtent2D Extent;
+        std::vector<VkImage> Images;
+        std::vector<VkImageView> ImageViews;
+        std::vector<VkFramebuffer> Framebuffers;
+        std::vector<VkCommandBuffer> CommandBuffers;
+    };
+    struct VulkanFramebufferSubmit
+    {
+        // The buffer holding graphics commands
+        VkCommandBuffer DrawBuffer = nullptr;
+
+        // The buffer holding transfer commands that rely on the completion of the draw buffer
+        VkCommandBuffer TransferBuffer = nullptr;
+    };
+    struct VulkanComputePipelineSubmit
+    {
+        VkCommandBuffer CommandBuffer = nullptr;
+    };
+
     class VulkanSwapChain
     {
-    public:
-        struct SwapChainData
-        {
-            VkFormat ImageFormat;
-            VkExtent2D Extent;
-            std::vector<VkImage> Images;
-            std::vector<VkImageView> ImageViews;
-            std::vector<VkFramebuffer> Framebuffers;
-            std::vector<VkCommandBuffer> CommandBuffers;
-        };
-
     public:
         void Initialize(int width, int height, VkSurfaceKHR surface);
         void Shutdown();
 
         void BeginFrame();
         void EndFrame();
-        void SubmitCommandBuffers(const std::vector<VkCommandBuffer>& buffers);
+        void SubmitCommandBuffers(const std::vector<VulkanFramebufferSubmit>& submits);
 
         void InvalidateSwapChain(u32 newWidth, u32 newHeight);
 
@@ -33,6 +44,21 @@ namespace Heart
         inline VkCommandBuffer GetCommandBuffer() const { return m_CommandBuffers[m_InFlightFrameIndex]; }
         inline u32 GetPresentImageIndex() const { return m_PresentImageIndex; }
         inline u32 GetInFlightFrameIndex() const { return m_InFlightFrameIndex; }
+
+    private:
+        struct FramebufferSubmissionData
+        {
+            u32 DrawBufferStartIndex;
+            u32 DrawBufferCount;
+
+            u32 TransferBufferStartIndex;
+            u32 TransferBufferCount;
+        };
+        struct ComputeSubmissionData
+        {
+            u32 CommandBufferStartIndex;
+            u32 CommandBufferCount;
+        };
 
     private:
         void CreateSwapChain();
@@ -54,7 +80,9 @@ namespace Heart
         void CreateSynchronizationObjects();
         void CleanupSynchronizationObjects();
 
+        // used when submitting framebuffers
         VkSemaphore GetAuxiliaryRenderSemaphore(size_t renderIndex);
+        VkSemaphore GetAuxiliaryComputeSemaphore(size_t renderIndex);
 
         void Present();
 
@@ -72,12 +100,17 @@ namespace Heart
         SwapChainData m_SwapChainData;
         VkRenderPass m_RenderPass;
         std::array<VkCommandBuffer, MAX_FRAMES_IN_FLIGHT> m_CommandBuffers; // secondary
-        std::vector<VkCommandBuffer> m_AuxiliaryCommandBuffers = {}; // collection of all submitted primary commandbuffers
-        std::vector<size_t> m_AuxiliaryCommandBufferCounts = {}; // amount of buffers per submit call to create a dependency chain
+
+        std::vector<VkCommandBuffer> m_SubmittedCommandBuffers{};
+        std::vector<FramebufferSubmissionData> m_FramebufferSubmissions = {}; // collection of all submitted framebuffers
+
         std::array<VkSemaphore, MAX_FRAMES_IN_FLIGHT> m_ImageAvailableSemaphores;
         std::array<VkSemaphore, MAX_FRAMES_IN_FLIGHT> m_RenderFinishedSemaphores;
         std::vector<VkSemaphore> m_AuxiliaryRenderFinishedSemaphores = {};
+        std::vector<VkSemaphore> m_AuxiliaryComputeFinishedSemaphores = {};
         std::array<VkFence, MAX_FRAMES_IN_FLIGHT> m_InFlightFences;
+        std::array<VkFence, MAX_FRAMES_IN_FLIGHT> m_InFlightTransferFences;
+        std::array<VkFence, MAX_FRAMES_IN_FLIGHT> m_InFlightComputeFences;
         std::vector<VkFence> m_ImagesInFlight = {};
         u32 m_PresentImageIndex;
         bool m_ShouldPresentThisFrame;

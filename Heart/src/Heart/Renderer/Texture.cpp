@@ -9,8 +9,6 @@ namespace Heart
 {
     Ref<Texture> Texture::Create(const TextureCreateInfo& createInfo, void* initialData)
     {
-        HE_ENGINE_ASSERT(createInfo.Channels == 4, "Non 4 channel textures are not supported");
-
         switch (Renderer::GetApiType())
         {
             default:
@@ -25,7 +23,7 @@ namespace Heart
     void Texture::ScanForTransparency(int width, int height, int channels, void* data)
     {
         // TODO: change this possibly?
-        if (m_Info.FloatComponents) return;
+        if (m_Info.DataType != BufferDataType::UInt8) return;
 
         unsigned char* pixels = (unsigned char*)data;
         int size = width * height * channels;

@@ -54,7 +54,10 @@ namespace HeartEditor
                             Heart::UUID assetId = Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Scene, path);
                             auto asset = Heart::AssetManager::RetrieveAsset<Heart::SceneAsset>(assetId);
                             if (asset && asset->IsValid())
+                            {
                                 Editor::SetActiveScene(asset->GetScene());
+                                Editor::GetState().SelectedEntity = Heart::Entity();
+                            }
                         }
                     }
 

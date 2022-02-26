@@ -5,6 +5,7 @@
 
 namespace Heart
 {
+    class VulkanBuffer;
     class VulkanTexture : public Texture
     {
     public:
@@ -14,29 +15,42 @@ namespace Heart
         void RegenerateMipMaps() override;
         void RegenerateMipMapsSync(Framebuffer* buffer) override;
 
-        inline VkImageView GetImageView() const { return m_ImageView; }
-        inline VkImageView GetLayerImageView(u32 layerIndex, u32 mipLevel) const { return m_LayerViews[layerIndex * m_MipLevels + mipLevel]; }
-        inline VkImageLayout GetCurrentLayout() const { return m_CurrentLayout; }
+        void* GetPixelData() override;
+
+        void* GetImGuiHandle(u32 layerIndex = 0, u32 mipLevel = 0) override;
+
+        inline VkImageView GetImageView() { UpdateFrameIndex(); return m_ImageViews[m_InFlightFrameIndex]; }
+        inline VkImageView GetImageView(u32 inFlightFrameIndex) { return m_ImageViews[std::min(m_ImageCount - 1, inFlightFrameIndex)]; }
+        inline VkImageView GetLayerImageView(u32 layerIndex, u32 mipLevel) { UpdateFrameIndex(); return m_LayerViews[m_InFlightFrameIndex][layerIndex * m_MipLevels + mipLevel]; }
+        inline VkImageView GetLayerImageView(u32 inFlightFrameIndex, u32 layerIndex, u32 mipLevel) { return m_LayerViews[std::min(m_ImageCount - 1, inFlightFrameIndex)][layerIndex * m_MipLevels + mipLevel]; }
         inline VkSampler GetSampler() const { return m_Sampler; }
         inline ColorFormat GetGeneralFormat() const { return m_GeneralFormat; }
         inline VkFormat GetFormat() const { return m_Format; }
-        inline VkImage GetImage() const { return m_Image; }
-        inline VkDeviceMemory GetImageMemory() const { return m_ImageMemory; }
-
-        inline void SetCurrentLayout(VkImageLayout layout) { m_CurrentLayout = layout; }
+        inline VkImage GetImage() { UpdateFrameIndex(); return m_Images[m_InFlightFrameIndex]; }
+        inline VkImage GetImage(u32 inFlightFrameIndex) { return m_Images[std::min(m_ImageCount - 1, inFlightFrameIndex)]; }
+        inline VkDeviceMemory GetImageMemory() { UpdateFrameIndex(); return m_ImageMemory[m_InFlightFrameIndex]; }
+        inline VkDeviceMemory GetImageMemory(u32 inFlightFrameIndex) { return m_ImageMemory[std::min(m_ImageCount - 1, inFlightFrameIndex)]; }
+        inline Ref<VulkanBuffer> GetCpuBuffer() const { return m_CpuBuffer; }
 
     private:
         void CreateTexture(void* data);
         void CreateSampler();
+        void UpdateFrameIndex();
 
     private:
-        VkImage m_Image;
-        VkImageView m_ImageView;
-        VkDeviceMemory m_ImageMemory;
+        std::array<VkImage, MAX_FRAMES_IN_FLIGHT> m_Images;
+        std::array<VkImageView, MAX_FRAMES_IN_FLIGHT> m_ImageViews;
+        std::array<VkDeviceMemory, MAX_FRAMES_IN_FLIGHT> m_ImageMemory;
+        std::array<std::vector<void*>, MAX_FRAMES_IN_FLIGHT> m_ImGuiHandles;
         VkFormat m_Format;
         ColorFormat m_GeneralFormat;
-        std::vector<VkImageView> m_LayerViews;
-        VkImageLayout m_CurrentLayout;
+        std::array<std::vector<VkImageView>, MAX_FRAMES_IN_FLIGHT> m_LayerViews;
         VkSampler m_Sampler;
+        Ref<VulkanBuffer> m_CpuBuffer;
+
+        s64 m_DataSize = 0;
+        u64 m_LastUpdateFrame = 0;
+        u32 m_InFlightFrameIndex = 0;
+        u32 m_ImageCount = 0;
     };
 }

@@ -35,10 +35,10 @@ namespace Heart
     struct FramebufferColorAttachment
     {
         // mandatory
-        bool AllowCPURead;
         glm::vec4 ClearColor;
 
         // required if not providing a texture
+        bool AllowCPURead;
         ColorFormat Format;
 
         // required if a texture should be used as a render target
@@ -59,10 +59,13 @@ namespace Heart
         std::vector<Subpass> Subpasses; // leave empty for no
         u32 Width, Height = 0; // set to zero to match screen width and height
         MsaaSampleCount SampleCount = MsaaSampleCount::None; // will be clamped to device max supported sample count
+        bool AllowPerformanceQuerying = false;
+        bool AllowStatisticsQuerying = false;
     };
 
     class WindowResizeEvent;
     class GraphicsPipeline;
+    class ComputePipeline;
     struct GraphicsPipelineCreateInfo;
     class Framebuffer : public EventListener
     {
@@ -70,7 +73,7 @@ namespace Heart
         Framebuffer(const FramebufferCreateInfo& createInfo);
         virtual ~Framebuffer();
 
-        virtual void Bind() = 0;
+        virtual void Bind(ComputePipeline* preRenderComputePipeline = nullptr) = 0;
         virtual void BindPipeline(const std::string& name) = 0;
 
         // must be called after BindPipeline()
@@ -84,6 +87,10 @@ namespace Heart
 
         // attachment must be created with 'AllowCPURead' enabled
         virtual void* GetColorAttachmentPixelData(u32 attachmentIndex) = 0;
+
+        // framebuffer must be created with 'AllowPerformanceQuerying' enabled
+        virtual double GetPerformanceTimestamp() = 0;
+        virtual double GetSubpassPerformanceTimestamp(u32 subpassIndex) = 0;
 
         virtual void ClearOutputAttachment(u32 outputAttachmentIndex, bool clearDepth) = 0;
         virtual void StartNextSubpass() = 0;

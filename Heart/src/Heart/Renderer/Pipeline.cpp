@@ -4,7 +4,8 @@
 #include "Heart/Renderer/Renderer.h"
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/ShaderAsset.h"
-#include "Heart/Platform/Vulkan/VulkanGraphicsPipeline.h"
+#include "Heart/Platform/Vulkan/VulkanComputePipeline.h"
+#include "Heart/Platform/OpenGL/OpenGLComputePipeline.h"
 
 namespace Heart
 {
@@ -14,9 +15,21 @@ namespace Heart
         {
             default:
             { HE_ENGINE_ASSERT(false, "Cannot create ComputePipeline: selected ApiType is not supported"); return nullptr; }
-            //case RenderApi::Type::Vulkan:
-            //{ return CreateRef<VulkanComputePipeline>(createInfo); }
+            case RenderApi::Type::Vulkan:
+            { return CreateRef<VulkanComputePipeline>(createInfo); }
+            case RenderApi::Type::OpenGL:
+            { return CreateRef<OpenGLComputePipeline>(createInfo); }
         }
+        
+        return nullptr;
+    }
+
+    void Pipeline::SortReflectionData()
+    {
+        std::sort(m_ProgramReflectionData.begin(), m_ProgramReflectionData.end(), [](const ReflectionDataElement& a, const ReflectionDataElement& b)
+        {
+            return a.BindingIndex < b.BindingIndex;
+        });
     }
 
     void GraphicsPipeline::ConsolidateReflectionData()
@@ -44,9 +57,23 @@ namespace Heart
                 m_ProgramReflectionData.push_back(fragData);
         }
 
-        std::sort(m_ProgramReflectionData.begin(), m_ProgramReflectionData.end(), [](const ReflectionDataElement& a, const ReflectionDataElement& b)
-        {
-            return a.BindingIndex < b.BindingIndex;
-        });
+        SortReflectionData();
+    }
+
+    double ComputePipeline::GetPerformanceTimestamp()
+    {
+        HE_ENGINE_ASSERT(m_Info.AllowPerformanceQuerying, "Cannot get performance timestamp unless the pipeline was created with 'AllowPerformanceQuerying' enabled");
+
+        return m_PerformanceTimestamp;
+    }
+
+    void ComputePipeline::ConsolidateReflectionData()
+    {
+        auto compShader = AssetManager::RetrieveAsset<ShaderAsset>(m_Info.ComputeShaderAsset)->GetShader();
+
+        m_ProgramReflectionData.clear();
+        m_ProgramReflectionData.insert(m_ProgramReflectionData.end(), compShader->GetReflectionData().begin(), compShader->GetReflectionData().end());
+
+        SortReflectionData();
     }
 }
