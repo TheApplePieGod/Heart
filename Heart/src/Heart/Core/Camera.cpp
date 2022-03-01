@@ -55,6 +55,7 @@ namespace Heart
 
             case ProjectionType::OrthographicFlat:
             {
+                // https://docs.microsoft.com/en-us/windows/win32/direct3d9/d3dxmatrixorthooffcenterlh
                 f32 l = -0.5f * m_OrthoWidth;
                 f32 r = 0.5f * m_OrthoWidth;
                 f32 b = 0.5f * m_OrthoHeight;

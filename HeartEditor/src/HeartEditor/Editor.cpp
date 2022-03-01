@@ -3,7 +3,6 @@
 
 #include "HeartEditor/EditorApp.h"
 #include "HeartEditor/Widgets/Widget.h"
-#include "HeartEditor/EditorCamera.h"
 #include "Heart/Core/Timing.h"
 #include "Heart/Renderer/SceneRenderer.h"
 #include "imgui/imgui.h"

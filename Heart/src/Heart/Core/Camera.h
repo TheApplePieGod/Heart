@@ -20,39 +20,164 @@ namespace Heart
     class Camera
     {
     public:
+        /**
+         * @brief The possible projection types for the camera.
+         * 
+         * Perspective: a typical 3D projection (https://www.geeksforgeeks.org/perspective-projection-and-its-types/).
+         * Orthographic: a 2D projection where objects are not affected by position in the camera's FOV (https://en.wikipedia.org/wiki/Orthographic_projection).
+         * OrthographicFlat: same as Orthographic except object's Z position is normalized and no longer impacts its size on the screen.
+         */
         enum class ProjectionType
         {
             Perspective = 0, Orthographic = 1, OrthographicFlat = 2
         };
 
     public:
+        /**
+         * @brief Default constructor for a perspective camera.
+         * 
+         * @param fov The field of view.
+         * @param nearClip The near clip distance.
+         * @param farClip The far clip distance.
+         * @param aspectRatio The aspect ratio (width / height, ideally should be that of the camera's viewport).
+         */
         Camera(f32 fov, f32 nearClip, f32 farClip, f32 aspectRatio)
             : m_ProjectionType(ProjectionType::Perspective), m_FOV(fov), m_NearClip(nearClip), m_FarClip(farClip), m_AspectRatio(aspectRatio)
         { UpdateProjectionMatrix(); }
 
+        /**
+         * @brief Default constructor.
+         * 
+         * @param type The projection type.
+         * @param width The width of the camera's view volume (orthographic only).
+         * @param height The height of the camera's view volume (orthographic only).
+         * @param nearClip The near clip distance.
+         * @param farClip The far clip distance.
+         * @param aspectRatio The aspect ratio (perspective only, width / height, ideally should be that of the camera's viewport).
+         */
         Camera(ProjectionType type, f32 width, f32 height, f32 nearClip, f32 farClip, f32 aspectRatio)
             : m_ProjectionType(type), m_OrthoWidth(width), m_OrthoHeight(height), m_NearClip(nearClip), m_FarClip(farClip), m_AspectRatio(aspectRatio)
         { UpdateProjectionMatrix(); }
 
+        /*! @brief Default destructor. */
         ~Camera();
 
+        /**
+         * @brief Generate a view matrix looking forwards from the camera's POV
+         * 
+         * Because the camera itself does not store a position or rotation, it must be
+         * provided via params.
+         * 
+         * @note Calling this will automatically update the frustum data.
+         * 
+         * @param xRotation The x rotation (yaw) of the camera in degrees.
+         * @param yRotation The y rotation (pitch) of the camera in degrees.
+         * @param position The world position of the camera.
+         */
         void UpdateViewMatrix(f32 xRotation, f32 yRotation, glm::vec3 position);
+
+        /**
+         * @brief Generate a view matrix orbiting around a point.
+         * 
+         * Because the camera itself does not store a position or rotation, it must be
+         * provided via params.
+         * 
+         * @note Calling this will automatically update the frustum data.
+         * 
+         * @param centerPoint The world space coordinates of the origin to orbit around.
+         * @param radius The world space radius of the orbit.
+         * @param xRotation The x rotation (yaw) of the camera relative to the orbit in degrees.
+         * @param yRotation The y rotation (pitch) of the camera relative to the orbit in degrees.
+         */
         void UpdateViewMatrix(glm::vec3 centerPoint, f32 radius, f32 xRotation, f32 yRotation);
 
-        inline ProjectionType GetType() const { return m_ProjectionType; }
+        /**
+         * @brief Update the camera's view volume width (orthographic only).
+         * 
+         * @param width The width of the view volume.
+         */
         inline void UpdateWidth(f32 width) { m_OrthoWidth = width; UpdateProjectionMatrix(); }
+
+        /**
+         * @brief Update the camera's view volume height (orthographic only).
+         * 
+         * @param height The height of the view volume.
+         */
         inline void UpdateHeight(f32 height) { m_OrthoHeight = height; UpdateProjectionMatrix(); }
+
+        /**
+         * @brief Update the camera's aspect ratio (perspective only).
+         * 
+         * @param ratio The aspect ratio.
+         */
         inline void UpdateAspectRatio(f32 ratio) { m_AspectRatio = ratio; UpdateProjectionMatrix(); }
+
+        /**
+         * @brief Update the camera's field of view (perspective only).
+         * 
+         * @param fov The field of view.
+         */
         inline void UpdateFOV(f32 fov) { m_FOV = fov; UpdateProjectionMatrix(); }
+
+        /**
+         * @brief Update the camera's near clip distance.
+         * 
+         * @param clip The clip distance.
+         */
         inline void UpdateNearClip(f32 clip) { m_NearClip = clip; UpdateProjectionMatrix(); }
+
+        /**
+         * @brief Update the camera's far clip distance.
+         * 
+         * @param clip The clip distance.
+         */
         inline void UpdateFarClip(f32 clip) { m_FarClip = clip; UpdateProjectionMatrix(); }
+
+        /**
+         * @brief Update the camera's projection type.
+         * 
+         * @note This will automatically recalculate the projection matrix but NOT the frustum bounds.
+         * 
+         * @param type The projection type.
+         */
         inline void UpdateProjectionType(ProjectionType type) { m_ProjectionType = type; UpdateProjectionMatrix(); }
+
+        /*! @brief Get the camera's projection type. */
+        inline ProjectionType GetType() const { return m_ProjectionType; }
+
+        /*! @brief Get the camera's projection matrix. */
         inline glm::mat4 GetProjectionMatrix() const { return m_ProjectionMatrix; }
-        
+
+        /*! @brief Get the camera's view matrix. */
         inline glm::mat4 GetViewMatrix() const { return m_ViewMatrix; }
+
+        /*! @brief Get the camera's view matrix except the Y axis is inverted. */
         inline glm::mat4 GetViewMatrixInvertedY() const { return m_ViewMatrixInvertedY; }
+
+        /*! @brief Get the camera's normalized forward direction vector. */
         inline glm::vec3 GetForwardVector() const { return m_ForwardVector; }
+
+        /*! @brief Get the camera's normalized right direction vector. */
+        inline glm::vec3 GetRightVector() const { return m_RightVector; }
+
+        /*! @brief Get the camera's normalized up direction vector. */
+        inline glm::vec3 GetUpVector() const { return m_UpVector; }
+
+        /**
+         * @brief Get the camera's 8 world space frustum corners.
+         * 
+         * Ordering:
+         *  Near Plane: top left, top right, bottom left, bottom right
+         *  Far Plane: top left, top right, bottom left, bottom right
+         */
         inline const std::array<glm::vec3, 8>& GetFrustumCorners() const { return m_FrustumCorners; }
+
+        /**
+         * @brief Get the camera's 6 frustum planes (a, b, c, -d)
+         * 
+         * Ordering:
+         *   Left, right, top, bottom, near, far
+         */
         inline const std::array<glm::vec4, 6>& GetFrustumPlanes() const { return m_FrustumPlanes; }
 
     protected:
