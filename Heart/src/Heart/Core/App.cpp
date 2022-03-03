@@ -209,7 +209,7 @@ namespace Heart
 
             CheckForAssetsDirectorySwitch();
             CheckForGraphicsApiSwitch();
-            AggregateTimer::ResetAggregateTimes();
+            AggregateTimer::EndFrame();
         }
     }
 }

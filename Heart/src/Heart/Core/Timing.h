@@ -68,7 +68,6 @@ namespace Heart
         bool m_ShouldLog;
     };
 
-    // TODO: rework this class
     class AggregateTimer : public Timer
     {
     public:
@@ -84,7 +83,7 @@ namespace Heart
         /*! @brief Default destructor. */
         ~AggregateTimer()
         {
-            std::unique_lock lock(s_Mutex);
+            std::unique_lock lock(s_CurrentMutex);
             s_AggregateTimes[m_Name] += ElapsedMilliseconds();
         }
 
@@ -92,44 +91,56 @@ namespace Heart
          * @brief Get the globally accumulated time for a specific timer id in milliseconds.
          *
          * @param name The name/id of the timer.
+         * @param current True if the time should be retrieved from the current frame and false for the previous frame.
+         * @return The time in milliseconds or zero if the id is invalid.
          */
-        inline static double GetAggregateTime(const std::string& name)
+        static double GetAggregateTime(const std::string& name, bool current)
         {
-            std::shared_lock lock(s_Mutex);
-            if (s_AggregateTimes.find(name) != s_AggregateTimes.end())
-                return s_AggregateTimes[name];
-            else
-                return 0;
+            if (current)
+            {
+                std::shared_lock lock(s_CurrentMutex);
+                if (s_AggregateTimes.find(name) != s_AggregateTimes.end())
+                    return s_AggregateTimes[name];
+                else
+                    return 0;
+            }
+            else {
+                if (s_AggregateTimesLastFrame.find(name) != s_AggregateTimesLastFrame.end())
+                    return s_AggregateTimesLastFrame[name];
+                else
+                    return 0;
+            }
         }
 
         /**
-         * @brief Reset the globally accumulated time for a specific timer id to zero.
+         * @brief Reset the current globally accumulated time for a specific timer id to zero.
          *
          * @param name The name/id of the timer.
          */
-        inline static void ResetAggregateTime(const std::string& name)
+        static void ResetAggregateTime(const std::string& name)
         {
-            std::unique_lock lock(s_Mutex);
+            std::unique_lock lock(s_CurrentMutex);
             if (s_AggregateTimes.find(name) != s_AggregateTimes.end())
                 s_AggregateTimes[name] = 0;
         }
 
-        /*! @brief Get the map which stores all timer ids and aggregate times. */
-        inline static const std::map<std::string, double>& GetTimeMap() { return s_AggregateTimesLastFrame; }
-
-        /*! @brief Clear all stored timer ids and aggregate times. */
-        inline static void ClearTimeMap() { std::unique_lock lock(s_Mutex); s_AggregateTimes.clear(); }
-
-        inline static void ResetAggregateTimes()
+        /*! @brief Store the current aggregate times for retrieval and prepare for next frame. */
+        static void EndFrame()
         {
-            std::unique_lock lock(s_Mutex);
+            std::unique_lock lock(s_CurrentMutex);
             s_AggregateTimesLastFrame = s_AggregateTimes;
             s_AggregateTimes.clear();
         }
 
+        /*! @brief Get the map containing all timer ids and aggregate times from the last frame. */
+        inline static const std::map<std::string, double>& GetTimeMap() { return s_AggregateTimesLastFrame; }
+
+        /*! @brief Clear all current stored timer ids and aggregate times. */
+        inline static void ClearTimeMap() { std::unique_lock lock(s_CurrentMutex); s_AggregateTimes.clear(); }
+
     private:
         static std::map<std::string, double> s_AggregateTimes; // stored in millis
         static std::map<std::string, double> s_AggregateTimesLastFrame;
-        static std::shared_mutex s_Mutex;
+        static std::shared_mutex s_CurrentMutex;
     };
 }
