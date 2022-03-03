@@ -5,24 +5,17 @@
 class GLFWwindow;
 namespace Heart
 {
-    struct WindowSettings
+    /*! @brief Window creation settings. */
+    struct WindowCreateInfo
     {
         std::string Title;
         u32 Width, Height;
 
-        WindowSettings(const std::string& title = "Window",
+        WindowCreateInfo(const std::string& title = "Window",
 			        u32 width = 1920,
 			        u32 height = 1080)
 			: Title(title), Width(width), Height(height)
 		{}
-    };
-
-    struct WindowData
-    {
-        std::string Title = "";
-        u32 Width, Height = 0;
-
-        EventCallbackFunction EmitEvent;
     };
 
     // TODO: describe method lifecycles
@@ -33,9 +26,9 @@ namespace Heart
         /**
          * @brief Default constructor.
          *
-         * @param settings The settings for this window.
+         * @param createInfo The creation settings for this window.
          */
-        Window(const WindowSettings& settings);
+        Window(const WindowCreateInfo& createInfo);
 
         /*! @brief Default destructor. */
         ~Window();
@@ -90,10 +83,10 @@ namespace Heart
         /**
          * @brief Statically create a new window object.
          * 
-         * @param settings The settings for the window. 
+         * @param createInfo The creation settings for the window.
          * @return A ref to the new window object.
          */
-        static Ref<Window> Create(const WindowSettings& settings);
+        static Ref<Window> Create(const WindowCreateInfo& createInfo);
 
         /*! @brief Get the global main window object. */
         static Window& GetMainWindow() { return *s_MainWindow; }
@@ -108,6 +101,15 @@ namespace Heart
             HE_ENGINE_LOG_TRACE("Main window object set to {0}", static_cast<void*>(newWindow.get()));
             s_MainWindow = newWindow;
         }
+
+    private:
+        struct WindowData
+        {
+            std::string Title = "";
+            u32 Width, Height = 0;
+
+            EventCallbackFunction EmitEvent;
+        };
 
     private:
         static int s_WindowCount;

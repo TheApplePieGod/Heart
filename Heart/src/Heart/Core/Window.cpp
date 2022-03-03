@@ -19,17 +19,17 @@ namespace Heart
         HE_ENGINE_LOG_ERROR("GLFW Error ({0}): {1}", err, desc);
     }
 
-    Ref<Window> Window::Create(const WindowSettings& settings)
+    Ref<Window> Window::Create(const WindowCreateInfo& createInfo)
     {
-        HE_ENGINE_LOG_INFO("Creating window ({0}x{1})", settings.Width, settings.Height);
-        return CreateRef<Window>(settings);
+        HE_ENGINE_LOG_INFO("Creating window ({0}x{1})", createInfo.Width, createInfo.Height);
+        return CreateRef<Window>(createInfo);
     }
 
-    Window::Window(const WindowSettings& settings)
+    Window::Window(const WindowCreateInfo& createInfo)
     {
-        m_WindowData.Title = settings.Title;
-        m_WindowData.Width = settings.Width;
-        m_WindowData.Height = settings.Height;
+        m_WindowData.Title = createInfo.Title;
+        m_WindowData.Width = createInfo.Width;
+        m_WindowData.Height = createInfo.Height;
         m_WindowData.EmitEvent = HE_BIND_EVENT_FN(Window::Emit);
 
         if (s_WindowCount == 0)
@@ -52,12 +52,12 @@ namespace Heart
 
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
-        std::string fullTitle = settings.Title;
+        std::string fullTitle = createInfo.Title;
         fullTitle += " (";
         fullTitle += HE_ENUM_TO_STRING(RenderApi, Renderer::GetApiType());
         fullTitle += ")";
 
-        m_Window = glfwCreateWindow(settings.Width, settings.Height, fullTitle.c_str(), nullptr, nullptr);
+        m_Window = glfwCreateWindow(createInfo.Width, createInfo.Height, fullTitle.c_str(), nullptr, nullptr);
         s_WindowCount++;
 
         m_GraphicsContext = GraphicsContext::Create(m_Window);

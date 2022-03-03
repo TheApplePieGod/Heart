@@ -11,7 +11,7 @@ namespace Heart
     class Layer;
     class ImGuiInstance;
     class Window;
-    struct WindowSettings;
+    struct WindowCreateInfo;
     class WindowResizeEvent;
     class WindowCloseEvent;
     class App : public EventListener, public EventEmitter
@@ -100,7 +100,7 @@ namespace Heart
 
     private:
         void Run();
-        void InitializeGraphicsApi(RenderApi::Type type, const WindowSettings& windowSettings);
+        void InitializeGraphicsApi(RenderApi::Type type, const WindowCreateInfo& windowCreateInfo);
         void ShutdownGraphicsApi();
         void CheckForGraphicsApiSwitch();
         void CheckForAssetsDirectorySwitch();
