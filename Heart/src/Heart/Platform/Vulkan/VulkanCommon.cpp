@@ -35,26 +35,58 @@ namespace Heart
         std::vector<VkQueueFamilyProperties> supportedQueueFamilies(supportedQueueFamilyCount);
         vkGetPhysicalDeviceQueueFamilyProperties(device, &supportedQueueFamilyCount, supportedQueueFamilies.data());
 
+        // pass over the supported families and populate indices with the first available option
         int i = 0;
         for (const auto& family : supportedQueueFamilies)
         {
-            if (indices.IsComplete())
-                break;
+            if (indices.IsComplete()) break;
 
             if (family.queueFlags & VK_QUEUE_GRAPHICS_BIT)
+            {
                 indices.GraphicsFamily = i;
+                indices.GraphicsQueueCount = family.queueCount;
+            }
 
             if (family.queueFlags & VK_QUEUE_COMPUTE_BIT)
+            {
                 indices.ComputeFamily = i;
+                indices.ComputeQueueCount = family.queueCount;
+            }
 
             if (family.queueFlags & VK_QUEUE_TRANSFER_BIT)
+            {
                 indices.TransferFamily = i;
+                indices.TransferQueueCount = family.queueCount;
+            }
 
             VkBool32 presentSupport = false;
             vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
             if (presentSupport)
+            {
                 indices.PresentFamily = i;
+                indices.PresentQueueCount = family.queueCount;
+            }
             
+            i++;
+        }
+
+        i = 0;
+        for (const auto& family : supportedQueueFamilies)
+        {
+            // prioritize families that support compute but not graphics
+            if (family.queueFlags & VK_QUEUE_COMPUTE_BIT && !(family.queueFlags & VK_QUEUE_GRAPHICS_BIT))
+            {
+                indices.ComputeFamily = i;
+                indices.ComputeQueueCount = family.queueCount;
+            }
+
+            // prioritize families that support transfer only
+            if (family.queueFlags & VK_QUEUE_TRANSFER_BIT && !(family.queueFlags & VK_QUEUE_GRAPHICS_BIT) && !(family.queueFlags & VK_QUEUE_COMPUTE_BIT))
+            {
+                indices.TransferFamily = i;
+                indices.TransferQueueCount = family.queueCount;
+            }
+
             i++;
         }
 
@@ -154,7 +186,7 @@ namespace Heart
 
         VkCommandBufferBeginInfo beginInfo{};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
         beginInfo.pInheritanceInfo = secondary ? &inheritanceInfo : nullptr;
 
         HE_VULKAN_CHECK_RESULT(vkBeginCommandBuffer(commandBuffer, &beginInfo));
@@ -295,10 +327,18 @@ namespace Heart
         else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
         {
             barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-            barrier.dstAccessMask = 0;
+            barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
             sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-            destinationStage = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+            destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        }
+        else if (oldLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+        {
+            barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+            barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+            sourceStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+            destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
         }
         else
             throw std::invalid_argument("Unsupported layout transition");
@@ -313,7 +353,24 @@ namespace Heart
         );
     }
 
-    void VulkanCommon::CopyBufferToImage(VkDevice device, VkCommandPool commandPool, VkQueue transferQueue, VkBuffer srcBuffer, VkImage dstImage, uint32_t width, uint32_t height)
+    void VulkanCommon::CopyBufferToBuffer(VkCommandBuffer cmdBuffer, VkBuffer srcBuffer, VkBuffer dstBuffer, u32 size)
+    {
+        VkBufferCopy region{};
+        region.srcOffset = 0;
+        region.dstOffset = 0;
+        region.size = size;
+
+        vkCmdCopyBuffer(cmdBuffer, srcBuffer, dstBuffer, 1, &region);
+    }
+
+    void VulkanCommon::CopyBufferToBuffer(VkDevice device, VkCommandPool commandPool, VkQueue transferQueue, VkBuffer srcBuffer, VkBuffer dstBuffer, u32 size)
+    {
+        VkCommandBuffer commandBuffer = BeginSingleTimeCommands(device, commandPool);
+        CopyBufferToBuffer(commandBuffer, srcBuffer, dstBuffer, size);
+        EndSingleTimeCommands(device, commandPool, commandBuffer, transferQueue);
+    }
+
+    void VulkanCommon::CopyBufferToImage(VkDevice device, VkCommandPool commandPool, VkQueue transferQueue, VkBuffer srcBuffer, VkImage dstImage, u32 width, u32 height)
     {
         VkCommandBuffer commandBuffer = BeginSingleTimeCommands(device, commandPool);
 
@@ -555,6 +612,7 @@ namespace Heart
             case ShaderResourceAccessType::Vertex: return VK_SHADER_STAGE_VERTEX_BIT;
             case ShaderResourceAccessType::Fragment: return VK_SHADER_STAGE_FRAGMENT_BIT;
             case ShaderResourceAccessType::Both: return (VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+            case ShaderResourceAccessType::Compute: return VK_SHADER_STAGE_COMPUTE_BIT;
         }
 
         return VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM;
@@ -625,5 +683,19 @@ namespace Heart
         }
 
         return VK_SAMPLER_ADDRESS_MODE_MAX_ENUM;
+    }
+
+    VkSamplerReductionMode VulkanCommon::SamplerReductionModeToVulkan(SamplerReductionMode mode)
+    {
+        switch (mode)
+        {
+            default:
+            { HE_ENGINE_ASSERT(false, "Vulkan does not support specified SamplerReductionMode"); } break;
+            case SamplerReductionMode::WeightedAverage: return VK_SAMPLER_REDUCTION_MODE_WEIGHTED_AVERAGE;
+            case SamplerReductionMode::Min: return VK_SAMPLER_REDUCTION_MODE_MIN;
+            case SamplerReductionMode::Max: return VK_SAMPLER_REDUCTION_MODE_MAX;
+        }
+
+        return VK_SAMPLER_REDUCTION_MODE_MAX_ENUM;
     }
 }

@@ -7,6 +7,7 @@
 #include "Heart/Platform/Vulkan/VulkanTexture.h"
 #include "Heart/Platform/Vulkan/VulkanBuffer.h"
 #include "Heart/Platform/Vulkan/VulkanGraphicsPipeline.h"
+#include "Heart/Platform/Vulkan/VulkanComputePipeline.h"
 #include "Heart/Core/App.h"
 #include "Heart/Renderer/Renderer.h"
 #include "imgui/backends/imgui_impl_vulkan.h"
@@ -47,8 +48,6 @@ namespace Heart
             attachmentData.IsDepthAttachment = true;
             attachmentData.ExternalTexture = nullptr;
 
-            CreateAttachmentImages(attachmentData);
-
             VkAttachmentDescription depthAttachment{};
             depthAttachment.format = depthFormat;
             depthAttachment.samples = m_ImageSamples;
@@ -66,7 +65,11 @@ namespace Heart
 
             attachmentData.ImageAttachmentIndex = attachmentIndex++;
 
-            m_DepthAttachmentData.emplace_back(attachmentData);
+            for (u32 frame = 0; frame < MAX_FRAMES_IN_FLIGHT; frame++)
+            {
+                CreateAttachmentImages(attachmentData, frame);
+                m_DepthAttachmentData[frame].emplace_back(attachmentData);
+            }
         }
 
         // TODO: depth resolve (https://github.com/KhronosGroup/Vulkan-Samples/blob/master/samples/performance/msaa/msaa_tutorial.md)
@@ -86,14 +89,12 @@ namespace Heart
             VkFormat colorFormat = attachment.Texture ? attachmentData.ExternalTexture->GetFormat() : VulkanCommon::ColorFormatToVulkan(attachment.Format);
             VkClearValue clearValue{};
             clearValue.color = { attachment.ClearColor.r, attachment.ClearColor.g, attachment.ClearColor.b, attachment.ClearColor.a };
-  
+
             attachmentData.GeneralColorFormat = attachment.Texture ? attachmentData.ExternalTexture->GetGeneralFormat() : attachment.Format;
             attachmentData.ColorFormat = colorFormat;
             attachmentData.HasResolve = m_ImageSamples > VK_SAMPLE_COUNT_1_BIT;
-            attachmentData.CPUVisible = attachment.AllowCPURead;
+            attachmentData.CPUVisible = attachmentData.ExternalTexture ? attachmentData.ExternalTexture->CanCPURead() : attachment.AllowCPURead;
             attachmentData.IsDepthAttachment = false;
-
-            CreateAttachmentImages(attachmentData);
 
             // create the associated renderpass
             // TODO: adjustable depth precision
@@ -138,7 +139,11 @@ namespace Heart
             colorAttachmentResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
             resolveAttachmentRefs.emplace_back(colorAttachmentResolveRef);
 
-            m_AttachmentData.emplace_back(attachmentData);
+            for (u32 frame = 0; frame < MAX_FRAMES_IN_FLIGHT; frame++)
+            {
+                CreateAttachmentImages(attachmentData, frame);
+                m_AttachmentData[frame].emplace_back(attachmentData);
+            }
         }
 
         std::vector<VkSubpassDescription> subpasses(createInfo.Subpasses.size());
@@ -164,9 +169,9 @@ namespace Heart
             {
                 auto& attachment = createInfo.Subpasses[i].InputAttachments[j];
                 if (attachment.Type == SubpassAttachmentType::Color)
-                    inputAttachmentRefs.push_back({ m_AttachmentData[attachment.AttachmentIndex].HasResolve ? m_AttachmentData[attachment.AttachmentIndex].ResolveImageAttachmentIndex : m_AttachmentData[attachment.AttachmentIndex].ImageAttachmentIndex, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL });
+                    inputAttachmentRefs.push_back({ m_AttachmentData[0][attachment.AttachmentIndex].HasResolve ? m_AttachmentData[0][attachment.AttachmentIndex].ResolveImageAttachmentIndex : m_AttachmentData[0][attachment.AttachmentIndex].ImageAttachmentIndex, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL });
                 else
-                    inputAttachmentRefs.push_back({ m_DepthAttachmentData[attachment.AttachmentIndex].ImageAttachmentIndex, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL });
+                    inputAttachmentRefs.push_back({ m_DepthAttachmentData[0][attachment.AttachmentIndex].ImageAttachmentIndex, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL });
                 inputAttachmentCount++;
             }
             for (size_t j = 0; j < createInfo.Subpasses[i].OutputAttachments.size(); j++)
@@ -175,12 +180,12 @@ namespace Heart
                 if (attachment.Type == SubpassAttachmentType::Depth)
                 {
                     HE_ENGINE_ASSERT(depthAttachmentRefs[i].attachment == VK_ATTACHMENT_UNUSED, "Cannot bind more than one depth attachment to the output of a subpass");
-                    depthAttachmentRefs[i].attachment = m_DepthAttachmentData[attachment.AttachmentIndex].ImageAttachmentIndex;
+                    depthAttachmentRefs[i].attachment = m_DepthAttachmentData[0][attachment.AttachmentIndex].ImageAttachmentIndex;
                 }
                 else
                 {
-                    outputAttachmentRefs.push_back({ m_AttachmentData[attachment.AttachmentIndex].ImageAttachmentIndex, VK_IMAGE_LAYOUT_GENERAL });
-                    outputResolveAttachmentRefs.push_back({ m_AttachmentData[attachment.AttachmentIndex].HasResolve ? m_AttachmentData[attachment.AttachmentIndex].ResolveImageAttachmentIndex : VK_ATTACHMENT_UNUSED, VK_IMAGE_LAYOUT_GENERAL });
+                    outputAttachmentRefs.push_back({ m_AttachmentData[0][attachment.AttachmentIndex].ImageAttachmentIndex, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
+                    outputResolveAttachmentRefs.push_back({ m_AttachmentData[0][attachment.AttachmentIndex].HasResolve ? m_AttachmentData[0][attachment.AttachmentIndex].ResolveImageAttachmentIndex : VK_ATTACHMENT_UNUSED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
                     outputAttachmentCount++;
                 }
 
@@ -214,30 +219,11 @@ namespace Heart
             }
             if (i == subpasses.size() - 1)
             {
-                // if (i == 0)
-                //     dependencies[i].dstSubpass = 0;
-                // else
-                //     dependencies[i].dstSubpass = VK_SUBPASS_EXTERNAL;
                 dependencies[i].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT; //| VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
                 dependencies[i].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
                 dependencies[i].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
             }
         }
-
-        // subpasses[0] = {};
-        // subpasses[0].pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-        // subpasses[0].colorAttachmentCount = static_cast<u32>(colorAttachmentRefs.size());
-        // subpasses[0].pColorAttachments = colorAttachmentRefs.data();
-        // subpasses[0].pResolveAttachments = resolveAttachmentRefs.data();
-        // subpasses[0].pDepthStencilAttachment = &depthAttachmentRef;
-
-        // dependencies[0] = {};
-        // dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
-        // dependencies[0].dstSubpass = 0;
-        // dependencies[0].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-        // dependencies[0].srcAccessMask = 0;
-        // dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-        // dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
         VkRenderPassCreateInfo renderPassInfo{};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
@@ -250,6 +236,20 @@ namespace Heart
           
         HE_VULKAN_CHECK_RESULT(vkCreateRenderPass(device.Device(), &renderPassInfo, nullptr, &m_RenderPass));
 
+        if (m_Info.AllowPerformanceQuerying)
+        {
+            m_QueryPoolSize = static_cast<u32>(m_Info.Subpasses.size() + 1);
+
+            VkQueryPoolCreateInfo poolInfo{};
+            poolInfo.sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
+            poolInfo.queryType = VK_QUERY_TYPE_TIMESTAMP;
+            poolInfo.queryCount = m_QueryPoolSize;
+                        
+            for (u32 frame = 0; frame < MAX_FRAMES_IN_FLIGHT; frame++)
+                HE_VULKAN_CHECK_RESULT(vkCreateQueryPool(device.Device(), &poolInfo, nullptr, &m_QueryPools[frame]));
+            m_PerformanceTimestamps.resize(m_Info.Subpasses.size() + 1, 0.0);
+        }
+
         CreateFramebuffer();
     }
 
@@ -260,17 +260,23 @@ namespace Heart
 
         CleanupFramebuffer();
 
-        for (auto& attachmentData : m_AttachmentData)
-            CleanupAttachmentImages(attachmentData);
-        for (auto& attachmentData : m_DepthAttachmentData)
-            CleanupAttachmentImages(attachmentData);
+        for (u32 frame = 0; frame < MAX_FRAMES_IN_FLIGHT; frame++)
+        {
+            for (auto& attachmentData : m_AttachmentData[frame])
+                CleanupAttachmentImages(attachmentData);
+            for (auto& attachmentData : m_DepthAttachmentData[frame])
+                CleanupAttachmentImages(attachmentData);
+
+            if (m_Info.AllowPerformanceQuerying)
+                vkDestroyQueryPool(device.Device(), m_QueryPools[frame], nullptr);
+        }
 
         vkDestroyRenderPass(device.Device(), m_RenderPass, nullptr);
 
         FreeCommandBuffers();
     }
 
-    void VulkanFramebuffer::Bind()
+    void VulkanFramebuffer::Bind(ComputePipeline* preRenderComputePipeline)
     {
         HE_PROFILE_FUNCTION();
 
@@ -289,10 +295,43 @@ namespace Heart
      
             VkCommandBufferBeginInfo beginInfo{};
             beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-            beginInfo.flags = 0;
+            beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
             beginInfo.pInheritanceInfo = nullptr;
 
             HE_VULKAN_CHECK_RESULT(vkBeginCommandBuffer(buffer, &beginInfo));
+
+            if (preRenderComputePipeline)
+            {
+                VulkanComputePipeline* comp = (VulkanComputePipeline*)preRenderComputePipeline;
+
+                comp->WriteInitialTimestamp(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
+
+                VkMemoryBarrier barrier{};
+                barrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+                barrier.srcAccessMask = VK_ACCESS_MEMORY_WRITE_BIT;
+                barrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+
+                vkCmdPipelineBarrier(
+                    GetCommandBuffer(),
+                    VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT,
+                    VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                    0, 1, &barrier, 0, nullptr, 0, nullptr
+                );
+
+                comp->Submit(VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT, true);
+                VkCommandBuffer pipelineBuf = comp->GetInlineCommandBuffer();
+                vkCmdExecuteCommands(VulkanContext::GetBoundFramebuffer()->GetCommandBuffer(), 1, &pipelineBuf);
+            }
+
+            if (m_Info.AllowPerformanceQuerying)
+            {
+                vkCmdWriteTimestamp(
+                    buffer,
+                    VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                    m_QueryPools[m_InFlightFrameIndex],
+                    0
+                );
+            }
 
             // TODO: paramaterize / generalize
             VkViewport viewport{};
@@ -314,7 +353,7 @@ namespace Heart
             VkRenderPassBeginInfo renderPassInfo{};
             renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
             renderPassInfo.renderPass = m_RenderPass;
-            renderPassInfo.framebuffer = m_Framebuffer;
+            renderPassInfo.framebuffer = m_Framebuffers[m_InFlightFrameIndex];
             renderPassInfo.renderArea.offset = { 0, 0 };
             renderPassInfo.renderArea.extent = { m_ActualWidth, m_ActualHeight };
 
@@ -325,44 +364,144 @@ namespace Heart
         }
     }
 
-    void VulkanFramebuffer::Submit()
+    void VulkanFramebuffer::Submit(ComputePipeline* postRenderComputePipeline)
     {
         HE_PROFILE_FUNCTION();
 
         HE_ENGINE_ASSERT(!m_SubmittedThisFrame, "Cannot submit framebuffer twice in the same frame");
-        HE_ENGINE_ASSERT(m_BoundThisFrame, "Cannot submit framebuffer that has not been bound this frame");
+        HE_ENGINE_ASSERT(m_SubmittedThisFrame || m_BoundThisFrame, "Cannot submit framebuffer that has not been bound this frame");
         HE_ENGINE_ASSERT(m_CurrentSubpass == m_Info.Subpasses.size() - 1, "Attempting to submit a framebuffer without completing all subpasses");
 
-        VulkanDevice& device = VulkanContext::GetDevice();
-        VkCommandBuffer buffer = GetCommandBuffer();
+        if (!m_SubmittedThisFrame)
+        {
+            VulkanDevice& device = VulkanContext::GetDevice();
+            VkCommandBuffer buffer = GetCommandBuffer();
+            VkCommandBuffer transferBuffer = GetTransferCommandBuffer();
 
-        vkCmdEndRenderPass(buffer);
+            vkCmdEndRenderPass(buffer);
 
-        // copy all CPU visible attachments to their respective buffers        
-        for (auto& attachment : m_AttachmentData)
-            CopyAttachmentToBuffer(attachment);
-        for (auto& attachment : m_DepthAttachmentData)
-            CopyAttachmentToBuffer(attachment);
+            if (m_Info.AllowPerformanceQuerying)
+            {
+                vkCmdWriteTimestamp(
+                    GetCommandBuffer(),
+                    VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                    m_QueryPools[m_InFlightFrameIndex],
+                    m_CurrentSubpass + 1
+                );
+            }
 
-        // execute any commands that need to be synced with this framebuffer (i.e. Texture::RegenerateMipMapsSync)
-        for (auto cmdBuf : m_AuxiliaryCommandBuffers[m_InFlightFrameIndex])
-            vkCmdExecuteCommands(buffer, 1, &cmdBuf);
+            // run the post render compute if applicable
+            if (postRenderComputePipeline)
+            {
+                VulkanComputePipeline* comp = (VulkanComputePipeline*)postRenderComputePipeline;
 
-        HE_VULKAN_CHECK_RESULT(vkEndCommandBuffer(buffer));
+                comp->WriteInitialTimestamp(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
 
-        m_BoundPipeline = nullptr;
-        m_BoundPipelineName = "";
-        m_BoundThisFrame = false;
-        m_SubmittedThisFrame = true;
-        m_FlushedThisFrame = false;
-        m_CurrentSubpass = 0;
+                VkMemoryBarrier barrier{};
+                barrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+                barrier.srcAccessMask = VK_ACCESS_MEMORY_WRITE_BIT;
+                barrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+
+                vkCmdPipelineBarrier(
+                    GetCommandBuffer(),
+                    VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT,
+                    VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                    0, 1, &barrier, 0, nullptr, 0, nullptr
+                );
+
+                comp->Submit(VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT, true);
+                VkCommandBuffer pipelineBuf = comp->GetInlineCommandBuffer();
+                vkCmdExecuteCommands(VulkanContext::GetBoundFramebuffer()->GetCommandBuffer(), 1, &pipelineBuf);
+            }
+
+            // if the transfer buffer is null, then we have no CPU visible attachments, so don't bother running this code
+            if (transferBuffer)
+            {
+                // begin the transfer command buffer
+                VkCommandBufferBeginInfo beginInfo{};
+                beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+                beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
+                beginInfo.pInheritanceInfo = nullptr;
+
+                HE_VULKAN_CHECK_RESULT(vkBeginCommandBuffer(transferBuffer, &beginInfo));
+
+                // copy all CPU visible attachments to their respective buffers        
+                for (auto& attachment : m_AttachmentData[m_InFlightFrameIndex])
+                {
+                    if (!attachment.CPUVisible) continue;
+                    CopyAttachmentToBuffer(attachment);
+                    VulkanCommon::CopyBufferToBuffer(
+                        transferBuffer,
+                        attachment.AttachmentBuffer->GetStagingBuffer(),
+                        attachment.AttachmentBuffer->GetBuffer(),
+                        attachment.AttachmentBuffer->GetAllocatedSize()
+                    );
+                }
+                for (auto& attachment : m_DepthAttachmentData[m_InFlightFrameIndex])
+                {
+                    if (!attachment.CPUVisible) continue;
+                    CopyAttachmentToBuffer(attachment);
+                    VulkanCommon::CopyBufferToBuffer(
+                        transferBuffer,
+                        attachment.AttachmentBuffer->GetStagingBuffer(),
+                        attachment.AttachmentBuffer->GetBuffer(),
+                        attachment.AttachmentBuffer->GetAllocatedSize()
+                    );
+                }
+
+                // end the transfer command buffer
+                HE_VULKAN_CHECK_RESULT(vkEndCommandBuffer(transferBuffer));
+            }
+
+            // execute any commands that need to be synced with this framebuffer (i.e. Texture::RegenerateMipMapsSync)
+            for (auto cmdBuf : m_AuxiliaryCommandBuffers[m_InFlightFrameIndex])
+                vkCmdExecuteCommands(buffer, 1, &cmdBuf);
+
+            // end the main command buffer
+            HE_VULKAN_CHECK_RESULT(vkEndCommandBuffer(buffer));
+
+            if (m_Info.AllowPerformanceQuerying)
+            {
+                std::vector<u64> results(m_QueryPoolSize);
+                vkGetQueryPoolResults(
+                    device.Device(),
+                    m_QueryPools[m_InFlightFrameIndex],
+                    0, m_QueryPoolSize,
+                    sizeof(u64) * results.size(), results.data(),
+                    sizeof(u64),
+                    VK_QUERY_RESULT_64_BIT
+                );
+
+                for (size_t i = 0; i < m_PerformanceTimestamps.size(); i++)
+                {
+                    double timestamp = device.PhysicalDeviceProperties().limits.timestampPeriod;
+                    if (i == 0) // overall timestamp uses first and last results
+                        timestamp *= results.back() - results.front();
+                    else
+                        timestamp *= results[i] - results[i - 1];
+                    m_PerformanceTimestamps[i] = timestamp * 0.000001;
+                }
+
+                vkResetQueryPool(
+                    device.Device(),
+                    m_QueryPools[m_InFlightFrameIndex],
+                    0,
+                    m_QueryPoolSize
+                );
+            }
+
+            m_CurrentPipelineStage = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
+            m_BoundPipeline = nullptr;
+            m_BoundPipelineName = "";
+            m_BoundThisFrame = false;
+            m_SubmittedThisFrame = true;
+            m_FlushedThisFrame = false;
+            m_CurrentSubpass = 0;
+        }
     }
 
     void VulkanFramebuffer::CopyAttachmentToBuffer(VulkanFramebufferAttachment& attachmentData)
     {
-        if (!attachmentData.CPUVisible)
-            return;
-
         VkCommandBuffer buffer = GetCommandBuffer();
 
         VkBufferImageCopy copyData{};
@@ -397,7 +536,7 @@ namespace Heart
         bufferBarrier.sType           = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
         bufferBarrier.srcAccessMask   = 0;
         bufferBarrier.dstAccessMask   = VK_ACCESS_TRANSFER_WRITE_BIT;
-        bufferBarrier.buffer          = attachmentData.AttachmentBuffer->GetBuffer();
+        bufferBarrier.buffer          = attachmentData.AttachmentBuffer->GetStagingBuffer();
         bufferBarrier.size            = attachmentData.AttachmentBuffer->GetAllocatedSize();
 
         vkCmdPipelineBarrier(buffer,
@@ -410,7 +549,7 @@ namespace Heart
             &bufferBarrier,
             1,
             &imageBarrier);
-        vkCmdCopyImageToBuffer(buffer, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, attachmentData.AttachmentBuffer->GetBuffer(), 1, &copyData);
+        vkCmdCopyImageToBuffer(buffer, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, attachmentData.AttachmentBuffer->GetStagingBuffer(), 1, &copyData);
         //VulkanCommon::TransitionImageLayout(VulkanContext::GetDevice().Device(), buffer, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     }
 
@@ -434,39 +573,62 @@ namespace Heart
         HE_PROFILE_FUNCTION();
 
         HE_ENGINE_ASSERT(elementCount + elementOffset <= buffer->GetAllocatedCount(), "ElementCount + ElementOffset must be <= buffer allocated count");
+        HE_ENGINE_ASSERT(buffer->GetType() == Buffer::Type::Uniform || buffer->GetType() == Buffer::Type::Storage, "Buffer bind must be either a uniform or storage buffer");
 
-        BindShaderResource(bindingIndex, ShaderResourceType::UniformBuffer, buffer, true, buffer->GetLayout().GetStride() * elementOffset, buffer->GetLayout().GetStride() * elementCount); // uniform vs structured buffer doesn't matter here
+        ShaderResourceType bufferType = buffer->GetType() == Buffer::Type::Uniform ? ShaderResourceType::UniformBuffer : ShaderResourceType::StorageBuffer;
+        BindShaderResource(bindingIndex, bufferType, buffer, true, buffer->GetLayout().GetStride() * elementOffset, buffer->GetLayout().GetStride() * elementCount);
     }
 
     void VulkanFramebuffer::BindShaderTextureResource(u32 bindingIndex, Texture* texture)
     {
         HE_PROFILE_FUNCTION();
         
+        HE_ENGINE_ASSERT(
+            std::find_if(
+                m_Info.ColorAttachments.begin(),
+                m_Info.ColorAttachments.end(),
+                [texture](FramebufferColorAttachment& att){ return att.Texture.get() == texture; }
+            ) == m_Info.ColorAttachments.end(),
+            "Cannot bind a texture resource that is currently being written to (use BindShaderTextureLayerResource)"
+        );
+
         BindShaderResource(bindingIndex, ShaderResourceType::Texture, texture, false, 0, 0);
     }
 
-    void VulkanFramebuffer::BindShaderTextureLayerResource(u32 bindingIndex, Texture* texture, u32 layerIndex)
+    void VulkanFramebuffer::BindShaderTextureLayerResource(u32 bindingIndex, Texture* texture, u32 layerIndex, u32 mipLevel)
     {
         HE_PROFILE_FUNCTION();
 
-        BindShaderResource(bindingIndex, ShaderResourceType::Texture, texture, true, layerIndex, 0);
+        HE_ENGINE_ASSERT(
+            std::find_if(
+                m_Info.ColorAttachments.begin(),
+                m_Info.ColorAttachments.end(),
+                [texture, layerIndex, mipLevel](FramebufferColorAttachment& att){ return att.Texture.get() == texture && att.LayerIndex == layerIndex && att.MipLevel == mipLevel; }
+            ) == m_Info.ColorAttachments.end(),
+            "Cannot bind a texture resource that is currently being written to (mip level & layer must not be a current color attachment)"
+        );
+
+        BindShaderResource(bindingIndex, ShaderResourceType::Texture, texture, true, layerIndex, mipLevel);
     }
 
     void VulkanFramebuffer::BindSubpassInputAttachment(u32 bindingIndex, SubpassAttachment attachment)
     {
         HE_PROFILE_FUNCTION();
 
-        BindShaderResource(bindingIndex, ShaderResourceType::SubpassInput, attachment.Type == SubpassAttachmentType::Depth ? &m_DepthAttachmentData[attachment.AttachmentIndex] : &m_AttachmentData[attachment.AttachmentIndex], false, 0, 0);
+        BindShaderResource(bindingIndex, ShaderResourceType::SubpassInput, attachment.Type == SubpassAttachmentType::Depth ? &m_DepthAttachmentData[m_InFlightFrameIndex][attachment.AttachmentIndex] : &m_AttachmentData[m_InFlightFrameIndex][attachment.AttachmentIndex], false, 0, 0);
     }
 
     void VulkanFramebuffer::BindShaderResource(u32 bindingIndex, ShaderResourceType resourceType, void* resource, bool useOffset, u32 offset, u32 size)
     {
         HE_ENGINE_ASSERT(m_BoundPipeline != nullptr, "Must call BindPipeline before BindShaderResource");
+        HE_ENGINE_ASSERT(resource != nullptr, "Cannot bind a null resource to a shader");
 
         VulkanDescriptorSet& descriptorSet = m_BoundPipeline->GetVulkanDescriptorSet();
 
         if (!descriptorSet.DoesBindingExist(bindingIndex))
             return; // silently ignore, TODO: warning once in the console when this happens
+
+        HE_ENGINE_ASSERT(descriptorSet.IsResourceCorrectType(bindingIndex, resourceType), "Attempting to bind a resource that does not match the bind index type");
 
         if (useOffset && (resourceType == ShaderResourceType::UniformBuffer || resourceType == ShaderResourceType::StorageBuffer))
             descriptorSet.UpdateDynamicOffset(bindingIndex, offset);
@@ -504,23 +666,52 @@ namespace Heart
     
     void* VulkanFramebuffer::GetColorAttachmentImGuiHandle(u32 attachmentIndex)
     {
-        HE_ENGINE_ASSERT(attachmentIndex < m_AttachmentData.size(), "Color attachment access on framebuffer out of range");
+        HE_ENGINE_ASSERT(attachmentIndex < m_AttachmentData[m_InFlightFrameIndex].size(), "Color attachment access on framebuffer out of range");
  
-        return (m_AttachmentData[attachmentIndex].HasResolve ? m_AttachmentData[attachmentIndex].ResolveImageImGuiId : m_AttachmentData[attachmentIndex].ImageImGuiId);
+        return (
+            m_AttachmentData[m_InFlightFrameIndex][attachmentIndex].HasResolve ?
+            m_AttachmentData[m_InFlightFrameIndex][attachmentIndex].ResolveImageImGuiId :
+            m_AttachmentData[m_InFlightFrameIndex][attachmentIndex].ImageImGuiId
+        );
     }
 
     void* VulkanFramebuffer::GetColorAttachmentPixelData(u32 attachmentIndex)
     {
-        HE_ENGINE_ASSERT(attachmentIndex < m_AttachmentData.size(), "Color attachment access on framebuffer out of range");
-        HE_ENGINE_ASSERT(m_AttachmentData[attachmentIndex].CPUVisible, "Cannot read pixel data of color attachment that does not have 'AllowCPURead' enabled");
+        HE_ENGINE_ASSERT(attachmentIndex < m_AttachmentData[m_InFlightFrameIndex].size(), "Color attachment access on framebuffer out of range");
+        HE_ENGINE_ASSERT(m_AttachmentData[m_InFlightFrameIndex][attachmentIndex].CPUVisible, "Cannot read pixel data of color attachment that does not have 'AllowCPURead' enabled");
 
-        return m_AttachmentData[attachmentIndex].AttachmentBuffer->GetMappedMemory();
+        return m_AttachmentData[m_InFlightFrameIndex][attachmentIndex].AttachmentBuffer->GetMappedMemory();
+    }
+
+    double VulkanFramebuffer::GetPerformanceTimestamp()
+    {
+        HE_ENGINE_ASSERT(m_Info.AllowPerformanceQuerying, "Cannot get performance timestamp unless the framebuffer was created with 'AllowPerformanceQuerying' enabled");
+
+        return m_PerformanceTimestamps[0];
+    }
+
+    double VulkanFramebuffer::GetSubpassPerformanceTimestamp(u32 subpassIndex)
+    {
+        HE_ENGINE_ASSERT(m_Info.AllowPerformanceQuerying, "Cannot get performance timestamp unless the framebuffer was created with 'AllowPerformanceQuerying' enabled");
+        HE_ENGINE_ASSERT(subpassIndex < m_Info.Subpasses.size(), "Subpass index out of range");
+
+        return m_PerformanceTimestamps[subpassIndex + 1];
     }
 
     void VulkanFramebuffer::StartNextSubpass()
     {
         m_CurrentSubpass++;
         HE_ENGINE_ASSERT(m_CurrentSubpass < m_Info.Subpasses.size(), "Attempting to start a subpass that does not exist");
+
+        if (m_Info.AllowPerformanceQuerying)
+        {
+            vkCmdWriteTimestamp(
+                GetCommandBuffer(),
+                VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                m_QueryPools[m_InFlightFrameIndex],
+                m_CurrentSubpass
+            );
+        }
 
         vkCmdNextSubpass(GetCommandBuffer(), VK_SUBPASS_CONTENTS_INLINE);
 
@@ -575,6 +766,18 @@ namespace Heart
         allocInfo.commandBufferCount = static_cast<u32>(m_CommandBuffers.size());
 
         HE_VULKAN_CHECK_RESULT(vkAllocateCommandBuffers(device.Device(), &allocInfo, m_CommandBuffers.data()));
+
+        // only allocate the transfer command buffers if we have any cpu visible attachments
+        for (auto& attachment : m_Info.ColorAttachments)
+        {
+            if (attachment.AllowCPURead)
+            {
+                allocInfo.commandPool = VulkanContext::GetTransferPool();
+                allocInfo.commandBufferCount = static_cast<u32>(m_TransferCommandBuffers.size());
+                HE_VULKAN_CHECK_RESULT(vkAllocateCommandBuffers(device.Device(), &allocInfo, m_TransferCommandBuffers.data()));
+                break;
+            }
+        } 
     }
 
     void VulkanFramebuffer::FreeCommandBuffers()
@@ -582,9 +785,11 @@ namespace Heart
         VulkanDevice& device = VulkanContext::GetDevice();
 
         vkFreeCommandBuffers(device.Device(), VulkanContext::GetGraphicsPool(), static_cast<u32>(m_CommandBuffers.size()), m_CommandBuffers.data());
+        if (GetTransferCommandBuffer())
+            vkFreeCommandBuffers(device.Device(), VulkanContext::GetTransferPool(), static_cast<u32>(m_TransferCommandBuffers.size()), m_TransferCommandBuffers.data());
     }
 
-    void VulkanFramebuffer::CreateAttachmentImages(VulkanFramebufferAttachment& attachmentData)
+    void VulkanFramebuffer::CreateAttachmentImages(VulkanFramebufferAttachment& attachmentData, u32 inFlightFrameIndex)
     {
         VulkanDevice& device = VulkanContext::GetDevice();
 
@@ -637,44 +842,49 @@ namespace Heart
 
         if (attachmentData.CPUVisible)
         {
-            attachmentData.AttachmentBuffer = std::dynamic_pointer_cast<VulkanBuffer>(Buffer::Create(
-                Buffer::Type::Pixel,
-                BufferUsageType::Dynamic,
-                { ColorFormatBufferDataType(attachmentData.GeneralColorFormat) },
-                m_ActualWidth * m_ActualHeight * ColorFormatComponents(attachmentData.GeneralColorFormat)
-            ));
+            if (attachmentData.ExternalTexture)
+                attachmentData.AttachmentBuffer = attachmentData.ExternalTexture->GetCpuBuffer();
+            else
+            {
+                attachmentData.AttachmentBuffer = std::dynamic_pointer_cast<VulkanBuffer>(Buffer::Create(
+                    Buffer::Type::Pixel,
+                    BufferUsageType::Dynamic,
+                    { ColorFormatBufferDataType(attachmentData.GeneralColorFormat) },
+                    m_ActualWidth * m_ActualHeight * ColorFormatComponents(attachmentData.GeneralColorFormat)
+                ));
+            }
         }
 
         // create associated image views
         if (shouldCreateBaseTexture)
         {
             attachmentData.ImageView = VulkanCommon::CreateImageView(device.Device(), attachmentData.Image, attachmentData.ColorFormat, 1, 0, 1, 0, attachmentData.IsDepthAttachment ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT);
-            m_CachedImageViews.emplace_back(attachmentData.ImageView);
+            m_CachedImageViews[inFlightFrameIndex].emplace_back(attachmentData.ImageView);
             attachmentData.ImageImGuiId = ImGui_ImplVulkan_AddTexture(VulkanContext::GetDefaultSampler(), attachmentData.ImageView, attachmentData.IsDepthAttachment ? VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
         }
 
         if (shouldCreateResolveTexture)
         {
             attachmentData.ResolveImageView = VulkanCommon::CreateImageView(device.Device(), attachmentData.ResolveImage, attachmentData.ColorFormat, 1, 0, 1, 0, attachmentData.IsDepthAttachment ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT);
-            m_CachedImageViews.emplace_back(attachmentData.ResolveImageView);
+            m_CachedImageViews[inFlightFrameIndex].emplace_back(attachmentData.ResolveImageView);
             attachmentData.ResolveImageImGuiId = ImGui_ImplVulkan_AddTexture(VulkanContext::GetDefaultSampler(), attachmentData.ResolveImageView, attachmentData.IsDepthAttachment ? VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
         }
 
         if (shouldResolveExternal)
         {
-            attachmentData.ResolveImage = attachmentData.ExternalTexture->GetImage();
-            attachmentData.ResolveImageView = attachmentData.ExternalTexture->GetLayerImageView(attachmentData.ExternalTextureLayer, attachmentData.ExternalTextureMip);
-            attachmentData.ResolveImageMemory = attachmentData.ExternalTexture->GetImageMemory();
+            attachmentData.ResolveImage = attachmentData.ExternalTexture->GetImage(inFlightFrameIndex);
+            attachmentData.ResolveImageView = attachmentData.ExternalTexture->GetLayerImageView(inFlightFrameIndex, attachmentData.ExternalTextureLayer, attachmentData.ExternalTextureMip);
+            attachmentData.ResolveImageMemory = attachmentData.ExternalTexture->GetImageMemory(inFlightFrameIndex);
             attachmentData.ResolveImageImGuiId = attachmentData.ExternalTexture->GetImGuiHandle(attachmentData.ExternalTextureLayer);
-            m_CachedImageViews.emplace_back(attachmentData.ResolveImageView);
+            m_CachedImageViews[inFlightFrameIndex].emplace_back(attachmentData.ResolveImageView);
         }
         else if (attachmentData.ExternalTexture)
         {
-            attachmentData.Image = attachmentData.ExternalTexture->GetImage();
-            attachmentData.ImageView = attachmentData.ExternalTexture->GetLayerImageView(attachmentData.ExternalTextureLayer, attachmentData.ExternalTextureMip);
-            attachmentData.ImageMemory = attachmentData.ExternalTexture->GetImageMemory();
+            attachmentData.Image = attachmentData.ExternalTexture->GetImage(inFlightFrameIndex);
+            attachmentData.ImageView = attachmentData.ExternalTexture->GetLayerImageView(inFlightFrameIndex, attachmentData.ExternalTextureLayer, attachmentData.ExternalTextureMip);
+            attachmentData.ImageMemory = attachmentData.ExternalTexture->GetImageMemory(inFlightFrameIndex);
             attachmentData.ImageImGuiId = attachmentData.ExternalTexture->GetImGuiHandle(attachmentData.ExternalTextureLayer);
-            m_CachedImageViews.emplace_back(attachmentData.ImageView);
+            m_CachedImageViews[inFlightFrameIndex].emplace_back(attachmentData.ImageView);
         }
     }
 
@@ -688,7 +898,7 @@ namespace Heart
         if (hasBaseTexture)
         {
             ImGui_ImplVulkan_RemoveTexture(attachmentData.ImageImGuiId);
-                
+            
             vkDestroyImageView(device.Device(), attachmentData.ImageView, nullptr);
             vkDestroyImage(device.Device(), attachmentData.Image, nullptr);
             vkFreeMemory(device.Device(), attachmentData.ImageMemory, nullptr);
@@ -710,23 +920,27 @@ namespace Heart
     {
         VulkanDevice& device = VulkanContext::GetDevice();
 
-        VkFramebufferCreateInfo framebufferInfo{};
-        framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-        framebufferInfo.renderPass = m_RenderPass;
-        framebufferInfo.attachmentCount = static_cast<u32>(m_CachedImageViews.size());
-        framebufferInfo.pAttachments = m_CachedImageViews.data();
-        framebufferInfo.width = m_ActualWidth;
-        framebufferInfo.height = m_ActualHeight;
-        framebufferInfo.layers = 1;
-        
-        HE_VULKAN_CHECK_RESULT(vkCreateFramebuffer(device.Device(), &framebufferInfo, nullptr, &m_Framebuffer));
+        for (u32 frame = 0; frame < MAX_FRAMES_IN_FLIGHT; frame++)
+        {
+            VkFramebufferCreateInfo framebufferInfo{};
+            framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+            framebufferInfo.renderPass = m_RenderPass;
+            framebufferInfo.attachmentCount = static_cast<u32>(m_CachedImageViews[frame].size());
+            framebufferInfo.pAttachments = m_CachedImageViews[frame].data();
+            framebufferInfo.width = m_ActualWidth;
+            framebufferInfo.height = m_ActualHeight;
+            framebufferInfo.layers = 1;
+            
+            HE_VULKAN_CHECK_RESULT(vkCreateFramebuffer(device.Device(), &framebufferInfo, nullptr, &m_Framebuffers[frame]));
+        }
     }
 
     void VulkanFramebuffer::CleanupFramebuffer()
     {
         VulkanDevice& device = VulkanContext::GetDevice();
         
-        vkDestroyFramebuffer(device.Device(), m_Framebuffer, nullptr);
+        for (u32 frame = 0; frame < MAX_FRAMES_IN_FLIGHT; frame++)
+            vkDestroyFramebuffer(device.Device(), m_Framebuffers[frame], nullptr);
     }
 
     void VulkanFramebuffer::Recreate()
@@ -736,17 +950,20 @@ namespace Heart
         VulkanContext::Sync();
 
         CleanupFramebuffer();
-        m_CachedImageViews.clear();
 
-        for (auto& attachmentData : m_DepthAttachmentData)
+        for (u32 frame = 0; frame < MAX_FRAMES_IN_FLIGHT; frame++)
         {
-            CleanupAttachmentImages(attachmentData);
-            CreateAttachmentImages(attachmentData);
-        }
-        for (auto& attachmentData : m_AttachmentData)
-        {
-            CleanupAttachmentImages(attachmentData);
-            CreateAttachmentImages(attachmentData);
+            m_CachedImageViews[frame].clear();
+            for (auto& attachmentData : m_DepthAttachmentData[frame])
+            {
+                CleanupAttachmentImages(attachmentData);
+                CreateAttachmentImages(attachmentData, frame);
+            }
+            for (auto& attachmentData : m_AttachmentData[frame])
+            {
+                CleanupAttachmentImages(attachmentData);
+                CreateAttachmentImages(attachmentData, frame);
+            }
         }
 
         CreateFramebuffer();

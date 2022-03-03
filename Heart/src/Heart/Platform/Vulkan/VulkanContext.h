@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Heart/Events/EventEmitter.h"
 #include "Heart/Renderer/GraphicsContext.h"
 #include "Heart/Platform/Vulkan/VulkanDevice.h"
 #include "Heart/Platform/Vulkan/VulkanSwapChain.h"
@@ -34,7 +35,9 @@ namespace Heart
         inline static VkCommandPool GetTransferPool() { return s_TransferPool; }
         inline static VkSampler GetDefaultSampler() { return s_DefaultSampler; }
         inline static void Sync() { vkDeviceWaitIdle(s_VulkanDevice.Device()); }
-        
+        inline static void EmitEvent(Event& event) { s_EventEmitter.Emit(event); }
+        inline static EventEmitter& GetEventEmitter() { return s_EventEmitter; }
+
         static void ProcessDeleteQueue();
 
         // both bound command & frame buffers should be from the same object
@@ -69,5 +72,6 @@ namespace Heart
         static VulkanFramebuffer* s_BoundFramebuffer;
         static VkSampler s_DefaultSampler;
         static std::deque<std::function<void()>> s_DeleteQueue;
+        static EventEmitter s_EventEmitter;
     };
 }

@@ -30,6 +30,8 @@
 #include <deque>
 #include <unordered_map>
 #include <unordered_set>
+#include <map>
+#include <set>
 
 #include "Heart/Core/Base.h"
 #include "Heart/Core/Log.h"

@@ -28,6 +28,7 @@ namespace Heart
         static int BlendOperationToOpenGL(BlendOperation op);
         static int SamplerFilterToOpenGL(SamplerFilter filter);
         static int SamplerFilterToOpenGLWithMipmap(SamplerFilter filter);
-        static int SamplerWrapModeToOpenGL(SamplerWrapMode mode);
+        static int SamplerWrapModeToOpenGL(SamplerWrapMode mode);\
+        static int SamplerReductionModeToOpenGL(SamplerReductionMode mode);
     };
 }

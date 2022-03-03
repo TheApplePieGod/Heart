@@ -11,7 +11,7 @@ namespace Heart
     enum class ShaderResourceAccessType
     {
         None = 0,
-        Vertex, Fragment, Both
+        Vertex, Fragment, Both, Compute
     };
 
     struct ReflectionDataElement
@@ -33,10 +33,10 @@ namespace Heart
     public:
         enum class Type
         {
-            None = 0, Vertex = 1, Fragment = 2
+            None = 0, Vertex = 1, Fragment = 2, Compute = 3
         };
         inline static const char* TypeStrings[] = {
-            "None", "Vertex", "Fragment"
+            "None", "Vertex", "Fragment", "Compute"
         };
         
     public:

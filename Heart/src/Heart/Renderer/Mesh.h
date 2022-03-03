@@ -7,6 +7,12 @@
 
 namespace Heart
 {
+    struct AABB
+    {
+        glm::vec3 Min = { 0.f, 0.f, 0.f };
+        glm::vec3 Max = { 0.f, 0.f, 0.f };
+    };
+
     class Mesh
     {
     public:
@@ -26,6 +32,8 @@ namespace Heart
         Buffer* GetVertexBuffer() { return m_VertexBuffer.get(); }
         Buffer* GetIndexBuffer() { return m_IndexBuffer.get(); }
         u32 GetMaterialIndex() const { return m_MaterialIndex; }
+        const AABB& GetBoundingBox() const { return m_BoundingBox; }
+        glm::vec4 GetBoundingSphere() const { return m_BoundingSphere; }
 
     public:
         static const BufferLayout& GetVertexLayout() { return s_VertexLayout; }
@@ -39,10 +47,15 @@ namespace Heart
         };
 
     private:
+        void CalculateBounds();
+
+    private:
         std::vector<Vertex> m_Vertices;
         std::vector<u32> m_Indices;
         u32 m_MaterialIndex;
         Ref<Buffer> m_VertexBuffer;
         Ref<Buffer> m_IndexBuffer;
+        AABB m_BoundingBox;
+        glm::vec4 m_BoundingSphere; // xyz: center, w: radius
     };
 }

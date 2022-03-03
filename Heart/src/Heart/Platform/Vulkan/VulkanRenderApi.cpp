@@ -5,6 +5,7 @@
 #include "Heart/Platform/Vulkan/VulkanContext.h"
 #include "Heart/Platform/Vulkan/VulkanFramebuffer.h"
 #include "Heart/Platform/Vulkan/VulkanBuffer.h"
+#include "Heart/Platform/Vulkan/VulkanComputePipeline.h"
 #include "GLFW/glfw3.h"
 
 namespace Heart
@@ -106,21 +107,74 @@ namespace Heart
         );
     }
 
-    void VulkanRenderApi::RenderFramebuffers(GraphicsContext& _context, const std::vector<Framebuffer*>& framebuffers)
+    void VulkanRenderApi::RenderFramebuffers(GraphicsContext& _context, const std::vector<FramebufferSubmission>& submissions)
     {
         HE_PROFILE_FUNCTION();
         auto timer = AggregateTimer("VulkanRenderApi::RenderFramebuffers");
 
         VulkanContext& context = static_cast<VulkanContext&>(_context);
 
-        std::vector<VkCommandBuffer> submittingBuffers;
-        for (auto& _buffer : framebuffers)
+        std::vector<VulkanFramebufferSubmit> submits;
+        for (auto& submission : submissions)
         {
-            VulkanFramebuffer* buffer = static_cast<VulkanFramebuffer*>(_buffer);
-            buffer->Submit();
-            submittingBuffers.emplace_back(buffer->GetCommandBuffer());
+            HE_ENGINE_ASSERT(submission.Framebuffer, "Cannot submit a nullptr framebuffer");
+
+            VulkanFramebuffer* buffer = static_cast<VulkanFramebuffer*>(submission.Framebuffer);
+            buffer->Submit(submission.PostRenderComputePipeline);
+
+            submits.push_back({
+                buffer->GetCommandBuffer(),
+                buffer->GetTransferCommandBuffer()
+            });
         }
 
-        context.GetSwapChain().SubmitCommandBuffers(submittingBuffers);
+        context.GetSwapChain().SubmitCommandBuffers(submits);
+    }
+
+    // void VulkanRenderApi::RenderComputePipelines(const std::vector<ComputePipeline*>& pipelines)
+    // {
+    //     HE_PROFILE_FUNCTION();
+    //     auto timer = AggregateTimer("VulkanRenderApi::RenderComputePipelines");
+
+    //     vkCmdPipelineBarrier(
+    //         VulkanContext::GetBoundFramebuffer()->GetCommandBuffer(),
+    //         VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT,
+    //         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+    //         0, 0, nullptr, 0, nullptr, 0, nullptr
+    //     );
+
+    //     for (auto& _pipeline : pipelines)
+    //     {
+    //         VulkanComputePipeline* pipeline = static_cast<VulkanComputePipeline*>(_pipeline);
+    //         pipeline->Submit();
+
+    //         VkCommandBuffer pipelineBuf = pipeline->GetInlineCommandBuffer();
+    //         vkCmdExecuteCommands(VulkanContext::GetBoundFramebuffer()->GetCommandBuffer(), 1, &pipelineBuf);            
+    //     }
+
+    //     vkCmdPipelineBarrier(
+    //         VulkanContext::GetBoundFramebuffer()->GetCommandBuffer(),
+    //         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+    //         VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT,
+    //         0, 0, nullptr, 0, nullptr, 0, nullptr
+    //     );
+    // }
+
+    void VulkanRenderApi::DispatchComputePipelines(GraphicsContext& _context, const std::vector<ComputePipeline*>& pipelines)
+    {
+        // HE_PROFILE_FUNCTION();
+        // auto timer = AggregateTimer("VulkanRenderApi::DispatchComputePipelines");
+
+        // VulkanContext& context = static_cast<VulkanContext&>(_context);
+
+        // std::vector<VulkanFramebufferSubmit> submits;
+        // for (auto& _pipeline : pipelines)
+        // {
+        //     VulkanComputePipeline* pipeline = static_cast<VulkanComputePipeline*>(_pipeline);
+        //     pipeline->Submit();
+        //     submits.push_back({ buffer->GetCommandBuffer(), buffer->GetTransferCommandBuffer() });
+        // }
+
+        // context.GetSwapChain().SubmitCommandBuffers(submits);
     }
 }

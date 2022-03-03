@@ -26,7 +26,6 @@ namespace Heart
 
     private:
         const int m_DesiredChannelCount = 4; // all images will load as RGBA
-        int m_Width, m_Height, m_Channels;
         Ref<Texture> m_Texture;
     };
 }

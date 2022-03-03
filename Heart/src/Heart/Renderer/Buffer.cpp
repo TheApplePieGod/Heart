@@ -23,6 +23,12 @@ namespace Heart
         return stride;
     }
 
+    void Buffer::SetElements(void* data, u32 elementCount, u32 elementOffset)
+    {
+        HE_ENGINE_ASSERT(elementCount + elementOffset <= m_AllocatedCount, "Attempting to set data on buffer which is larger than allocated size");
+        SetBytes(data, m_Layout.GetStride() * elementCount, m_Layout.GetStride() * elementOffset);
+    }
+
     Ref<Buffer> Buffer::Create(Type type, BufferUsageType usage, const BufferLayout& layout, u32 elementCount)
     {
         return Create(type, usage, layout, elementCount, nullptr);

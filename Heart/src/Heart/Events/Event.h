@@ -8,7 +8,8 @@ namespace Heart
         AppGraphicsShutdown, AppGraphicsInit,
         WindowResize, WindowClose,
         Key, KeyPressed, KeyReleased,
-        MouseButton, MouseButtonPressed, MouseButtonReleased
+        MouseButton, MouseButtonPressed, MouseButtonReleased,
+        TextureDeleted
     };
 
     class Event

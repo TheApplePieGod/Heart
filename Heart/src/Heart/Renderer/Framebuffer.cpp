@@ -13,12 +13,14 @@ namespace Heart
     Framebuffer::Framebuffer(const FramebufferCreateInfo& createInfo)
         : m_Info(createInfo)
     {
-        SubscribeToEmitter(&Window::GetMainWindow());
+        if (createInfo.Width == 0 || createInfo.Height == 0)
+            SubscribeToEmitter(&Window::GetMainWindow());
     }
 
     Framebuffer::~Framebuffer()
     {
-        UnsubscribeFromEmitter(&Window::GetMainWindow());
+        if (m_Info.Width == 0 || m_Info.Height == 0)
+            UnsubscribeFromEmitter(&Window::GetMainWindow());
     }
 
     Ref<Framebuffer> Framebuffer::Create(const FramebufferCreateInfo& createInfo)
@@ -80,6 +82,11 @@ namespace Heart
         Invalidate(newWidth, newHeight);        
 
         return false;
+    }
+
+    void Framebuffer::Resize(u32 width, u32 height)
+    {
+        Invalidate(width, height);
     }
 
     void Framebuffer::Invalidate(u32 newWidth, u32 newHeight)

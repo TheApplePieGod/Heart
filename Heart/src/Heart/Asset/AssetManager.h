@@ -68,7 +68,10 @@ namespace Heart
 
         /*! @brief Get a reference to the internal asset UUID registry. */
         inline static const std::unordered_map<UUID, UUIDEntry>& GetUUIDRegistry() { return s_UUIDs; }
+
         inline static std::string GetAbsolutePath(const std::string& relative) { return std::filesystem::path(s_AssetsDirectory).append(relative).generic_u8string(); }
+
+        inline static std::string GetRelativePath(const std::string& absolute) { return std::filesystem::relative(absolute, Heart::AssetManager::GetAssetsDirectory()).generic_u8string(); }
 
         /**
          * @brief Register an asset in the manager's registry.

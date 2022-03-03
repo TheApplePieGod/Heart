@@ -11,7 +11,8 @@ namespace Heart
         VulkanBuffer(Type type, BufferUsageType usage, const BufferLayout& layout, u32 elementCount, void* initialData);
         ~VulkanBuffer() override;
 
-        void SetData(void* data, u32 elementCount, u32 elementOffset) override;
+        void SetBytes(void* data, u32 byteCount, u32 byteOffset) override;
+        void TransferData(); // will transfer data from staging buffer to actual buffer
 
         VkBuffer GetBuffer();
         VkBuffer GetStagingBuffer();
@@ -38,8 +39,10 @@ namespace Heart
         std::array<VkBuffer, MAX_FRAMES_IN_FLIGHT> m_StagingBuffers;
         std::array<VkDeviceMemory, MAX_FRAMES_IN_FLIGHT> m_StagingBufferMemory;
         std::array<void*, MAX_FRAMES_IN_FLIGHT> m_MappedMemory;
+        s64 m_DataSize = 0;
         u64 m_LastUpdateFrame = 0;
         u32 m_InFlightFrameIndex = 0;
+        u32 m_BufferCount = 0;
         bool m_UsesStaging = false;
         StagingDirection m_StagingDirection = StagingDirection::CPUToGPU;
     };

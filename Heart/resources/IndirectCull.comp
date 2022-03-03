@@ -1,0 +1,89 @@
+#version 450
+
+layout(local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
+
+#include "ObjectBuffer.glsl"
+
+struct CullData {
+    vec4 planes[6];
+    vec4 data; // [0]: drawCount
+};
+
+struct Command
+{
+    uint indexCount;
+    uint instanceCount;
+    uint firstIndex;
+    int vertexOffset;
+    uint firstInstance;
+
+    // Extra
+    uint padding1;
+    vec2 padding2;
+};
+
+struct Instance
+{
+    uint objectId;
+    uint batchId;
+    vec2 padding;
+};
+
+layout(binding = 0) readonly uniform CullDataBuffer {
+    CullData data;
+} cullDataBuffer;
+
+layout(binding = 2) buffer CommandBuffer {
+    Command commands[];
+} commandBuffer;
+
+layout(binding = 3) readonly buffer InstanceBuffer {
+    Instance instances[];
+} instanceBuffer;
+
+layout(binding = 4) buffer FinalInstanceBuffer {
+    vec4 objectIds[];
+} finalInstanceBuffer;
+
+bool IsVisible(uint objectId)
+{
+    vec4 boundingSphere = objectBuffer.objects[objectId].boundingSphere;
+    vec3 center = (objectBuffer.objects[objectId].model * vec4(boundingSphere.xyz, 1.f)).xyz;
+    float radius = boundingSphere.w; // todo: multiply by scale
+
+    bool visible = true;
+    
+    #pragma unroll 6
+    for (int i = 0; i < 6; i++)
+    {
+        vec4 plane = cullDataBuffer.data.planes[i];
+        if (plane.x * center.x + plane.y * center.y + plane.z * center.z + plane.w <= -radius)
+           visible = false;
+    }
+
+    return visible;
+}
+
+// https://vkguide.dev/docs/gpudriven/compute_culling/
+void main()
+{
+    uint gId = gl_GlobalInvocationID.x;
+    if (gId >= cullDataBuffer.data.data[0]) return; // draw count
+    
+    uint objectId = instanceBuffer.instances[gId].objectId;
+
+    bool visible = IsVisible(objectId);
+
+    if (visible)
+    {
+        // Get the index of the draw to insert into
+        uint batchIndex = instanceBuffer.instances[gId].batchId;
+
+        // Atomic add +1 on the number of instances of that draw command
+        uint countIndex = atomicAdd(commandBuffer.commands[batchIndex].instanceCount, 1);
+
+        // Write the object ID into the instance buffer that maps from gl_instanceID into ObjectID
+        uint instanceIndex = commandBuffer.commands[batchIndex].firstInstance + countIndex;
+        finalInstanceBuffer.objectIds[instanceIndex].x = objectId;
+    }
+}

@@ -16,5 +16,5 @@
 
 #endif
 
-// undefine optick's definition here because it gets redefined with the vulkansdk 
+// Undefine optick's definition here because it gets redefined with the vulkansdk 
 #undef VKAPI_PTR

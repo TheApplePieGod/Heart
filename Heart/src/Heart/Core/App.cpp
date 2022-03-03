@@ -4,6 +4,7 @@
 #include "Heart/Core/Layer.h"
 #include "Heart/Core/Window.h"
 #include "Heart/Core/Timing.h"
+#include "Heart/Renderer/Renderer.h"
 #include "Heart/ImGui/ImGuiInstance.h"
 #include "Heart/Events/WindowEvents.h"
 #include "Heart/Events/AppEvents.h"
@@ -25,8 +26,8 @@ namespace Heart
             HE_ENGINE_LOG_INFO("Running Heart in Release mode");
         #endif
 
-        WindowSettings windowSettings = WindowSettings(windowName);
-        InitializeGraphicsApi(RenderApi::Type::Vulkan, windowSettings);
+        WindowCreateInfo windowCreateInfo = WindowCreateInfo(windowName);
+        InitializeGraphicsApi(RenderApi::Type::Vulkan, windowCreateInfo);
 
         AssetManager::Initialize();
 
@@ -58,11 +59,11 @@ namespace Heart
         m_SwitchingAssetsDirectory = newDirectory;
     }
 
-    void App::InitializeGraphicsApi(RenderApi::Type type, const WindowSettings& windowSettings)
+    void App::InitializeGraphicsApi(RenderApi::Type type, const WindowCreateInfo& windowCreateInfo)
     {
         Renderer::Initialize(type);
 
-        m_Window = Window::Create(windowSettings);
+        m_Window = Window::Create(windowCreateInfo);
         SubscribeToEmitter(&GetWindow());
         Window::SetMainWindow(m_Window);
 
@@ -121,7 +122,7 @@ namespace Heart
     {
         if (m_SwitchingApi != RenderApi::Type::None)
         {
-            WindowSettings windowSettings = {
+            WindowCreateInfo windowCreateInfo = {
                 m_Window->GetTitle(),
                 m_Window->GetWidth(),
                 m_Window->GetHeight()
@@ -133,7 +134,7 @@ namespace Heart
             ShutdownGraphicsApi();
             AggregateTimer::ClearTimeMap();
 
-            InitializeGraphicsApi(m_SwitchingApi, windowSettings);
+            InitializeGraphicsApi(m_SwitchingApi, windowCreateInfo);
             m_Window->SetFullscreen(fullscreen);
 
             for (auto layer : m_Layers)
@@ -208,7 +209,7 @@ namespace Heart
 
             CheckForAssetsDirectorySwitch();
             CheckForGraphicsApiSwitch();
-            AggregateTimer::ResetAggregateTimes();
+            AggregateTimer::EndFrame();
         }
     }
 }

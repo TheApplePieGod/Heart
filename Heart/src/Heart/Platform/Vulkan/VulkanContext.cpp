@@ -19,6 +19,7 @@ namespace Heart
     VulkanFramebuffer* VulkanContext::s_BoundFramebuffer = nullptr;
     VkSampler VulkanContext::s_DefaultSampler;
     std::deque<std::function<void()>> VulkanContext::s_DeleteQueue;
+    EventEmitter VulkanContext::s_EventEmitter;
 
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
         VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -54,7 +55,6 @@ namespace Heart
             s_VulkanDevice.Initialize(m_Surface);
 
             InitializeCommandPools();
-
             CreateDefaultSampler();
         }
         else
@@ -114,7 +114,7 @@ namespace Heart
 
     void VulkanContext::CreateImGuiDescriptorPool()
     {
-        u32 maxSets = 1000;
+        u32 maxSets = 10000;
 
         std::array<VkDescriptorPoolSize, 1> poolSizes{};
         poolSizes[0].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -144,7 +144,7 @@ namespace Heart
         //appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
         appInfo.pEngineName = "Heart";
         appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-        appInfo.apiVersion = VK_API_VERSION_1_1;
+        appInfo.apiVersion = VK_API_VERSION_1_2;
 
         // get api extension support
         u32 supportedExtensionCount = 0;

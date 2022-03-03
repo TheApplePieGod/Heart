@@ -9,6 +9,16 @@ struct Material {
     vec4 scalars; // [0]: metalness, [1]: roughness, [2]: alphaClipThreshold
 };
 
+struct Light {
+    vec4 position;
+    vec4 direction;
+    vec4 color;
+    int lightType;
+    float constantAttenuation;
+    float linearAttenuation;
+    float quadraticAttenuation;
+};
+
 layout(location = 0) in vec2 texCoord;
 layout(location = 1) in flat int entityId;
 layout(location = 2) in float depth;
@@ -21,16 +31,22 @@ layout(location = 7) in flat int instance;
 layout(binding = 2) readonly buffer MaterialBuffer {
     Material materials[];
 } materialBuffer;
-layout(binding = 3) uniform sampler2D albedoTex;
-layout(binding = 4) uniform sampler2D metallicRoughnessTex;
-layout(binding = 5) uniform sampler2D normalTex;
-layout(binding = 6) uniform sampler2D emissiveTex;
-layout(binding = 7) uniform sampler2D occlusionTex;
-layout(binding = 8) uniform samplerCube irradianceMap;
-layout(binding = 9) uniform samplerCube prefilterMap;
-layout(binding = 10) uniform sampler2D brdfLUT;
+layout(binding = 3) readonly buffer LightingBuffer {
+    Light lights[];
+} lightingBuffer;
+
+layout(binding = 4) uniform sampler2D albedoTex;
+layout(binding = 5) uniform sampler2D metallicRoughnessTex;
+layout(binding = 6) uniform sampler2D normalTex;
+layout(binding = 7) uniform sampler2D emissiveTex;
+layout(binding = 8) uniform sampler2D occlusionTex;
+layout(binding = 9) uniform samplerCube irradianceMap;
+layout(binding = 10) uniform samplerCube prefilterMap;
+layout(binding = 11) uniform sampler2D brdfLUT;
 
 #define PI 3.1415926
+#define DIRECTIONAL 1
+#define POINT 2
 
 // adapted from https://learnopengl.com/PBR/Lighting
 vec3 FresnelSchlick(float cosTheta, vec3 F0)
@@ -123,20 +139,10 @@ void Clip(float alpha)
         discard;
 }
 
-// https://knarkowicz.wordpress.com/2016/01/06/aces-filmic-tone-mapping-curve/
-vec3 ACESFilm(vec3 x)
-{
-    float a = 2.51f;
-    float b = 0.03f;
-    float c = 2.43f;
-    float d = 0.59f;
-    float e = 0.14f;
-    return clamp((x*(a*x+b))/(x*(c*x+d)+e), vec3(0.f), vec3(1.f));
-}
-
 vec4 GetFinalColor()
 {
     vec4 baseColor = GetAlbedo();
+    baseColor.rgb = pow(baseColor.rgb, vec3(2.2)); // compensate for gamma correction
     Clip(baseColor.a);
 
     float roughness = GetRoughness();
@@ -153,7 +159,7 @@ vec4 GetFinalColor()
 
     vec3 N = nn;
     if (materialBuffer.materials[instance].hasTextures[0] == 1.f) // has normal
-        N = tbn * (texture(normalTex, (texCoord + materialBuffer.materials[instance].texCoordTransform.zw) * materialBuffer.materials[instance].texCoordTransform.xy).xyz * 2.0 - 1.0);
+        N = normalize(tbn * (texture(normalTex, (texCoord + materialBuffer.materials[instance].texCoordTransform.zw) * materialBuffer.materials[instance].texCoordTransform.xy).xyz * 2.0 - 1.0));
 
     const float MAX_REFLECTION_LOD = 4.0;
     vec3 R = reflect(-V, N); 
@@ -161,25 +167,40 @@ vec4 GetFinalColor()
     vec3 F0 = vec3(0.04);
     F0 = mix(F0, baseColor.rgb, metalness);
 
-    vec3 finalContribution = vec3(0.f);
+    vec3 nDfdx = dFdx(N.xyz);
+    vec3 nDfdy = dFdy(N.xyz);
+    float slopeSquare = max(dot(nDfdx, nDfdx), dot(nDfdy, nDfdy));
+    float geometricRoughnessFactor = pow(clamp(slopeSquare, 0.0, 1.0), 0.333);
+    float filteredRoughness = clamp(max(roughness, geometricRoughnessFactor) + 0.0005, 0.01f, 1.f);
 
-    // ------------------------------
-    // Begin per light code
-    // ------------------------------
+    // contribution from all lights
+    int lightCount = int(lightingBuffer.lights[0].position.x);
+    vec3 finalContribution = vec3(0.f);
+    for (int i = 1; i <= lightCount; i++)
     {
-        vec3 lightColor = vec3(0.6f, 0.7f, 0.99f);
-        //vec3 lightColor = vec3(0.95f, 0.5f, 0.1f);
-        vec3 L = normalize(vec3(0.5f, 0.5f, 0.f)); // directional light
+        float attenuation = 1.f;
+        if (lightingBuffer.lights[i].lightType == POINT)
+        {
+            float dist = length(lightingBuffer.lights[i].position.xyz - worldPos);
+            attenuation = 1.f / (lightingBuffer.lights[i].constantAttenuation + lightingBuffer.lights[i].linearAttenuation * dist + lightingBuffer.lights[i].quadraticAttenuation * dist * dist);
+        }
+
+        vec3 L = normalize(lightingBuffer.lights[i].position.xyz - worldPos);
+        if (lightingBuffer.lights[i].lightType == DIRECTIONAL)
+            L = lightingBuffer.lights[i].direction.xyz;
+            
         vec3 H = normalize(V + L);
         vec3 F = FresnelSchlick(max(dot(H, V), 0.0), F0);
-        vec3 radiance = lightColor * 2.f;
+        vec3 lightColor = lightingBuffer.lights[i].color.rgb;
+        float intensity = lightingBuffer.lights[i].color.a;
+        vec3 radiance = lightColor * attenuation * intensity;
 
-        float NDF = DistributionGGX(N, H, roughness);
-        float G = GeometrySmith(N, V, L, roughness);
+        float NDF = DistributionGGX(N, H, filteredRoughness);
+        float G = GeometrySmith(N, V, L, filteredRoughness);
 
         vec3 numerator = NDF * G * F;
         float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.0001;
-        vec3 specular = numerator / denominator;
+        vec3 specular = min(vec3(1.f), numerator / denominator); // limit specular intensity for bloom
 
         vec3 kS = F;
         vec3 kD = vec3(1.0) - kS;
@@ -190,7 +211,7 @@ vec4 GetFinalColor()
     }
     
     // ambient lighting
-    vec3 F = FresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness);
+    vec3 F = FresnelSchlickRoughness(max(dot(N, V), 0.0), F0, filteredRoughness);
     
     vec3 kS = F;
     vec3 kD = 1.0 - kS;
@@ -199,19 +220,12 @@ vec4 GetFinalColor()
     vec3 irradiance = texture(irradianceMap, N).rgb;
     vec3 diffuse = irradiance * baseColor.rgb;
     
-    vec3 prefilteredColor = textureLod(prefilterMap, R,  roughness * MAX_REFLECTION_LOD).rgb;   
-    vec2 envBRDF = texture(brdfLUT, vec2(max(dot(N, V), 0.0), roughness)).rg;
-    vec3 specular = prefilteredColor * (F * envBRDF.x + envBRDF.y);
-    vec3 ambient = (kD * diffuse + specular) * occlusion; // specular
+    vec3 prefilteredColor = textureLod(prefilterMap, R,  filteredRoughness * MAX_REFLECTION_LOD).rgb;   
+    vec2 envBRDF = texture(brdfLUT, vec2(max(dot(N, V), 0.0), filteredRoughness)).rg;
+    vec3 specular = min(vec3(1.f), prefilteredColor * (F * envBRDF.x + envBRDF.y)); // limit specular intensity for bloom
+    vec3 ambient = (kD * diffuse + specular) * occlusion;
 
     vec3 finalColor = ambient + finalContribution;
-
-    // tonemapping
-    finalColor = ACESFilm(finalColor);
-    // finalColor = finalColor / (finalColor + vec3(1.0));
-
-    // gamma correction
-    finalColor = pow(finalColor, vec3(0.4545));
 
     return vec4(finalColor + emissive, baseColor.a);
 }

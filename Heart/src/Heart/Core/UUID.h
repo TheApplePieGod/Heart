@@ -5,7 +5,14 @@ namespace Heart
     class UUID
     {
     public:
+        /*! @brief Default constructor. */
         UUID();
+
+        /**
+         * @brief Default constructor.
+         *
+         * @param uuid A UUID represented as a 64-bit integer.
+         */
         UUID(u64 uuid)
             : m_UUID(uuid)
         {}
@@ -18,6 +25,7 @@ namespace Heart
     };
 }
 
+// Implement hash functionality for UUID
 namespace std
 {
     template<>

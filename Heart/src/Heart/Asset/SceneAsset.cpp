@@ -95,7 +95,24 @@ namespace Heart
                         ids.emplace_back(AssetManager::RegisterAsset(Asset::Type::Material, material["path"], false, material["engineResource"]));
                     entity.AddComponent<MeshComponent>(meshAsset, ids);
                 }
+
+                // Light component
+                if (loaded.contains("lightComponent"))
+                {
+                    LightComponent comp;
+                    comp.Color = { loaded["lightComponent"]["color"][0], loaded["lightComponent"]["color"][1], loaded["lightComponent"]["color"][2], loaded["lightComponent"]["color"][3] };
+                    comp.LightType = loaded["lightComponent"]["lightType"];
+                    comp.ConstantAttenuation = loaded["lightComponent"]["attenuation"]["constant"];
+                    comp.LinearAttenuation = loaded["lightComponent"]["attenuation"]["linear"];
+                    comp.QuadraticAttenuation = loaded["lightComponent"]["attenuation"]["quadratic"];
+                    entity.AddComponent<LightComponent>(comp);
+                }
             }
+
+            // make sure all the transforms get cached
+            scene->GetRegistry().each([scene](auto handle) {
+                scene->CacheEntityTransform({ scene.get(), handle });
+            });
         }
 
         // parse settings
@@ -158,6 +175,17 @@ namespace Heart
                         entry["meshComponent"]["materials"][i]["path"] = AssetManager::GetPathFromUUID(meshComp.Materials[i]);
                         entry["meshComponent"]["materials"][i]["engineResource"] = AssetManager::IsAssetAnEngineResource(meshComp.Materials[i]);
                     }
+                }
+
+                // Light component
+                if (entity.HasComponent<LightComponent>())
+                {
+                    auto& lightComp = entity.GetComponent<LightComponent>();
+                    entry["lightComponent"]["color"] = nlohmann::json::array({ lightComp.Color.r, lightComp.Color.g, lightComp.Color.b, lightComp.Color.a });
+                    entry["lightComponent"]["lightType"] = lightComp.LightType;
+                    entry["lightComponent"]["attenuation"]["constant"] = lightComp.ConstantAttenuation;
+                    entry["lightComponent"]["attenuation"]["linear"] = lightComp.LinearAttenuation;
+                    entry["lightComponent"]["attenuation"]["quadratic"] = lightComp.QuadraticAttenuation;
                 }
 
                 field[index++] = entry;
