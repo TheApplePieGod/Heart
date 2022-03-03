@@ -29,9 +29,19 @@ namespace Heart
     class Window : public EventEmitter
     {
     public:
+        /**
+         * @brief Default constructor.
+         *
+         * @param settings The settings for this window.
+         */
         Window(const WindowSettings& settings);
+
+        /*! @brief Default destructor. */
         ~Window();
 
+        /**
+         * @brief
+         */
         void BeginFrame();
         void PollEvents();
         void EndFrame();
@@ -42,11 +52,22 @@ namespace Heart
         void ToggleFullscreen();
         bool IsFullscreen();
 
+        /*! @brief */
         inline GraphicsContext& GetContext() const { return *m_GraphicsContext; }
+
+        /*! @brief */
         inline GLFWwindow* GetWindowHandle() const { return m_Window; }
+
+        /*! @brief */
         inline u32 GetWidth() const { return m_WindowData.Width; }
+
+        /*! @brief */
         inline u32 GetHeight() const { return m_WindowData.Height; }
+
+        /*! @brief */
         inline std::string GetTitle() const { return m_WindowData.Title; }
+
+        /*! @brief */
         double GetWindowTime();
 
     public:

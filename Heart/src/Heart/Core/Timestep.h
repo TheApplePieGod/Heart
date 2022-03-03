@@ -5,6 +5,7 @@ namespace Heart
     class Timestep
     {
     public:
+        /* TODO: CHANGE FRAMETIME AND STOP USING SECONDS */
         Timestep(double timeInSeconds)
             : m_FrameTime(timeInSeconds)
         {}
