@@ -25,6 +25,7 @@ namespace Heart
         EventCallbackFunction EmitEvent;
     };
 
+    // TODO: describe method lifecycles
     class GraphicsContext;
     class Window : public EventEmitter
     {
@@ -39,41 +40,74 @@ namespace Heart
         /*! @brief Default destructor. */
         ~Window();
 
-        /**
-         * @brief
-         */
+        /*! @brief Begin the window's frame. */
         void BeginFrame();
+
+        /*! @brief Poll the window for various input/misc events. */
         void PollEvents();
+
+        /*! @brief End the window's frame. */
         void EndFrame();
 
+        /*! @brief Disable the cursor while this window is focused. */
         void DisableCursor();
+
+        /*! @brief Enable the cursor while this window is focused. */
         void EnableCursor();
+
+        /**
+         * @brief Set the fullscreen status of the window.
+         * 
+         * @param fullscreen True if the window should be fullscreen and false otherwise.
+         */
         void SetFullscreen(bool fullscreen);
+
+        /*! @brief Toggle the current fullscreen status of the window. */
         void ToggleFullscreen();
+
+        /*! @brief Get the current fullscreen status of the window. */
         bool IsFullscreen();
 
-        /*! @brief */
+        /*! @brief Get the window's graphics context. */
         inline GraphicsContext& GetContext() const { return *m_GraphicsContext; }
 
-        /*! @brief */
+        /*! @brief Get the window's underlying GLFW handle. */
         inline GLFWwindow* GetWindowHandle() const { return m_Window; }
 
-        /*! @brief */
+        /*! @brief Get the current width of the window. */
         inline u32 GetWidth() const { return m_WindowData.Width; }
 
-        /*! @brief */
+        /*! @brief Get the current height of the window. */
         inline u32 GetHeight() const { return m_WindowData.Height; }
 
-        /*! @brief */
+        /*! @brief Get the window's current title. */
         inline std::string GetTitle() const { return m_WindowData.Title; }
 
-        /*! @brief */
+        /*! @brief Get the window's elapsed lifetime in milliseconds. */
         double GetWindowTime();
 
     public:
+        /**
+         * @brief Statically create a new window object.
+         * 
+         * @param settings The settings for the window. 
+         * @return A ref to the new window object.
+         */
         static Ref<Window> Create(const WindowSettings& settings);
+
+        /*! @brief Get the global main window object. */
         static Window& GetMainWindow() { return *s_MainWindow; }
-        inline static void SetMainWindow(Ref<Window> newWindow) { HE_ENGINE_LOG_TRACE("Main window object set to {0}", static_cast<void*>(newWindow.get())); s_MainWindow = newWindow; }
+
+        /**
+         * @brief Set the global main window object.
+         * 
+         * @param newWindow A ref to the window object to set as the main window.
+         */
+        inline static void SetMainWindow(Ref<Window> newWindow)
+        {
+            HE_ENGINE_LOG_TRACE("Main window object set to {0}", static_cast<void*>(newWindow.get()));
+            s_MainWindow = newWindow;
+        }
 
     private:
         static int s_WindowCount;
