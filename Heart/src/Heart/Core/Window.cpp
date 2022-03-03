@@ -222,6 +222,6 @@ namespace Heart
 
     double Window::GetWindowTime()
     {
-        return glfwGetTime();
+        return glfwGetTime() * 1000.0;
     }
 }

@@ -35,8 +35,6 @@ namespace Heart
         /*! @brief Called when the layer is detached from the application. */
         virtual void OnDetach() {}
 
-        // virtual void OnEvent(Event& event) {};
-
     protected:
         std::string m_Name;
     };
