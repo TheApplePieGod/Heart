@@ -3,6 +3,8 @@
 namespace Heart
 {
     class Window;
+
+    // TODO: redo this class
     class ImGuiInstance
     {
     public:

@@ -5,6 +5,7 @@
 
 namespace Heart
 {
+    /*! @brief The parent class for all mouse button events. */
     class MouseButtonEvent : public Event
     {
     public:
@@ -24,6 +25,7 @@ namespace Heart
         MouseCode m_MouseCode;
     };
 
+    /*! @brief Called when a mouse button is pressed. */
     class MouseButtonPressedEvent : public MouseButtonEvent
     {
     public:
@@ -35,6 +37,7 @@ namespace Heart
         inline static EventType GetStaticType() { return EventType::MouseButtonPressed; }
     };
 
+    /*! @brief Called when a mouse button is released. */
     class MouseButtonReleasedEvent : public MouseButtonEvent
     {
     public:

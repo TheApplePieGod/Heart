@@ -6,12 +6,35 @@
 
 namespace Heart
 {
+    // TODO: switch to use MainWindow & threading stuff for GLFW
     class Input
     {
     public:
+        /**
+         * @brief Check if a keyboard key is pressed on the main window.
+         *
+         * @param key The KeyCode to check.
+         */
         static bool IsKeyPressed(KeyCode key);
+
+        /**
+         * @brief Check if a mouse button is pressed on the main window.
+         *
+         * @param key The MouseCode to check.
+         */
         static bool IsMouseButtonPressed(MouseCode button);
+
+        /**
+         * @brief Get the current coordinates of the mouse relative to the main window.
+         *
+         * @todo Use stored variables?
+         *
+         * @param key The MouseCode to check.
+         * @returns The (x,y) coordinates with (0,0) being at the top left of the window.
+         */
         static glm::vec2 GetScreenMousePos();
+
+        // friend class window?
         static void UpdateMousePosition(double newX, double newY);
         static void UpdateScrollOffset(double newX, double newY);
 

@@ -5,6 +5,7 @@
 
 namespace Heart
 {
+    /*! @brief The parent class for all keyboard events. */
     class KeyEvent : public Event
     {
     public:
@@ -24,6 +25,7 @@ namespace Heart
         KeyCode m_KeyCode;
     };
 
+    /*! @brief Called when a keyboard key is pressed. */
     class KeyPressedEvent : public KeyEvent
     {
     public:
@@ -40,6 +42,7 @@ namespace Heart
         bool m_Repeat;
     };
 
+    /*! @brief Called when a keyboard key is released. */
     class KeyReleasedEvent : public KeyEvent
     {
     public:

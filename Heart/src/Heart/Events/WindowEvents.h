@@ -4,6 +4,7 @@
 
 namespace Heart
 {
+    /*! @brief Called when a window is resized. */
     class WindowResizeEvent : public Event
     {
     public:
@@ -20,6 +21,7 @@ namespace Heart
         u32 m_Width, m_Height;
     };
 
+    /*! @brief Called when a window is closing. */
     class WindowCloseEvent : public Event
     {
     public:

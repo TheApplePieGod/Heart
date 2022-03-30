@@ -2,6 +2,7 @@
 
 namespace Heart
 {
+    /*! @brief All of the significant mouse button codes represented as an enum. */
     enum class MouseCode : u16
     {
         Button1 = 0,
