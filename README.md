@@ -10,16 +10,16 @@ Heart is a cross-platform C++ 3D game engine. It can be used to create games usi
 # Screenshots
 
 ## Sponza Scene
-![Sponza Scene](https://raw.githubusercontent.com/TheApplePieGod/Heart/9fe3deb4328aec3de7c1d669e7117341dfab88f3/images/screenshot1.png)
+![Sponza Scene](https://raw.githubusercontent.com/TheApplePieGod/Heart/61271d6393577735023f6b5f8a1021b30aafe1eb/images/screenshot1.png)
 
 ## Spheres Scene
-![Spheres Scene](https://raw.githubusercontent.com/TheApplePieGod/Heart/9fe3deb4328aec3de7c1d669e7117341dfab88f3/images/screenshot2.png)
+![Spheres Scene](https://raw.githubusercontent.com/TheApplePieGod/Heart/61271d6393577735023f6b5f8a1021b30aafe1eb/images/screenshot2.png)
 
 ## Helmet Scene
-![Helmet Scene](https://raw.githubusercontent.com/TheApplePieGod/Heart/9fe3deb4328aec3de7c1d669e7117341dfab88f3/images/screenshot3.png)
+![Helmet Scene](https://raw.githubusercontent.com/TheApplePieGod/Heart/61271d6393577735023f6b5f8a1021b30aafe1eb/images/screenshot3.png)
 
 ## Material Editor
-![Material Editor](https://raw.githubusercontent.com/TheApplePieGod/Heart/9fe3deb4328aec3de7c1d669e7117341dfab88f3/images/screenshot4.png)
+![Material Editor](https://raw.githubusercontent.com/TheApplePieGod/Heart/61271d6393577735023f6b5f8a1021b30aafe1eb/images/screenshot4.png)
 
 # Table of Contents
 
