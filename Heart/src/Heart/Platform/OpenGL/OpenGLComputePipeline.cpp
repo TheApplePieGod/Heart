@@ -103,7 +103,7 @@ namespace Heart
     {
         HE_PROFILE_FUNCTION();
 
-        u64 frameIndex = App::Get().GetFrameCount() % 3;
+        u64 frameIndex = App::Get().GetFrameCount() % 2;
 
         int maxCountX, maxCountY, maxCountZ = 0;
         glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 0, &maxCountX);
