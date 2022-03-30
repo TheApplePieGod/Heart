@@ -4,6 +4,7 @@
 
 namespace Heart
 {
+    /*! @brief Called before the current graphics api is shutdown. */
     class AppGraphicsShutdownEvent : public Event
     {
     public:
@@ -15,6 +16,7 @@ namespace Heart
         inline static EventType GetStaticType() { return EventType::AppGraphicsShutdown; }
     };
 
+    /*! @brief Called after the current graphics api is initialized. */
     class AppGraphicsInitEvent : public Event
     {
     public:

@@ -5,6 +5,7 @@
 
 namespace Heart
 {
+    /*! @brief Called when a graphics texture is freed from device memory. */
     class TextureDeletedEvent : public Event
     {
     public:
