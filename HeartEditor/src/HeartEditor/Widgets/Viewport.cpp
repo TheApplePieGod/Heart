@@ -159,6 +159,7 @@ namespace Widgets
             ImGuizmo::Manipulate(
                 glm::value_ptr(view),
                 glm::value_ptr(proj),
+                Heart::Renderer::IsUsingReverseDepth(),
                 m_GizmoOperation,
                 m_GizmoMode,
                 glm::value_ptr(transform),

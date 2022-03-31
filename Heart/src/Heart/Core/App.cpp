@@ -27,7 +27,7 @@ namespace Heart
         #endif
 
         WindowCreateInfo windowCreateInfo = WindowCreateInfo(windowName);
-        InitializeGraphicsApi(RenderApi::Type::OpenGL, windowCreateInfo);
+        InitializeGraphicsApi(RenderApi::Type::Vulkan, windowCreateInfo);
 
         AssetManager::Initialize();
 
