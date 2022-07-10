@@ -160,6 +160,8 @@ namespace Heart
 
     void OpenGLFramebuffer::Submit(ComputePipeline* postRenderComputePipeline)
     {
+        HE_PROFILE_FUNCTION();
+
         HE_ENGINE_ASSERT(m_CurrentSubpass == m_Info.Subpasses.size() - 1, "Attempting to submit a framebuffer without completing all subpasses");
 
         BlitFramebuffers(m_CurrentSubpass);
@@ -487,6 +489,8 @@ namespace Heart
 
     void OpenGLFramebuffer::PopulatePixelBuffer(OpenGLFramebufferAttachment& attachment)
     {
+        HE_PROFILE_FUNCTION();
+
         if (!attachment.CPUVisible) return;
 
         // unmap any buffers that were mapped this frame
@@ -633,6 +637,8 @@ namespace Heart
 
     void OpenGLFramebuffer::BlitFramebuffers(int subpassIndex)
     {
+        HE_PROFILE_FUNCTION();
+
         if (m_ImageSamples > 1)
         {
             glBindFramebuffer(GL_READ_FRAMEBUFFER, m_Framebuffers[subpassIndex]);

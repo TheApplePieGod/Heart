@@ -33,7 +33,7 @@ namespace std
     {
         std::size_t operator()(const Heart::UUID& uuid) const
         {
-            return hash<u64>()(uuid);
+            return static_cast<std::size_t>(uuid);
         }
     };
 }

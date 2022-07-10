@@ -119,6 +119,7 @@
         "string_view": "cpp",
         "*.ipp": "cpp",
         "csignal": "cpp",
-        "span": "cpp"
+        "span": "cpp",
+        "memory_resource": "cpp"
     },
 }
