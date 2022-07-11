@@ -110,7 +110,7 @@ namespace HeartEditor
 
         SubscribeToEmitter(&EditorApp::Get().GetWindow());
 
-        HE_CLIENT_LOG_INFO("Editor attached");
+        HE_LOG_INFO("Editor attached");
     }
 
     void EditorLayer::OnDetach()
@@ -119,7 +119,7 @@ namespace HeartEditor
 
         ((Widgets::MaterialEditor&)Editor::GetWindow("Material Editor")).Reset();
 
-        HE_CLIENT_LOG_INFO("Editor detached");
+        HE_LOG_INFO("Editor detached");
     }
 
     void EditorLayer::OnUpdate(Heart::Timestep ts)

@@ -19,13 +19,15 @@ namespace Heart
 }
 
 #define HE_ENGINE_LOG_TRACE(...) ::Heart::Logger::GetEngineLogger().trace(__VA_ARGS__)
+#define HE_ENGINE_LOG_DEBUG(...) ::Heart::Logger::GetEngineLogger().debug(__VA_ARGS__)
 #define HE_ENGINE_LOG_INFO(...) ::Heart::Logger::GetEngineLogger().info(__VA_ARGS__)
 #define HE_ENGINE_LOG_WARN(...) ::Heart::Logger::GetEngineLogger().warn(__VA_ARGS__)
 #define HE_ENGINE_LOG_ERROR(...) ::Heart::Logger::GetEngineLogger().error(__VA_ARGS__)
 #define HE_ENGINE_LOG_CRITICAL(...) ::Heart::Logger::GetEngineLogger().critical(__VA_ARGS__)
 
-#define HE_CLIENT_LOG_TRACE(...) ::Heart::Logger::GetClientLogger().trace(__VA_ARGS__)
-#define HE_CLIENT_LOG_INFO(...) ::Heart::Logger::GetClientLogger().info(__VA_ARGS__)
-#define HE_CLIENT_LOG_WARN(...) ::Heart::Logger::GetClientLogger().warn(__VA_ARGS__)
-#define HE_CLIENT_LOG_ERROR(...) ::Heart::Logger::GetClientLogger().error(__VA_ARGS__)
-#define HE_CLIENT_LOG_CRITICAL(...) ::Heart::Logger::GetClientLogger().critical(__VA_ARGS__)
+#define HE_LOG_TRACE(...) ::Heart::Logger::GetClientLogger().trace(__VA_ARGS__)
+#define HE_LOG_DEBUG(...) ::Heart::Logger::GetClientLogger().debug(__VA_ARGS__)
+#define HE_LOG_INFO(...) ::Heart::Logger::GetClientLogger().info(__VA_ARGS__)
+#define HE_LOG_WARN(...) ::Heart::Logger::GetClientLogger().warn(__VA_ARGS__)
+#define HE_LOG_ERROR(...) ::Heart::Logger::GetClientLogger().error(__VA_ARGS__)
+#define HE_LOG_CRITICAL(...) ::Heart::Logger::GetClientLogger().critical(__VA_ARGS__)

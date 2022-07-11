@@ -178,12 +178,12 @@ namespace Heart
                     RegisterAssetsInDirectory(entry.path(), persistent, isResource);
                 else
                 {
-                    std::string path = entry.path().generic_u8string();
-                    Asset::Type type = DeduceAssetTypeFromFile(path);
+                    std::filesystem::path path = entry.path();
+                    Asset::Type type = DeduceAssetTypeFromFile(path.generic_u8string());
                     if (type != Asset::Type::None)
                     {
                         // remove the base from the start of the path so it doesn't need to be included when referencing
-                        std::string basePath = std::filesystem::relative(path, isResource ? s_ResourceDirectory : s_AssetsDirectory).generic_u8string();
+                        std::string basePath = path.lexically_relative(isResource ? s_ResourceDirectory : s_AssetsDirectory).generic_u8string();
                         RegisterAsset(type, basePath, persistent, isResource);
                     }
                 }

@@ -26,7 +26,8 @@ set(DEPENDENCY_SOURCES
 # Copy engine resources
 add_custom_target(
   CopyEngineResources ALL
-  COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/resources ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${CMAKE_BUILD_TYPE}/resources
+  COMMAND ${CMAKE_COMMAND} -E make_directory ${OUTPUT_DIRECTORY}/resources
+  COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_CURRENT_SOURCE_DIR}/resources ${OUTPUT_DIRECTORY}/resources/engine
   DEPENDS Engine
 )
 
@@ -56,6 +57,7 @@ target_include_directories(
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/imguizmo>"
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/json/include>"
   "$<BUILD_INTERFACE:$ENV{VULKAN_SDK}/include>"
+  "$<BUILD_INTERFACE:$ENV{MONO_HOME}/include/mono-2.0>"
 
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/GLFW/include>"
@@ -68,6 +70,7 @@ target_include_directories(
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/imguizmo>"
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/json/include>"
   "$<INSTALL_INTERFACE:$ENV{VULKAN_SDK}/include>"
+  "$<INSTALL_INTERFACE:$ENV{MONO_HOME}/include/mono-2.0>"
 )
 
 # Locate vulkansdk libraries
@@ -99,6 +102,7 @@ else()
   )
 endif()
 
+# Locate & link accessory vulkan libraries
 if (WIN32)
   if (${CMAKE_BUILD_TYPE} MATCHES Debug)
     find_library(spirvcored
@@ -121,10 +125,24 @@ else()
   target_link_libraries(Engine ${spirvcore})
 endif()
 
+# Locate mono library
+find_library(mono
+  NAMES "mono-2.0-sgen"
+  PATHS "$ENV{MONO_HOME}/lib"
+)
+
 # Link dependencies
 target_link_libraries(
   Engine
-  glfw glm imgui spdlog glad OptickCore imguizmo nlohmann_json ${vulkan} ${shaderc} ${spirvglsl}
+  glfw glm imgui spdlog glad OptickCore imguizmo nlohmann_json ${vulkan} ${shaderc} ${spirvglsl} ${mono}
+)
+
+# Copy required dlls
+add_custom_target(
+  CopyRequiredDlls ALL
+  COMMAND ${CMAKE_COMMAND} -E copy $ENV{MONO_HOME}/bin/mono-2.0-sgen.dll ${OUTPUT_DIRECTORY}
+  COMMAND ${CMAKE_COMMAND} -E create_symlink $ENV{MONO_HOME}/lib/mono ${OUTPUT_DIRECTORY}/mono
+  DEPENDS Engine
 )
 
 # PCH

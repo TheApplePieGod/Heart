@@ -99,8 +99,8 @@ namespace Heart
         m_CubemapFramebuffer = Framebuffer::Create(cubemapFbCreateInfo);
 
         GraphicsPipelineCreateInfo envPipeline = {
-            AssetManager::GetAssetUUID("EnvironmentMap.vert", true),
-            AssetManager::GetAssetUUID("CalcEnvironmentMap.frag", true),
+            AssetManager::GetAssetUUID("engine/EnvironmentMap.vert", true),
+            AssetManager::GetAssetUUID("engine/CalcEnvironmentMap.frag", true),
             true,
             VertexTopology::TriangleList,
             Heart::Mesh::GetVertexLayout(),
@@ -144,8 +144,8 @@ namespace Heart
         m_IrradianceMapFramebuffer = Framebuffer::Create(irradianceFbCreateInfo);
 
         GraphicsPipelineCreateInfo irradiancePipeline = {
-            AssetManager::GetAssetUUID("EnvironmentMap.vert", true),
-            AssetManager::GetAssetUUID("CalcIrradianceMap.frag", true),
+            AssetManager::GetAssetUUID("engine/EnvironmentMap.vert", true),
+            AssetManager::GetAssetUUID("engine/CalcIrradianceMap.frag", true),
             true,
             VertexTopology::TriangleList,
             Heart::Mesh::GetVertexLayout(),
@@ -180,8 +180,8 @@ namespace Heart
         };
 
         GraphicsPipelineCreateInfo prefilterPipeline = {
-            AssetManager::GetAssetUUID("EnvironmentMap.vert", true),
-            AssetManager::GetAssetUUID("CalcPrefilterMap.frag", true),
+            AssetManager::GetAssetUUID("engine/EnvironmentMap.vert", true),
+            AssetManager::GetAssetUUID("engine/CalcPrefilterMap.frag", true),
             true,
             VertexTopology::TriangleList,
             Heart::Mesh::GetVertexLayout(),
@@ -225,8 +225,8 @@ namespace Heart
         m_BRDFFramebuffer = Framebuffer::Create(brdfFbCreateInfo);
 
         GraphicsPipelineCreateInfo brdfPipeline = {
-            AssetManager::GetAssetUUID("BRDFQuad.vert", true),
-            AssetManager::GetAssetUUID("CalcBRDF.frag", true),
+            AssetManager::GetAssetUUID("engine/BRDFQuad.vert", true),
+            AssetManager::GetAssetUUID("engine/CalcBRDF.frag", true),
             false,
             VertexTopology::TriangleList,
             Heart::Mesh::GetVertexLayout(),
@@ -265,7 +265,7 @@ namespace Heart
         auto loadTimer = Timer("Environment map generation");
 
         // Retrieve the basic cube mesh
-        auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>("DefaultCube.gltf", true);
+        auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>("engine/DefaultCube.gltf", true);
         auto& meshData = meshAsset->GetSubmesh(0);
 
         // Retrieve the associated env map asset

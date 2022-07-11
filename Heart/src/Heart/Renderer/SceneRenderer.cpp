@@ -166,7 +166,7 @@ namespace Heart
 
         // Create compute pipelines
         ComputePipelineCreateInfo compCreate = {
-            AssetManager::GetAssetUUID("IndirectCull.comp", true),
+            AssetManager::GetAssetUUID("engine/IndirectCull.comp", true),
             true
         };
         m_ComputeCullPipeline = ComputePipeline::Create(compCreate);
@@ -264,8 +264,8 @@ namespace Heart
 
         // Register pipelines
         GraphicsPipelineCreateInfo envMapPipeline = {
-            AssetManager::GetAssetUUID("Skybox.vert", true),
-            AssetManager::GetAssetUUID("Skybox.frag", true),
+            AssetManager::GetAssetUUID("engine/Skybox.vert", true),
+            AssetManager::GetAssetUUID("engine/Skybox.frag", true),
             true,
             VertexTopology::TriangleList,
             Heart::Mesh::GetVertexLayout(),
@@ -277,8 +277,8 @@ namespace Heart
             0
         };
         GraphicsPipelineCreateInfo gridPipeline = {
-            AssetManager::GetAssetUUID("Grid.vert", true),
-            AssetManager::GetAssetUUID("Grid.frag", true),
+            AssetManager::GetAssetUUID("engine/Grid.vert", true),
+            AssetManager::GetAssetUUID("engine/Grid.frag", true),
             true,
             VertexTopology::LineList,
             { BufferDataType::Float3 },
@@ -290,8 +290,8 @@ namespace Heart
             1
         };
         GraphicsPipelineCreateInfo pbrPipeline = {
-            AssetManager::GetAssetUUID("PBR.vert", true),
-            AssetManager::GetAssetUUID("PBR.frag", true),
+            AssetManager::GetAssetUUID("engine/PBR.vert", true),
+            AssetManager::GetAssetUUID("engine/PBR.frag", true),
             true,
             VertexTopology::TriangleList,
             Heart::Mesh::GetVertexLayout(),
@@ -303,8 +303,8 @@ namespace Heart
             2
         };
         GraphicsPipelineCreateInfo transparencyColorPipeline = {
-            AssetManager::GetAssetUUID("PBR.vert", true),
-            AssetManager::GetAssetUUID("PBRTransparentColor.frag", true),
+            AssetManager::GetAssetUUID("engine/PBR.vert", true),
+            AssetManager::GetAssetUUID("engine/PBRTransparentColor.frag", true),
             true,
             VertexTopology::TriangleList,
             Heart::Mesh::GetVertexLayout(),
@@ -316,8 +316,8 @@ namespace Heart
             3
         };
         GraphicsPipelineCreateInfo transparencyCompositePipeline = {
-            AssetManager::GetAssetUUID("FullscreenTriangle.vert", true),
-            AssetManager::GetAssetUUID("TransparentComposite.frag", true),
+            AssetManager::GetAssetUUID("engine/FullscreenTriangle.vert", true),
+            AssetManager::GetAssetUUID("engine/TransparentComposite.frag", true),
             false,
             VertexTopology::TriangleList,
             Heart::Mesh::GetVertexLayout(),
@@ -352,8 +352,8 @@ namespace Heart
         };
 
         GraphicsPipelineCreateInfo bloomHorizontal = {
-            AssetManager::GetAssetUUID("Bloom.vert", true),
-            AssetManager::GetAssetUUID("BloomHorizontal.frag", true),
+            AssetManager::GetAssetUUID("engine/Bloom.vert", true),
+            AssetManager::GetAssetUUID("engine/BloomHorizontal.frag", true),
             false,
             VertexTopology::TriangleList,
             Heart::Mesh::GetVertexLayout(),
@@ -366,18 +366,18 @@ namespace Heart
         };
         
         GraphicsPipelineCreateInfo bloomHorizontalUpscale = bloomHorizontal;
-        bloomHorizontalUpscale.FragmentShaderAsset = AssetManager::GetAssetUUID("BloomHorizontalUpscale.frag", true);
+        bloomHorizontalUpscale.FragmentShaderAsset = AssetManager::GetAssetUUID("engine/BloomHorizontalUpscale.frag", true);
         bloomHorizontalUpscale.BlendStates.push_back({ false });
 
         GraphicsPipelineCreateInfo bloomHorizontalDoubleUpscale = bloomHorizontal;
-        bloomHorizontalDoubleUpscale.FragmentShaderAsset = AssetManager::GetAssetUUID("BloomHorizontalDoubleUpscale.frag", true);
+        bloomHorizontalDoubleUpscale.FragmentShaderAsset = AssetManager::GetAssetUUID("engine/BloomHorizontalDoubleUpscale.frag", true);
         bloomHorizontalDoubleUpscale.BlendStates.push_back({ false });
 
         GraphicsPipelineCreateInfo bloomVertical = bloomHorizontal;
-        bloomVertical.FragmentShaderAsset = AssetManager::GetAssetUUID("BloomVertical.frag", true);
+        bloomVertical.FragmentShaderAsset = AssetManager::GetAssetUUID("engine/BloomVertical.frag", true);
 
         GraphicsPipelineCreateInfo bloomVerticalComposite = bloomHorizontal;
-        bloomVerticalComposite.FragmentShaderAsset = AssetManager::GetAssetUUID("BloomVerticalComposite.frag", true);
+        bloomVerticalComposite.FragmentShaderAsset = AssetManager::GetAssetUUID("engine/BloomVerticalComposite.frag", true);
 
         // Start at the lowest mip level
         for (int i = m_BloomMipCount - 1; i >= 0; i--)
@@ -676,7 +676,7 @@ namespace Heart
                     m_MaterialDataBuffer->SetElements(&materialData, 1, objectId);
                 }
                 else
-                    m_MaterialDataBuffer->SetElements(&AssetManager::RetrieveAsset<MaterialAsset>("DefaultMaterial.hemat", true)->GetMaterial().GetMaterialData(), 1, objectId);
+                    m_MaterialDataBuffer->SetElements(&AssetManager::RetrieveAsset<MaterialAsset>("engine/DefaultMaterial.hemat", true)->GetMaterial().GetMaterialData(), 1, objectId);
 
                 objectId++;
             }
@@ -713,7 +713,7 @@ namespace Heart
         m_MainFramebuffer->BindShaderBufferResource(0, 0, 1, m_FrameDataBuffer.get());
         m_MainFramebuffer->BindShaderTextureResource(1, m_EnvironmentMap->GetEnvironmentCubemap());
 
-        auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>("DefaultCube.gltf", true);
+        auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>("engine/DefaultCube.gltf", true);
         auto& meshData = meshAsset->GetSubmesh(0);
 
         m_MainFramebuffer->FlushBindings();
@@ -801,11 +801,11 @@ namespace Heart
         m_MainFramebuffer->BindShaderBufferResource(3, 0, m_LightingDataBuffer->GetAllocatedCount(), m_LightingDataBuffer.get());
 
         // Default texture binds
-        m_MainFramebuffer->BindShaderTextureResource(4, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
-        m_MainFramebuffer->BindShaderTextureResource(5, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
-        m_MainFramebuffer->BindShaderTextureResource(6, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
-        m_MainFramebuffer->BindShaderTextureResource(7, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
-        m_MainFramebuffer->BindShaderTextureResource(8, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
+        m_MainFramebuffer->BindShaderTextureResource(4, AssetManager::RetrieveAsset<TextureAsset>("engine/DefaultTexture.png", true)->GetTexture());
+        m_MainFramebuffer->BindShaderTextureResource(5, AssetManager::RetrieveAsset<TextureAsset>("engine/DefaultTexture.png", true)->GetTexture());
+        m_MainFramebuffer->BindShaderTextureResource(6, AssetManager::RetrieveAsset<TextureAsset>("engine/DefaultTexture.png", true)->GetTexture());
+        m_MainFramebuffer->BindShaderTextureResource(7, AssetManager::RetrieveAsset<TextureAsset>("engine/DefaultTexture.png", true)->GetTexture());
+        m_MainFramebuffer->BindShaderTextureResource(8, AssetManager::RetrieveAsset<TextureAsset>("engine/DefaultTexture.png", true)->GetTexture());
         if (m_EnvironmentMap)
         {
             m_MainFramebuffer->BindShaderTextureResource(9, m_EnvironmentMap->GetIrradianceCubemap());

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.23)
 
 project(
     Heart
@@ -20,6 +20,7 @@ endif()
 add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(OUTPUT_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${CMAKE_BUILD_TYPE}) 
 set(CMAKE_CXX_STANDARD 17)
 
 if (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
@@ -34,6 +35,7 @@ else()
 endif()
 
 add_subdirectory("Heart")
+add_subdirectory("HeartScripting")
 if (HEART_BUILD_EDITOR)
     add_subdirectory("HeartEditor")
 endif()

@@ -10,6 +10,8 @@
 #include "Heart/Events/AppEvents.h"
 #include "Heart/Asset/AssetManager.h"
 
+#include "Heart/Scripting/Test.h"
+
 namespace Heart
 {
     App* App::s_Instance = nullptr;
@@ -30,6 +32,8 @@ namespace Heart
         InitializeGraphicsApi(RenderApi::Type::Vulkan, windowCreateInfo);
 
         AssetManager::Initialize();
+
+        ScriptTest::Test();
 
         HE_ENGINE_LOG_INFO("App initialized");
     }
