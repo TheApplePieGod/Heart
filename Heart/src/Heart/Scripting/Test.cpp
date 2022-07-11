@@ -21,7 +21,7 @@ namespace Heart
             "--soft-breakpoints",
             "--debugger-agent=transport=dt_socket,server=y,address=127.0.0.1:55555,suspend=y,loglevel=10"
         };
-        mono_jit_parse_options(options.size(), (char**)options.data());
+        // mono_jit_parse_options(options.size(), (char**)options.data());
         mono_debug_init(MONO_DEBUG_FORMAT_MONO);
         mono_set_dirs(".", ".");
 
@@ -50,7 +50,7 @@ namespace Heart
         mono_method_desc_free(mainMethodDesc);
 
         MonoObject* exception = nullptr;
-        MonoObject* gameObject = mono_runtime_invoke(mainMethod, nullptr, nullptr, &exception);
+        mono_runtime_invoke(mainMethod, nullptr, nullptr, &exception);
 
         // Report exception
         if (exception)
