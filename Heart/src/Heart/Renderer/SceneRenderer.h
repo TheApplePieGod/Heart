@@ -43,6 +43,10 @@ namespace Heart
         void OnEvent(Event& event) override;
 
         inline Texture& GetFinalTexture() { return *m_FinalTexture; }
+        inline Texture& GetPreBloomTexture() { return *m_PreBloomTexture; }
+        inline Texture& GetBrightColorsTexture() { return *m_BrightColorsTexture; }
+        inline Texture& GetBloomBuffer1Texture() { return *m_BloomBufferTexture; }
+        inline Texture& GetBloomBuffer2Texture() { return *m_BloomUpsampleBufferTexture; }
         inline Texture& GetEntityIdsTexture() { return *m_EntityIdsTexture; }
         inline Framebuffer& GetMainFramebuffer() { return *m_MainFramebuffer; }
         inline ComputePipeline& GetCullPipeline() { return *m_ComputeCullPipeline; }

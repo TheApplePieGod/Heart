@@ -70,9 +70,16 @@ namespace Widgets
         //ImGuizmo::DrawGrid(glm::value_ptr(view), glm::value_ptr(proj), glm::value_ptr(identity), 100.f);
 
         // draw the rendered texture
+        Heart::Texture* outputTex = nullptr;
+        switch (m_SelectedOutput){
+            default: outputTex = &m_SceneRenderer->GetFinalTexture(); break;
+            case 1: outputTex = &m_SceneRenderer->GetPreBloomTexture(); break;
+            case 2: outputTex = &m_SceneRenderer->GetBrightColorsTexture(); break;
+            case 3: outputTex = &m_SceneRenderer->GetBloomBuffer1Texture(); break;
+            case 4: outputTex = &m_SceneRenderer->GetBloomBuffer2Texture(); break;
+        }
         ImGui::Image(
-            //m_SceneRenderer->GetFinalFramebuffer().GetColorAttachmentImGuiHandle(0),
-            m_SceneRenderer->GetFinalTexture().GetImGuiHandle(),
+            outputTex->GetImGuiHandle(),
             { m_ViewportSize.x, m_ViewportSize.y }
         );
 
@@ -135,6 +142,16 @@ namespace Widgets
 
             ImGui::EndTable();
         }
+
+        // output select
+        std::array<const char*, 5> outputs = {
+            "Final output", "Pre-bloom", "Bright colors", "Bloom buffer 1", "Bloom buffer 2"
+        };
+        ImGui::SameLine(ImGui::GetContentRegionMax().x - 200.f);
+        ImGui::PushItemWidth(200.f);
+        ImGui::Combo("##OutputSelect", &m_SelectedOutput, outputs.data(), outputs.size());
+        ImGui::PopItemWidth();
+
         ImGui::PopStyleVar();
 
         // hover is false if we are hovering over the buttons
