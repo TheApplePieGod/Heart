@@ -234,7 +234,6 @@ namespace Widgets
                     if (asset && asset->IsValid())
                     {
                         Editor::SetActiveScene(asset->GetScene());
-                        Editor::GetState().SelectedEntity = Heart::Entity();
                     }
                 }
             }
@@ -282,7 +281,7 @@ namespace Widgets
 
             // Render the input box
             std::string id = "##Rename";
-            Heart::ImGuiUtils::InputText(id + entryName, m_Rename);
+            Heart::ImGuiUtils::InputText((id + entryName).c_str(), m_Rename);
             if (m_ShouldRename)
                 ImGui::SetKeyboardFocusHere(-1);
 

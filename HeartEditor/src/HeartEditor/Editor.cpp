@@ -37,6 +37,12 @@ namespace HeartEditor
             ImGui::ShowDemoWindow(&s_ImGuiDemoOpen);
     }
 
+    void Editor::SetActiveScene(const Heart::Ref<Heart::Scene>& scene)
+    {
+        s_ActiveScene = scene;
+        s_EditorState.SelectedEntity = Heart::Entity();
+    }
+
     bool Editor::IsDirty()
     {
         for (auto& window : s_Windows)

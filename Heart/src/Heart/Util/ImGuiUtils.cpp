@@ -20,12 +20,12 @@ namespace Heart
         }
     }
 
-    void ImGuiUtils::InputText(const std::string& name, std::string& text)
+    void ImGuiUtils::InputText(const char* id, std::string& text)
     {
         char buffer[128];
         memset(buffer, 0, sizeof(buffer));
         std::strncpy(buffer, text.c_str(), sizeof(buffer));
-        if (ImGui::InputText(name.c_str(), buffer, sizeof(buffer)))
+        if (ImGui::InputText(id, buffer, sizeof(buffer)))
         {
             ImGui::SetKeyboardFocusHere(-1);
             text = std::string(buffer);

@@ -162,7 +162,6 @@ namespace Widgets
             [](const std::string& path)
             {
                 Editor::SetActiveScene(Heart::AssetManager::RetrieveAsset<Heart::SceneAsset>(Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Scene, path))->GetScene());
-                Editor::GetState().SelectedEntity = Heart::Entity();
             }
         );
 

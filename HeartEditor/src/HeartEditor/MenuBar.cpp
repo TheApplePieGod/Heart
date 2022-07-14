@@ -3,6 +3,7 @@
 
 #include "HeartEditor/Editor.h"
 #include "HeartEditor/EditorApp.h"
+#include "HeartEditor/Project.h"
 #include "HeartEditor/Widgets/Widget.h"
 #include "Heart/Core/Window.h"
 #include "Heart/Scene/Entity.h"
@@ -10,6 +11,7 @@
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/SceneAsset.h"
 #include "Heart/Util/FilesystemUtils.h"
+#include "Heart/Util/ImGuiUtils.h"
 #include "imgui/imgui.h"
 #include "imgui/imgui_internal.h"
 
@@ -26,18 +28,24 @@ namespace HeartEditor
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 5.0f));
         
+        bool newProjectModalOpened = false;
         if (ImGui::BeginViewportSideBar("##MainMenuBar", viewport, ImGuiDir_Up, height, window_flags))
         {
             if (ImGui::BeginMenuBar())
             {
                 if (ImGui::BeginMenu("File"))
                 {
-                    // if (ImGui::MenuItem("Save Scene"))
-                    // {
-                    //     std::string path = Heart::FilesystemUtils::SaveAsDialog(Heart::AssetManager::GetAssetsDirectory(), "Save Scene As", "Scene", "hescn");
-                    //     if (!path.empty())
-                    //         Heart::SceneAsset::SerializeScene(path, activeScene.get());
-                    // }
+                    if (ImGui::MenuItem("New Project"))
+                        newProjectModalOpened = true;
+
+                    if (ImGui::MenuItem("Open Project"))
+                    {
+                        std::string path = Heart::FilesystemUtils::OpenFileDialog(Heart::AssetManager::GetAssetsDirectory(), "Open Project", "heproj");
+                        if (!path.empty())
+                            Project::LoadFromPath(path);
+                    }
+
+                    ImGui::Separator();
 
                     if (ImGui::MenuItem("Save Scene As"))
                     {
@@ -48,7 +56,7 @@ namespace HeartEditor
 
                     if (ImGui::MenuItem("Load Scene"))
                     {
-                        std::string path = Heart::FilesystemUtils::OpenFileDialog(Heart::AssetManager::GetAssetsDirectory(), "Save Scene As", "hescn");
+                        std::string path = Heart::FilesystemUtils::OpenFileDialog(Heart::AssetManager::GetAssetsDirectory(), "Load Scene", "hescn");
                         if (!path.empty())
                         {
                             Heart::UUID assetId = Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Scene, path);
@@ -56,10 +64,11 @@ namespace HeartEditor
                             if (asset && asset->IsValid())
                             {
                                 Editor::SetActiveScene(asset->GetScene());
-                                Editor::GetState().SelectedEntity = Heart::Entity();
                             }
                         }
                     }
+
+                    ImGui::Separator();
 
                     if (ImGui::MenuItem("Toggle Fullscreen", "F11"))
                         EditorApp::Get().GetWindow().ToggleFullscreen();
@@ -103,25 +112,43 @@ namespace HeartEditor
             ImGui::End();
         }
 
-        // if (ImGui::BeginViewportSideBar("##SecondaryMenuBar", viewport, ImGuiDir_Up, height, window_flags))
-        // {
-        //     if (ImGui::BeginMenuBar())
-        //     {
-        //         if (ImGui::BeginMenu("Beep"))
-        //         {
-        //             if (ImGui::MenuItem("New")) {}
+        if (newProjectModalOpened)
+            ImGui::OpenPopup("New Project");
+        ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+        ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+        if (ImGui::BeginPopupModal("New Project", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+        {
+            ImGui::Text("Path (new folder will be created inside):");
+            ImGui::BeginDisabled();
+            ImGui::InputText("##ProjPath", (char*)m_NewProjectPath.c_str(), m_NewProjectPath.size(), ImGuiInputTextFlags_ReadOnly);
+            ImGui::EndDisabled();
+            ImGui::SameLine();
+            if (ImGui::Button("...##ProjPathSelect"))
+                m_NewProjectPath = Heart::FilesystemUtils::OpenFolderDialog("", "Select Project Parent Directory");
 
-        //             ImGui::EndMenu();
-        //         }
+            ImGui::Spacing();
+            ImGui::Text("Name");
+            Heart::ImGuiUtils::InputText("##ProjName", m_NewProjectName);
 
-        //         ImGui::NewLine();
-        //         ImGui::Button("Test button", ImVec2(200, 100));
+            ImGui::Spacing();
+            ImGui::Separator();
 
-        //         ImGui::EndMenuBar();
-        //     }
+            bool disabled = m_NewProjectPath.length() == 0 || m_NewProjectName.length() == 0;
+            if (disabled) ImGui::BeginDisabled();
+            if (ImGui::Button("Create", ImVec2(120, 0)))
+            {
+                Project::CreateAndLoad(m_NewProjectPath, m_NewProjectName);
+                ImGui::CloseCurrentPopup();
+            }
+            if (disabled) ImGui::EndDisabled();
 
-        //     ImGui::End();
-        // }
+            ImGui::SetItemDefaultFocus();
+            ImGui::SameLine();
+            if (ImGui::Button("Cancel", ImVec2(120, 0)))
+                ImGui::CloseCurrentPopup();
+
+            ImGui::EndPopup();
+        }
 
         ImGui::PopStyleVar(2);
     }

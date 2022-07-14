@@ -21,13 +21,13 @@ namespace HeartEditor
         static void Shutdown();
         static void RenderWindows();
 
+        static void SetActiveScene(const Heart::Ref<Heart::Scene>& scene);
         static bool IsDirty();
 
         inline static void PushWindow(const std::string& name, const Heart::Ref<Widget>& window) { s_Windows[name] = window; }
 
         inline static EditorState& GetState() { return s_EditorState; }
         inline static Heart::Scene& GetActiveScene() { return *s_ActiveScene; }
-        inline static void SetActiveScene(const Heart::Ref<Heart::Scene>& scene) { s_ActiveScene = scene; }
         inline static std::unordered_map<std::string, Heart::Ref<Widget>>& GetWindows() { return s_Windows; }
         inline static Widget& GetWindow(const std::string& name) { return *s_Windows[name]; }
 
