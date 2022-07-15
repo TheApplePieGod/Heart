@@ -93,7 +93,7 @@ namespace Widgets
         // Render the directory tree node
         bool selected = path == m_DirectoryStack[m_DirectoryStackIndex];
         ImGuiTreeNodeFlags node_flags = (directories.size() > 0 ? 0 : ImGuiTreeNodeFlags_Leaf) | ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | (selected ? ImGuiTreeNodeFlags_Selected : 0);
-        bool open = ImGui::TreeNodeEx(path.empty() ? "Content" : path.c_str(), node_flags, path.empty() ? "Content" : std::filesystem::path(path).filename().generic_u8string().c_str());
+        bool open = ImGui::TreeNodeEx(path.empty() ? "Project Root" : path.c_str(), node_flags, path.empty() ? "Project Root" : std::filesystem::path(path).filename().generic_u8string().c_str());
         if (!selected && ImGui::IsItemClicked())
             PushDirectoryStack(path.c_str());
         

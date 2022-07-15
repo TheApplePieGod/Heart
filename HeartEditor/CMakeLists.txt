@@ -6,6 +6,11 @@ add_custom_target(CopyEditorResources ALL
   DEPENDS Engine
 )
 
+add_custom_target(CopyEditorTemplates ALL
+  COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_CURRENT_SOURCE_DIR}/templates ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${CMAKE_BUILD_TYPE}/templates
+  DEPENDS Engine
+)
+
 # Build main
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp" "src/*.h")
 add_executable(Editor "${SOURCES}")

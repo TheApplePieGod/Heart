@@ -14,6 +14,8 @@ namespace Widgets
 
         void OnImGuiRender() override;
 
+        inline void RefreshList() { m_ShouldRescan = true; }
+
     private:
         void ScanDirectory();
         void RenderFileCard(const std::filesystem::directory_entry& entry);
