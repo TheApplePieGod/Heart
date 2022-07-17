@@ -35,6 +35,13 @@ namespace HeartEditor
             {
                 if (ImGui::BeginMenu("File"))
                 {
+                    if (Project::GetActiveProject())
+                    {
+                        if (ImGui::MenuItem("Reload Client Scripts"))
+                            Project::GetActiveProject()->LoadClientAssembly();
+                        ImGui::Separator();
+                    }
+
                     if (Project::GetActiveProject() && ImGui::MenuItem("Save Project"))
                         Project::GetActiveProject()->SaveToDisk();
 

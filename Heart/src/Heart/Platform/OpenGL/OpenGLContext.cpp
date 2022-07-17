@@ -38,10 +38,10 @@ namespace Heart
         int status = gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
 		HE_ENGINE_ASSERT(status, "Failed to initialize Glad");
 
-		HE_ENGINE_ASSERT("OpenGL Info:");
-		HE_ENGINE_ASSERT("  Vendor: {0}", glGetString(GL_VENDOR));
-		HE_ENGINE_ASSERT("  Renderer: {0}", glGetString(GL_RENDERER));
-		HE_ENGINE_ASSERT("  Version: {0}", glGetString(GL_VERSION));
+		HE_ENGINE_LOG_INFO("OpenGL Info:");
+		HE_ENGINE_LOG_INFO("  Vendor: {0}", glGetString(GL_VENDOR));
+		HE_ENGINE_LOG_INFO("  Renderer: {0}", glGetString(GL_RENDERER));
+		HE_ENGINE_LOG_INFO("  Version: {0}", glGetString(GL_VERSION));
 
 		HE_ENGINE_ASSERT(GLVersion.major > 4 || (GLVersion.major == 4 && GLVersion.minor >= 5), "Heart requires at least OpenGL version 4.5");
 

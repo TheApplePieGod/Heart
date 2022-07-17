@@ -9,6 +9,7 @@
 #include "Heart/ImGui/ImGuiInstance.h"
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/SceneAsset.h"
+#include "Heart/Scripting/ScriptingEngine.h"
 #include "Heart/Util/FilesystemUtils.h"
 #include "nlohmann/json.hpp"
 
@@ -44,7 +45,7 @@ namespace HeartEditor
             .parent_path()
             .parent_path()
             .append("HeartScripting")
-            .append("ScriptingCore.csproj")
+            .append("CoreScripts.csproj")
             .generic_u8string();
 
         // Csproj
@@ -122,6 +123,9 @@ namespace HeartEditor
                     pair.second->Deserialize(field[pair.first]);
         }
 
+        // Load client scripts if they exist
+        project->LoadClientAssembly();
+
         s_ActiveProject = project;
         delete[] data;
         return project;
@@ -149,5 +153,22 @@ namespace HeartEditor
 
         std::ofstream file(m_AbsolutePath);
         file << j;
+    }
+
+    void Project::LoadClientAssembly()
+    {
+        auto assemblyPath = std::filesystem::path(Heart::AssetManager::GetAssetsDirectory())
+            .append("bin")
+            .append("ClientScripts.dll");
+        if (!std::filesystem::exists(assemblyPath))
+        {
+            HE_LOG_WARN("Client assembly for '{0}' not found", m_Name);
+            return;
+        }
+
+        if (Heart::ScriptingEngine::LoadClientAssembly(assemblyPath.u8string()))
+            HE_LOG_INFO("Client assembly loaded");
+
+        Heart::ScriptingEngine::Test();
     }
 }

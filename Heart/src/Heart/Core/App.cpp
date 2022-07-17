@@ -9,8 +9,7 @@
 #include "Heart/Events/WindowEvents.h"
 #include "Heart/Events/AppEvents.h"
 #include "Heart/Asset/AssetManager.h"
-
-#include "Heart/Scripting/Test.h"
+#include "Heart/Scripting/ScriptingEngine.h"
 
 namespace Heart
 {
@@ -31,15 +30,17 @@ namespace Heart
         WindowCreateInfo windowCreateInfo = WindowCreateInfo(windowName);
         InitializeGraphicsApi(RenderApi::Type::Vulkan, windowCreateInfo);
 
+        // Init services
         AssetManager::Initialize();
-
-        ScriptTest::Test();
+        ScriptingEngine::Initialize();
 
         HE_ENGINE_LOG_INFO("App initialized");
     }
 
     App::~App()
     {
+        // Shutdown services
+        ScriptingEngine::Shutdown();
         AssetManager::Shutdown();
 
         ShutdownGraphicsApi();

@@ -8,7 +8,7 @@ add_custom_target(CopyEditorResources ALL
 )
 
 add_custom_target(CopyEditorTemplates ALL
-  COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_CURRENT_SOURCE_DIR}/templates ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${CMAKE_BUILD_TYPE}/templates
+  COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_CURRENT_SOURCE_DIR}/templates ${OUTPUT_DIRECTORY}/templates
   DEPENDS Engine
 )
 
