@@ -39,6 +39,11 @@ namespace Heart
         return buffer;
     }
 
+    std::string FilesystemUtils::GetParentDirectory(const std::string& path)
+    {
+        return std::filesystem::path(path).parent_path().generic_u8string();
+    }
+
     std::string FilesystemUtils::SaveAsDialog(const std::string& initialPath, const std::string& title, const std::string& defaultFileName, const std::string& extension)
     {
         #ifdef HE_PLATFORM_WINDOWS

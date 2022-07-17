@@ -10,7 +10,7 @@ namespace Heart
     struct ImGuiUtils
     {
         static void RenderTooltip(const std::string& text);
-        static void InputText(const std::string& id, std::string& text);
+        static void InputText(const char* id, std::string& text);
 
         static void AssetDropTarget(Asset::Type typeFilter, std::function<void(const std::string&)>&& dropCallback);
         static void ResizableWindowSplitter(glm::vec2& storedWindowSizes, glm::vec2 minWindowSize, bool isHorizontal, float splitterThickness, float windowSpacing, bool splitterDisable, std::function<void()>&& window1Contents, std::function<void()>&& window2Contents);

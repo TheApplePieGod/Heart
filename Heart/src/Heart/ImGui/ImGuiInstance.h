@@ -12,6 +12,8 @@ namespace Heart
         ~ImGuiInstance();
 
         void Recreate();
+        void OverrideImGuiConfig(const std::string& newBasePath);
+        void ReloadImGuiConfig();
         
         void BeginFrame();
         void EndFrame();
@@ -22,6 +24,7 @@ namespace Heart
 
     private:
         bool m_Initialized = false;
+        std::string m_ImGuiConfigPath = "";
         Ref<Window> m_Window;
     };
 }

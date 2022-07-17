@@ -6,10 +6,10 @@ namespace HeartEditor
 {
 namespace Widgets
 {
-    class Settings : public Widget
+    class ProjectSettings : public Widget
     {
     public:
-        Settings(const std::string& name, bool initialOpen)
+        ProjectSettings(const std::string& name, bool initialOpen)
             : Widget(name, initialOpen)
         {}
 
