@@ -2,9 +2,11 @@
 #include "Project.h"
 
 #include "HeartEditor/Editor.h"
+#include "HeartEditor/EditorApp.h"
 #include "HeartEditor/EditorCamera.h"
 #include "HeartEditor/Widgets/ContentBrowser.h"
 #include "HeartEditor/Widgets/Viewport.h"
+#include "Heart/ImGui/ImGuiInstance.h"
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/SceneAsset.h"
 #include "Heart/Util/FilesystemUtils.h"
@@ -27,7 +29,6 @@ namespace HeartEditor
          */
         nlohmann::json j;
         j["name"] = name;
-        j["loadedProject"] = "";
 
         std::filesystem::path mainProjectFilePath = std::filesystem::path(finalPath).append(filename);
         std::ofstream file(mainProjectFilePath);
@@ -46,12 +47,14 @@ namespace HeartEditor
             .append("ScriptingCore.csproj")
             .generic_u8string();
 
+        // Csproj
         std::string csprojTemplate = Heart::FilesystemUtils::ReadFileToString("templates/ProjectTemplate.csproj");
         std::string finalCsproj = std::regex_replace(csprojTemplate, std::regex("\\$\\{CORE_PROJECT_PATH\\}"), coreProjectPath);
         file = std::ofstream(std::filesystem::path(finalPath).append(name + ".csproj"));
         file << finalCsproj;
         file.close();
 
+        // Sln
         std::string slnTemplate = Heart::FilesystemUtils::ReadFileToString("templates/ProjectTemplate.sln");
         std::string finalSln = std::regex_replace(slnTemplate, std::regex("\\$\\{CORE_PROJECT_PATH\\}"), coreProjectPath);
         finalSln = std::regex_replace(finalSln, std::regex("\\$\\{PROJECT_NAME\\}"), name);
@@ -59,6 +62,11 @@ namespace HeartEditor
         file << finalSln;
         file.close();
 
+        /*
+         * Copy default imgui config
+         */
+        std::filesystem::copy_file("templates/imgui.ini", std::filesystem::path(finalPath).append("imgui.ini"));
+        
         /*
          * Create default directories
          */
@@ -89,6 +97,10 @@ namespace HeartEditor
         static_cast<Widgets::ContentBrowser&>(
             Editor::GetWindow("Content Browser")
         ).RefreshList();
+
+        // Update the imgui project config
+        EditorApp::Get().GetImGuiInstance().OverrideImGuiConfig(Heart::AssetManager::GetAssetsDirectory());
+        EditorApp::Get().GetImGuiInstance().ReloadImGuiConfig();
 
         auto j = nlohmann::json::parse(data);
 
