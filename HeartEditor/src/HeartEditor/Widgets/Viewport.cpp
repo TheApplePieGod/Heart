@@ -199,5 +199,35 @@ namespace Widgets
 
         ImGui::End();
     }
+
+    nlohmann::json Viewport::Serialize()
+    {
+        nlohmann::json j = Widget::Serialize();
+        
+        // Editor camera data
+        {
+            auto& camField = j["editorCamera"];
+
+            glm::vec3 camPos = m_EditorCamera->GetPosition();
+            glm::vec2 camRot = m_EditorCamera->GetRotation();
+            camField["pos"] = nlohmann::json::array({ camPos.x, camPos.y, camPos.z });
+            camField["rot"] = nlohmann::json::array({ camRot.x, camRot.y });
+        }
+
+        return j;
+    }
+
+    void Viewport::Deserialize(const nlohmann::json& elem)
+    {
+        Widget::Deserialize(elem);
+
+        if (elem.contains("editorCamera"))
+        {
+            auto& camField = elem["editorCamera"];
+
+            m_EditorCamera->SetPosition({ camField["pos"][0], camField["pos"][1], camField["pos"][2] });
+            m_EditorCamera->SetRotation(camField["rot"][0], camField["rot"][1]);
+        }
+    }
 }
 }

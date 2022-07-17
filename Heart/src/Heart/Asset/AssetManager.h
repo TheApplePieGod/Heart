@@ -71,7 +71,7 @@ namespace Heart
 
         inline static std::string GetAbsolutePath(const std::string& relative) { return std::filesystem::path(s_AssetsDirectory).append(relative).generic_u8string(); }
 
-        inline static std::string GetRelativePath(const std::string& absolute) { return std::filesystem::relative(absolute, Heart::AssetManager::GetAssetsDirectory()).generic_u8string(); }
+        inline static std::string GetRelativePath(const std::string& absolute) { return std::filesystem::path(absolute).lexically_relative(Heart::AssetManager::GetAssetsDirectory()).generic_u8string(); }
 
         /**
          * @brief Register an asset in the manager's registry.

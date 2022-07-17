@@ -11,6 +11,7 @@ namespace HeartEditor
         {}
 
         void SetActive();
+        void SaveToDisk();
 
     public:
         static Heart::Ref<Project> CreateAndLoad(const std::string& absolutePath, const std::string& name);

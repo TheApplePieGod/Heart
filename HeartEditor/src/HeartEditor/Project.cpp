@@ -2,8 +2,11 @@
 #include "Project.h"
 
 #include "HeartEditor/Editor.h"
+#include "HeartEditor/EditorCamera.h"
 #include "HeartEditor/Widgets/ContentBrowser.h"
+#include "HeartEditor/Widgets/Viewport.h"
 #include "Heart/Asset/AssetManager.h"
+#include "Heart/Asset/SceneAsset.h"
 #include "Heart/Util/FilesystemUtils.h"
 #include "nlohmann/json.hpp"
 
@@ -24,6 +27,7 @@ namespace HeartEditor
          */
         nlohmann::json j;
         j["name"] = name;
+        j["loadedProject"] = "";
 
         std::filesystem::path mainProjectFilePath = std::filesystem::path(finalPath).append(filename);
         std::ofstream file(mainProjectFilePath);
@@ -73,9 +77,6 @@ namespace HeartEditor
         if (!data)
             throw std::exception();
 
-        auto j = nlohmann::json::parse(data);
-        project->m_Name = j["name"];
-
         // Unload active scene (load empty)
         Editor::SetActiveScene(Heart::CreateRef<Heart::Scene>());
 
@@ -89,8 +90,52 @@ namespace HeartEditor
             Editor::GetWindow("Content Browser")
         ).RefreshList();
 
+        auto j = nlohmann::json::parse(data);
+
+        if (j.contains("name"))
+            project->m_Name = j["name"];
+        
+        if (j.contains("loadedProject") && j["loadedProject"] != "")
+        {
+            Heart::UUID sceneAssetId = Heart::AssetManager::GetAssetUUID(j["loadedProject"]);
+            Editor::SetActiveSceneFromAsset(sceneAssetId);
+        }
+
+        // Parse widgets
+        if (j.contains("widgets"))
+        {
+            auto& field = j["widgets"];
+            for (auto& pair : Editor::GetWindows())
+                if (field.contains(pair.first))
+                    pair.second->Deserialize(field[pair.first]);
+        }
+
         s_ActiveProject = project;
         delete[] data;
         return project;
+    }
+
+    void Project::SaveToDisk()
+    {
+        nlohmann::json j;
+        j["name"] = m_Name;
+
+        Heart::UUID activeSceneAsset = Editor::GetActiveSceneAsset();
+        j["loadedProject"] = Heart::AssetManager::GetPathFromUUID(activeSceneAsset);
+
+        // Widget data
+        {
+            auto& field = j["widgets"];
+
+            for (auto& pair : Editor::GetWindows())
+            {
+                nlohmann::json serialized = pair.second->Serialize();
+                if (!serialized.empty())
+                    field[pair.first] = serialized;
+            }
+        }
+
+        std::ofstream file(m_AbsolutePath);
+        file << j;
     }
 }

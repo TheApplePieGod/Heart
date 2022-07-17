@@ -35,6 +35,9 @@ namespace HeartEditor
             {
                 if (ImGui::BeginMenu("File"))
                 {
+                    if (Project::GetActiveProject() && ImGui::MenuItem("Save Project"))
+                        Project::GetActiveProject()->SaveToDisk();
+
                     if (ImGui::MenuItem("New Project"))
                         newProjectModalOpened = true;
 
@@ -60,11 +63,7 @@ namespace HeartEditor
                         if (!path.empty())
                         {
                             Heart::UUID assetId = Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Scene, path);
-                            auto asset = Heart::AssetManager::RetrieveAsset<Heart::SceneAsset>(assetId);
-                            if (asset && asset->IsValid())
-                            {
-                                Editor::SetActiveScene(asset->GetScene());
-                            }
+                            Editor::SetActiveSceneFromAsset(assetId);
                         }
                     }
 
@@ -94,11 +93,11 @@ namespace HeartEditor
 
                 if (ImGui::BeginMenu("Windows"))
                 {
-                    for (auto& window : Editor::s_Windows)
+                    for (auto& pair : Editor::s_Windows)
                     {
-                        bool open = window.second->IsOpen();
-                        ImGui::MenuItem(window.second->GetName().c_str(), nullptr, &open);
-                        window.second->SetOpen(open);
+                        bool open = pair.second->IsOpen();
+                        ImGui::MenuItem(pair.second->GetName().c_str(), nullptr, &open);
+                        pair.second->SetOpen(open);
                     }
 
                     ImGui::MenuItem("ImGui Demo", nullptr, &Editor::s_ImGuiDemoOpen);

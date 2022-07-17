@@ -25,6 +25,8 @@ namespace Widgets
         Viewport(const std::string& name, bool initialOpen);
 
         void OnImGuiRender() override;
+        nlohmann::json Serialize() override;
+        void Deserialize(const nlohmann::json& elem) override; 
 
         inline bool IsFocused() const { return m_ViewportInput; }
         inline bool IsHovered() const { return m_ViewportHover; }

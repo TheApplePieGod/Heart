@@ -13,11 +13,13 @@ namespace HeartEditor
         void OnUpdate(Heart::Timestep ts, bool viewportFocused, bool viewportHovered);
 
         inline void AddRotation(f32 x, f32 y) { m_XRotation += x; m_YRotation += y; InternalUpdateViewMatrix(); };
+        inline void SetRotation(f32 x, f32 y) { m_XRotation = x; m_YRotation = y; InternalUpdateViewMatrix(); }
+        inline void SetPosition(glm::vec3 pos) { m_Position = pos; InternalUpdateViewMatrix(); }
         inline glm::mat4 GetViewProjectionMatrix() const { return m_ProjectionMatrix * m_ViewMatrix; }
         inline glm::vec3 GetPosition() const { return m_Position; }
-        inline void SetPosition(glm::vec3 pos) { m_Position = pos; InternalUpdateViewMatrix(); }
         inline f32 GetXRotation() const { return m_XRotation; }
         inline f32 GetYRotation() const { return m_YRotation; }
+        inline glm::vec2 GetRotation() const { return { m_XRotation, m_YRotation }; }
         inline glm::vec3 GetForwardVector() const { return m_ForwardVector; }
 
     private:

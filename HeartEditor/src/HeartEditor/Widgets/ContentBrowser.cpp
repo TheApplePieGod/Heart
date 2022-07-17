@@ -181,7 +181,8 @@ namespace Widgets
     void ContentBrowser::RenderFileCard(const std::filesystem::directory_entry& entry)
     {
         auto entryName = entry.path().filename().generic_u8string();
-        auto path = entry.path().generic_u8string();
+        auto fullPath = entry.path().generic_u8string();
+        auto relativePath = Heart::AssetManager::GetRelativePath(fullPath);
 
         ImGui::BeginGroup();
         
@@ -198,7 +199,7 @@ namespace Widgets
         // File transfer drag source
         if (ImGui::BeginDragDropSource())
         {
-            ImGui::SetDragDropPayload("FileTransfer", path.data(), path.size() * sizeof(char) + 1);
+            ImGui::SetDragDropPayload("FileTransfer", fullPath.data(), fullPath.size() * sizeof(char) + 1);
             ImGui::Image(
                 Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>(entry.is_directory() ? "editor/folder.png" :  "editor/file.png", true)->GetTexture()->GetImGuiHandle(),
                 { m_CardSize.x * 0.5f, m_CardSize.y * 0.5f }
@@ -226,15 +227,11 @@ namespace Widgets
 
                 // Attempt to open the file based on asset type
                 if (assetType == Heart::Asset::Type::Material)
-                    ((Widgets::MaterialEditor&)Editor::GetWindow("Material Editor")).SetSelectedMaterial(Heart::AssetManager::RegisterAsset(assetType, path));
+                    ((Widgets::MaterialEditor&)Editor::GetWindow("Material Editor")).SetSelectedMaterial(Heart::AssetManager::RegisterAsset(assetType, relativePath));
                 else if (assetType == Heart::Asset::Type::Scene)
                 {
-                    Heart::UUID assetId = Heart::AssetManager::RegisterAsset(assetType, path);
-                    auto asset = Heart::AssetManager::RetrieveAsset<Heart::SceneAsset>(assetId);
-                    if (asset && asset->IsValid())
-                    {
-                        Editor::SetActiveScene(asset->GetScene());
-                    }
+                    Heart::UUID assetId = Heart::AssetManager::RegisterAsset(assetType, relativePath);
+                    Editor::SetActiveSceneFromAsset(assetId);
                 }
             }
         }
@@ -264,7 +261,7 @@ namespace Widgets
 
             auto assetType = Heart::AssetManager::DeduceAssetTypeFromFile(entryName);
             if (assetType == Heart::Asset::Type::Material && ImGui::MenuItem("Open in Editor"))
-                ((Widgets::MaterialEditor&)Editor::GetWindow("Material Editor")).SetSelectedMaterial(Heart::AssetManager::RegisterAsset(assetType, Heart::AssetManager::GetRelativePath(path)));
+                ((Widgets::MaterialEditor&)Editor::GetWindow("Material Editor")).SetSelectedMaterial(Heart::AssetManager::RegisterAsset(assetType, relativePath));
 
             ImGui::EndPopup();
         }
@@ -296,8 +293,8 @@ namespace Widgets
                         auto newPath = m_RenamingPath.parent_path().append(m_Rename);
                         std::filesystem::rename(m_RenamingPath, newPath);
                         Heart::AssetManager::RenameAsset(
-                            std::filesystem::relative(m_RenamingPath, Heart::AssetManager::GetAssetsDirectory()).generic_u8string(),
-                            std::filesystem::relative(newPath, Heart::AssetManager::GetAssetsDirectory()).generic_u8string()
+                            m_RenamingPath.lexically_relative(Heart::AssetManager::GetAssetsDirectory()).generic_u8string(),
+                            newPath.lexically_relative(Heart::AssetManager::GetAssetsDirectory()).generic_u8string()
                         );
                     }
                     catch (std::exception e) {}

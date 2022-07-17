@@ -39,7 +39,7 @@ namespace Heart
             if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("FileTransfer"))
             {
                 const char* payloadData = (const char*)payload->Data;
-                std::string relativePath = std::filesystem::relative(payloadData, AssetManager::GetAssetsDirectory()).generic_u8string();
+                std::string relativePath = std::filesystem::path(payloadData).lexically_relative(AssetManager::GetAssetsDirectory()).generic_u8string();
                 auto assetType = AssetManager::DeduceAssetTypeFromFile(relativePath);
 
                 if ((typeFilter == Asset::Type::None || assetType == typeFilter) && dropCallback)

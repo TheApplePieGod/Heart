@@ -4,6 +4,8 @@
 #include "HeartEditor/EditorApp.h"
 #include "HeartEditor/Widgets/Widget.h"
 #include "Heart/Core/Timing.h"
+#include "Heart/Asset/SceneAsset.h"
+#include "Heart/Asset/AssetManager.h"
 #include "Heart/Renderer/SceneRenderer.h"
 #include "imgui/imgui.h"
 
@@ -11,6 +13,7 @@ namespace HeartEditor
 {
     EditorState Editor::s_EditorState;  
     Heart::Ref<Heart::Scene> Editor::s_ActiveScene;
+    Heart::UUID Editor::s_ActiveSceneAsset;
     std::unordered_map<std::string, Heart::Ref<Widget>> Editor::s_Windows;
     bool Editor::s_ImGuiDemoOpen = false;
 
@@ -41,12 +44,26 @@ namespace HeartEditor
     {
         s_ActiveScene = scene;
         s_EditorState.SelectedEntity = Heart::Entity();
+        s_ActiveSceneAsset = 0; // Active scene cannot assume there will be a related asset
+    }
+
+    void Editor::SetActiveSceneFromAsset(Heart::UUID uuid)
+    {
+        auto sceneAsset = Heart::AssetManager::RetrieveAsset<Heart::SceneAsset>(uuid);
+        if (!sceneAsset || !sceneAsset->IsValid())
+        {
+            HE_ENGINE_LOG_ERROR("Failed to load scene");
+            return;
+        }
+        
+        SetActiveScene(sceneAsset->GetScene());
+        s_ActiveSceneAsset = uuid;
     }
 
     bool Editor::IsDirty()
     {
-        for (auto& window : s_Windows)
-            if (window.second->IsDirty())
+        for (auto& pair : s_Windows)
+            if (pair.second->IsDirty())
                 return true;
         return false;
     }
