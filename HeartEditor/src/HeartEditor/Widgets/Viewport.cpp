@@ -70,9 +70,16 @@ namespace Widgets
         //ImGuizmo::DrawGrid(glm::value_ptr(view), glm::value_ptr(proj), glm::value_ptr(identity), 100.f);
 
         // draw the rendered texture
+        Heart::Texture* outputTex = nullptr;
+        switch (m_SelectedOutput){
+            default: outputTex = &m_SceneRenderer->GetFinalTexture(); break;
+            case 1: outputTex = &m_SceneRenderer->GetPreBloomTexture(); break;
+            case 2: outputTex = &m_SceneRenderer->GetBrightColorsTexture(); break;
+            case 3: outputTex = &m_SceneRenderer->GetBloomBuffer1Texture(); break;
+            case 4: outputTex = &m_SceneRenderer->GetBloomBuffer2Texture(); break;
+        }
         ImGui::Image(
-            //m_SceneRenderer->GetFinalFramebuffer().GetColorAttachmentImGuiHandle(0),
-            m_SceneRenderer->GetFinalTexture().GetImGuiHandle(),
+            outputTex->GetImGuiHandle(),
             { m_ViewportSize.x, m_ViewportSize.y }
         );
 
@@ -135,6 +142,16 @@ namespace Widgets
 
             ImGui::EndTable();
         }
+
+        // output select
+        std::array<const char*, 5> outputs = {
+            "Final output", "Pre-bloom", "Bright colors", "Bloom buffer 1", "Bloom buffer 2"
+        };
+        ImGui::SameLine(ImGui::GetContentRegionMax().x - 200.f);
+        ImGui::PushItemWidth(200.f);
+        ImGui::Combo("##OutputSelect", &m_SelectedOutput, outputs.data(), outputs.size());
+        ImGui::PopItemWidth();
+
         ImGui::PopStyleVar();
 
         // hover is false if we are hovering over the buttons
@@ -145,7 +162,6 @@ namespace Widgets
             [](const std::string& path)
             {
                 Editor::SetActiveScene(Heart::AssetManager::RetrieveAsset<Heart::SceneAsset>(Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Scene, path))->GetScene());
-                Editor::GetState().SelectedEntity = Heart::Entity();
             }
         );
 
@@ -182,6 +198,36 @@ namespace Widgets
         }
 
         ImGui::End();
+    }
+
+    nlohmann::json Viewport::Serialize()
+    {
+        nlohmann::json j = Widget::Serialize();
+        
+        // Editor camera data
+        {
+            auto& camField = j["editorCamera"];
+
+            glm::vec3 camPos = m_EditorCamera->GetPosition();
+            glm::vec2 camRot = m_EditorCamera->GetRotation();
+            camField["pos"] = nlohmann::json::array({ camPos.x, camPos.y, camPos.z });
+            camField["rot"] = nlohmann::json::array({ camRot.x, camRot.y });
+        }
+
+        return j;
+    }
+
+    void Viewport::Deserialize(const nlohmann::json& elem)
+    {
+        Widget::Deserialize(elem);
+
+        if (elem.contains("editorCamera"))
+        {
+            auto& camField = elem["editorCamera"];
+
+            m_EditorCamera->SetPosition({ camField["pos"][0], camField["pos"][1], camField["pos"][2] });
+            m_EditorCamera->SetRotation(camField["rot"][0], camField["rot"][1]);
+        }
     }
 }
 }

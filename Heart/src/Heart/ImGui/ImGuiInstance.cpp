@@ -3,6 +3,7 @@
 
 #include "Heart/Core/App.h"
 #include "imgui/imgui.h"
+#include "Heart/Asset/AssetManager.h"
 #include "Heart/Renderer/Renderer.h"
 #include "Heart/Platform/Vulkan/VulkanContext.h"
 #include "imgui/backends/imgui_impl_glfw.h"
@@ -75,6 +76,21 @@ namespace Heart
 
         m_Initialized = true;
     }
+
+	void ImGuiInstance::OverrideImGuiConfig(const std::string& newBasePath)
+	{
+		ImGuiIO& io = ImGui::GetIO();
+
+		m_ImGuiConfigPath = std::filesystem::path(newBasePath).append("imgui.ini").u8string();
+		io.IniFilename = m_ImGuiConfigPath.c_str();
+	}
+
+	void ImGuiInstance::ReloadImGuiConfig()
+	{
+		ImGuiIO& io = ImGui::GetIO();
+
+		ImGui::LoadIniSettingsFromDisk(io.IniFilename);
+	}
 
     void ImGuiInstance::Cleanup()
     {

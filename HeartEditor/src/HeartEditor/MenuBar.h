@@ -10,6 +10,7 @@ namespace HeartEditor
         void OnImGuiRender();
 
     private:
-
+        std::string m_NewProjectPath;
+        std::string m_NewProjectName;
     };
 }

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "nlohmann/json.hpp"
+
 namespace HeartEditor
 {
     class Widget
@@ -10,11 +12,12 @@ namespace HeartEditor
         {}
 
         virtual void OnImGuiRender() = 0;
+        virtual nlohmann::json Serialize();
+        virtual void Deserialize(const nlohmann::json& elem);
 
         inline const std::string& GetName() const { return m_Name; }
         inline bool IsOpen() const { return m_Open; }
         inline bool IsDirty() const { return m_Dirty; }
-
         inline void SetOpen(bool open) { m_Open = open; }
         inline void SetDirty(bool dirty) { m_Dirty = dirty; }
 

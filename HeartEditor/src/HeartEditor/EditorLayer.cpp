@@ -25,7 +25,7 @@
 #include "HeartEditor/Widgets/MaterialEditor.h"
 #include "HeartEditor/Widgets/Viewport.h"
 #include "HeartEditor/Widgets/DebugInfo.h"
-#include "HeartEditor/Widgets/Settings.h"
+#include "HeartEditor/Widgets/ProjectSettings.h"
 #include "HeartEditor/Widgets/SceneSettings.h"
 
 namespace HeartEditor
@@ -60,8 +60,8 @@ namespace HeartEditor
             Heart::CreateRef<Widgets::DebugInfo>("Debug Info", true)
         );
         Editor::PushWindow(
-            "Settings",
-            Heart::CreateRef<Widgets::Settings>("Settings", true)
+            "Project Settings",
+            Heart::CreateRef<Widgets::ProjectSettings>("Project Settings", true)
         );
         Editor::PushWindow(
             "Scene Settings",

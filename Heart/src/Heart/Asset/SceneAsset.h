@@ -25,7 +25,7 @@ namespace Heart
         void SaveChanges() { SerializeScene(m_AbsolutePath, m_Scene.get()); }
 
         /*! @brief Get a shared reference to the scene stored in this asset. */
-        Ref<Scene> GetScene() { return m_Scene; }
+        Ref<Scene> GetScene() const { return m_Scene; }
 
     public:
         /**
