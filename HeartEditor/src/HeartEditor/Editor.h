@@ -30,6 +30,9 @@ namespace HeartEditor
         static void OpenScene(const Heart::Ref<Heart::Scene>& scene);
         static void OpenSceneFromAsset(Heart::UUID uuid);
         static void ClearScene();
+        static void PlayScene();
+        static void StopScene();
+
         static bool IsDirty();
 
         inline static void PushWindow(const std::string& name, const Heart::Ref<Widget>& window) { s_Windows[name] = window; }
@@ -44,7 +47,7 @@ namespace HeartEditor
 
     private:
         inline static EditorState s_EditorState;
-        inline static Heart::Ref<Heart::Scene> s_ActiveScene, s_EditorScene, s_RuntimeScene;
+        inline static Heart::Ref<Heart::Scene> s_ActiveScene, s_EditorScene;
         inline static Heart::UUID s_EditorSceneAsset;
         inline static std::unordered_map<std::string, Heart::Ref<Widget>> s_Windows;
         inline static bool s_ImGuiDemoOpen;

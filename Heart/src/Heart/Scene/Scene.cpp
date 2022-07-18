@@ -62,9 +62,10 @@ namespace Heart
             }
         }
 
-        CopyComponent<TransformComponent>(source.GetHandle(), newEntityHandle);
-        CopyComponent<MeshComponent>(source.GetHandle(), newEntityHandle);
-        CopyComponent<LightComponent>(source.GetHandle(), newEntityHandle);
+        CopyComponent<TransformComponent>(source.GetHandle(), newEntityHandle, m_Registry);
+        CopyComponent<MeshComponent>(source.GetHandle(), newEntityHandle, m_Registry);
+        CopyComponent<LightComponent>(source.GetHandle(), newEntityHandle, m_Registry);
+        CopyComponent<ScriptComponent>(source.GetHandle(), newEntityHandle, m_Registry);
 
         CacheEntityTransform(newEntity);
 
@@ -189,6 +190,36 @@ namespace Heart
         return glm::mat4(1.f);
     }
 
+    Ref<Scene> Scene::Clone()
+    {
+        Ref<Scene> newScene = CreateRef<Scene>();
+
+        // Copy each entity & associated data to the new registry
+        m_Registry.each([&](auto srcHandle)
+        {
+            Entity src = { this, srcHandle };
+            Entity dst = { newScene.get(), newScene->GetRegistry().create() };
+
+            UUID uuid = src.GetUUID();
+            newScene->m_UUIDMap[uuid] = dst.GetHandle(); // Update dst uuid mapping
+            newScene->m_CachedTransforms[dst.GetHandle()] = m_CachedTransforms[src.GetHandle()]; // Copy this entity's cached transform
+
+            CopyComponent<IdComponent>(src.GetHandle(), dst.GetHandle(), newScene->GetRegistry());
+            CopyComponent<NameComponent>(src.GetHandle(), dst.GetHandle(), newScene->GetRegistry());
+            CopyComponent<ParentComponent>(src.GetHandle(), dst.GetHandle(), newScene->GetRegistry());
+            CopyComponent<ChildComponent>(src.GetHandle(), dst.GetHandle(), newScene->GetRegistry());
+            CopyComponent<TransformComponent>(src.GetHandle(), dst.GetHandle(), newScene->GetRegistry());
+            CopyComponent<MeshComponent>(src.GetHandle(), dst.GetHandle(), newScene->GetRegistry());
+            CopyComponent<LightComponent>(src.GetHandle(), dst.GetHandle(), newScene->GetRegistry());
+            CopyComponent<ScriptComponent>(src.GetHandle(), dst.GetHandle(), newScene->GetRegistry());
+        });
+
+        // Copy the environment map
+        newScene->m_EnvironmentMap = m_EnvironmentMap;
+
+        return newScene;
+    }
+
     void Scene::ClearScene()
     {
         m_Registry.clear();
@@ -206,6 +237,16 @@ namespace Heart
                 m_EnvironmentMap = CreateRef<EnvironmentMap>(mapAsset);
             m_EnvironmentMap->Recalculate();
         }
+    }
+
+    void Scene::StartRuntime()
+    {
+
+    }
+
+    void Scene::StopRuntime()
+    {
+
     }
 
     Entity Scene::GetEntityFromUUID(UUID uuid)

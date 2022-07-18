@@ -10,9 +10,13 @@
 namespace Heart
 {
     // -----------------------
-    // To have it officially written, the components all entities MUST have are:
+    // Components all entities MUST have are:
     // Id, Name, Transform
     // -----------------------
+    // When adding new components, make sure to update:
+    // Scene::DuplicateEntity, Scene::Clone, SceneAsset::Serialize & Deserialize
+    // -----------------------
+    
 
     struct IdComponent
     {

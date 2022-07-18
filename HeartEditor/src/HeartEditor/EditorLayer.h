@@ -1,5 +1,6 @@
 #pragma once
 
+#include "HeartEditor/Toolbar.h"
 #include "HeartEditor/MenuBar.h"
 #include "Heart/Core/Layer.h"
 
@@ -31,6 +32,7 @@ namespace HeartEditor
         bool MouseButtonReleasedEvent(Heart::MouseButtonReleasedEvent& event);
 
     private:
+        Toolbar m_Toolbar;
         MenuBar m_MenuBar;
     };
 }

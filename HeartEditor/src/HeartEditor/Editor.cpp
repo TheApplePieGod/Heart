@@ -13,7 +13,8 @@ namespace HeartEditor
 {
     void Editor::Initialize()
     {
-        s_ActiveScene = Heart::CreateRef<Heart::Scene>();
+        s_EditorScene = Heart::CreateRef<Heart::Scene>();
+        s_ActiveScene = s_EditorScene;
     }
 
     void Editor::Shutdown()
@@ -21,7 +22,6 @@ namespace HeartEditor
         s_Windows.clear();
         s_ActiveScene.reset();
         s_EditorScene.reset();
-        s_RuntimeScene.reset();
     }
 
     void Editor::RenderWindows()
@@ -38,9 +38,11 @@ namespace HeartEditor
 
     void Editor::OpenScene(const Heart::Ref<Heart::Scene>& scene)
     {
+        if (s_SceneState != SceneState::Editing)
+            StopScene();
+
         s_ActiveScene = scene;
         s_EditorScene = scene;
-        s_RuntimeScene = nullptr;
         s_EditorState.SelectedEntity = Heart::Entity();
         s_EditorSceneAsset = 0; // Active scene cannot assume there will be a related asset
     }
@@ -62,6 +64,24 @@ namespace HeartEditor
     {
         auto emptyScene = Heart::CreateRef<Heart::Scene>();
         OpenScene(emptyScene);
+    }
+
+    void Editor::PlayScene()
+    {
+        s_SceneState = SceneState::Playing;
+
+        s_ActiveScene = s_EditorScene->Clone();
+        s_ActiveScene->StartRuntime();
+
+        s_EditorState.SelectedEntity = Heart::Entity();
+    }
+
+    void Editor::StopScene()
+    {
+        s_SceneState = SceneState::Editing;
+        
+        s_ActiveScene->StopRuntime();
+        s_ActiveScene = s_EditorScene;
     }
 
     bool Editor::IsDirty()

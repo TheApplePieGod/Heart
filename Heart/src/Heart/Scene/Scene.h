@@ -31,9 +31,12 @@ namespace Heart
         glm::vec3 GetEntityCachedScale(Entity entity);
         void CacheEntityTransform(Entity entity, bool propagateToChildren = true);
 
+        Ref<Scene> Clone();
         void ClearScene();
         void SetEnvironmentMap(UUID mapAsset);
-        
+        void StartRuntime();
+        void StopRuntime();
+
         inline entt::registry& GetRegistry() { return m_Registry; }
         inline EnvironmentMap* GetEnvironmentMap() { return m_EnvironmentMap.get(); }
         
@@ -54,10 +57,10 @@ namespace Heart
 
     private:
         template<typename Component>
-        void CopyComponent(entt::entity src, entt::entity dst)
+        void CopyComponent(entt::entity src, entt::entity dst, entt::registry& dstRegisty)
         {
             if (m_Registry.any_of<Component>(src))
-                m_Registry.emplace<Component>(dst, m_Registry.get<Component>(src));
+                dstRegisty.emplace<Component>(dst, m_Registry.get<Component>(src));
         }
 
         void RemoveChild(UUID parentUUID, UUID childUUID);
@@ -67,7 +70,7 @@ namespace Heart
         entt::registry m_Registry;
         std::unordered_map<UUID, entt::entity> m_UUIDMap;
         std::unordered_map<entt::entity, CachedTransform> m_CachedTransforms;
-        Ref<EnvironmentMap> m_EnvironmentMap;
+        Ref<EnvironmentMap> m_EnvironmentMap; // TODO: move this out of scene
 
         friend class Entity;
     };

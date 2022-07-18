@@ -142,6 +142,7 @@ namespace HeartEditor
         ImGui::Begin("Main Window", nullptr, windowFlags);
         
         m_MenuBar.OnImGuiRender();
+        m_Toolbar.OnImGuiRender();
 
         ImGuiID dockspaceId = ImGui::GetID("EditorDockSpace");
         ImGui::DockSpace(dockspaceId, ImVec2(0.f, 0.f), 0);
