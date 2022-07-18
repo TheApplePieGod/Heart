@@ -82,7 +82,11 @@ namespace Heart
 
     struct ScriptComponent
     {
-        std::string NamespaceName;
-        std::string ClassName;
+        std::string NamespaceName = "";
+        std::string ClassName = "";
+        u32 ObjectHandle = 0;
+
+        void InstantiateObject();
+        void FreeObject();
     };
 }

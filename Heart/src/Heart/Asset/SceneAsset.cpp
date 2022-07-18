@@ -114,6 +114,8 @@ namespace Heart
                     ScriptComponent comp;
                     comp.NamespaceName = loaded["scriptComponent"]["namespace"];
                     comp.ClassName = loaded["scriptComponent"]["class"];
+                    if (!comp.ClassName.empty())
+                        comp.InstantiateObject();
                     entity.AddComponent<ScriptComponent>(comp);
                 }
             }

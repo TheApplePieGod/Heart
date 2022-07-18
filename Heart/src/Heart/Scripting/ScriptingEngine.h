@@ -25,7 +25,8 @@ namespace Heart
 
         static bool LoadClientAssembly(const std::string& absolutePath);
         static void UnloadClientAssembly();
-        static _MonoObject* InstantiateClass(const std::string& namespaceName, const std::string& className);
+        static _MonoObject* InstantiateClass(const std::string& namespaceName, const std::string& className, u32* outGCHandle);
+        static void FreeObjectHandle(u32 gcHandle);
 
         inline static const std::vector<AssemblyClassEntry>& GetAssemblyClasses() { return s_AssemblyClasses; }
 

@@ -90,7 +90,7 @@ namespace Heart
         s_ClientDomain = nullptr;
     }
 
-    MonoObject* ScriptingEngine::InstantiateClass(const std::string& namespaceName, const std::string& className)
+    MonoObject* ScriptingEngine::InstantiateClass(const std::string& namespaceName, const std::string& className, u32* outGCHandle)
     {
         // Load class
         MonoClass* classObj = mono_class_from_name(s_ClientImage, namespaceName.c_str(), className.c_str());
@@ -113,7 +113,16 @@ namespace Heart
         if (mono_class_get_method_from_name(classObj, ".ctor", 0))
             mono_runtime_object_init(instance);
 
+        // Create GC handle for this object to prevent garbage collection
+        if (outGCHandle)
+            *outGCHandle = mono_gchandle_new(instance, false);
+
         return instance;
+    }
+
+    void ScriptingEngine::FreeObjectHandle(u32 gcHandle)
+    {
+        mono_gchandle_free(gcHandle);
     }
 
     MonoAssembly* ScriptingEngine::LoadAssembly(const std::string& absolutePath)

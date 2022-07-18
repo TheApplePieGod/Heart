@@ -343,6 +343,7 @@ namespace Widgets
                             {
                                 scriptComp.ClassName.clear();
                                 scriptComp.NamespaceName.clear();
+                                scriptComp.FreeObject();
                             }
                         }
                     },
@@ -350,6 +351,7 @@ namespace Widgets
                     {
                         scriptComp.NamespaceName = Heart::ScriptingEngine::GetAssemblyClasses()[index].Namespace;
                         scriptComp.ClassName = Heart::ScriptingEngine::GetAssemblyClasses()[index].Class;
+                        scriptComp.InstantiateObject();
                     }
                 );
             }
