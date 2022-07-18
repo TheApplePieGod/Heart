@@ -45,27 +45,27 @@ namespace Heart
     void AssetManager::OnUpdate()
     {
         // check to see if assets should be unloaded
-        u64 loadLimit = 1000;
-        for (auto& pair : s_Registry)
-        {
-            if (pair.second.Persistent) continue;
+        // u64 loadLimit = 1000;
+        // for (auto& pair : s_Registry)
+        // {
+        //     if (pair.second.Persistent) continue;
 
-            if (App::Get().GetFrameCount() > pair.second.LoadedFrame + loadLimit)
-            {
-                UnloadAsset(pair.second);
-                HE_ENGINE_LOG_TRACE("Unloading asset @ {0}", pair.second.Asset->GetPath());
-            }
-        }
-        for (auto& pair : s_Resources)
-        {
-            if (pair.second.Persistent) continue;
+        //     if (App::Get().GetFrameCount() > pair.second.LoadedFrame + loadLimit)
+        //     {
+        //         UnloadAsset(pair.second);
+        //         HE_ENGINE_LOG_TRACE("Unloading asset @ {0}", pair.second.Asset->GetPath());
+        //     }
+        // }
+        // for (auto& pair : s_Resources)
+        // {
+        //     if (pair.second.Persistent) continue;
 
-            if (App::Get().GetFrameCount() > pair.second.LoadedFrame + loadLimit)
-            {
-                UnloadAsset(pair.second);
-                HE_ENGINE_LOG_TRACE("Unloading resource @ {0}", pair.second.Asset->GetPath());
-            }
-        }
+        //     if (App::Get().GetFrameCount() > pair.second.LoadedFrame + loadLimit)
+        //     {
+        //         UnloadAsset(pair.second);
+        //         HE_ENGINE_LOG_TRACE("Unloading resource @ {0}", pair.second.Asset->GetPath());
+        //     }
+        // }
     }
 
     void AssetManager::ProcessQueue()
