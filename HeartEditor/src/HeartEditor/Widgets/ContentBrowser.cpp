@@ -231,7 +231,7 @@ namespace Widgets
                 else if (assetType == Heart::Asset::Type::Scene)
                 {
                     Heart::UUID assetId = Heart::AssetManager::RegisterAsset(assetType, relativePath);
-                    Editor::SetActiveSceneFromAsset(assetId);
+                    Editor::OpenSceneFromAsset(assetId);
                 }
             }
         }

@@ -20,7 +20,8 @@ namespace Heart
         Entity DuplicateEntity(Entity source, bool keepParent, bool keepChildren);
         void DestroyEntity(Entity entity);
         void AssignRelationship(Entity parent, Entity child);
-        void UnparentEntity(Entity child);
+        void UnparentEntity(Entity child, bool recache = true);
+        Entity GetEntityFromUUID(UUID uuid);
 
         glm::mat4 CalculateEntityTransform(Entity target, glm::mat4* outParentTransform = nullptr);
         glm::mat4 GetEntityParentTransform(Entity target);
@@ -30,18 +31,17 @@ namespace Heart
         glm::vec3 GetEntityCachedScale(Entity entity);
         void CacheEntityTransform(Entity entity, bool propagateToChildren = true);
 
+        void ClearScene();
+        void SetEnvironmentMap(UUID mapAsset);
+        
+        inline entt::registry& GetRegistry() { return m_Registry; }
+        inline EnvironmentMap* GetEnvironmentMap() { return m_EnvironmentMap.get(); }
+        
         template<typename Component>
         void ClearComponent()
         {
             m_Registry.clear<Component>();
         }
-
-        void ClearScene();
-        void SetEnvironmentMap(UUID mapAsset);
-
-        inline entt::registry& GetRegistry() { return m_Registry; }
-        inline EnvironmentMap* GetEnvironmentMap() { return m_EnvironmentMap.get(); }
-        Entity GetEntityFromUUID(UUID uuid);
 
     private:
         struct CachedTransform

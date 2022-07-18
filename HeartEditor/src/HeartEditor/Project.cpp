@@ -86,8 +86,8 @@ namespace HeartEditor
         if (!data)
             throw std::exception();
 
-        // Unload active scene (load empty)
-        Editor::SetActiveScene(Heart::CreateRef<Heart::Scene>());
+        // Clear active scene
+        Editor::ClearScene();
 
         // Finally update the assets directory to the project root
         Heart::AssetManager::UpdateAssetsDirectory(
@@ -111,7 +111,7 @@ namespace HeartEditor
         if (j.contains("loadedProject") && j["loadedProject"] != "")
         {
             Heart::UUID sceneAssetId = Heart::AssetManager::GetAssetUUID(j["loadedProject"]);
-            Editor::SetActiveSceneFromAsset(sceneAssetId);
+            Editor::OpenSceneFromAsset(sceneAssetId);
         }
 
         // Parse widgets
@@ -136,7 +136,7 @@ namespace HeartEditor
         nlohmann::json j;
         j["name"] = m_Name;
 
-        Heart::UUID activeSceneAsset = Editor::GetActiveSceneAsset();
+        Heart::UUID activeSceneAsset = Editor::GetEditorSceneAsset();
         j["loadedProject"] = Heart::AssetManager::GetPathFromUUID(activeSceneAsset);
 
         // Widget data

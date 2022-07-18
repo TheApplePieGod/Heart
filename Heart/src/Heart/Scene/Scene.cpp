@@ -73,11 +73,8 @@ namespace Heart
 
     void Scene::DestroyEntity(Entity entity)
     {
-        // remove entity from parent's children
-        UnparentEntity(entity);
-
+        UnparentEntity(entity, false);
         DestroyChildren(entity);
-
         entity.Destroy();
     }
 
@@ -116,7 +113,7 @@ namespace Heart
         CacheEntityTransform(child);
     }
 
-    void Scene::UnparentEntity(Entity child)
+    void Scene::UnparentEntity(Entity child, bool recache)
     {
         HE_ENGINE_ASSERT(child.IsValid(), "Child entity must be valid");
 
@@ -132,7 +129,8 @@ namespace Heart
             child.RemoveComponent<ParentComponent>();
         }
 
-        CacheEntityTransform(child);
+        if (recache)
+            CacheEntityTransform(child);
     }
 
     void Scene::RemoveChild(UUID parentUUID, UUID childUUID)

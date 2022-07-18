@@ -124,7 +124,7 @@ namespace HeartEditor
 
     void EditorLayer::OnUpdate(Heart::Timestep ts)
     {
-
+        
     }
 
     void EditorLayer::OnImGuiRender()

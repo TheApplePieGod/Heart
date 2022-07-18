@@ -57,9 +57,9 @@ namespace HeartEditor
 
                     ImGui::Separator();
 
-                    if (Editor::GetActiveSceneAsset() && ImGui::MenuItem("Save Scene"))
+                    if (Editor::GetEditorSceneAsset() && ImGui::MenuItem("Save Scene"))
                     {
-                        auto asset = Heart::AssetManager::RetrieveAsset<Heart::SceneAsset>(Editor::GetActiveSceneAsset());
+                        auto asset = Heart::AssetManager::RetrieveAsset<Heart::SceneAsset>(Editor::GetEditorSceneAsset());
                         if (asset && asset->IsValid())
                             asset->SaveChanges();
                     }
@@ -68,7 +68,7 @@ namespace HeartEditor
                     {
                         std::string path = Heart::FilesystemUtils::SaveAsDialog(Heart::AssetManager::GetAssetsDirectory(), "Save Scene As", "Scene", "hescn");
                         if (!path.empty())
-                            Heart::SceneAsset::SerializeScene(path, &Editor::GetActiveScene());
+                            Heart::SceneAsset::SerializeScene(path, &Editor::GetEditorScene());
                     }
 
                     if (ImGui::MenuItem("Load Scene"))
@@ -77,7 +77,7 @@ namespace HeartEditor
                         if (!path.empty())
                         {
                             Heart::UUID assetId = Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Scene, path);
-                            Editor::SetActiveSceneFromAsset(assetId);
+                            Editor::OpenSceneFromAsset(assetId);
                         }
                     }
 

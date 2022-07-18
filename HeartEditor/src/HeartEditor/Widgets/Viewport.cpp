@@ -161,7 +161,7 @@ namespace Widgets
             Heart::Asset::Type::Scene,
             [](const std::string& path)
             {
-                Editor::SetActiveScene(Heart::AssetManager::RetrieveAsset<Heart::SceneAsset>(Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Scene, path))->GetScene());
+                Editor::OpenSceneFromAsset(Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Scene, path));
             }
         );
 
