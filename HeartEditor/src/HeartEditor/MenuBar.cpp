@@ -57,6 +57,13 @@ namespace HeartEditor
 
                     ImGui::Separator();
 
+                    if (Editor::GetActiveSceneAsset() && ImGui::MenuItem("Save Scene"))
+                    {
+                        auto asset = Heart::AssetManager::RetrieveAsset<Heart::SceneAsset>(Editor::GetActiveSceneAsset());
+                        if (asset && asset->IsValid())
+                            asset->SaveChanges();
+                    }
+
                     if (ImGui::MenuItem("Save Scene As"))
                     {
                         std::string path = Heart::FilesystemUtils::SaveAsDialog(Heart::AssetManager::GetAssetsDirectory(), "Save Scene As", "Scene", "hescn");

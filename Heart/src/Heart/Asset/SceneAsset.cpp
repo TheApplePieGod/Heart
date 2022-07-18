@@ -107,6 +107,15 @@ namespace Heart
                     comp.QuadraticAttenuation = loaded["lightComponent"]["attenuation"]["quadratic"];
                     entity.AddComponent<LightComponent>(comp);
                 }
+
+                // Script component
+                if (loaded.contains("scriptComponent"))
+                {
+                    ScriptComponent comp;
+                    comp.NamespaceName = loaded["scriptComponent"]["namespace"];
+                    comp.ClassName = loaded["scriptComponent"]["class"];
+                    entity.AddComponent<ScriptComponent>(comp);
+                }
             }
 
             // make sure all the transforms get cached
@@ -186,6 +195,14 @@ namespace Heart
                     entry["lightComponent"]["attenuation"]["constant"] = lightComp.ConstantAttenuation;
                     entry["lightComponent"]["attenuation"]["linear"] = lightComp.LinearAttenuation;
                     entry["lightComponent"]["attenuation"]["quadratic"] = lightComp.QuadraticAttenuation;
+                }
+
+                // Script component
+                if (entity.HasComponent<ScriptComponent>())
+                {
+                    auto& scriptComp = entity.GetComponent<ScriptComponent>();
+                    entry["scriptComponent"]["namespace"] = scriptComp.NamespaceName;
+                    entry["scriptComponent"]["class"] = scriptComp.ClassName;
                 }
 
                 field[index++] = entry;

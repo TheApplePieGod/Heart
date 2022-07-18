@@ -79,4 +79,10 @@ namespace Heart
         float LinearAttenuation = 0.7f;
         float QuadraticAttenuation = 1.8f;
     };
+
+    struct ScriptComponent
+    {
+        std::string NamespaceName;
+        std::string ClassName;
+    };
 }

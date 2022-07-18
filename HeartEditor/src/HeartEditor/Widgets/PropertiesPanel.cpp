@@ -2,6 +2,7 @@
 #include "PropertiesPanel.h"
 
 #include "HeartEditor/EditorApp.h"
+#include "Heart/Scripting/ScriptingEngine.h"
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/MeshAsset.h"
 #include "Heart/Asset/MaterialAsset.h"
@@ -92,6 +93,8 @@ namespace Widgets
                     selectedEntity.AddComponent<Heart::MeshComponent>();
                 if (ImGui::MenuItem("Light Component"))
                     selectedEntity.AddComponent<Heart::LightComponent>();
+                if (ImGui::MenuItem("Script Component"))
+                    selectedEntity.AddComponent<Heart::ScriptComponent>();
 
                 ImGui::EndPopup();
             }
@@ -99,6 +102,7 @@ namespace Widgets
             RenderTransformComponent();
             RenderMeshComponent();
             RenderLightComponent();
+            RenderScriptComponent();
         }
 
         ImGui::End();
@@ -298,6 +302,56 @@ namespace Widgets
                 ImGui::DragFloat("##QuadAtten", &lightComp.QuadraticAttenuation, 0.005f, 0.f, 2.f);
 
                 ImGui::Unindent();
+            }
+        }
+    }
+
+    void PropertiesPanel::RenderScriptComponent()
+    {
+        auto selectedEntity = Editor::GetState().SelectedEntity;
+        if (selectedEntity.HasComponent<Heart::ScriptComponent>())
+        {
+            bool headerOpen = ImGui::CollapsingHeader("Script");
+            if (!RenderComponentPopup<Heart::ScriptComponent>("ScriptPopup", true) && headerOpen)
+            {
+                auto& scriptComp = selectedEntity.GetComponent<Heart::ScriptComponent>();
+                std::string currentClass;
+                if (!scriptComp.ClassName.empty())
+                    currentClass = scriptComp.NamespaceName + "." + scriptComp.ClassName;
+
+                // Populate possible assemblies
+                std::vector<const char*> assemblies;
+                assemblies.reserve(Heart::ScriptingEngine::GetAssemblyClasses().size());
+                for (auto& classEntry : Heart::ScriptingEngine::GetAssemblyClasses())
+                    assemblies.emplace_back(classEntry.FullName.c_str());
+
+                ImGui::Indent();
+
+                ImGui::Text("Class:");
+                ImGui::SameLine();
+                Heart::ImGuiUtils::StringPicker(
+                    assemblies,
+                    currentClass,
+                    "None",
+                    "Script",
+                    m_ScriptTextFilter,
+                    [&currentClass, &scriptComp]()
+                    {
+                        if (!currentClass.empty())
+                        {
+                            if (ImGui::MenuItem("Clear"))
+                            {
+                                scriptComp.ClassName.clear();
+                                scriptComp.NamespaceName.clear();
+                            }
+                        }
+                    },
+                    [&scriptComp](size_t index)
+                    {
+                        scriptComp.NamespaceName = Heart::ScriptingEngine::GetAssemblyClasses()[index].Namespace;
+                        scriptComp.ClassName = Heart::ScriptingEngine::GetAssemblyClasses()[index].Class;
+                    }
+                );
             }
         }
     }

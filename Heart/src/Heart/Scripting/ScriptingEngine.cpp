@@ -1,6 +1,7 @@
 #include "hepch.h"
 #include "ScriptingEngine.h"
 
+#include "Heart/Util/FilesystemUtils.h"
 #include "Heart/Scripting/InternalCalls.h"
 #include "mono/jit/jit.h"
 #include "mono/metadata/assembly.h"
@@ -21,15 +22,15 @@ namespace Heart
 
         // Init core domain
         s_CoreDomain = mono_jit_init("CoreDomain");
-        HE_MONO_ASSERT_RESULT(s_CoreDomain, "Failed to create core c# domain");
+        HE_MONO_CHECK_RESULT(s_CoreDomain, "Failed to create core c# domain");
 
         // Load core assembly
         MonoAssembly* assembly = mono_domain_assembly_open(s_CoreDomain, "CoreScripts.dll");
-        HE_MONO_ASSERT_RESULT(assembly, "Failed to load core c# assembly");
+        HE_MONO_CHECK_RESULT(assembly, "Failed to load core c# assembly");
 
         // Get core image
         s_CoreImage = mono_assembly_get_image(assembly);
-        HE_MONO_ASSERT_RESULT(s_CoreImage, "Failed to get core c# assembly image");
+        HE_MONO_CHECK_RESULT(s_CoreImage, "Failed to get core c# assembly image");
 
         InternalCalls::Map();
     }
@@ -46,18 +47,32 @@ namespace Heart
 
         // Create new client domain
         s_ClientDomain = mono_domain_create_appdomain("ClientDomain", nullptr);
-        HE_MONO_CHECK_RESULT(s_ClientDomain, "Failed to create client c# domain");
-
-        // Load client assembly
-        MonoAssembly* assembly = mono_domain_assembly_open(s_ClientDomain, absolutePath.c_str());
-        HE_MONO_CHECK_RESULT(assembly, "Failed to load client c# assembly");
-
-        // Get client image
-        s_ClientImage = mono_assembly_get_image(assembly);
-        HE_MONO_CHECK_RESULT(s_ClientImage, "Failed to get client c# assembly image");
+        if (!s_ClientDomain)
+        {
+            HE_ENGINE_LOG_ERROR("Failed to create client c# domain");
+            return false;
+        }
 
         // Set this new domain as active
         mono_domain_set(s_ClientDomain, false);
+
+        // Load client assembly
+        MonoAssembly* assembly = LoadAssembly(absolutePath);
+        if (!assembly)
+        {
+            HE_ENGINE_LOG_ERROR("Failed to load client c# assembly");
+            return false;
+        }
+
+        // Get client image
+        s_ClientImage = mono_assembly_get_image(assembly);
+        if (!s_ClientImage)
+        {
+            HE_ENGINE_LOG_ERROR("Failed to get client c# image");
+            return false;
+        }
+
+        LoadAssemblyClasses();
 
         return true;
     }
@@ -75,29 +90,91 @@ namespace Heart
         s_ClientDomain = nullptr;
     }
 
-    bool ScriptingEngine::Test()
+    MonoObject* ScriptingEngine::InstantiateClass(const std::string& namespaceName, const std::string& className)
     {
-        MonoClass* testClass = mono_class_from_name(s_ClientImage, "TestingProject.Scripts", "Class1");
-        HE_MONO_CHECK_RESULT(testClass, "Failed to load c# test class");
-
-        MonoMethodDesc* mainMethodDesc = mono_method_desc_new("TestingProject.Scripts.Class1::main()", true);
-        HE_MONO_CHECK_RESULT(mainMethodDesc, "Failed to load c# test class main method");
-
-        MonoMethod* mainMethod = mono_method_desc_search_in_class(mainMethodDesc, testClass);
-        HE_MONO_CHECK_RESULT(mainMethod, "Failed to load c# test class main method");
-        mono_method_desc_free(mainMethodDesc);
-
-        MonoObject* exception = nullptr;
-        mono_runtime_invoke(mainMethod, nullptr, nullptr, &exception);
-
-        // Report exception
-        if (exception)
+        // Load class
+        MonoClass* classObj = mono_class_from_name(s_ClientImage, namespaceName.c_str(), className.c_str());
+        if (!classObj)
         {
-            MonoString* exString = mono_object_to_string(exception, nullptr);
-            HE_ENGINE_LOG_ERROR("Failed to invoke c# main: {0}", mono_string_to_utf8(exString));
-            return false;
+            HE_ENGINE_LOG_ERROR("Failed to locate class '{0}.{1}'", namespaceName, className);
+            return nullptr;
         }
 
-        return true;
+        // Create new instance
+        MonoObject* instance = mono_object_new(s_ClientDomain, classObj);
+        if (!instance)
+        {
+            HE_ENGINE_LOG_ERROR("Failed to instantiate class '{0}.{1}'", namespaceName, className);
+            return nullptr;
+        }
+
+        // Call default constructor on instance if exists
+        // TODO: cache this value?
+        if (mono_class_get_method_from_name(classObj, ".ctor", 0))
+            mono_runtime_object_init(instance);
+
+        return instance;
     }
+
+    MonoAssembly* ScriptingEngine::LoadAssembly(const std::string& absolutePath)
+    {
+        u32 dataLength = 0;
+        unsigned char* data = FilesystemUtils::ReadFile(absolutePath, dataLength);
+
+        MonoImageOpenStatus status;
+        MonoImage* image = mono_image_open_from_data_full((char*)data, dataLength, true, &status, false);
+
+        if (status != MONO_IMAGE_OK)
+        {
+            const char* error = mono_image_strerror(status);
+            HE_ENGINE_LOG_ERROR("Failed to read assembly: {0}", error);
+            return nullptr;
+        }
+
+        MonoAssembly* assembly = mono_assembly_load_from_full(image, absolutePath.c_str(), &status, false);
+        mono_image_close(image);
+
+        delete[] data;
+        return assembly;
+    }
+
+    void ScriptingEngine::LoadAssemblyClasses()
+    {
+        s_AssemblyClasses.clear();
+        const MonoTableInfo* table = mono_image_get_table_info(s_ClientImage, MONO_TABLE_TYPEDEF);
+        int numRows = mono_table_info_get_rows(table);
+
+        for (int i = 0; i < numRows; i++)
+        {
+            u32 cols[MONO_TYPEDEF_SIZE];
+            mono_metadata_decode_row(table, i, cols, MONO_TYPEDEF_SIZE);
+
+            const char* namespaceName = mono_metadata_string_heap(s_ClientImage, cols[MONO_TYPEDEF_NAMESPACE]);
+            const char* className = mono_metadata_string_heap(s_ClientImage, cols[MONO_TYPEDEF_NAME]);
+
+            char fullName[100];
+            sprintf(fullName, "%s.%s", namespaceName, className);
+
+            if (namespaceName[0] != 0)
+                s_AssemblyClasses.emplace_back(namespaceName, className, fullName);
+        }
+    }
+
+    // void ScriptingEngine::Test()
+    // {
+    //     auto obj = InstantiateClass("TestingProject.Scripts", "Class1");
+
+    //     MonoObject* exception = nullptr;
+    //     mono_runtime_invoke(mainMethod, nullptr, nullptr, &exception);
+
+    //     // Report exception
+    //     if (exception)
+    //     {
+    //         MonoString* exString = mono_object_to_string(exception, nullptr);
+    //         HE_ENGINE_LOG_ERROR("Failed to invoke c# main: {0}", mono_string_to_utf8(exString));
+    //         return false;
+    //     }
+
+    //     return true;
+    // }
 }

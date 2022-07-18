@@ -103,20 +103,28 @@ namespace Heart
         ImGui::PopStyleVar();
     }
 
-    void ImGuiUtils::AssetPicker(Asset::Type assetType, UUID selectedAsset, const std::string& nullSelectionText, const std::string& widgetId, ImGuiTextFilter& textFilter, std::function<void()>&& contextMenuCallback, std::function<void(UUID)>&& selectCallback)
+    void ImGuiUtils::AssetPicker(
+        Asset::Type assetType,
+        UUID selectedAsset,
+        const std::string& nullSelectionText,
+        const std::string& widgetId,
+        ImGuiTextFilter& textFilter,
+        std::function<void()>&& contextMenuCallback,
+        std::function<void(UUID)>&& selectCallback
+    )
     {
         const auto& UUIDRegistry = AssetManager::GetUUIDRegistry();
 
         bool valid = selectedAsset && UUIDRegistry.find(selectedAsset) != UUIDRegistry.end();
 
         std::string buttonNullSelection = nullSelectionText + "##" + widgetId;
-        std::string popupName = widgetId + "SP";
+        std::string popupName = widgetId + "AP";
         bool popupOpened = ImGui::Button(valid ? UUIDRegistry.at(selectedAsset).Path.c_str() : buttonNullSelection.c_str());
         if (popupOpened)
             ImGui::OpenPopup(popupName.c_str());
         
         // right click menu
-        if (contextMenuCallback && ImGui::BeginPopupContextItem((widgetId + "context").c_str()))
+        if (contextMenuCallback && ImGui::BeginPopupContextItem((widgetId + "ctx").c_str()))
         {
             contextMenuCallback();
             ImGui::EndPopup();
@@ -137,6 +145,47 @@ namespace Heart
                         selectCallback(pair.first);
                         ImGui::CloseCurrentPopup();
                     }
+                }
+            }
+            ImGui::EndPopup();
+        }
+    }
+    
+    void ImGuiUtils::StringPicker(
+        const std::vector<const char*> options,
+        const std::string& selected,
+        const std::string& nullSelectionText,
+        const std::string& widgetId,
+        ImGuiTextFilter& textFilter,
+        std::function<void()>&& contextMenuCallback,
+        std::function<void(size_t)>&& selectCallback
+    )
+    {
+        std::string buttonNullSelection = nullSelectionText + "##" + widgetId;
+        std::string popupName = widgetId + "SP";
+        bool popupOpened = ImGui::Button(selected.empty() ? buttonNullSelection.c_str() : selected.c_str());
+        if (popupOpened)
+            ImGui::OpenPopup(popupName.c_str());
+        
+        // right click menu
+        if (contextMenuCallback && ImGui::BeginPopupContextItem((widgetId + "ctx").c_str()))
+        {
+            contextMenuCallback();
+            ImGui::EndPopup();
+        }
+
+        ImGui::SetNextWindowSize({ 500.f, std::min(ImGui::GetMainViewport()->Size.y - ImGui::GetCursorScreenPos().y, 500.f) });
+        if (ImGui::BeginPopup(popupName.c_str(), ImGuiWindowFlags_HorizontalScrollbar))
+        {
+            if (textFilter.Draw() || popupOpened)
+                ImGui::SetKeyboardFocusHere(-1);
+            ImGui::Separator();
+            for (size_t i = 0; i < options.size(); i++)
+            {
+                if (textFilter.PassFilter(options[i]) && ImGui::MenuItem(options[i]))
+                {
+                    selectCallback(i);
+                    ImGui::CloseCurrentPopup();
                 }
             }
             ImGui::EndPopup();

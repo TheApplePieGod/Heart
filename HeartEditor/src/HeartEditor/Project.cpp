@@ -168,7 +168,5 @@ namespace HeartEditor
 
         if (Heart::ScriptingEngine::LoadClientAssembly(assemblyPath.u8string()))
             HE_LOG_INFO("Client assembly loaded");
-
-        Heart::ScriptingEngine::Test();
     }
 }
