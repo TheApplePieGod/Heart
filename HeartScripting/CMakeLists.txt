@@ -1,18 +1,8 @@
-project(CoreScripts LANGUAGES CSharp)
+project(CoreScripts)
 
-INCLUDE(CSharpUtilities)
-
-set(CMAKE_DOTNET_TARGET_FRAMEWORK_VERSION "v4.8")
-
-# Build main
-file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cs")
-add_library(CoreScripts SHARED "${SOURCES}")
-
-# target_compile_options(CoreScripts PRIVATE "-debug:embedded")
-
-target_link_libraries(CoreScripts CommonLib)
-
-set_target_properties(
-    CoreScripts PROPERTIES
-    VS_GLOBAL_ROOTNAMESPACE "Heart"
+# Copy built files
+add_custom_target(CopyScriptingResources ALL
+  COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_SOURCE_DIR}/bin
+  COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_CURRENT_SOURCE_DIR}/bin ${OUTPUT_DIRECTORY}/scripting
+  DEPENDS Engine
 )

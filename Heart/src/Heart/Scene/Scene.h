@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Heart/Scripting/ScriptingEngine.h"
 #include "Heart/Renderer/EnvironmentMap.h"
 #include "Heart/Core/UUID.h"
 #include "entt/entt.hpp"

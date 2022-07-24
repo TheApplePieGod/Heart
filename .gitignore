@@ -5,5 +5,8 @@ build/*
 !.vscode/settings.json
 emsdk/*
 HeartEditor/assets/*
-!HeartEditor/assets/shaders
 docs/html/*
+*.vs
+*.user
+HeartScripting/bin/*
+HeartScripting/obj/*

@@ -65,6 +65,8 @@ namespace Heart
         void SetScale(glm::vec3 scale);
         void SetTransform(glm::vec3 pos, glm::vec3 rot, glm::vec3 scale);
 
+        void UpdateScriptInstanceData();
+
     private:
         entt::entity m_EntityHandle = entt::null;
         Scene* m_Scene = nullptr;

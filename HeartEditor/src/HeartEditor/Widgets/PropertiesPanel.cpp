@@ -314,46 +314,47 @@ namespace Widgets
             bool headerOpen = ImGui::CollapsingHeader("Script");
             if (!RenderComponentPopup<Heart::ScriptComponent>("ScriptPopup", true) && headerOpen)
             {
+                Heart::UUID uuid = selectedEntity.GetUUID();
                 auto& scriptComp = selectedEntity.GetComponent<Heart::ScriptComponent>();
                 std::string currentClass;
                 if (!scriptComp.ClassName.empty())
                     currentClass = scriptComp.NamespaceName + "." + scriptComp.ClassName;
 
                 // Populate possible assemblies
-                std::vector<const char*> assemblies;
-                assemblies.reserve(Heart::ScriptingEngine::GetAssemblyClasses().size());
-                for (auto& classEntry : Heart::ScriptingEngine::GetAssemblyClasses())
-                    assemblies.emplace_back(classEntry.FullName.c_str());
+                // std::vector<const char*> assemblies;
+                // assemblies.reserve(Heart::ScriptingEngine::GetAssemblyClasses().size());
+                // for (auto& classEntry : Heart::ScriptingEngine::GetAssemblyClasses())
+                //     assemblies.emplace_back(classEntry.FullName.c_str());
 
-                ImGui::Indent();
+                // ImGui::Indent();
 
-                ImGui::Text("Class:");
-                ImGui::SameLine();
-                Heart::ImGuiUtils::StringPicker(
-                    assemblies,
-                    currentClass,
-                    "None",
-                    "Script",
-                    m_ScriptTextFilter,
-                    [&currentClass, &scriptComp]()
-                    {
-                        if (!currentClass.empty())
-                        {
-                            if (ImGui::MenuItem("Clear"))
-                            {
-                                scriptComp.ClassName.clear();
-                                scriptComp.NamespaceName.clear();
-                                scriptComp.FreeObject();
-                            }
-                        }
-                    },
-                    [&scriptComp](size_t index)
-                    {
-                        scriptComp.NamespaceName = Heart::ScriptingEngine::GetAssemblyClasses()[index].Namespace;
-                        scriptComp.ClassName = Heart::ScriptingEngine::GetAssemblyClasses()[index].Class;
-                        scriptComp.InstantiateObject();
-                    }
-                );
+                // ImGui::Text("Class:");
+                // ImGui::SameLine();
+                // Heart::ImGuiUtils::StringPicker(
+                //     assemblies,
+                //     currentClass,
+                //     "None",
+                //     "Script",
+                //     m_ScriptTextFilter,
+                //     [&currentClass, &scriptComp]()
+                //     {
+                //         if (!currentClass.empty())
+                //         {
+                //             if (ImGui::MenuItem("Clear"))
+                //             {
+                //                 scriptComp.ClassName.clear();
+                //                 scriptComp.NamespaceName.clear();
+                //                 scriptComp.FreeObject();
+                //             }
+                //         }
+                //     },
+                //     [&scriptComp](size_t index)
+                //     {
+                //         scriptComp.NamespaceName = Heart::ScriptingEngine::GetAssemblyClasses()[index].Namespace;
+                //         scriptComp.ClassName = Heart::ScriptingEngine::GetAssemblyClasses()[index].Class;
+                //         scriptComp.InstantiateObject();
+                //     }
+                // );
             }
         }
     }

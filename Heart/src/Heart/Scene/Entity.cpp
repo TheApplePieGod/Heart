@@ -73,4 +73,11 @@ namespace Heart
         comp.Scale = scale;
         m_Scene->CacheEntityTransform(*this);
     }
+
+    void Entity::UpdateScriptInstanceData()
+    {
+        auto& comp = GetComponent<ScriptComponent>();
+        if (!comp.ObjectHandle) return;
+        
+    }
 }

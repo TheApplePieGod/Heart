@@ -8,13 +8,13 @@ namespace Heart
     void ScriptComponent::InstantiateObject()
     {
         if (ObjectHandle != 0) FreeObject();
-        ScriptingEngine::InstantiateClass(NamespaceName, ClassName, &ObjectHandle);
+        //ScriptingEngine::InstantiateClass(NamespaceName, ClassName, &ObjectHandle);
     }
 
     void ScriptComponent::FreeObject()
     {
         if (ObjectHandle == 0) return;
-        ScriptingEngine::FreeObjectHandle(ObjectHandle);
+        //ScriptingEngine::FreeObjectHandle(ObjectHandle);
         ObjectHandle = 0;
     }
 }

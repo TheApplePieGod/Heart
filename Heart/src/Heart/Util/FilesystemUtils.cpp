@@ -1,6 +1,7 @@
 #include "hepch.h"
 #include "FilesystemUtils.h"
 
+#include "Heart/Util/PlatformUtils.h"
 #include "Heart/Core/App.h"
 #include "GLFW/glfw3.h"
 #include "GLFW/glfw3native.h"
@@ -101,7 +102,7 @@ namespace Heart
 
             if (!title.empty())
             {
-                hr = pDialog->SetTitle(NarrowToWideString(title).c_str());
+                hr = pDialog->SetTitle(PlatformUtils::NarrowToWideString(title).c_str());
                 if (FAILED(hr)) goto done;
             }
 
@@ -112,7 +113,7 @@ namespace Heart
 
             if (!folder)
             {
-                std::wstring wideExtension = NarrowToWideString(extension);
+                std::wstring wideExtension = PlatformUtils::NarrowToWideString(extension);
                 std::wstring filterFirst = wideExtension + L" (*." + wideExtension + L")";
                 std::wstring filterSecond = L"*." + wideExtension;
                 COMDLG_FILTERSPEC rgSpec[] = 
@@ -129,7 +130,7 @@ namespace Heart
 
                 if (save && !defaultFileName.empty())
                 {
-                    hr = pDialog->SetFileName(NarrowToWideString(defaultFileName).c_str());
+                    hr = pDialog->SetFileName(PlatformUtils::NarrowToWideString(defaultFileName).c_str());
                     if (FAILED(hr)) goto done;
                 }
             }
@@ -143,7 +144,7 @@ namespace Heart
             hr = pItem->GetDisplayName(SIGDN_FILESYSPATH, &pwszFilePath);
             if (FAILED(hr)) goto done;
 
-            outputPath = WideToNarrowString(pwszFilePath);
+            outputPath = PlatformUtils::WideToNarrowString(pwszFilePath);
 
         done:
             if (pDialog)
@@ -199,27 +200,5 @@ namespace Heart
             outputPath = filename;
         #endif
         return outputPath;
-    }
-
-    std::string FilesystemUtils::WideToNarrowString(const std::wstring& wide)
-    {
-        std::string output;
-        output.reserve(wide.length());
-
-        for (wchar c : wide)
-            output.push_back((char)c);
-
-        return output;
-    }
-
-    std::wstring FilesystemUtils::NarrowToWideString(const std::string& narrow)
-    {
-        std::wstring output;
-        output.reserve(narrow.length());
-
-        for (char c : narrow)
-            output.push_back((wchar)c);
-
-        return output;
     }
 }

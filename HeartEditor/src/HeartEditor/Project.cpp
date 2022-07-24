@@ -103,6 +103,9 @@ namespace HeartEditor
         EditorApp::Get().GetImGuiInstance().OverrideImGuiConfig(Heart::AssetManager::GetAssetsDirectory());
         EditorApp::Get().GetImGuiInstance().ReloadImGuiConfig();
 
+        // Load client scripts if they exist
+        project->LoadClientAssembly();
+
         auto j = nlohmann::json::parse(data);
 
         if (j.contains("name"))
@@ -122,9 +125,6 @@ namespace HeartEditor
                 if (field.contains(pair.first))
                     pair.second->Deserialize(field[pair.first]);
         }
-
-        // Load client scripts if they exist
-        project->LoadClientAssembly();
 
         s_ActiveProject = project;
         delete[] data;
@@ -162,11 +162,11 @@ namespace HeartEditor
             .append("ClientScripts.dll");
         if (!std::filesystem::exists(assemblyPath))
         {
-            HE_LOG_WARN("Client assembly for '{0}' not found", m_Name);
+            HE_LOG_WARN("Client assembly not found");
             return;
         }
 
-        if (Heart::ScriptingEngine::LoadClientAssembly(assemblyPath.u8string()))
-            HE_LOG_INFO("Client assembly loaded");
+        // if (Heart::ScriptingEngine::LoadClientAssembly(assemblyPath.u8string()))
+        //     HE_LOG_INFO("Client assembly loaded");
     }
 }

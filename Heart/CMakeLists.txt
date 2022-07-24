@@ -23,6 +23,13 @@ set(DEPENDENCY_SOURCES
   "lib/stb_image/stb_image.cpp"
 )
 
+execute_process(
+  COMMAND python "scripts/configure-hostfxr.py"
+  WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
+  OUTPUT_VARIABLE DOTNET_RUNTIME_DIR
+  ERROR_VARIABLE DOTNET_HOSTFXR_DIR
+)
+
 # Copy engine resources
 add_custom_target(
   CopyEngineResources ALL
@@ -57,7 +64,7 @@ target_include_directories(
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/imguizmo>"
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/json/include>"
   "$<BUILD_INTERFACE:$ENV{VULKAN_SDK}/include>"
-  "$<BUILD_INTERFACE:$ENV{MONO_HOME}/include/mono-2.0>"
+  "$<BUILD_INTERFACE:${DOTNET_RUNTIME_DIR}>"
 
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/GLFW/include>"
@@ -70,7 +77,7 @@ target_include_directories(
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/imguizmo>"
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/json/include>"
   "$<INSTALL_INTERFACE:$ENV{VULKAN_SDK}/include>"
-  "$<INSTALL_INTERFACE:$ENV{MONO_HOME}/include/mono-2.0>"
+  "$<INSTALL_INTERFACE:${DOTNET_RUNTIME_DIR}>"
 )
 
 # Locate vulkansdk libraries
@@ -125,23 +132,16 @@ else()
   target_link_libraries(Engine ${spirvcore})
 endif()
 
-# Locate mono library
-find_library(mono
-  NAMES "mono-2.0-sgen"
-  PATHS "$ENV{MONO_HOME}/lib"
-)
-
 # Link dependencies
 target_link_libraries(
   Engine
-  glfw glm imgui spdlog glad OptickCore imguizmo nlohmann_json ${vulkan} ${shaderc} ${spirvglsl} ${mono}
+  glfw glm imgui spdlog glad OptickCore imguizmo nlohmann_json ${vulkan} ${shaderc} ${spirvglsl}
 )
 
 # Copy required dlls
 add_custom_target(
   CopyRequiredDlls ALL
-  COMMAND ${CMAKE_COMMAND} -E copy $ENV{MONO_HOME}/bin/mono-2.0-sgen.dll ${OUTPUT_DIRECTORY}
-  COMMAND ${CMAKE_COMMAND} -E create_symlink $ENV{MONO_HOME}/lib/mono ${OUTPUT_DIRECTORY}/mono
+  COMMAND ${CMAKE_COMMAND} -E copy ${DOTNET_HOSTFXR_DIR}/hostfxr.dll ${OUTPUT_DIRECTORY}
   DEPENDS Engine
 )
 
