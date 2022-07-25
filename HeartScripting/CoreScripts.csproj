@@ -9,7 +9,4 @@
     <AssemblyName>CoreScripts</AssemblyName>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
-  <ItemGroup>
-    <None Include="src\*" />
-  </ItemGroup>
 </Project>

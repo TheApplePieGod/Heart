@@ -4,8 +4,12 @@ namespace Heart
 {
     struct ManagedCallbacks
     {
-        using AssemblyManager_LoadAssemblyFn = bool (*)(char8*);
+        using EntryPoint_LoadClientPluginFn = bool (*)(const char8*);
+        using EntryPoint_UnloadClientPluginFn = bool (*)();
+        using ManagedObject_InstantiateClientObjectFn = void* (*)(const char8*);
 
-        AssemblyManager_LoadAssemblyFn AssemblyManager_LoadAssembly;
+        EntryPoint_LoadClientPluginFn EntryPoint_LoadClientPlugin;
+        EntryPoint_UnloadClientPluginFn EntryPoint_UnloadClientPlugin;
+        ManagedObject_InstantiateClientObjectFn ManagedObject_InstantiateClientObject;
     };
 }

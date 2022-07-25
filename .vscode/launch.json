@@ -14,13 +14,6 @@
             "cwd": "${command:cmake.launchTargetPath}/..",
             "environment": [],
             "console": "integratedTerminal"
-        },
-        {
-            "name": "Attach to Mono",
-            "request": "attach",
-            "type": "mono",
-            "address": "localhost",
-            "port": 55555
         }
     ]
 }

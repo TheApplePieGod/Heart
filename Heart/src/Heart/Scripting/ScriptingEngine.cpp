@@ -114,8 +114,9 @@ namespace Heart
         bool res = initFunc(PlatformUtils::GetCurrentModuleHandle(), &s_CoreCallbacks);
         HE_ENGINE_ASSERT(res, "Failed to initialize core scripts");
 
-        bool res2 = s_CoreCallbacks.AssemblyManager_LoadAssembly("blob");
-        int d = 0;
+        LoadClientPlugin("C:/Users/Evan/Desktop/HeartProjects/TestProject/bin/ClientScripts.dll");
+        void* handle = s_CoreCallbacks.ManagedObject_InstantiateClientObject("TestProject.Scripts.TestEntity");
+        UnloadClientPlugin();
     }
 
     void ScriptingEngine::Shutdown()
@@ -125,5 +126,41 @@ namespace Heart
             PlatformUtils::FreeDynamicLibrary(s_HostFXRHandle);
             s_HostFXRHandle = nullptr;
         }
+    }
+
+    bool ScriptingEngine::LoadClientPlugin(const std::string& absolutePath)
+    {
+        if (s_ClientPluginLoaded)
+        {
+            bool res = UnloadClientPlugin();
+            if (!res) return false;
+        }
+
+        bool res = s_CoreCallbacks.EntryPoint_LoadClientPlugin(absolutePath.c_str());
+        if (res)
+        {
+            HE_ENGINE_LOG_INFO("Client plugin successfully loaded");
+            s_ClientPluginLoaded = true;
+            return true;
+        }
+
+        HE_ENGINE_LOG_ERROR("Failed to load client plugin");
+        return false;
+    }
+
+    bool ScriptingEngine::UnloadClientPlugin()
+    {
+        if (!s_ClientPluginLoaded) return true;
+
+        bool res = s_CoreCallbacks.EntryPoint_UnloadClientPlugin();
+        if (res)
+        {
+            HE_ENGINE_LOG_INFO("Client plugin successfully unloaded");
+            s_ClientPluginLoaded = false;
+            return true;
+        }
+
+        HE_ENGINE_LOG_ERROR("Failed to unload client plugin");
+        return false;
     }
 }
