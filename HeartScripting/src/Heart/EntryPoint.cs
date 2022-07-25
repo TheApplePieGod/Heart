@@ -9,14 +9,14 @@ namespace Heart
     public static class EntryPoint
     {
         [UnmanagedCallersOnly]
-        private static int Initialize(IntPtr dllHandle)
+        private static unsafe InteropBool Initialize(IntPtr dllHandle, ManagedCallbacks* managedCallbacks)
         {
             Assembly coreAssembly = typeof(EntryPoint).Assembly;
             NativeLibrary.SetDllImportResolver(coreAssembly, new HeartDllImportResolver(dllHandle).OnResolveDllImport);
 
-            Log.Info("C# scripting!");
+            *managedCallbacks = ManagedCallbacks.Get();
 
-            return 10;
+            return InteropBool.True;
         }
     }
 }

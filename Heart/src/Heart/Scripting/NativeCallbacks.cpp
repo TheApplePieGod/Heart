@@ -11,14 +11,14 @@
     #define HE_INTEROP_EXPORT HE_INTEROP_EXPORT_BASE
 #endif
 
-// When to use in, out, [In, Out]
 // https://stackoverflow.com/questions/56097222/keywords-in-out-ref-vs-attributes-in-out-in-out
+// https://docs.microsoft.com/en-us/dotnet/standard/native-interop/best-practices
 
 HE_INTEROP_EXPORT void Native_Log(int level, const char* message)
 {
     Heart::Logger::GetClientLogger().log(spdlog::source_loc{}, static_cast<spdlog::level::level_enum>(level), message);
 }
 
-void* heartInteropFunctions[100] = {
+void* nativeCallbackFunctions[100] = {
     (void*)Native_Log,
 };

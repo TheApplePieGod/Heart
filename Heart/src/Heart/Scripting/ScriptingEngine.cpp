@@ -13,8 +13,8 @@
 
 // We need this in order to ensure that the dllexports inside the engine static lib
 // do not get removed
-extern void* heartInteropFunctions[100];
-[[maybe_unused]] volatile void** exportHeartInteropFunctions;
+extern void* nativeCallbackFunctions[100];
+[[maybe_unused]] volatile void** exportNativeCallbackFunctions;
 
 namespace Heart
 {
@@ -24,7 +24,7 @@ namespace Heart
     void* s_HostFXRHandle;
 
     using HostFXRString = std::basic_string<char_t>;
-    using EntryPointInitializeFn = int (*)(void*);
+    using InitializeFn = bool (*)(void*, ManagedCallbacks*);
 
     HostFXRString StringToHostFXR(const std::string& str)
     {
@@ -40,6 +40,8 @@ namespace Heart
     #else
         #define HOSTFXR_STR(str) str
     #endif
+
+    #define UTF16_STR(str) u##str
 
     bool LoadHostFXR()
     {
@@ -68,14 +70,14 @@ namespace Heart
         return (s_ConfigInitFunc && s_GetDelegateFunc && s_CloseFunc);
     }
 
-    load_assembly_and_get_function_pointer_fn InitHostFXRWithConfig(const char_t* configPath)
+    void InitHostFXRWithConfig(const char_t* configPath, load_assembly_and_get_function_pointer_fn& outLoadAssemblyFunc)
     {
         hostfxr_handle ctx = nullptr;
         int rc = s_ConfigInitFunc(configPath, nullptr, &ctx);
         if (rc != 0 || !ctx)
         {
             s_CloseFunc(ctx);
-            return nullptr;
+            return;
         }
 
         void* loadAssemblyFunc = nullptr;
@@ -83,33 +85,36 @@ namespace Heart
 
         s_CloseFunc(ctx);
 
-        return (load_assembly_and_get_function_pointer_fn)loadAssemblyFunc;
+        outLoadAssemblyFunc = (load_assembly_and_get_function_pointer_fn)loadAssemblyFunc;
     }
 
     void ScriptingEngine::Initialize()
     {
-        exportHeartInteropFunctions = (volatile void**)heartInteropFunctions;
+        exportNativeCallbackFunctions = (volatile void**)nativeCallbackFunctions;
 
         bool result = LoadHostFXR();
         HE_ENGINE_ASSERT(result, "Failed to load hostfxr");
 
-        load_assembly_and_get_function_pointer_fn loadAssemblyWithPtrFunc = 
-            InitHostFXRWithConfig(HOSTFXR_STR("scripting/CoreScripts.runtimeconfig.json"));
+        load_assembly_and_get_function_pointer_fn loadAssemblyWithPtrFunc;
+        InitHostFXRWithConfig(HOSTFXR_STR("scripting/CoreScripts.runtimeconfig.json"), loadAssemblyWithPtrFunc);
         HE_ENGINE_ASSERT(loadAssemblyWithPtrFunc, "Failed to initialize hostfxr with config");
         HE_ENGINE_LOG_DEBUG(".NET hostfxr initialized");
 
-        EntryPointInitializeFn mainFunc = nullptr;
+        InitializeFn initFunc = nullptr;
         int rc = loadAssemblyWithPtrFunc(
             HOSTFXR_STR("scripting/CoreScripts.dll"),
             HOSTFXR_STR("Heart.EntryPoint, CoreScripts"),
             HOSTFXR_STR("Initialize"),
             UNMANAGEDCALLERSONLY_METHOD,
             nullptr,
-            (void**)&mainFunc
+            (void**)&initFunc
         );
         HE_ENGINE_ASSERT(rc == 0, "Failed to load scripting entrypoint func");
 
-        int res = mainFunc(PlatformUtils::GetCurrentModuleHandle());
+        bool res = initFunc(PlatformUtils::GetCurrentModuleHandle(), &s_CoreCallbacks);
+        HE_ENGINE_ASSERT(res, "Failed to initialize core scripts");
+
+        bool res2 = s_CoreCallbacks.AssemblyManager_LoadAssembly("blob");
         int d = 0;
     }
 

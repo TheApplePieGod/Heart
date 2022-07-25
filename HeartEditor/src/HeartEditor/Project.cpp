@@ -44,6 +44,7 @@ namespace HeartEditor
         std::string coreProjectPath = std::filesystem::current_path()
             .parent_path()
             .parent_path()
+            .parent_path()
             .append("HeartScripting")
             .append("CoreScripts.csproj")
             .generic_u8string();

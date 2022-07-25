@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Heart/Scripting/ManagedCallbacks.h"
+
 namespace Heart
 {
     class ScriptingEngine
@@ -7,5 +9,8 @@ namespace Heart
     public:
         static void Initialize();
         static void Shutdown();
+
+    private:
+        inline static ManagedCallbacks s_CoreCallbacks;
     };
 }
