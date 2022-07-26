@@ -38,7 +38,7 @@ namespace HeartEditor
                     if (Project::GetActiveProject())
                     {
                         if (ImGui::MenuItem("Reload Client Scripts"))
-                            Project::GetActiveProject()->LoadClientAssembly();
+                            Project::GetActiveProject()->LoadScriptsPlugin();
                         ImGui::Separator();
                     }
 

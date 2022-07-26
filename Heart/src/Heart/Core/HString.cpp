@@ -1,6 +1,6 @@
 #include "hepch.h"
-#include "_CLASS_.h"
-    
+#include "HString.h"
+
 namespace Heart
 {
     

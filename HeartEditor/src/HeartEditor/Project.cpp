@@ -105,7 +105,7 @@ namespace HeartEditor
         EditorApp::Get().GetImGuiInstance().ReloadImGuiConfig();
 
         // Load client scripts if they exist
-        project->LoadClientAssembly();
+        project->LoadScriptsPlugin();
 
         auto j = nlohmann::json::parse(data);
 
@@ -156,7 +156,7 @@ namespace HeartEditor
         file << j;
     }
 
-    void Project::LoadClientAssembly()
+    void Project::LoadScriptsPlugin()
     {
         auto assemblyPath = std::filesystem::path(Heart::AssetManager::GetAssetsDirectory())
             .append("bin")
@@ -167,7 +167,6 @@ namespace HeartEditor
             return;
         }
 
-        // if (Heart::ScriptingEngine::LoadClientAssembly(assemblyPath.u8string()))
-        //     HE_LOG_INFO("Client assembly loaded");
+        Heart::ScriptingEngine::LoadClientPlugin(assemblyPath.u8string());
     }
 }

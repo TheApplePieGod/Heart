@@ -113,10 +113,6 @@ namespace Heart
 
         bool res = initFunc(PlatformUtils::GetCurrentModuleHandle(), &s_CoreCallbacks);
         HE_ENGINE_ASSERT(res, "Failed to initialize core scripts");
-
-        LoadClientPlugin("C:/Users/Evan/Desktop/HeartProjects/TestProject/bin/ClientScripts.dll");
-        void* handle = s_CoreCallbacks.ManagedObject_InstantiateClientObject("TestProject.Scripts.TestEntity");
-        UnloadClientPlugin();
     }
 
     void ScriptingEngine::Shutdown()
