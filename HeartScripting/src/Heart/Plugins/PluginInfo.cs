@@ -9,8 +9,6 @@ namespace Heart.Plugins
     [StructLayout(LayoutKind.Sequential)]
     public struct PluginInfo
     {
-        [MarshalAs(UnmanagedType.LPArray)]
-        string[] Test;
-        int TestLen;
+        
     }
 }

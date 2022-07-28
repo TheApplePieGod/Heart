@@ -32,7 +32,8 @@ typedef char16_t char16;
 #define HE_ENUM_TO_STRING(class, value) class::TypeStrings[static_cast<u16>(value)]
 #define HE_EXPAND_ARGS(args) args
 #define HE_ARRAY_SIZE(arr) sizeof(arr) / sizeof(arr[0])
-#define BIT(x) (1 << x)
+#define HE_BIT(x) (1 << x)
+#define HE_PLACEMENT_NEW(ptr, type, ...) new (ptr) type(__VA_ARGS__)
 
 #define Pi32 3.14159265359f
 #define Tau32 6.28318530717958647692f

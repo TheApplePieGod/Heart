@@ -21,6 +21,7 @@
 #include <shared_mutex>
 #include <random>
 #include <thread>
+#include <type_traits>
 
 #include <string>
 #include <regex>
