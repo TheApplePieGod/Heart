@@ -9,10 +9,9 @@ namespace Heart
     struct TestStruct
     {
         TestStruct() = default;
-
         ~TestStruct()
         {
-            int d = 0;
+            Field3 = false;
         }
 
         u64 Field1 = 12345;
@@ -29,11 +28,16 @@ namespace Heart
         }
     };
 
+    void PerfTests::RunHArrayTest()
+    {
+        
+    }
+
     void PerfTests::RunHVectorTest()
     {
-        // HVector<u64> vec = { 0, 1, 2, 3, 4, 5 };
-        // vec.Remove(2);
-        // int e = 0;
+        HVector<TestStruct> vec = { TestStruct(), TestStruct(), TestStruct(), TestStruct() };
+        vec.Pop();
+        int e = 0;
 
         /*
          * HVector - Add

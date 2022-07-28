@@ -22,6 +22,7 @@
 #include <random>
 #include <thread>
 #include <type_traits>
+#include <new>
 
 #include <string>
 #include <regex>

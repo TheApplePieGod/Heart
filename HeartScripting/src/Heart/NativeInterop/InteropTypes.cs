@@ -2,12 +2,6 @@
 
 namespace Heart.NativeInterop
 {
-    //[StructLayout(LayoutKind.Sequential)]
-    //public ref struct InteropString
-    //{
-
-    //}
-
     public enum InteropBool : byte
     {
         False = 0,

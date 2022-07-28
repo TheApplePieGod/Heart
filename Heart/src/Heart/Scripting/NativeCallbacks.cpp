@@ -1,6 +1,7 @@
 #include "hepch.h"
 
 #include "Heart/Core/Log.h"
+#include "Heart/Container/HArray.h"
 
 #define HE_INTEROP_EXPORT_BASE extern "C" [[maybe_unused]]
 #ifdef HE_PLATFORM_WINDOWS
@@ -19,6 +20,33 @@ HE_INTEROP_EXPORT void Native_Log(int level, const char* message)
     Heart::Logger::GetClientLogger().log(spdlog::source_loc{}, static_cast<spdlog::level::level_enum>(level), message);
 }
 
-void* nativeCallbackFunctions[100] = {
-    (void*)Native_Log,
-};
+HE_INTEROP_EXPORT void Native_HArray_Init(Heart::HArray* array)
+{
+    // Placement new so destructor doesn't get called
+    HE_PLACEMENT_NEW(array, Heart::HArray);
+}
+
+HE_INTEROP_EXPORT void Native_HArray_Free(Heart::HArray* array)
+{
+    array->~HArray();
+}
+
+HE_INTEROP_EXPORT void Native_HArray_Add(Heart::HArray* array, Heart::Variant* value)
+{
+    array->Add(*value);
+}
+
+HE_INTEROP_EXPORT void Native_Variant_FromHArray(Heart::Variant* variant, Heart::HArray* value)
+{
+    // Placement new so destructor doesn't get called
+    HE_PLACEMENT_NEW(variant, Heart::Variant, *value);
+}
+
+HE_INTEROP_EXPORT void Native_Variant_Free(Heart::Variant* variant)
+{
+    variant->~Variant();
+}
+
+// We need this in order to ensure that the dllexports inside the engine static lib
+// do not get removed
+void* exportVariable = nullptr;

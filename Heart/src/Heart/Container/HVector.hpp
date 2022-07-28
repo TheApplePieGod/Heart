@@ -50,15 +50,13 @@ namespace Heart
 
         void Remove(u32 index)
         {
-            if (GetCount() == 0) throw std::out_of_range("Called Remove() on container with a count of zero");
-
-            m_Container.DecrementCount();
-
-            if (GetCount() == 0) return;
+            if (index >= GetCount()) throw std::out_of_range("Called Remove() on container with out of range index");
 
             // Destruct
-            if (std::is_trivially_destructible<T>::value)
+            if (ShouldDestruct())
                 m_Container[index].~T();
+
+            if (m_Container.DecrementCount() == 0) return;
 
             memmove(
                 m_Container.Begin() + index,
@@ -69,30 +67,38 @@ namespace Heart
 
         void RemoveUnordered(u32 index)
         {
-            if (GetCount() == 0) throw std::out_of_range("Called Remove() on container with a count of zero");
+            if (index >= GetCount()) throw std::out_of_range("Called Remove() on container with out of range index");
 
-            m_Container.DecrementCount();
+            // Destruct
+            if (ShouldDestruct())
+                m_Container[index].~T();
 
-            if (GetCount() == 0) return;
+            if (m_Container.DecrementCount() == 0) return;
             
             m_Container[index] = m_Container[GetCount()];
         }
 
-        T Pop()
+        void Pop()
         {
             if (GetCount() == 0) throw std::out_of_range("Called Pop() on container with a count of zero");
-            return m_Container[m_Container.DecrementCount()];
+
+            // Destruct
+            if (ShouldDestruct())
+                m_Container[m_Container.DecrementCount()].~T();
         }
 
         // insert
         // find
         
+        inline void Reserve(u32 allocCount) { m_Container.Reserve(allocCount); }
         inline void Clear(bool shrink = false) { m_Container.Clear(shrink); }
         inline void Resize(u32 elemCount, bool construct = true) { m_Container.Resize(elemCount, construct); }
         inline HVector Clone() { return HVector(m_Container); }
         inline u32 GetCount() { return m_Container.GetCount(); }
-        inline u32 Begin() { return m_Container.Begin(); }
-        inline u32 End() { return m_Container.End(); }
+        inline T* Begin() { return m_Container.Begin(); }
+        inline T* End() { return m_Container.End(); }
+        inline T* Front() { return m_Container.Begin(); }
+        inline T* Back() { return GetCount() > 0 ? m_Container.End() - 1 : m_Container.Begin(); }
         inline T& operator[](u32 index) { return m_Container[index]; }
         inline T& Get(u32 index) { return m_Container.Get[index]; }
 
@@ -113,6 +119,8 @@ namespace Heart
                 m_Container.IncrementCount();
             return count;
         }
+
+        inline constexpr bool ShouldDestruct() const { return std::is_destructible<T>::value && !std::is_trivially_destructible<T>::value; }
 
     private:
         Container<T> m_Container;

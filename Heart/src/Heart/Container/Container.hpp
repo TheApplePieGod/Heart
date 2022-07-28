@@ -53,18 +53,32 @@ namespace Heart
             ResizeExplicit(elemCount, GetNextPowerOfTwo(elemCount), construct);
         }
 
+        void Reserve(u32 allocCount)
+        {
+            u32 actualAlloc = GetNextPowerOfTwo(allocCount);
+            if (actualAlloc > GetAllocatedCount())
+                ResizeExplicit(GetCount(), actualAlloc, false);
+        }
+
         inline Container Clone() { return Container(m_Data, GetCount()); }
-        inline u32 GetCount() { return m_Data ? *GetCountPtr() : 0; }
-        inline u32 GetAllocatedCount() { return m_Data ? *GetAllocatedCountPtr() : 0; }
-        inline u32 IncrementCount() { return ++*GetCountPtr(); }
-        inline u32 DecrementCount() { return --*GetCountPtr(); }
+        inline u32 GetCount() { return m_Data ? GetInfoPtr()->ElemCount : 0; }
+        inline u32 GetAllocatedCount() { return m_Data ? GetInfoPtr()->AllocatedCount : 0; }
+        inline u32 IncrementCount() { return ++GetInfoPtr()->ElemCount; }
+        inline u32 DecrementCount() { return --GetInfoPtr()->ElemCount; }
         inline T* Begin() { return m_Data; }
         inline T* End() { return m_Data + GetCount(); }
         inline T& Get(u32 index) { return m_Data[index]; }
         inline T& operator[](u32 index) { return m_Data[index]; }
 
     private:
+        struct ContainerInfo
+        {
+            u32 RefCount;
+            u32 AllocatedCount;
+            u32 ElemCount;
+        };
 
+    private:
         // Value must not be zero
         u32 GetNextPowerOfTwo(u32 value)
         {
@@ -89,14 +103,21 @@ namespace Heart
 
             u32 oldCount = GetCount();
             if (elemCount < oldCount)
-                *GetCountPtr() = elemCount;
-            
-            u32* data = reinterpret_cast<u32*>(::operator new(allocCount * sizeof(T) + sizeof(u32) * 3));
-            *data = GetRefCount();
-            *(data + 1) = allocCount;
-            *(data + 2) = elemCount;
-            T* newData = reinterpret_cast<T*>(data + 3);
+            {
+                // Destruct removed elements
+                if (ShouldDestruct())
+                    for (u32 i = elemCount; i < oldCount; i++)
+                        m_Data[i].~T();
 
+                SetCount(elemCount);
+            }
+            
+            ContainerInfo* data = reinterpret_cast<ContainerInfo*>(::operator new(allocCount * sizeof(T) + sizeof(ContainerInfo)));
+            data->RefCount = GetRefCount();
+            data->AllocatedCount = allocCount;
+            data->ElemCount = elemCount;
+            T* newData = reinterpret_cast<T*>(data + 1);
+    
             if (m_Data)
             {
                 memcpy(newData, m_Data, oldCount * sizeof(T));
@@ -105,7 +126,7 @@ namespace Heart
             
             m_Data = newData;
 
-            if (construct && std::is_trivially_constructible<T>::value)
+            if (construct && ShouldConstruct())
                 for (u32 i = oldCount; i < elemCount; i++)
                     HE_PLACEMENT_NEW(m_Data + i, T);
         }
@@ -116,23 +137,23 @@ namespace Heart
             {
                 // Destruct
                 u32 count = GetCount();
-                if (std::is_trivially_destructible<T>::value)
+                if (ShouldDestruct())
                     for (u32 i = 0; i < count; i++)
                         m_Data[i].~T();
                     
                 // Delete initial (origin) pointer
-                ::operator delete[](reinterpret_cast<u32*>(m_Data) - 3);
+                ::operator delete[](reinterpret_cast<ContainerInfo*>(m_Data) - 1);
             }
             m_Data = nullptr;
         }
 
-        inline u32* GetCountPtr() { return reinterpret_cast<u32*>(m_Data) - 1; }
-        inline u32* GetAllocatedCountPtr() { return reinterpret_cast<u32*>(m_Data) - 2; }
-        inline u32* GetRefCountPtr() { return reinterpret_cast<u32*>(m_Data) - 3; }
-        inline u32 GetRefCount() { return m_Data ? *GetRefCountPtr() : 1; } // Default one for this obj
-        inline u32 IncrementRefCount() { return ++*GetRefCountPtr(); }
-        inline u32 DecrementRefCount() { return --*GetRefCountPtr(); }
-        inline void SetCount(u32 count) { *GetCountPtr() = count; }
+        inline ContainerInfo* GetInfoPtr() { return reinterpret_cast<ContainerInfo*>(m_Data) - 1; }
+        inline u32 GetRefCount() { return m_Data ? GetInfoPtr()->RefCount : 1; } // Default one for this obj
+        inline u32 IncrementRefCount() { return ++GetInfoPtr()->RefCount; }
+        inline u32 DecrementRefCount() { return --GetInfoPtr()->RefCount; }
+        inline void SetCount(u32 count) { GetInfoPtr()->ElemCount = count; }
+        inline constexpr bool ShouldDestruct() const { return std::is_destructible<T>::value && !std::is_trivially_destructible<T>::value; }
+        inline constexpr bool ShouldConstruct() const { return std::is_default_constructible<T>::value; }        
 
     private:
         T* m_Data = nullptr;

@@ -11,10 +11,9 @@
 // https://stackoverflow.com/questions/37205883/where-i-could-find-a-reference-for-all-the-cor-e-hresults-wrapped-by-net-fra
 // https://referencesource.microsoft.com/#mscorlib/system/__hresults.cs
 
-// We need this in order to ensure that the dllexports inside the engine static lib
-// do not get removed
-extern void* nativeCallbackFunctions[100];
-[[maybe_unused]] volatile void** exportNativeCallbackFunctions;
+// See NativeCallbacks.cpp for more info
+extern void* exportVariable;
+[[maybe_unused]] volatile void* exportVariableSet;
 
 namespace Heart
 {
@@ -90,7 +89,7 @@ namespace Heart
 
     void ScriptingEngine::Initialize()
     {
-        exportNativeCallbackFunctions = (volatile void**)nativeCallbackFunctions;
+        exportVariableSet = exportVariable;
 
         bool result = LoadHostFXR();
         HE_ENGINE_ASSERT(result, "Failed to load hostfxr");

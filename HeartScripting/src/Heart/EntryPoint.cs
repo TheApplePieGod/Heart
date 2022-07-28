@@ -1,4 +1,5 @@
-﻿using Heart.Core;
+﻿using Heart.Container;
+using Heart.Core;
 using Heart.NativeBridge;
 using Heart.NativeInterop;
 using Heart.Plugins;
@@ -36,6 +37,8 @@ namespace Heart
 
             *managedCallbacks = ManagedCallbacks.Get();
 
+            Test();
+
             return InteropBool.True;
         }
 
@@ -46,8 +49,7 @@ namespace Heart
 
             (bool success, _clientLoadContext) = PluginManager.LoadPlugin(assemblyPath);
 
-            if (success) return InteropBool.True;
-            return InteropBool.False;
+            return NativeMarshal.BoolToInteropBool(success);
         }
 
         [UnmanagedCallersOnly]
@@ -55,8 +57,22 @@ namespace Heart
         {
             bool success = PluginManager.UnloadPlugin(ref _clientLoadContext);
 
-            if (success) return InteropBool.True;
-            return InteropBool.False;
+            return NativeMarshal.BoolToInteropBool(success);
+        }
+
+        private static unsafe void Test()
+        {            
+            int startTime = Environment.TickCount;
+            HArray arr = new HArray();
+            for (int i = 0; i < 10000; i++)
+            {
+                HArray arr2 = new HArray();
+                arr2.Add(true);
+                arr2.Add(8390213);
+                arr.Add(arr2);
+            }
+            int elapsed = Environment.TickCount - startTime;
+            Log.Warn("Add took {0}ms", elapsed);
         }
     }
 }
