@@ -148,6 +148,9 @@ namespace Heart
                         m_Data[i].~T();
                     
                 FreeMemory();
+
+                // static int freed = 0;
+                // HE_ENGINE_LOG_WARN(++freed);
             }
             m_Data = nullptr;
         }

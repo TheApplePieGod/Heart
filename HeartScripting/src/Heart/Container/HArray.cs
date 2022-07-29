@@ -20,6 +20,11 @@ namespace Heart.Container
             Native_HArray_Init(ref _internalVal);
         }
 
+        internal HArray(HArrayInternal internalVal)
+        {
+            Native_HArray_Copy(ref _internalVal, ref internalVal);
+        }
+
         ~HArray()
         {
             Native_HArray_Destroy(ref _internalVal);
@@ -36,6 +41,23 @@ namespace Heart.Container
         {
             var variant = VariantConverter.ObjectToVariant(obj);
             Native_HArray_Add(ref _internalVal, ref variant);
+        }
+
+        public unsafe object this[int index]
+        {
+            get
+            {
+                if (index < 0 || index >= Count)
+                    throw new IndexOutOfRangeException("HArray[] index out of range");
+                Variant variant = _internalVal.Data[index];
+                return VariantConverter.VariantToObject(variant);
+            }
+            set
+            {
+                if (index < 0 || index >= Count)
+                    throw new IndexOutOfRangeException("HArray[] index out of range");
+                _internalVal.Data[index] = VariantConverter.ObjectToVariant(value);
+            }
         }
 
         public unsafe uint Count
@@ -58,8 +80,12 @@ namespace Heart.Container
 
         [DllImport("__Internal")]
         private static extern void Native_HArray_Init([In, Out] ref HArrayInternal array);
+
         [DllImport("__Internal")]
         private static extern void Native_HArray_Destroy([In] ref HArrayInternal array);
+
+        [DllImport("__Internal")]
+        private static extern void Native_HArray_Copy([In, Out] ref HArrayInternal dst, [In] ref HArrayInternal src);
 
         [DllImport("__Internal")]
         private static extern void Native_HArray_Add([In] ref HArrayInternal array, [In] ref Variant value);

@@ -7,8 +7,6 @@ namespace Heart.Container
     {
         public static Variant ObjectToVariant(object obj)
         {
-            if (obj == null) return new Variant();
-
             switch (obj)
             {
                 default:
@@ -21,6 +19,23 @@ namespace Heart.Container
                     return FloatToVariant(value);
                 case HArray value:
                     return HArrayToVariant(value);
+            }
+        }
+
+        public static object VariantToObject(Variant variant)
+        {
+            switch (variant.Type)
+            {
+                default:
+                    return null;
+                case VariantType.Bool:
+                    return variant.Bool;
+                case VariantType.Int:
+                    return variant.Int;
+                case VariantType.Float:
+                    return variant.Float;
+                case VariantType.Array:
+                    return new HArray(variant.Array);
             }
         }
 

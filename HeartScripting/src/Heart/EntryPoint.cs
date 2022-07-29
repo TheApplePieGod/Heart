@@ -38,6 +38,8 @@ namespace Heart
             *managedCallbacks = ManagedCallbacks.Get();
 
             Test();
+            GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced);
+            GC.WaitForPendingFinalizers();
 
             return InteropBool.True;
         }
@@ -64,16 +66,20 @@ namespace Heart
         {
             int startTime = Environment.TickCount;
             HArray arr = new HArray();
-            for (int i = 0; i < 1000000; i++)
+            for (int i = 0; i < 10; i++)
             {
                 HArray arr2 = new HArray();
                 arr2.Add(true);
                 arr2.Add(8390213);
                 arr.Add(arr2);
             }
+
+            object value = arr[5];
+            arr[5] = true;
+            object value2 = arr[5];
+
             int elapsed = Environment.TickCount - startTime;
             Log.Warn("Add took {0}ms", elapsed);
-            arr.Destroy();
         }
     }
 }

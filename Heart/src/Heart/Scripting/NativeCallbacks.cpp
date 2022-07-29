@@ -31,12 +31,18 @@ HE_INTEROP_EXPORT void Native_HArray_Destroy(Heart::HArray* array)
     array->~HArray();
 }
 
-HE_INTEROP_EXPORT void Native_HArray_Add(Heart::HArray* array, Heart::Variant* value)
+HE_INTEROP_EXPORT void Native_HArray_Copy(Heart::HArray* dst, const Heart::HArray* src)
+{
+    // Placement new so destructor doesn't get called
+    HE_PLACEMENT_NEW(dst, Heart::HArray, *src);
+}
+
+HE_INTEROP_EXPORT void Native_HArray_Add(Heart::HArray* array, const Heart::Variant* value)
 {
     array->Add(*value);
 }
 
-HE_INTEROP_EXPORT void Native_Variant_FromHArray(Heart::Variant* variant, Heart::HArray* value)
+HE_INTEROP_EXPORT void Native_Variant_FromHArray(Heart::Variant* variant, const Heart::HArray* value)
 {
     // Placement new so destructor doesn't get called
     HE_PLACEMENT_NEW(variant, Heart::Variant, *value);
