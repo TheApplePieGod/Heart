@@ -61,10 +61,10 @@ namespace Heart
         }
 
         private static unsafe void Test()
-        {            
+        {
             int startTime = Environment.TickCount;
             HArray arr = new HArray();
-            for (int i = 0; i < 10000; i++)
+            for (int i = 0; i < 1000000; i++)
             {
                 HArray arr2 = new HArray();
                 arr2.Add(true);
@@ -73,6 +73,7 @@ namespace Heart
             }
             int elapsed = Environment.TickCount - startTime;
             Log.Warn("Add took {0}ms", elapsed);
+            arr.Destroy();
         }
     }
 }

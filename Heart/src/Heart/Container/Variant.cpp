@@ -14,7 +14,7 @@ namespace Heart
     Variant::Variant(const HArray& array)
     {
         m_Type = Type::Array;
-        *reinterpret_cast<HArray*>(m_Data.Any) = array;
+        HE_PLACEMENT_NEW(m_Data.Any, HArray, array);
     }
     Variant::Variant(const Variant& other)
     {

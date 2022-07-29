@@ -22,13 +22,13 @@ namespace Heart.Container
 
         ~HArray()
         {
-            Native_HArray_Free(ref _internalVal);
+            Native_HArray_Destroy(ref _internalVal);
         }
 
-        public void Free()
+        public void Destroy()
         {
-            Native_HArray_Free(ref _internalVal);
             GC.SuppressFinalize(this);
+            Native_HArray_Destroy(ref _internalVal);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -44,6 +44,12 @@ namespace Heart.Container
             get { return GetInfo()->ElemCount; }
         }
 
+        private unsafe uint RefCount
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get { return GetInfo()->RefCount; }
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe ContainerInfo* GetInfo()
         {
@@ -53,7 +59,7 @@ namespace Heart.Container
         [DllImport("__Internal")]
         private static extern void Native_HArray_Init([In, Out] ref HArrayInternal array);
         [DllImport("__Internal")]
-        private static extern void Native_HArray_Free([In] ref HArrayInternal array);
+        private static extern void Native_HArray_Destroy([In] ref HArrayInternal array);
 
         [DllImport("__Internal")]
         private static extern void Native_HArray_Add([In] ref HArrayInternal array, [In] ref Variant value);

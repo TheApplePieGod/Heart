@@ -26,7 +26,7 @@ HE_INTEROP_EXPORT void Native_HArray_Init(Heart::HArray* array)
     HE_PLACEMENT_NEW(array, Heart::HArray);
 }
 
-HE_INTEROP_EXPORT void Native_HArray_Free(Heart::HArray* array)
+HE_INTEROP_EXPORT void Native_HArray_Destroy(Heart::HArray* array)
 {
     array->~HArray();
 }
@@ -42,7 +42,7 @@ HE_INTEROP_EXPORT void Native_Variant_FromHArray(Heart::Variant* variant, Heart:
     HE_PLACEMENT_NEW(variant, Heart::Variant, *value);
 }
 
-HE_INTEROP_EXPORT void Native_Variant_Free(Heart::Variant* variant)
+HE_INTEROP_EXPORT void Native_Variant_Destroy(Heart::Variant* variant)
 {
     variant->~Variant();
 }

@@ -38,7 +38,7 @@ namespace Heart
         ~Container()
         {
             if (!m_Data) return;
-            Free();
+            Cleanup();
         }
 
         inline void Clear(bool shrink = false)
@@ -97,7 +97,7 @@ namespace Heart
         {
             if (elemCount == 0 && m_Data)
             {
-                Free();
+                Cleanup();
                 return;
             }
 
@@ -121,7 +121,7 @@ namespace Heart
             if (m_Data)
             {
                 memcpy(newData, m_Data, oldCount * sizeof(T));
-                Free();
+                FreeMemory();
             }
             
             m_Data = newData;
@@ -131,7 +131,13 @@ namespace Heart
                     HE_PLACEMENT_NEW(m_Data + i, T);
         }
 
-        void Free()
+        void FreeMemory()
+        {
+            // Delete initial (origin) pointer
+            ::operator delete[](reinterpret_cast<ContainerInfo*>(m_Data) - 1);
+        }
+
+        void Cleanup()
         {
             if (DecrementRefCount() == 0)
             {
@@ -141,8 +147,7 @@ namespace Heart
                     for (u32 i = 0; i < count; i++)
                         m_Data[i].~T();
                     
-                // Delete initial (origin) pointer
-                ::operator delete[](reinterpret_cast<ContainerInfo*>(m_Data) - 1);
+                FreeMemory();
             }
             m_Data = nullptr;
         }

@@ -33,18 +33,9 @@ namespace Heart.Container
         [FieldOffset(0)] private VariantType _type;
         [FieldOffset(8)] private Data _data;
         
-        public void Free()
+        public void Destroy()
         {
-            switch (_type)
-            {
-                case VariantType.None:
-                case VariantType.Bool:
-                case VariantType.Int:
-                case VariantType.Float:
-                    return;
-            }
-
-            Native_Variant_Free(ref this);
+            Native_Variant_Destroy(ref this);
         }
 
         public VariantType Type
@@ -88,6 +79,6 @@ namespace Heart.Container
         }
 
         [DllImport("__Internal")]
-        private static extern void Native_Variant_Free([In] ref Variant variant);
+        private static extern void Native_Variant_Destroy([In] ref Variant variant);
     }
 }

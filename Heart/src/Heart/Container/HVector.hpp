@@ -12,24 +12,20 @@ namespace Heart
         ~HVector() = default;
 
         HVector(const HVector& other)
-        {
-            m_Container = Container(other.m_Container);
-        }
+            : m_Container(other.m_Container)
+        {}
 
         HVector(u32 elemCount)
-        {
-            m_Container = Container<T>(elemCount);
-        }
+            : m_Container(elemCount)
+        {}
 
         HVector(T* data, u32 dataCount)
-        {
-            m_Container = Container(data, dataCount);
-        }
+            : m_Container(data, dataCount)
+        {}
 
         HVector(std::initializer_list<T> list)
-        {
-            m_Container = Container(list);
-        }
+            : m_Container(list)
+        {}
 
         void Add(const T& elem)
         {

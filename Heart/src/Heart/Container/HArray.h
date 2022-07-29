@@ -17,9 +17,8 @@ namespace Heart
         }
 
         HArray(const HArray& other)
-        {
-            m_Data = HVector<Variant>(other.m_Data);
-        }
+            : m_Data(other.m_Data)
+        {}
 
         inline void Add(const Variant& value) { m_Data.Add(value); }
 
