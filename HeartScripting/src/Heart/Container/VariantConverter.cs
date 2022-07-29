@@ -1,4 +1,5 @@
 ﻿using Heart.NativeInterop;
+using System;
 using System.Runtime.InteropServices;
 
 namespace Heart.Container
@@ -9,8 +10,8 @@ namespace Heart.Container
         {
             switch (obj)
             {
-                default:
-                    return new Variant();
+                case null:
+                     return new Variant();
                 case bool value:
                     return BoolToVariant(value);
                 case int value:
@@ -20,13 +21,15 @@ namespace Heart.Container
                 case HArray value:
                     return HArrayToVariant(value);
             }
+
+            throw new NotImplementedException("C# Object -> Variant conversion not fully implemented");
         }
 
         public static object VariantToObject(Variant variant)
         {
             switch (variant.Type)
             {
-                default:
+                case VariantType.None:
                     return null;
                 case VariantType.Bool:
                     return variant.Bool;
@@ -37,6 +40,8 @@ namespace Heart.Container
                 case VariantType.Array:
                     return new HArray(variant.Array);
             }
+
+            throw new NotImplementedException("C# Variant -> Object conversion not fully implemented");
         }
 
         public static Variant BoolToVariant(bool value)
