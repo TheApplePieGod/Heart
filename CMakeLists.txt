@@ -28,7 +28,7 @@ if (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
     set(CMAKE_CXX_FLAGS "-fpermissive")
 elseif(MSVC)
     message("Detected MSVC compiler")
-    add_compile_options(/MP /INCREMENTAL /DEBUG:FASTLINK)
+    add_compile_options(/MP /INCREMENTAL)
 endif()
 
 if (${CMAKE_BUILD_TYPE} MATCHES Debug)
