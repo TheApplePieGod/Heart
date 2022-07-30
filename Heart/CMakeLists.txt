@@ -43,7 +43,7 @@ include(GNUInstallDirs)
 # Build main
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp" "src/*.h" "src/hepch.h")
 #add_executable(Engine "${SOURCES}" "${DEPENDENCY_SOURCES}" "src/Heart/Core/EntryPoint.cpp")
-add_library(Engine "${SOURCES}" "${DEPENDENCY_SOURCES}")
+add_library(Engine STATIC "${SOURCES}" "${DEPENDENCY_SOURCES}")
 add_library(Heart::Engine ALIAS Engine)
 
 target_compile_features(Engine PUBLIC cxx_std_17)
@@ -63,6 +63,7 @@ target_include_directories(
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/entt/src>"
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/imguizmo>"
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/json/include>"
+  "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/utf-cpp/include>"
   "$<BUILD_INTERFACE:$ENV{VULKAN_SDK}/include>"
   "$<BUILD_INTERFACE:${DOTNET_RUNTIME_DIR}>"
 
@@ -76,6 +77,7 @@ target_include_directories(
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/entt/src>"
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/imguizmo>"
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/json/include>"
+  "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/lib/utf-cpp/include>"
   "$<INSTALL_INTERFACE:$ENV{VULKAN_SDK}/include>"
   "$<INSTALL_INTERFACE:${DOTNET_RUNTIME_DIR}>"
 )

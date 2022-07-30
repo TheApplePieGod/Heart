@@ -71,6 +71,7 @@ namespace Heart
                 HArray arr2 = new HArray();
                 arr2.Add(true);
                 arr2.Add(8390213);
+                arr2.Add("brejiment");
                 arr.Add(arr2);
             }
 

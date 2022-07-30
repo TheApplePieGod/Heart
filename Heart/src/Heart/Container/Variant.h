@@ -3,10 +3,11 @@
 namespace Heart
 {
     class HArray;
+    class HString;
     class Variant
     {
     public:
-        enum class Type : u32
+        enum class Type : u8
         {
             None = 0,
             Bool, Int, Float,
@@ -19,6 +20,7 @@ namespace Heart
         Variant(int value);
         Variant(float value);
         Variant(const HArray& array);
+        Variant(const HString& str);
         Variant(const Variant& other);
         ~Variant();
 
@@ -28,15 +30,16 @@ namespace Heart
         inline int Int() const { return m_Data.Int; }
         inline float Float() const { return m_Data.Float; }
         HArray Array() const;
+        HString String() const;
 
     private:
         Type m_Type;
         union
         {
-            byte Bool;
+            byte Bool; // For safety and complete parity with c# b/c bool is technically not required to be one byte
             int Int;
             float Float;
-            u8 Any[8]; // Generic array of bytes to store arbitrary data
+            u8 Any[16]; // Generic array of bytes to store arbitrary data
         } m_Data alignas(8); // See Variant.cs for details
     };
 }

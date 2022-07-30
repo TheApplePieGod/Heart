@@ -1,7 +1,8 @@
 #include "hepch.h"
 
 #include "Heart/Core/Log.h"
-#include "Heart/Container/HArray.h"
+#include "Heart/Container/HArray.hpp"
+#include "Heart/Container/HString.h"
 
 #define HE_INTEROP_EXPORT_BASE extern "C" [[maybe_unused]]
 #ifdef HE_PLATFORM_WINDOWS
@@ -20,9 +21,23 @@ HE_INTEROP_EXPORT void Native_Log(int level, const char* message)
     Heart::Logger::GetClientLogger().log(spdlog::source_loc{}, static_cast<spdlog::level::level_enum>(level), message);
 }
 
+HE_INTEROP_EXPORT void Native_HString_Init(Heart::HString* str, const char16* value)
+{
+    HE_PLACEMENT_NEW(str, Heart::HString, value);
+}
+
+HE_INTEROP_EXPORT void Native_HString_Destroy(Heart::HString* str)
+{
+    str->~HString();
+}
+
+HE_INTEROP_EXPORT void Native_HString_Copy(Heart::HString* dst, const Heart::HString* src)
+{
+    HE_PLACEMENT_NEW(dst, Heart::HString, *src);
+}
+
 HE_INTEROP_EXPORT void Native_HArray_Init(Heart::HArray* array)
 {
-    // Placement new so destructor doesn't get called
     HE_PLACEMENT_NEW(array, Heart::HArray);
 }
 
@@ -33,7 +48,6 @@ HE_INTEROP_EXPORT void Native_HArray_Destroy(Heart::HArray* array)
 
 HE_INTEROP_EXPORT void Native_HArray_Copy(Heart::HArray* dst, const Heart::HArray* src)
 {
-    // Placement new so destructor doesn't get called
     HE_PLACEMENT_NEW(dst, Heart::HArray, *src);
 }
 
@@ -44,7 +58,11 @@ HE_INTEROP_EXPORT void Native_HArray_Add(Heart::HArray* array, const Heart::Vari
 
 HE_INTEROP_EXPORT void Native_Variant_FromHArray(Heart::Variant* variant, const Heart::HArray* value)
 {
-    // Placement new so destructor doesn't get called
+    HE_PLACEMENT_NEW(variant, Heart::Variant, *value);
+}
+
+HE_INTEROP_EXPORT void Native_Variant_FromHString(Heart::Variant* variant, const Heart::HString* value)
+{
     HE_PLACEMENT_NEW(variant, Heart::Variant, *value);
 }
 

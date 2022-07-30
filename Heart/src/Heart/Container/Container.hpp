@@ -9,7 +9,7 @@ namespace Heart
     public:
         Container() = default;
 
-        Container(const Container& other)
+        Container(const Container<T>& other)
         {
             m_Data = other.m_Data;
             IncrementRefCount();
@@ -18,21 +18,18 @@ namespace Heart
         Container(u32 elemCount)
         {
             Resize(elemCount, true);
-            IncrementRefCount();
         }
 
-        Container(T* data, u32 dataCount)
+        Container(const T* data, u32 dataCount)
         {
             Resize(dataCount, false);
             memcpy(m_Data, data, dataCount * sizeof(T));
-            IncrementRefCount();
         }
 
         Container(std::initializer_list<T> list)
         {
             Resize(list.size(), false);
             memcpy(m_Data, list.begin(), list.size() * sizeof(T));
-            IncrementRefCount();
         }
 
         ~Container()
@@ -65,6 +62,7 @@ namespace Heart
         inline u32 GetAllocatedCount() { return m_Data ? GetInfoPtr()->AllocatedCount : 0; }
         inline u32 IncrementCount() { return ++GetInfoPtr()->ElemCount; }
         inline u32 DecrementCount() { return --GetInfoPtr()->ElemCount; }
+        inline T* Data() { return m_Data; }
         inline T* Begin() { return m_Data; }
         inline T* End() { return m_Data + GetCount(); }
         inline T& Get(u32 index) { return m_Data[index]; }
@@ -149,8 +147,8 @@ namespace Heart
                     
                 FreeMemory();
 
-                // static int freed = 0;
-                // HE_ENGINE_LOG_WARN(++freed);
+                static int freed = 0;
+                HE_ENGINE_LOG_WARN("Freed {0} on thread {1}", ++freed, std::hash<std::thread::id>{}(std::this_thread::get_id()));
             }
             m_Data = nullptr;
         }

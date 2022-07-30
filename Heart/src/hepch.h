@@ -23,6 +23,7 @@
 #include <thread>
 #include <type_traits>
 #include <new>
+#include <locale>
 
 #include <string>
 #include <regex>

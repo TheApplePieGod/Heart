@@ -3,6 +3,7 @@
 
 #include "Heart/Core/Timing.h"
 #include "Heart/Container/HVector.hpp"
+#include "Heart/Container/HString.h"
 
 namespace Heart
 {
@@ -27,6 +28,16 @@ namespace Heart
                    Field4 == other.Field4;
         }
     };
+
+    void PerfTests::RunHStringTest()
+    {
+        HString utf8 = "\xE0\xA4\xAF\xE0\xA5\x82\xE0\xA4\xA8\xE0\xA4\xBF\xE0\xA4\x95\xE0\xA5\x8B\xE0\xA4\xA1";
+        HE_ENGINE_LOG_WARN(utf8.DataUTF8());
+        HString utf16 = utf8.ToUTF16();
+        utf8 = utf16.ToUTF8();
+        HE_ENGINE_LOG_WARN(utf16.DataUTF8());
+        HE_ENGINE_LOG_WARN(sizeof(HString));
+    }
 
     void PerfTests::RunHArrayTest()
     {

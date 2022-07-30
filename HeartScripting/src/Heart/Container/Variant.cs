@@ -1,10 +1,11 @@
 ﻿using Heart.NativeInterop;
+using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace Heart.Container
 {
-    public enum VariantType : uint
+    public enum VariantType : byte
     {
         None = 0,
         Bool, Int, Float,
@@ -14,10 +15,10 @@ namespace Heart.Container
     // Variants do not clean up by themselves. Either Free() must be manually called
     // or the native destructor will automatically run if stored in an HArray and
     // cleaned up
-    [StructLayout(LayoutKind.Explicit)]
+    [StructLayout(LayoutKind.Explicit, Size=24)]
     internal ref struct Variant
     {
-        [StructLayout(LayoutKind.Explicit, Size=8)]
+        [StructLayout(LayoutKind.Explicit, Size=16)]
         private unsafe ref struct Data
         {
             [FieldOffset(0)] public InteropBool Bool;
@@ -25,16 +26,27 @@ namespace Heart.Container
             [FieldOffset(0)] public float Float;
 
             // 'Any' mem fields
+            [FieldOffset(0)] public HStringInternal String;
             [FieldOffset(0)] public HArrayInternal Array;
         }
 
-        // For some reason VariantType takes up 8 bytes, so we also
-        // alignas() in the native variant struct
+        // There is some hidden padding going on, so we also
+        // alignas(8) in the native variant struct
         [FieldOffset(0)] private VariantType _type;
         [FieldOffset(8)] private Data _data;
-        
-        public void Destroy()
+
+        public void Dispose()
         {
+            // Early destructability check to avoid native call
+            switch (_type)
+            {
+                case VariantType.None:
+                case VariantType.Bool:
+                case VariantType.Int:
+                case VariantType.Float:
+                    return;
+            }
+
             Native_Variant_Destroy(ref this);
         }
 
@@ -70,6 +82,14 @@ namespace Heart.Container
             set { _data.Float = value; _type = VariantType.Float; }
         }
 
+        public HStringInternal String
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => _data.String;
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            set { _data.String = value; _type = VariantType.String; }
+        }
+
         public HArrayInternal Array
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -79,6 +99,6 @@ namespace Heart.Container
         }
 
         [DllImport("__Internal")]
-        private static extern void Native_Variant_Destroy([In] ref Variant variant);
+        internal static extern void Native_Variant_Destroy([In] ref Variant variant);
     }
 }

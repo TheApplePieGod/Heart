@@ -89,22 +89,22 @@ namespace Heart
         inline void Reserve(u32 allocCount) { m_Container.Reserve(allocCount); }
         inline void Clear(bool shrink = false) { m_Container.Clear(shrink); }
         inline void Resize(u32 elemCount, bool construct = true) { m_Container.Resize(elemCount, construct); }
-        inline HVector Clone() { return HVector(m_Container); }
+        inline HVector Clone() { return HVector(m_Container.Clone()); }
         inline u32 GetCount() { return m_Container.GetCount(); }
+        inline T* Data() { return m_Container.Data(); }
         inline T* Begin() { return m_Container.Begin(); }
         inline T* End() { return m_Container.End(); }
         inline T* Front() { return m_Container.Begin(); }
         inline T* Back() { return GetCount() > 0 ? m_Container.End() - 1 : m_Container.Begin(); }
-        inline T& operator[](u32 index) { return m_Container[index]; }
         inline T& Get(u32 index) { return m_Container.Get[index]; }
+
+        inline T& operator[](u32 index) { return m_Container[index]; }
+        inline void operator=(const HVector& other) { HE_PLACEMENT_NEW(&m_Container, Container<T>, other.m_Container); }
 
     private:
         HVector(const Container<T>& container)
-        {
-            HVector vec;
-            vec.m_Container = container.Clone();
-            return vec;
-        }
+            : m_Container(container)
+        {}
 
         u32 PreAdd()
         {

@@ -18,6 +18,10 @@ namespace Heart.Container
                     return IntToVariant(value);
                 case float value:
                     return FloatToVariant(value);
+                case string value:
+                    return StringToVariant(value);
+                case HString value:
+                    return HStringToVariant(value);
                 case HArray value:
                     return HArrayToVariant(value);
             }
@@ -37,6 +41,8 @@ namespace Heart.Container
                     return variant.Int;
                 case VariantType.Float:
                     return variant.Float;
+                case VariantType.String:
+                    return NativeMarshal.HStringInternalToString(variant.String);
                 case VariantType.Array:
                     return new HArray(variant.Array);
             }
@@ -50,6 +56,19 @@ namespace Heart.Container
             => new() { Type = VariantType.Int, Int = value };
         public static Variant FloatToVariant(float value)
             => new() { Type = VariantType.Float, Float = value };
+        public static Variant StringToVariant(string value)
+        {
+            Variant v = new Variant();
+            HString hstr = new HString(value);
+            Native_Variant_FromHString(ref v, ref hstr._internalVal);
+            return v;
+        }
+        public static Variant HStringToVariant(HString value)
+        {
+            Variant v = new Variant();
+            Native_Variant_FromHString(ref v, ref value._internalVal);
+            return v;
+        }
         public static Variant HArrayToVariant(HArray value)
         {
             Variant v = new Variant();
@@ -58,6 +77,9 @@ namespace Heart.Container
         }
 
         [DllImport("__Internal")]
-        private static extern void Native_Variant_FromHArray([In, Out] ref Variant variant, [In] ref HArrayInternal value);
+        internal static extern void Native_Variant_FromHArray([In, Out] ref Variant variant, [In] ref HArrayInternal value);
+
+        [DllImport("__Internal")]
+        internal static extern void Native_Variant_FromHString([In, Out] ref Variant variant, [In] ref HStringInternal value);
     }
 }

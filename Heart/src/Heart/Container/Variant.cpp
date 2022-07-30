@@ -1,7 +1,8 @@
 #include "hepch.h"
 #include "Variant.h"
 
-#include "Heart/Container/HArray.h"
+#include "Heart/Container/HArray.hpp"
+#include "Heart/Container/HString.h"
 
 namespace Heart
 {
@@ -15,6 +16,11 @@ namespace Heart
     {
         m_Type = Type::Array;
         HE_PLACEMENT_NEW(m_Data.Any, HArray, array);
+    }
+    Variant::Variant(const HString& str)
+    {
+        m_Type = Type::String;
+        HE_PLACEMENT_NEW(m_Data.Any, HString, str);
     }
     Variant::Variant(const Variant& other)
     {
@@ -31,6 +37,8 @@ namespace Heart
             { m_Data.Float = other.Float(); } return;
             case Type::Array:
             { HE_PLACEMENT_NEW(m_Data.Any, HArray, other.Array()); } return;
+            case Type::String:
+            { HE_PLACEMENT_NEW(m_Data.Any, HString, other.String()); } return;
         }
 
         HE_ENGINE_ASSERT("Variant copy constructor not fully implemented");
@@ -47,6 +55,8 @@ namespace Heart
                 return;
             case Type::Array:
             { reinterpret_cast<HArray*>(m_Data.Any)->~HArray(); }
+            case Type::String:
+            { reinterpret_cast<HString*>(m_Data.Any)->~HString(); }
         }
 
          return;
@@ -55,4 +65,6 @@ namespace Heart
 
     HArray Variant::Array() const
     { return *reinterpret_cast<const HArray*>(m_Data.Any); }
+    HString Variant::String() const
+    { return *reinterpret_cast<const HString*>(m_Data.Any); }
 }
