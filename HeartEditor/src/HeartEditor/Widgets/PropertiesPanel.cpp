@@ -342,7 +342,7 @@ namespace Widgets
                         if (ImGui::MenuItem("Clear"))
                         {
                             scriptComp.ObjectType.Clear();
-                            scriptComp.FreeObject();
+                            scriptComp.DestroyObject();
                         }
                     },
                     [&scriptComp](u32 index)

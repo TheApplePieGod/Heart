@@ -88,9 +88,9 @@ namespace Heart
     struct ScriptComponent
     {
         HString ObjectType;
-        u32 ObjectHandle = 0;
+        uptr ObjectHandle = 0;
 
         void InstantiateObject();
-        void FreeObject();
+        void DestroyObject();
     };
 }

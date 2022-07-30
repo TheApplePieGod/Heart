@@ -15,6 +15,9 @@ namespace Heart
         static bool LoadClientPlugin(const std::string& absolutePath);
         static bool UnloadClientPlugin();
 
+        static uptr InstantiateObject(const HString& type);
+        static void DestroyObject(uptr handle);
+
         inline static const HVector<HString>& GetInstantiableClasses() { return s_InstantiableClasses; }
 
     private:

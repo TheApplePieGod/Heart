@@ -56,6 +56,7 @@ namespace Heart
 
         // Unchecked
         // TODO: checked data() call
+        inline void* DataRaw() const { return Data<void>(); }
         inline char8* DataUTF8() const { return Data<char8>(); }
         inline char16* DataUTF16() const { return Data<char16>(); }
         inline char8 GetUTF8(u32 index) const { return Get<char8>(index); }

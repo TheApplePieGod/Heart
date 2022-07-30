@@ -7,14 +7,14 @@ namespace Heart
 {
     void ScriptComponent::InstantiateObject()
     {
-        if (ObjectHandle != 0) FreeObject();
-        //ScriptingEngine::InstantiateClass(NamespaceName, ClassName, &ObjectHandle);
+        if (ObjectHandle != 0) DestroyObject();
+        ObjectHandle = ScriptingEngine::InstantiateObject(ObjectType);
     }
 
-    void ScriptComponent::FreeObject()
+    void ScriptComponent::DestroyObject()
     {
         if (ObjectHandle == 0) return;
-        //ScriptingEngine::FreeObjectHandle(ObjectHandle);
+        ScriptingEngine::DestroyObject(ObjectHandle);
         ObjectHandle = 0;
     }
 }

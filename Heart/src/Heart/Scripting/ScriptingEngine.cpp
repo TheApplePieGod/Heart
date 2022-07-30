@@ -166,4 +166,14 @@ namespace Heart
         HE_ENGINE_LOG_ERROR("Failed to unload client plugin");
         return false;
     }
+
+    uptr ScriptingEngine::InstantiateObject(const HString& type)
+    {
+        return (uptr)s_CoreCallbacks.ManagedObject_InstantiateClientObject(&type);
+    }
+
+    void ScriptingEngine::DestroyObject(uptr handle)
+    {
+        s_CoreCallbacks.ManagedObject_DestroyClientObject(handle);
+    }
 }

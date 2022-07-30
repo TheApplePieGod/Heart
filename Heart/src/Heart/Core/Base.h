@@ -25,6 +25,7 @@ typedef uint32_t u32;
 typedef uint64_t u64;
 typedef float_t f32;
 typedef double_t d64;
+typedef intptr_t uptr;
 typedef wchar_t wchar;
 typedef char char8;
 typedef char16_t char16;

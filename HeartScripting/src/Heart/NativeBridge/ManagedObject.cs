@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Heart.Container;
+using Heart.NativeInterop;
+using System;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -9,11 +11,11 @@ namespace Heart.NativeBridge
     public static class ManagedObject
     {
         [UnmanagedCallersOnly]
-        public static IntPtr InstantiateClientObject(IntPtr objectTypeStr)
+        internal static unsafe IntPtr InstantiateClientObject(HStringInternal* objectTypeStr)
         {
             if (EntryPoint.ClientAssembly == null) return IntPtr.Zero;
 
-            string typeStr = Marshal.PtrToStringUTF8(objectTypeStr);
+            string typeStr = NativeMarshal.HStringInternalToString(*objectTypeStr);
             Type objectType = EntryPoint.ClientAssembly.GetType(typeStr);
             if (objectType == null) return IntPtr.Zero;
 
@@ -31,6 +33,14 @@ namespace Heart.NativeBridge
 
             var handle = ManagedGCHandle.AllocStrong(instance);
             return handle.ToIntPtr();
+        }
+
+        [UnmanagedCallersOnly]
+        internal static void DestroyClientObject(IntPtr objectHandle)
+        {
+            if (objectHandle == IntPtr.Zero) return;
+
+            ManagedGCHandle.FromIntPtr(objectHandle).Free();
         }
     }
 }

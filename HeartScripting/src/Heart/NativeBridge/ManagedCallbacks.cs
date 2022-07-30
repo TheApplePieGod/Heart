@@ -8,7 +8,8 @@ namespace Heart.NativeBridge
     {
         public delegate* unmanaged<IntPtr, HArrayInternal*, InteropBool> EntryPoint_LoadClientPlugin;
         public delegate* unmanaged<InteropBool> EntryPoint_UnloadClientPlugin;
-        public delegate* unmanaged<IntPtr, IntPtr> ManagedObject_InstantiateClientObject;
+        public delegate* unmanaged<HStringInternal*, IntPtr> ManagedObject_InstantiateClientObject;
+        public delegate* unmanaged<IntPtr, void> ManagedObject_DestroyClientObject;
 
         public static ManagedCallbacks Get()
         {
@@ -16,7 +17,8 @@ namespace Heart.NativeBridge
             {
                 EntryPoint_LoadClientPlugin = &EntryPoint.LoadClientPlugin,
                 EntryPoint_UnloadClientPlugin = &EntryPoint.UnloadClientPlugin,
-                ManagedObject_InstantiateClientObject = &ManagedObject.InstantiateClientObject
+                ManagedObject_InstantiateClientObject = &ManagedObject.InstantiateClientObject,
+                ManagedObject_DestroyClientObject = &ManagedObject.DestroyClientObject
             };
         }
     }

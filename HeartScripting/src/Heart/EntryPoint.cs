@@ -37,10 +37,10 @@ namespace Heart
 
             *managedCallbacks = ManagedCallbacks.Get();
 
-            // Test();
-            // Test2();
-            GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced);
-            GC.WaitForPendingFinalizers();
+            //Test();
+            //Test2();
+            //GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced);
+            //GC.WaitForPendingFinalizers();
 
             return InteropBool.True;
         }
