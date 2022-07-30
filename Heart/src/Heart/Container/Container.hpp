@@ -169,7 +169,7 @@ namespace Heart
         inline u32 DecrementRefCount() { return --GetInfoPtr()->RefCount; }
         inline void SetCount(u32 count) { GetInfoPtr()->ElemCount = count; }
         inline constexpr bool ShouldDestruct() const { return std::is_destructible<T>::value && !std::is_trivially_destructible<T>::value; }
-        inline constexpr bool ShouldConstruct() const { return std::is_default_constructible<T>::value; }        
+        inline constexpr bool ShouldConstruct() const { return std::is_default_constructible<T>::value; }
 
     private:
         T* m_Data = nullptr;

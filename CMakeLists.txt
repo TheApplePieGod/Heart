@@ -24,7 +24,11 @@ set(OUTPUT_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${CMAKE_BUILD_TYPE})
 set(CMAKE_CXX_STANDARD 17)
 
 if (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
+    message("Detected GNU compiler")
     set(CMAKE_CXX_FLAGS "-fpermissive")
+elseif(MSVC)
+    message("Detected MSVC compiler")
+    add_compile_options(/MP /INCREMENTAL /DEBUG:FASTLINK)
 endif()
 
 if (${CMAKE_BUILD_TYPE} MATCHES Debug)
