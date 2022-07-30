@@ -15,8 +15,8 @@ namespace Heart
             : m_Container(other.m_Container)
         {}
 
-        HVector(u32 elemCount)
-            : m_Container(elemCount)
+        HVector(u32 elemCount, bool fill = true)
+            : m_Container(elemCount, fill)
         {}
 
         HVector(T* data, u32 dataCount)
@@ -99,7 +99,7 @@ namespace Heart
         inline T& Get(u32 index) { return m_Container.Get[index]; }
 
         inline T& operator[](u32 index) { return m_Container[index]; }
-        inline void operator=(const HVector& other) { HE_PLACEMENT_NEW(&m_Container, Container<T>, other.m_Container); }
+        inline void operator=(const HVector& other) { m_Container = other.m_Container; }
 
     private:
         HVector(const Container<T>& container)

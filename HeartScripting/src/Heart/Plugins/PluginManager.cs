@@ -18,8 +18,6 @@ namespace Heart.Plugins
             if (loaded == null)
                 return (false, null);
 
-            PluginReflection.GetInstantiableClasses(loaded);
-
             return (true, loadContext);
         }
 

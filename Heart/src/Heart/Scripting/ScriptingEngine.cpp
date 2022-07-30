@@ -1,6 +1,7 @@
 #include "hepch.h"
 #include "ScriptingEngine.h"
 
+#include "Heart/Container/HArray.hpp"
 #include "Heart/Util/FilesystemUtils.h"
 #include "Heart/Util/PlatformUtils.h"
 #include "hostfxr.h"
@@ -131,7 +132,8 @@ namespace Heart
             if (!res) return false;
         }
 
-        bool res = s_CoreCallbacks.EntryPoint_LoadClientPlugin(absolutePath.c_str());
+        HArray outClasses;
+        bool res = s_CoreCallbacks.EntryPoint_LoadClientPlugin(absolutePath.c_str(), &outClasses);
         if (res)
         {
             HE_ENGINE_LOG_INFO("Client plugin successfully loaded");

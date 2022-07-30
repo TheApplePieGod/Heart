@@ -2,9 +2,10 @@
 
 namespace Heart
 {
+    class HArray;
     struct ManagedCallbacks
     {
-        using EntryPoint_LoadClientPluginFn = bool (*)(const char8*);
+        using EntryPoint_LoadClientPluginFn = bool (*)(const char8*, HArray*);
         using EntryPoint_UnloadClientPluginFn = bool (*)();
         using ManagedObject_InstantiateClientObjectFn = void* (*)(const char8*);
 

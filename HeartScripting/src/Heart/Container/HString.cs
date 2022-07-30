@@ -24,17 +24,17 @@ namespace Heart.Container
 
         public HString(string value)
         {
-            Native_HString_Init(ref _internalVal, value);
+            Native_HString_Init(out _internalVal, value);
         }
 
         internal HString(HStringInternal internalVal)
         {
-            Native_HString_Copy(ref _internalVal, ref internalVal);
+            Native_HString_Copy(out _internalVal, internalVal);
         }
 
         ~HString()
         {
-            Native_HString_Destroy(ref _internalVal);
+            Native_HString_Destroy(_internalVal);
         }
 
         public void Dispose()
@@ -46,7 +46,13 @@ namespace Heart.Container
         private void Dispose(bool disposing)
         {
             // Always destroy b/c we need to decrement the refcount
-            Native_HString_Destroy(ref _internalVal);
+            Native_HString_Destroy(_internalVal);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal unsafe void CopyTo(HStringInternal* dst)
+        {
+            Native_HString_Copy(out *dst, _internalVal);
         }
 
         public Encoding Encoding
@@ -74,12 +80,12 @@ namespace Heart.Container
         }
 
         [DllImport("__Internal")]
-        internal static extern void Native_HString_Init([In, Out] ref HStringInternal str, [MarshalAs(UnmanagedType.LPWStr)] [In] string value);
+        internal static extern void Native_HString_Init(out HStringInternal str, [MarshalAs(UnmanagedType.LPWStr)] string value);
 
         [DllImport("__Internal")]
-        internal static extern void Native_HString_Destroy([In] ref HStringInternal str);
+        internal static extern void Native_HString_Destroy(in HStringInternal str);
 
         [DllImport("__Internal")]
-        internal static extern void Native_HString_Copy([In, Out] ref HStringInternal dst, [In] ref HStringInternal src);
+        internal static extern void Native_HString_Copy(out HStringInternal dst, in HStringInternal src);
     }
 }

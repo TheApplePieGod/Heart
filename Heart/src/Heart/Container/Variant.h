@@ -21,7 +21,7 @@ namespace Heart
         Variant(float value);
         Variant(const HArray& array);
         Variant(const HString& str);
-        Variant(const Variant& other);
+        Variant(const Variant& other) { Copy(other); }
         ~Variant();
 
         inline Type GetType() const { return m_Type; }
@@ -31,6 +31,11 @@ namespace Heart
         inline float Float() const { return m_Data.Float; }
         HArray Array() const;
         HString String() const;
+
+        inline void operator=(const Variant& other) { Copy(other); }
+
+    private:
+        void Copy(const Variant& other);
 
     private:
         Type m_Type;

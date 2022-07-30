@@ -6,10 +6,10 @@ namespace Heart.NativeInterop
 {
     public static class NativeMarshal
     {
-        internal static bool InteropBoolToBool(in InteropBool value)
+        internal static bool InteropBoolToBool(InteropBool value)
         { return value == InteropBool.True; }
 
-        internal static InteropBool BoolToInteropBool(in bool value)
+        internal static InteropBool BoolToInteropBool(bool value)
         { return value ? InteropBool.True : InteropBool.False; }
 
         internal static unsafe string HStringInternalToString(HStringInternal str)

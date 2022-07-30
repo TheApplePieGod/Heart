@@ -9,7 +9,7 @@ namespace Heart.NativeBridge
     public static class ManagedObject
     {
         [UnmanagedCallersOnly]
-        public static IntPtr InstantiateClientObject([In] IntPtr objectTypeStr)
+        public static IntPtr InstantiateClientObject(IntPtr objectTypeStr)
         {
             if (EntryPoint.ClientAssembly == null) return IntPtr.Zero;
 

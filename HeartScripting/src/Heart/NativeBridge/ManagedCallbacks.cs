@@ -1,11 +1,12 @@
-﻿using Heart.NativeInterop;
+﻿using Heart.Container;
+using Heart.NativeInterop;
 using System;
 
 namespace Heart.NativeBridge
 {
-    public unsafe struct ManagedCallbacks
+    internal unsafe struct ManagedCallbacks
     {
-        public delegate* unmanaged<IntPtr, InteropBool> EntryPoint_LoadClientPlugin;
+        public delegate* unmanaged<IntPtr, HArrayInternal*, InteropBool> EntryPoint_LoadClientPlugin;
         public delegate* unmanaged<InteropBool> EntryPoint_UnloadClientPlugin;
         public delegate* unmanaged<IntPtr, IntPtr> ManagedObject_InstantiateClientObject;
 

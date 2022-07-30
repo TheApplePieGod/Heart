@@ -47,7 +47,7 @@ namespace Heart.Container
                     return;
             }
 
-            Native_Variant_Destroy(ref this);
+            Native_Variant_Destroy(this);
         }
 
         public VariantType Type
@@ -99,6 +99,6 @@ namespace Heart.Container
         }
 
         [DllImport("__Internal")]
-        internal static extern void Native_Variant_Destroy([In] ref Variant variant);
+        internal static extern void Native_Variant_Destroy(Variant variant);
     }
 }

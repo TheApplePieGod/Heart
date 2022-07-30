@@ -29,6 +29,6 @@ namespace Heart.Core
         public static void Critical(object value) => Native_Log(Level.Critical, value.ToString());
 
         [DllImport("__Internal")]
-        internal static extern void Native_Log(Level level, [MarshalAs(UnmanagedType.LPStr)] [In] string format);
+        internal static extern void Native_Log(Level level, [MarshalAs(UnmanagedType.LPStr)] string format);
     }
 }

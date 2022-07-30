@@ -10,14 +10,14 @@ namespace Heart
         Container() = default;
 
         Container(const Container<T>& other)
-        {
-            m_Data = other.m_Data;
-            IncrementRefCount();
-        }
+        { Copy(other); }
 
-        Container(u32 elemCount)
+        Container(u32 elemCount, bool fill = true)
         {
-            Resize(elemCount, true);
+            if (fill)
+                Resize(elemCount, true);
+            else
+                Reserve(elemCount);
         }
 
         Container(const T* data, u32 dataCount)
@@ -66,7 +66,9 @@ namespace Heart
         inline T* Begin() { return m_Data; }
         inline T* End() { return m_Data + GetCount(); }
         inline T& Get(u32 index) { return m_Data[index]; }
+
         inline T& operator[](u32 index) { return m_Data[index]; }
+        inline void operator=(const Container<T>& other) { Copy(other); }
 
     private:
         struct ContainerInfo
@@ -77,6 +79,13 @@ namespace Heart
         };
 
     private:
+        void Copy(const Container<T>& other)
+        {
+            if (!other.m_Data) return;
+            m_Data = other.m_Data;
+            IncrementRefCount();
+        }
+
         // Value must not be zero
         u32 GetNextPowerOfTwo(u32 value)
         {
@@ -147,8 +156,8 @@ namespace Heart
                     
                 FreeMemory();
 
-                static int freed = 0;
-                HE_ENGINE_LOG_WARN("Freed {0} on thread {1}", ++freed, std::hash<std::thread::id>{}(std::this_thread::get_id()));
+                // static int freed = 0;
+                // HE_ENGINE_LOG_WARN("Freed {0} on thread {1}", ++freed, std::hash<std::thread::id>{}(std::this_thread::get_id()));
             }
             m_Data = nullptr;
         }

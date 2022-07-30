@@ -38,7 +38,8 @@ HE_INTEROP_EXPORT void Native_HString_Copy(Heart::HString* dst, const Heart::HSt
 
 HE_INTEROP_EXPORT void Native_HArray_Init(Heart::HArray* array)
 {
-    HE_PLACEMENT_NEW(array, Heart::HArray);
+    // Reserve base elems when initializing from c# so ptr is always valid
+    HE_PLACEMENT_NEW(array, Heart::HArray, 16, false);
 }
 
 HE_INTEROP_EXPORT void Native_HArray_Destroy(Heart::HArray* array)

@@ -27,7 +27,7 @@ namespace Heart
 
 
         [UnmanagedCallersOnly]
-        private static unsafe InteropBool Initialize([In] IntPtr dllHandle, [In] ManagedCallbacks* managedCallbacks)
+        internal static unsafe InteropBool Initialize(IntPtr dllHandle, ManagedCallbacks* managedCallbacks)
         {
             _coreAssembly = Assembly.GetExecutingAssembly();
             NativeLibrary.SetDllImportResolver(_coreAssembly, new HeartDllImportResolver(dllHandle).OnResolveDllImport);
@@ -43,19 +43,26 @@ namespace Heart
 
             return InteropBool.True;
         }
-
+        
+        // TODO: use HString
         [UnmanagedCallersOnly]
-        public static InteropBool LoadClientPlugin([In] IntPtr assemblyPathStr)
+        internal static unsafe InteropBool LoadClientPlugin(IntPtr assemblyPathStr, HArrayInternal* outClasses)
         {
             string assemblyPath = Marshal.PtrToStringUTF8(assemblyPathStr);
 
             (bool success, _clientLoadContext) = PluginManager.LoadPlugin(assemblyPath);
+            if (success)
+            {
+                var instantiableClasses = PluginReflection.GetInstantiableClasses(_clientLoadContext.LoadedAssembly);
+                using var arr = new HArray(instantiableClasses);
+                arr.CopyTo(outClasses);
+            }
 
             return NativeMarshal.BoolToInteropBool(success);
         }
 
         [UnmanagedCallersOnly]
-        public static InteropBool UnloadClientPlugin()
+        internal static InteropBool UnloadClientPlugin()
         {
             bool success = PluginManager.UnloadPlugin(ref _clientLoadContext);
 
@@ -68,7 +75,7 @@ namespace Heart
             HArray arr = new HArray();
             for (int i = 0; i < 10; i++)
             {
-                HArray arr2 = new HArray();
+                using HArray arr2 = new HArray();
                 arr2.Add(true);
                 arr2.Add(8390213);
                 arr2.Add("brejiment");

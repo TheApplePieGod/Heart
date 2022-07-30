@@ -9,18 +9,20 @@ namespace Heart
     {
     public:
         ~HArray() = default;
+        HArray() = default;
 
-        HArray()
-        {
-            // HArray will always have data allocated
-            m_Data.Reserve(16);
-        }
+        HArray(u32 elemCount, bool fill = true)
+            : m_Data(elemCount, fill)
+        {}
 
         HArray(const HArray& other)
             : m_Data(other.m_Data)
         {}
 
         inline void Add(const Variant& value) { m_Data.Add(value); }
+
+        inline Variant& operator[](u32 index) { return m_Data[index]; }
+        inline void operator=(const HArray& other) { m_Data = other.m_Data; }
 
     private:
 

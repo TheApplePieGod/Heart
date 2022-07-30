@@ -58,28 +58,24 @@ namespace Heart.Container
             => new() { Type = VariantType.Float, Float = value };
         public static Variant StringToVariant(string value)
         {
-            Variant v = new Variant();
-            HString hstr = new HString(value);
-            Native_Variant_FromHString(ref v, ref hstr._internalVal);
-            return v;
+            using HString hstr = new HString(value);
+            return HStringToVariant(hstr);
         }
         public static Variant HStringToVariant(HString value)
         {
-            Variant v = new Variant();
-            Native_Variant_FromHString(ref v, ref value._internalVal);
-            return v;
+            Native_Variant_FromHString(out var variant, value._internalVal);
+            return variant;
         }
         public static Variant HArrayToVariant(HArray value)
         {
-            Variant v = new Variant();
-            Native_Variant_FromHArray(ref v, ref value._internalVal);
-            return v;
+            Native_Variant_FromHArray(out var variant, value._internalVal);
+            return variant;
         }
 
         [DllImport("__Internal")]
-        internal static extern void Native_Variant_FromHArray([In, Out] ref Variant variant, [In] ref HArrayInternal value);
+        internal static extern void Native_Variant_FromHArray(out Variant variant, in HArrayInternal value);
 
         [DllImport("__Internal")]
-        internal static extern void Native_Variant_FromHString([In, Out] ref Variant variant, [In] ref HStringInternal value);
+        internal static extern void Native_Variant_FromHString(out Variant variant, in HStringInternal value);
     }
 }
