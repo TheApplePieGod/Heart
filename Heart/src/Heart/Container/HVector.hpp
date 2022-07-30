@@ -89,16 +89,16 @@ namespace Heart
         inline void Reserve(u32 allocCount) { m_Container.Reserve(allocCount); }
         inline void Clear(bool shrink = false) { m_Container.Clear(shrink); }
         inline void Resize(u32 elemCount, bool construct = true) { m_Container.Resize(elemCount, construct); }
-        inline HVector Clone() { return HVector(m_Container.Clone()); }
-        inline u32 GetCount() { return m_Container.GetCount(); }
-        inline T* Data() { return m_Container.Data(); }
-        inline T* Begin() { return m_Container.Begin(); }
-        inline T* End() { return m_Container.End(); }
-        inline T* Front() { return m_Container.Begin(); }
-        inline T* Back() { return GetCount() > 0 ? m_Container.End() - 1 : m_Container.Begin(); }
-        inline T& Get(u32 index) { return m_Container.Get[index]; }
+        inline HVector Clone() const { return HVector(m_Container.Clone()); }
+        inline u32 GetCount() const { return m_Container.GetCount(); }
+        inline T* Data() const { return m_Container.Data(); }
+        inline T* Begin() const { return m_Container.Begin(); }
+        inline T* End() const { return m_Container.End(); }
+        inline T* Front() const { return m_Container.Begin(); }
+        inline T* Back() const { return GetCount() > 0 ? m_Container.End() - 1 : m_Container.Begin(); }
+        inline T& Get(u32 index) const { return m_Container.Get(index); }
 
-        inline T& operator[](u32 index) { return m_Container[index]; }
+        inline T& operator[](u32 index) const { return m_Container[index]; }
         inline void operator=(const HVector& other) { m_Container = other.m_Container; }
 
     private:

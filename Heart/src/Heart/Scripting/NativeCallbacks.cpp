@@ -23,6 +23,7 @@ HE_INTEROP_EXPORT void Native_Log(int level, const char* message)
 
 HE_INTEROP_EXPORT void Native_HString_Init(Heart::HString* str, const char16* value)
 {
+    str->~HString();
     HE_PLACEMENT_NEW(str, Heart::HString, value);
 }
 
@@ -33,12 +34,14 @@ HE_INTEROP_EXPORT void Native_HString_Destroy(Heart::HString* str)
 
 HE_INTEROP_EXPORT void Native_HString_Copy(Heart::HString* dst, const Heart::HString* src)
 {
+    dst->~HString();
     HE_PLACEMENT_NEW(dst, Heart::HString, *src);
 }
 
 HE_INTEROP_EXPORT void Native_HArray_Init(Heart::HArray* array)
 {
     // Reserve base elems when initializing from c# so ptr is always valid
+    array->~HArray();
     HE_PLACEMENT_NEW(array, Heart::HArray, 16, false);
 }
 
@@ -49,6 +52,7 @@ HE_INTEROP_EXPORT void Native_HArray_Destroy(Heart::HArray* array)
 
 HE_INTEROP_EXPORT void Native_HArray_Copy(Heart::HArray* dst, const Heart::HArray* src)
 {
+    dst->~HArray();
     HE_PLACEMENT_NEW(dst, Heart::HArray, *src);
 }
 

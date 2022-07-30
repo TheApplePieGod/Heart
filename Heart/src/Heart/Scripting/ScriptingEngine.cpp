@@ -136,6 +136,10 @@ namespace Heart
         bool res = s_CoreCallbacks.EntryPoint_LoadClientPlugin(absolutePath.c_str(), &outClasses);
         if (res)
         {
+            // Populate local array
+            for (u32 i = 0; i < outClasses.GetCount(); i++)
+                s_InstantiableClasses.Add(outClasses[i].String().ToUTF8());
+
             HE_ENGINE_LOG_INFO("Client plugin successfully loaded");
             s_ClientPluginLoaded = true;
             return true;
@@ -148,6 +152,8 @@ namespace Heart
     bool ScriptingEngine::UnloadClientPlugin()
     {
         if (!s_ClientPluginLoaded) return true;
+
+        s_InstantiableClasses.Clear();
 
         bool res = s_CoreCallbacks.EntryPoint_UnloadClientPlugin();
         if (res)

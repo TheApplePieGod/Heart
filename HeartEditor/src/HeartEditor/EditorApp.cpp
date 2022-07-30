@@ -10,7 +10,7 @@ namespace HeartEditor
     EditorApp::EditorApp()
         : App("Heart Editor")
     {
-        Heart::PerfTests::RunHStringTest();
+        // Heart::PerfTests::RunHArrayTest();
         PushLayer(Heart::CreateRef<EditorLayer>());
     }
 

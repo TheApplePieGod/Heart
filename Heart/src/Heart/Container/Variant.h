@@ -7,7 +7,7 @@ namespace Heart
     class Variant
     {
     public:
-        enum class Type : u8
+        enum class Type : byte
         {
             None = 0,
             Bool, Int, Float,

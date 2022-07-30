@@ -1,6 +1,8 @@
 #include "hepch.h"
 #include "ImGuiUtils.h"
 
+#include "Heart/Container/HVector.hpp"
+#include "Heart/Container/HString.h"
 #include "Heart/Asset/AssetManager.h"
 #include "imgui/imgui_internal.h"
 
@@ -152,37 +154,37 @@ namespace Heart
     }
     
     void ImGuiUtils::StringPicker(
-        const std::vector<const char*> options,
-        const std::string& selected,
-        const std::string& nullSelectionText,
-        const std::string& widgetId,
+        const HVector<HString>& options,
+        const HString& selected,
+        const HString& nullSelectionText,
+        const HString& widgetId,
         ImGuiTextFilter& textFilter,
         std::function<void()>&& contextMenuCallback,
-        std::function<void(size_t)>&& selectCallback
+        std::function<void(u32)>&& selectCallback
     )
     {
-        std::string buttonNullSelection = nullSelectionText + "##" + widgetId;
-        std::string popupName = widgetId + "SP";
-        bool popupOpened = ImGui::Button(selected.empty() ? buttonNullSelection.c_str() : selected.c_str());
+        HString buttonNullSelection = (nullSelectionText + "##") + widgetId;
+        HString popupName = widgetId + "SP";
+        bool popupOpened = ImGui::Button(selected.Empty() ? buttonNullSelection.DataUTF8() : selected.DataUTF8());
         if (popupOpened)
-            ImGui::OpenPopup(popupName.c_str());
+            ImGui::OpenPopup(popupName.DataUTF8());
         
         // right click menu
-        if (contextMenuCallback && ImGui::BeginPopupContextItem((widgetId + "ctx").c_str()))
+        if (contextMenuCallback && ImGui::BeginPopupContextItem((widgetId + "ctx").DataUTF8()))
         {
             contextMenuCallback();
             ImGui::EndPopup();
         }
 
         ImGui::SetNextWindowSize({ 500.f, std::min(ImGui::GetMainViewport()->Size.y - ImGui::GetCursorScreenPos().y, 500.f) });
-        if (ImGui::BeginPopup(popupName.c_str(), ImGuiWindowFlags_HorizontalScrollbar))
+        if (ImGui::BeginPopup(popupName.DataUTF8(), ImGuiWindowFlags_HorizontalScrollbar))
         {
             if (textFilter.Draw() || popupOpened)
                 ImGui::SetKeyboardFocusHere(-1);
             ImGui::Separator();
-            for (size_t i = 0; i < options.size(); i++)
+            for (u32 i = 0; i < options.GetCount(); i++)
             {
-                if (textFilter.PassFilter(options[i]) && ImGui::MenuItem(options[i]))
+                if (textFilter.PassFilter(options[i].DataUTF8()) && ImGui::MenuItem(options[i].DataUTF8()))
                 {
                     selectCallback(i);
                     ImGui::CloseCurrentPopup();

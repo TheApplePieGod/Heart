@@ -37,7 +37,8 @@ namespace Heart
 
             *managedCallbacks = ManagedCallbacks.Get();
 
-            Test();
+            // Test();
+            // Test2();
             GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced);
             GC.WaitForPendingFinalizers();
 
@@ -71,7 +72,6 @@ namespace Heart
 
         private static unsafe void Test()
         {
-            int startTime = Environment.TickCount;
             HArray arr = new HArray();
             for (int i = 0; i < 10; i++)
             {
@@ -85,9 +85,46 @@ namespace Heart
             object value = arr[5];
             arr[5] = true;
             object value2 = arr[5];
+        }
 
-            int elapsed = Environment.TickCount - startTime;
-            Log.Warn("Add took {0}ms", elapsed);
+        private static unsafe void Test2()
+        {
+            using (HArray arr = new HArray())
+            {
+                int startTime = Environment.TickCount;
+
+                for (int i = 0; i < 1000000; i++)
+                {
+                    arr.Add("brejiment");
+                }
+
+                int elapsed = Environment.TickCount - startTime;
+                Log.Warn("Add strings took {0}ms", elapsed);
+            }
+            using (HArray arr = new HArray())
+            {
+                int startTime = Environment.TickCount;
+
+                for (int i = 0; i < 1000000; i++)
+                {
+                    arr.Add(12345);
+                }
+
+                int elapsed = Environment.TickCount - startTime;
+                Log.Warn("Add ints took {0}ms", elapsed);
+            }
+            using (HArray arr = new HArray())
+            {
+                int startTime = Environment.TickCount;
+
+                for (int i = 0; i < 1000000; i++)
+                {
+                    arr.Add(new HArray());
+                }
+
+                int elapsed = Environment.TickCount - startTime;
+                Log.Warn("Add nested arrays took {0}ms", elapsed);
+            }
         }
     }
 }

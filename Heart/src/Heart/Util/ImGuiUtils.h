@@ -7,6 +7,9 @@
 
 namespace Heart
 {
+    class HString;
+    template <typename T>
+    class HVector;
     struct ImGuiUtils
     {
         static void RenderTooltip(const std::string& text);
@@ -33,13 +36,13 @@ namespace Heart
             std::function<void(UUID)>&& selectCallback
         );
         static void StringPicker(
-            const std::vector<const char*> options,
-            const std::string& selected,
-            const std::string& nullSelectionText,
-            const std::string& widgetId,
+            const HVector<HString>& options,
+            const HString& selected,
+            const HString& nullSelectionText,
+            const HString& widgetId,
             ImGuiTextFilter& textFilter,
             std::function<void()>&& contextMenuCallback,
-            std::function<void(size_t)>&& selectCallback
+            std::function<void(u32)>&& selectCallback
         );
     };
 }

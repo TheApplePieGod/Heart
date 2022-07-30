@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Heart/Container/HString.h"
 #include "Heart/Core/UUID.h"
 #include "glm/vec3.hpp"
 #include "glm/vec4.hpp"
@@ -86,8 +87,7 @@ namespace Heart
 
     struct ScriptComponent
     {
-        std::string NamespaceName = "";
-        std::string ClassName = "";
+        HString ObjectType;
         u32 ObjectHandle = 0;
 
         void InstantiateObject();

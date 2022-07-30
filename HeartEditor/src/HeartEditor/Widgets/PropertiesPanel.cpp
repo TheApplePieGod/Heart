@@ -154,7 +154,14 @@ namespace Widgets
                     "NULL",
                     "MeshSelect",
                     m_MeshTextFilter,
-                    nullptr,
+                    [&meshComp]()
+                    {
+                        if (!meshComp.Mesh)
+                            return;
+
+                        if (ImGui::MenuItem("Clear"))
+                            meshComp.Mesh = 0;
+                    },
                     [&meshComp](Heart::UUID selected)
                     {
                         meshComp.Mesh = selected;
@@ -316,45 +323,34 @@ namespace Widgets
             {
                 Heart::UUID uuid = selectedEntity.GetUUID();
                 auto& scriptComp = selectedEntity.GetComponent<Heart::ScriptComponent>();
-                std::string currentClass;
-                if (!scriptComp.ClassName.empty())
-                    currentClass = scriptComp.NamespaceName + "." + scriptComp.ClassName;
 
-                // Populate possible assemblies
-                // std::vector<const char*> assemblies;
-                // assemblies.reserve(Heart::ScriptingEngine::GetAssemblyClasses().size());
-                // for (auto& classEntry : Heart::ScriptingEngine::GetAssemblyClasses())
-                //     assemblies.emplace_back(classEntry.FullName.c_str());
+                // Show possible assemblies
+                ImGui::Indent();
+                ImGui::Text("Class:");
+                ImGui::SameLine();
+                Heart::ImGuiUtils::StringPicker(
+                    Heart::ScriptingEngine::GetInstantiableClasses(),
+                    scriptComp.ObjectType,
+                    "None",
+                    "Script",
+                    m_ScriptTextFilter,
+                    [&scriptComp]()
+                    {
+                        if (scriptComp.ObjectType.Empty())
+                            return;
 
-                // ImGui::Indent();
-
-                // ImGui::Text("Class:");
-                // ImGui::SameLine();
-                // Heart::ImGuiUtils::StringPicker(
-                //     assemblies,
-                //     currentClass,
-                //     "None",
-                //     "Script",
-                //     m_ScriptTextFilter,
-                //     [&currentClass, &scriptComp]()
-                //     {
-                //         if (!currentClass.empty())
-                //         {
-                //             if (ImGui::MenuItem("Clear"))
-                //             {
-                //                 scriptComp.ClassName.clear();
-                //                 scriptComp.NamespaceName.clear();
-                //                 scriptComp.FreeObject();
-                //             }
-                //         }
-                //     },
-                //     [&scriptComp](size_t index)
-                //     {
-                //         scriptComp.NamespaceName = Heart::ScriptingEngine::GetAssemblyClasses()[index].Namespace;
-                //         scriptComp.ClassName = Heart::ScriptingEngine::GetAssemblyClasses()[index].Class;
-                //         scriptComp.InstantiateObject();
-                //     }
-                // );
+                        if (ImGui::MenuItem("Clear"))
+                        {
+                            scriptComp.ObjectType.Clear();
+                            scriptComp.FreeObject();
+                        }
+                    },
+                    [&scriptComp](u32 index)
+                    {
+                        scriptComp.ObjectType = Heart::ScriptingEngine::GetInstantiableClasses()[index];
+                        scriptComp.InstantiateObject();
+                    }
+                );
             }
         }
     }

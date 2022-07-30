@@ -7,7 +7,7 @@ namespace Heart.Container
     public enum Encoding : byte
     {
         UTF8 = 0,
-        UTF16
+        UTF16 = 1
     }
 
     [StructLayout(LayoutKind.Explicit, Size=16)]

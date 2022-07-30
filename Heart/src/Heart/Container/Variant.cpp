@@ -33,7 +33,7 @@ namespace Heart
         }
 
          return;
-        HE_ENGINE_ASSERT("Variant destructor not fully implemented");
+        HE_ENGINE_ASSERT(false, "Variant destructor not fully implemented");
     }
 
     HArray Variant::Array() const
@@ -60,6 +60,6 @@ namespace Heart
             { *reinterpret_cast<HString*>(m_Data.Any) = other.String(); } return;
         }
 
-        HE_ENGINE_ASSERT("Variant copy constructor not fully implemented");
+        HE_ENGINE_ASSERT(false, "Variant copy constructor not fully implemented");
     }
 }

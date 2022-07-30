@@ -3,6 +3,7 @@
 
 #include "Heart/Core/Timing.h"
 #include "Heart/Container/HVector.hpp"
+#include "Heart/Container/HArray.hpp"
 #include "Heart/Container/HString.h"
 
 namespace Heart
@@ -41,7 +42,35 @@ namespace Heart
 
     void PerfTests::RunHArrayTest()
     {
-        
+        /*
+         * HArray - Add String
+         */
+        {
+            HArray arr;
+            Timer timer = Timer("HArray - Add Strings");
+            for (u32 i = 0; i < 1000000; i++)
+                arr.Add(HString("brejiment"));
+        }
+
+        /*
+         * HArray - Add Ints
+         */
+        {
+            HArray arr;
+            Timer timer = Timer("HArray - Add Integers");
+            for (u32 i = 0; i < 1000000; i++)
+                arr.Add(12345);
+        }
+
+        /*
+         * HArray - Add Nested Array
+         */
+        {
+            HArray arr;
+            Timer timer = Timer("HArray - Add Nested Arrays");
+            for (u32 i = 0; i < 1000000; i++)
+                arr.Add(HArray(16, false)); // C# parity
+        }
     }
 
     void PerfTests::RunHVectorTest()

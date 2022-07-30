@@ -20,11 +20,25 @@ namespace Heart
         {}
 
         inline void Add(const Variant& value) { m_Data.Add(value); }
+        inline void Reserve(u32 allocCount) { m_Data.Reserve(allocCount); }
+        inline void Clear(bool shrink = false) { m_Data.Clear(shrink); }
+        inline void Resize(u32 elemCount, bool construct = true) { m_Data.Resize(elemCount, construct); }
+        inline HArray Clone() const { return HArray(m_Data.Clone()); }
+        inline u32 GetCount() const { return m_Data.GetCount(); }
+        inline Variant* Data() const { return m_Data.Data(); }
+        inline Variant* Begin() const { return m_Data.Begin(); }
+        inline Variant* End() const { return m_Data.End(); }
+        inline Variant* Front() const { return m_Data.Begin(); }
+        inline Variant* Back() const { return GetCount() > 0 ? m_Data.End() - 1 : m_Data.Begin(); }
+        inline Variant& Get(u32 index) const { return m_Data.Get(index); }
 
-        inline Variant& operator[](u32 index) { return m_Data[index]; }
+        inline Variant& operator[](u32 index) const { return m_Data[index]; }
         inline void operator=(const HArray& other) { m_Data = other.m_Data; }
 
     private:
+        HArray(const HVector<Variant>& data)
+            : m_Data(data)
+        {}
 
     private:
         HVector<Variant> m_Data;

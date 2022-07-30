@@ -57,17 +57,18 @@ namespace Heart
                 ResizeExplicit(GetCount(), actualAlloc, false);
         }
 
-        inline Container Clone() { return Container(m_Data, GetCount()); }
-        inline u32 GetCount() { return m_Data ? GetInfoPtr()->ElemCount : 0; }
-        inline u32 GetAllocatedCount() { return m_Data ? GetInfoPtr()->AllocatedCount : 0; }
+        inline Container Clone() const { return Container(m_Data, GetCount()); }
+        inline u32 GetCount() const { return m_Data ? GetCountUnchecked() : 0; }
+        inline u32 GetCountUnchecked() const { return GetInfoPtr()->ElemCount; }
+        inline u32 GetAllocatedCount() const { return m_Data ? GetInfoPtr()->AllocatedCount : 0; }
         inline u32 IncrementCount() { return ++GetInfoPtr()->ElemCount; }
         inline u32 DecrementCount() { return --GetInfoPtr()->ElemCount; }
-        inline T* Data() { return m_Data; }
-        inline T* Begin() { return m_Data; }
-        inline T* End() { return m_Data + GetCount(); }
-        inline T& Get(u32 index) { return m_Data[index]; }
+        inline T* Data() const { return m_Data; }
+        inline T* Begin() const{ return m_Data; }
+        inline T* End() const { return m_Data + GetCount(); }
+        inline T& Get(u32 index) const{ return m_Data[index]; }
 
-        inline T& operator[](u32 index) { return m_Data[index]; }
+        inline T& operator[](u32 index) const { return m_Data[index]; }
         inline void operator=(const Container<T>& other) { Copy(other); }
 
     private:
@@ -162,7 +163,7 @@ namespace Heart
             m_Data = nullptr;
         }
 
-        inline ContainerInfo* GetInfoPtr() { return reinterpret_cast<ContainerInfo*>(m_Data) - 1; }
+        inline ContainerInfo* GetInfoPtr() const { return reinterpret_cast<ContainerInfo*>(m_Data) - 1; }
         inline u32 GetRefCount() { return m_Data ? GetInfoPtr()->RefCount : 1; } // Default one for this obj
         inline u32 IncrementRefCount() { return ++GetInfoPtr()->RefCount; }
         inline u32 DecrementRefCount() { return --GetInfoPtr()->RefCount; }

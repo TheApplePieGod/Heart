@@ -112,9 +112,8 @@ namespace Heart
                 if (loaded.contains("scriptComponent"))
                 {
                     ScriptComponent comp;
-                    comp.NamespaceName = loaded["scriptComponent"]["namespace"];
-                    comp.ClassName = loaded["scriptComponent"]["class"];
-                    if (!comp.ClassName.empty())
+                    comp.ObjectType = loaded["scriptComponent"]["type"];
+                    if (!comp.ObjectType.Empty())
                         comp.InstantiateObject();
                     entity.AddComponent<ScriptComponent>(comp);
                 }
@@ -203,8 +202,7 @@ namespace Heart
                 if (entity.HasComponent<ScriptComponent>())
                 {
                     auto& scriptComp = entity.GetComponent<ScriptComponent>();
-                    entry["scriptComponent"]["namespace"] = scriptComp.NamespaceName;
-                    entry["scriptComponent"]["class"] = scriptComp.ClassName;
+                    entry["scriptComponent"]["type"] = scriptComp.ObjectType;
                 }
 
                 field[index++] = entry;
