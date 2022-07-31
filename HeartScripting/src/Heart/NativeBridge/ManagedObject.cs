@@ -2,6 +2,7 @@
 using Heart.NativeInterop;
 using System;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
@@ -43,21 +44,25 @@ namespace Heart.NativeBridge
             ManagedGCHandle.FromIntPtr(objectHandle).Free();
         }
 
+        internal static unsafe MethodInfo FindFunction(ManagedGCHandle objectHandle, string funcName, int argCount)
+        {
+            var func = objectHandle.Target.GetType()
+                .GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+                .Where(m => m.Name == funcName && m.GetParameters().Length == argCount)
+                .FirstOrDefault();
+
+            return func;
+        }
+
         [UnmanagedCallersOnly]
         internal static unsafe InteropBool InvokeFunction(IntPtr objectHandle, HStringInternal* funcNameStr, HArrayInternal* args)
         {
-            if (objectHandle == IntPtr.Zero) return InteropBool.False;
-
             var gcHandle = ManagedGCHandle.FromIntPtr(objectHandle);
-            if (!gcHandle.IsAlive) return InteropBool.False;
+            if (gcHandle != null && !gcHandle.IsAlive) return InteropBool.False;
 
             HArray argsArray = new HArray(*args);
-
             string funcName = NativeMarshal.HStringInternalToString(*funcNameStr);
-            var func = gcHandle.Target.GetType()
-                .GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
-                .Where(m => m.Name == funcName && m.GetParameters().Length == argsArray.Count)
-                .FirstOrDefault();
+            var func = FindFunction(gcHandle, funcName, argsArray.Count);
             if (func == null) return InteropBool.False;
 
             func.Invoke(gcHandle.Target, argsArray.ToObjectArray());

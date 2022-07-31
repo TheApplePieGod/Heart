@@ -11,11 +11,13 @@ namespace Heart
         using ManagedObject_InstantiateClientObjectFn = void* (*)(const HString*);
         using ManagedObject_DestroyObjectFn = void (*)(uptr);
         using ManagedObject_InvokeFunctionFn = bool (*)(uptr, const HString*, const HArray*);
+        using Entity_CallOnUpdateFn = void (*)(uptr, double);
 
         EntryPoint_LoadClientPluginFn EntryPoint_LoadClientPlugin;
         EntryPoint_UnloadClientPluginFn EntryPoint_UnloadClientPlugin;
         ManagedObject_InstantiateClientObjectFn ManagedObject_InstantiateClientObject;
         ManagedObject_DestroyObjectFn ManagedObject_DestroyObject;
         ManagedObject_InvokeFunctionFn ManagedObject_InvokeFunction;
+        Entity_CallOnUpdateFn Entity_CallOnUpdate;
     };
 }

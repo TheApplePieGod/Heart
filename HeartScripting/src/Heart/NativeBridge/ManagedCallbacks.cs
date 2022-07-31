@@ -1,5 +1,6 @@
 ﻿using Heart.Container;
 using Heart.NativeInterop;
+using Heart.Scene;
 using System;
 
 namespace Heart.NativeBridge
@@ -11,6 +12,7 @@ namespace Heart.NativeBridge
         public delegate* unmanaged<HStringInternal*, IntPtr> ManagedObject_InstantiateClientObject;
         public delegate* unmanaged<IntPtr, void> ManagedObject_DestroyObject;
         public delegate* unmanaged<IntPtr, HStringInternal*, HArrayInternal*, InteropBool> ManagedObject_InvokeFunction;
+        public delegate* unmanaged<IntPtr, double, void> Entity_CallOnUpdate;
 
         public static ManagedCallbacks Get()
         {
@@ -20,7 +22,8 @@ namespace Heart.NativeBridge
                 EntryPoint_UnloadClientPlugin = &EntryPoint.UnloadClientPlugin,
                 ManagedObject_InstantiateClientObject = &ManagedObject.InstantiateClientObject,
                 ManagedObject_DestroyObject = &ManagedObject.DestroyObject,
-                ManagedObject_InvokeFunction = &ManagedObject.InvokeFunction
+                ManagedObject_InvokeFunction = &ManagedObject.InvokeFunction,
+                Entity_CallOnUpdate = &Entity.CallOnUpdate
             };
         }
     }

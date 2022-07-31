@@ -187,4 +187,11 @@ namespace Heart
 
         return s_CoreCallbacks.ManagedObject_InvokeFunction(object, &funcName, &args);
     }
+
+    void ScriptingEngine::InvokeEntityOnUpdate(uptr entity, Timestep timestep)
+    {
+        HE_PROFILE_FUNCTION();
+
+        s_CoreCallbacks.Entity_CallOnUpdate(entity, timestep.StepMilliseconds());
+    }
 }

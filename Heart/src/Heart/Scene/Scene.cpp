@@ -245,13 +245,18 @@ namespace Heart
     void Scene::StartRuntime()
     {
         HArray args;
-        InvokeFunctionOnScriptableEntities("OnPlayStart", args);
+        IterateValidScriptObjects([](ScriptComponent& scriptComp) {
+            HArray args;
+            ScriptingEngine::InvokeFunction(scriptComp.ObjectHandle, "OnPlayStart", args);
+        });
     }
 
     void Scene::StopRuntime()
     {
-        HArray args;
-        InvokeFunctionOnScriptableEntities("OnPlayEnd", args);
+        IterateValidScriptObjects([](ScriptComponent& scriptComp) {
+            HArray args;
+            ScriptingEngine::InvokeFunction(scriptComp.ObjectHandle, "OnPlayEnd", args);
+        });
     }
 
     void Scene::OnUpdateRuntime(Timestep ts)
@@ -259,11 +264,12 @@ namespace Heart
         HE_PROFILE_FUNCTION();
         auto timer = AggregateTimer("Scene::OnUpdateRuntime");
 
-        HArray args = { ts.StepMilliseconds() };
-        InvokeFunctionOnScriptableEntities("OnUpdate_Internal", args);
+        IterateValidScriptObjects([ts](ScriptComponent& scriptComp) {
+            ScriptingEngine::InvokeEntityOnUpdate(scriptComp.ObjectHandle, ts);
+        });
     }
 
-    bool Scene::InvokeFunctionOnScriptableEntities(const HString& funcName, const HArray& args)
+    void Scene::IterateValidScriptObjects(std::function<void(ScriptComponent&)>&& iterateFunc)
     {
         HE_PROFILE_FUNCTION();
 
@@ -273,10 +279,8 @@ namespace Heart
             auto& scriptComp = group.get<ScriptComponent>(entity);
             if (!scriptComp.ObjectHandle) continue;
 
-            bool res = ScriptingEngine::InvokeFunction(scriptComp.ObjectHandle, funcName, args);
-            if (!res) return false;
+            iterateFunc(scriptComp);
         }
-        return true;
     }
 
     Entity Scene::GetEntityFromUUID(UUID uuid)

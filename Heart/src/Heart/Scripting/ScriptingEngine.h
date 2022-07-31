@@ -3,6 +3,7 @@
 #include "Heart/Scripting/ManagedCallbacks.h"
 #include "Heart/Container/HVector.hpp"
 #include "Heart/Container/HString.h"
+#include "Heart/Core/Timestep.h"
 
 namespace Heart
 {
@@ -18,6 +19,7 @@ namespace Heart
         static uptr InstantiateObject(const HString& type);
         static void DestroyObject(uptr handle);
         static bool InvokeFunction(uptr object, const HString& funcName, const HArray& args);
+        static void InvokeEntityOnUpdate(uptr entity, Timestep timestep);
 
         inline static const HVector<HString>& GetInstantiableClasses() { return s_InstantiableClasses; }
 

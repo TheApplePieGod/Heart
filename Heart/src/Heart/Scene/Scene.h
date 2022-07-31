@@ -12,6 +12,7 @@ namespace Heart
     class Entity;
     class HString;
     class HArray;
+    class ScriptComponent;
     class Scene
     {
     public:
@@ -41,8 +42,6 @@ namespace Heart
         void StopRuntime();
         void OnUpdateRuntime(Timestep ts);
 
-        bool InvokeFunctionOnScriptableEntities(const HString& funcName, const HArray& args);
-
         inline entt::registry& GetRegistry() { return m_Registry; }
         inline EnvironmentMap* GetEnvironmentMap() { return m_EnvironmentMap.get(); }
         
@@ -71,6 +70,8 @@ namespace Heart
 
         void RemoveChild(UUID parentUUID, UUID childUUID);
         void DestroyChildren(Entity parent);
+
+        void IterateValidScriptObjects(std::function<void(ScriptComponent&)>&& iterateFunc);
 
     private:
         entt::registry m_Registry;

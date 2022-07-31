@@ -24,6 +24,8 @@ namespace Heart.NativeBridge
 
         public static ManagedGCHandle FromIntPtr(IntPtr ptr)
         {
+            if (ptr == IntPtr.Zero) return null;
+
             ManagedGCHandle newHandle = new ManagedGCHandle();
             newHandle._handle = GCHandle.FromIntPtr(ptr);
 
