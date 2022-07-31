@@ -112,9 +112,10 @@ namespace Heart
                 if (loaded.contains("scriptComponent"))
                 {
                     ScriptComponent comp;
-                    comp.ObjectType = loaded["scriptComponent"]["type"];
-                    if (!comp.ObjectType.Empty())
-                        comp.InstantiateObject();
+                    HString scriptClass = loaded["scriptComponent"]["type"];
+                    comp.Instance = ScriptInstance(scriptClass);
+                    if (!comp.Instance.IsInstantiable())
+                        comp.Instance.Instantiate();
                     entity.AddComponent<ScriptComponent>(comp);
                 }
             }
@@ -202,7 +203,7 @@ namespace Heart
                 if (entity.HasComponent<ScriptComponent>())
                 {
                     auto& scriptComp = entity.GetComponent<ScriptComponent>();
-                    entry["scriptComponent"]["type"] = scriptComp.ObjectType;
+                    entry["scriptComponent"]["type"] = scriptComp.Instance.GetScriptClass();
                 }
 
                 field[index++] = entry;

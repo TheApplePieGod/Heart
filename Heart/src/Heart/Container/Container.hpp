@@ -38,16 +38,11 @@ namespace Heart
             Cleanup();
         }
 
-        inline void Clear(bool shrink = false)
+        void Clear(bool shrink = false)
         {
+            if (GetCount() == 0) return;
             SetCount(0);
             if (shrink) Resize(0);
-        }
-
-        // This WILL shrink the memory
-        inline void Resize(u32 elemCount, bool construct = true)
-        {
-            ResizeExplicit(elemCount, GetNextPowerOfTwo(elemCount), construct);
         }
 
         void Reserve(u32 allocCount)
@@ -55,6 +50,12 @@ namespace Heart
             u32 actualAlloc = GetNextPowerOfTwo(allocCount);
             if (actualAlloc > GetAllocatedCount())
                 ResizeExplicit(GetCount(), actualAlloc, false);
+        }
+
+        // This WILL shrink the memory
+        inline void Resize(u32 elemCount, bool construct = true)
+        {
+            ResizeExplicit(elemCount, GetNextPowerOfTwo(elemCount), construct);
         }
 
         inline Container Clone() const { return Container(m_Data, GetCount()); }

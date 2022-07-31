@@ -3,6 +3,8 @@
 
 #include "HeartEditor/EditorApp.h"
 #include "Heart/Scripting/ScriptingEngine.h"
+#include "Heart/Container/HVector.hpp"
+#include "Heart/Container/HString.h"
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/MeshAsset.h"
 #include "Heart/Asset/MaterialAsset.h"
@@ -324,31 +326,34 @@ namespace Widgets
                 Heart::UUID uuid = selectedEntity.GetUUID();
                 auto& scriptComp = selectedEntity.GetComponent<Heart::ScriptComponent>();
 
+                // Get keys of instantiable classes (names)
+                auto& classDict = Heart::ScriptingEngine::GetInstantiableClasses();
+                Heart::HVector<Heart::HString> classes(classDict.size(), false);
+                for (auto& pair : classDict)
+                    classes.Add(pair.first);
+
                 // Show possible assemblies
                 ImGui::Indent();
                 ImGui::Text("Class:");
                 ImGui::SameLine();
                 Heart::ImGuiUtils::StringPicker(
-                    Heart::ScriptingEngine::GetInstantiableClasses(),
-                    scriptComp.ObjectType,
+                    classes,
+                    scriptComp.Instance.GetScriptClass(),
                     "None",
                     "Script",
                     m_ScriptTextFilter,
                     [&scriptComp]()
                     {
-                        if (scriptComp.ObjectType.Empty())
+                        if (!scriptComp.Instance.IsInstantiable())
                             return;
 
                         if (ImGui::MenuItem("Clear"))
-                        {
-                            scriptComp.ObjectType.Clear();
-                            scriptComp.DestroyObject();
-                        }
+                            scriptComp.Instance.Clear();
                     },
-                    [&scriptComp](u32 index)
+                    [&scriptComp, &classes](u32 index)
                     {
-                        scriptComp.ObjectType = Heart::ScriptingEngine::GetInstantiableClasses()[index];
-                        scriptComp.InstantiateObject();
+                        scriptComp.Instance = Heart::ScriptInstance(classes[index]);
+                        scriptComp.Instance.Instantiate();
                     }
                 );
             }

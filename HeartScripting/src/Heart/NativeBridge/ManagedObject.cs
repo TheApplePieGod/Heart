@@ -9,6 +9,7 @@ using System.Runtime.Serialization;
 
 namespace Heart.NativeBridge
 {
+    // TODO: reflection caching
     public static class ManagedObject
     {
         [UnmanagedCallersOnly]
@@ -66,6 +67,40 @@ namespace Heart.NativeBridge
             if (func == null) return InteropBool.False;
 
             func.Invoke(gcHandle.Target, argsArray.ToObjectArray());
+
+            return InteropBool.True;
+        }
+
+        internal static unsafe FieldInfo FindField(ManagedGCHandle objectHandle, string fieldName)
+        {
+            return objectHandle.Target.GetType()
+                .GetField(fieldName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+        }
+
+        [UnmanagedCallersOnly]
+        internal static unsafe void GetFieldValue(IntPtr objectHandle, HStringInternal* fieldNameStr, Variant* outValue)
+        {
+            var gcHandle = ManagedGCHandle.FromIntPtr(objectHandle);
+            if (gcHandle != null && !gcHandle.IsAlive) return;
+
+            string fieldName = NativeMarshal.HStringInternalToString(*fieldNameStr);
+            var field = FindField(gcHandle, fieldName);
+            if (field == null) return;
+
+            *outValue = VariantConverter.ObjectToVariant(field.GetValue(gcHandle.Target));
+        }
+
+        [UnmanagedCallersOnly]
+        internal static unsafe InteropBool SetFieldValue(IntPtr objectHandle, HStringInternal* fieldNameStr, Variant value)
+        {
+            var gcHandle = ManagedGCHandle.FromIntPtr(objectHandle);
+            if (gcHandle != null && !gcHandle.IsAlive) return InteropBool.False;
+
+            string fieldName = NativeMarshal.HStringInternalToString(*fieldNameStr);
+            var field = FindField(gcHandle, fieldName);
+            if (field == null) return InteropBool.False;
+
+            field.SetValue(gcHandle.Target, VariantConverter.VariantToObject(value));
 
             return InteropBool.True;
         }

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Heart/Container/HString.h"
+#include "Heart/Scripting/ScriptInstance.h"
 #include "Heart/Core/UUID.h"
 #include "glm/vec3.hpp"
 #include "glm/vec4.hpp"
@@ -87,10 +87,6 @@ namespace Heart
 
     struct ScriptComponent
     {
-        HString ObjectType;
-        uptr ObjectHandle = 0;
-
-        void InstantiateObject();
-        void DestroyObject();
+        ScriptInstance Instance;
     };
 }

@@ -56,9 +56,9 @@ namespace Heart
 
         // Unchecked
         // TODO: checked data() call
-        inline void* DataRaw() const { return Data<void>(); }
-        inline char8* DataUTF8() const { return Data<char8>(); }
-        inline char16* DataUTF16() const { return Data<char16>(); }
+        inline const void* DataRaw() const { return Data<void>(); }
+        inline const char8* DataUTF8() const { return Data<char8>(); }
+        inline const char16* DataUTF16() const { return Data<char16>(); }
         inline char8 GetUTF8(u32 index) const { return Get<char8>(index); }
         inline char16 GetUTF16(u32 index) const { return Get<char16>(index); }
         // Subtract one b/c of null character
@@ -74,6 +74,7 @@ namespace Heart
         inline bool Empty() const { return GetCount() == 0; }
         inline void Clear() { m_Container.Resize(0); }
 
+        bool operator==(const HString& other) const;
         void operator=(const HString& other);
         HString operator+(const HString& other) const;
         HString operator+(const char8* other) const;
@@ -85,12 +86,25 @@ namespace Heart
         {}
 
         template <typename T>
-        u32 StrLen(const T* str)
+        u32 StrLen(const T* str) const
         {
             if (!str) return 0;
             u32 len = 0;
             while (str[len] != (T)'\0') len++;
             return len;
+        }
+
+        template <typename T>
+        bool Compare(const T* str1, u32 len1, const T* str2, u32 len2) const
+        {
+            if (!str1 || !str2) return false;
+            u32 ptr = 0;
+            while (ptr < len1 && ptr < len2)
+            {
+                if (str1[ptr] != str2[ptr]) return false;
+                ptr++;
+            }
+            return true;
         }
 
         template <typename T>
@@ -136,4 +150,35 @@ namespace Heart
 
     void to_json(nlohmann::json& j, const HString& str);
     void from_json(const nlohmann::json& j, HString& str);
+}
+
+// Implement hash functionality for HString
+// TODO: this is mid and we really need our own stuff going on
+namespace std
+{
+    template<>
+    struct hash<Heart::HString>
+    {
+        std::size_t operator()(const Heart::HString& str) const
+        {
+            switch (str.GetEncoding())
+            {
+                case Heart::HString::Encoding::UTF8:
+                {
+                    return std::hash<std::basic_string_view<char8>>{}(
+                        std::basic_string_view<char8>(str.DataUTF8(), str.GetCountUTF8())
+                    );
+                }
+                case Heart::HString::Encoding::UTF16:
+                {
+                    return std::hash<std::basic_string_view<char16>>{}(
+                        std::basic_string_view<char16>(str.DataUTF16(), str.GetCountUTF16())
+                    );
+                }
+            }
+
+            HE_ENGINE_ASSERT(false, "HString hash function not fully implemented");
+            return 0;
+        }
+    };
 }

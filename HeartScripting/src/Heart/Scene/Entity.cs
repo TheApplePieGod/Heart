@@ -5,13 +5,13 @@ using System.Runtime.InteropServices;
 
 namespace Heart.Scene
 {
+    [Serializable]
     public abstract class Entity
     {
         public virtual void OnPlayStart() {}
 
         public virtual void OnPlayEnd() {}
 
-        protected void OnUpdate_Internal(double timestep) { ; }
         public virtual void OnUpdate(Timestep timestep) {}
 
         // Having direct delegates for native code to call significantly speeds up performance

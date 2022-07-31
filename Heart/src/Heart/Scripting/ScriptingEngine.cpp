@@ -1,6 +1,7 @@
 #include "hepch.h"
 #include "ScriptingEngine.h"
 
+#include "Heart/Core/Timestep.h"
 #include "Heart/Container/HArray.hpp"
 #include "Heart/Util/FilesystemUtils.h"
 #include "Heart/Util/PlatformUtils.h"
@@ -138,7 +139,10 @@ namespace Heart
         {
             // Populate local array
             for (u32 i = 0; i < outClasses.GetCount(); i++)
-                s_InstantiableClasses.Add(outClasses[i].String().ToUTF8());
+            {
+                auto convertedString = outClasses[i].String().ToUTF8();
+                s_InstantiableClasses[convertedString] = ScriptClass(convertedString);
+            }
 
             HE_ENGINE_LOG_INFO("Client plugin successfully loaded");
             s_ClientPluginLoaded = true;
@@ -153,7 +157,7 @@ namespace Heart
     {
         if (!s_ClientPluginLoaded) return true;
 
-        s_InstantiableClasses.Clear();
+        s_InstantiableClasses.clear();
 
         bool res = s_CoreCallbacks.EntryPoint_UnloadClientPlugin();
         if (res)
@@ -193,5 +197,21 @@ namespace Heart
         HE_PROFILE_FUNCTION();
 
         s_CoreCallbacks.Entity_CallOnUpdate(entity, timestep.StepMilliseconds());
+    }
+
+    Variant ScriptingEngine::GetFieldValue(uptr entity, const HString& fieldName)
+    {
+        HE_PROFILE_FUNCTION();
+
+        Variant variant;
+        s_CoreCallbacks.ManagedObject_GetFieldValue(entity, &fieldName, &variant);
+        return variant;
+    }
+
+    bool ScriptingEngine::SetFieldValue(uptr entity, const HString& fieldName, const Variant& value)
+    {
+        HE_PROFILE_FUNCTION();
+
+        return s_CoreCallbacks.ManagedObject_SetFieldValue(entity, &fieldName, value);
     }
 }

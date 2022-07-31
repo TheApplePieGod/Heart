@@ -71,8 +71,6 @@ namespace Heart
         void RemoveChild(UUID parentUUID, UUID childUUID);
         void DestroyChildren(Entity parent);
 
-        void IterateValidScriptObjects(std::function<void(ScriptComponent&)>&& iterateFunc);
-
     private:
         entt::registry m_Registry;
         std::unordered_map<UUID, entt::entity> m_UUIDMap;

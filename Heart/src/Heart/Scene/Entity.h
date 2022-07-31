@@ -7,6 +7,8 @@
 
 namespace Heart
 {
+    class HString;
+    class Variant;
     class Entity
     {
     public:
@@ -65,7 +67,8 @@ namespace Heart
         void SetScale(glm::vec3 scale);
         void SetTransform(glm::vec3 pos, glm::vec3 rot, glm::vec3 scale);
 
-        void UpdateScriptInstanceData();
+        Variant GetScriptProperty(const HString& name);
+        void SetScriptProperty(const HString& name, const Variant& value);
 
     private:
         entt::entity m_EntityHandle = entt::null;

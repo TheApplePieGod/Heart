@@ -1,6 +1,9 @@
 #include "hepch.h"
 #include "Entity.h"
 
+#include "Heart/Container/HString.h"
+#include "Heart/Container/Variant.h"
+
 namespace Heart
 {
     Entity::Entity(Scene* scene, entt::entity handle)
@@ -74,10 +77,15 @@ namespace Heart
         m_Scene->CacheEntityTransform(*this);
     }
 
-    void Entity::UpdateScriptInstanceData()
+    Variant Entity::GetScriptProperty(const HString& name)
     {
         auto& comp = GetComponent<ScriptComponent>();
-        if (!comp.ObjectHandle) return;
-        
+        return comp.Instance.GetFieldValue(name);
+    }
+
+    void Entity::SetScriptProperty(const HString& name, const Variant& value)
+    {
+        auto& comp = GetComponent<ScriptComponent>();
+        comp.Instance.SetFieldValue(name, value);
     }
 }

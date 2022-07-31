@@ -1,12 +1,14 @@
 #pragma once
 
 #include "Heart/Scripting/ManagedCallbacks.h"
+#include "Heart/Scripting/ScriptClass.h"
 #include "Heart/Container/HVector.hpp"
 #include "Heart/Container/HString.h"
-#include "Heart/Core/Timestep.h"
 
 namespace Heart
 {
+    class Variant;
+    class Timestep;
     class ScriptingEngine
     {
     public:
@@ -20,12 +22,18 @@ namespace Heart
         static void DestroyObject(uptr handle);
         static bool InvokeFunction(uptr object, const HString& funcName, const HArray& args);
         static void InvokeEntityOnUpdate(uptr entity, Timestep timestep);
+        static Variant GetFieldValue(uptr entity, const HString& fieldName);
+        static bool SetFieldValue(uptr entity, const HString& fieldName, const Variant& value);
 
-        inline static const HVector<HString>& GetInstantiableClasses() { return s_InstantiableClasses; }
+        inline static bool IsClassInstantiable(const HString& name) { return s_InstantiableClasses.find(name) != s_InstantiableClasses.end(); }
+        inline static ScriptClass& GetInstantiableClass(const HString& name) { return s_InstantiableClasses[name]; }
+        inline static const auto& GetInstantiableClasses() { return s_InstantiableClasses; }
 
     private:
         inline static ManagedCallbacks s_CoreCallbacks;
         inline static bool s_ClientPluginLoaded;
-        inline static HVector<HString> s_InstantiableClasses;
+        inline static std::unordered_map<HString, ScriptClass> s_InstantiableClasses;
+
+        friend class ScriptClass;
     };
 }

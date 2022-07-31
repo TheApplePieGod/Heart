@@ -63,6 +63,20 @@ namespace Heart
         return HString();
     }
 
+    bool HString::operator==(const HString& other) const
+    {
+        switch (m_Encoding)
+        {
+            case Encoding::UTF8:
+            { return Compare(DataUTF8(), GetCountUTF8(), other.DataUTF8(), other.GetCountUTF8()); }
+            case Encoding::UTF16:
+            { return Compare(DataUTF16(), GetCountUTF16(), other.DataUTF16(), other.GetCountUTF16()); }
+        }
+
+        HE_ENGINE_ASSERT(false, "HString equality operator not fully implemented");
+        return false;
+    }
+
     void HString::operator=(const HString& other)
     {
         m_Encoding = other.m_Encoding;

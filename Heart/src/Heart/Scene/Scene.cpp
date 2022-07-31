@@ -244,19 +244,24 @@ namespace Heart
 
     void Scene::StartRuntime()
     {
-        HArray args;
-        IterateValidScriptObjects([](ScriptComponent& scriptComp) {
-            HArray args;
-            ScriptingEngine::InvokeFunction(scriptComp.ObjectHandle, "OnPlayStart", args);
-        });
+        // Call OnPlayStart lifecycle method
+        auto view = m_Registry.view<ScriptComponent>();
+        for (auto entity : view)
+        {
+            auto& scriptComp = view.get<ScriptComponent>(entity);
+            scriptComp.Instance.OnPlayStart();
+        }
     }
 
     void Scene::StopRuntime()
     {
-        IterateValidScriptObjects([](ScriptComponent& scriptComp) {
-            HArray args;
-            ScriptingEngine::InvokeFunction(scriptComp.ObjectHandle, "OnPlayEnd", args);
-        });
+        // Call OnPlayEnd lifecycle method
+        auto view = m_Registry.view<ScriptComponent>();
+        for (auto entity : view)
+        {
+            auto& scriptComp = view.get<ScriptComponent>(entity);
+            scriptComp.Instance.OnPlayEnd();
+        }
     }
 
     void Scene::OnUpdateRuntime(Timestep ts)
@@ -264,22 +269,12 @@ namespace Heart
         HE_PROFILE_FUNCTION();
         auto timer = AggregateTimer("Scene::OnUpdateRuntime");
 
-        IterateValidScriptObjects([ts](ScriptComponent& scriptComp) {
-            ScriptingEngine::InvokeEntityOnUpdate(scriptComp.ObjectHandle, ts);
-        });
-    }
-
-    void Scene::IterateValidScriptObjects(std::function<void(ScriptComponent&)>&& iterateFunc)
-    {
-        HE_PROFILE_FUNCTION();
-
-        auto group = m_Registry.view<ScriptComponent>();
-        for (auto entity : group)
+        // Call OnUpdate lifecycle method
+        auto view = m_Registry.view<ScriptComponent>();
+        for (auto entity : view)
         {
-            auto& scriptComp = group.get<ScriptComponent>(entity);
-            if (!scriptComp.ObjectHandle) continue;
-
-            iterateFunc(scriptComp);
+            auto& scriptComp = view.get<ScriptComponent>(entity);
+            scriptComp.Instance.OnUpdate(ts);
         }
     }
 
