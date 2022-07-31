@@ -1,5 +1,7 @@
 #pragma once
 
+#include "nlohmann/json.hpp"
+
 namespace Heart
 {
     class HArray;
@@ -48,4 +50,7 @@ namespace Heart
             u8 Any[16]; // Generic array of bytes to store arbitrary data
         } m_Data alignas(8); // See Variant.cs for details
     };
+
+    void to_json(nlohmann::json& j, const Variant& variant);
+    void from_json(const nlohmann::json& j, Variant& variant);
 }

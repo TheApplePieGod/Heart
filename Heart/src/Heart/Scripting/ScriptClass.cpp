@@ -2,7 +2,7 @@
 #include "ScriptClass.h"
 
 #include "Heart/Scripting/ScriptingEngine.h"
-#include "Heart/Container/HArray.hpp"
+#include "Heart/Container/HArray.h"
 
 namespace Heart
 {

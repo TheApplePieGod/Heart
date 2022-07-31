@@ -142,6 +142,12 @@ namespace Heart
 
     void to_json(nlohmann::json& j, const HString& str)
     {
+        if (str.Empty())
+        {
+            j = "";
+            return;
+        }
+        
         switch (str.GetEncoding())
         {
             default:
@@ -153,6 +159,8 @@ namespace Heart
 
     void from_json(const nlohmann::json& j, HString& str)
     {
+        if (!j.is_string()) return;
+        
         str = HString(j.get<const nlohmann::json::string_t*>()->c_str());
     }
 }

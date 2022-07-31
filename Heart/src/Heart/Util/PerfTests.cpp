@@ -3,7 +3,7 @@
 
 #include "Heart/Core/Timing.h"
 #include "Heart/Container/HVector.hpp"
-#include "Heart/Container/HArray.hpp"
+#include "Heart/Container/HArray.h"
 #include "Heart/Container/HString.h"
 
 namespace Heart

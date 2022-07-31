@@ -2,7 +2,7 @@
 #include "ScriptingEngine.h"
 
 #include "Heart/Core/Timestep.h"
-#include "Heart/Container/HArray.hpp"
+#include "Heart/Container/HArray.h"
 #include "Heart/Util/FilesystemUtils.h"
 #include "Heart/Util/PlatformUtils.h"
 #include "hostfxr.h"

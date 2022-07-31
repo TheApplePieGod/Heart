@@ -16,6 +16,8 @@ namespace Heart
 
         void ReloadSerializableFields();
 
+        inline const HVector<HString>& GetSerializableFields() const { return m_SerializableFields; }
+
     private:
         HString m_FullName;
         HVector<HString> m_SerializableFields;

@@ -2,6 +2,7 @@
 
 #include "Heart/Container/HVector.hpp"
 #include "Heart/Container/Variant.h"
+#include "nlohmann/json.hpp"
 
 namespace Heart
 {
@@ -47,4 +48,7 @@ namespace Heart
     private:
         HVector<Variant> m_Data;
     };
+
+    void to_json(nlohmann::json& j, const HArray& str);
+    void from_json(const nlohmann::json& j, HArray& str);
 }

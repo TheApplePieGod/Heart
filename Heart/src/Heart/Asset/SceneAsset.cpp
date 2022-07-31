@@ -115,7 +115,10 @@ namespace Heart
                     HString scriptClass = loaded["scriptComponent"]["type"];
                     comp.Instance = ScriptInstance(scriptClass);
                     if (!comp.Instance.IsInstantiable())
+                    {
                         comp.Instance.Instantiate();
+                        comp.Instance.LoadFieldsFromJson(loaded["scriptComponent"]["fields"]);
+                    }
                     entity.AddComponent<ScriptComponent>(comp);
                 }
             }
@@ -204,6 +207,7 @@ namespace Heart
                 {
                     auto& scriptComp = entity.GetComponent<ScriptComponent>();
                     entry["scriptComponent"]["type"] = scriptComp.Instance.GetScriptClass();
+                    entry["scriptComponent"]["fields"] = scriptComp.Instance.SerializeFieldsToJson();
                 }
 
                 field[index++] = entry;

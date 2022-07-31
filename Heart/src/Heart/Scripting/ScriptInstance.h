@@ -2,6 +2,7 @@
 
 #include "Heart/Core/UUID.h"
 #include "Heart/Container/HString.h"
+#include "nlohmann/json.hpp"
 
 namespace Heart
 {
@@ -27,10 +28,19 @@ namespace Heart
         Variant GetFieldValue(const HString& fieldName);
         bool SetFieldValue(const HString& fieldName, const Variant& value);
 
+        nlohmann::json SerializeFieldsToJson();
+        void* SerializeFieldsToBinary();
+        void LoadFieldsFromJson(const nlohmann::json& j);
+        void LoadFieldsFromBinary(void* data);
+
         inline uptr GetObjectHandle() const { return m_ObjectHandle; }
         inline const HString& GetScriptClass() const { return m_ScriptClass; }
         inline bool IsInstantiable() const { return !m_ScriptClass.Empty(); }
         inline bool IsAlive() const { return m_ObjectHandle != 0; }
+
+    private:
+        Variant GetFieldValueUnchecked(const HString& fieldName);
+        bool SetFieldValueUnchecked(const HString& fieldName, const Variant& value);
 
     private:
         uptr m_ObjectHandle = 0;

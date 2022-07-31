@@ -1,5 +1,6 @@
 ﻿using Heart.NativeInterop;
 using System;
+using System.Collections;
 using System.Runtime.InteropServices;
 
 namespace Heart.Container
@@ -24,6 +25,8 @@ namespace Heart.Container
                     return HStringToVariant(value);
                 case HArray value:
                     return HArrayToVariant(value);
+                case ICollection value:
+                    return ICollectionToVariant(value);
             }
 
             throw new NotImplementedException("C# Object -> Variant conversion not fully implemented");
@@ -70,6 +73,11 @@ namespace Heart.Container
         {
             Native_Variant_FromHArray(out var variant, value._internalVal);
             return variant;
+        }
+        public static Variant ICollectionToVariant(ICollection value)
+        {
+            HArray harr = new HArray(value);
+            return HArrayToVariant(harr);
         }
 
         [DllImport("__Internal")]

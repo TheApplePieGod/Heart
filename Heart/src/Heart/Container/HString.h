@@ -49,7 +49,6 @@ namespace Heart
         { Allocate<char16>(str.data(), str.length()); }
 
         u32 GetCount() const;
-
         HString Convert(Encoding encoding) const;
         HString ToUTF8() const;
         HString ToUTF16() const;

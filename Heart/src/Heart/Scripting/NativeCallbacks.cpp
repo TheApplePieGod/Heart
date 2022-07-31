@@ -1,7 +1,7 @@
 #include "hepch.h"
 
 #include "Heart/Core/Log.h"
-#include "Heart/Container/HArray.hpp"
+#include "Heart/Container/HArray.h"
 #include "Heart/Container/HString.h"
 
 #define HE_INTEROP_EXPORT_BASE extern "C" [[maybe_unused]]

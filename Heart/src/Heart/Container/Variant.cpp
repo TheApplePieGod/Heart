@@ -1,7 +1,7 @@
 #include "hepch.h"
 #include "Variant.h"
 
-#include "Heart/Container/HArray.hpp"
+#include "Heart/Container/HArray.h"
 #include "Heart/Container/HString.h"
 
 namespace Heart
@@ -34,7 +34,7 @@ namespace Heart
             { reinterpret_cast<HString*>(m_Data.Any)->~HString(); } return;
         }
 
-         return;
+        return;
         HE_ENGINE_ASSERT(false, "Variant destructor not fully implemented");
     }
 
@@ -63,5 +63,42 @@ namespace Heart
         }
 
         HE_ENGINE_ASSERT(false, "Variant copy constructor not fully implemented");
+    }
+
+    void to_json(nlohmann::json& j, const Variant& variant)
+    {
+        switch (variant.GetType())
+        {
+            default: return;
+            case Variant::Type::Bool:
+            { j = variant.Bool(); } return;
+            case Variant::Type::Int:
+            { j = variant.Int(); } return;
+            case Variant::Type::Float:
+            { j = variant.Float(); } return;
+            case Variant::Type::Array:
+            { j = variant.Array(); } return;
+            case Variant::Type::String:
+            { j = variant.String(); } return;
+        }
+    }
+
+    void from_json(const nlohmann::json& j, Variant& variant)
+    {
+        switch (j.type())
+        {
+            default: return;
+            case nlohmann::json::value_t::boolean:
+            { variant = Variant(j.get<bool>()); } return;
+            case nlohmann::json::value_t::number_integer:
+            case nlohmann::json::value_t::number_unsigned:
+            { variant = Variant(j.get<int>()); } return;
+            case nlohmann::json::value_t::number_float:
+            { variant = Variant(j.get<double>()); } return;
+            case nlohmann::json::value_t::array:
+            { variant = Variant(j.get<HArray>()); } return;
+            case nlohmann::json::value_t::string:
+            { variant = Variant(j.get<HString>()); } return;
+        }
     }
 }

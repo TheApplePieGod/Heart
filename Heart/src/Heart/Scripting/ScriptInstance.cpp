@@ -3,7 +3,7 @@
 
 #include "Heart/Core/Timestep.h"
 #include "Heart/Container/Variant.h"
-#include "Heart/Container/HArray.hpp"
+#include "Heart/Container/HArray.h"
 #include "Heart/Scripting/ScriptingEngine.h"
 
 namespace Heart
@@ -48,15 +48,61 @@ namespace Heart
         ScriptingEngine::InvokeEntityOnUpdate(m_ObjectHandle, ts);
     }
     
+    nlohmann::json ScriptInstance::SerializeFieldsToJson()
+    {
+        nlohmann::json j;
+        if (!IsAlive()) return j;
+
+        auto& scriptClassObj = ScriptingEngine::GetInstantiableClass(m_ScriptClass);
+        auto& fields = scriptClassObj.GetSerializableFields();
+
+        for (u32 i = 0; i < fields.GetCount(); i++)
+        {
+            Variant value = GetFieldValueUnchecked(fields[i]);
+            if (value.GetType() == Variant::Type::None) continue;
+            j[fields[i].DataUTF8()] = value;
+        }
+
+        return j;
+    }
+
+    void* ScriptInstance::SerializeFieldsToBinary()
+    {
+        return nullptr;
+    }
+
+    void ScriptInstance::LoadFieldsFromJson(const nlohmann::json& j)
+    {
+        if (!IsAlive()) return;
+        
+        for (auto it = j.begin(); it != j.end(); it++)
+            SetFieldValueUnchecked(it.key(), it.value());
+    }
+
+    void ScriptInstance::LoadFieldsFromBinary(void* data)
+    {
+        if (!IsAlive()) return;
+    }
+
     Variant ScriptInstance::GetFieldValue(const HString& fieldName)
     {
         if (!IsAlive()) return Variant();
-        return ScriptingEngine::GetFieldValue(m_ObjectHandle, fieldName);
+        return GetFieldValueUnchecked(fieldName);
     }
 
     bool ScriptInstance::SetFieldValue(const HString& fieldName, const Variant& value)
     {
         if (!IsAlive()) return false;
+        return SetFieldValueUnchecked(fieldName, value);
+    }
+    
+    Variant ScriptInstance::GetFieldValueUnchecked(const HString& fieldName)
+    {
+        return ScriptingEngine::GetFieldValue(m_ObjectHandle, fieldName);
+    }
+
+    bool ScriptInstance::SetFieldValueUnchecked(const HString& fieldName, const Variant& value)
+    {
         return ScriptingEngine::SetFieldValue(m_ObjectHandle, fieldName, value);
     }
 }

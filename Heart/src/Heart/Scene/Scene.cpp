@@ -2,7 +2,7 @@
 #include "Scene.h"
 
 #include "Heart/Core/Timing.h"
-#include "Heart/Container/HArray.hpp"
+#include "Heart/Container/HArray.h"
 #include "Heart/Scripting/ScriptingEngine.h"
 #include "Heart/Scene/Entity.h"
 #include "Heart/Scene/Components.h"
