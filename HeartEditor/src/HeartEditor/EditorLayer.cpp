@@ -124,7 +124,8 @@ namespace HeartEditor
 
     void EditorLayer::OnUpdate(Heart::Timestep ts)
     {
-        
+        if (Editor::GetSceneState() == SceneState::Playing)
+            Editor::GetActiveScene().OnUpdateRuntime(ts);
     }
 
     void EditorLayer::OnImGuiRender()

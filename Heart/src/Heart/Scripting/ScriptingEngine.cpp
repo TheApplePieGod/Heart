@@ -169,16 +169,22 @@ namespace Heart
 
     uptr ScriptingEngine::InstantiateObject(const HString& type)
     {
+        HE_PROFILE_FUNCTION();
+
         return (uptr)s_CoreCallbacks.ManagedObject_InstantiateClientObject(&type);
     }
 
     void ScriptingEngine::DestroyObject(uptr handle)
     {
+        HE_PROFILE_FUNCTION();
+        
         s_CoreCallbacks.ManagedObject_DestroyObject(handle);
     }
 
     bool ScriptingEngine::InvokeFunction(uptr object, const HString& funcName, const HArray& args)
     {
+        HE_PROFILE_FUNCTION();
+
         return s_CoreCallbacks.ManagedObject_InvokeFunction(object, &funcName, &args);
     }
 }

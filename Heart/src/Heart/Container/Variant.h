@@ -19,6 +19,7 @@ namespace Heart
         Variant(bool value);
         Variant(int value);
         Variant(float value);
+        Variant(double value);
         Variant(const HArray& array);
         Variant(const HString& str);
         Variant(const Variant& other) { Copy(other); }
@@ -28,7 +29,7 @@ namespace Heart
         inline void SetType(Type type) { m_Type = type; }
         inline bool Bool() const { return (bool)m_Data.Bool; }
         inline int Int() const { return m_Data.Int; }
-        inline float Float() const { return m_Data.Float; }
+        inline double Float() const { return m_Data.Float; }
         HArray Array() const;
         HString String() const;
 
@@ -43,7 +44,7 @@ namespace Heart
         {
             byte Bool; // For safety and complete parity with c# b/c bool is technically not required to be one byte
             int Int;
-            float Float;
+            double Float;
             u8 Any[16]; // Generic array of bytes to store arbitrary data
         } m_Data alignas(8); // See Variant.cs for details
     };

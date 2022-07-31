@@ -11,6 +11,8 @@ namespace Heart
     Variant::Variant(int value)
     { m_Type = Type::Int; m_Data.Int = value; }
     Variant::Variant(float value)
+    { m_Type = Type::Float; m_Data.Float = (double)value; }
+    Variant::Variant(double value)
     { m_Type = Type::Float; m_Data.Float = value; }
     Variant::Variant(const HArray& array)
     { m_Type = Type::Array; *reinterpret_cast<HArray*>(m_Data.Any) = array; }

@@ -1,6 +1,7 @@
 #include "hepch.h"
 #include "Scene.h"
 
+#include "Heart/Core/Timing.h"
 #include "Heart/Container/HArray.hpp"
 #include "Heart/Scripting/ScriptingEngine.h"
 #include "Heart/Scene/Entity.h"
@@ -253,8 +254,19 @@ namespace Heart
         InvokeFunctionOnScriptableEntities("OnPlayEnd", args);
     }
 
+    void Scene::OnUpdateRuntime(Timestep ts)
+    {
+        HE_PROFILE_FUNCTION();
+        auto timer = AggregateTimer("Scene::OnUpdateRuntime");
+
+        HArray args = { ts.StepMilliseconds() };
+        InvokeFunctionOnScriptableEntities("OnUpdate_Internal", args);
+    }
+
     bool Scene::InvokeFunctionOnScriptableEntities(const HString& funcName, const HArray& args)
     {
+        HE_PROFILE_FUNCTION();
+
         auto group = m_Registry.view<ScriptComponent>();
         for (auto entity : group)
         {

@@ -239,11 +239,11 @@ namespace Heart
         // Create the main framebuffer
         FramebufferCreateInfo fbCreateInfo = {
             {
-                { { -1.f, 0.f, 0.f, 0.f }, true, Heart::ColorFormat::R32F, m_EntityIdsTexture }, // entity id [0]
-                { { 0.f, 0.f, 0.f, 0.f }, false, Heart::ColorFormat::RGBA16F }, // transparency data [1]
-                { { 1.f, 0.f, 0.f, 0.f }, false, Heart::ColorFormat::R16F }, // transparency data [2]
-                { { 0.f, 0.f, 0.f, 0.f }, false, Heart::ColorFormat::RGBA16F, m_PreBloomTexture }, // pre-bloom target [3]
-                { { 0.f, 0.f, 0.f, 0.f }, false, Heart::ColorFormat::RGBA16F, m_BrightColorsTexture }, // bright colors target [4]
+                { { -1.f, 0.f, 0.f, 0.f }, true, ColorFormat::R32F, m_EntityIdsTexture }, // entity id [0]
+                { { 0.f, 0.f, 0.f, 0.f }, false, ColorFormat::RGBA16F }, // transparency data [1]
+                { { 1.f, 0.f, 0.f, 0.f }, false, ColorFormat::R16F }, // transparency data [2]
+                { { 0.f, 0.f, 0.f, 0.f }, false, ColorFormat::RGBA16F, m_PreBloomTexture }, // pre-bloom target [3]
+                { { 0.f, 0.f, 0.f, 0.f }, false, ColorFormat::RGBA16F, m_BrightColorsTexture }, // bright colors target [4]
             },
             {
                 {}
@@ -268,7 +268,7 @@ namespace Heart
             AssetManager::GetAssetUUID("engine/Skybox.frag", true),
             true,
             VertexTopology::TriangleList,
-            Heart::Mesh::GetVertexLayout(),
+            Mesh::GetVertexLayout(),
             { { false }, { false } },
             false,
             false,
@@ -294,7 +294,7 @@ namespace Heart
             AssetManager::GetAssetUUID("engine/PBR.frag", true),
             true,
             VertexTopology::TriangleList,
-            Heart::Mesh::GetVertexLayout(),
+            Mesh::GetVertexLayout(),
             { { false }, { false }, { false } },
             true,
             true,
@@ -307,7 +307,7 @@ namespace Heart
             AssetManager::GetAssetUUID("engine/PBRTransparentColor.frag", true),
             true,
             VertexTopology::TriangleList,
-            Heart::Mesh::GetVertexLayout(),
+            Mesh::GetVertexLayout(),
             { { false }, { true, BlendFactor::One, BlendFactor::One, BlendFactor::One, BlendFactor::One }, { true, BlendFactor::Zero, BlendFactor::OneMinusSrcColor, BlendFactor::Zero, BlendFactor::OneMinusSrcAlpha } },
             true,
             true,
@@ -320,7 +320,7 @@ namespace Heart
             AssetManager::GetAssetUUID("engine/TransparentComposite.frag", true),
             false,
             VertexTopology::TriangleList,
-            Heart::Mesh::GetVertexLayout(),
+            Mesh::GetVertexLayout(),
             { { true, BlendFactor::OneMinusSrcAlpha, BlendFactor::SrcAlpha, BlendFactor::SrcAlpha, BlendFactor::OneMinusSrcAlpha }, { false } },
             true,
             false,
@@ -338,7 +338,7 @@ namespace Heart
         // Create the bloom framebuffers
         FramebufferCreateInfo bloomFbCreateInfo = {
             {
-                { { 0.f, 0.f, 0.f, 0.f }, false, Heart::ColorFormat::None, m_BloomBufferTexture, 0, 0 },
+                { { 0.f, 0.f, 0.f, 0.f }, false, ColorFormat::None, m_BloomBufferTexture, 0, 0 },
             },
             {
                 {}
@@ -356,7 +356,7 @@ namespace Heart
             AssetManager::GetAssetUUID("engine/BloomHorizontal.frag", true),
             false,
             VertexTopology::TriangleList,
-            Heart::Mesh::GetVertexLayout(),
+            Mesh::GetVertexLayout(),
             { { false } },
             false,
             false,
@@ -395,7 +395,7 @@ namespace Heart
             {
                 // Starting after the bottom mip level, push back the second color attachment which will be the upsample buffer
                 bloomFbCreateInfo.ColorAttachments.push_back(
-                    { { 0.f, 0.f, 0.f, 0.f }, false, Heart::ColorFormat::None, m_BloomUpsampleBufferTexture, 0, static_cast<u32>(i) }
+                    { { 0.f, 0.f, 0.f, 0.f }, false, ColorFormat::None, m_BloomUpsampleBufferTexture, 0, static_cast<u32>(i) }
                 );
                 bloomFbCreateInfo.Subpasses[0].OutputAttachments.push_back(
                     { SubpassAttachmentType::Color, 1 }
@@ -441,7 +441,7 @@ namespace Heart
     void SceneRenderer::RenderScene(GraphicsContext& context, Scene* scene, const Camera& camera, glm::vec3 cameraPosition, const SceneRenderSettings& renderSettings)
     {
         HE_PROFILE_FUNCTION();
-        auto timer = Heart::AggregateTimer("SceneRenderer::RenderScene");
+        auto timer = AggregateTimer("SceneRenderer::RenderScene");
 
         HE_ENGINE_ASSERT(scene, "Scene cannot be nullptr");
 

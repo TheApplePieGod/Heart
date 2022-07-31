@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Heart/Renderer/EnvironmentMap.h"
+#include "Heart/Core/Timestep.h"
 #include "Heart/Core/UUID.h"
 #include "entt/entt.hpp"
 #include "glm/mat4x4.hpp"
@@ -38,6 +39,7 @@ namespace Heart
         void SetEnvironmentMap(UUID mapAsset);
         void StartRuntime();
         void StopRuntime();
+        void OnUpdateRuntime(Timestep ts);
 
         bool InvokeFunctionOnScriptableEntities(const HString& funcName, const HArray& args);
 

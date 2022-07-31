@@ -160,7 +160,11 @@ namespace Heart.Container
 
         public object SyncRoot => null;
 
-        internal bool Valid => _internalVal.IsValid();
+        internal bool Valid
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => _internalVal.IsValid();
+        }
 
         public unsafe int Count
         {

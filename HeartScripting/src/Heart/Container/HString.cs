@@ -67,7 +67,11 @@ namespace Heart.Container
             Native_HString_Copy(out *dst, _internalVal);
         }
 
-        internal bool Valid => _internalVal.IsValid();
+        internal bool Valid
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => _internalVal.IsValid();
+        }
 
         public Encoding Encoding
         {

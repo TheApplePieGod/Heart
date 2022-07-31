@@ -23,7 +23,7 @@ namespace Heart.Container
         {
             [FieldOffset(0)] public InteropBool Bool;
             [FieldOffset(0)] public int Int;
-            [FieldOffset(0)] public float Float;
+            [FieldOffset(0)] public double Float;
 
             // 'Any' mem fields
             [FieldOffset(0)] public HStringInternal String;
@@ -74,7 +74,7 @@ namespace Heart.Container
             set { _data.Int = value; _type = VariantType.Int; }
         }
 
-        public float Float
+        public double Float
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get => _data.Float;
