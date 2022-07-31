@@ -17,6 +17,7 @@ namespace Heart
 
         static uptr InstantiateObject(const HString& type);
         static void DestroyObject(uptr handle);
+        static bool InvokeFunction(uptr object, const HString& funcName, const HArray& args);
 
         inline static const HVector<HString>& GetInstantiableClasses() { return s_InstantiableClasses; }
 

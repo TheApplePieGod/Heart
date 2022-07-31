@@ -10,6 +10,18 @@ namespace Heart.Container
     internal unsafe struct HArrayInternal
     {
         [FieldOffset(0)] public Variant* Data;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ContainerInfo* GetInfo()
+        {
+            return (ContainerInfo*)Data - 1;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool IsValid()
+        {
+            return Data != null;
+        }
     }
 
     // Todo: typed version
@@ -115,6 +127,15 @@ namespace Heart.Container
             throw new NotImplementedException();
         }
 
+        public object[] ToObjectArray()
+        {
+            if (!Valid) return null;
+            object[] objects = new object[Count];
+            for (int i = 0; i < Count; i++)
+                objects[i] = this[i];
+            return objects;
+        }
+
         public unsafe object this[int index]
         {
             get
@@ -139,22 +160,18 @@ namespace Heart.Container
 
         public object SyncRoot => null;
 
+        internal bool Valid => _internalVal.IsValid();
+
         public unsafe int Count
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get { return (int)GetInfo()->ElemCount; }
+            get { return Valid ? (int)_internalVal.GetInfo()->ElemCount : 0; }
         }
 
-        private unsafe uint RefCount
+        internal unsafe uint RefCount
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get { return GetInfo()->RefCount; }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private unsafe ContainerInfo* GetInfo()
-        {
-            return (ContainerInfo*)_internalVal.Data - 1;
+            get { return Valid ? _internalVal.GetInfo()->RefCount : 0; }
         }
 
         [DllImport("__Internal")]

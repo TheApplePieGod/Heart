@@ -15,6 +15,18 @@ namespace Heart.Container
     {
         [FieldOffset(0)] public Encoding Encoding;
         [FieldOffset(8)] public void* Data;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ContainerInfo* GetInfo()
+        {
+            return (ContainerInfo*)Data - 1;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool IsValid()
+        {
+            return Data != null;
+        }
     }
 
     // Todo: typed version
@@ -55,6 +67,8 @@ namespace Heart.Container
             Native_HString_Copy(out *dst, _internalVal);
         }
 
+        internal bool Valid => _internalVal.IsValid();
+
         public Encoding Encoding
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -64,19 +78,13 @@ namespace Heart.Container
         public unsafe uint Length
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get { return GetInfo()->ElemCount; }
+            get { return Valid ? _internalVal.GetInfo()->ElemCount : 0; }
         }
 
         private unsafe uint RefCount
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get { return GetInfo()->RefCount; }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe ContainerInfo* GetInfo()
-        {
-            return (ContainerInfo*)_internalVal.Data - 1;
+            get { return Valid ? _internalVal.GetInfo()->RefCount : 0; }
         }
 
         [DllImport("__Internal")]

@@ -14,6 +14,7 @@ namespace Heart.NativeInterop
 
         internal static unsafe string HStringInternalToString(HStringInternal str)
         {
+            if (!str.IsValid()) return null;
 
             if (str.Encoding == Encoding.UTF8)
                 return Marshal.PtrToStringUTF8(new IntPtr(str.Data));

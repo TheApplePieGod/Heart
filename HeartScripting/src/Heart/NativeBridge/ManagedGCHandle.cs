@@ -109,12 +109,10 @@ namespace Heart.NativeBridge
                 handles.Clear();
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool IsAlive()
+        public bool IsAlive
             => _handle.IsAllocated;
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public object GetTarget()
+        public object Target
             => _handle.Target;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -562,7 +562,7 @@ namespace Heart
         auto group = m_Scene->GetRegistry().group<TransformComponent, MeshComponent>();
         for (auto entity : group)
         {
-            auto [transform, mesh] = group.get<TransformComponent, MeshComponent>(entity);
+            auto& [transform, mesh] = group.get<TransformComponent, MeshComponent>(entity);
 
             // Skip invalid meshes
             auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>(mesh.Mesh);

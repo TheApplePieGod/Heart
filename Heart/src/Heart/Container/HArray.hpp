@@ -11,12 +11,16 @@ namespace Heart
         ~HArray() = default;
         HArray() = default;
 
+        HArray(const HArray& other)
+            : m_Data(other.m_Data)
+        {}
+
         HArray(u32 elemCount, bool fill = true)
             : m_Data(elemCount, fill)
         {}
 
-        HArray(const HArray& other)
-            : m_Data(other.m_Data)
+        HArray(std::initializer_list<Variant> list)
+            : m_Data(list)
         {}
 
         inline void Add(const Variant& value) { m_Data.Add(value); }

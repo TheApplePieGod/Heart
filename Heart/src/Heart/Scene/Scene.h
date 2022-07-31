@@ -9,6 +9,8 @@
 namespace Heart
 {
     class Entity;
+    class HString;
+    class HArray;
     class Scene
     {
     public:
@@ -36,6 +38,8 @@ namespace Heart
         void SetEnvironmentMap(UUID mapAsset);
         void StartRuntime();
         void StopRuntime();
+
+        bool InvokeFunctionOnScriptableEntities(const HString& funcName, const HArray& args);
 
         inline entt::registry& GetRegistry() { return m_Registry; }
         inline EnvironmentMap* GetEnvironmentMap() { return m_EnvironmentMap.get(); }

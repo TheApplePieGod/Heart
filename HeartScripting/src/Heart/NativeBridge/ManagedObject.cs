@@ -36,11 +36,33 @@ namespace Heart.NativeBridge
         }
 
         [UnmanagedCallersOnly]
-        internal static void DestroyClientObject(IntPtr objectHandle)
+        internal static void DestroyObject(IntPtr objectHandle)
         {
             if (objectHandle == IntPtr.Zero) return;
 
             ManagedGCHandle.FromIntPtr(objectHandle).Free();
+        }
+
+        [UnmanagedCallersOnly]
+        internal static unsafe InteropBool InvokeFunction(IntPtr objectHandle, HStringInternal* funcNameStr, HArrayInternal* args)
+        {
+            if (objectHandle == IntPtr.Zero) return InteropBool.False;
+
+            var gcHandle = ManagedGCHandle.FromIntPtr(objectHandle);
+            if (!gcHandle.IsAlive) return InteropBool.False;
+
+            HArray argsArray = new HArray(*args);
+
+            string funcName = NativeMarshal.HStringInternalToString(*funcNameStr);
+            var func = gcHandle.Target.GetType()
+                .GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+                .Where(m => m.Name == funcName && m.GetParameters().Length == argsArray.Count)
+                .FirstOrDefault();
+            if (func == null) return InteropBool.False;
+
+            func.Invoke(gcHandle.Target, argsArray.ToObjectArray());
+
+            return InteropBool.True;
         }
     }
 }

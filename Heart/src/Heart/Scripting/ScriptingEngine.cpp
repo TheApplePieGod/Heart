@@ -174,6 +174,11 @@ namespace Heart
 
     void ScriptingEngine::DestroyObject(uptr handle)
     {
-        s_CoreCallbacks.ManagedObject_DestroyClientObject(handle);
+        s_CoreCallbacks.ManagedObject_DestroyObject(handle);
+    }
+
+    bool ScriptingEngine::InvokeFunction(uptr object, const HString& funcName, const HArray& args)
+    {
+        return s_CoreCallbacks.ManagedObject_InvokeFunction(object, &funcName, &args);
     }
 }

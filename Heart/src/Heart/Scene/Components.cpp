@@ -1,6 +1,7 @@
 #include "hepch.h"
 #include "Components.h"
 
+#include "Heart/Container/HArray.hpp"
 #include "Heart/Scripting/ScriptingEngine.h"
 
 namespace Heart

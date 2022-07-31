@@ -1,6 +1,8 @@
 #include "hepch.h"
 #include "Scene.h"
 
+#include "Heart/Container/HArray.hpp"
+#include "Heart/Scripting/ScriptingEngine.h"
 #include "Heart/Scene/Entity.h"
 #include "Heart/Scene/Components.h"
 #include "glm/gtx/matrix_decompose.hpp"
@@ -241,12 +243,28 @@ namespace Heart
 
     void Scene::StartRuntime()
     {
-
+        HArray args;
+        InvokeFunctionOnScriptableEntities("OnPlayStart", args);
     }
 
     void Scene::StopRuntime()
     {
+        HArray args;
+        InvokeFunctionOnScriptableEntities("OnPlayEnd", args);
+    }
 
+    bool Scene::InvokeFunctionOnScriptableEntities(const HString& funcName, const HArray& args)
+    {
+        auto group = m_Registry.view<ScriptComponent>();
+        for (auto entity : group)
+        {
+            auto& scriptComp = group.get<ScriptComponent>(entity);
+            if (!scriptComp.ObjectHandle) continue;
+
+            bool res = ScriptingEngine::InvokeFunction(scriptComp.ObjectHandle, funcName, args);
+            if (!res) return false;
+        }
+        return true;
     }
 
     Entity Scene::GetEntityFromUUID(UUID uuid)

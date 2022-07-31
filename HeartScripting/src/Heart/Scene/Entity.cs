@@ -8,6 +8,8 @@ namespace Heart.Scene
 {
     public abstract class Entity
     {
-        public virtual void TestEvent() {}
+        public virtual void OnPlayStart() {}
+        public virtual void OnPlayEnd() {}
+        public virtual void OnUpdate(float timestep) {}
     }
 }
