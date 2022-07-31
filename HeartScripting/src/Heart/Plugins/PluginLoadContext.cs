@@ -20,6 +20,22 @@ namespace Heart.Plugins
                 _resolver = new AssemblyDependencyResolver(pluginPath);
             }
 
+            public Assembly LoadWithoutLocking(string pluginPath)
+            {
+                // Load file directly to prevent file lock
+                using FileStream assemblyStream = File.OpenRead(pluginPath);
+
+                // Also load debug symbols if applicable
+                string pdbPath = Path.ChangeExtension(pluginPath, "pdb");
+                if (File.Exists(pdbPath))
+                {
+                    using FileStream pdbStream = File.OpenRead(pdbPath);
+                    return LoadFromStream(assemblyStream, pdbStream);
+                }
+
+                return LoadFromStream(assemblyStream);
+            }
+
             protected override Assembly Load(AssemblyName assemblyName)
             {
                 if (assemblyName == null)
@@ -32,18 +48,7 @@ namespace Heart.Plugins
                 if (assemblyPath == null)
                     return null;
 
-                // Load file directly to prevent file lock and allow hot reloading
-                using FileStream assemblyStream = File.OpenRead(assemblyPath);
-
-                // Also load debug symbols if applicable
-                string pdbPath = Path.ChangeExtension(assemblyPath, "pdb");
-                if (File.Exists(pdbPath))
-                {
-                    using FileStream pdbStream = File.OpenRead(pdbPath);
-                    return LoadFromStream(assemblyStream, pdbStream);
-                }
-
-                return LoadFromStream(assemblyStream);
+                return LoadWithoutLocking(assemblyPath);
             }
 
             protected override IntPtr LoadUnmanagedDll(string unmanagedDllName)
@@ -69,7 +74,7 @@ namespace Heart.Plugins
         public PluginLoadContext(string pluginPath)
         {
             _loadContext = new PluginLoadContextInternal(pluginPath);
-            _loadedAssembly = _loadContext.LoadFromAssemblyPath(pluginPath);
+            _loadedAssembly = _loadContext.LoadWithoutLocking(pluginPath);
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
