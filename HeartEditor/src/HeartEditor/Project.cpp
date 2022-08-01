@@ -86,13 +86,17 @@ namespace HeartEditor
         if (!data)
             throw std::exception();
 
-        // Clear active scene
+        // Cleanup editor state
         Editor::ClearScene();
+        Editor::DestroyWindows();
 
         // Finally update the assets directory to the project root
         Heart::AssetManager::UpdateAssetsDirectory(
             Heart::FilesystemUtils::GetParentDirectory(absolutePath)
         );
+
+        // Recreate editor windows
+        Editor::CreateWindows();
 
         // Refresh content browser directory list
         static_cast<Widgets::ContentBrowser&>(
