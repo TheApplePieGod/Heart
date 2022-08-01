@@ -9,7 +9,7 @@ namespace Heart
     std::unordered_map<UUID, AssetManager::UUIDEntry> AssetManager::s_UUIDs;
     std::unordered_map<std::string, AssetManager::AssetEntry> AssetManager::s_Registry;
     std::unordered_map<std::string, AssetManager::AssetEntry> AssetManager::s_Resources;
-    std::string AssetManager::s_AssetsDirectory = "D:/Projects/Heart/HeartEditor";
+    std::string AssetManager::s_AssetsDirectory;
     std::thread AssetManager::s_AssetThread;
     std::queue<AssetManager::LoadOperation> AssetManager::s_OperationQueue;
     std::mutex AssetManager::s_QueueLock;

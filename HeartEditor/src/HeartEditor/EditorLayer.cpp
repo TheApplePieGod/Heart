@@ -26,36 +26,6 @@ namespace HeartEditor
     EditorLayer::EditorLayer()
     {
         Editor::Initialize();
-
-        // auto entity = Editor::GetActiveScene().CreateEntity("Sponza");
-        // entity.AddComponent<Heart::MeshComponent>();
-        // entity.GetComponent<Heart::MeshComponent>().Mesh = Heart::AssetManager::GetAssetUUID("assets/meshes/Sponza/glTF/Sponza.gltf");
-
-        // auto entity = Editor::GetActiveScene().CreateEntity("Cube Entity");
-        // entity.AddComponent<Heart::MeshComponent>();
-        // entity.GetComponent<Heart::MeshComponent>().Mesh = Heart::AssetManager::GetAssetUUID("DefaultCube.gltf", true);
-
-        // auto& lightComp = entity.AddComponent<Heart::LightComponent>();
-        // lightComp.Color.a = 100.f;
-        // lightComp.LightType = Heart::LightComponent::Type::Directional;
-
-        // int max = 10;
-        // for (int i = 0; i < 5; i++)
-        // {
-        //     Heart::Entity entity = Editor::GetActiveScene().CreateEntity("Light " + std::to_string(i));
-        //     auto& comp = entity.AddComponent<Heart::PointLightComponent>();
-        //     //comp.LinearAttenuation = 1.f;
-        //     comp.Color = { (rand() % 255) / 255.f, (rand() % 255) / 255.f, (rand() % 255) / 255.f, rand() % 50 };
-        //     entity.SetPosition({ rand() % (max * 2) - max, rand() % (max * 2) - max, rand() % (max * 2) - max });
-        // }
-
-        // int max = 100;
-        // for (int i = 0; i < 400; i++)
-        // {
-        //     Heart::Entity entity = Editor::GetActiveScene().CreateEntity("Mesh " + std::to_string(i));
-        //     auto& comp = entity.AddComponent<Heart::MeshComponent>().Mesh = Heart::AssetManager::GetAssetUUID("assets/meshes/Sponza/glTF/Sponza.gltf");
-        //     entity.SetPosition({ rand() % (max * 2) - max, rand() % (max * 2) - max, rand() % (max * 2) - max });
-        // }
     }
 
     EditorLayer::~EditorLayer()

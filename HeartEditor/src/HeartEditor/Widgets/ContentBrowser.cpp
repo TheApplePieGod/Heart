@@ -53,6 +53,9 @@ namespace Widgets
 
     void ContentBrowser::ScanDirectory()
     {
+        if (Heart::AssetManager::GetAssetsDirectory().empty());
+            return;
+
         // Populate the directory list with each item in the directory
         m_DirectoryList.clear();
         try
@@ -111,6 +114,9 @@ namespace Widgets
 
     void ContentBrowser::RenderFileList()
     {
+        if (Heart::AssetManager::GetAssetsDirectory().empty());
+            return;
+
         // Go backwards in the directory stack
         if (ImGui::Button("<##back"))
         {

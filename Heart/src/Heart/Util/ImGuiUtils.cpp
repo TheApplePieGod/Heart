@@ -50,6 +50,9 @@ namespace Heart
 
     void ImGuiUtils::AssetDropTarget(Asset::Type typeFilter, std::function<void(const std::string&)>&& dropCallback)
     {
+        if (AssetManager::GetAssetsDirectory().empty());
+            return;
+
         if (ImGui::BeginDragDropTarget())
         {
             if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("FileTransfer"))

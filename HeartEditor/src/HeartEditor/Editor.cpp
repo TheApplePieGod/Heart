@@ -95,6 +95,16 @@ namespace HeartEditor
         s_EditorScene = scene;
         s_EditorState.SelectedEntity = Heart::Entity();
         s_EditorSceneAsset = 0; // Active scene cannot assume there will be a related asset
+
+        // int maxPos = 25;
+        // for (int i = 0; i < 500; i++)
+        // {
+        //     Heart::Entity entity = s_ActiveScene->CreateEntity("ScriptEntity " + std::to_string(i));
+        //     entity.AddComponent<Heart::ScriptComponent>().Instance = Heart::ScriptInstance("TestProject.Scripts.TestEntity");
+        //     entity.AddComponent<Heart::MeshComponent>().Mesh = Heart::AssetManager::GetAssetUUID("Assets/Meshes/Avocado/glTF/Avocado.gltf");
+        //     entity.SetPosition({ rand() % (maxPos * 2) - maxPos, rand() % (maxPos * 2) - maxPos, rand() % (maxPos * 2) - maxPos });
+        //     entity.SetScale({ 15.f, 15.f, 15.f });
+        // }
     }
 
     void Editor::OpenSceneFromAsset(Heart::UUID uuid)
