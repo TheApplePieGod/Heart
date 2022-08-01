@@ -24,11 +24,11 @@ namespace Widgets
     {
         m_SceneRenderer = Heart::CreateScope<Heart::SceneRenderer>();
         m_Scene = Heart::CreateRef<Heart::Scene>();
-        m_Scene->SetEnvironmentMap(Heart::AssetManager::GetAssetUUID("DefaultEnvironmentMap.hdr", true));
+        m_Scene->SetEnvironmentMap(Heart::AssetManager::GetAssetUUID("engine/DefaultEnvironmentMap.hdr", true));
 
         m_DemoEntity = m_Scene->CreateEntity("Demo Entity");
         m_DemoEntity.AddComponent<Heart::MeshComponent>();
-        m_DemoEntity.GetComponent<Heart::MeshComponent>().Mesh = Heart::AssetManager::GetAssetUUID("DefaultCube.gltf", true);
+        m_DemoEntity.GetComponent<Heart::MeshComponent>().Mesh = Heart::AssetManager::GetAssetUUID("engine/DefaultCube.gltf", true);
         m_DemoEntity.GetComponent<Heart::MeshComponent>().Materials.push_back(0);
 
         m_SceneCamera.UpdateViewMatrix({ 0.f, 0.f, 0.f }, m_Radius, 0, 0);

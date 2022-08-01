@@ -303,10 +303,11 @@ namespace Widgets
                         if (ImGui::MenuItem("Clear"))
                             scriptComp.Instance.Clear();
                     },
-                    [&scriptComp, &classes](u32 index)
+                    [&scriptComp, &classes, selectedEntity](u32 index)
                     {
+                        scriptComp.Instance.Destroy();
                         scriptComp.Instance = Heart::ScriptInstance(classes[index]);
-                        scriptComp.Instance.Instantiate();
+                        scriptComp.Instance.Instantiate(selectedEntity);
                     }
                 );
 

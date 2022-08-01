@@ -9,6 +9,7 @@ namespace Heart
 {
     class Variant;
     class Timestep;
+    class Scene;
     class ScriptingEngine
     {
     public:
@@ -18,7 +19,7 @@ namespace Heart
         static bool LoadClientPlugin(const std::string& absolutePath);
         static bool UnloadClientPlugin();
 
-        static uptr InstantiateObject(const HString& type);
+        static uptr InstantiateObject(const HString& type, u32 entityHandle, Scene* sceneHandle);
         static void DestroyObject(uptr handle);
         static bool InvokeFunction(uptr object, const HString& funcName, const HArray& args);
         static void InvokeEntityOnUpdate(uptr entity, Timestep timestep);

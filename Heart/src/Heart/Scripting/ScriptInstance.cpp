@@ -2,17 +2,23 @@
 #include "ScriptInstance.h"
 
 #include "Heart/Core/Timestep.h"
+#include "Heart/Scene/Scene.h"
+#include "Heart/Scene/Entity.h"
 #include "Heart/Container/Variant.h"
 #include "Heart/Container/HArray.h"
 #include "Heart/Scripting/ScriptingEngine.h"
 
 namespace Heart
 {
-    void ScriptInstance::Instantiate()
+    void ScriptInstance::Instantiate(Entity owner)
     {
         if (!IsInstantiable()) return;
         if (IsAlive()) Destroy();
-        m_ObjectHandle = ScriptingEngine::InstantiateObject(m_ScriptClass);
+        m_ObjectHandle = ScriptingEngine::InstantiateObject(
+            m_ScriptClass,
+            (u32)owner.GetHandle(),
+            owner.GetScene()
+        );
     }
 
     void ScriptInstance::Destroy()

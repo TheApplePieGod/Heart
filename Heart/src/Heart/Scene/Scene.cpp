@@ -11,7 +11,7 @@
 namespace Heart
 {
     template <>
-    void Scene::CopyComponent<ScriptComponent>(entt::entity src, entt::entity dst, entt::registry& dstRegisty)
+    void Scene::CopyComponent<ScriptComponent>(entt::entity src, Entity dst)
     {
         if (m_Registry.any_of<ScriptComponent>(src))
         {
@@ -21,10 +21,10 @@ namespace Heart
             // Reinstantiate a new object with copied fields
             // TODO: binary serialization will likely be faster
             newComp.Instance.ClearObjectHandle();
-            newComp.Instance.Instantiate();
+            newComp.Instance.Instantiate(dst);
             newComp.Instance.LoadFieldsFromJson(oldComp.Instance.SerializeFieldsToJson());
 
-            dstRegisty.emplace<ScriptComponent>(dst, newComp);
+            dst.AddComponent<ScriptComponent>(newComp);
         }
     }
 
@@ -89,10 +89,10 @@ namespace Heart
             }
         }
 
-        CopyComponent<TransformComponent>(source.GetHandle(), newEntityHandle, m_Registry);
-        CopyComponent<MeshComponent>(source.GetHandle(), newEntityHandle, m_Registry);
-        CopyComponent<LightComponent>(source.GetHandle(), newEntityHandle, m_Registry);
-        CopyComponent<ScriptComponent>(source.GetHandle(), newEntityHandle, m_Registry);
+        CopyComponent<TransformComponent>(source.GetHandle(), newEntity);
+        CopyComponent<MeshComponent>(source.GetHandle(), newEntity);
+        CopyComponent<LightComponent>(source.GetHandle(), newEntity);
+        CopyComponent<ScriptComponent>(source.GetHandle(), newEntity);
 
         CacheEntityTransform(newEntity);
 
@@ -231,14 +231,14 @@ namespace Heart
             newScene->m_UUIDMap[uuid] = dst.GetHandle(); // Update dst uuid mapping
             newScene->m_CachedTransforms[dst.GetHandle()] = m_CachedTransforms[src.GetHandle()]; // Copy this entity's cached transform
 
-            CopyComponent<IdComponent>(src.GetHandle(), dst.GetHandle(), newScene->GetRegistry());
-            CopyComponent<NameComponent>(src.GetHandle(), dst.GetHandle(), newScene->GetRegistry());
-            CopyComponent<ParentComponent>(src.GetHandle(), dst.GetHandle(), newScene->GetRegistry());
-            CopyComponent<ChildComponent>(src.GetHandle(), dst.GetHandle(), newScene->GetRegistry());
-            CopyComponent<TransformComponent>(src.GetHandle(), dst.GetHandle(), newScene->GetRegistry());
-            CopyComponent<MeshComponent>(src.GetHandle(), dst.GetHandle(), newScene->GetRegistry());
-            CopyComponent<LightComponent>(src.GetHandle(), dst.GetHandle(), newScene->GetRegistry());
-            CopyComponent<ScriptComponent>(src.GetHandle(), dst.GetHandle(), newScene->GetRegistry());
+            CopyComponent<IdComponent>(src.GetHandle(), dst);
+            CopyComponent<NameComponent>(src.GetHandle(), dst);
+            CopyComponent<ParentComponent>(src.GetHandle(), dst);
+            CopyComponent<ChildComponent>(src.GetHandle(), dst);
+            CopyComponent<TransformComponent>(src.GetHandle(), dst);
+            CopyComponent<MeshComponent>(src.GetHandle(), dst);
+            CopyComponent<LightComponent>(src.GetHandle(), dst);
+            CopyComponent<ScriptComponent>(src.GetHandle(), dst);
         });
 
         // Copy the environment map

@@ -82,6 +82,8 @@ namespace HeartEditor
         
         s_ActiveScene->StopRuntime();
         s_ActiveScene = s_EditorScene;
+
+        s_EditorState.SelectedEntity = Heart::Entity();
     }
 
     bool Editor::IsDirty()

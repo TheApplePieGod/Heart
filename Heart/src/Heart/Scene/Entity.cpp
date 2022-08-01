@@ -77,7 +77,7 @@ namespace Heart
         m_Scene->CacheEntityTransform(*this);
     }
 
-    Variant Entity::GetScriptProperty(const HString& name)
+    Variant Entity::GetScriptProperty(const HString& name) const
     {
         auto& comp = GetComponent<ScriptComponent>();
         return comp.Instance.GetFieldValue(name);

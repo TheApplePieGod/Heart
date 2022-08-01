@@ -1,4 +1,5 @@
 ﻿using Heart.Container;
+using Heart.Core;
 using Heart.NativeInterop;
 using Heart.Scene;
 using System;
@@ -11,11 +12,10 @@ using System.Runtime.Serialization;
 
 namespace Heart.NativeBridge
 {
-    // TODO: reflection caching
     public static class ManagedObject
     {
         [UnmanagedCallersOnly]
-        internal static unsafe IntPtr InstantiateClientObject(HStringInternal* objectTypeStr)
+        internal static unsafe IntPtr InstantiateClientEntity(HStringInternal* objectTypeStr, uint entityHandle, IntPtr sceneHandle)
         {
             if (EntryPoint.ClientAssembly == null) return IntPtr.Zero;
 
@@ -32,8 +32,13 @@ namespace Heart.NativeBridge
                 .Where(c => c.GetParameters().Length == 0)
                 .FirstOrDefault();
 
+            // Invoke
             if (constructor != null)
                 constructor.Invoke(instance, null);
+
+            // Set associated entity fields
+            ((Entity)instance)._entityHandle = entityHandle;
+            ((Entity)instance)._sceneHandle = sceneHandle;
 
             var handle = ManagedGCHandle.AllocStrong(instance);
             return handle.ToIntPtr();
@@ -68,8 +73,15 @@ namespace Heart.NativeBridge
             var func = FindFunction(gcHandle, funcName, argsArray.Count);
             if (func == null) return InteropBool.False;
 
-            func.Invoke(gcHandle.Target, argsArray.ToObjectArray());
-
+            try
+            {
+                func.Invoke(gcHandle.Target, argsArray.ToObjectArray());
+            } catch (Exception e)
+            {
+                Log.Error("Function '{0}' threw an exception: {1}", funcName, e.Message);
+                return InteropBool.False;
+            }
+            
             return InteropBool.True;
         }
 

@@ -8,6 +8,8 @@ namespace Heart
 {
     class Timestep;
     class Variant;
+    class Scene;
+    class Entity;
     class ScriptInstance
     {
     public:
@@ -18,7 +20,7 @@ namespace Heart
             : m_ScriptClass(scriptClass)
         {}
 
-        void Instantiate();
+        void Instantiate(Entity owner);
         void Destroy();
         void Clear();
 

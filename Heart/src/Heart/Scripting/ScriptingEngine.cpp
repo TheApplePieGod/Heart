@@ -2,6 +2,7 @@
 #include "ScriptingEngine.h"
 
 #include "Heart/Core/Timestep.h"
+#include "Heart/Scene/Scene.h"
 #include "Heart/Container/HArray.h"
 #include "Heart/Util/FilesystemUtils.h"
 #include "Heart/Util/PlatformUtils.h"
@@ -171,11 +172,11 @@ namespace Heart
         return false;
     }
 
-    uptr ScriptingEngine::InstantiateObject(const HString& type)
+    uptr ScriptingEngine::InstantiateObject(const HString& type, u32 entityHandle, Scene* sceneHandle)
     {
         HE_PROFILE_FUNCTION();
 
-        return (uptr)s_CoreCallbacks.ManagedObject_InstantiateClientObject(&type);
+        return (uptr)s_CoreCallbacks.ManagedObject_InstantiateClientEntity(&type, entityHandle, sceneHandle);
     }
 
     void ScriptingEngine::DestroyObject(uptr handle)

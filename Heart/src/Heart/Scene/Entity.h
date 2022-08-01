@@ -17,7 +17,7 @@ namespace Heart
         Entity() = default;
 
         template<typename Component>
-        bool HasComponent()
+        bool HasComponent() const
         {
             return m_Scene->GetRegistry().all_of<Component>(m_EntityHandle);
         }
@@ -37,7 +37,7 @@ namespace Heart
         }
 
         template<typename Component>
-        Component& GetComponent()
+        Component& GetComponent() const
         {
             HE_ENGINE_ASSERT(HasComponent<Component>(), "Cannot get, entity does not have component");
             return m_Scene->GetRegistry().get<Component>(m_EntityHandle);
@@ -46,15 +46,15 @@ namespace Heart
         bool IsValid();
         void Destroy();
         
-        inline Scene* GetScene() { return m_Scene; }
+        inline Scene* GetScene() const { return m_Scene; }
         inline entt::entity GetHandle() const { return m_EntityHandle; }
-        inline glm::vec3 GetPosition() { return GetComponent<TransformComponent>().Translation; }
-        inline glm::vec3 GetRotation() { return GetComponent<TransformComponent>().Rotation; }
-        inline glm::vec3 GetScale() { return GetComponent<TransformComponent>().Scale; }
-        inline glm::vec3 GetForwardVector() { return GetComponent<TransformComponent>().GetForwardVector(); }
-        inline glm::mat4x4 GetTransformMatrix() { return GetComponent<TransformComponent>().GetTransformMatrix(); }
-        inline UUID GetUUID() { return GetComponent<IdComponent>().UUID; }
-        inline const std::string& GetName() { return GetComponent<NameComponent>().Name; }
+        inline glm::vec3 GetPosition() const { return GetComponent<TransformComponent>().Translation; }
+        inline glm::vec3 GetRotation() const { return GetComponent<TransformComponent>().Rotation; }
+        inline glm::vec3 GetScale() const { return GetComponent<TransformComponent>().Scale; }
+        inline glm::vec3 GetForwardVector() const { return GetComponent<TransformComponent>().GetForwardVector(); }
+        inline glm::mat4x4 GetTransformMatrix() const { return GetComponent<TransformComponent>().GetTransformMatrix(); }
+        inline UUID GetUUID() const { return GetComponent<IdComponent>().UUID; }
+        inline const std::string& GetName() const { return GetComponent<NameComponent>().Name; }
 
         glm::vec3 GetWorldPosition();
         glm::vec3 GetWorldRotation();
@@ -67,7 +67,7 @@ namespace Heart
         void SetScale(glm::vec3 scale);
         void SetTransform(glm::vec3 pos, glm::vec3 rot, glm::vec3 scale);
 
-        Variant GetScriptProperty(const HString& name);
+        Variant GetScriptProperty(const HString& name) const;
         void SetScriptProperty(const HString& name, const Variant& value);
 
     private:

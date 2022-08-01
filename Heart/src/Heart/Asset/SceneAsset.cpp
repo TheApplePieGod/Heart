@@ -125,7 +125,7 @@ namespace Heart
                         }
                         else
                         {
-                            comp.Instance.Instantiate();
+                            comp.Instance.Instantiate(entity);
                             comp.Instance.LoadFieldsFromJson(loaded["scriptComponent"]["fields"]);
                         }
                     }

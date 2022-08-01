@@ -1,6 +1,9 @@
 #include "hepch.h"
 
 #include "Heart/Core/Log.h"
+#include "Heart/Scene/Components.h"
+#include "Heart/Scene/Scene.h"
+#include "Heart/Scene/Entity.h"
 #include "Heart/Container/HArray.h"
 #include "Heart/Container/HString.h"
 
@@ -21,6 +24,10 @@ HE_INTEROP_EXPORT void Native_Log(int level, const char* message)
     Heart::Logger::GetClientLogger().log(spdlog::source_loc{}, static_cast<spdlog::level::level_enum>(level), message);
 }
 
+/*
+ * HString Functions
+ */
+
 HE_INTEROP_EXPORT void Native_HString_Init(Heart::HString* str, const char16* value)
 {
     str->~HString();
@@ -37,6 +44,10 @@ HE_INTEROP_EXPORT void Native_HString_Copy(Heart::HString* dst, const Heart::HSt
     dst->~HString();
     HE_PLACEMENT_NEW(dst, Heart::HString, *src);
 }
+
+/*
+ * HArray Functions
+ */
 
 HE_INTEROP_EXPORT void Native_HArray_Init(Heart::HArray* array)
 {
@@ -61,6 +72,10 @@ HE_INTEROP_EXPORT void Native_HArray_Add(Heart::HArray* array, const Heart::Vari
     array->Add(*value);
 }
 
+/*
+ * Variant Functions
+ */
+
 HE_INTEROP_EXPORT void Native_Variant_FromHArray(Heart::Variant* variant, const Heart::HArray* value)
 {
     HE_PLACEMENT_NEW(variant, Heart::Variant, *value);
@@ -74,6 +89,31 @@ HE_INTEROP_EXPORT void Native_Variant_FromHString(Heart::Variant* variant, const
 HE_INTEROP_EXPORT void Native_Variant_Destroy(Heart::Variant* variant)
 {
     variant->~Variant();
+}
+
+/*
+ * Component Functions
+ */
+
+inline bool ComponentHandlesValid(u32 entityHandle, Heart::Scene* sceneHandle)
+{ return sceneHandle && entityHandle != std::numeric_limits<u32>::max(); }
+
+HE_INTEROP_EXPORT void Native_TransformComponent_Get(u32 entityHandle, Heart::Scene* sceneHandle, Heart::TransformComponent** outComp)
+{
+    if (!ComponentHandlesValid(entityHandle, sceneHandle))
+    {
+        *outComp = nullptr;
+        return;
+    }
+    Heart::Entity entity(sceneHandle, entityHandle);
+    *outComp = &entity.GetComponent<Heart::TransformComponent>();
+}
+
+HE_INTEROP_EXPORT void Native_TransformComponent_CacheTransform(u32 entityHandle, Heart::Scene* sceneHandle)
+{
+    if (!ComponentHandlesValid(entityHandle, sceneHandle))
+        return;
+    sceneHandle->CacheEntityTransform({ sceneHandle, entityHandle });
 }
 
 // We need this in order to ensure that the dllexports inside the engine static lib
