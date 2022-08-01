@@ -65,6 +65,13 @@ namespace Heart
 
     bool HString::operator==(const HString& other) const
     {
+        if (other.m_Encoding != m_Encoding)
+        {
+            HE_ENGINE_LOG_ERROR("Attempting to compare two HStrings with different encodings, aborting");
+            HE_ENGINE_ASSERT(false);
+            return false;
+        }
+
         switch (m_Encoding)
         {
             case Encoding::UTF8:

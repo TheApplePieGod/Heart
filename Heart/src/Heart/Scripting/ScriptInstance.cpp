@@ -68,6 +68,13 @@ namespace Heart
 
     void* ScriptInstance::SerializeFieldsToBinary()
     {
+        if (!IsAlive()) return nullptr;
+
+        auto& scriptClassObj = ScriptingEngine::GetInstantiableClass(m_ScriptClass);
+        auto& fields = scriptClassObj.GetSerializableFields();
+
+        HE_ENGINE_ASSERT(false, "Not implemented");
+    
         return nullptr;
     }
 
@@ -84,7 +91,14 @@ namespace Heart
 
     void ScriptInstance::LoadFieldsFromBinary(void* data)
     {
-        if (!IsAlive()) return;
+        if (!data || !IsAlive()) return;
+
+        HE_ENGINE_ASSERT(false, "Not implemented");
+    }
+
+    bool ScriptInstance::ValidateClass()
+    {
+        return Heart::ScriptingEngine::IsClassInstantiable(m_ScriptClass);
     }
 
     Variant ScriptInstance::GetFieldValue(const HString& fieldName) const

@@ -166,6 +166,42 @@ namespace HeartEditor
             return;
         }
 
+        // Serialize object state of all alive scripts
+        auto view = Editor::GetActiveScene().GetRegistry().view<Heart::ScriptComponent>();
+        std::unordered_map<entt::entity, nlohmann::json> serializedObjects;
+        for (auto entity : view)
+        {
+            auto& scriptComp = view.get<Heart::ScriptComponent>(entity);
+            if (!scriptComp.Instance.IsAlive()) continue;
+            
+            serializedObjects[entity] = scriptComp.Instance.SerializeFieldsToJson();
+        }
+
+        // Reload
         Heart::ScriptingEngine::LoadClientPlugin(assemblyPath.u8string());
+
+        // Reinstantiate objects and load serialized properties
+        for (auto entity : view)
+        {
+            auto& scriptComp = view.get<Heart::ScriptComponent>(entity);
+            if (!scriptComp.Instance.IsInstantiable())
+                continue;
+            
+            // We need to ensure that the class still exists & is instantiable after the reload
+            // before we try and reinstantiate it
+            scriptComp.Instance.ClearObjectHandle();
+            if (!scriptComp.Instance.ValidateClass())
+            {
+                HE_ENGINE_LOG_WARN(
+                    "Class '{0}' referenced in scene is no longer instantiable",
+                    scriptComp.Instance.GetScriptClass().DataUTF8()
+                );
+                continue;
+            }
+
+            // Reinstantiate
+            scriptComp.Instance.Instantiate();
+            scriptComp.Instance.LoadFieldsFromJson(serializedObjects[entity]);
+        }
     }
 }

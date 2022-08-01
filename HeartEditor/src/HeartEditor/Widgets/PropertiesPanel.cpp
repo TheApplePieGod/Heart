@@ -384,7 +384,7 @@ namespace Widgets
         {
             default:
             {
-                ImGui::Text("Unsupported type");
+                ImGui::Text("[Edit not implemented]");
             } break;
             case Heart::Variant::Type::Bool:
             {

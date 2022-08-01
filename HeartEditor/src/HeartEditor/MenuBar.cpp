@@ -37,8 +37,13 @@ namespace HeartEditor
                 {
                     if (Project::GetActiveProject())
                     {
+                        bool disabled = Editor::GetSceneState() != SceneState::Editing;
+                        if (disabled)
+                            ImGui::BeginDisabled();
                         if (ImGui::MenuItem("Reload Client Scripts"))
                             Project::GetActiveProject()->LoadScriptsPlugin();
+                        if (disabled)
+                            ImGui::EndDisabled();
                         ImGui::Separator();
                     }
 

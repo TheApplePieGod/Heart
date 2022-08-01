@@ -116,8 +116,18 @@ namespace Heart
                     comp.Instance = ScriptInstance(scriptClass);
                     if (comp.Instance.IsInstantiable())
                     {
-                        comp.Instance.Instantiate();
-                        comp.Instance.LoadFieldsFromJson(loaded["scriptComponent"]["fields"]);
+                        if (!comp.Instance.ValidateClass())
+                        {
+                            HE_ENGINE_LOG_WARN(
+                                "Class '{0}' referenced in scene is no longer instantiable",
+                                scriptClass.DataUTF8()
+                            );
+                        }
+                        else
+                        {
+                            comp.Instance.Instantiate();
+                            comp.Instance.LoadFieldsFromJson(loaded["scriptComponent"]["fields"]);
+                        }
                     }
                     entity.AddComponent<ScriptComponent>(comp);
                 }

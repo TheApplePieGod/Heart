@@ -99,6 +99,7 @@ namespace Heart
         bool Compare(const T* str1, u32 len1, const T* str2, u32 len2) const
         {
             if (!str1 || !str2) return false;
+            if (len1 != len2) return false;
             u32 ptr = 0;
             while (ptr < len1 && ptr < len2)
             {

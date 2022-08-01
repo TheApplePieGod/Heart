@@ -10,6 +10,24 @@
 
 namespace Heart
 {
+    template <>
+    void Scene::CopyComponent<ScriptComponent>(entt::entity src, entt::entity dst, entt::registry& dstRegisty)
+    {
+        if (m_Registry.any_of<ScriptComponent>(src))
+        {
+            auto& oldComp = m_Registry.get<ScriptComponent>(src);
+            ScriptComponent newComp = oldComp;
+
+            // Reinstantiate a new object with copied fields
+            // TODO: binary serialization will likely be faster
+            newComp.Instance.ClearObjectHandle();
+            newComp.Instance.Instantiate();
+            newComp.Instance.LoadFieldsFromJson(oldComp.Instance.SerializeFieldsToJson());
+
+            dstRegisty.emplace<ScriptComponent>(dst, newComp);
+        }
+    }
+
     Scene::Scene()
     {
         
@@ -17,7 +35,13 @@ namespace Heart
 
     Scene::~Scene()
     {
-
+        // Ensure all script objects have been destroyed
+        auto view = m_Registry.view<ScriptComponent>();
+        for (auto entity : view)
+        {
+            auto& scriptComp = view.get<ScriptComponent>(entity);
+            scriptComp.Instance.Destroy();
+        }
     }
 
     Entity Scene::CreateEntity(const std::string& name)
