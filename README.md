@@ -54,7 +54,7 @@ Setting up Heart Engine is relatively simple, and it utilizes CMake and git subm
 - [CMake](https://cmake.org/download/) >= 3.16
 - [VulkanSDK](https://vulkan.lunarg.com/) >= 1.2.198
     - Make sure to include the 64-bit debuggable shader API libraries when installing
-- [C# Mono](https://www.mono-project.com/download/stable/) >= 6.12
+- [.NET Core SDK](https://dotnet.microsoft.com/en-us/download/dotnet) >= 6.0
 
 ## General Setup
 
@@ -62,7 +62,7 @@ Regardless of how you intend to use Heart Engine, you'll want to follow these in
 
 1. Clone the repo using the `--recursive` flag to ensure all submodules are downloaded
 2. Make sure the VulkanSDK is accessable via the `${VULKAN_SDK}` environment variable (this should happen automatically with the installer)
-3. Make sure Mono is accessable via the `${MONO_HOME}` environment variable
+3. Make sure the .NET SDK is accessable via the `${DOTNET_SDK}` environment variable
 4. Create a `build` directory in the project root
 
 ## Editor Setup
