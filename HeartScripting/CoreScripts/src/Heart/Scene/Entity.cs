@@ -20,14 +20,14 @@ namespace Heart.Scene
         {
             switch (typeof(T))
             {
-                default:
-                    return default(T);
                 case var t when t == typeof(TransformComponent):
                     {
                         var comp = new TransformComponent(_entityHandle, _sceneHandle);
                         return Unsafe.As<TransformComponent, T>(ref comp);
                     }
             }
+
+            throw new NotImplementedException("GetComponent does not support " + typeof(T).FullName);
         }
 
         // Internal fields
