@@ -34,6 +34,20 @@ namespace Heart
         }
     }
 
+    bool ImGuiUtils::InputText(const char* id, HString& text)
+    {
+        char buffer[128];
+        memset(buffer, 0, sizeof(buffer));
+        std::strncpy(buffer, text.DataUTF8(), sizeof(buffer));
+        if (ImGui::InputText(id, buffer, sizeof(buffer)))
+        {
+            ImGui::SetKeyboardFocusHere(-1);
+            text = buffer;
+            return true;
+        }
+        return false;
+    }
+
     void ImGuiUtils::AssetDropTarget(Asset::Type typeFilter, std::function<void(const std::string&)>&& dropCallback)
     {
         if (ImGui::BeginDragDropTarget())

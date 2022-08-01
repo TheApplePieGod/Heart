@@ -312,11 +312,12 @@ namespace Widgets
 
                 if (scriptComp.Instance.IsAlive())
                 {
-                    ImGui::Indent();
+                    ImGui::Dummy({ 0.f, 5.f });
+                    ImGui::Text("Properties");
+                    ImGui::Separator();
                     auto& fields = Heart::ScriptingEngine::GetInstantiableClass(scriptComp.Instance.GetScriptClass()).GetSerializableFields();
                     for (auto& val : fields)
                         RenderScriptField(val, scriptComp);
-                    ImGui::Unindent();
                 }
 
                 ImGui::Unindent();
@@ -402,6 +403,12 @@ namespace Widgets
                 float intermediate = (float)value.Float();
                 if (ImGui::DragFloat(widgetId.DataUTF8(), &intermediate, 0.1f, -1000.0f, 1000.f, "%.2f"))
                     scriptComp.Instance.SetFieldValue(fieldName, intermediate);
+            } break;
+            case Heart::Variant::Type::String:
+            {
+                Heart::HString intermediate = value.String().ToUTF8();
+                if (Heart::ImGuiUtils::InputText(widgetId.DataUTF8(), intermediate))
+                    scriptComp.Instance.SetFieldValue(fieldName, intermediate.ToUTF16());
             } break;
         }
     }

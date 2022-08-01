@@ -65,6 +65,7 @@ namespace SourceGenerators
         )
         {
             StringBuilder sb = new ();
+            sb.Append("using System;\n");
             sb.Append("using System.Linq;\n");
             sb.Append("using Heart.Container;\n");
             sb.Append("namespace ");
@@ -102,9 +103,7 @@ namespace SourceGenerators
                     bool fieldIsCollection = namedTypeSymbol.Interfaces.Any(s => s.Name == "ICollection");
                     string fieldContainedType = "";
                     if (fieldIsCollection && namedTypeSymbol.IsGenericType)
-                    {
                         fieldContainedType = namedTypeSymbol.TypeArguments[0].FullName();
-                    }
 
                     sb.Append("case \"");
                     sb.Append(fieldName);
@@ -120,10 +119,21 @@ namespace SourceGenerators
                     {
                         sb.Append("harr.ToObjectArray().Cast<");
                         sb.Append(fieldContainedType);
-                        sb.Append(">().ToList();\n");
+                        if (namedTypeSymbol.SpecialType == SpecialType.System_Array)
+                            sb.Append(">().ToArray();\n");
+                        else
+                            sb.Append(">().ToList();\n");
                     }
                     else
-                        sb.Append("VariantConverter.VariantToObject(value);\n");
+                    {
+                        // Runtime error if we don't do a special cast from underlying double type to float
+                        if (fieldTypeName == "float")
+                            sb.Append("Convert.ToSingle(");
+                        sb.Append("VariantConverter.VariantToObject(value)");
+                        if (fieldTypeName == "float")
+                            sb.Append(")");
+                        sb.Append(";\n");
+                    }
 
                     sb.Append("} return true;\n");
                 }

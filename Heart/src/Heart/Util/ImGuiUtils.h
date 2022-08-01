@@ -14,6 +14,7 @@ namespace Heart
     {
         static void RenderTooltip(const std::string& text);
         static void InputText(const char* id, std::string& text);
+        static bool InputText(const char* id, HString& text);
 
         static void AssetDropTarget(Asset::Type typeFilter, std::function<void(const std::string&)>&& dropCallback);
         static void ResizableWindowSplitter(
