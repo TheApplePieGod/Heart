@@ -12,6 +12,11 @@ namespace Heart
     {
     public:
         ScriptInstance() = default;
+        ~ScriptInstance()
+        {
+            if (IsAlive())
+                HE_ENGINE_LOG_WARN("Script instance destructor");
+        }
 
         ScriptInstance(const HString& scriptClass)
             : m_ScriptClass(scriptClass)
@@ -25,7 +30,7 @@ namespace Heart
         void OnPlayEnd();
         void OnUpdate(Timestep ts);
 
-        Variant GetFieldValue(const HString& fieldName);
+        Variant GetFieldValue(const HString& fieldName) const;
         bool SetFieldValue(const HString& fieldName, const Variant& value);
 
         nlohmann::json SerializeFieldsToJson();
@@ -39,7 +44,7 @@ namespace Heart
         inline bool IsAlive() const { return m_ObjectHandle != 0; }
 
     private:
-        Variant GetFieldValueUnchecked(const HString& fieldName);
+        Variant GetFieldValueUnchecked(const HString& fieldName) const;
         bool SetFieldValueUnchecked(const HString& fieldName, const Variant& value);
 
     private:

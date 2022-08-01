@@ -11,7 +11,7 @@ namespace Heart.Container
     }
 
     [StructLayout(LayoutKind.Explicit, Size=16)]
-    internal unsafe struct HStringInternal
+    public unsafe struct HStringInternal
     {
         [FieldOffset(0)] public Encoding Encoding;
         [FieldOffset(8)] public void* Data;

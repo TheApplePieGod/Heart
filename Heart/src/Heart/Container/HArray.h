@@ -40,6 +40,10 @@ namespace Heart
         inline Variant& operator[](u32 index) const { return m_Data[index]; }
         inline void operator=(const HArray& other) { m_Data = other.m_Data; }
 
+        // For range loops
+        inline Variant* begin() const { return Begin(); }
+        inline Variant* end() const { return End(); }
+
     private:
         HArray(const HVector<Variant>& data)
             : m_Data(data)

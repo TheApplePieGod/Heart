@@ -1,0 +1,3 @@
+bin/*
+CoreScripts/obj/*
+SourceGenerators/obj/*

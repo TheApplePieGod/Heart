@@ -76,7 +76,10 @@ namespace Heart
         if (!IsAlive()) return;
         
         for (auto it = j.begin(); it != j.end(); it++)
+        {
+            Variant d = it.value();
             SetFieldValueUnchecked(it.key(), it.value());
+        }
     }
 
     void ScriptInstance::LoadFieldsFromBinary(void* data)
@@ -84,7 +87,7 @@ namespace Heart
         if (!IsAlive()) return;
     }
 
-    Variant ScriptInstance::GetFieldValue(const HString& fieldName)
+    Variant ScriptInstance::GetFieldValue(const HString& fieldName) const
     {
         if (!IsAlive()) return Variant();
         return GetFieldValueUnchecked(fieldName);
@@ -96,7 +99,7 @@ namespace Heart
         return SetFieldValueUnchecked(fieldName, value);
     }
     
-    Variant ScriptInstance::GetFieldValueUnchecked(const HString& fieldName)
+    Variant ScriptInstance::GetFieldValueUnchecked(const HString& fieldName) const
     {
         return ScriptingEngine::GetFieldValue(m_ObjectHandle, fieldName);
     }

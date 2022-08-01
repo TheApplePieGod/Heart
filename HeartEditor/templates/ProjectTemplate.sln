@@ -7,20 +7,16 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "${PROJECT_NAME}", "${PROJEC
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Heart", "Heart", "{1FF21AC6-DCF0-4B1C-B503-94BC27BE1672}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CoreScripts", "${CORE_PROJECT_PATH}", "{5A79209B-614D-3D77-9B9E-40CE4C3BBF70}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CoreScripts", "${SCRIPTS_ROOT_PATH}/CoreScripts/CoreScripts.csproj", "{5A79209B-614D-3D77-9B9E-40CE4C3BBF70}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
-		Debug|x64 = Debug|x64
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{99F8AE62-56BA-4379-89F9-D3DD9D5C9D6F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{99F8AE62-56BA-4379-89F9-D3DD9D5C9D6F}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{99F8AE62-56BA-4379-89F9-D3DD9D5C9D6F}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{99F8AE62-56BA-4379-89F9-D3DD9D5C9D6F}.Debug|x64.Build.0 = Debug|Any CPU
 		{5A79209B-614D-3D77-9B9E-40CE4C3BBF70}.Debug|Any CPU.ActiveCfg = Debug|x64
-		{5A79209B-614D-3D77-9B9E-40CE4C3BBF70}.Debug|x64.ActiveCfg = Debug|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -1,6 +1,8 @@
 ﻿using Heart.Container;
 using Heart.NativeInterop;
+using Heart.Scene;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -97,12 +99,9 @@ namespace Heart.NativeBridge
             if (gcHandle != null && !gcHandle.IsAlive) return InteropBool.False;
 
             string fieldName = NativeMarshal.HStringInternalToString(*fieldNameStr);
-            var field = FindField(gcHandle, fieldName);
-            if (field == null) return InteropBool.False;
-
-            field.SetValue(gcHandle.Target, VariantConverter.VariantToObject(value));
-
-            return InteropBool.True;
+            return NativeMarshal.BoolToInteropBool(
+                ((Entity)gcHandle.Target).GENERATED_SetField(fieldName, value)
+            );
         }
     }
 }

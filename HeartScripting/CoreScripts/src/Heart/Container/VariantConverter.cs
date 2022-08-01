@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 
 namespace Heart.Container
 {
-    internal static class VariantConverter
+    public static class VariantConverter
     {
         public static Variant ObjectToVariant(object obj)
         {
@@ -39,7 +39,7 @@ namespace Heart.Container
                 case VariantType.None:
                     return null;
                 case VariantType.Bool:
-                    return variant.Bool;
+                    return NativeMarshal.InteropBoolToBool(variant.Bool);
                 case VariantType.Int:
                     return variant.Int;
                 case VariantType.Float:

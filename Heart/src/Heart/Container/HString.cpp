@@ -121,9 +121,7 @@ namespace Heart
             return HString();
         }
 
-        const char8* data[2] = { DataUTF8(), other };
-        u32 lens[2] = { GetCountUTF8(), 0 };
-        return HString(data, lens, 2);
+        return AddPtr<char8>(other, false);
     }
 
     HString HString::operator+(const char16* other) const
@@ -135,9 +133,31 @@ namespace Heart
             return HString();
         }
 
-        const char16* data[2] = { DataUTF16(), other };
-        u32 lens[2] = { GetCountUTF16(), 0 };
-        return HString(data, lens, 2);
+        return AddPtr<char16>(other, false);
+    }
+
+    HString operator+(const char8* left, const HString& right)
+    {
+        if (right.GetEncoding() != HString::Encoding::UTF8)
+        {
+            HE_ENGINE_LOG_ERROR("Attempting to add UTF8 characters to a non-UTF8 HString, aborting");
+            HE_ENGINE_ASSERT(false);
+            return HString();
+        }
+
+        return right.AddPtr<char8>(left, true);
+    }
+
+    HString operator+(const char16* left, const HString& right)
+    {
+        if (right.GetEncoding() != HString::Encoding::UTF16)
+        {
+            HE_ENGINE_LOG_ERROR("Attempting to add UTF16 characters to a non-UTF16 HString, aborting");
+            HE_ENGINE_ASSERT(false);
+            return HString();
+        }
+
+        return right.AddPtr<char16>(left, true);
     }
 
     void to_json(nlohmann::json& j, const HString& str)

@@ -16,7 +16,7 @@ namespace Heart.Container
     // or the native destructor will automatically run if stored in an HArray and
     // cleaned up
     [StructLayout(LayoutKind.Explicit, Size=24)]
-    internal ref struct Variant
+    public ref struct Variant
     {
         [StructLayout(LayoutKind.Explicit, Size=16)]
         private unsafe ref struct Data

@@ -19,7 +19,7 @@ namespace Heart
     {
         if (!j.is_array()) return;
 
-        array.Resize(j.size(), false);
+        array.Reserve(j.size());
         for (auto it = j.begin(); it != j.end(); it++)
             array.Add(it.value());
     }

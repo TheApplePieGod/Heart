@@ -101,6 +101,10 @@ namespace Heart
         inline T& operator[](u32 index) const { return m_Container[index]; }
         inline void operator=(const HVector& other) { m_Container = other.m_Container; }
 
+        // For range loops
+        inline T* begin() const { return Begin(); }
+        inline T* end() const { return End(); }
+
     private:
         HVector(const Container<T>& container)
             : m_Container(container)

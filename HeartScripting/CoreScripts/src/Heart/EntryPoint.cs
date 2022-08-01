@@ -40,7 +40,6 @@ namespace Heart
 
             //Test();
             //Test2();
-            Test3();
             //GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced);
             //GC.WaitForPendingFinalizers();
 
@@ -127,16 +126,6 @@ namespace Heart
                 int elapsed = Environment.TickCount - startTime;
                 Log.Warn("Add nested arrays took {0}ms", elapsed);
             }
-        }
-
-        private class TestEntity : Entity
-        {
-            public int test = 5;
-        }
-
-        private static void Test3()
-        {
-            
         }
     }
 }

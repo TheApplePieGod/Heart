@@ -78,6 +78,8 @@ namespace Heart
         HString operator+(const HString& other) const;
         HString operator+(const char8* other) const;
         HString operator+(const char16* other) const;
+        friend HString operator+(const char8* left, const HString& right);
+        friend HString operator+(const char16* other, const HString& right);
 
     private:
         HString(const Container<u8>& container)
@@ -138,6 +140,22 @@ namespace Heart
             for (u32 i = 0; i < count; i++)
                 for (u32 j = 0; j < lens[i]; j++)
                     reinterpret_cast<T*>(m_Container.Data())[dataIndex++] = strs[i][j];
+        }
+
+        template <typename T>
+        HString AddPtr(const T* other, bool prepend) const
+        {
+            const T* data[2] = { Data<T>(), other };
+            u32 lens[2] = { GetCount(), 0 };
+            if (prepend)
+            {
+                data[0] = other;
+                data[1] = Data<T>();
+                lens[0] = 0;
+                lens[1] = GetCount();
+            }
+
+            return HString(data, lens, 2);
         }
 
     private:

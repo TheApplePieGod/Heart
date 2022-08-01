@@ -1,13 +1,18 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-	  <OutputType>Library</OutputType>
-	  <TargetFramework>net6.0</TargetFramework>
-	  <OutputPath>bin</OutputPath>
-	  <AssemblyName>ClientScripts</AssemblyName>
-	  <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-  	  <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+		<OutputType>Library</OutputType>
+		<TargetFramework>net6.0</TargetFramework>
+		<OutputPath>bin</OutputPath>
+		<AssemblyName>ClientScripts</AssemblyName>
+		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+		<AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
 	</PropertyGroup>
 	<ItemGroup>
-	  <ProjectReference Include="${CORE_PROJECT_PATH}" />
+		<ProjectReference Include="${SCRIPTS_ROOT_PATH}/CoreScripts/CoreScripts.csproj" />
+		<ProjectReference
+			Include="${SCRIPTS_ROOT_PATH}/SourceGenerators/SourceGenerators.csproj"
+			OutputItemType="Analyzer"
+			ReferenceOutputAssembly="false"
+		/>
 	</ItemGroup>
 </Project>

@@ -4,7 +4,7 @@
 #include "HeartEditor/EditorApp.h"
 #include "Heart/Scripting/ScriptingEngine.h"
 #include "Heart/Container/HVector.hpp"
-#include "Heart/Container/HString.h"
+#include "Heart/Container/Variant.h"
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/MeshAsset.h"
 #include "Heart/Asset/MaterialAsset.h"
@@ -20,54 +20,6 @@ namespace HeartEditor
 {
 namespace Widgets
 {
-    void PropertiesPanel::RenderXYZSlider(const std::string& name, f32* x, f32* y, f32* z, f32 min, f32 max, f32 step)
-    {
-        f32 width = ImGui::GetContentRegionAvail().x;
-        ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(0.f, 0.5f));
-        if (ImGui::BeginTable(name.c_str(), 7, ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingFixedFit))
-        {
-            ImGui::TableNextRow();
-
-            ImU32 xColor = ImGui::GetColorU32(ImVec4(1.f, 0.0f, 0.0f, 1.f));
-            ImU32 yColor = ImGui::GetColorU32(ImVec4(0.f, 1.0f, 0.0f, 1.f));
-            ImU32 zColor = ImGui::GetColorU32(ImVec4(0.f, 0.0f, 1.0f, 1.f));
-            ImU32 textColor = ImGui::GetColorU32(ImVec4(0.f, 0.0f, 0.0f, 1.f));
-
-            ImGui::TableSetColumnIndex(0);
-            ImGui::Text(name.c_str());
-
-            ImGui::TableSetColumnIndex(1);
-            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, xColor);
-            ImGui::Text(" X ");
-            
-            ImGui::TableSetColumnIndex(2);
-            ImGui::PushItemWidth(width * 0.15f);
-            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, textColor);
-            ImGui::DragFloat("##x", x, step, min, max, "%.2f");
-
-            ImGui::TableSetColumnIndex(3);
-            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, yColor);
-            ImGui::Text(" Y ");
-            
-            ImGui::TableSetColumnIndex(4);
-            ImGui::PushItemWidth(width * 0.15f);
-            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, textColor);
-            ImGui::DragFloat("##y", y, step, min, max, "%.2f");
-
-            ImGui::TableSetColumnIndex(5);
-            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, zColor);
-            ImGui::Text(" Z ");
-            
-            ImGui::TableSetColumnIndex(6);
-            ImGui::PushItemWidth(width * 0.15f);
-            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, textColor);
-            ImGui::DragFloat("##z", z, step, min, max, "%.2f");
-
-            ImGui::EndTable();
-        }
-        ImGui::PopStyleVar();
-    }
-
     void PropertiesPanel::OnImGuiRender()
     {
         HE_PROFILE_FUNCTION();
@@ -332,8 +284,9 @@ namespace Widgets
                 for (auto& pair : classDict)
                     classes.Add(pair.first);
 
-                // Show possible assemblies
                 ImGui::Indent();
+
+                // Show possible assemblies
                 ImGui::Text("Class:");
                 ImGui::SameLine();
                 Heart::ImGuiUtils::StringPicker(
@@ -356,7 +309,100 @@ namespace Widgets
                         scriptComp.Instance.Instantiate();
                     }
                 );
+
+                if (scriptComp.Instance.IsAlive())
+                {
+                    ImGui::Indent();
+                    auto& fields = Heart::ScriptingEngine::GetInstantiableClass(scriptComp.Instance.GetScriptClass()).GetSerializableFields();
+                    for (auto& val : fields)
+                        RenderScriptField(val, scriptComp);
+                    ImGui::Unindent();
+                }
+
+                ImGui::Unindent();
             }
+        }
+    }
+
+    void PropertiesPanel::RenderXYZSlider(const std::string& name, f32* x, f32* y, f32* z, f32 min, f32 max, f32 step)
+    {
+        f32 width = ImGui::GetContentRegionAvail().x;
+        ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(0.f, 0.5f));
+        if (ImGui::BeginTable(name.c_str(), 7, ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingFixedFit))
+        {
+            ImGui::TableNextRow();
+
+            ImU32 xColor = ImGui::GetColorU32(ImVec4(1.f, 0.0f, 0.0f, 1.f));
+            ImU32 yColor = ImGui::GetColorU32(ImVec4(0.f, 1.0f, 0.0f, 1.f));
+            ImU32 zColor = ImGui::GetColorU32(ImVec4(0.f, 0.0f, 1.0f, 1.f));
+            ImU32 textColor = ImGui::GetColorU32(ImVec4(0.f, 0.0f, 0.0f, 1.f));
+
+            ImGui::TableSetColumnIndex(0);
+            ImGui::Text(name.c_str());
+
+            ImGui::TableSetColumnIndex(1);
+            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, xColor);
+            ImGui::Text(" X ");
+            
+            ImGui::TableSetColumnIndex(2);
+            ImGui::PushItemWidth(width * 0.15f);
+            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, textColor);
+            ImGui::DragFloat("##x", x, step, min, max, "%.2f");
+
+            ImGui::TableSetColumnIndex(3);
+            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, yColor);
+            ImGui::Text(" Y ");
+            
+            ImGui::TableSetColumnIndex(4);
+            ImGui::PushItemWidth(width * 0.15f);
+            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, textColor);
+            ImGui::DragFloat("##y", y, step, min, max, "%.2f");
+
+            ImGui::TableSetColumnIndex(5);
+            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, zColor);
+            ImGui::Text(" Z ");
+            
+            ImGui::TableSetColumnIndex(6);
+            ImGui::PushItemWidth(width * 0.15f);
+            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, textColor);
+            ImGui::DragFloat("##z", z, step, min, max, "%.2f");
+
+            ImGui::EndTable();
+        }
+        ImGui::PopStyleVar();
+    }
+
+    void PropertiesPanel::RenderScriptField(const Heart::HString& fieldName, Heart::ScriptComponent& scriptComp)
+    {
+        ImGui::Text(fieldName.DataUTF8());
+        ImGui::SameLine();
+
+        Heart::Variant value = scriptComp.Instance.GetFieldValue(fieldName);
+        Heart::HString widgetId = "##" + fieldName;
+        switch (value.GetType())
+        {
+            default:
+            {
+                ImGui::Text("Unsupported type");
+            } break;
+            case Heart::Variant::Type::Bool:
+            {
+                bool intermediate = value.Bool();
+                if (ImGui::Checkbox(widgetId.DataUTF8(), &intermediate))
+                    scriptComp.Instance.SetFieldValue(fieldName, intermediate);
+            } break;
+            case Heart::Variant::Type::Int:
+            {
+                int intermediate = value.Int();
+                if (ImGui::DragInt(widgetId.DataUTF8(), &intermediate, 1, -1000, 1000))
+                    scriptComp.Instance.SetFieldValue(fieldName, intermediate);
+            } break;
+            case Heart::Variant::Type::Float:
+            {
+                float intermediate = (float)value.Float();
+                if (ImGui::DragFloat(widgetId.DataUTF8(), &intermediate, 0.1f, -1000.0f, 1000.f, "%.2f"))
+                    scriptComp.Instance.SetFieldValue(fieldName, intermediate);
+            } break;
         }
     }
 }

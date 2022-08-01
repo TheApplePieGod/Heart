@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 namespace Heart.Container
 {
     [StructLayout(LayoutKind.Explicit, Size=8)]
-    internal unsafe struct HArrayInternal
+    public unsafe struct HArrayInternal
     {
         [FieldOffset(0)] public Variant* Data;
 
@@ -42,7 +42,7 @@ namespace Heart.Container
                 Add(elem);
         }
 
-        internal HArray(HArrayInternal internalVal)
+        public HArray(HArrayInternal internalVal)
         {
             Native_HArray_Copy(out _internalVal, internalVal);
         }
@@ -109,7 +109,8 @@ namespace Heart.Container
 
         public void CopyTo(object[] array, int arrayIndex)
         {
-            throw new NotImplementedException();
+            for (int i = 0; i < Count; i++)
+                array[arrayIndex + i] = this[i];
         }
 
         public bool Remove(object item)

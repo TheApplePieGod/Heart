@@ -41,7 +41,7 @@ namespace Heart
         void Copy(const Variant& other);
 
     private:
-        Type m_Type;
+        Type m_Type = Type::None;
         union
         {
             byte Bool; // For safety and complete parity with c# b/c bool is technically not required to be one byte

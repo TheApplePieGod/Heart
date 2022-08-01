@@ -41,24 +41,23 @@ namespace HeartEditor
          */
         // This is a temporary solution that will work with versions of the engine built from source. In the future,
         // this will likely have to change
-        std::string coreProjectPath = std::filesystem::current_path()
+        std::string scriptsRootPath = std::filesystem::current_path()
             .parent_path()
             .parent_path()
             .parent_path()
             .append("HeartScripting")
-            .append("CoreScripts.csproj")
             .generic_u8string();
 
         // Csproj
         std::string csprojTemplate = Heart::FilesystemUtils::ReadFileToString("templates/ProjectTemplate.csproj");
-        std::string finalCsproj = std::regex_replace(csprojTemplate, std::regex("\\$\\{CORE_PROJECT_PATH\\}"), coreProjectPath);
+        std::string finalCsproj = std::regex_replace(csprojTemplate, std::regex("\\$\\{SCRIPTS_ROOT_PATH\\}"), scriptsRootPath);
         file = std::ofstream(std::filesystem::path(finalPath).append(name + ".csproj"));
         file << finalCsproj;
         file.close();
 
         // Sln
         std::string slnTemplate = Heart::FilesystemUtils::ReadFileToString("templates/ProjectTemplate.sln");
-        std::string finalSln = std::regex_replace(slnTemplate, std::regex("\\$\\{CORE_PROJECT_PATH\\}"), coreProjectPath);
+        std::string finalSln = std::regex_replace(slnTemplate, std::regex("\\$\\{SCRIPTS_ROOT_PATH\\}"), scriptsRootPath);
         finalSln = std::regex_replace(finalSln, std::regex("\\$\\{PROJECT_NAME\\}"), name);
         file = std::ofstream(std::filesystem::path(finalPath).append(name + ".sln"));
         file << finalSln;
@@ -112,9 +111,9 @@ namespace HeartEditor
         if (j.contains("name"))
             project->m_Name = j["name"];
         
-        if (j.contains("loadedProject") && j["loadedProject"] != "")
+        if (j.contains("loadedScene") && j["loadedScene"] != "")
         {
-            Heart::UUID sceneAssetId = Heart::AssetManager::GetAssetUUID(j["loadedProject"]);
+            Heart::UUID sceneAssetId = Heart::AssetManager::GetAssetUUID(j["loadedScene"]);
             Editor::OpenSceneFromAsset(sceneAssetId);
         }
 
@@ -138,7 +137,7 @@ namespace HeartEditor
         j["name"] = m_Name;
 
         Heart::UUID activeSceneAsset = Editor::GetEditorSceneAsset();
-        j["loadedProject"] = Heart::AssetManager::GetPathFromUUID(activeSceneAsset);
+        j["loadedScene"] = Heart::AssetManager::GetPathFromUUID(activeSceneAsset);
 
         // Widget data
         {
