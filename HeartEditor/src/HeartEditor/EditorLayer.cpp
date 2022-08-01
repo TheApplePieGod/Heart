@@ -1,6 +1,7 @@
 #include "hepch.h"
 #include "EditorLayer.h"
 
+#include "HeartEditor/Widgets/Viewport.h"
 #include "HeartEditor/Editor.h"
 #include "HeartEditor/EditorApp.h"
 #include "Heart/Core/Window.h"
@@ -19,54 +20,12 @@
 #include "Heart/Events/MouseEvents.h"
 #include "imgui/imgui_internal.h"
 
-#include "HeartEditor/Widgets/SceneHierarchyPanel.h"
-#include "HeartEditor/Widgets/PropertiesPanel.h"
-#include "HeartEditor/Widgets/ContentBrowser.h"
-#include "HeartEditor/Widgets/MaterialEditor.h"
-#include "HeartEditor/Widgets/Viewport.h"
-#include "HeartEditor/Widgets/DebugInfo.h"
-#include "HeartEditor/Widgets/ProjectSettings.h"
-#include "HeartEditor/Widgets/SceneSettings.h"
 
 namespace HeartEditor
 {
     EditorLayer::EditorLayer()
     {
         Editor::Initialize();
-
-        // Register widgets
-        Editor::PushWindow(
-            "Viewport",
-            Heart::CreateRef<Widgets::Viewport>("Viewport", true)
-        );
-        Editor::PushWindow(
-            "Content Browser",
-            Heart::CreateRef<Widgets::ContentBrowser>("Content Browser", true)
-        );
-        Editor::PushWindow(
-            "Scene Hierarchy",
-            Heart::CreateRef<Widgets::SceneHierarchyPanel>("Scene Hierarchy", true)
-        );
-        Editor::PushWindow(
-            "Properties Panel",
-            Heart::CreateRef<Widgets::PropertiesPanel>("Properties Panel", true)
-        );
-        Editor::PushWindow(
-            "Material Editor",
-            Heart::CreateRef<Widgets::MaterialEditor>("Material Editor", false)
-        );
-        Editor::PushWindow(
-            "Debug Info",
-            Heart::CreateRef<Widgets::DebugInfo>("Debug Info", true)
-        );
-        Editor::PushWindow(
-            "Project Settings",
-            Heart::CreateRef<Widgets::ProjectSettings>("Project Settings", true)
-        );
-        Editor::PushWindow(
-            "Scene Settings",
-            Heart::CreateRef<Widgets::SceneSettings>("Scene Settings", true)
-        );
 
         // auto entity = Editor::GetActiveScene().CreateEntity("Sponza");
         // entity.AddComponent<Heart::MeshComponent>();
@@ -110,6 +69,8 @@ namespace HeartEditor
 
         SubscribeToEmitter(&EditorApp::Get().GetWindow());
 
+        Editor::CreateWindows();
+
         HE_LOG_INFO("Editor attached");
     }
 
@@ -117,7 +78,7 @@ namespace HeartEditor
     {
         UnsubscribeFromEmitter(&EditorApp::Get().GetWindow());
 
-        ((Widgets::MaterialEditor&)Editor::GetWindow("Material Editor")).Reset();
+        Editor::DestroyWindows();
 
         HE_LOG_INFO("Editor detached");
     }

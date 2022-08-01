@@ -88,18 +88,18 @@ namespace Heart
         void CopyAttachmentToBuffer(VulkanFramebufferAttachment& attachmentData);
 
     private:
-        std::array<VkFramebuffer, MAX_FRAMES_IN_FLIGHT> m_Framebuffers;
+        std::array<VkFramebuffer, Renderer::FrameBufferCount> m_Framebuffers;
         VkRenderPass m_RenderPass;
         VulkanGraphicsPipeline* m_BoundPipeline = nullptr;
         std::string m_BoundPipelineName = "";
-        std::array<VkCommandBuffer, MAX_FRAMES_IN_FLIGHT> m_CommandBuffers{};
-        std::array<VkCommandBuffer, MAX_FRAMES_IN_FLIGHT> m_TransferCommandBuffers{};
-        std::array<std::vector<VulkanFramebufferAttachment>, MAX_FRAMES_IN_FLIGHT> m_AttachmentData;
-        std::array<std::vector<VulkanFramebufferAttachment>, MAX_FRAMES_IN_FLIGHT> m_DepthAttachmentData;
+        std::array<VkCommandBuffer, Renderer::FrameBufferCount> m_CommandBuffers{};
+        std::array<VkCommandBuffer, Renderer::FrameBufferCount> m_TransferCommandBuffers{};
+        std::array<std::vector<VulkanFramebufferAttachment>, Renderer::FrameBufferCount> m_AttachmentData;
+        std::array<std::vector<VulkanFramebufferAttachment>, Renderer::FrameBufferCount> m_DepthAttachmentData;
         std::vector<VkClearValue> m_CachedClearValues;
-        std::array<std::vector<VkImageView>, MAX_FRAMES_IN_FLIGHT> m_CachedImageViews;
-        std::array<std::vector<VkCommandBuffer>, MAX_FRAMES_IN_FLIGHT> m_AuxiliaryCommandBuffers;
-        std::array<VkQueryPool, MAX_FRAMES_IN_FLIGHT> m_QueryPools;
+        std::array<std::vector<VkImageView>, Renderer::FrameBufferCount> m_CachedImageViews;
+        std::array<std::vector<VkCommandBuffer>, Renderer::FrameBufferCount> m_AuxiliaryCommandBuffers;
+        std::array<VkQueryPool, Renderer::FrameBufferCount> m_QueryPools;
 
         std::vector<double> m_PerformanceTimestamps;
         u32 m_QueryPoolSize = 0;

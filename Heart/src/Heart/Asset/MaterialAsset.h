@@ -21,8 +21,8 @@ namespace Heart
         void Load() override;
         void Unload() override;
 
-        /*! @brief Take the current loaded material and serialize it to the underlying asset file. */
-        void SaveChanges() { SerializeMaterial(m_AbsolutePath, m_Material); }
+        /*! @brief Take the a material and serialize it to the underlying asset file. */
+        void Save(const Material& material);
 
         /*! @brief Get a reference to the loaded material stored in this asset. */
         inline Material& GetMaterial() { return m_Material; }

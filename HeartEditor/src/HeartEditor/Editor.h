@@ -25,6 +25,8 @@ namespace HeartEditor
 
         static void Initialize();
         static void Shutdown();
+        static void CreateWindows();
+        static void DestroyWindows();
         static void RenderWindows();
 
         static void OpenScene(const Heart::Ref<Heart::Scene>& scene);

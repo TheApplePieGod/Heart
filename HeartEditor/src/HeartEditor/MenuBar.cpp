@@ -66,7 +66,7 @@ namespace HeartEditor
                     {
                         auto asset = Heart::AssetManager::RetrieveAsset<Heart::SceneAsset>(Editor::GetEditorSceneAsset());
                         if (asset && asset->IsValid())
-                            asset->SaveChanges();
+                            asset->Save(&Editor::GetEditorScene());
                     }
 
                     if (ImGui::MenuItem("Save Scene As"))

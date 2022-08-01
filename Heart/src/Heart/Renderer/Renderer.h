@@ -25,6 +25,8 @@ namespace Heart
         inline static void PushStatistic(const std::string& name, s64 value) { s_RenderStatistics[name].Value += value; }
         inline static void ClearStatistic(const std::string& name) { s_RenderStatistics[name].Value = 0; }
 
+        inline static constexpr u32 FrameBufferCount = 2;
+
     private:
         static Scope<RenderApi> s_RenderApi;
         static RenderApi::Type s_RenderApiType;

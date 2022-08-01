@@ -21,11 +21,11 @@ namespace Heart
         void Load() override;
         void Unload() override;
 
-        /*! @brief Take the current loaded scene and serialize it to the underlying asset file. */
-        void SaveChanges() { SerializeScene(m_AbsolutePath, m_Scene.get()); }
+        /*! @brief Take a scene and serialize it to the underlying asset file. */
+        void Save(Scene* scene);
 
         /*! @brief Get a shared reference to the scene stored in this asset. */
-        Ref<Scene> GetScene() const { return m_Scene; }
+        inline Ref<Scene> GetScene() const { return m_Scene; }
 
     public:
         /**

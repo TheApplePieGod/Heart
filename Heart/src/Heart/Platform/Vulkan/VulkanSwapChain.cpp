@@ -331,7 +331,7 @@ namespace Heart
         fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
         m_ImagesInFlight.resize(m_SwapChainData.Images.size(), VK_NULL_HANDLE);
-        for (u32 i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+        for (u32 i = 0; i < Renderer::FrameBufferCount; i++)
         {
             HE_VULKAN_CHECK_RESULT(vkCreateSemaphore(device.Device(), &semaphoreInfo, nullptr, &m_ImageAvailableSemaphores[i]));
             HE_VULKAN_CHECK_RESULT(vkCreateSemaphore(device.Device(), &semaphoreInfo, nullptr, &m_RenderFinishedSemaphores[i]));
@@ -345,7 +345,7 @@ namespace Heart
     {
         VulkanDevice& device = VulkanContext::GetDevice();
 
-        for (u32 i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+        for (u32 i = 0; i < Renderer::FrameBufferCount; i++)
         {
             vkDestroySemaphore(device.Device(), m_ImageAvailableSemaphores[i], nullptr);
             vkDestroySemaphore(device.Device(), m_RenderFinishedSemaphores[i], nullptr);
@@ -372,7 +372,7 @@ namespace Heart
         semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
         semaphoreInfo.pNext = &timelineType;
 
-        size_t arrayIndex = renderIndex * MAX_FRAMES_IN_FLIGHT + m_InFlightFrameIndex;
+        size_t arrayIndex = renderIndex * Renderer::FrameBufferCount + m_InFlightFrameIndex;
         while (arrayIndex >= m_AuxiliaryRenderFinishedSemaphores.size())
         {
             VkSemaphore semaphore;
@@ -397,7 +397,7 @@ namespace Heart
         semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
         semaphoreInfo.pNext = &timelineType;
 
-        size_t arrayIndex = renderIndex * MAX_FRAMES_IN_FLIGHT + m_InFlightFrameIndex;
+        size_t arrayIndex = renderIndex * Renderer::FrameBufferCount + m_InFlightFrameIndex;
         while (arrayIndex >= m_AuxiliaryComputeFinishedSemaphores.size())
         {
             VkSemaphore semaphore;
@@ -537,7 +537,7 @@ namespace Heart
         else
             RecreateSwapChain();
 
-        m_InFlightFrameIndex = (m_InFlightFrameIndex + 1) % MAX_FRAMES_IN_FLIGHT;
+        m_InFlightFrameIndex = (m_InFlightFrameIndex + 1) % Renderer::FrameBufferCount;
 
         // clear the submitted command buffers
         m_SubmittedCommandBuffers.clear();

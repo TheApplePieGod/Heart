@@ -43,6 +43,13 @@ namespace Heart
         m_Valid = false;
     }
 
+    void SceneAsset::Save(Scene* scene)
+    {
+        SerializeScene(m_AbsolutePath, scene);
+        if (m_Loaded)
+            m_Scene = scene->Clone();
+    }
+
     Ref<Scene> SceneAsset::DeserializeScene(const std::string& path)
     {
         auto scene = CreateRef<Scene>();
@@ -193,11 +200,11 @@ namespace Heart
                 {
                     auto& meshComp = entity.GetComponent<MeshComponent>();
                     entry["meshComponent"]["mesh"]["path"] = AssetManager::GetPathFromUUID(meshComp.Mesh);
-                    entry["meshComponent"]["mesh"]["engineResource"] = AssetManager::IsAssetAnEngineResource(meshComp.Mesh);
+                    entry["meshComponent"]["mesh"]["engineResource"] = AssetManager::IsAssetAResource(meshComp.Mesh);
                     for (size_t i = 0; i < meshComp.Materials.size(); i++)
                     {
                         entry["meshComponent"]["materials"][i]["path"] = AssetManager::GetPathFromUUID(meshComp.Materials[i]);
-                        entry["meshComponent"]["materials"][i]["engineResource"] = AssetManager::IsAssetAnEngineResource(meshComp.Materials[i]);
+                        entry["meshComponent"]["materials"][i]["engineResource"] = AssetManager::IsAssetAResource(meshComp.Materials[i]);
                     }
                 }
 
@@ -228,7 +235,7 @@ namespace Heart
         {
             auto& field = j["settings"];
             field["environmentMap"]["path"] = scene->GetEnvironmentMap() ? AssetManager::GetPathFromUUID(scene->GetEnvironmentMap()->GetMapAsset()) : "";
-            field["environmentMap"]["engineResource"] = scene->GetEnvironmentMap() ? AssetManager::IsAssetAnEngineResource(scene->GetEnvironmentMap()->GetMapAsset()) : false;
+            field["environmentMap"]["engineResource"] = scene->GetEnvironmentMap() ? AssetManager::IsAssetAResource(scene->GetEnvironmentMap()->GetMapAsset()) : false;
         }
 
         std::ofstream file(path);

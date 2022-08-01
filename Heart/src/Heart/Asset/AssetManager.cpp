@@ -169,6 +169,39 @@ namespace Heart
         return newUUID;    
     }
 
+    void AssetManager::UnregisterAsset(UUID uuid)
+    {
+        if (s_UUIDs.find(uuid) == s_UUIDs.end()) return;
+        auto entry = s_UUIDs[uuid];
+        s_UUIDs.erase(uuid);
+        if (entry.IsResource)
+            s_Resources.erase(entry.Path);
+        else
+            s_Registry.erase(entry.Path);
+    }
+
+    UUID AssetManager::RegisterInMemoryAsset(Asset::Type type)
+    {
+        UUID newUUID = UUID();
+
+        // UUID as a string should be sufficient for a unique
+        // place in the registry
+        std::string idPath = std::to_string(newUUID);
+
+        // Mark the asset's data as loaded & valid so that it never tries
+        // to reload it (and fail)
+        auto newAsset = Asset::Create(type, "", "");
+        newAsset->m_Loaded = true;
+        newAsset->m_Valid = true;
+
+        // Register the 'loaded' asset as persistent so that it
+        // never tries to unload itself 
+        s_Registry[idPath] = { newAsset, std::numeric_limits<u64>::max() - s_AssetFrameLimit, true };
+        s_UUIDs[newUUID] = { idPath, false, type };
+
+        return newUUID;
+    }
+
     void AssetManager::RegisterAssetsInDirectory(const std::filesystem::path& directory, bool persistent, bool isResource)
     {
         try
@@ -275,7 +308,7 @@ namespace Heart
         return s_UUIDs[uuid].Path;
     }
 
-    bool AssetManager::IsAssetAnEngineResource(UUID uuid)
+    bool AssetManager::IsAssetAResource(UUID uuid)
     {
         if (!uuid) return false;
         if (s_UUIDs.find(uuid) == s_UUIDs.end()) return false;

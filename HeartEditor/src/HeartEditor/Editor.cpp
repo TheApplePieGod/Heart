@@ -9,6 +9,15 @@
 #include "Heart/Renderer/SceneRenderer.h"
 #include "imgui/imgui.h"
 
+#include "HeartEditor/Widgets/SceneHierarchyPanel.h"
+#include "HeartEditor/Widgets/PropertiesPanel.h"
+#include "HeartEditor/Widgets/ContentBrowser.h"
+#include "HeartEditor/Widgets/MaterialEditor.h"
+#include "HeartEditor/Widgets/Viewport.h"
+#include "HeartEditor/Widgets/DebugInfo.h"
+#include "HeartEditor/Widgets/ProjectSettings.h"
+#include "HeartEditor/Widgets/SceneSettings.h"
+
 namespace HeartEditor
 {
     void Editor::Initialize()
@@ -22,6 +31,47 @@ namespace HeartEditor
         s_Windows.clear();
         s_ActiveScene.reset();
         s_EditorScene.reset();
+    }
+
+    void Editor::CreateWindows()
+    {
+        PushWindow(
+            "Viewport",
+            Heart::CreateRef<Widgets::Viewport>("Viewport", true)
+        );
+        PushWindow(
+            "Content Browser",
+            Heart::CreateRef<Widgets::ContentBrowser>("Content Browser", true)
+        );
+        PushWindow(
+            "Scene Hierarchy",
+            Heart::CreateRef<Widgets::SceneHierarchyPanel>("Scene Hierarchy", true)
+        );
+        PushWindow(
+            "Properties Panel",
+            Heart::CreateRef<Widgets::PropertiesPanel>("Properties Panel", true)
+        );
+        PushWindow(
+            "Material Editor",
+            Heart::CreateRef<Widgets::MaterialEditor>("Material Editor", false)
+        );
+        PushWindow(
+            "Debug Info",
+            Heart::CreateRef<Widgets::DebugInfo>("Debug Info", true)
+        );
+        PushWindow(
+            "Project Settings",
+            Heart::CreateRef<Widgets::ProjectSettings>("Project Settings", true)
+        );
+        PushWindow(
+            "Scene Settings",
+            Heart::CreateRef<Widgets::SceneSettings>("Scene Settings", true)
+        );
+    }
+
+    void Editor::DestroyWindows()
+    {
+        s_Windows.clear();
     }
 
     void Editor::RenderWindows()
@@ -56,7 +106,7 @@ namespace HeartEditor
             return;
         }
         
-        OpenScene(sceneAsset->GetScene());
+        OpenScene(sceneAsset->GetScene()->Clone());
         s_EditorSceneAsset = uuid;
     }
 

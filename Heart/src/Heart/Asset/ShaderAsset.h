@@ -20,7 +20,7 @@ namespace Heart
         void Unload() override;
 
         /*! @brief Get a pointer to the shader stored in this asset. */
-        Shader* GetShader() { return m_Shader.get(); }
+        inline Shader* GetShader() { return m_Shader.get(); }
 
     private:
         Ref<Shader> m_Shader;
