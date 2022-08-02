@@ -109,11 +109,6 @@ namespace HeartEditor
         // Recreate editor windows
         Editor::CreateWindows();
 
-        // Refresh content browser directory list
-        static_cast<Widgets::ContentBrowser&>(
-            Editor::GetWindow("Content Browser")
-        ).RefreshList();
-
         // Update the imgui project config
         EditorApp::Get().GetImGuiInstance().OverrideImGuiConfig(Heart::AssetManager::GetAssetsDirectory());
         EditorApp::Get().GetImGuiInstance().ReloadImGuiConfig();
