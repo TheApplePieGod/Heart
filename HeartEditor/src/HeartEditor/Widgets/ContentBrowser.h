@@ -19,7 +19,7 @@ namespace Widgets
     private:
         void ScanDirectory();
         void RenderFileCard(const std::filesystem::directory_entry& entry);
-        void RenderDirectoryNode(const std::string& path);
+        void RenderDirectoryNode(const std::string& path, u32 depth = 0);
         void RenderFileList();
         void PushDirectoryStack(const std::string& entry);
         void FileTransferDropTarget(const std::filesystem::path& destination);
