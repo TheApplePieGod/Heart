@@ -395,14 +395,41 @@ namespace Widgets
             } break;
             case Heart::Variant::Type::Int:
             {
-                int intermediate = value.Int();
-                if (ImGui::DragInt(widgetId.DataUTF8(), &intermediate, 1, -1000, 1000))
+                s64 min = std::numeric_limits<s64>::min();
+                s64 max = std::numeric_limits<s64>::max();
+                s64 intermediate = value.Int();
+                if (ImGui::DragScalar(
+                    widgetId.DataUTF8(),
+                    ImGuiDataType_S64,
+                    &intermediate,
+                    1.f, &min, &max
+                ))
+                    scriptComp.Instance.SetFieldValue(fieldName, intermediate);
+            } break;
+            case Heart::Variant::Type::UInt:
+            {
+                u64 min = std::numeric_limits<u64>::min();
+                u64 max = std::numeric_limits<u64>::max();
+                u64 intermediate = value.UInt();
+                if (ImGui::DragScalar(
+                    widgetId.DataUTF8(),
+                    ImGuiDataType_U64,
+                    &intermediate,
+                    1.f, &min, &max
+                ))
                     scriptComp.Instance.SetFieldValue(fieldName, intermediate);
             } break;
             case Heart::Variant::Type::Float:
             {
+                float min = std::numeric_limits<float>::min();
+                float max = std::numeric_limits<float>::max();
                 float intermediate = (float)value.Float();
-                if (ImGui::DragFloat(widgetId.DataUTF8(), &intermediate, 0.1f, -1000.0f, 1000.f, "%.2f"))
+                if (ImGui::DragFloat(
+                    widgetId.DataUTF8(),
+                    &intermediate,
+                    0.1f, min, max,
+                    "%.2f"
+                ))
                     scriptComp.Instance.SetFieldValue(fieldName, intermediate);
             } break;
             case Heart::Variant::Type::String:

@@ -8,7 +8,7 @@ namespace Heart.Container
     public enum VariantType : byte
     {
         None = 0,
-        Bool, Int, Float,
+        Bool, Int, UInt, Float,
         String, Array
     }
 
@@ -22,7 +22,8 @@ namespace Heart.Container
         private unsafe ref struct Data
         {
             [FieldOffset(0)] public InteropBool Bool;
-            [FieldOffset(0)] public int Int;
+            [FieldOffset(0)] public long Int;
+            [FieldOffset(0)] public ulong UInt;
             [FieldOffset(0)] public double Float;
 
             // 'Any' mem fields
@@ -43,6 +44,7 @@ namespace Heart.Container
                 case VariantType.None:
                 case VariantType.Bool:
                 case VariantType.Int:
+                case VariantType.UInt:
                 case VariantType.Float:
                     return;
             }
@@ -66,12 +68,20 @@ namespace Heart.Container
             set { _data.Bool = value; _type = VariantType.Bool; }
         }
 
-        public int Int
+        public long Int
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get => _data.Int;
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set { _data.Int = value; _type = VariantType.Int; }
+        }
+
+        public ulong UInt
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => _data.UInt;
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            set { _data.UInt = value; _type = VariantType.UInt; }
         }
 
         public double Float

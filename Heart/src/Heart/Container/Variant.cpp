@@ -8,8 +8,22 @@ namespace Heart
 {
     Variant::Variant(bool value)
     { m_Type = Type::Bool; m_Data.Bool = (byte)value; }
-    Variant::Variant(int value)
+    Variant::Variant(s8 value)
+    { m_Type = Type::Int; m_Data.Int = (s64)value; }
+    Variant::Variant(s16 value)
+    { m_Type = Type::Int; m_Data.Int = (s64)value; }
+    Variant::Variant(s32 value)
+    { m_Type = Type::Int; m_Data.Int = (s64)value; }
+    Variant::Variant(s64 value)
     { m_Type = Type::Int; m_Data.Int = value; }
+    Variant::Variant(u8 value)
+    { m_Type = Type::UInt; m_Data.UInt = (u64)value; }
+    Variant::Variant(u16 value)
+    { m_Type = Type::UInt; m_Data.UInt = (u64)value; }
+    Variant::Variant(u32 value)
+    { m_Type = Type::UInt; m_Data.UInt = (u64)value; }
+    Variant::Variant(u64 value)
+    { m_Type = Type::UInt; m_Data.UInt = value; }
     Variant::Variant(float value)
     { m_Type = Type::Float; m_Data.Float = (double)value; }
     Variant::Variant(double value)
@@ -26,6 +40,7 @@ namespace Heart
             case Type::None:
             case Type::Bool:
             case Type::Int:
+            case Type::UInt:
             case Type::Float:
                 return;
             case Type::Array:
@@ -54,6 +69,8 @@ namespace Heart
             { m_Data.Bool = other.Bool(); } return;
             case Type::Int:
             { m_Data.Int = other.Int(); } return;
+            case Type::UInt:
+            { m_Data.UInt = other.UInt(); } return;
             case Type::Float:
             { m_Data.Float = other.Float(); } return;
             case Type::Array:
@@ -74,6 +91,8 @@ namespace Heart
             { j = variant.Bool(); } return;
             case Variant::Type::Int:
             { j = variant.Int(); } return;
+            case Variant::Type::UInt:
+            { j = variant.UInt(); } return;
             case Variant::Type::Float:
             { j = variant.Float(); } return;
             case Variant::Type::Array:
@@ -91,8 +110,9 @@ namespace Heart
             case nlohmann::json::value_t::boolean:
             { variant = Variant(j.get<bool>()); } return;
             case nlohmann::json::value_t::number_integer:
+            { variant = Variant(j.get<s64>()); } return;
             case nlohmann::json::value_t::number_unsigned:
-            { variant = Variant(j.get<int>()); } return;
+            { variant = Variant(j.get<u64>()); } return;
             case nlohmann::json::value_t::number_float:
             { variant = Variant(j.get<double>()); } return;
             case nlohmann::json::value_t::array:
