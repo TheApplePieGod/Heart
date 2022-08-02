@@ -34,6 +34,11 @@ namespace Heart.Scene
                         var comp = new MeshComponent(entityHandle, sceneHandle);
                         return Unsafe.As<MeshComponent, T>(ref comp);
                     }
+                case var t when t == typeof(LightComponent):
+                    {
+                        var comp = new LightComponent(entityHandle, sceneHandle);
+                        return Unsafe.As<LightComponent, T>(ref comp);
+                    }
             }
 
             throw new NotImplementedException("GetComponent does not support " + typeof(T).FullName);
@@ -47,6 +52,8 @@ namespace Heart.Scene
                     { return true; /* Always exists */ }
                 case var t when t == typeof(MeshComponent):
                     { return NativeMarshal.InteropBoolToBool(Native_MeshComponent_Exists(entityHandle, sceneHandle)); }
+                case var t when t == typeof(LightComponent):
+                    { return NativeMarshal.InteropBoolToBool(Native_LightComponent_Exists(entityHandle, sceneHandle)); }
             }
 
             throw new NotImplementedException("HasComponent does not support " + typeof(T).FullName);
@@ -54,5 +61,8 @@ namespace Heart.Scene
 
         [DllImport("__Internal")]
         internal static extern InteropBool Native_MeshComponent_Exists(uint entityHandle, IntPtr sceneHandle);
+
+        [DllImport("__Internal")]
+        internal static extern InteropBool Native_LightComponent_Exists(uint entityHandle, IntPtr sceneHandle);
     }
 }

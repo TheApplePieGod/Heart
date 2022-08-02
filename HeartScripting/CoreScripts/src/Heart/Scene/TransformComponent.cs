@@ -43,7 +43,7 @@ namespace Heart.Scene
         public unsafe void SetTranslation(Vector3 translation)
         {
             RefreshPtr();
-            _internalValue->Translation = translation.ToInternal();
+            _internalValue->Translation = translation.ToVector3Internal();
             CacheTransform();
         }
 
@@ -57,7 +57,7 @@ namespace Heart.Scene
         public unsafe void SetRotation(Vector3 rotation)
         {
             RefreshPtr();
-            _internalValue->Rotation = rotation.ToInternal();
+            _internalValue->Rotation = rotation.ToVector3Internal();
             CacheTransform();
         }
 
@@ -72,7 +72,7 @@ namespace Heart.Scene
         public unsafe void SetScale(Vector3 scale)
         {
             RefreshPtr();
-            _internalValue->Scale = scale.ToInternal();
+            _internalValue->Scale = scale.ToVector3Internal();
             CacheTransform();
         }
 

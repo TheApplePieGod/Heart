@@ -152,6 +152,9 @@ HE_INTEROP_EXPORT void Native_MeshComponent_RemoveMaterial(u32 entityHandle, Hea
     entity.GetComponent<Heart::MeshComponent>().Materials.Remove(index);
 }
 
+// Light component
+EXPORT_COMPONENT_BASIC_FNS(LightComponent);
+
 // We need this in order to ensure that the dllexports inside the engine static lib
 // do not get removed
 void* exportVariable = nullptr;

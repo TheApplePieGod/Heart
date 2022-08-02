@@ -29,7 +29,7 @@ namespace Heart.Scene
         {
             Native_MeshComponent_Get(_entityHandle, _sceneHandle, out _internalValue);
             if (_internalValue == null)
-                throw new InvalidOperationException("Attempting to read or modify transform component that no longer exists");
+                throw new InvalidOperationException("Attempting to read or modify mesh component that no longer exists");
         }
 
         public unsafe ulong Mesh

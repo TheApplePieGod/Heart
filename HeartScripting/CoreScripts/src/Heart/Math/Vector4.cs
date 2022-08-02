@@ -3,66 +3,52 @@ using System.Runtime.InteropServices;
 
 namespace Heart.Math
 {
-    [StructLayout(LayoutKind.Explicit, Size = 12)]
-    internal struct Vector3Internal
+    [StructLayout(LayoutKind.Explicit, Size = 16)]
+    internal struct Vector4Internal
     {
         [FieldOffset(0)] public float X;
         [FieldOffset(4)] public float Y;
         [FieldOffset(8)] public float Z;
+        [FieldOffset(12)] public float W;
     }
 
-    public class Vector3
+    public class Vector4
     {
-        private float _x, _y, _z = 0.0F;
+        private float _x, _y, _z, _w = 0.0F;
 
-        public Vector3(float x, float y, float z)
+        public Vector4(float x, float y, float z, float w)
         {
             _x = x;
             _y = y;
             _z = z;
+            _w = w;
         }
 
-        public Vector3(Vector3 other)
+        public Vector4(Vector4 other)
         {
             _x = other._x;
             _y = other._y;
             _z = other._z;
+            _w = other._w;
         }
 
-        internal Vector3(Vector3Internal other)
+        internal Vector4(Vector4Internal other)
         {
             _x = other.X;
             _y = other.Y;
             _z = other.Z;
-        }
-
-        internal Vector3(Vector4Internal other)
-        {
-            _x = other.X;
-            _y = other.Y;
-            _z = other.Z;
+            _w = other.W;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal Vector3Internal ToVector3Internal()
-        {
-            return new Vector3Internal
-            {
-                X = _x,
-                Y = _y,
-                Z = _z
-            };
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal Vector4Internal ToVector4Internal(float w)
+        internal Vector4Internal ToVector4Internal()
         {
             return new Vector4Internal
             {
                 X = _x,
                 Y = _y,
                 Z = _z,
-                W = w
+                W = _w,
             };
         }
 
@@ -88,6 +74,14 @@ namespace Heart.Math
             get => _z;
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set => _z = value;
+        }
+
+        public float W
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => _w;
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            set => _w = value;
         }
     }
 }
