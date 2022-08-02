@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Heart/Scripting/ScriptInstance.h"
+#include "Heart/Container/HVector.hpp"
 #include "Heart/Core/UUID.h"
 #include "glm/vec3.hpp"
 #include "glm/vec4.hpp"
@@ -61,7 +62,7 @@ namespace Heart
     struct MeshComponent
     {
         UUID Mesh = 0;
-        std::vector<UUID> Materials;
+        HVector<UUID> Materials;
     };
 
     struct LightComponent

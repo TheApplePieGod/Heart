@@ -29,7 +29,7 @@ namespace Widgets
         m_DemoEntity = m_Scene->CreateEntity("Demo Entity");
         m_DemoEntity.AddComponent<Heart::MeshComponent>();
         m_DemoEntity.GetComponent<Heart::MeshComponent>().Mesh = Heart::AssetManager::GetAssetUUID("engine/DefaultCube.gltf", true);
-        m_DemoEntity.GetComponent<Heart::MeshComponent>().Materials.push_back(0);
+        m_DemoEntity.GetComponent<Heart::MeshComponent>().Materials.Add(0);
 
         m_SceneCamera.UpdateViewMatrix({ 0.f, 0.f, 0.f }, m_Radius, 0, 0);
         m_SceneCameraPosition = -m_SceneCamera.GetForwardVector() * m_Radius;

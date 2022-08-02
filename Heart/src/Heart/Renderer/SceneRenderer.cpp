@@ -574,7 +574,7 @@ namespace Heart
 
                 // Create a hash based on the submesh and its material if applicable
                 u64 hash = mesh.Mesh ^ (i * 45787893);
-                if (meshData.GetMaterialIndex() < mesh.Materials.size())
+                if (meshData.GetMaterialIndex() < mesh.Materials.GetCount())
                     hash ^= mesh.Materials[meshData.GetMaterialIndex()];
 
                 // Get/create a batch associated with this hash
@@ -591,7 +591,7 @@ namespace Heart
                     // Set the material & mesh associated with this batch
                     batch.Mesh = &meshData;
                     batch.Material = &meshAsset->GetDefaultMaterials()[meshData.GetMaterialIndex()]; // default material
-                    if (mesh.Materials.size() > meshData.GetMaterialIndex())
+                    if (mesh.Materials.GetCount() > meshData.GetMaterialIndex())
                     {
                         auto materialAsset = AssetManager::RetrieveAsset<MaterialAsset>(mesh.Materials[meshData.GetMaterialIndex()]);
                         if (materialAsset && materialAsset->IsValid())

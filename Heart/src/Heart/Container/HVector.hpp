@@ -52,7 +52,7 @@ namespace Heart
             if (ShouldDestruct())
                 m_Container[index].~T();
 
-            if (m_Container.DecrementCount() == 0) return;
+            if (m_Container.DecrementCount() == 0 || index == GetCount()) return;
 
             memmove(
                 m_Container.Begin() + index,

@@ -95,25 +95,61 @@ HE_INTEROP_EXPORT void Native_Variant_Destroy(Heart::Variant* variant)
  * Component Functions
  */
 
+#define EXPORT_COMPONENT_GET_FN(compName) \
+    HE_INTEROP_EXPORT void Native_##compName##_Get(u32 entityHandle, Heart::Scene* sceneHandle, Heart::##compName** outComp) \
+    { \
+        if (!ComponentHandlesValid(entityHandle, sceneHandle)) \
+        { \
+            *outComp = nullptr; \
+            return; \
+        } \
+        Heart::Entity entity(sceneHandle, entityHandle); \
+        *outComp = &entity.GetComponent<Heart::##compName>(); \
+    }
+
+#define EXPORT_COMPONENT_EXISTS_FN(compName) \
+    HE_INTEROP_EXPORT byte Native_##compName##_Exists(u32 entityHandle, Heart::Scene* sceneHandle) \
+    { \
+        if (!ComponentHandlesValid(entityHandle, sceneHandle)) \
+            return false; \
+        Heart::Entity entity(sceneHandle, entityHandle); \
+        return entity.HasComponent<Heart::##compName>(); \
+    } \
+
+#define EXPORT_COMPONENT_BASIC_FNS(compName) \
+    EXPORT_COMPONENT_GET_FN(compName) \
+    EXPORT_COMPONENT_EXISTS_FN(compName)
+
 inline bool ComponentHandlesValid(u32 entityHandle, Heart::Scene* sceneHandle)
 { return sceneHandle && entityHandle != std::numeric_limits<u32>::max(); }
 
-HE_INTEROP_EXPORT void Native_TransformComponent_Get(u32 entityHandle, Heart::Scene* sceneHandle, Heart::TransformComponent** outComp)
-{
-    if (!ComponentHandlesValid(entityHandle, sceneHandle))
-    {
-        *outComp = nullptr;
-        return;
-    }
-    Heart::Entity entity(sceneHandle, entityHandle);
-    *outComp = &entity.GetComponent<Heart::TransformComponent>();
-}
+// Transform component (doesn't need exists function)
+EXPORT_COMPONENT_GET_FN(TransformComponent);
 
 HE_INTEROP_EXPORT void Native_TransformComponent_CacheTransform(u32 entityHandle, Heart::Scene* sceneHandle)
 {
     if (!ComponentHandlesValid(entityHandle, sceneHandle))
         return;
     sceneHandle->CacheEntityTransform({ sceneHandle, entityHandle });
+}
+
+// Mesh component
+EXPORT_COMPONENT_BASIC_FNS(MeshComponent);
+
+HE_INTEROP_EXPORT void Native_MeshComponent_AddMaterial(u32 entityHandle, Heart::Scene* sceneHandle, Heart::UUID material)
+{
+    if (!ComponentHandlesValid(entityHandle, sceneHandle))
+        return;
+    Heart::Entity entity(sceneHandle, entityHandle);
+    entity.GetComponent<Heart::MeshComponent>().Materials.AddInPlace(material);
+}
+
+HE_INTEROP_EXPORT void Native_MeshComponent_RemoveMaterial(u32 entityHandle, Heart::Scene* sceneHandle, u32 index)
+{
+    if (!ComponentHandlesValid(entityHandle, sceneHandle))
+        return;
+    Heart::Entity entity(sceneHandle, entityHandle);
+    entity.GetComponent<Heart::MeshComponent>().Materials.Remove(index);
 }
 
 // We need this in order to ensure that the dllexports inside the engine static lib

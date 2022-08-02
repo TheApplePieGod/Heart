@@ -96,11 +96,11 @@ namespace Heart
                 if (loaded.contains("meshComponent"))
                 {
                     auto& materials = loaded["meshComponent"]["materials"];
-                    std::vector<UUID> ids;
+                    HVector<UUID> materialIds;
                     UUID meshAsset = AssetManager::RegisterAsset(Asset::Type::Mesh, loaded["meshComponent"]["mesh"]["path"], false, loaded["meshComponent"]["mesh"]["engineResource"]);
                     for (auto& material : materials)
-                        ids.emplace_back(AssetManager::RegisterAsset(Asset::Type::Material, material["path"], false, material["engineResource"]));
-                    entity.AddComponent<MeshComponent>(meshAsset, ids);
+                        materialIds.AddInPlace(AssetManager::RegisterAsset(Asset::Type::Material, material["path"], false, material["engineResource"]));
+                    entity.AddComponent<MeshComponent>(meshAsset, materialIds);
                 }
 
                 // Light component
@@ -201,7 +201,7 @@ namespace Heart
                     auto& meshComp = entity.GetComponent<MeshComponent>();
                     entry["meshComponent"]["mesh"]["path"] = AssetManager::GetPathFromUUID(meshComp.Mesh);
                     entry["meshComponent"]["mesh"]["engineResource"] = AssetManager::IsAssetAResource(meshComp.Mesh);
-                    for (size_t i = 0; i < meshComp.Materials.size(); i++)
+                    for (size_t i = 0; i < meshComp.Materials.GetCount(); i++)
                     {
                         entry["meshComponent"]["materials"][i]["path"] = AssetManager::GetPathFromUUID(meshComp.Materials[i]);
                         entry["meshComponent"]["materials"][i]["engineResource"] = AssetManager::IsAssetAResource(meshComp.Materials[i]);

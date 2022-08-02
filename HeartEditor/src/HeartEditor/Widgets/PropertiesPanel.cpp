@@ -122,7 +122,7 @@ namespace Widgets
 
                         auto meshAsset = Heart::AssetManager::RetrieveAsset<Heart::MeshAsset>(meshComp.Mesh);
                         if (meshAsset && meshAsset->IsValid())
-                            meshComp.Materials.resize(meshAsset->GetMaxMaterials(), 0);
+                            meshComp.Materials.Resize(meshAsset->GetMaxMaterials());
                     }
                 );
 
@@ -134,7 +134,7 @@ namespace Widgets
                         meshComp.Mesh = Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Mesh, path);      
                         auto meshAsset = Heart::AssetManager::RetrieveAsset<Heart::MeshAsset>(meshComp.Mesh);
                         if (meshAsset && meshAsset->IsValid())
-                            meshComp.Materials.resize(meshAsset->GetMaxMaterials(), 0);
+                            meshComp.Materials.Resize(meshAsset->GetMaxMaterials());
                     }
                 );
 
@@ -143,8 +143,8 @@ namespace Widgets
                 {
                     // Resize the materials to match the max of the mesh
                     // This will add more zeros (defaults) if need be but will not replace old overridden materials
-                    if (meshComp.Materials.size() == 0)
-                        meshComp.Materials.resize(meshAsset->GetMaxMaterials(), 0);
+                    if (meshComp.Materials.GetCount() == 0)
+                        meshComp.Materials.Resize(meshAsset->GetMaxMaterials());
 
                     // Selection for each material
                     ImGui::Dummy({ 0.f, 5.f });

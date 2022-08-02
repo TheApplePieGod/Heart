@@ -7,7 +7,6 @@ using System.Runtime.InteropServices;
 
 namespace Heart.Scene
 {
-    [Serializable]
     public abstract class Entity
     {
         // Client overridable methods
@@ -16,18 +15,16 @@ namespace Heart.Scene
         public virtual void OnUpdate(Timestep timestep) {}
 
         // Client callable methods
-        public unsafe T GetComponent<T>() where T : IComponent
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public T GetComponent<T>() where T : Component
         {
-            switch (typeof(T))
-            {
-                case var t when t == typeof(TransformComponent):
-                    {
-                        var comp = new TransformComponent(_entityHandle, _sceneHandle);
-                        return Unsafe.As<TransformComponent, T>(ref comp);
-                    }
-            }
+            return ComponentUtils.GetComponent<T>(_entityHandle, _sceneHandle);
+        }
 
-            throw new NotImplementedException("GetComponent does not support " + typeof(T).FullName);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool HasComponent<T>() where T : Component
+        {
+            return ComponentUtils.HasComponent<T>(_entityHandle, _sceneHandle);
         }
 
         // Internal fields
