@@ -4,38 +4,38 @@ using System.Runtime.InteropServices;
 namespace Heart.Math
 {
     [StructLayout(LayoutKind.Explicit, Size = 8)]
-    internal struct Vector2Internal
+    internal struct Vec2Internal
     {
         [FieldOffset(0)] public float X;
         [FieldOffset(4)] public float Y;
     }
 
-    public class Vector2
+    public class Vec2
     {
         private float _x, _y = 0.0F;
 
-        public Vector2(float x, float y, float z)
+        public Vec2(float x, float y, float z)
         {
             _x = x;
             _y = y;
         }
 
-        public Vector2(Vector2 other)
+        public Vec2(Vec2 other)
         {
             _x = other._x;
             _y = other._y;
         }
 
-        internal Vector2(Vector2Internal other)
+        internal Vec2(Vec2Internal other)
         {
             _x = other.X;
             _y = other.Y;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal Vector2Internal ToVector2Internal()
+        internal Vec2Internal ToVec2Internal()
         {
-            return new Vector2Internal
+            return new Vec2Internal
             {
                 X = _x,
                 Y = _y,

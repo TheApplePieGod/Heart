@@ -3,6 +3,7 @@
 
 #include "HeartEditor/Editor.h"
 #include "HeartEditor/EditorApp.h"
+#include "Heart/Container/HString.h"
 #include "Heart/Renderer/Renderer.h"
 #include "Heart/Scene/Components.h"
 #include "Heart/Scene/Entity.h"
@@ -62,11 +63,11 @@ namespace Widgets
         bool hasChildren = activeScene.GetRegistry().any_of<Heart::ChildComponent>(entity) && activeScene.GetRegistry().get<Heart::ChildComponent>(entity).Children.size() > 0;
         bool open = false;
         bool justDestroyed = false;
-        std::string nameString = "EntityPopup";
+        Heart::HString nameString = "EntityPopup";
 
         // create the tree node
         ImGuiTreeNodeFlags node_flags = (hasChildren ? 0 : ImGuiTreeNodeFlags_Leaf) | ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | (Editor::GetState().SelectedEntity.GetHandle() == entity ? ImGuiTreeNodeFlags_Selected : 0);
-        open = ImGui::TreeNodeEx((void*)(intptr_t)(u32)entity, node_flags, nameComponent.Name.c_str());
+        open = ImGui::TreeNodeEx((void*)(intptr_t)(u32)entity, node_flags, nameComponent.Name.DataUTF8());
         if (ImGui::IsItemClicked())
             Editor::GetState().SelectedEntity = Heart::Entity(&activeScene, entity);
 
@@ -74,7 +75,7 @@ namespace Widgets
         if (ImGui::BeginDragDropSource())
         {
             ImGui::SetDragDropPayload("EntityNode", &entity, sizeof(u64));
-            ImGui::Text(nameComponent.Name.c_str());
+            ImGui::Text(nameComponent.Name.DataUTF8());
             ImGui::EndDragDropSource();
         }
 
@@ -90,7 +91,7 @@ namespace Widgets
         }
 
         // right click menu
-        if (ImGui::BeginPopupContextItem((nameString + std::to_string(static_cast<u32>(entity))).c_str()))
+        if (ImGui::BeginPopupContextItem((nameString + std::to_string(static_cast<u32>(entity))).DataUTF8()))
         {
             if (ImGui::MenuItem("Remove Entity"))
             {

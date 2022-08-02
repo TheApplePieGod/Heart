@@ -2,6 +2,7 @@
 
 #include "Heart/Scripting/ScriptInstance.h"
 #include "Heart/Container/HVector.hpp"
+#include "Heart/Container/HString.h"
 #include "Heart/Core/UUID.h"
 #include "glm/vec3.hpp"
 #include "glm/vec4.hpp"
@@ -27,7 +28,7 @@ namespace Heart
 
     struct NameComponent
     {
-        std::string Name;
+        HString Name;
     };
 
     struct ParentComponent

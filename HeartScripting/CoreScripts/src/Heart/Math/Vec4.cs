@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 namespace Heart.Math
 {
     [StructLayout(LayoutKind.Explicit, Size = 16)]
-    internal struct Vector4Internal
+    internal struct Vec4Internal
     {
         [FieldOffset(0)] public float X;
         [FieldOffset(4)] public float Y;
@@ -12,11 +12,11 @@ namespace Heart.Math
         [FieldOffset(12)] public float W;
     }
 
-    public class Vector4
+    public class Vec4
     {
         private float _x, _y, _z, _w = 0.0F;
 
-        public Vector4(float x, float y, float z, float w)
+        public Vec4(float x, float y, float z, float w)
         {
             _x = x;
             _y = y;
@@ -24,7 +24,7 @@ namespace Heart.Math
             _w = w;
         }
 
-        public Vector4(Vector4 other)
+        public Vec4(Vec4 other)
         {
             _x = other._x;
             _y = other._y;
@@ -32,7 +32,7 @@ namespace Heart.Math
             _w = other._w;
         }
 
-        internal Vector4(Vector4Internal other)
+        internal Vec4(Vec4Internal other)
         {
             _x = other.X;
             _y = other.Y;
@@ -41,9 +41,9 @@ namespace Heart.Math
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal Vector4Internal ToVector4Internal()
+        internal Vec4Internal ToVec4Internal()
         {
-            return new Vector4Internal
+            return new Vec4Internal
             {
                 X = _x,
                 Y = _y,

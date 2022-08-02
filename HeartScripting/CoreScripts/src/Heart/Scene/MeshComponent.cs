@@ -8,8 +8,8 @@ namespace Heart.Scene
     [StructLayout(LayoutKind.Explicit, Size = 16)]
     internal unsafe struct MeshComponentInternal
     {
-        [FieldOffset(0)] public ulong Mesh;
-        [FieldOffset(8)] public ulong* Materials;
+        [FieldOffset(0)] public UUID Mesh;
+        [FieldOffset(8)] public UUID* Materials;
 
         public ContainerInfo* GetInfo()
         {
@@ -32,7 +32,7 @@ namespace Heart.Scene
                 throw new InvalidOperationException("Attempting to read or modify mesh component that no longer exists");
         }
 
-        public unsafe ulong Mesh
+        public unsafe UUID Mesh
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
@@ -57,17 +57,17 @@ namespace Heart.Scene
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe ulong GetMaterial(uint index)
+        public unsafe UUID GetMaterial(uint index)
         {
             RefreshPtr();
             return _internalValue->Materials[index];
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe ulong SetMaterial(uint index, ulong material)
+        public unsafe void SetMaterial(uint index, UUID material)
         {
             RefreshPtr();
-            return _internalValue->Materials[index] = material;
+            _internalValue->Materials[index] = material;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

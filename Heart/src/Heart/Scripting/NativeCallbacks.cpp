@@ -123,7 +123,21 @@ HE_INTEROP_EXPORT void Native_Variant_Destroy(Heart::Variant* variant)
 inline bool ComponentHandlesValid(u32 entityHandle, Heart::Scene* sceneHandle)
 { return sceneHandle && entityHandle != std::numeric_limits<u32>::max(); }
 
-// Transform component (doesn't need exists function)
+// Id component (always exists)
+EXPORT_COMPONENT_GET_FN(IdComponent);
+
+// Name component (always exists)
+EXPORT_COMPONENT_GET_FN(NameComponent);
+
+HE_INTEROP_EXPORT void Native_NameComponent_SetName(u32 entityHandle, Heart::Scene* sceneHandle, Heart::HString value)
+{
+    if (!ComponentHandlesValid(entityHandle, sceneHandle))
+        return;
+    Heart::Entity entity(sceneHandle, entityHandle);
+    entity.GetComponent<Heart::NameComponent>().Name = value;
+}
+
+// Transform component (always exists)
 EXPORT_COMPONENT_GET_FN(TransformComponent);
 
 HE_INTEROP_EXPORT void Native_TransformComponent_CacheTransform(u32 entityHandle, Heart::Scene* sceneHandle)

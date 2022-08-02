@@ -16,7 +16,7 @@ namespace Heart.Scene
     internal unsafe struct LightComponentInternal
     {
         [FieldOffset(0)] public LightType LightType;
-        [FieldOffset(8)] public Vector4Internal Color;
+        [FieldOffset(8)] public Vec4Internal Color;
         [FieldOffset(24)] public float ConstantAttenuation;
         [FieldOffset(28)] public float LinearAttenuation;
         [FieldOffset(32)] public float QuadraticAttenuation;
@@ -38,18 +38,18 @@ namespace Heart.Scene
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe Vector3 GetColor()
+        public unsafe Vec3 GetColor()
         {
             RefreshPtr();
-            return new Vector3(_internalValue->Color);
+            return new Vec3(_internalValue->Color);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe void SetColor(Vector3 color)
+        public unsafe void SetColor(Vec3 color)
         {
             RefreshPtr();
             _internalValue->Color =
-                color.ToVector4Internal(_internalValue->Color.W);
+                color.ToVec4Internal(_internalValue->Color.W);
         }
 
         public unsafe LightType LightType

@@ -8,9 +8,9 @@ namespace Heart.Scene
     [StructLayout(LayoutKind.Explicit, Size = 36)]
     internal struct TransformComponentInternal
     {
-        [FieldOffset(0)] public Vector3Internal Translation;
-        [FieldOffset(12)] public Vector3Internal Rotation;
-        [FieldOffset(24)] public Vector3Internal Scale;
+        [FieldOffset(0)] public Vec3Internal Translation;
+        [FieldOffset(12)] public Vec3Internal Rotation;
+        [FieldOffset(24)] public Vec3Internal Scale;
     }
 
     public class TransformComponent : Component
@@ -34,45 +34,45 @@ namespace Heart.Scene
             => Native_TransformComponent_CacheTransform(_entityHandle, _sceneHandle);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe Vector3 GetTranslation()
+        public unsafe Vec3 GetTranslation()
         {
             RefreshPtr();
-            return new Vector3(_internalValue->Translation);
+            return new Vec3(_internalValue->Translation);
         }
 
-        public unsafe void SetTranslation(Vector3 translation)
+        public unsafe void SetTranslation(Vec3 translation)
         {
             RefreshPtr();
-            _internalValue->Translation = translation.ToVector3Internal();
+            _internalValue->Translation = translation.ToVec3Internal();
             CacheTransform();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe Vector3 GetRotation()
+        public unsafe Vec3 GetRotation()
         {
             RefreshPtr();
-            return new Vector3(_internalValue->Rotation);
+            return new Vec3(_internalValue->Rotation);
         }
 
-        public unsafe void SetRotation(Vector3 rotation)
+        public unsafe void SetRotation(Vec3 rotation)
         {
             RefreshPtr();
-            _internalValue->Rotation = rotation.ToVector3Internal();
+            _internalValue->Rotation = rotation.ToVec3Internal();
             CacheTransform();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe Vector3 GetScale()
+        public unsafe Vec3 GetScale()
         {
             RefreshPtr();
-            return new Vector3(_internalValue->Scale);
+            return new Vec3(_internalValue->Scale);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe void SetScale(Vector3 scale)
+        public unsafe void SetScale(Vec3 scale)
         {
             RefreshPtr();
-            _internalValue->Scale = scale.ToVector3Internal();
+            _internalValue->Scale = scale.ToVec3Internal();
             CacheTransform();
         }
 

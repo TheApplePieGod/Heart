@@ -54,7 +54,7 @@ namespace Heart
         inline glm::vec3 GetForwardVector() const { return GetComponent<TransformComponent>().GetForwardVector(); }
         inline glm::mat4x4 GetTransformMatrix() const { return GetComponent<TransformComponent>().GetTransformMatrix(); }
         inline UUID GetUUID() const { return GetComponent<IdComponent>().UUID; }
-        inline const std::string& GetName() const { return GetComponent<NameComponent>().Name; }
+        inline const HString& GetName() const { return GetComponent<NameComponent>().Name; }
 
         glm::vec3 GetWorldPosition();
         glm::vec3 GetWorldRotation();

@@ -4,39 +4,39 @@ using System.Runtime.InteropServices;
 namespace Heart.Math
 {
     [StructLayout(LayoutKind.Explicit, Size = 12)]
-    internal struct Vector3Internal
+    internal struct Vec3Internal
     {
         [FieldOffset(0)] public float X;
         [FieldOffset(4)] public float Y;
         [FieldOffset(8)] public float Z;
     }
 
-    public class Vector3
+    public class Vec3
     {
         private float _x, _y, _z = 0.0F;
 
-        public Vector3(float x, float y, float z)
+        public Vec3(float x, float y, float z)
         {
             _x = x;
             _y = y;
             _z = z;
         }
 
-        public Vector3(Vector3 other)
+        public Vec3(Vec3 other)
         {
             _x = other._x;
             _y = other._y;
             _z = other._z;
         }
 
-        internal Vector3(Vector3Internal other)
+        internal Vec3(Vec3Internal other)
         {
             _x = other.X;
             _y = other.Y;
             _z = other.Z;
         }
 
-        internal Vector3(Vector4Internal other)
+        internal Vec3(Vec4Internal other)
         {
             _x = other.X;
             _y = other.Y;
@@ -44,9 +44,9 @@ namespace Heart.Math
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal Vector3Internal ToVector3Internal()
+        internal Vec3Internal ToVec3Internal()
         {
-            return new Vector3Internal
+            return new Vec3Internal
             {
                 X = _x,
                 Y = _y,
@@ -55,9 +55,9 @@ namespace Heart.Math
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal Vector4Internal ToVector4Internal(float w)
+        internal Vec4Internal ToVec4Internal(float w)
         {
-            return new Vector4Internal
+            return new Vec4Internal
             {
                 X = _x,
                 Y = _y,

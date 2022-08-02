@@ -1,10 +1,27 @@
-﻿using Heart.NativeInterop;
+﻿using Heart.Container;
+using Heart.Math;
+using Heart.NativeInterop;
 using System;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace Heart.Scene
 {
+    public struct UUID
+    {
+        public ulong Value;
+
+        public UUID(ulong value)
+        {
+            Value = value;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static implicit operator UUID(ulong value)
+            => new UUID(value);
+    }
+
     public class Component
     {
         internal uint _entityHandle;
@@ -19,11 +36,79 @@ namespace Heart.Scene
 
     public static class ComponentUtils
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static unsafe UUID GetId(uint entityHandle, IntPtr sceneHandle)
+        {
+            IdComponent.Native_IdComponent_Get(entityHandle, sceneHandle, out var comp);
+            return *comp;
+        }
+
+        public static unsafe string GetName(uint entityHandle, IntPtr sceneHandle)
+        {
+            NameComponent.Native_NameComponent_Get(entityHandle, sceneHandle, out var comp);
+            return NativeMarshal.HStringInternalToString(*comp);
+        }
+
+        public static unsafe void SetName(uint entityHandle, IntPtr sceneHandle, string name)
+        {
+            using HString hstr = new HString(name);
+            NameComponent.Native_NameComponent_SetName(entityHandle, sceneHandle, hstr._internalVal);
+        }
+
+        public static unsafe Vec3 GetTranslation(uint entityHandle, IntPtr sceneHandle)
+        {
+            TransformComponent.Native_TransformComponent_Get(entityHandle, sceneHandle, out var comp);
+            return new Vec3(comp->Translation);
+        }
+
+        public static unsafe Vec3 GetRotation(uint entityHandle, IntPtr sceneHandle)
+        {
+            TransformComponent.Native_TransformComponent_Get(entityHandle, sceneHandle, out var comp);
+            return new Vec3(comp->Rotation);
+        }
+
+        public static unsafe Vec3 GetScale(uint entityHandle, IntPtr sceneHandle)
+        {
+            TransformComponent.Native_TransformComponent_Get(entityHandle, sceneHandle, out var comp);
+            return new Vec3(comp->Scale);
+        }
+
+        public static unsafe void SetTranslation(uint entityHandle, IntPtr sceneHandle, Vec3 translation)
+        {
+            TransformComponent.Native_TransformComponent_Get(entityHandle, sceneHandle, out var comp);
+            comp->Translation = translation.ToVec3Internal();
+            TransformComponent.Native_TransformComponent_CacheTransform(entityHandle, sceneHandle);
+        }
+
+        public static unsafe void SetRotation(uint entityHandle, IntPtr sceneHandle, Vec3 rotation)
+        {
+            TransformComponent.Native_TransformComponent_Get(entityHandle, sceneHandle, out var comp);
+            comp->Rotation = rotation.ToVec3Internal();
+            TransformComponent.Native_TransformComponent_CacheTransform(entityHandle, sceneHandle);
+        }
+
+        public static unsafe void SetScale(uint entityHandle, IntPtr sceneHandle, Vec3 scale)
+        {
+            TransformComponent.Native_TransformComponent_Get(entityHandle, sceneHandle, out var comp);
+            comp->Scale = scale.ToVec3Internal();
+            TransformComponent.Native_TransformComponent_CacheTransform(entityHandle, sceneHandle);
+        }
+
         // This is mid
         public static unsafe T GetComponent<T>(uint entityHandle, IntPtr sceneHandle) where T : Component
         {
             switch (typeof(T))
             {
+                case var t when t == typeof(IdComponent):
+                    {
+                        var comp = new IdComponent(entityHandle, sceneHandle);
+                        return Unsafe.As<IdComponent, T>(ref comp);
+                    }
+                case var t when t == typeof(NameComponent):
+                    {
+                        var comp = new NameComponent(entityHandle, sceneHandle);
+                        return Unsafe.As<NameComponent, T>(ref comp);
+                    }
                 case var t when t == typeof(TransformComponent):
                     {
                         var comp = new TransformComponent(entityHandle, sceneHandle);
@@ -48,6 +133,10 @@ namespace Heart.Scene
         {
             switch (typeof(T))
             {
+                case var t when t == typeof(IdComponent):
+                    { return true; /* Always exists */ }
+                case var t when t == typeof(NameComponent):
+                    { return true; /* Always exists */ }
                 case var t when t == typeof(TransformComponent):
                     { return true; /* Always exists */ }
                 case var t when t == typeof(MeshComponent):
