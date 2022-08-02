@@ -98,13 +98,13 @@ namespace Heart
         HE_ENGINE_ASSERT(result, "Failed to load hostfxr");
 
         load_assembly_and_get_function_pointer_fn loadAssemblyWithPtrFunc;
-        InitHostFXRWithConfig(HOSTFXR_STR("scripting/CoreScripts.runtimeconfig.json"), loadAssemblyWithPtrFunc);
+        InitHostFXRWithConfig(HOSTFXR_STR("scripting/bin/CoreScripts.runtimeconfig.json"), loadAssemblyWithPtrFunc);
         HE_ENGINE_ASSERT(loadAssemblyWithPtrFunc, "Failed to initialize hostfxr with config");
         HE_ENGINE_LOG_DEBUG(".NET hostfxr initialized");
 
         InitializeFn initFunc = nullptr;
         int rc = loadAssemblyWithPtrFunc(
-            HOSTFXR_STR("scripting/CoreScripts.dll"),
+            HOSTFXR_STR("scripting/bin/CoreScripts.dll"),
             HOSTFXR_STR("Heart.EntryPoint, CoreScripts"),
             HOSTFXR_STR("Initialize"),
             UNMANAGEDCALLERSONLY_METHOD,

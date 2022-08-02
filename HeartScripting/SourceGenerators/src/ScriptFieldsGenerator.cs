@@ -68,12 +68,13 @@ namespace SourceGenerators
             sb.Append("using System;\n");
             sb.Append("using System.Linq;\n");
             sb.Append("using Heart.Container;\n");
+            sb.Append("using Heart.Scene;\n");
             sb.Append("namespace ");
             sb.Append(typeSymbol.ContainingNamespace.FullName());
             sb.Append(" {\n");
             sb.Append("public partial class ");
             sb.Append(typeSymbol.Name);
-            sb.Append(" {\n");
+            sb.Append(" : Entity {\n");
 
             sb.Append("public override bool GENERATED_SetField(string fieldName, Variant value) {\n");
             sb.Append("switch (fieldName) {\n");

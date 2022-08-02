@@ -90,6 +90,7 @@ namespace Heart
             IFileDialog* pDialog = nullptr;
             IShellItem* pItem = nullptr;
             LPWSTR pwszFilePath = NULL;
+            bool success = false;
 
             // Create the FileOpenDialog object.
             hr = CoCreateInstance(
@@ -146,7 +147,15 @@ namespace Heart
 
             outputPath = PlatformUtils::WideToNarrowString(pwszFilePath);
 
+            success = true;
+
         done:
+            if (!success && hr != HRESULT_FROM_WIN32(ERROR_CANCELLED))
+            {
+                _com_error err(hr);
+                LPCTSTR errMsg = err.ErrorMessage();
+                HE_ENGINE_LOG_ERROR("Failed to open file dialog: {0}", errMsg);
+            }
             if (pDialog)
                 pDialog->Release();
             if (pItem)

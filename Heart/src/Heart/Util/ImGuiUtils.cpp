@@ -180,7 +180,7 @@ namespace Heart
         std::function<void(u32)>&& selectCallback
     )
     {
-        HString buttonNullSelection = (nullSelectionText + "##") + widgetId;
+        HString buttonNullSelection = nullSelectionText + "##" + widgetId;
         HString popupName = widgetId + "SP";
         bool popupOpened = ImGui::Button(selected.Empty() ? buttonNullSelection.DataUTF8() : selected.DataUTF8());
         if (popupOpened)

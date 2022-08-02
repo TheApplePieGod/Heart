@@ -37,33 +37,6 @@ namespace HeartEditor
         file.close();
 
         /*
-         * Load templates and create visual studio project files
-         */
-        // This is a temporary solution that will work with versions of the engine built from source. In the future,
-        // this will likely have to change
-        std::string scriptsRootPath = std::filesystem::current_path()
-            .parent_path()
-            .parent_path()
-            .parent_path()
-            .append("HeartScripting")
-            .generic_u8string();
-
-        // Csproj
-        std::string csprojTemplate = Heart::FilesystemUtils::ReadFileToString("templates/ProjectTemplate.csproj");
-        std::string finalCsproj = std::regex_replace(csprojTemplate, std::regex("\\$\\{SCRIPTS_ROOT_PATH\\}"), scriptsRootPath);
-        file = std::ofstream(std::filesystem::path(finalPath).append(name + ".csproj"));
-        file << finalCsproj;
-        file.close();
-
-        // Sln
-        std::string slnTemplate = Heart::FilesystemUtils::ReadFileToString("templates/ProjectTemplate.sln");
-        std::string finalSln = std::regex_replace(slnTemplate, std::regex("\\$\\{SCRIPTS_ROOT_PATH\\}"), scriptsRootPath);
-        finalSln = std::regex_replace(finalSln, std::regex("\\$\\{PROJECT_NAME\\}"), name);
-        file = std::ofstream(std::filesystem::path(finalPath).append(name + ".sln"));
-        file << finalSln;
-        file.close();
-
-        /*
          * Copy default imgui config
          */
         std::filesystem::copy_file("templates/imgui.ini", std::filesystem::path(finalPath).append("imgui.ini"));
@@ -73,6 +46,44 @@ namespace HeartEditor
          */
         std::filesystem::create_directory(std::filesystem::path(finalPath).append("Assets"));
         std::filesystem::create_directory(std::filesystem::path(finalPath).append("Scripts"));
+
+        /*
+         * Load templates and create visual studio project files
+         */
+        std::string scriptsRootPath = std::filesystem::current_path()
+            .append("scripting")
+            .generic_u8string();
+
+        // Csproj
+        std::string csprojTemplate = Heart::FilesystemUtils::ReadFileToString("templates/ProjectTemplate.csproj");
+        std::string finalCsproj = std::regex_replace(csprojTemplate, std::regex("\\$\\{SCRIPTS_ROOT_PATH\\}"), scriptsRootPath);
+        file = std::ofstream(
+            std::filesystem::path(finalPath).append(name + ".csproj"),
+            std::ios::binary
+        );
+        file << finalCsproj;
+        file.close();
+
+        // Sln
+        std::string slnTemplate = Heart::FilesystemUtils::ReadFileToString("templates/ProjectTemplate.sln");
+        std::string finalSln = std::regex_replace(slnTemplate, std::regex("\\$\\{SCRIPTS_ROOT_PATH\\}"), scriptsRootPath);
+        finalSln = std::regex_replace(finalSln, std::regex("\\$\\{PROJECT_NAME\\}"), name);
+        file = std::ofstream(
+            std::filesystem::path(finalPath).append(name + ".sln"),
+            std::ios::binary
+        );
+        file << finalSln;
+        file.close();
+
+        // Empty entity
+        std::string entityTemplate = Heart::FilesystemUtils::ReadFileToString("templates/EmptyEntity.csfile");
+        std::string finalEntity = std::regex_replace(entityTemplate, std::regex("\\$\\{PROJECT_NAME\\}"), name);
+        file = std::ofstream(
+            std::filesystem::path(finalPath).append("Scripts").append("EmptyEntity.cs"),
+            std::ios::binary
+        );
+        file << finalEntity;
+        file.close();
         
         return LoadFromPath(mainProjectFilePath.generic_u8string());
     }

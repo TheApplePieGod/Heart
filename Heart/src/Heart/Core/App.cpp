@@ -10,6 +10,7 @@
 #include "Heart/Events/AppEvents.h"
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Scripting/ScriptingEngine.h"
+#include "Heart/Util/PlatformUtils.h"
 
 namespace Heart
 {
@@ -19,6 +20,8 @@ namespace Heart
     {
         HE_ENGINE_ASSERT(!s_Instance, "App instance already exists");
         s_Instance = this;
+
+        PlatformUtils::InitializePlatform();
 
         Timer timer = Timer("App initialization");
         #ifdef HE_DEBUG
@@ -44,6 +47,8 @@ namespace Heart
         AssetManager::Shutdown();
 
         ShutdownGraphicsApi();
+
+        PlatformUtils::ShutdownPlatform();
 
         HE_ENGINE_LOG_INFO("Shutdown complete");
     }

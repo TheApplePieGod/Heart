@@ -8,11 +8,9 @@
 		<AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
 	</PropertyGroup>
 	<ItemGroup>
-		<ProjectReference Include="${SCRIPTS_ROOT_PATH}/CoreScripts/CoreScripts.csproj" />
-		<ProjectReference
-			Include="${SCRIPTS_ROOT_PATH}/SourceGenerators/SourceGenerators.csproj"
-			OutputItemType="Analyzer"
-			ReferenceOutputAssembly="false"
-		/>
+		<PackageReference Include="Heart.NET.Sdk" Version="1.0.0" />
+	</ItemGroup>
+	<ItemGroup>
+	  	<Folder Include="Scripts/" />
 	</ItemGroup>
 </Project>

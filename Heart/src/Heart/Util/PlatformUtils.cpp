@@ -83,4 +83,18 @@ namespace Heart
 
         return output;
     }
+
+    void PlatformUtils::InitializePlatform()
+    {
+        #ifdef HE_PLATFORM_WINDOWS
+            CoInitialize(NULL);
+        #endif
+    }
+
+    void PlatformUtils::ShutdownPlatform()
+    {
+        #ifdef HE_PLATFORM_WINDOWS
+            CoUninitialize();
+        #endif
+    }
 }
