@@ -41,6 +41,7 @@ namespace Heart
         inline void ClearObjectHandle() { m_ObjectHandle = 0; }
         inline uptr GetObjectHandle() const { return m_ObjectHandle; }
         inline const HString& GetScriptClass() const { return m_ScriptClass; }
+        inline void SetScriptClass(const HString& value) { m_ScriptClass = value; }
         inline bool IsInstantiable() const { return !m_ScriptClass.Empty(); }
         inline bool IsAlive() const { return m_ObjectHandle != 0; }
 
@@ -50,6 +51,6 @@ namespace Heart
 
     private:
         uptr m_ObjectHandle = 0;
-        HString m_ScriptClass;
+        HString m_ScriptClass alignas(8);
     };
 }

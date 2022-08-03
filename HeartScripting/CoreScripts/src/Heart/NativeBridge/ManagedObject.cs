@@ -15,7 +15,7 @@ namespace Heart.NativeBridge
     public static class ManagedObject
     {
         [UnmanagedCallersOnly]
-        internal static unsafe IntPtr InstantiateClientEntity(HStringInternal* objectTypeStr, uint entityHandle, IntPtr sceneHandle)
+        internal static unsafe IntPtr InstantiateClientScriptEntity(HStringInternal* objectTypeStr, uint entityHandle, IntPtr sceneHandle)
         {
             if (EntryPoint.ClientAssembly == null) return IntPtr.Zero;
 
@@ -37,8 +37,8 @@ namespace Heart.NativeBridge
                 constructor.Invoke(instance, null);
 
             // Set associated entity fields
-            ((Entity)instance)._entityHandle = entityHandle;
-            ((Entity)instance)._sceneHandle = sceneHandle;
+            ((ScriptEntity)instance)._entityHandle = entityHandle;
+            ((ScriptEntity)instance)._sceneHandle = sceneHandle;
 
             var handle = ManagedGCHandle.AllocStrong(instance);
             return handle.ToIntPtr();
@@ -112,7 +112,7 @@ namespace Heart.NativeBridge
 
             string fieldName = NativeMarshal.HStringInternalToString(*fieldNameStr);
             return NativeMarshal.BoolToInteropBool(
-                ((Entity)gcHandle.Target).GENERATED_SetField(fieldName, value)
+                ((ScriptEntity)gcHandle.Target).GENERATED_SetField(fieldName, value)
             );
         }
     }

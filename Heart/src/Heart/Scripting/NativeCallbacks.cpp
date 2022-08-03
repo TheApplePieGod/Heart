@@ -95,14 +95,23 @@ HE_INTEROP_EXPORT void Native_Variant_Destroy(Heart::Variant* variant)
  * Component Functions
  */
 
+#ifdef HE_ENABLE_ASSERTS
+    #define ASSERT_ENTITY_HAS_COMPONENT(compName) \
+        { \
+            Heart::Entity entity(sceneHandle, entityHandle); \
+            HE_ENGINE_ASSERT( \
+                entity.HasComponent<Heart::##compName>(), \
+                "Entity HasComponent check failed for " #compName \
+            ); \
+        }
+#else
+    #define ASSERT_ENTITY_HAS_COMPONENT()
+#endif
+
 #define EXPORT_COMPONENT_GET_FN(compName) \
     HE_INTEROP_EXPORT void Native_##compName##_Get(u32 entityHandle, Heart::Scene* sceneHandle, Heart::##compName** outComp) \
     { \
-        if (!ComponentHandlesValid(entityHandle, sceneHandle)) \
-        { \
-            *outComp = nullptr; \
-            return; \
-        } \
+        ASSERT_ENTITY_HAS_COMPONENT(compName); \
         Heart::Entity entity(sceneHandle, entityHandle); \
         *outComp = &entity.GetComponent<Heart::##compName>(); \
     }
@@ -110,8 +119,6 @@ HE_INTEROP_EXPORT void Native_Variant_Destroy(Heart::Variant* variant)
 #define EXPORT_COMPONENT_EXISTS_FN(compName) \
     HE_INTEROP_EXPORT byte Native_##compName##_Exists(u32 entityHandle, Heart::Scene* sceneHandle) \
     { \
-        if (!ComponentHandlesValid(entityHandle, sceneHandle)) \
-            return false; \
         Heart::Entity entity(sceneHandle, entityHandle); \
         return entity.HasComponent<Heart::##compName>(); \
     } \
@@ -119,9 +126,6 @@ HE_INTEROP_EXPORT void Native_Variant_Destroy(Heart::Variant* variant)
 #define EXPORT_COMPONENT_BASIC_FNS(compName) \
     EXPORT_COMPONENT_GET_FN(compName) \
     EXPORT_COMPONENT_EXISTS_FN(compName)
-
-inline bool ComponentHandlesValid(u32 entityHandle, Heart::Scene* sceneHandle)
-{ return sceneHandle && entityHandle != std::numeric_limits<u32>::max(); }
 
 // Id component (always exists)
 EXPORT_COMPONENT_GET_FN(IdComponent);
@@ -131,8 +135,7 @@ EXPORT_COMPONENT_GET_FN(NameComponent);
 
 HE_INTEROP_EXPORT void Native_NameComponent_SetName(u32 entityHandle, Heart::Scene* sceneHandle, Heart::HString value)
 {
-    if (!ComponentHandlesValid(entityHandle, sceneHandle))
-        return;
+    ASSERT_ENTITY_HAS_COMPONENT(NameComponent);
     Heart::Entity entity(sceneHandle, entityHandle);
     entity.GetComponent<Heart::NameComponent>().Name = value;
 }
@@ -142,8 +145,6 @@ EXPORT_COMPONENT_GET_FN(TransformComponent);
 
 HE_INTEROP_EXPORT void Native_TransformComponent_CacheTransform(u32 entityHandle, Heart::Scene* sceneHandle)
 {
-    if (!ComponentHandlesValid(entityHandle, sceneHandle))
-        return;
     sceneHandle->CacheEntityTransform({ sceneHandle, entityHandle });
 }
 
@@ -152,22 +153,50 @@ EXPORT_COMPONENT_BASIC_FNS(MeshComponent);
 
 HE_INTEROP_EXPORT void Native_MeshComponent_AddMaterial(u32 entityHandle, Heart::Scene* sceneHandle, Heart::UUID material)
 {
-    if (!ComponentHandlesValid(entityHandle, sceneHandle))
-        return;
+    ASSERT_ENTITY_HAS_COMPONENT(MeshComponent);
     Heart::Entity entity(sceneHandle, entityHandle);
     entity.GetComponent<Heart::MeshComponent>().Materials.AddInPlace(material);
 }
 
 HE_INTEROP_EXPORT void Native_MeshComponent_RemoveMaterial(u32 entityHandle, Heart::Scene* sceneHandle, u32 index)
 {
-    if (!ComponentHandlesValid(entityHandle, sceneHandle))
-        return;
+    ASSERT_ENTITY_HAS_COMPONENT(MeshComponent);
     Heart::Entity entity(sceneHandle, entityHandle);
     entity.GetComponent<Heart::MeshComponent>().Materials.Remove(index);
 }
 
 // Light component
 EXPORT_COMPONENT_BASIC_FNS(LightComponent);
+
+// Script component
+EXPORT_COMPONENT_BASIC_FNS(ScriptComponent);
+
+HE_INTEROP_EXPORT void Native_ScriptComponent_SetScriptClass(u32 entityHandle, Heart::Scene* sceneHandle, Heart::HString value)
+{
+    ASSERT_ENTITY_HAS_COMPONENT(ScriptComponent);
+    Heart::Entity entity(sceneHandle, entityHandle);
+    entity.GetComponent<Heart::ScriptComponent>().Instance.SetScriptClass(value);
+}
+
+HE_INTEROP_EXPORT void Native_ScriptComponent_InstantiateScript(u32 entityHandle, Heart::Scene* sceneHandle)
+{
+    ASSERT_ENTITY_HAS_COMPONENT(ScriptComponent);
+    Heart::Entity entity(sceneHandle, entityHandle);
+    auto& instance = entity.GetComponent<Heart::ScriptComponent>().Instance;
+    if (instance.IsAlive())
+        instance.OnPlayEnd();
+    instance.Instantiate({ sceneHandle, entityHandle });
+    instance.OnPlayStart();
+}
+
+HE_INTEROP_EXPORT void Native_ScriptComponent_DestroyScript(u32 entityHandle, Heart::Scene* sceneHandle)
+{
+    ASSERT_ENTITY_HAS_COMPONENT(ScriptComponent);
+    Heart::Entity entity(sceneHandle, entityHandle);
+    auto& instance = entity.GetComponent<Heart::ScriptComponent>().Instance;
+    instance.OnPlayEnd();
+    instance.Destroy();
+}
 
 // We need this in order to ensure that the dllexports inside the engine static lib
 // do not get removed

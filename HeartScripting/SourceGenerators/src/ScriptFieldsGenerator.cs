@@ -11,7 +11,7 @@ namespace SourceGenerators
     [Generator]
     public class ScriptFieldsGenerator : ISourceGenerator
     {
-        private class EntityFinder : ISyntaxContextReceiver
+        private class ScriptEntityFinder : ISyntaxContextReceiver
         {
             public List<(ClassDeclarationSyntax, INamedTypeSymbol)> Classes { get; } = new();
             public List<(GenerationError, string, Location)> Errors { get; } = new();
@@ -21,7 +21,7 @@ namespace SourceGenerators
                 if (!(context.Node is ClassDeclarationSyntax entityClass)) return;
 
                 var typeSymbol = context.SemanticModel.GetDeclaredSymbol(entityClass);
-                if (typeSymbol?.BaseType == null || !typeSymbol.BaseType.IsSubclassOf("CoreScripts", "Heart.Scene.Entity"))
+                if (typeSymbol?.BaseType == null || !typeSymbol.BaseType.IsSubclassOf("CoreScripts", "Heart.Scene.ScriptEntity"))
                     return;
 
                 if (!entityClass.IsPartialClass())
@@ -40,12 +40,12 @@ namespace SourceGenerators
 
         public void Initialize(GeneratorInitializationContext context)
         {
-            context.RegisterForSyntaxNotifications(() => new EntityFinder());
+            context.RegisterForSyntaxNotifications(() => new ScriptEntityFinder());
         }
 
         public void Execute(GeneratorExecutionContext context)
         {
-            if (!(context.SyntaxContextReceiver is EntityFinder finder)) return;
+            if (!(context.SyntaxContextReceiver is ScriptEntityFinder finder)) return;
 
             var entityClasses = finder.Classes;
             var errors = finder.Errors;
@@ -74,7 +74,7 @@ namespace SourceGenerators
             sb.Append(" {\n");
             sb.Append("public partial class ");
             sb.Append(typeSymbol.Name);
-            sb.Append(" : Entity {\n");
+            sb.Append(" : ScriptEntity {\n");
 
             sb.Append("public override bool GENERATED_SetField(string fieldName, Variant value) {\n");
             sb.Append("switch (fieldName) {\n");

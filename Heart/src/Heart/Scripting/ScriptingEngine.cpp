@@ -1,6 +1,7 @@
 #include "hepch.h"
 #include "ScriptingEngine.h"
 
+#include "Heart/Core/Timing.h"
 #include "Heart/Core/Timestep.h"
 #include "Heart/Scene/Scene.h"
 #include "Heart/Container/HArray.h"
@@ -128,6 +129,8 @@ namespace Heart
 
     bool ScriptingEngine::LoadClientPlugin(const std::string& absolutePath)
     {
+        auto timer = Timer("Client plugin load"); 
+
         if (s_ClientPluginLoaded)
         {
             bool res = UnloadClientPlugin();
@@ -176,7 +179,7 @@ namespace Heart
     {
         HE_PROFILE_FUNCTION();
 
-        return (uptr)s_CoreCallbacks.ManagedObject_InstantiateClientEntity(&type, entityHandle, sceneHandle);
+        return (uptr)s_CoreCallbacks.ManagedObject_InstantiateClientScriptEntity(&type, entityHandle, sceneHandle);
     }
 
     void ScriptingEngine::DestroyObject(uptr handle)
@@ -197,7 +200,7 @@ namespace Heart
     {
         HE_PROFILE_FUNCTION();
 
-        s_CoreCallbacks.Entity_CallOnUpdate(entity, timestep.StepMilliseconds());
+        s_CoreCallbacks.ScriptEntity_CallOnUpdate(entity, timestep.StepMilliseconds());
     }
 
     Variant ScriptingEngine::GetFieldValue(uptr entity, const HString& fieldName)

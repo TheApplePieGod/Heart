@@ -19,7 +19,7 @@ namespace SourceGenerators
                 case GenerationError.NonPartialClass:
                     {
                         id = "H0001";
-                        description = "All subclasses of Heart.Scene.Entity must be declared as a 'partial' class.";
+                        description = "All subclasses of Heart.Scene.ScriptEntity must be declared as a 'partial' class.";
                     } break;
             }
 

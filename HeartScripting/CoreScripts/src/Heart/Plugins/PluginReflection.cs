@@ -14,14 +14,12 @@ namespace Heart.Plugins
     {
         public static List<string> GetInstantiableClasses(Assembly assembly)
         {
-            Type entityType = typeof(Entity);
+            Type scriptEntityType = typeof(ScriptEntity);
             List<string> names = new();
-            var types = assembly.GetTypes().Where(t => t.IsAssignableTo(entityType));
+            var types = assembly.GetTypes().Where(t => t.IsAssignableTo(scriptEntityType));
 
             foreach (var type in types)
-            {
                 names.Add(type.FullName);
-            }
 
             return names;
         }
@@ -35,10 +33,9 @@ namespace Heart.Plugins
                             .Where(f => f.IsPublic || f.CustomAttributes
                                                         .Where(a => a.AttributeType == serializeType)
                                                         .Any());
+
             foreach (var field in fields)
-            {
                 names.Add(field.Name);
-            }
 
             return names;
         }
