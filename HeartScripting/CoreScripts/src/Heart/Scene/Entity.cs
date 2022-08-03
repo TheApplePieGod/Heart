@@ -10,7 +10,20 @@ namespace Heart.Scene
 {
     public class Entity
     {
+        internal Entity()
+        { }
+
+        internal Entity(uint entityHandle, IntPtr sceneHandle)
+        {
+            _entityHandle = entityHandle;
+            _sceneHandle = sceneHandle;
+        }
+
         // Client callable methods
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Scene GetScene()
+            => new Scene(_sceneHandle);
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public UUID GetId()
             => ComponentUtils.GetId(_entityHandle, _sceneHandle);
@@ -55,8 +68,10 @@ namespace Heart.Scene
         public bool HasComponent<T>() where T : Component
             => ComponentUtils.HasComponent<T>(_entityHandle, _sceneHandle);
 
+        internal static uint InvalidEntityHandle = uint.MaxValue;
+
         // Internal fields
-        internal uint _entityHandle = uint.MaxValue;
+        internal uint _entityHandle = InvalidEntityHandle;
         internal IntPtr _sceneHandle = IntPtr.Zero;
     }
 }

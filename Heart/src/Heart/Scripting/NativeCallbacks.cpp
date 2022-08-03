@@ -92,6 +92,19 @@ HE_INTEROP_EXPORT void Native_Variant_Destroy(Heart::Variant* variant)
 }
 
 /*
+ * Scene Functions
+ */
+HE_INTEROP_EXPORT void Native_Scene_CreateEntity(Heart::Scene* sceneHandle, Heart::HString name, u32* entityHandle)
+{
+    *entityHandle = (u32)sceneHandle->CreateEntity(name.ToUTF8()).GetHandle();
+}
+
+HE_INTEROP_EXPORT void Native_Scene_GetEntityFromUUID(Heart::Scene* sceneHandle, Heart::UUID uuid, u32* entityHandle)
+{
+    *entityHandle = (u32)sceneHandle->GetEntityFromUUID(uuid).GetHandle();
+}
+
+/*
  * Component Functions
  */
 
@@ -137,7 +150,7 @@ HE_INTEROP_EXPORT void Native_NameComponent_SetName(u32 entityHandle, Heart::Sce
 {
     ASSERT_ENTITY_HAS_COMPONENT(NameComponent);
     Heart::Entity entity(sceneHandle, entityHandle);
-    entity.GetComponent<Heart::NameComponent>().Name = value;
+    entity.GetComponent<Heart::NameComponent>().Name = value.ToUTF8();
 }
 
 // Transform component (always exists)
@@ -175,7 +188,7 @@ HE_INTEROP_EXPORT void Native_ScriptComponent_SetScriptClass(u32 entityHandle, H
 {
     ASSERT_ENTITY_HAS_COMPONENT(ScriptComponent);
     Heart::Entity entity(sceneHandle, entityHandle);
-    entity.GetComponent<Heart::ScriptComponent>().Instance.SetScriptClass(value);
+    entity.GetComponent<Heart::ScriptComponent>().Instance.SetScriptClass(value.ToUTF8());
 }
 
 HE_INTEROP_EXPORT void Native_ScriptComponent_InstantiateScript(u32 entityHandle, Heart::Scene* sceneHandle)

@@ -44,12 +44,12 @@ namespace Heart
         }
     }
 
-    Entity Scene::CreateEntity(const std::string& name)
+    Entity Scene::CreateEntity(const HString& name)
     {
         return CreateEntityWithUUID(name, UUID());
     }
 
-    Entity Scene::CreateEntityWithUUID(const std::string& name, UUID uuid)
+    Entity Scene::CreateEntityWithUUID(const HString& name, UUID uuid)
     {
         Entity entity = { this, m_Registry.create() };
         m_UUIDMap[uuid] = entity.GetHandle();
@@ -76,7 +76,7 @@ namespace Heart
             m_Registry.emplace<NameComponent>(newEntityHandle, m_Registry.get<NameComponent>(source.GetHandle()).Name + " Copy");
 
         if (keepParent && source.HasComponent<ParentComponent>())
-            AssignRelationship(GetEntityFromUUID(source.GetComponent<ParentComponent>().ParentUUID), newEntity);
+            AssignRelationship(GetEntityFromUUIDUnchecked(source.GetComponent<ParentComponent>().ParentUUID), newEntity);
 
         if (keepChildren && source.HasComponent<ChildComponent>())
         {
@@ -84,7 +84,7 @@ namespace Heart
 
             for (auto& child : childComp.Children)
             {
-                Entity entity = DuplicateEntity(GetEntityFromUUID(child), false, true);
+                Entity entity = DuplicateEntity(GetEntityFromUUIDUnchecked(child), false, true);
                 AssignRelationship(newEntity, entity);
             }
         }
@@ -163,7 +163,7 @@ namespace Heart
 
     void Scene::RemoveChild(UUID parentUUID, UUID childUUID)
     {
-        Entity parent = GetEntityFromUUID(parentUUID);
+        Entity parent = GetEntityFromUUIDUnchecked(parentUUID);
 
         if (parent.HasComponent<ChildComponent>())
         {
@@ -189,7 +189,7 @@ namespace Heart
 
             for (auto& child : childComp.Children)
             {
-                Entity entity = GetEntityFromUUID(child);
+                Entity entity = GetEntityFromUUIDUnchecked(child);
                 DestroyChildren(entity);
                 entity.Destroy();
             }
@@ -212,7 +212,7 @@ namespace Heart
     glm::mat4 Scene::GetEntityParentTransform(Entity target)
     {
         if (target.HasComponent<ParentComponent>())
-            return CalculateEntityTransform(GetEntityFromUUID(target.GetComponent<ParentComponent>().ParentUUID));
+            return CalculateEntityTransform(GetEntityFromUUIDUnchecked(target.GetComponent<ParentComponent>().ParentUUID));
 
         return glm::mat4(1.f);
     }
@@ -304,9 +304,15 @@ namespace Heart
 
     Entity Scene::GetEntityFromUUID(UUID uuid)
     {
-        return { this, m_UUIDMap[uuid] };
+        if (m_UUIDMap.find(uuid) == m_UUIDMap.end()) return Entity();
+        return GetEntityFromUUIDUnchecked(uuid);
     }
     
+    Entity Scene::GetEntityFromUUIDUnchecked(UUID uuid)
+    {
+        return { this, m_UUIDMap[uuid] };
+    }
+
     const glm::mat4& Scene::GetEntityCachedTransform(Entity entity)
     {
         return m_CachedTransforms[entity.GetHandle()].Transform;
@@ -350,7 +356,7 @@ namespace Heart
             auto& childComp = entity.GetComponent<ChildComponent>();
 
             for (auto& child : childComp.Children)
-                CacheEntityTransform(GetEntityFromUUID(child));
+                CacheEntityTransform(GetEntityFromUUIDUnchecked(child));
         }
     }
 }

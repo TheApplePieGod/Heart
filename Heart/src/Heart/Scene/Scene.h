@@ -19,8 +19,8 @@ namespace Heart
         Scene();
         ~Scene();
 
-        Entity CreateEntity(const std::string& name);
-        Entity CreateEntityWithUUID(const std::string& name, UUID uuid);
+        Entity CreateEntity(const HString& name);
+        Entity CreateEntityWithUUID(const HString& name, UUID uuid);
         Entity DuplicateEntity(Entity source, bool keepParent, bool keepChildren);
         void DestroyEntity(Entity entity);
         void AssignRelationship(Entity parent, Entity child);
@@ -70,6 +70,7 @@ namespace Heart
 
         void RemoveChild(UUID parentUUID, UUID childUUID);
         void DestroyChildren(Entity parent);
+        Entity GetEntityFromUUIDUnchecked(UUID uuid);
 
     private:
         entt::registry m_Registry;
