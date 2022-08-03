@@ -27,9 +27,9 @@ namespace Widgets
         auto view = Editor::GetActiveScene().GetRegistry().view<Heart::NameComponent>(entt::exclude<Heart::ParentComponent>);
 
         // Order by name
-        std::map<Heart::HString, entt::entity> nameMap;
+        std::multimap<Heart::HString, entt::entity> nameMap;
         for (auto entity : view)
-            nameMap[view.get<Heart::NameComponent>(entity).Name] = entity;
+            nameMap.insert({ view.get<Heart::NameComponent>(entity).Name, entity });
 
         ImGui::BeginChild("HierarchyChild");
         for (auto pair : nameMap)
@@ -124,12 +124,12 @@ namespace Widgets
             if (hasChildren)
             {
                 // Order by name
-                std::map<Heart::HString, entt::entity> nameMap;
+                std::multimap<Heart::HString, entt::entity> nameMap;
                 auto& childComp = activeScene.GetRegistry().get<Heart::ChildComponent>(entity);
                 for (auto uuid : childComp.Children)
                 {
                     auto entity = activeScene.GetEntityFromUUID(uuid);
-                    nameMap[entity.GetName()] = entity.GetHandle();
+                    nameMap.insert({ entity.GetName(), entity.GetHandle() });
                 }
                 for (auto& pair : nameMap)
                     RenderEntity(pair.second);
