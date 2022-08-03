@@ -95,9 +95,9 @@ namespace HeartEditor
 
     bool EditorLayer::KeyPressedEvent(Heart::KeyPressedEvent& event)
     {
-        if (event.GetKeyCode() == Heart::KeyCode::Escape)
-            EditorApp::Get().Close();
-        else if (event.GetKeyCode() == Heart::KeyCode::F11)
+        // if (event.GetKeyCode() == Heart::KeyCode::Escape)
+        //     EditorApp::Get().Close();
+        if (event.GetKeyCode() == Heart::KeyCode::F11)
             EditorApp::Get().GetWindow().ToggleFullscreen();
         
         return true;

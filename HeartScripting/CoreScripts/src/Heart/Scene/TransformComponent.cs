@@ -68,7 +68,6 @@ namespace Heart.Scene
             return new Vec3(_internalValue->Scale);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe void SetScale(Vec3 scale)
         {
             RefreshPtr();
@@ -76,10 +75,20 @@ namespace Heart.Scene
             CacheTransform();
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe Vec3 GetForwardVector()
+        {
+            Native_TransformComponent_GetForwardVector(_entityHandle, _sceneHandle, out var value);
+            return new Vec3(value);
+        }
+
         [DllImport("__Internal")]
         internal static extern unsafe void Native_TransformComponent_Get(uint entityHandle, IntPtr sceneHandle, out TransformComponentInternal* comp);
 
         [DllImport("__Internal")]
         internal static extern void Native_TransformComponent_CacheTransform(uint entityHandle, IntPtr sceneHandle);
+
+        [DllImport("__Internal")]
+        internal static extern void Native_TransformComponent_GetForwardVector(uint entityHandle, IntPtr sceneHandle, out Vec3Internal value);
     }
 }

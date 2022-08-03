@@ -65,6 +65,10 @@ namespace Heart.Scene
             => ComponentUtils.SetScale(_entityHandle, _sceneHandle, scale);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vec3 GetForwardVector()
+            => ComponentUtils.GetForwardVector(_entityHandle, _sceneHandle);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public T GetComponent<T>() where T : Component
             => ComponentUtils.GetComponent<T>(_entityHandle, _sceneHandle);
 

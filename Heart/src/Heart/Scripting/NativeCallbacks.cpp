@@ -185,7 +185,6 @@ EXPORT_COMPONENT_GET_FN(NameComponent);
 HE_INTEROP_EXPORT void Native_NameComponent_SetName(u32 entityHandle, Heart::Scene* sceneHandle, Heart::HString value)
 {
     ASSERT_ENTITY_IS_VALID();
-    ASSERT_ENTITY_HAS_COMPONENT(NameComponent);
     Heart::Entity entity(sceneHandle, entityHandle);
     entity.GetComponent<Heart::NameComponent>().Name = value.ToUTF8();
 }
@@ -197,6 +196,14 @@ HE_INTEROP_EXPORT void Native_TransformComponent_CacheTransform(u32 entityHandle
 {
     ASSERT_ENTITY_IS_VALID();
     sceneHandle->CacheEntityTransform({ sceneHandle, entityHandle });
+}
+
+// TODO: we eventually want to move this logic to c# (probably) (or something)
+HE_INTEROP_EXPORT void Native_TransformComponent_GetForwardVector(u32 entityHandle, Heart::Scene* sceneHandle, glm::vec3* outValue)
+{
+    ASSERT_ENTITY_IS_VALID();
+    Heart::Entity entity(sceneHandle, entityHandle);
+    *outValue = entity.GetForwardVector();
 }
 
 // Mesh component

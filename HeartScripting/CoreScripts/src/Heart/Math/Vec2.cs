@@ -14,7 +14,7 @@ namespace Heart.Math
     {
         private float _x, _y = 0.0F;
 
-        public Vec2(float x, float y, float z)
+        public Vec2(float x, float y)
         {
             _x = x;
             _y = y;
@@ -57,5 +57,41 @@ namespace Heart.Math
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set => _y = value;
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vec2 operator -(Vec2 a)
+            => new Vec2(-a.X, -a.Y);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vec2 operator +(Vec2 a, Vec2 b)
+            => new Vec2(a.X + b.X, a.Y + b.Y);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vec2 operator -(Vec2 a, Vec2 b)
+            => new Vec2(a.X - b.X, a.Y - b.Y);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vec2 operator *(Vec2 a, Vec2 b)
+            => new Vec2(a.X * b.X, a.Y * b.Y);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vec2 operator /(Vec2 a, Vec2 b)
+            => new Vec2(a.X / b.X, a.Y / b.Y);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vec2 operator +(Vec2 a, float b)
+            => new Vec2(a.X + b, a.Y + b);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vec2 operator -(Vec2 a, float b)
+            => new Vec2(a.X - b, a.Y - b);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vec2 operator *(Vec2 a, float b)
+            => new Vec2(a.X * b, a.Y * b);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vec2 operator /(Vec2 a, float b)
+            => new Vec2(a.X / b, a.Y / b);
     }
 }

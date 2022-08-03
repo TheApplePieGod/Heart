@@ -89,5 +89,41 @@ namespace Heart.Math
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set => _z = value;
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vec3 operator -(Vec3 a)
+            => new Vec3(-a.X, -a.Y, -a.Z);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vec3 operator +(Vec3 a, Vec3 b)
+            => new Vec3(a.X + b.X, a.Y + b.Y, a.Z + b.Z);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vec3 operator -(Vec3 a, Vec3 b)
+            => new Vec3(a.X - b.X, a.Y - b.Y, a.Z - b.Z);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vec3 operator *(Vec3 a, Vec3 b)
+            => new Vec3(a.X * b.X, a.Y * b.Y, a.Z * b.Z);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vec3 operator /(Vec3 a, Vec3 b)
+            => new Vec3(a.X / b.X, a.Y / b.Y, a.Z / b.Z);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vec3 operator +(Vec3 a, float b)
+            => new Vec3(a.X + b, a.Y + b, a.Z + b);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vec3 operator -(Vec3 a, float b)
+            => new Vec3(a.X - b, a.Y - b, a.Z - b);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vec3 operator *(Vec3 a, float b)
+            => new Vec3(a.X * b, a.Y * b, a.Z * b);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vec3 operator /(Vec3 a, float b)
+            => new Vec3(a.X / b, a.Y / b, a.Z / b);
     }
 }

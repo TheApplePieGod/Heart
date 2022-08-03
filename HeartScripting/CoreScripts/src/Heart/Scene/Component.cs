@@ -94,6 +94,12 @@ namespace Heart.Scene
             TransformComponent.Native_TransformComponent_CacheTransform(entityHandle, sceneHandle);
         }
 
+        public static unsafe Vec3 GetForwardVector(uint entityHandle, IntPtr sceneHandle)
+        {
+            TransformComponent.Native_TransformComponent_GetForwardVector(entityHandle, sceneHandle, out var value);
+            return new Vec3(value);
+        }
+
         // This is mid
         public static unsafe T GetComponent<T>(uint entityHandle, IntPtr sceneHandle) where T : Component
         {

@@ -83,5 +83,41 @@ namespace Heart.Math
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set => _w = value;
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vec4 operator -(Vec4 a)
+            => new Vec4(-a.X, -a.Y, -a.Z, -a.W);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vec4 operator +(Vec4 a, Vec4 b)
+            => new Vec4(a.X + b.X, a.Y + b.Y, a.Z + b.Z, a.W + b.W);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vec4 operator -(Vec4 a, Vec4 b)
+            => new Vec4(a.X - b.X, a.Y - b.Y, a.Z - b.Z, a.W - b.W);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vec4 operator *(Vec4 a, Vec4 b)
+            => new Vec4(a.X * b.X, a.Y * b.Y, a.Z * b.Z, a.W * b.W);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vec4 operator /(Vec4 a, Vec4 b)
+            => new Vec4(a.X / b.X, a.Y / b.Y, a.Z / b.Z, a.W / b.W);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vec4 operator +(Vec4 a, float b)
+            => new Vec4(a.X + b, a.Y + b, a.Z + b, a.W + b);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vec4 operator -(Vec4 a, float b)
+            => new Vec4(a.X - b, a.Y - b, a.Z - b, a.W - b);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vec4 operator *(Vec4 a, float b)
+            => new Vec4(a.X * b, a.Y * b, a.Z * b, a.W * b);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vec4 operator /(Vec4 a, float b)
+            => new Vec4(a.X / b, a.Y / b, a.Z / b, a.W / b);
     }
 }
