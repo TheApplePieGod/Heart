@@ -41,6 +41,13 @@ namespace Heart
         m_Valid = false;
     }
 
+    void MaterialAsset::Save(const Material& material)
+    {
+        SerializeMaterial(m_AbsolutePath, material);
+        if (m_Loaded)
+            m_Material = material;
+    }
+
     Material MaterialAsset::DeserializeMaterial(const std::string& path)
     {
         Material material;
@@ -123,19 +130,19 @@ namespace Heart
         {
             auto& field = j["textures"];
             field["albedo"]["path"] = AssetManager::GetPathFromUUID(material.m_AlbedoTextureAsset);
-            field["albedo"]["engineResource"] = AssetManager::IsAssetAnEngineResource(material.m_AlbedoTextureAsset);
+            field["albedo"]["engineResource"] = AssetManager::IsAssetAResource(material.m_AlbedoTextureAsset);
 
             field["metallicRoughness"]["path"] = AssetManager::GetPathFromUUID(material.m_MetallicRoughnessTextureAsset);
-            field["metallicRoughness"]["engineResource"] = AssetManager::IsAssetAnEngineResource(material.m_MetallicRoughnessTextureAsset);
+            field["metallicRoughness"]["engineResource"] = AssetManager::IsAssetAResource(material.m_MetallicRoughnessTextureAsset);
 
             field["normal"]["path"] = AssetManager::GetPathFromUUID(material.m_NormalTextureAsset);
-            field["normal"]["engineResource"] = AssetManager::IsAssetAnEngineResource(material.m_NormalTextureAsset);
+            field["normal"]["engineResource"] = AssetManager::IsAssetAResource(material.m_NormalTextureAsset);
 
             field["emissive"]["path"] = AssetManager::GetPathFromUUID(material.m_EmissiveTextureAsset);
-            field["emissive"]["engineResource"] = AssetManager::IsAssetAnEngineResource(material.m_EmissiveTextureAsset);
+            field["emissive"]["engineResource"] = AssetManager::IsAssetAResource(material.m_EmissiveTextureAsset);
 
             field["occlusion"]["path"] = AssetManager::GetPathFromUUID(material.m_OcclusionTextureAsset);
-            field["occlusion"]["engineResource"] = AssetManager::IsAssetAnEngineResource(material.m_OcclusionTextureAsset);
+            field["occlusion"]["engineResource"] = AssetManager::IsAssetAResource(material.m_OcclusionTextureAsset);
         }
 
         std::ofstream file(path);

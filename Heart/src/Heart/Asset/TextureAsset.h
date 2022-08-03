@@ -22,7 +22,7 @@ namespace Heart
         void Unload() override;
 
         /*! @brief Get a pointer to the texture stored in this asset. */
-        Texture* GetTexture() { return m_Texture.get(); }
+        inline Texture* GetTexture() { return m_Texture.get(); }
 
     private:
         const int m_DesiredChannelCount = 4; // all images will load as RGBA

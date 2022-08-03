@@ -38,13 +38,13 @@ namespace Heart
         void UpdateFrameIndex();
 
     private:
-        std::array<VkImage, MAX_FRAMES_IN_FLIGHT> m_Images;
-        std::array<VkImageView, MAX_FRAMES_IN_FLIGHT> m_ImageViews;
-        std::array<VkDeviceMemory, MAX_FRAMES_IN_FLIGHT> m_ImageMemory;
-        std::array<std::vector<void*>, MAX_FRAMES_IN_FLIGHT> m_ImGuiHandles;
+        std::array<VkImage, Renderer::FrameBufferCount> m_Images;
+        std::array<VkImageView, Renderer::FrameBufferCount> m_ImageViews;
+        std::array<VkDeviceMemory, Renderer::FrameBufferCount> m_ImageMemory;
+        std::array<std::vector<void*>, Renderer::FrameBufferCount> m_ImGuiHandles;
         VkFormat m_Format;
         ColorFormat m_GeneralFormat;
-        std::array<std::vector<VkImageView>, MAX_FRAMES_IN_FLIGHT> m_LayerViews;
+        std::array<std::vector<VkImageView>, Renderer::FrameBufferCount> m_LayerViews;
         VkSampler m_Sampler;
         Ref<VulkanBuffer> m_CpuBuffer;
 

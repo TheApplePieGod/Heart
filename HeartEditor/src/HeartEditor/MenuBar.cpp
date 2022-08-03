@@ -35,6 +35,18 @@ namespace HeartEditor
             {
                 if (ImGui::BeginMenu("File"))
                 {
+                    if (Project::GetActiveProject())
+                    {
+                        bool disabled = Editor::GetSceneState() != SceneState::Editing;
+                        if (disabled)
+                            ImGui::BeginDisabled();
+                        if (ImGui::MenuItem("Reload Client Scripts"))
+                            Project::GetActiveProject()->LoadScriptsPlugin();
+                        if (disabled)
+                            ImGui::EndDisabled();
+                        ImGui::Separator();
+                    }
+
                     if (Project::GetActiveProject() && ImGui::MenuItem("Save Project"))
                         Project::GetActiveProject()->SaveToDisk();
 
@@ -50,11 +62,21 @@ namespace HeartEditor
 
                     ImGui::Separator();
 
+                    if (Editor::GetEditorSceneAsset() && ImGui::MenuItem("Save Scene"))
+                    {
+                        auto asset = Heart::AssetManager::RetrieveAsset<Heart::SceneAsset>(Editor::GetEditorSceneAsset());
+                        if (asset && asset->IsValid())
+                            asset->Save(&Editor::GetEditorScene());
+                    }
+
+                    if (ImGui::MenuItem("New Scene"))
+                        Editor::ClearScene();
+
                     if (ImGui::MenuItem("Save Scene As"))
                     {
                         std::string path = Heart::FilesystemUtils::SaveAsDialog(Heart::AssetManager::GetAssetsDirectory(), "Save Scene As", "Scene", "hescn");
                         if (!path.empty())
-                            Heart::SceneAsset::SerializeScene(path, &Editor::GetActiveScene());
+                            Heart::SceneAsset::SerializeScene(path, &Editor::GetEditorScene());
                     }
 
                     if (ImGui::MenuItem("Load Scene"))
@@ -63,7 +85,7 @@ namespace HeartEditor
                         if (!path.empty())
                         {
                             Heart::UUID assetId = Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Scene, path);
-                            Editor::SetActiveSceneFromAsset(assetId);
+                            Editor::OpenSceneFromAsset(assetId);
                         }
                     }
 

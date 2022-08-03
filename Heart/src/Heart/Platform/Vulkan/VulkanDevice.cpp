@@ -48,14 +48,14 @@ namespace Heart
             VulkanCommon::QueueFamilyIndices indices = VulkanCommon::GetQueueFamilies(m_PhysicalDevice, mainWindowSurface);
             
             std::vector<float> queuePriorities;
-            queuePriorities.reserve(MAX_FRAMES_IN_FLIGHT * 4);
+            queuePriorities.reserve(Renderer::FrameBufferCount * 4);
 
             // info for creating queues
             std::unordered_map<u32, u32> uniqueFamilies;
-            uniqueFamilies[indices.PresentFamily.value()] = std::min(indices.PresentQueueCount, MAX_FRAMES_IN_FLIGHT);
-            uniqueFamilies[indices.GraphicsFamily.value()] = std::min(indices.GraphicsQueueCount, MAX_FRAMES_IN_FLIGHT);
-            uniqueFamilies[indices.ComputeFamily.value()] = std::min(indices.ComputeQueueCount, MAX_FRAMES_IN_FLIGHT);
-            uniqueFamilies[indices.TransferFamily.value()] = std::min(indices.TransferQueueCount, MAX_FRAMES_IN_FLIGHT);
+            uniqueFamilies[indices.PresentFamily.value()] = std::min(indices.PresentQueueCount, Renderer::FrameBufferCount);
+            uniqueFamilies[indices.GraphicsFamily.value()] = std::min(indices.GraphicsQueueCount, Renderer::FrameBufferCount);
+            uniqueFamilies[indices.ComputeFamily.value()] = std::min(indices.ComputeQueueCount, Renderer::FrameBufferCount);
+            uniqueFamilies[indices.TransferFamily.value()] = std::min(indices.TransferQueueCount, Renderer::FrameBufferCount);
 
             std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
             for (auto& pair : uniqueFamilies)
@@ -118,7 +118,7 @@ namespace Heart
             m_ComputeQueueIndex = indices.ComputeFamily.value();
             m_TransferQueueIndex = indices.TransferFamily.value();
 
-            for (u32 i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+            for (u32 i = 0; i < Renderer::FrameBufferCount; i++)
             {
                 vkGetDeviceQueue(m_LogicalDevice, m_PresentQueueIndex, std::min(i, indices.PresentQueueCount - 1), &m_PresentQueues[i]);
                 vkGetDeviceQueue(m_LogicalDevice, m_GraphicsQueueIndex, std::min(i, indices.GraphicsQueueCount - 1), &m_GraphicsQueues[i]);

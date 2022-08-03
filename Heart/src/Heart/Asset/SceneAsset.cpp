@@ -43,6 +43,13 @@ namespace Heart
         m_Valid = false;
     }
 
+    void SceneAsset::Save(Scene* scene)
+    {
+        SerializeScene(m_AbsolutePath, scene);
+        if (m_Loaded)
+            m_Scene = scene->Clone();
+    }
+
     Ref<Scene> SceneAsset::DeserializeScene(const std::string& path)
     {
         auto scene = CreateRef<Scene>();
@@ -89,11 +96,11 @@ namespace Heart
                 if (loaded.contains("meshComponent"))
                 {
                     auto& materials = loaded["meshComponent"]["materials"];
-                    std::vector<UUID> ids;
+                    HVector<UUID> materialIds;
                     UUID meshAsset = AssetManager::RegisterAsset(Asset::Type::Mesh, loaded["meshComponent"]["mesh"]["path"], false, loaded["meshComponent"]["mesh"]["engineResource"]);
                     for (auto& material : materials)
-                        ids.emplace_back(AssetManager::RegisterAsset(Asset::Type::Material, material["path"], false, material["engineResource"]));
-                    entity.AddComponent<MeshComponent>(meshAsset, ids);
+                        materialIds.AddInPlace(AssetManager::RegisterAsset(Asset::Type::Material, material["path"], false, material["engineResource"]));
+                    entity.AddComponent<MeshComponent>(meshAsset, materialIds);
                 }
 
                 // Light component
@@ -106,6 +113,30 @@ namespace Heart
                     comp.LinearAttenuation = loaded["lightComponent"]["attenuation"]["linear"];
                     comp.QuadraticAttenuation = loaded["lightComponent"]["attenuation"]["quadratic"];
                     entity.AddComponent<LightComponent>(comp);
+                }
+
+                // Script component
+                if (loaded.contains("scriptComponent"))
+                {
+                    ScriptComponent comp;
+                    HString scriptClass = loaded["scriptComponent"]["type"];
+                    comp.Instance = ScriptInstance(scriptClass);
+                    if (comp.Instance.IsInstantiable())
+                    {
+                        if (!comp.Instance.ValidateClass())
+                        {
+                            HE_ENGINE_LOG_WARN(
+                                "Class '{0}' referenced in scene is no longer instantiable",
+                                scriptClass.DataUTF8()
+                            );
+                        }
+                        else
+                        {
+                            comp.Instance.Instantiate(entity);
+                            comp.Instance.LoadFieldsFromJson(loaded["scriptComponent"]["fields"]);
+                        }
+                    }
+                    entity.AddComponent<ScriptComponent>(comp);
                 }
             }
 
@@ -169,11 +200,11 @@ namespace Heart
                 {
                     auto& meshComp = entity.GetComponent<MeshComponent>();
                     entry["meshComponent"]["mesh"]["path"] = AssetManager::GetPathFromUUID(meshComp.Mesh);
-                    entry["meshComponent"]["mesh"]["engineResource"] = AssetManager::IsAssetAnEngineResource(meshComp.Mesh);
-                    for (size_t i = 0; i < meshComp.Materials.size(); i++)
+                    entry["meshComponent"]["mesh"]["engineResource"] = AssetManager::IsAssetAResource(meshComp.Mesh);
+                    for (size_t i = 0; i < meshComp.Materials.GetCount(); i++)
                     {
                         entry["meshComponent"]["materials"][i]["path"] = AssetManager::GetPathFromUUID(meshComp.Materials[i]);
-                        entry["meshComponent"]["materials"][i]["engineResource"] = AssetManager::IsAssetAnEngineResource(meshComp.Materials[i]);
+                        entry["meshComponent"]["materials"][i]["engineResource"] = AssetManager::IsAssetAResource(meshComp.Materials[i]);
                     }
                 }
 
@@ -188,6 +219,14 @@ namespace Heart
                     entry["lightComponent"]["attenuation"]["quadratic"] = lightComp.QuadraticAttenuation;
                 }
 
+                // Script component
+                if (entity.HasComponent<ScriptComponent>())
+                {
+                    auto& scriptComp = entity.GetComponent<ScriptComponent>();
+                    entry["scriptComponent"]["type"] = scriptComp.Instance.GetScriptClass();
+                    entry["scriptComponent"]["fields"] = scriptComp.Instance.SerializeFieldsToJson();
+                }
+
                 field[index++] = entry;
             });
         }
@@ -196,7 +235,7 @@ namespace Heart
         {
             auto& field = j["settings"];
             field["environmentMap"]["path"] = scene->GetEnvironmentMap() ? AssetManager::GetPathFromUUID(scene->GetEnvironmentMap()->GetMapAsset()) : "";
-            field["environmentMap"]["engineResource"] = scene->GetEnvironmentMap() ? AssetManager::IsAssetAnEngineResource(scene->GetEnvironmentMap()->GetMapAsset()) : false;
+            field["environmentMap"]["engineResource"] = scene->GetEnvironmentMap() ? AssetManager::IsAssetAResource(scene->GetEnvironmentMap()->GetMapAsset()) : false;
         }
 
         std::ofstream file(path);

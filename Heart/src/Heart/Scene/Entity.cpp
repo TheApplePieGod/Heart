@@ -1,6 +1,9 @@
 #include "hepch.h"
 #include "Entity.h"
 
+#include "Heart/Container/HString.h"
+#include "Heart/Container/Variant.h"
+
 namespace Heart
 {
     Entity::Entity(Scene* scene, entt::entity handle)
@@ -18,8 +21,7 @@ namespace Heart
 
     void Entity::Destroy()
     {
-        m_Scene->m_CachedTransforms.erase(m_EntityHandle);
-        m_Scene->m_Registry.destroy(m_EntityHandle);
+        m_Scene->DestroyEntity(*this);
     }
 
     const glm::mat4x4& Entity::GetWorldTransformMatrix()
@@ -72,5 +74,17 @@ namespace Heart
         comp.Rotation = rot;
         comp.Scale = scale;
         m_Scene->CacheEntityTransform(*this);
+    }
+
+    Variant Entity::GetScriptProperty(const HString& name) const
+    {
+        auto& comp = GetComponent<ScriptComponent>();
+        return comp.Instance.GetFieldValue(name);
+    }
+
+    void Entity::SetScriptProperty(const HString& name, const Variant& value)
+    {
+        auto& comp = GetComponent<ScriptComponent>();
+        comp.Instance.SetFieldValue(name, value);
     }
 }

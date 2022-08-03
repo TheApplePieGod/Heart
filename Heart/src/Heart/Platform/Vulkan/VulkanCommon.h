@@ -1,6 +1,7 @@
 #pragma once
 
 #include "vulkan/vulkan.h"
+#include "Heart/Renderer/Renderer.h"
 #include "Heart/Renderer/Shader.h"
 #include "Heart/Renderer/Buffer.h"
 #include "Heart/Renderer/Pipeline.h"
@@ -11,9 +12,6 @@
 
 namespace Heart
 {
-    // TODO: make this a parameter?
-    const u32 MAX_FRAMES_IN_FLIGHT = 2;
-
     struct VulkanCommon
     {
         struct QueueFamilyIndices

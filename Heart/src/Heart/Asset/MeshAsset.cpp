@@ -74,6 +74,7 @@ namespace Heart
                 unsigned char* bin = FilesystemUtils::ReadFile(binPath, fileLength);
                 buffers.emplace_back();
                 buffers.back().assign(bin, bin + fileLength);
+                delete[] bin;
             }
             else
             {

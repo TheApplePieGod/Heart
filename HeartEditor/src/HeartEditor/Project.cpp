@@ -9,6 +9,7 @@
 #include "Heart/ImGui/ImGuiInstance.h"
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/SceneAsset.h"
+#include "Heart/Scripting/ScriptingEngine.h"
 #include "Heart/Util/FilesystemUtils.h"
 #include "nlohmann/json.hpp"
 
@@ -36,33 +37,6 @@ namespace HeartEditor
         file.close();
 
         /*
-         * Load templates and create visual studio project files
-         */
-        // This is a temporary solution that will work with versions of the engine built from source. In the future,
-        // this will likely have to change
-        std::string coreProjectPath = std::filesystem::current_path()
-            .parent_path()
-            .parent_path()
-            .append("HeartScripting")
-            .append("ScriptingCore.csproj")
-            .generic_u8string();
-
-        // Csproj
-        std::string csprojTemplate = Heart::FilesystemUtils::ReadFileToString("templates/ProjectTemplate.csproj");
-        std::string finalCsproj = std::regex_replace(csprojTemplate, std::regex("\\$\\{CORE_PROJECT_PATH\\}"), coreProjectPath);
-        file = std::ofstream(std::filesystem::path(finalPath).append(name + ".csproj"));
-        file << finalCsproj;
-        file.close();
-
-        // Sln
-        std::string slnTemplate = Heart::FilesystemUtils::ReadFileToString("templates/ProjectTemplate.sln");
-        std::string finalSln = std::regex_replace(slnTemplate, std::regex("\\$\\{CORE_PROJECT_PATH\\}"), coreProjectPath);
-        finalSln = std::regex_replace(finalSln, std::regex("\\$\\{PROJECT_NAME\\}"), name);
-        file = std::ofstream(std::filesystem::path(finalPath).append(name + ".sln"));
-        file << finalSln;
-        file.close();
-
-        /*
          * Copy default imgui config
          */
         std::filesystem::copy_file("templates/imgui.ini", std::filesystem::path(finalPath).append("imgui.ini"));
@@ -72,6 +46,44 @@ namespace HeartEditor
          */
         std::filesystem::create_directory(std::filesystem::path(finalPath).append("Assets"));
         std::filesystem::create_directory(std::filesystem::path(finalPath).append("Scripts"));
+
+        /*
+         * Load templates and create visual studio project files
+         */
+        std::string scriptsRootPath = std::filesystem::current_path()
+            .append("scripting")
+            .generic_u8string();
+
+        // Csproj
+        std::string csprojTemplate = Heart::FilesystemUtils::ReadFileToString("templates/ProjectTemplate.csproj");
+        std::string finalCsproj = std::regex_replace(csprojTemplate, std::regex("\\$\\{SCRIPTS_ROOT_PATH\\}"), scriptsRootPath);
+        file = std::ofstream(
+            std::filesystem::path(finalPath).append(name + ".csproj"),
+            std::ios::binary
+        );
+        file << finalCsproj;
+        file.close();
+
+        // Sln
+        std::string slnTemplate = Heart::FilesystemUtils::ReadFileToString("templates/ProjectTemplate.sln");
+        std::string finalSln = std::regex_replace(slnTemplate, std::regex("\\$\\{SCRIPTS_ROOT_PATH\\}"), scriptsRootPath);
+        finalSln = std::regex_replace(finalSln, std::regex("\\$\\{PROJECT_NAME\\}"), name);
+        file = std::ofstream(
+            std::filesystem::path(finalPath).append(name + ".sln"),
+            std::ios::binary
+        );
+        file << finalSln;
+        file.close();
+
+        // Empty entity
+        std::string entityTemplate = Heart::FilesystemUtils::ReadFileToString("templates/EmptyEntity.csfile");
+        std::string finalEntity = std::regex_replace(entityTemplate, std::regex("\\$\\{PROJECT_NAME\\}"), name);
+        file = std::ofstream(
+            std::filesystem::path(finalPath).append("Scripts").append("EmptyEntity.cs"),
+            std::ios::binary
+        );
+        file << finalEntity;
+        file.close();
         
         return LoadFromPath(mainProjectFilePath.generic_u8string());
     }
@@ -85,32 +97,34 @@ namespace HeartEditor
         if (!data)
             throw std::exception();
 
-        // Unload active scene (load empty)
-        Editor::SetActiveScene(Heart::CreateRef<Heart::Scene>());
+        // Cleanup editor state
+        Editor::ClearScene();
+        Editor::DestroyWindows();
 
         // Finally update the assets directory to the project root
         Heart::AssetManager::UpdateAssetsDirectory(
             Heart::FilesystemUtils::GetParentDirectory(absolutePath)
         );
 
-        // Refresh content browser directory list
-        static_cast<Widgets::ContentBrowser&>(
-            Editor::GetWindow("Content Browser")
-        ).RefreshList();
+        // Recreate editor windows
+        Editor::CreateWindows();
 
         // Update the imgui project config
         EditorApp::Get().GetImGuiInstance().OverrideImGuiConfig(Heart::AssetManager::GetAssetsDirectory());
         EditorApp::Get().GetImGuiInstance().ReloadImGuiConfig();
+
+        // Load client scripts if they exist
+        project->LoadScriptsPlugin();
 
         auto j = nlohmann::json::parse(data);
 
         if (j.contains("name"))
             project->m_Name = j["name"];
         
-        if (j.contains("loadedProject") && j["loadedProject"] != "")
+        if (j.contains("loadedScene") && j["loadedScene"] != "")
         {
-            Heart::UUID sceneAssetId = Heart::AssetManager::GetAssetUUID(j["loadedProject"]);
-            Editor::SetActiveSceneFromAsset(sceneAssetId);
+            Heart::UUID sceneAssetId = Heart::AssetManager::GetAssetUUID(j["loadedScene"]);
+            Editor::OpenSceneFromAsset(sceneAssetId);
         }
 
         // Parse widgets
@@ -132,8 +146,8 @@ namespace HeartEditor
         nlohmann::json j;
         j["name"] = m_Name;
 
-        Heart::UUID activeSceneAsset = Editor::GetActiveSceneAsset();
-        j["loadedProject"] = Heart::AssetManager::GetPathFromUUID(activeSceneAsset);
+        Heart::UUID activeSceneAsset = Editor::GetEditorSceneAsset();
+        j["loadedScene"] = Heart::AssetManager::GetPathFromUUID(activeSceneAsset);
 
         // Widget data
         {
@@ -149,5 +163,55 @@ namespace HeartEditor
 
         std::ofstream file(m_AbsolutePath);
         file << j;
+    }
+
+    void Project::LoadScriptsPlugin()
+    {
+        auto assemblyPath = std::filesystem::path(Heart::AssetManager::GetAssetsDirectory())
+            .append("bin")
+            .append("ClientScripts.dll");
+        if (!std::filesystem::exists(assemblyPath))
+        {
+            HE_LOG_WARN("Client assembly not found");
+            return;
+        }
+
+        // Serialize object state of all alive scripts
+        auto view = Editor::GetActiveScene().GetRegistry().view<Heart::ScriptComponent>();
+        std::unordered_map<entt::entity, nlohmann::json> serializedObjects;
+        for (auto entity : view)
+        {
+            auto& scriptComp = view.get<Heart::ScriptComponent>(entity);
+            if (!scriptComp.Instance.IsAlive()) continue;
+            
+            serializedObjects[entity] = scriptComp.Instance.SerializeFieldsToJson();
+        }
+
+        // Reload
+        Heart::ScriptingEngine::LoadClientPlugin(assemblyPath.u8string());
+
+        // Reinstantiate objects and load serialized properties
+        for (auto entity : view)
+        {
+            auto& scriptComp = view.get<Heart::ScriptComponent>(entity);
+            if (!scriptComp.Instance.IsInstantiable())
+                continue;
+            
+            // We need to ensure that the class still exists & is instantiable after the reload
+            // before we try and reinstantiate it
+            scriptComp.Instance.ClearObjectHandle();
+            if (!scriptComp.Instance.ValidateClass())
+            {
+                HE_ENGINE_LOG_WARN(
+                    "Class '{0}' referenced in scene is no longer instantiable",
+                    scriptComp.Instance.GetScriptClass().DataUTF8()
+                );
+                continue;
+            }
+
+            // Reinstantiate
+            scriptComp.Instance.Instantiate({ &Editor::GetActiveScene(), (u32)entity });
+            scriptComp.Instance.LoadFieldsFromJson(serializedObjects[entity]);
+        }
     }
 }

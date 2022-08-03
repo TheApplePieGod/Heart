@@ -13,7 +13,7 @@ struct Light {
     vec4 position;
     vec4 direction;
     vec4 color;
-    int lightType;
+    uint lightType;
     float constantAttenuation;
     float linearAttenuation;
     float quadraticAttenuation;

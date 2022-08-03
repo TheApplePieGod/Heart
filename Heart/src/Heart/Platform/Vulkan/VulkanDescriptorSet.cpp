@@ -86,7 +86,7 @@ namespace Heart
             m_CachedPoolSizes.emplace_back(poolSize);
         }
 
-        for (u32 frame = 0; frame < MAX_FRAMES_IN_FLIGHT; frame++)
+        for (u32 frame = 0; frame < Renderer::FrameBufferCount; frame++)
             m_AvailableSets[frame].resize(m_MaxSetsPerPool);
 
         // create the initial descriptor pools per frame
@@ -121,7 +121,7 @@ namespace Heart
     {
         // Because we don't clear descriptors each frame, we need to clear them when a texture is deleted
         // so we don't run the risk of using a deleted resource. TODO: only clear related descriptors
-        for (u32 frame = 0; frame < MAX_FRAMES_IN_FLIGHT; frame++)
+        for (u32 frame = 0; frame < Renderer::FrameBufferCount; frame++)
             ClearPools(frame);
 
         return false;

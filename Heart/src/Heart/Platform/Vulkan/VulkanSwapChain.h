@@ -99,18 +99,18 @@ namespace Heart
         VkSwapchainKHR m_SwapChain;
         SwapChainData m_SwapChainData;
         VkRenderPass m_RenderPass;
-        std::array<VkCommandBuffer, MAX_FRAMES_IN_FLIGHT> m_CommandBuffers; // secondary
+        std::array<VkCommandBuffer, Renderer::FrameBufferCount> m_CommandBuffers; // secondary
 
         std::vector<VkCommandBuffer> m_SubmittedCommandBuffers{};
         std::vector<FramebufferSubmissionData> m_FramebufferSubmissions = {}; // collection of all submitted framebuffers
 
-        std::array<VkSemaphore, MAX_FRAMES_IN_FLIGHT> m_ImageAvailableSemaphores;
-        std::array<VkSemaphore, MAX_FRAMES_IN_FLIGHT> m_RenderFinishedSemaphores;
+        std::array<VkSemaphore, Renderer::FrameBufferCount> m_ImageAvailableSemaphores;
+        std::array<VkSemaphore, Renderer::FrameBufferCount> m_RenderFinishedSemaphores;
         std::vector<VkSemaphore> m_AuxiliaryRenderFinishedSemaphores = {};
         std::vector<VkSemaphore> m_AuxiliaryComputeFinishedSemaphores = {};
-        std::array<VkFence, MAX_FRAMES_IN_FLIGHT> m_InFlightFences;
-        std::array<VkFence, MAX_FRAMES_IN_FLIGHT> m_InFlightTransferFences;
-        std::array<VkFence, MAX_FRAMES_IN_FLIGHT> m_InFlightComputeFences;
+        std::array<VkFence, Renderer::FrameBufferCount> m_InFlightFences;
+        std::array<VkFence, Renderer::FrameBufferCount> m_InFlightTransferFences;
+        std::array<VkFence, Renderer::FrameBufferCount> m_InFlightComputeFences;
         std::vector<VkFence> m_ImagesInFlight = {};
         u32 m_PresentImageIndex;
         bool m_ShouldPresentThisFrame;

@@ -1,0 +1,4 @@
+bin/**
+CoreScripts/obj/**
+SourceGenerators/obj/**
+Heart.NET.Sdk/obj/**

@@ -91,6 +91,10 @@ namespace Heart
          */
         static UUID RegisterAsset(Asset::Type type, const std::string& path, bool persistent = false, bool isResource = false);
 
+        static void UnregisterAsset(UUID uuid);
+
+        static UUID RegisterInMemoryAsset(Asset::Type type);
+
         /**
          * @brief Register all assets in a directory and all subdirectories.
          * 
@@ -146,7 +150,7 @@ namespace Heart
          * @brief Get the path of a registered asset from its UUID.
          * 
          * @warning There is no distinction between paths of resources and regular assets, so make
-         *          sure to call IsAssetAnEngineResource() to make the distinction.
+         *          sure to call IsAssetAResource() to make the distinction.
          * 
          * @param uuid The UUID of the registered asset.
          * @return The path of the asset relative to the project directory or an empty string if it could not be located.
@@ -159,7 +163,7 @@ namespace Heart
          * @param uuid The UUID of the asset.
          * @return True if the UUID points to a resource, false if otherwise.
          */
-        static bool IsAssetAnEngineResource(UUID uuid);
+        static bool IsAssetAResource(UUID uuid);
 
         /**
          * @brief Retrieve an asset from a path.

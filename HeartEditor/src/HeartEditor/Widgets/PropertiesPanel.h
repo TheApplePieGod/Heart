@@ -6,6 +6,11 @@
 #include "Heart/Scene/Components.h"
 #include "imgui/imgui.h"
 
+namespace Heart
+{
+    class HString;
+}
+
 namespace HeartEditor
 {
 namespace Widgets
@@ -23,8 +28,10 @@ namespace Widgets
         void RenderTransformComponent();
         void RenderMeshComponent();
         void RenderLightComponent();
+        void RenderScriptComponent();
 
         void RenderXYZSlider(const std::string& name, f32* x, f32* y, f32* z, f32 min, f32 max, f32 step);
+        void RenderScriptField(const Heart::HString& fieldName, Heart::ScriptComponent& scriptComp);
 
         // returns true if the component was deleted
         template<typename Component>
@@ -52,6 +59,7 @@ namespace Widgets
     private:
         ImGuiTextFilter m_MeshTextFilter;
         ImGuiTextFilter m_MaterialTextFilter;
+        ImGuiTextFilter m_ScriptTextFilter;
     };
 }
 }

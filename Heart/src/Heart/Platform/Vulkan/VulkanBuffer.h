@@ -34,11 +34,11 @@ namespace Heart
         u32 GetAccessingIndex();
 
     private:
-        std::array<VkBuffer, MAX_FRAMES_IN_FLIGHT> m_Buffers;
-        std::array<VkDeviceMemory, MAX_FRAMES_IN_FLIGHT> m_BufferMemory;
-        std::array<VkBuffer, MAX_FRAMES_IN_FLIGHT> m_StagingBuffers;
-        std::array<VkDeviceMemory, MAX_FRAMES_IN_FLIGHT> m_StagingBufferMemory;
-        std::array<void*, MAX_FRAMES_IN_FLIGHT> m_MappedMemory;
+        std::array<VkBuffer, Renderer::FrameBufferCount> m_Buffers;
+        std::array<VkDeviceMemory, Renderer::FrameBufferCount> m_BufferMemory;
+        std::array<VkBuffer, Renderer::FrameBufferCount> m_StagingBuffers;
+        std::array<VkDeviceMemory, Renderer::FrameBufferCount> m_StagingBufferMemory;
+        std::array<void*, Renderer::FrameBufferCount> m_MappedMemory;
         s64 m_DataSize = 0;
         u64 m_LastUpdateFrame = 0;
         u32 m_InFlightFrameIndex = 0;

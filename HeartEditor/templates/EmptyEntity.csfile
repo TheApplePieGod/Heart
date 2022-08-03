@@ -1,0 +1,23 @@
+using Heart.Core;
+using Heart.Scene;
+
+namespace ${PROJECT_NAME}.Scripts
+{
+    public partial class EmptyEntity : Entity
+    {
+        public override void OnPlayStart()
+        {
+            Log.Warn("OnPlayStart called");
+        }
+
+        public override void OnPlayEnd()
+        {
+            Log.Warn("OnPlayEnd called");
+        }
+
+        public override void OnUpdate(Timestep timestep)
+        {
+            Log.Warn("OnUpdate called ({0}ms)", timestep.StepMilliseconds);
+        }
+    }
+}

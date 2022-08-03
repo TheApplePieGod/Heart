@@ -158,7 +158,7 @@ namespace Heart
         if (m_MipLevels > maxMipLevels || m_MipLevels == 0)
             m_MipLevels = maxMipLevels;
 
-        m_ImageCount = m_Info.UsageType == BufferUsageType::Dynamic ? MAX_FRAMES_IN_FLIGHT : 1;
+        m_ImageCount = m_Info.UsageType == BufferUsageType::Dynamic ? Renderer::FrameBufferCount : 1;
 
         // if the texture is cpu visible, create the readonly buffer
         if (m_Info.AllowCPURead)

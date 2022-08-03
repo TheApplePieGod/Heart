@@ -1,8 +1,16 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-	  <TargetFramework>net48</TargetFramework>
+		<OutputType>Library</OutputType>
+		<TargetFramework>net6.0</TargetFramework>
+		<OutputPath>bin</OutputPath>
+		<AssemblyName>ClientScripts</AssemblyName>
+		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+		<AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
 	</PropertyGroup>
 	<ItemGroup>
-	  <ProjectReference Include="${CORE_PROJECT_PATH}" />
+		<PackageReference Include="Heart.NET.Sdk" Version="1.0.0" />
+	</ItemGroup>
+	<ItemGroup>
+	  	<Folder Include="Scripts/" />
 	</ItemGroup>
 </Project>

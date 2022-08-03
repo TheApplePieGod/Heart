@@ -59,7 +59,7 @@ namespace Heart
             poolInfo.queryType = VK_QUERY_TYPE_TIMESTAMP;
             poolInfo.queryCount = 2;
 
-            for (u32 frame = 0; frame < MAX_FRAMES_IN_FLIGHT; frame++)
+            for (u32 frame = 0; frame < Renderer::FrameBufferCount; frame++)
                 HE_VULKAN_CHECK_RESULT(vkCreateQueryPool(device.Device(), &poolInfo, nullptr, &m_QueryPools[frame]));
         }
     }
@@ -76,7 +76,7 @@ namespace Heart
         vkFreeCommandBuffers(device.Device(), VulkanContext::GetGraphicsPool(), static_cast<u32>(m_InlineCommandBuffers.size()), m_InlineCommandBuffers.data());
 
         if (m_Info.AllowPerformanceQuerying)
-            for (u32 frame = 0; frame < MAX_FRAMES_IN_FLIGHT; frame++)
+            for (u32 frame = 0; frame < Renderer::FrameBufferCount; frame++)
                 vkDestroyQueryPool(device.Device(), m_QueryPools[frame], nullptr);
 
         m_DescriptorSet.Shutdown();

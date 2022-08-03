@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+    <metadata>
+        <id>Heart.NET.Sdk</id>
+        <version>1.0.0</version>
+        <description>Full C# .NET Sdk for Heart Engine development</description>
+        <authors>TheApplePieGod</authors>
+        <dependencies>
+            <group targetFramework="net6.0" />
+        </dependencies>
+    </metadata>
+    <files>
+        <file src="../bin/SourceGenerators.dll" target="analyzers\dotnet\cs" />
+    </files>
+</package>

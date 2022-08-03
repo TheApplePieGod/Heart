@@ -45,7 +45,7 @@ namespace Heart
         VkPhysicalDeviceProperties m_PhysicalDeviceProperties;
         VkSampleCountFlagBits m_DeviceMaxSampleCount;
         VkDevice m_LogicalDevice;
-        std::array<VkQueue, MAX_FRAMES_IN_FLIGHT> m_GraphicsQueues, m_ComputeQueues, m_TransferQueues, m_PresentQueues;
+        std::array<VkQueue, Renderer::FrameBufferCount> m_GraphicsQueues, m_ComputeQueues, m_TransferQueues, m_PresentQueues;
         u32 m_GraphicsQueueIndex, m_PresentQueueIndex, m_ComputeQueueIndex, m_TransferQueueIndex;
         bool m_Initialized = false;
     };

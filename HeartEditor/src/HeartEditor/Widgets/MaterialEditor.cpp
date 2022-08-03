@@ -24,20 +24,23 @@ namespace Widgets
     {
         m_SceneRenderer = Heart::CreateScope<Heart::SceneRenderer>();
         m_Scene = Heart::CreateRef<Heart::Scene>();
-        m_Scene->SetEnvironmentMap(Heart::AssetManager::GetAssetUUID("DefaultEnvironmentMap.hdr", true));
+        m_Scene->SetEnvironmentMap(Heart::AssetManager::GetAssetUUID("engine/DefaultEnvironmentMap.hdr", true));
 
         m_DemoEntity = m_Scene->CreateEntity("Demo Entity");
         m_DemoEntity.AddComponent<Heart::MeshComponent>();
-        m_DemoEntity.GetComponent<Heart::MeshComponent>().Mesh = Heart::AssetManager::GetAssetUUID("DefaultCube.gltf", true);
-        m_DemoEntity.GetComponent<Heart::MeshComponent>().Materials.push_back(0);
+        m_DemoEntity.GetComponent<Heart::MeshComponent>().Mesh = Heart::AssetManager::GetAssetUUID("engine/DefaultCube.gltf", true);
+        m_DemoEntity.GetComponent<Heart::MeshComponent>().Materials.Add(0);
 
         m_SceneCamera.UpdateViewMatrix({ 0.f, 0.f, 0.f }, m_Radius, 0, 0);
         m_SceneCameraPosition = -m_SceneCamera.GetForwardVector() * m_Radius;
+
+        // Register an in-memory asset for the in-progress material
+        m_EditingMaterialAsset = Heart::AssetManager::RegisterInMemoryAsset(Heart::Asset::Type::Material);
     }
 
-    void MaterialEditor::Reset()
+    MaterialEditor::~MaterialEditor()
     {
-        m_FirstRender = true;
+        Heart::AssetManager::UnregisterAsset(m_EditingMaterialAsset);
     }
 
     void MaterialEditor::OnImGuiRender()
@@ -48,26 +51,40 @@ namespace Widgets
         if (m_SelectedMaterial != m_LastMaterial)
             m_Open = true;
 
-        if (!m_Open) return;
+        if (!m_Open)
+        {
+            m_LastMaterial = 0;
+            m_SelectedMaterial = 0;
+            return;
+        }
 
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 5.0f));
         ImGui::Begin(m_Name.c_str(), &m_Open);
         
         auto materialAsset = Heart::AssetManager::RetrieveAsset<Heart::MaterialAsset>(m_SelectedMaterial);
-        bool shouldRender = materialAsset && materialAsset->IsValid();
+        bool shouldRenderViewport = materialAsset && materialAsset->IsValid();
+        bool materialChanged = m_SelectedMaterial != m_LastMaterial; 
+        bool shouldRerender = (shouldRenderViewport && ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows))
+            || materialChanged || m_RenderedFrames < Heart::Renderer::FrameBufferCount;
 
         // Only render the window when:
         //  - Valid material & window is focused
         //  - The material was just changed
-        //  - Graphics api was just initialized (first render)
-        if ((shouldRender && ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows)) || m_FirstRender || m_SelectedMaterial != m_LastMaterial)
+        //  - We have framebuffers to fill (i.e. double/triple buffering)
+        if (shouldRerender)
         {
-            // Cache the material for reverting changes later
-            if (m_SelectedMaterial != m_LastMaterial)
+            // Update the editing material with the new material value
+            if (materialChanged)
             {
                 m_Dirty = false;
-                m_CachedMaterial = materialAsset->GetMaterial();
+                m_RenderedFrames = 0;
+
+                // Will always be valid
+                auto editingAsset = Heart::AssetManager::RetrieveAsset<Heart::MaterialAsset>(m_EditingMaterialAsset);
+                editingAsset->GetMaterial() = materialAsset->GetMaterial();
             }
+
+            m_RenderedFrames++;
 
             Heart::SceneRenderSettings renderSettings;
             renderSettings.DrawGrid = false;
@@ -75,8 +92,7 @@ namespace Widgets
 
             // Updates
             m_LastMaterial = m_SelectedMaterial;
-            m_FirstRender = false;
-            m_DemoEntity.GetComponent<Heart::MeshComponent>().Materials[0] = m_SelectedMaterial;
+            m_DemoEntity.GetComponent<Heart::MeshComponent>().Materials[0] = m_EditingMaterialAsset;
             m_SceneCamera.UpdateAspectRatio(m_WindowSizes.y / ImGui::GetContentRegionMax().y); // update aspect using estimated size
             m_SceneRenderer->RenderScene(
                 EditorApp::Get().GetWindow().GetContext(),
@@ -95,7 +111,7 @@ namespace Widgets
             10.f,
             !ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows),
             [&]() { RenderSidebar(); },
-            [&]() { RenderViewport(shouldRender); }
+            [&]() { RenderViewport(shouldRenderViewport); }
         );
 
         // Display material on drop
@@ -120,14 +136,15 @@ namespace Widgets
         if (materialAsset && materialAsset->IsValid())
         {
             // Do not allow modification of engine resources, but still allow for them to be displayed
-            if (Heart::AssetManager::IsAssetAnEngineResource(m_SelectedMaterial))
+            if (Heart::AssetManager::IsAssetAResource(m_SelectedMaterial))
             {
                 ImGui::TextColored({ 1.f, 1.f, 0.f, 1.f }, "Cannot Modify an Engine Resource");
                 return;
             }
 
-            auto& material = materialAsset->GetMaterial();
-            auto& materialData = material.GetMaterialData();
+            auto editingMaterialAsset = Heart::AssetManager::RetrieveAsset<Heart::MaterialAsset>(m_EditingMaterialAsset);
+            auto& editingMaterial = editingMaterialAsset->GetMaterial();
+            auto& materialData = editingMaterial.GetMaterialData();
 
             // Material path
             ImGui::Text(materialAsset->GetPath().c_str());
@@ -139,14 +156,13 @@ namespace Widgets
             if (ImGui::Button("Save Changes"))
             {
                 m_Dirty = false;
-                materialAsset->SaveChanges();
-                m_CachedMaterial = material;
+                materialAsset->Save(editingMaterial);
             }
             ImGui::SameLine();
             if (ImGui::Button("Revert Changes"))
             {
                 m_Dirty = false;
-                material = m_CachedMaterial;
+                editingMaterial = materialAsset->GetMaterial();
             }
             ImGui::Dummy({ 0.f, 5.f });
             if (disabled)
@@ -176,12 +192,12 @@ namespace Widgets
             ImGui::SameLine();
             if (ImGui::DragFloat("##ACThreshold", &materialData.Scalars.z, 0.01f, 0.f, 1.f))
                 m_Dirty = true;
-            bool isTranslucent = material.IsTranslucent();
+            bool isTranslucent = editingMaterial.IsTranslucent();
             ImGui::Text("Is Translucent");
             ImGui::SameLine();
             if (ImGui::Checkbox("##Translucent", &isTranslucent))
             {
-                material.SetTranslucent(isTranslucent);
+                editingMaterial.SetTranslucent(isTranslucent);
                 m_Dirty = true;
             }
 
@@ -197,7 +213,7 @@ namespace Widgets
             ImGui::SameLine();
             Heart::ImGuiUtils::AssetPicker(
                 Heart::Asset::Type::Texture,
-                material.GetAlbedoTexture(),
+                editingMaterial.GetAlbedoTexture(),
                 "NULL",
                 "AlbedoSelect",
                 m_TextureTextFilter,
@@ -205,13 +221,13 @@ namespace Widgets
                 {
                     if (ImGui::MenuItem("Clear"))
                     {
-                        material.SetAlbedoTexture(0);
+                        editingMaterial.SetAlbedoTexture(0);
                         m_Dirty = true;
                     }
                 },
-                [&](Heart::UUID selected) { material.SetAlbedoTexture(selected); m_Dirty = true; }
+                [&](Heart::UUID selected) { editingMaterial.SetAlbedoTexture(selected); m_Dirty = true; }
             );
-            auto albedoAsset = Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>(material.GetAlbedoTexture());
+            auto albedoAsset = Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>(editingMaterial.GetAlbedoTexture());
             if (albedoAsset && albedoAsset->IsValid())
                 ImGui::Image(albedoAsset->GetTexture()->GetImGuiHandle(0), { previewSize, previewSize });
 
@@ -224,7 +240,7 @@ namespace Widgets
             ImGui::SameLine();
             Heart::ImGuiUtils::AssetPicker(
                 Heart::Asset::Type::Texture,
-                material.GetMetallicRoughnessTexture(),
+                editingMaterial.GetMetallicRoughnessTexture(),
                 "NULL",
                 "MRSelect",
                 m_TextureTextFilter,
@@ -232,13 +248,13 @@ namespace Widgets
                 {
                     if (ImGui::MenuItem("Clear"))
                     {
-                        material.SetMetallicRoughnessTexture(0);
+                        editingMaterial.SetMetallicRoughnessTexture(0);
                         m_Dirty = true;
                     }
                 },
-                [&](Heart::UUID selected) { material.SetMetallicRoughnessTexture(selected); m_Dirty = true; }
+                [&](Heart::UUID selected) { editingMaterial.SetMetallicRoughnessTexture(selected); m_Dirty = true; }
             );
-            auto mrAsset = Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>(material.GetMetallicRoughnessTexture());
+            auto mrAsset = Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>(editingMaterial.GetMetallicRoughnessTexture());
             if (mrAsset && mrAsset->IsValid())
                 ImGui::Image(mrAsset->GetTexture()->GetImGuiHandle(0), { previewSize, previewSize });
 
@@ -251,7 +267,7 @@ namespace Widgets
             ImGui::SameLine();
             Heart::ImGuiUtils::AssetPicker(
                 Heart::Asset::Type::Texture,
-                material.GetNormalTexture(),
+                editingMaterial.GetNormalTexture(),
                 "NULL",
                 "NormalSelect",
                 m_TextureTextFilter,
@@ -259,13 +275,13 @@ namespace Widgets
                 {
                     if (ImGui::MenuItem("Clear"))
                     {
-                        material.SetNormalTexture(0);
+                        editingMaterial.SetNormalTexture(0);
                         m_Dirty = true;
                     }
                 },
-                [&](Heart::UUID selected) { material.SetNormalTexture(selected); m_Dirty = true; }
+                [&](Heart::UUID selected) { editingMaterial.SetNormalTexture(selected); m_Dirty = true; }
             );
-            auto normalAsset = Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>(material.GetNormalTexture());
+            auto normalAsset = Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>(editingMaterial.GetNormalTexture());
             if (normalAsset && normalAsset->IsValid())
                 ImGui::Image(normalAsset->GetTexture()->GetImGuiHandle(0), { previewSize, previewSize });
 
@@ -278,7 +294,7 @@ namespace Widgets
             ImGui::SameLine();
             Heart::ImGuiUtils::AssetPicker(
                 Heart::Asset::Type::Texture,
-                material.GetEmissiveTexture(),
+                editingMaterial.GetEmissiveTexture(),
                 "NULL",
                 "EmissiveSelect",
                 m_TextureTextFilter,
@@ -286,13 +302,13 @@ namespace Widgets
                 {
                     if (ImGui::MenuItem("Clear"))
                     {
-                        material.SetEmissiveTexture(0);
+                        editingMaterial.SetEmissiveTexture(0);
                         m_Dirty = true;
                     }
                 },
-                [&](Heart::UUID selected) { material.SetEmissiveTexture(selected); m_Dirty = true; }
+                [&](Heart::UUID selected) { editingMaterial.SetEmissiveTexture(selected); m_Dirty = true; }
             );
-            auto emAsset = Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>(material.GetEmissiveTexture());
+            auto emAsset = Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>(editingMaterial.GetEmissiveTexture());
             if (emAsset && emAsset->IsValid())
                 ImGui::Image(emAsset->GetTexture()->GetImGuiHandle(0), { previewSize, previewSize });
 
@@ -305,7 +321,7 @@ namespace Widgets
             ImGui::SameLine();
             Heart::ImGuiUtils::AssetPicker(
                 Heart::Asset::Type::Texture,
-                material.GetOcclusionTexture(),
+                editingMaterial.GetOcclusionTexture(),
                 "NULL",
                 "OCSelect",
                 m_TextureTextFilter,
@@ -313,13 +329,13 @@ namespace Widgets
                 {
                     if (ImGui::MenuItem("Clear"))
                     {
-                        material.SetOcclusionTexture(0);
+                        editingMaterial.SetOcclusionTexture(0);
                         m_Dirty = true;
                     }
                 },
-                [&](Heart::UUID selected) { material.SetOcclusionTexture(selected); m_Dirty = true; }
+                [&](Heart::UUID selected) { editingMaterial.SetOcclusionTexture(selected); m_Dirty = true; }
             );
-            auto ocAsset = Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>(material.GetOcclusionTexture());
+            auto ocAsset = Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>(editingMaterial.GetOcclusionTexture());
             if (ocAsset && ocAsset->IsValid())
                 ImGui::Image(ocAsset->GetTexture()->GetImGuiHandle(0), { previewSize, previewSize });
         }

@@ -2,6 +2,9 @@
 #include "PropertiesPanel.h"
 
 #include "HeartEditor/EditorApp.h"
+#include "Heart/Scripting/ScriptingEngine.h"
+#include "Heart/Container/HVector.hpp"
+#include "Heart/Container/Variant.h"
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/MeshAsset.h"
 #include "Heart/Asset/MaterialAsset.h"
@@ -17,54 +20,6 @@ namespace HeartEditor
 {
 namespace Widgets
 {
-    void PropertiesPanel::RenderXYZSlider(const std::string& name, f32* x, f32* y, f32* z, f32 min, f32 max, f32 step)
-    {
-        f32 width = ImGui::GetContentRegionAvail().x;
-        ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(0.f, 0.5f));
-        if (ImGui::BeginTable(name.c_str(), 7, ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingFixedFit))
-        {
-            ImGui::TableNextRow();
-
-            ImU32 xColor = ImGui::GetColorU32(ImVec4(1.f, 0.0f, 0.0f, 1.f));
-            ImU32 yColor = ImGui::GetColorU32(ImVec4(0.f, 1.0f, 0.0f, 1.f));
-            ImU32 zColor = ImGui::GetColorU32(ImVec4(0.f, 0.0f, 1.0f, 1.f));
-            ImU32 textColor = ImGui::GetColorU32(ImVec4(0.f, 0.0f, 0.0f, 1.f));
-
-            ImGui::TableSetColumnIndex(0);
-            ImGui::Text(name.c_str());
-
-            ImGui::TableSetColumnIndex(1);
-            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, xColor);
-            ImGui::Text(" X ");
-            
-            ImGui::TableSetColumnIndex(2);
-            ImGui::PushItemWidth(width * 0.15f);
-            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, textColor);
-            ImGui::DragFloat("##x", x, step, min, max, "%.2f");
-
-            ImGui::TableSetColumnIndex(3);
-            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, yColor);
-            ImGui::Text(" Y ");
-            
-            ImGui::TableSetColumnIndex(4);
-            ImGui::PushItemWidth(width * 0.15f);
-            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, textColor);
-            ImGui::DragFloat("##y", y, step, min, max, "%.2f");
-
-            ImGui::TableSetColumnIndex(5);
-            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, zColor);
-            ImGui::Text(" Z ");
-            
-            ImGui::TableSetColumnIndex(6);
-            ImGui::PushItemWidth(width * 0.15f);
-            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, textColor);
-            ImGui::DragFloat("##z", z, step, min, max, "%.2f");
-
-            ImGui::EndTable();
-        }
-        ImGui::PopStyleVar();
-    }
-
     void PropertiesPanel::OnImGuiRender()
     {
         HE_PROFILE_FUNCTION();
@@ -92,6 +47,8 @@ namespace Widgets
                     selectedEntity.AddComponent<Heart::MeshComponent>();
                 if (ImGui::MenuItem("Light Component"))
                     selectedEntity.AddComponent<Heart::LightComponent>();
+                if (ImGui::MenuItem("Script Component"))
+                    selectedEntity.AddComponent<Heart::ScriptComponent>();
 
                 ImGui::EndPopup();
             }
@@ -99,6 +56,7 @@ namespace Widgets
             RenderTransformComponent();
             RenderMeshComponent();
             RenderLightComponent();
+            RenderScriptComponent();
         }
 
         ImGui::End();
@@ -150,14 +108,21 @@ namespace Widgets
                     "NULL",
                     "MeshSelect",
                     m_MeshTextFilter,
-                    nullptr,
+                    [&meshComp]()
+                    {
+                        if (!meshComp.Mesh)
+                            return;
+
+                        if (ImGui::MenuItem("Clear"))
+                            meshComp.Mesh = 0;
+                    },
                     [&meshComp](Heart::UUID selected)
                     {
                         meshComp.Mesh = selected;
 
                         auto meshAsset = Heart::AssetManager::RetrieveAsset<Heart::MeshAsset>(meshComp.Mesh);
                         if (meshAsset && meshAsset->IsValid())
-                            meshComp.Materials.resize(meshAsset->GetMaxMaterials(), 0);
+                            meshComp.Materials.Resize(meshAsset->GetMaxMaterials());
                     }
                 );
 
@@ -169,7 +134,7 @@ namespace Widgets
                         meshComp.Mesh = Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Mesh, path);      
                         auto meshAsset = Heart::AssetManager::RetrieveAsset<Heart::MeshAsset>(meshComp.Mesh);
                         if (meshAsset && meshAsset->IsValid())
-                            meshComp.Materials.resize(meshAsset->GetMaxMaterials(), 0);
+                            meshComp.Materials.Resize(meshAsset->GetMaxMaterials());
                     }
                 );
 
@@ -178,8 +143,8 @@ namespace Widgets
                 {
                     // Resize the materials to match the max of the mesh
                     // This will add more zeros (defaults) if need be but will not replace old overridden materials
-                    if (meshComp.Materials.size() == 0)
-                        meshComp.Materials.resize(meshAsset->GetMaxMaterials(), 0);
+                    if (meshComp.Materials.GetCount() == 0)
+                        meshComp.Materials.Resize(meshAsset->GetMaxMaterials());
 
                     // Selection for each material
                     ImGui::Dummy({ 0.f, 5.f });
@@ -299,6 +264,180 @@ namespace Widgets
 
                 ImGui::Unindent();
             }
+        }
+    }
+
+    void PropertiesPanel::RenderScriptComponent()
+    {
+        auto selectedEntity = Editor::GetState().SelectedEntity;
+        if (selectedEntity.HasComponent<Heart::ScriptComponent>())
+        {
+            bool headerOpen = ImGui::CollapsingHeader("Script");
+            if (!RenderComponentPopup<Heart::ScriptComponent>("ScriptPopup", true) && headerOpen)
+            {
+                Heart::UUID uuid = selectedEntity.GetUUID();
+                auto& scriptComp = selectedEntity.GetComponent<Heart::ScriptComponent>();
+
+                // Get keys of instantiable classes (names)
+                auto& classDict = Heart::ScriptingEngine::GetInstantiableClasses();
+                Heart::HVector<Heart::HString> classes(classDict.size(), false);
+                for (auto& pair : classDict)
+                    classes.Add(pair.first);
+
+                ImGui::Indent();
+
+                // Show possible assemblies
+                ImGui::Text("Class:");
+                ImGui::SameLine();
+                Heart::ImGuiUtils::StringPicker(
+                    classes,
+                    scriptComp.Instance.GetScriptClass(),
+                    "None",
+                    "Script",
+                    m_ScriptTextFilter,
+                    [&scriptComp]()
+                    {
+                        if (!scriptComp.Instance.IsInstantiable())
+                            return;
+
+                        if (ImGui::MenuItem("Clear"))
+                            scriptComp.Instance.Clear();
+                    },
+                    [&scriptComp, &classes, selectedEntity](u32 index)
+                    {
+                        scriptComp.Instance.Destroy();
+                        scriptComp.Instance = Heart::ScriptInstance(classes[index]);
+                        scriptComp.Instance.Instantiate(selectedEntity);
+                    }
+                );
+
+                if (scriptComp.Instance.IsAlive())
+                {
+                    ImGui::Dummy({ 0.f, 5.f });
+                    ImGui::Text("Properties");
+                    ImGui::Separator();
+                    auto& fields = Heart::ScriptingEngine::GetInstantiableClass(scriptComp.Instance.GetScriptClass()).GetSerializableFields();
+                    for (auto& val : fields)
+                        RenderScriptField(val, scriptComp);
+                }
+
+                ImGui::Unindent();
+            }
+        }
+    }
+
+    void PropertiesPanel::RenderXYZSlider(const std::string& name, f32* x, f32* y, f32* z, f32 min, f32 max, f32 step)
+    {
+        f32 width = ImGui::GetContentRegionAvail().x;
+        ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(0.f, 0.5f));
+        if (ImGui::BeginTable(name.c_str(), 7, ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingFixedFit))
+        {
+            ImGui::TableNextRow();
+
+            ImU32 xColor = ImGui::GetColorU32(ImVec4(1.f, 0.0f, 0.0f, 1.f));
+            ImU32 yColor = ImGui::GetColorU32(ImVec4(0.f, 1.0f, 0.0f, 1.f));
+            ImU32 zColor = ImGui::GetColorU32(ImVec4(0.f, 0.0f, 1.0f, 1.f));
+            ImU32 textColor = ImGui::GetColorU32(ImVec4(0.f, 0.0f, 0.0f, 1.f));
+
+            ImGui::TableSetColumnIndex(0);
+            ImGui::Text(name.c_str());
+
+            ImGui::TableSetColumnIndex(1);
+            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, xColor);
+            ImGui::Text(" X ");
+            
+            ImGui::TableSetColumnIndex(2);
+            ImGui::PushItemWidth(width * 0.15f);
+            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, textColor);
+            ImGui::DragFloat("##x", x, step, min, max, "%.2f");
+
+            ImGui::TableSetColumnIndex(3);
+            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, yColor);
+            ImGui::Text(" Y ");
+            
+            ImGui::TableSetColumnIndex(4);
+            ImGui::PushItemWidth(width * 0.15f);
+            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, textColor);
+            ImGui::DragFloat("##y", y, step, min, max, "%.2f");
+
+            ImGui::TableSetColumnIndex(5);
+            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, zColor);
+            ImGui::Text(" Z ");
+            
+            ImGui::TableSetColumnIndex(6);
+            ImGui::PushItemWidth(width * 0.15f);
+            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, textColor);
+            ImGui::DragFloat("##z", z, step, min, max, "%.2f");
+
+            ImGui::EndTable();
+        }
+        ImGui::PopStyleVar();
+    }
+
+    void PropertiesPanel::RenderScriptField(const Heart::HString& fieldName, Heart::ScriptComponent& scriptComp)
+    {
+        ImGui::Text(fieldName.DataUTF8());
+        ImGui::SameLine();
+
+        Heart::Variant value = scriptComp.Instance.GetFieldValue(fieldName);
+        Heart::HString widgetId = "##" + fieldName;
+        switch (value.GetType())
+        {
+            default:
+            {
+                ImGui::Text("[Edit not implemented]");
+            } break;
+            case Heart::Variant::Type::Bool:
+            {
+                bool intermediate = value.Bool();
+                if (ImGui::Checkbox(widgetId.DataUTF8(), &intermediate))
+                    scriptComp.Instance.SetFieldValue(fieldName, intermediate);
+            } break;
+            case Heart::Variant::Type::Int:
+            {
+                s64 min = std::numeric_limits<s64>::min();
+                s64 max = std::numeric_limits<s64>::max();
+                s64 intermediate = value.Int();
+                if (ImGui::DragScalar(
+                    widgetId.DataUTF8(),
+                    ImGuiDataType_S64,
+                    &intermediate,
+                    1.f, &min, &max
+                ))
+                    scriptComp.Instance.SetFieldValue(fieldName, intermediate);
+            } break;
+            case Heart::Variant::Type::UInt:
+            {
+                u64 min = std::numeric_limits<u64>::min();
+                u64 max = std::numeric_limits<u64>::max();
+                u64 intermediate = value.UInt();
+                if (ImGui::DragScalar(
+                    widgetId.DataUTF8(),
+                    ImGuiDataType_U64,
+                    &intermediate,
+                    1.f, &min, &max
+                ))
+                    scriptComp.Instance.SetFieldValue(fieldName, intermediate);
+            } break;
+            case Heart::Variant::Type::Float:
+            {
+                float min = std::numeric_limits<float>::min();
+                float max = std::numeric_limits<float>::max();
+                float intermediate = (float)value.Float();
+                if (ImGui::DragFloat(
+                    widgetId.DataUTF8(),
+                    &intermediate,
+                    0.1f, min, max,
+                    "%.2f"
+                ))
+                    scriptComp.Instance.SetFieldValue(fieldName, intermediate);
+            } break;
+            case Heart::Variant::Type::String:
+            {
+                Heart::HString intermediate = value.String().ToUTF8();
+                if (Heart::ImGuiUtils::InputText(widgetId.DataUTF8(), intermediate))
+                    scriptComp.Instance.SetFieldValue(fieldName, intermediate.ToUTF16());
+            } break;
         }
     }
 }

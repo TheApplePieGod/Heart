@@ -1,6 +1,8 @@
 #include "hepch.h"
 #include "ImGuiUtils.h"
 
+#include "Heart/Container/HVector.hpp"
+#include "Heart/Container/HString.h"
 #include "Heart/Asset/AssetManager.h"
 #include "imgui/imgui_internal.h"
 
@@ -32,8 +34,25 @@ namespace Heart
         }
     }
 
+    bool ImGuiUtils::InputText(const char* id, HString& text)
+    {
+        char buffer[128];
+        memset(buffer, 0, sizeof(buffer));
+        std::strncpy(buffer, text.DataUTF8(), sizeof(buffer));
+        if (ImGui::InputText(id, buffer, sizeof(buffer)))
+        {
+            ImGui::SetKeyboardFocusHere(-1);
+            text = buffer;
+            return true;
+        }
+        return false;
+    }
+
     void ImGuiUtils::AssetDropTarget(Asset::Type typeFilter, std::function<void(const std::string&)>&& dropCallback)
     {
+        if (AssetManager::GetAssetsDirectory().empty());
+            return;
+
         if (ImGui::BeginDragDropTarget())
         {
             if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("FileTransfer"))
@@ -103,20 +122,28 @@ namespace Heart
         ImGui::PopStyleVar();
     }
 
-    void ImGuiUtils::AssetPicker(Asset::Type assetType, UUID selectedAsset, const std::string& nullSelectionText, const std::string& widgetId, ImGuiTextFilter& textFilter, std::function<void()>&& contextMenuCallback, std::function<void(UUID)>&& selectCallback)
+    void ImGuiUtils::AssetPicker(
+        Asset::Type assetType,
+        UUID selectedAsset,
+        const std::string& nullSelectionText,
+        const std::string& widgetId,
+        ImGuiTextFilter& textFilter,
+        std::function<void()>&& contextMenuCallback,
+        std::function<void(UUID)>&& selectCallback
+    )
     {
         const auto& UUIDRegistry = AssetManager::GetUUIDRegistry();
 
         bool valid = selectedAsset && UUIDRegistry.find(selectedAsset) != UUIDRegistry.end();
 
         std::string buttonNullSelection = nullSelectionText + "##" + widgetId;
-        std::string popupName = widgetId + "SP";
+        std::string popupName = widgetId + "AP";
         bool popupOpened = ImGui::Button(valid ? UUIDRegistry.at(selectedAsset).Path.c_str() : buttonNullSelection.c_str());
         if (popupOpened)
             ImGui::OpenPopup(popupName.c_str());
         
         // right click menu
-        if (contextMenuCallback && ImGui::BeginPopupContextItem((widgetId + "context").c_str()))
+        if (contextMenuCallback && ImGui::BeginPopupContextItem((widgetId + "ctx").c_str()))
         {
             contextMenuCallback();
             ImGui::EndPopup();
@@ -137,6 +164,47 @@ namespace Heart
                         selectCallback(pair.first);
                         ImGui::CloseCurrentPopup();
                     }
+                }
+            }
+            ImGui::EndPopup();
+        }
+    }
+    
+    void ImGuiUtils::StringPicker(
+        const HVector<HString>& options,
+        const HString& selected,
+        const HString& nullSelectionText,
+        const HString& widgetId,
+        ImGuiTextFilter& textFilter,
+        std::function<void()>&& contextMenuCallback,
+        std::function<void(u32)>&& selectCallback
+    )
+    {
+        HString buttonNullSelection = nullSelectionText + "##" + widgetId;
+        HString popupName = widgetId + "SP";
+        bool popupOpened = ImGui::Button(selected.Empty() ? buttonNullSelection.DataUTF8() : selected.DataUTF8());
+        if (popupOpened)
+            ImGui::OpenPopup(popupName.DataUTF8());
+        
+        // right click menu
+        if (contextMenuCallback && ImGui::BeginPopupContextItem((widgetId + "ctx").DataUTF8()))
+        {
+            contextMenuCallback();
+            ImGui::EndPopup();
+        }
+
+        ImGui::SetNextWindowSize({ 500.f, std::min(ImGui::GetMainViewport()->Size.y - ImGui::GetCursorScreenPos().y, 500.f) });
+        if (ImGui::BeginPopup(popupName.DataUTF8(), ImGuiWindowFlags_HorizontalScrollbar))
+        {
+            if (textFilter.Draw() || popupOpened)
+                ImGui::SetKeyboardFocusHere(-1);
+            ImGui::Separator();
+            for (u32 i = 0; i < options.GetCount(); i++)
+            {
+                if (textFilter.PassFilter(options[i].DataUTF8()) && ImGui::MenuItem(options[i].DataUTF8()))
+                {
+                    selectCallback(i);
+                    ImGui::CloseCurrentPopup();
                 }
             }
             ImGui::EndPopup();

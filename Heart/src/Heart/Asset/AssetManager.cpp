@@ -9,7 +9,7 @@ namespace Heart
     std::unordered_map<UUID, AssetManager::UUIDEntry> AssetManager::s_UUIDs;
     std::unordered_map<std::string, AssetManager::AssetEntry> AssetManager::s_Registry;
     std::unordered_map<std::string, AssetManager::AssetEntry> AssetManager::s_Resources;
-    std::string AssetManager::s_AssetsDirectory = "D:/Projects/Heart/HeartEditor";
+    std::string AssetManager::s_AssetsDirectory;
     std::thread AssetManager::s_AssetThread;
     std::queue<AssetManager::LoadOperation> AssetManager::s_OperationQueue;
     std::mutex AssetManager::s_QueueLock;
@@ -45,27 +45,27 @@ namespace Heart
     void AssetManager::OnUpdate()
     {
         // check to see if assets should be unloaded
-        u64 loadLimit = 1000;
-        for (auto& pair : s_Registry)
-        {
-            if (pair.second.Persistent) continue;
+        // u64 loadLimit = 1000;
+        // for (auto& pair : s_Registry)
+        // {
+        //     if (pair.second.Persistent) continue;
 
-            if (App::Get().GetFrameCount() > pair.second.LoadedFrame + loadLimit)
-            {
-                UnloadAsset(pair.second);
-                HE_ENGINE_LOG_TRACE("Unloading asset @ {0}", pair.second.Asset->GetPath());
-            }
-        }
-        for (auto& pair : s_Resources)
-        {
-            if (pair.second.Persistent) continue;
+        //     if (App::Get().GetFrameCount() > pair.second.LoadedFrame + loadLimit)
+        //     {
+        //         UnloadAsset(pair.second);
+        //         HE_ENGINE_LOG_TRACE("Unloading asset @ {0}", pair.second.Asset->GetPath());
+        //     }
+        // }
+        // for (auto& pair : s_Resources)
+        // {
+        //     if (pair.second.Persistent) continue;
 
-            if (App::Get().GetFrameCount() > pair.second.LoadedFrame + loadLimit)
-            {
-                UnloadAsset(pair.second);
-                HE_ENGINE_LOG_TRACE("Unloading resource @ {0}", pair.second.Asset->GetPath());
-            }
-        }
+        //     if (App::Get().GetFrameCount() > pair.second.LoadedFrame + loadLimit)
+        //     {
+        //         UnloadAsset(pair.second);
+        //         HE_ENGINE_LOG_TRACE("Unloading resource @ {0}", pair.second.Asset->GetPath());
+        //     }
+        // }
     }
 
     void AssetManager::ProcessQueue()
@@ -169,6 +169,39 @@ namespace Heart
         return newUUID;    
     }
 
+    void AssetManager::UnregisterAsset(UUID uuid)
+    {
+        if (s_UUIDs.find(uuid) == s_UUIDs.end()) return;
+        auto entry = s_UUIDs[uuid];
+        s_UUIDs.erase(uuid);
+        if (entry.IsResource)
+            s_Resources.erase(entry.Path);
+        else
+            s_Registry.erase(entry.Path);
+    }
+
+    UUID AssetManager::RegisterInMemoryAsset(Asset::Type type)
+    {
+        UUID newUUID = UUID();
+
+        // UUID as a string should be sufficient for a unique
+        // place in the registry
+        std::string idPath = std::to_string(newUUID);
+
+        // Mark the asset's data as loaded & valid so that it never tries
+        // to reload it (and fail)
+        auto newAsset = Asset::Create(type, "", "");
+        newAsset->m_Loaded = true;
+        newAsset->m_Valid = true;
+
+        // Register the 'loaded' asset as persistent so that it
+        // never tries to unload itself 
+        s_Registry[idPath] = { newAsset, std::numeric_limits<u64>::max() - s_AssetFrameLimit, true };
+        s_UUIDs[newUUID] = { idPath, false, type };
+
+        return newUUID;
+    }
+
     void AssetManager::RegisterAssetsInDirectory(const std::filesystem::path& directory, bool persistent, bool isResource)
     {
         try
@@ -178,12 +211,12 @@ namespace Heart
                     RegisterAssetsInDirectory(entry.path(), persistent, isResource);
                 else
                 {
-                    std::string path = entry.path().generic_u8string();
-                    Asset::Type type = DeduceAssetTypeFromFile(path);
+                    std::filesystem::path path = entry.path();
+                    Asset::Type type = DeduceAssetTypeFromFile(path.generic_u8string());
                     if (type != Asset::Type::None)
                     {
                         // remove the base from the start of the path so it doesn't need to be included when referencing
-                        std::string basePath = std::filesystem::relative(path, isResource ? s_ResourceDirectory : s_AssetsDirectory).generic_u8string();
+                        std::string basePath = path.lexically_relative(isResource ? s_ResourceDirectory : s_AssetsDirectory).generic_u8string();
                         RegisterAsset(type, basePath, persistent, isResource);
                     }
                 }
@@ -275,7 +308,7 @@ namespace Heart
         return s_UUIDs[uuid].Path;
     }
 
-    bool AssetManager::IsAssetAnEngineResource(UUID uuid)
+    bool AssetManager::IsAssetAResource(UUID uuid)
     {
         if (!uuid) return false;
         if (s_UUIDs.find(uuid) == s_UUIDs.end()) return false;

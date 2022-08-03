@@ -122,5 +122,8 @@ namespace Heart
             "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
             "abcdefghijklmnopqrstuvwxyz"
             "0123456789+/";
+
+    private:
+        friend class AssetManager;
     };
 }

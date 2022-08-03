@@ -65,7 +65,7 @@ namespace Heart
 
             attachmentData.ImageAttachmentIndex = attachmentIndex++;
 
-            for (u32 frame = 0; frame < MAX_FRAMES_IN_FLIGHT; frame++)
+            for (u32 frame = 0; frame < Renderer::FrameBufferCount; frame++)
             {
                 CreateAttachmentImages(attachmentData, frame);
                 m_DepthAttachmentData[frame].emplace_back(attachmentData);
@@ -139,7 +139,7 @@ namespace Heart
             colorAttachmentResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
             resolveAttachmentRefs.emplace_back(colorAttachmentResolveRef);
 
-            for (u32 frame = 0; frame < MAX_FRAMES_IN_FLIGHT; frame++)
+            for (u32 frame = 0; frame < Renderer::FrameBufferCount; frame++)
             {
                 CreateAttachmentImages(attachmentData, frame);
                 m_AttachmentData[frame].emplace_back(attachmentData);
@@ -245,7 +245,7 @@ namespace Heart
             poolInfo.queryType = VK_QUERY_TYPE_TIMESTAMP;
             poolInfo.queryCount = m_QueryPoolSize;
                         
-            for (u32 frame = 0; frame < MAX_FRAMES_IN_FLIGHT; frame++)
+            for (u32 frame = 0; frame < Renderer::FrameBufferCount; frame++)
                 HE_VULKAN_CHECK_RESULT(vkCreateQueryPool(device.Device(), &poolInfo, nullptr, &m_QueryPools[frame]));
             m_PerformanceTimestamps.resize(m_Info.Subpasses.size() + 1, 0.0);
         }
@@ -260,7 +260,7 @@ namespace Heart
 
         CleanupFramebuffer();
 
-        for (u32 frame = 0; frame < MAX_FRAMES_IN_FLIGHT; frame++)
+        for (u32 frame = 0; frame < Renderer::FrameBufferCount; frame++)
         {
             for (auto& attachmentData : m_AttachmentData[frame])
                 CleanupAttachmentImages(attachmentData);
@@ -920,7 +920,7 @@ namespace Heart
     {
         VulkanDevice& device = VulkanContext::GetDevice();
 
-        for (u32 frame = 0; frame < MAX_FRAMES_IN_FLIGHT; frame++)
+        for (u32 frame = 0; frame < Renderer::FrameBufferCount; frame++)
         {
             VkFramebufferCreateInfo framebufferInfo{};
             framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -939,7 +939,7 @@ namespace Heart
     {
         VulkanDevice& device = VulkanContext::GetDevice();
         
-        for (u32 frame = 0; frame < MAX_FRAMES_IN_FLIGHT; frame++)
+        for (u32 frame = 0; frame < Renderer::FrameBufferCount; frame++)
             vkDestroyFramebuffer(device.Device(), m_Framebuffers[frame], nullptr);
     }
 
@@ -951,7 +951,7 @@ namespace Heart
 
         CleanupFramebuffer();
 
-        for (u32 frame = 0; frame < MAX_FRAMES_IN_FLIGHT; frame++)
+        for (u32 frame = 0; frame < Renderer::FrameBufferCount; frame++)
         {
             m_CachedImageViews[frame].clear();
             for (auto& attachmentData : m_DepthAttachmentData[frame])

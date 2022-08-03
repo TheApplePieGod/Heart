@@ -57,21 +57,21 @@ namespace Heart
 
         VkDescriptorSetLayout m_DescriptorSetLayout;
         std::vector<VkDescriptorSetLayout> m_CachedSetLayouts;
-        std::array<std::vector<VkDescriptorPool>, MAX_FRAMES_IN_FLIGHT> m_DescriptorPools;
+        std::array<std::vector<VkDescriptorPool>, Renderer::FrameBufferCount> m_DescriptorPools;
         VkDescriptorSet m_MostRecentDescriptorSet;
 
-        std::array<std::vector<VkDescriptorSet>, MAX_FRAMES_IN_FLIGHT> m_AvailableSets;
+        std::array<std::vector<VkDescriptorSet>, Renderer::FrameBufferCount> m_AvailableSets;
         std::vector<VkDescriptorPoolSize> m_CachedPoolSizes;
         std::vector<VkWriteDescriptorSet> m_CachedDescriptorWrites;
         std::array<VkDescriptorBufferInfo, MAX_UNIQUE_DESCRIPTORS> m_CachedBufferInfos;
         std::array<VkDescriptorImageInfo, MAX_DESCRIPTOR_ARRAY_COUNT * MAX_UNIQUE_DESCRIPTORS> m_CachedImageInfos;
-        std::array<std::unordered_map<u64, VkDescriptorSet>, MAX_FRAMES_IN_FLIGHT> m_CachedDescriptorSets;
+        std::array<std::unordered_map<u64, VkDescriptorSet>, Renderer::FrameBufferCount> m_CachedDescriptorSets;
 
         u64 m_LastResetFrame = 0;
         u32 m_InFlightFrameIndex = 0;
         size_t m_WritesReadyCount = 0;
-        std::array<size_t, MAX_FRAMES_IN_FLIGHT> m_AvailableSetIndex{};
-        std::array<size_t, MAX_FRAMES_IN_FLIGHT> m_AvailablePoolIndex{};
+        std::array<size_t, Renderer::FrameBufferCount> m_AvailableSetIndex{};
+        std::array<size_t, Renderer::FrameBufferCount> m_AvailablePoolIndex{};
 
         std::vector<BindingData> m_Bindings;
         std::unordered_map<u32, BoundResource> m_BoundResources;

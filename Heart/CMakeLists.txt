@@ -23,10 +23,18 @@ set(DEPENDENCY_SOURCES
   "lib/stb_image/stb_image.cpp"
 )
 
+execute_process(
+  COMMAND python "scripts/configure-hostfxr.py"
+  WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
+  OUTPUT_VARIABLE DOTNET_RUNTIME_DIR
+  ERROR_VARIABLE DOTNET_HOSTFXR_DIR
+)
+
 # Copy engine resources
 add_custom_target(
   CopyEngineResources ALL
-  COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/resources ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${CMAKE_BUILD_TYPE}/resources
+  COMMAND ${CMAKE_COMMAND} -E make_directory ${OUTPUT_DIRECTORY}/resources
+  COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_CURRENT_SOURCE_DIR}/resources ${OUTPUT_DIRECTORY}/resources/engine
   DEPENDS Engine
 )
 
@@ -35,7 +43,7 @@ include(GNUInstallDirs)
 # Build main
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp" "src/*.h" "src/hepch.h")
 #add_executable(Engine "${SOURCES}" "${DEPENDENCY_SOURCES}" "src/Heart/Core/EntryPoint.cpp")
-add_library(Engine "${SOURCES}" "${DEPENDENCY_SOURCES}")
+add_library(Engine STATIC "${SOURCES}" "${DEPENDENCY_SOURCES}")
 add_library(Heart::Engine ALIAS Engine)
 
 target_compile_features(Engine PUBLIC cxx_std_17)
@@ -55,7 +63,9 @@ target_include_directories(
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/entt/src>"
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/imguizmo>"
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/json/include>"
+  "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/utf-cpp/include>"
   "$<BUILD_INTERFACE:$ENV{VULKAN_SDK}/include>"
+  "$<BUILD_INTERFACE:${DOTNET_RUNTIME_DIR}>"
 
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/GLFW/include>"
@@ -67,7 +77,9 @@ target_include_directories(
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/entt/src>"
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/imguizmo>"
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/json/include>"
+  "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/lib/utf-cpp/include>"
   "$<INSTALL_INTERFACE:$ENV{VULKAN_SDK}/include>"
+  "$<INSTALL_INTERFACE:${DOTNET_RUNTIME_DIR}>"
 )
 
 # Locate vulkansdk libraries
@@ -99,6 +111,7 @@ else()
   )
 endif()
 
+# Locate & link accessory vulkan libraries
 if (WIN32)
   if (${CMAKE_BUILD_TYPE} MATCHES Debug)
     find_library(spirvcored
@@ -125,6 +138,13 @@ endif()
 target_link_libraries(
   Engine
   glfw glm imgui spdlog glad OptickCore imguizmo nlohmann_json ${vulkan} ${shaderc} ${spirvglsl}
+)
+
+# Copy required dlls
+add_custom_target(
+  CopyRequiredDlls ALL
+  COMMAND ${CMAKE_COMMAND} -E copy ${DOTNET_HOSTFXR_DIR}/hostfxr.dll ${OUTPUT_DIRECTORY}
+  DEPENDS Engine
 )
 
 # PCH

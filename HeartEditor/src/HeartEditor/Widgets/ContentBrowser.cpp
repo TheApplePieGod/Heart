@@ -53,13 +53,31 @@ namespace Widgets
 
     void ContentBrowser::ScanDirectory()
     {
+        if (Heart::AssetManager::GetAssetsDirectory().empty())
+            return;
+
+        bool isRoot = m_DirectoryStack[m_DirectoryStackIndex].empty();
+
         // Populate the directory list with each item in the directory
         m_DirectoryList.clear();
         try
         {
             m_ShouldRescan = false;
-            for (const auto& entry : std::filesystem::directory_iterator(std::filesystem::path(Heart::AssetManager::GetAssetsDirectory()).append(m_DirectoryStack[m_DirectoryStackIndex])))
+            for (const auto& entry : std::filesystem::directory_iterator(
+                std::filesystem::path(Heart::AssetManager::GetAssetsDirectory())
+                    .append(m_DirectoryStack[m_DirectoryStackIndex]))
+            )
+            {
+                // Root (exclude unnecessary folders)
+                std::string filename = entry.path().filename().generic_u8string();
+                if (isRoot && (
+                    filename == ".vs" ||
+                    filename == "bin" ||
+                    filename == "obj"
+                ))
+                    continue;
                 m_DirectoryList.push_back(entry);
+            }
         }
         catch (std::filesystem::filesystem_error e) // likely failed to open directory so just reset
         {
@@ -76,11 +94,21 @@ namespace Widgets
         m_ShouldRescan = true;
     }
 
-    void ContentBrowser::RenderDirectoryNode(const std::string& path)
+    void ContentBrowser::RenderDirectoryNode(const std::string& path, u32 depth)
     {
+        auto absolutePath = std::filesystem::path(Heart::AssetManager::GetAssetsDirectory()).append(path);
+
+        // Exclude unnecessary folders from list
+        std::string filename = absolutePath.filename().generic_u8string();
+        if (depth == 1 && (
+            filename == ".vs" ||
+            filename == "bin" ||
+            filename == "obj"
+        ))
+            return;
+
         // Get each item in the directory
         std::vector<std::filesystem::directory_entry> directories;
-        auto absolutePath = std::filesystem::path(Heart::AssetManager::GetAssetsDirectory()).append(path);
         try
         {
             for (const auto& entry : std::filesystem::directory_iterator(absolutePath))
@@ -92,9 +120,9 @@ namespace Widgets
 
         // Render the directory tree node
         bool selected = path == m_DirectoryStack[m_DirectoryStackIndex];
-        ImGuiTreeNodeFlags node_flags = (directories.size() > 0 ? 0 : ImGuiTreeNodeFlags_Leaf) | ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | (selected ? ImGuiTreeNodeFlags_Selected : 0);
-        bool open = ImGui::TreeNodeEx(path.empty() ? "Project Root" : path.c_str(), node_flags, path.empty() ? "Project Root" : std::filesystem::path(path).filename().generic_u8string().c_str());
-        if (!selected && ImGui::IsItemClicked())
+        ImGuiTreeNodeFlags node_flags = (directories.size() > 0 ? 0 : ImGuiTreeNodeFlags_Leaf) | ImGuiTreeNodeFlags_OpenOnArrow | (selected ? ImGuiTreeNodeFlags_Selected : 0);
+        bool open = ImGui::TreeNodeEx(path.empty() ? "Project Root" : path.c_str(), node_flags, path.empty() ? "Project Root" : filename.c_str());
+        if (!selected && ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0))
             PushDirectoryStack(path.c_str());
         
         // Create the drop target
@@ -104,13 +132,16 @@ namespace Widgets
         if (open)
         {
             for (auto& entry : directories)
-                RenderDirectoryNode(entry.path().generic_u8string().c_str());
+                RenderDirectoryNode(entry.path().generic_u8string().c_str(), depth + 1);
             ImGui::TreePop();
         }
     }
 
     void ContentBrowser::RenderFileList()
     {
+        if (Heart::AssetManager::GetAssetsDirectory().empty())
+            return;
+
         // Go backwards in the directory stack
         if (ImGui::Button("<##back"))
         {
@@ -231,7 +262,7 @@ namespace Widgets
                 else if (assetType == Heart::Asset::Type::Scene)
                 {
                     Heart::UUID assetId = Heart::AssetManager::RegisterAsset(assetType, relativePath);
-                    Editor::SetActiveSceneFromAsset(assetId);
+                    Editor::OpenSceneFromAsset(assetId);
                 }
             }
         }
