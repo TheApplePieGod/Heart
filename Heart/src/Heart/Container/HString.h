@@ -16,6 +16,12 @@ namespace Heart
             UTF16 // TODO: utf32
         };
 
+        enum class Comparison : byte
+        {
+            Value = 0,
+            Alphabetical
+        };
+
     public:
         HString() = default;
         ~HString() = default;
@@ -52,6 +58,7 @@ namespace Heart
         HString Convert(Encoding encoding) const;
         HString ToUTF8() const;
         HString ToUTF16() const;
+        int Compare(Comparison type, const HString& other) const;
 
         // Unchecked
         // TODO: checked data() call
@@ -74,6 +81,10 @@ namespace Heart
         inline void Clear() { m_Container.Resize(0); }
 
         bool operator==(const HString& other) const;
+        bool operator<(const HString& other) const;
+        bool operator<=(const HString& other) const;
+        bool operator>(const HString& other) const;
+        bool operator>=(const HString& other) const;
         void operator=(const HString& other);
         HString operator+(const HString& other) const;
         HString operator+(const char8* other) const;
@@ -87,6 +98,21 @@ namespace Heart
         {}
 
         template <typename T>
+        int ToInt(const T* str, u32 len) const
+        {
+            if (!str) return 0;
+            if (len == 0) return 0;
+            int value = 0;
+            for (u32 ptr = len - 1; ptr > 0; ptr--)
+                value += GetNumericValue(str[ptr]) * pow(10, len - ptr - 1);
+            if (str[0] == '-')
+                value *= -1;
+            else
+                value += GetNumericValue(str[0]) * pow(10, len - 1);
+            return value;
+        }
+
+        template <typename T>
         u32 StrLen(const T* str) const
         {
             if (!str) return 0;
@@ -96,7 +122,7 @@ namespace Heart
         }
 
         template <typename T>
-        bool Compare(const T* str1, u32 len1, const T* str2, u32 len2) const
+        bool CompareEq(const T* str1, u32 len1, const T* str2, u32 len2) const
         {
             if (!str1 || !str2) return false;
             if (len1 != len2) return false;
@@ -107,6 +133,91 @@ namespace Heart
                 ptr++;
             }
             return true;
+        }
+
+        // 0 if eq, -1 if str1 less, +1 if str1 greater
+        template <typename T>
+        int CompareByValue(const T* str1, u32 len1, const T* str2, u32 len2) const
+        {
+            if (!str1 || !str2) return 1;
+            u32 ptr = 0;
+            while (ptr < len1 && ptr < len2)
+            {
+                if (str1[ptr] < str2[ptr]) return -1;
+                if (str1[ptr] > str2[ptr]) return 1;
+                ptr++;
+            }
+            return 0;
+        }
+
+        // 0 if eq, -1 if str1 less, +1 if str1 greater
+        // only supported for standard english
+        template <typename T>
+        int CompareAlphabetical(const T* str1, u32 len1, const T* str2, u32 len2) const
+        {
+            if (!str1 || !str2) return 1;
+            u32 ptr = 0;
+            while (ptr < len1 && ptr < len2)
+            {
+                // Ensure digits are sorted in order
+                if (IsDigit(str1[ptr]) && IsDigit(str2[ptr]))
+                {
+                    u32 ptr1 = ptr;
+                    u32 ptr2 = ptr;
+                    while (true)
+                    {
+                        bool loop = false;
+                        if (ptr1 < len1 && IsDigit(str1[ptr1++]))
+                            loop = true;
+                        if (ptr2 < len2 && IsDigit(str2[ptr2++]))
+                            loop = true;
+                        if (!loop) break;
+                    }
+
+                    int num1 = ToInt(str1 + ptr, ptr1 - ptr);
+                    int num2 = ToInt(str2 + ptr, ptr2 - ptr);
+                    if (num1 < num2) return -1;
+                    if (num1 > num2) return 1;
+
+                    // If the nums are equal, we can move the comparison pointer
+                    // to after the end of the number
+                    ptr = ptr1;
+                }
+                else
+                {
+                    // Convert to lowercase for comparison if applicable
+                    T str1Val = str1[ptr];
+                    if (IsAsciiUppercase(str1Val))
+                        str1Val += 32;
+                    T str2Val = str2[ptr];
+                    if (IsAsciiUppercase(str2Val))
+                        str2Val += 32;
+
+                    if (str1Val < str2Val) return -1;
+                    if (str1Val > str2Val) return 1;
+
+                    ptr++;
+                }
+            }
+            return 0;
+        }
+
+        template <typename T>
+        bool IsDigit(T value) const
+        {
+            return value >= 48 && value <= 57;
+        }
+
+        template <typename T>
+        int GetNumericValue(T value) const
+        {
+            return value - 48;
+        }
+
+        template <typename T>
+        bool IsAsciiUppercase(T value) const
+        {
+            return value >= 65 && value <= 90;
         }
 
         template <typename T>

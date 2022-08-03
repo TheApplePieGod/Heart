@@ -23,12 +23,17 @@ namespace Widgets
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 5.0f));
         ImGui::Begin(m_Name.c_str(), &m_Open);
 
-        // only top level components
+        // Only top level components
         auto view = Editor::GetActiveScene().GetRegistry().view<Heart::NameComponent>(entt::exclude<Heart::ParentComponent>);
 
-        ImGui::BeginChild("HierarchyChild");
+        // Order by name
+        std::map<Heart::HString, entt::entity> nameMap;
         for (auto entity : view)
-            if (RenderEntity(entity))
+            nameMap[view.get<Heart::NameComponent>(entity).Name] = entity;
+
+        ImGui::BeginChild("HierarchyChild");
+        for (auto pair : nameMap)
+            if (RenderEntity(pair.second))
                 break;
         ImGui::EndChild();
 
@@ -118,9 +123,16 @@ namespace Widgets
         {
             if (hasChildren)
             {
+                // Order by name
+                std::map<Heart::HString, entt::entity> nameMap;
                 auto& childComp = activeScene.GetRegistry().get<Heart::ChildComponent>(entity);
                 for (auto uuid : childComp.Children)
-                    RenderEntity(activeScene.GetEntityFromUUID(uuid).GetHandle());
+                {
+                    auto entity = activeScene.GetEntityFromUUID(uuid);
+                    nameMap[entity.GetName()] = entity.GetHandle();
+                }
+                for (auto& pair : nameMap)
+                    RenderEntity(pair.second);
             }
             ImGui::TreePop();
         }

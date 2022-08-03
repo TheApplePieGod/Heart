@@ -63,6 +63,43 @@ namespace Heart
         return HString();
     }
 
+    int HString::Compare(Comparison type, const HString& other) const
+    {
+        if (other.m_Encoding != m_Encoding)
+        {
+            HE_ENGINE_LOG_ERROR("Attempting to compare two HStrings with different encodings, aborting");
+            HE_ENGINE_ASSERT(false);
+            return 0;
+        }
+
+        switch (type)
+        {
+            case Comparison::Value:
+            {
+                switch (m_Encoding)
+                {
+                    case Encoding::UTF8:
+                    { return CompareByValue(DataUTF8(), GetCountUTF8(), other.DataUTF8(), other.GetCountUTF8()); }
+                    case Encoding::UTF16:
+                    { return CompareByValue(DataUTF16(), GetCountUTF16(), other.DataUTF16(), other.GetCountUTF16()); }
+                }
+            }
+            case Comparison::Alphabetical:
+            {
+                switch (m_Encoding)
+                {
+                    case Encoding::UTF8:
+                    { return CompareAlphabetical(DataUTF8(), GetCountUTF8(), other.DataUTF8(), other.GetCountUTF8()); }
+                    case Encoding::UTF16:
+                    { return CompareAlphabetical(DataUTF16(), GetCountUTF16(), other.DataUTF16(), other.GetCountUTF16()); }
+                }
+            }
+        }
+
+        HE_ENGINE_ASSERT(false, "HString comparison not fully implemented");
+        return 0;
+    }
+
     bool HString::operator==(const HString& other) const
     {
         if (other.m_Encoding != m_Encoding)
@@ -75,15 +112,35 @@ namespace Heart
         switch (m_Encoding)
         {
             case Encoding::UTF8:
-            { return Compare(DataUTF8(), GetCountUTF8(), other.DataUTF8(), other.GetCountUTF8()); }
+            { return CompareEq(DataUTF8(), GetCountUTF8(), other.DataUTF8(), other.GetCountUTF8()); }
             case Encoding::UTF16:
-            { return Compare(DataUTF16(), GetCountUTF16(), other.DataUTF16(), other.GetCountUTF16()); }
+            { return CompareEq(DataUTF16(), GetCountUTF16(), other.DataUTF16(), other.GetCountUTF16()); }
         }
 
         HE_ENGINE_ASSERT(false, "HString equality operator not fully implemented");
         return false;
     }
 
+    bool HString::operator<(const HString& other) const
+    {
+        return Compare(Comparison::Alphabetical, other) == -1;
+    }
+
+    bool HString::operator<=(const HString& other) const
+    {
+        return !(*this > other);
+    }
+
+    bool HString::operator>(const HString& other) const
+    {
+        return other < *this;
+    }
+
+    bool HString::operator>=(const HString& other) const
+    {
+        return !(other > *this);
+    }
+    
     void HString::operator=(const HString& other)
     {
         m_Encoding = other.m_Encoding;
