@@ -151,7 +151,7 @@ HE_INTEROP_EXPORT void Native_Entity_Destroy(u32 entityHandle, Heart::Scene* sce
             ); \
         }
 #else
-    #define ASSERT_ENTITY_HAS_COMPONENT()
+    #define ASSERT_ENTITY_HAS_COMPONENT(compName)
     #define ASSERT_ENTITY_IS_VALID()
 #endif
 
