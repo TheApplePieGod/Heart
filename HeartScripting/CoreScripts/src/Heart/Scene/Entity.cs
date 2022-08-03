@@ -25,6 +25,10 @@ namespace Heart.Scene
             => new Scene(_sceneHandle);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool IsAlive()
+            => _entityHandle != InvalidEntityHandle;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public UUID GetId()
             => ComponentUtils.GetId(_entityHandle, _sceneHandle);
 
@@ -68,10 +72,19 @@ namespace Heart.Scene
         public bool HasComponent<T>() where T : Component
             => ComponentUtils.HasComponent<T>(_entityHandle, _sceneHandle);
 
+        public void Destroy()
+        {
+            Native_Entity_Destroy(_entityHandle, _sceneHandle);
+            _entityHandle = InvalidEntityHandle;
+        }
+
         internal static uint InvalidEntityHandle = uint.MaxValue;
 
         // Internal fields
         internal uint _entityHandle = InvalidEntityHandle;
         internal IntPtr _sceneHandle = IntPtr.Zero;
+
+        [DllImport("__Internal")]
+        internal static extern void Native_Entity_Destroy(uint entityHandle, IntPtr sceneHandle);
     }
 }

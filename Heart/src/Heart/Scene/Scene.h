@@ -77,6 +77,7 @@ namespace Heart
         std::unordered_map<UUID, entt::entity> m_UUIDMap;
         std::unordered_map<entt::entity, CachedTransform> m_CachedTransforms;
         Ref<EnvironmentMap> m_EnvironmentMap; // TODO: move this out of scene
+        bool m_IsRuntime = false;
 
         friend class Entity;
     };

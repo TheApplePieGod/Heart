@@ -94,6 +94,7 @@ HE_INTEROP_EXPORT void Native_Variant_Destroy(Heart::Variant* variant)
 /*
  * Scene Functions
  */
+
 HE_INTEROP_EXPORT void Native_Scene_CreateEntity(Heart::Scene* sceneHandle, Heart::HString name, u32* entityHandle)
 {
     *entityHandle = (u32)sceneHandle->CreateEntity(name.ToUTF8()).GetHandle();
@@ -102,6 +103,15 @@ HE_INTEROP_EXPORT void Native_Scene_CreateEntity(Heart::Scene* sceneHandle, Hear
 HE_INTEROP_EXPORT void Native_Scene_GetEntityFromUUID(Heart::Scene* sceneHandle, Heart::UUID uuid, u32* entityHandle)
 {
     *entityHandle = (u32)sceneHandle->GetEntityFromUUID(uuid).GetHandle();
+}
+
+/*
+ * Entity Functions
+ */
+
+HE_INTEROP_EXPORT void Native_Entity_Destroy(u32 entityHandle, Heart::Scene* sceneHandle)
+{
+    sceneHandle->DestroyEntity({ sceneHandle, entityHandle });
 }
 
 /*
@@ -117,13 +127,23 @@ HE_INTEROP_EXPORT void Native_Scene_GetEntityFromUUID(Heart::Scene* sceneHandle,
                 "Entity HasComponent check failed for " #compName \
             ); \
         }
+    #define ASSERT_ENTITY_IS_VALID() \
+        { \
+            Heart::Entity entity(sceneHandle, entityHandle); \
+            HE_ENGINE_ASSERT( \
+                entity.IsValid(), \
+                "Entity IsValid check failed" \
+            ); \
+        }
 #else
     #define ASSERT_ENTITY_HAS_COMPONENT()
+    #define ASSERT_ENTITY_IS_VALID()
 #endif
 
 #define EXPORT_COMPONENT_GET_FN(compName) \
     HE_INTEROP_EXPORT void Native_##compName##_Get(u32 entityHandle, Heart::Scene* sceneHandle, Heart::##compName** outComp) \
     { \
+        ASSERT_ENTITY_IS_VALID(); \
         ASSERT_ENTITY_HAS_COMPONENT(compName); \
         Heart::Entity entity(sceneHandle, entityHandle); \
         *outComp = &entity.GetComponent<Heart::##compName>(); \
@@ -132,6 +152,7 @@ HE_INTEROP_EXPORT void Native_Scene_GetEntityFromUUID(Heart::Scene* sceneHandle,
 #define EXPORT_COMPONENT_EXISTS_FN(compName) \
     HE_INTEROP_EXPORT byte Native_##compName##_Exists(u32 entityHandle, Heart::Scene* sceneHandle) \
     { \
+        ASSERT_ENTITY_IS_VALID(); \
         Heart::Entity entity(sceneHandle, entityHandle); \
         return entity.HasComponent<Heart::##compName>(); \
     } \
@@ -148,6 +169,7 @@ EXPORT_COMPONENT_GET_FN(NameComponent);
 
 HE_INTEROP_EXPORT void Native_NameComponent_SetName(u32 entityHandle, Heart::Scene* sceneHandle, Heart::HString value)
 {
+    ASSERT_ENTITY_IS_VALID();
     ASSERT_ENTITY_HAS_COMPONENT(NameComponent);
     Heart::Entity entity(sceneHandle, entityHandle);
     entity.GetComponent<Heart::NameComponent>().Name = value.ToUTF8();
@@ -158,6 +180,7 @@ EXPORT_COMPONENT_GET_FN(TransformComponent);
 
 HE_INTEROP_EXPORT void Native_TransformComponent_CacheTransform(u32 entityHandle, Heart::Scene* sceneHandle)
 {
+    ASSERT_ENTITY_IS_VALID();
     sceneHandle->CacheEntityTransform({ sceneHandle, entityHandle });
 }
 
@@ -166,6 +189,7 @@ EXPORT_COMPONENT_BASIC_FNS(MeshComponent);
 
 HE_INTEROP_EXPORT void Native_MeshComponent_AddMaterial(u32 entityHandle, Heart::Scene* sceneHandle, Heart::UUID material)
 {
+    ASSERT_ENTITY_IS_VALID();
     ASSERT_ENTITY_HAS_COMPONENT(MeshComponent);
     Heart::Entity entity(sceneHandle, entityHandle);
     entity.GetComponent<Heart::MeshComponent>().Materials.AddInPlace(material);
@@ -173,6 +197,7 @@ HE_INTEROP_EXPORT void Native_MeshComponent_AddMaterial(u32 entityHandle, Heart:
 
 HE_INTEROP_EXPORT void Native_MeshComponent_RemoveMaterial(u32 entityHandle, Heart::Scene* sceneHandle, u32 index)
 {
+    ASSERT_ENTITY_IS_VALID();
     ASSERT_ENTITY_HAS_COMPONENT(MeshComponent);
     Heart::Entity entity(sceneHandle, entityHandle);
     entity.GetComponent<Heart::MeshComponent>().Materials.Remove(index);
@@ -186,6 +211,7 @@ EXPORT_COMPONENT_BASIC_FNS(ScriptComponent);
 
 HE_INTEROP_EXPORT void Native_ScriptComponent_SetScriptClass(u32 entityHandle, Heart::Scene* sceneHandle, Heart::HString value)
 {
+    ASSERT_ENTITY_IS_VALID();
     ASSERT_ENTITY_HAS_COMPONENT(ScriptComponent);
     Heart::Entity entity(sceneHandle, entityHandle);
     entity.GetComponent<Heart::ScriptComponent>().Instance.SetScriptClass(value.ToUTF8());
@@ -193,6 +219,7 @@ HE_INTEROP_EXPORT void Native_ScriptComponent_SetScriptClass(u32 entityHandle, H
 
 HE_INTEROP_EXPORT void Native_ScriptComponent_InstantiateScript(u32 entityHandle, Heart::Scene* sceneHandle)
 {
+    ASSERT_ENTITY_IS_VALID();
     ASSERT_ENTITY_HAS_COMPONENT(ScriptComponent);
     Heart::Entity entity(sceneHandle, entityHandle);
     auto& instance = entity.GetComponent<Heart::ScriptComponent>().Instance;
@@ -204,6 +231,7 @@ HE_INTEROP_EXPORT void Native_ScriptComponent_InstantiateScript(u32 entityHandle
 
 HE_INTEROP_EXPORT void Native_ScriptComponent_DestroyScript(u32 entityHandle, Heart::Scene* sceneHandle)
 {
+    ASSERT_ENTITY_IS_VALID();
     ASSERT_ENTITY_HAS_COMPONENT(ScriptComponent);
     Heart::Entity entity(sceneHandle, entityHandle);
     auto& instance = entity.GetComponent<Heart::ScriptComponent>().Instance;

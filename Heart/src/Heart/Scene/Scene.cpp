@@ -23,6 +23,8 @@ namespace Heart
             newComp.Instance.ClearObjectHandle();
             newComp.Instance.Instantiate(dst);
             newComp.Instance.LoadFieldsFromJson(oldComp.Instance.SerializeFieldsToJson());
+            if (m_IsRuntime)
+                newComp.Instance.OnPlayStart();
 
             dst.AddComponent<ScriptComponent>(newComp);
         }
@@ -103,7 +105,17 @@ namespace Heart
     {
         UnparentEntity(entity, false);
         DestroyChildren(entity);
-        entity.Destroy();
+
+        if (entity.HasComponent<ScriptComponent>())
+        {
+            auto& instance = entity.GetComponent<ScriptComponent>().Instance;
+            if (m_IsRuntime)
+                instance.OnPlayEnd();
+            instance.Destroy();
+        }
+
+        m_CachedTransforms.erase(entity.GetHandle());
+        m_Registry.destroy(entity.GetHandle());
     }
 
     void Scene::AssignRelationship(Entity parent, Entity child)
@@ -190,8 +202,7 @@ namespace Heart
             for (auto& child : childComp.Children)
             {
                 Entity entity = GetEntityFromUUIDUnchecked(child);
-                DestroyChildren(entity);
-                entity.Destroy();
+                DestroyEntity(entity);
             }
         }
     }
@@ -268,6 +279,8 @@ namespace Heart
 
     void Scene::StartRuntime()
     {
+        m_IsRuntime = true;
+
         // Call OnPlayStart lifecycle method
         auto view = m_Registry.view<ScriptComponent>();
         for (auto entity : view)
@@ -279,6 +292,8 @@ namespace Heart
 
     void Scene::StopRuntime()
     {
+        m_IsRuntime = false;
+
         // Call OnPlayEnd lifecycle method
         auto view = m_Registry.view<ScriptComponent>();
         for (auto entity : view)

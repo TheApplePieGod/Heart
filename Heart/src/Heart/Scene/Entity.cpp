@@ -21,8 +21,7 @@ namespace Heart
 
     void Entity::Destroy()
     {
-        m_Scene->m_CachedTransforms.erase(m_EntityHandle);
-        m_Scene->m_Registry.destroy(m_EntityHandle);
+        m_Scene->DestroyEntity(*this);
     }
 
     const glm::mat4x4& Entity::GetWorldTransformMatrix()
