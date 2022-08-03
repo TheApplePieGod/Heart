@@ -1,6 +1,7 @@
 #include "hepch.h"
 
 #include "Heart/Core/Log.h"
+#include "Heart/Input/Input.h"
 #include "Heart/Scene/Components.h"
 #include "Heart/Scene/Scene.h"
 #include "Heart/Scene/Entity.h"
@@ -92,6 +93,20 @@ HE_INTEROP_EXPORT void Native_Variant_Destroy(Heart::Variant* variant)
 }
 
 /*
+ * Input Functions
+ */
+
+HE_INTEROP_EXPORT bool Native_Input_IsKeyPressed(Heart::KeyCode key)
+{
+    return Heart::Input::IsKeyPressed(key);
+}
+
+HE_INTEROP_EXPORT bool Native_Input_IsMouseButtonPressed(Heart::MouseCode button)
+{
+    return Heart::Input::IsMouseButtonPressed(button);
+}
+
+/*
  * Scene Functions
  */
 
@@ -150,7 +165,7 @@ HE_INTEROP_EXPORT void Native_Entity_Destroy(u32 entityHandle, Heart::Scene* sce
     }
 
 #define EXPORT_COMPONENT_EXISTS_FN(compName) \
-    HE_INTEROP_EXPORT byte Native_##compName##_Exists(u32 entityHandle, Heart::Scene* sceneHandle) \
+    HE_INTEROP_EXPORT bool Native_##compName##_Exists(u32 entityHandle, Heart::Scene* sceneHandle) \
     { \
         ASSERT_ENTITY_IS_VALID(); \
         Heart::Entity entity(sceneHandle, entityHandle); \
