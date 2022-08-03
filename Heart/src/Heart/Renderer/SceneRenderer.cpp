@@ -119,7 +119,7 @@ namespace Heart
             { BufferDataType::Float4 }, // position
             { BufferDataType::Float4 }, // rotation
             { BufferDataType::Float4 }, // color
-            { BufferDataType::Int }, // light type
+            { BufferDataType::UInt }, // light type
             { BufferDataType::Float }, // constant attenuation
             { BufferDataType::Float }, // linear attenuation
             { BufferDataType::Float } // quadratic attenuation

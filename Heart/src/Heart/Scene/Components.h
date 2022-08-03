@@ -68,7 +68,7 @@ namespace Heart
 
     struct LightComponent
     {
-        enum class Type
+        enum class Type : u32
         {
             Disabled = 0,
             Directional = 1,
@@ -79,8 +79,8 @@ namespace Heart
         };
 
         // TODO: ambient & specular colors
+        glm::vec4 Color = { 1.f, 1.f, 1.f, 1.f }; // intensity is stored in the alpha component of the color
         Type LightType = Type::Point;
-        glm::vec4 Color alignas(8) = { 1.f, 1.f, 1.f, 1.f }; // intensity is stored in the alpha component of the color
         float ConstantAttenuation = 1.0f;
         float LinearAttenuation = 0.7f;
         float QuadraticAttenuation = 1.8f;

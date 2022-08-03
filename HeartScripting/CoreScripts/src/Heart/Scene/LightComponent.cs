@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 
 namespace Heart.Scene
 {
-    public enum LightType : byte
+    public enum LightType : uint
     {
         Disabled = 0,
         Directional, Point
@@ -15,11 +15,11 @@ namespace Heart.Scene
     [StructLayout(LayoutKind.Explicit, Size = 16)]
     internal unsafe struct LightComponentInternal
     {
-        [FieldOffset(0)] public LightType LightType;
-        [FieldOffset(8)] public Vec4Internal Color;
-        [FieldOffset(24)] public float ConstantAttenuation;
-        [FieldOffset(28)] public float LinearAttenuation;
-        [FieldOffset(32)] public float QuadraticAttenuation;
+        [FieldOffset(0)] public Vec4Internal Color;
+        [FieldOffset(16)] public uint LightType;
+        [FieldOffset(20)] public float ConstantAttenuation;
+        [FieldOffset(24)] public float LinearAttenuation;
+        [FieldOffset(28)] public float QuadraticAttenuation;
     }
 
     public class LightComponent : Component
@@ -58,14 +58,14 @@ namespace Heart.Scene
             get
             {
                 RefreshPtr();
-                return _internalValue->LightType;
+                return (LightType)_internalValue->LightType;
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set
             {
                 RefreshPtr();
-                _internalValue->LightType = value;
+                _internalValue->LightType = (uint)value;
             }
         }
 
