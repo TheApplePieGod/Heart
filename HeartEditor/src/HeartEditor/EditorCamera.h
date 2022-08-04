@@ -21,7 +21,7 @@ namespace HeartEditor
         inline glm::vec3 GetForwardVector() const { return m_ForwardVector; }
 
     private:
-        inline void InternalUpdateViewMatrix() { UpdateViewMatrix(m_Rotation, m_Position); }
+        inline void InternalUpdateViewMatrix() { UpdateViewMatrix(m_Position, m_Rotation); }
 
     private:
         glm::vec3 m_Position = { 0.f, 0.f, 0.f };

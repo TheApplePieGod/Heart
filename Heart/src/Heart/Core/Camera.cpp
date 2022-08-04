@@ -121,13 +121,12 @@ namespace Heart
         m_FrustumPlanes[5] = glm::vec4(cross, -glm::dot(cross, m_FrustumCorners[2]));
     }
 
-    void Camera::UpdateViewMatrix(glm::vec3 rotation, glm::vec3 position)
+    void Camera::UpdateViewMatrix(glm::vec3 position, glm::vec3 rotation)
     {
         HE_PROFILE_FUNCTION();
 
         // rotate the camera's axes via a quaternion
-        glm::vec3 actualRot = { -rotation.y, rotation.x, rotation.z };
-        glm::quat q = glm::quat(glm::radians(actualRot));
+        glm::quat q = glm::quat(glm::radians(rotation));
         m_RightVector = glm::rotate(q, glm::vec3(1.f, 0.f, 0.f));
         m_UpVector = glm::rotate(q, glm::vec3(0.f, 1.f, 0.f));
         m_ForwardVector = glm::rotate(q, glm::vec3(0.f, 0.f, 1.f));
@@ -162,8 +161,7 @@ namespace Heart
     void Camera::UpdateViewMatrix(glm::vec3 centerPoint, f32 radius, glm::vec3 rotation)
     {
         // rotate the camera's axes via a quaternion
-        glm::vec3 actualRot = { -rotation.y, rotation.x, rotation.z };
-        glm::quat q = glm::quat(glm::radians(actualRot));
+        glm::quat q = glm::quat(glm::radians(rotation));
         m_RightVector = glm::rotate(q, glm::vec3(1.f, 0.f, 0.f));
         m_UpVector = glm::rotate(q, glm::vec3(0.f, 1.f, 0.f));
         m_ForwardVector = glm::rotate(q, glm::vec3(0.f, 0.f, 1.f));

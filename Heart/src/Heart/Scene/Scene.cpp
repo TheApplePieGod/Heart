@@ -30,6 +30,13 @@ namespace Heart
         }
     }
 
+    template <>
+    void Scene::CopyComponent<PrimaryCameraComponent>(entt::entity src, Entity dst)
+    {
+        if (m_Registry.any_of<PrimaryCameraComponent>(src))
+            dst.AddComponent<PrimaryCameraComponent>();
+    }
+
     Scene::Scene()
     {
         
@@ -95,6 +102,8 @@ namespace Heart
         CopyComponent<MeshComponent>(source.GetHandle(), newEntity);
         CopyComponent<LightComponent>(source.GetHandle(), newEntity);
         CopyComponent<ScriptComponent>(source.GetHandle(), newEntity);
+        // Do not copy primary camera component when duplicating entity
+        CopyComponent<CameraComponent>(source.GetHandle(), newEntity);
 
         CacheEntityTransform(newEntity);
 
@@ -250,6 +259,8 @@ namespace Heart
             CopyComponent<MeshComponent>(src.GetHandle(), dst);
             CopyComponent<LightComponent>(src.GetHandle(), dst);
             CopyComponent<ScriptComponent>(src.GetHandle(), dst);
+            CopyComponent<PrimaryCameraComponent>(src.GetHandle(), dst);
+            CopyComponent<CameraComponent>(src.GetHandle(), dst);
         });
 
         // Copy the environment map
@@ -325,7 +336,7 @@ namespace Heart
 
     Entity Scene::GetPrimaryCameraEntity()
     {
-        auto view = m_Registry.view<ScriptComponent>();
+        auto view = m_Registry.view<PrimaryCameraComponent>();
         HE_ENGINE_ASSERT(view.size() <= 1, "Found more than one primary camera entity");
         if (view.size() == 1)
             return { this, view[0] };

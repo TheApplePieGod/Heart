@@ -29,8 +29,8 @@ namespace HeartEditor
             if (Heart::Input::IsKeyPressed(Heart::KeyCode::S))
                 m_Position -= (m_ForwardVector * moveSpeed * static_cast<f32>(ts.StepSeconds()));
 
-            m_Rotation.x += mouseScale * static_cast<f32>(Heart::Input::GetMouseDeltaX());
-            m_Rotation.y += -mouseScale * static_cast<f32>(Heart::Input::GetMouseDeltaY());
+            m_Rotation.y += mouseScale * static_cast<f32>(Heart::Input::GetMouseDeltaX());
+            m_Rotation.x += mouseScale * static_cast<f32>(Heart::Input::GetMouseDeltaY());
         }
 
         if (viewportHovered)

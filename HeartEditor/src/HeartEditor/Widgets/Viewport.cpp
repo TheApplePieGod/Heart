@@ -43,8 +43,8 @@ namespace Widgets
         m_SceneRenderer->RenderScene(
             EditorApp::Get().GetWindow().GetContext(),
             &Editor::GetActiveScene(),
-            *m_EditorCamera,
-            m_EditorCamera->GetPosition(),
+            *m_ActiveCamera,
+            m_ActiveCameraPos,
             Editor::GetState().RenderSettings
         );
         
@@ -61,15 +61,6 @@ namespace Widgets
         // draw the viewport background
         ImGui::GetWindowDrawList()->AddRectFilled({ viewportStart.x, viewportStart.y }, { viewportEnd.x, viewportEnd.y }, IM_COL32( 0, 0, 0, 255 )); // viewport background
 
-        // initialize imguizmo & draw the grid
-        glm::mat4 view = m_EditorCamera->GetViewMatrixInvertedY();
-        glm::mat4 proj = m_EditorCamera->GetProjectionMatrix();
-        glm::mat4 identity(1.f);
-        ImGuizmo::SetOrthographic(false);
-        ImGuizmo::SetDrawlist();
-        ImGuizmo::SetRect(viewportStart.x, viewportStart.y, m_ViewportSize.x, m_ViewportSize.y);
-        //ImGuizmo::DrawGrid(glm::value_ptr(view), glm::value_ptr(proj), glm::value_ptr(identity), 100.f);
-
         // draw the rendered texture
         Heart::Texture* outputTex = nullptr;
         switch (m_SelectedOutput){
@@ -84,132 +75,148 @@ namespace Widgets
             { m_ViewportSize.x, m_ViewportSize.y }
         );
 
-        // enable input if the viewport is being right clicked
+        // Viewport input state handling
         m_ViewportHover = ImGui::IsItemHovered();
         if (ImGui::IsItemHovered() && ImGui::IsMouseDown(1))
+            SetFocused(true);
+        else if (ImGui::IsMouseReleased(1) && (Editor::GetSceneState() != SceneState::Playing || !m_AttachCamera))
+            SetFocused(false);
+        else if (Editor::GetSceneState() == SceneState::Playing && ImGui::IsKeyPressed(ImGuiKey_Escape))
+            SetFocused(false);
+
+        // Only render overlays if the editor cam is active
+        if (m_EditorCameraActive)
         {
-            // disable imgui input & cursor
-            m_ViewportInput = true;
-            EditorApp::Get().GetWindow().DisableCursor();
-            ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_NoMouse;
-            ImGui::SetWindowFocus();
-            Heart::ScriptingEngine::SetScriptInputEnabled(true);
-        }
-        else if (ImGui::IsMouseReleased(1) && Editor::GetSceneState() != SceneState::Playing)
-        {
-            m_ViewportInput = false;
-            EditorApp::Get().GetWindow().EnableCursor();
-            ImGui::GetIO().ConfigFlags &= ~ImGuiConfigFlags_NoMouse;
-            Heart::ScriptingEngine::SetScriptInputEnabled(false);
-        }
+            // initialize imguizmo
+            glm::mat4 view = m_EditorCamera->GetViewMatrixInvertedY();
+            glm::mat4 proj = m_EditorCamera->GetProjectionMatrix();
+            glm::mat4 identity(1.f);
+            ImGuizmo::SetOrthographic(false);
+            ImGuizmo::SetDrawlist();
+            ImGuizmo::SetRect(viewportStart.x, viewportStart.y, m_ViewportSize.x, m_ViewportSize.y);
 
-        // gizmo buttons
-        ImGui::SetCursorPos(viewportMin);
-        ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(0.f, 0.f));
-        if (ImGui::BeginTable("GizmoOperations", 5, ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingFixedFit))
-        {
-            ImGui::TableNextRow();
-
-            // translate
-            ImGui::TableSetColumnIndex(0);
-            if (ImGui::ImageButton(
-                Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>("editor/pan.png", true)->GetTexture()->GetImGuiHandle(),
-                { 25, 25 }
-            ))
-            { m_GizmoOperation = ImGuizmo::OPERATION::TRANSLATE; }
-            if (ImGui::IsItemHovered())
-                m_ViewportHover = false;
-            Heart::ImGuiUtils::RenderTooltip("Change gizmo to translate mode");
-
-            // rotate
-            ImGui::TableSetColumnIndex(1);
-            if (ImGui::ImageButton(
-                Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>("editor/rotate.png", true)->GetTexture()->GetImGuiHandle(),
-                { 25, 25 }
-            ))
-            { m_GizmoOperation = ImGuizmo::OPERATION::ROTATE; }
-            if (ImGui::IsItemHovered())
-                m_ViewportHover = false;
-            Heart::ImGuiUtils::RenderTooltip("Change gizmo to rotate mode");
-
-            // scale
-            ImGui::TableSetColumnIndex(2);
-            if (ImGui::ImageButton(
-                Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>("editor/scale.png", true)->GetTexture()->GetImGuiHandle(),
-                { 25, 25 }
-            ))
-            { m_GizmoOperation = ImGuizmo::OPERATION::SCALE; }
-            if (ImGui::IsItemHovered())
-                m_ViewportHover = false;
-            Heart::ImGuiUtils::RenderTooltip("Change gizmo to scale mode");
-
-            ImGui::TableSetColumnIndex(3);
-            ImGui::Dummy({ 15.f, 0.f });
-
-            // world/object space
-            ImGui::TableSetColumnIndex(4);
-            if (ImGui::ImageButton(
-                Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>(m_GizmoMode ? "editor/world.png" : "editor/object.png", true)->GetTexture()->GetImGuiHandle(),
-                { 25, 25 }
-            ))
-            { m_GizmoMode = (ImGuizmo::MODE)(!m_GizmoMode); }
-            if (ImGui::IsItemHovered())
-                m_ViewportHover = false;
-            Heart::ImGuiUtils::RenderTooltip(m_GizmoMode ? "Change gizmo to operate in local space" : "Change gizmo to operate in world space");
-
-            ImGui::EndTable();
-        }
-
-        // output select
-        std::array<const char*, 5> outputs = {
-            "Final output", "Pre-bloom", "Bright colors", "Bloom buffer 1", "Bloom buffer 2"
-        };
-        ImGui::SameLine(ImGui::GetContentRegionMax().x - 200.f);
-        ImGui::PushItemWidth(200.f);
-        ImGui::Combo("##OutputSelect", &m_SelectedOutput, outputs.data(), outputs.size());
-        ImGui::PopItemWidth();
-        if (ImGui::IsItemHovered())
-            m_ViewportHover = false;
-
-        ImGui::PopStyleVar();
-
-        Heart::ImGuiUtils::AssetDropTarget(
-            Heart::Asset::Type::Scene,
-            [](const std::string& path)
+            // gizmo buttons
+            ImGui::SetCursorPos(viewportMin);
+            ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(0.f, 0.f));
+            if (ImGui::BeginTable("GizmoOperations", 7, ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingFixedFit))
             {
-                Editor::OpenSceneFromAsset(Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Scene, path));
+                ImGui::TableNextRow();
+
+                // translate
+                ImGui::TableNextColumn();
+                if (ImGui::ImageButton(
+                    Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>("editor/pan.png", true)->GetTexture()->GetImGuiHandle(),
+                    { 25, 25 }
+                ))
+                { m_GizmoOperation = ImGuizmo::OPERATION::TRANSLATE; }
+                if (ImGui::IsItemHovered())
+                    m_ViewportHover = false;
+                Heart::ImGuiUtils::RenderTooltip("Change gizmo to translate mode");
+
+                // rotate
+                ImGui::TableNextColumn();
+                if (ImGui::ImageButton(
+                    Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>("editor/rotate.png", true)->GetTexture()->GetImGuiHandle(),
+                    { 25, 25 }
+                ))
+                { m_GizmoOperation = ImGuizmo::OPERATION::ROTATE; }
+                if (ImGui::IsItemHovered())
+                    m_ViewportHover = false;
+                Heart::ImGuiUtils::RenderTooltip("Change gizmo to rotate mode");
+
+                // scale
+                ImGui::TableNextColumn();
+                if (ImGui::ImageButton(
+                    Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>("editor/scale.png", true)->GetTexture()->GetImGuiHandle(),
+                    { 25, 25 }
+                ))
+                { m_GizmoOperation = ImGuizmo::OPERATION::SCALE; }
+                if (ImGui::IsItemHovered())
+                    m_ViewportHover = false;
+                Heart::ImGuiUtils::RenderTooltip("Change gizmo to scale mode");
+
+                ImGui::TableNextColumn();
+                ImGui::Dummy({ 15.f, 0.f });
+
+                // world/object space
+                ImGui::TableNextColumn();
+                if (ImGui::ImageButton(
+                    Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>(m_GizmoMode ? "editor/world.png" : "editor/object.png", true)->GetTexture()->GetImGuiHandle(),
+                    { 25, 25 }
+                ))
+                { m_GizmoMode = (ImGuizmo::MODE)(!m_GizmoMode); }
+                if (ImGui::IsItemHovered())
+                    m_ViewportHover = false;
+                Heart::ImGuiUtils::RenderTooltip(m_GizmoMode ? "Change gizmo to operate in local space" : "Change gizmo to operate in world space");
+
+                ImGui::TableNextColumn();
+                ImGui::Dummy({ 15.f, 0.f });
+
+                // attach camera
+                ImGui::TableNextColumn();
+                if (ImGui::ImageButton(
+                    Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>(m_AttachCamera ? "editor/camera.png" : "editor/camera-disabled.png", true)->GetTexture()->GetImGuiHandle(),
+                    { 25, 25 }
+                ))
+                { m_AttachCamera = !m_AttachCamera; }
+                if (ImGui::IsItemHovered())
+                    m_ViewportHover = false;
+                Heart::ImGuiUtils::RenderTooltip(m_AttachCamera ? "Set camera mode to no-attach" : "Set camera mode to attach");
+
+                ImGui::EndTable();
             }
-        );
 
-        // draw the imguizmo if an entity is selected
-        auto selectedEntity = Editor::GetState().SelectedEntity;
-        if (selectedEntity.IsValid())
-        {
-            glm::mat4 parentTransform;
-            glm::mat4 transform = Editor::GetActiveScene().CalculateEntityTransform(selectedEntity, &parentTransform);
+            // output select
+            std::array<const char*, 5> outputs = {
+                "Final output", "Pre-bloom", "Bright colors", "Bloom buffer 1", "Bloom buffer 2"
+            };
+            ImGui::SameLine(ImGui::GetContentRegionMax().x - 200.f);
+            ImGui::PushItemWidth(200.f);
+            ImGui::Combo("##OutputSelect", &m_SelectedOutput, outputs.data(), outputs.size());
+            ImGui::PopItemWidth();
+            if (ImGui::IsItemHovered())
+                m_ViewportHover = false;
 
-            ImGuizmo::Manipulate(
-                glm::value_ptr(view),
-                glm::value_ptr(proj),
-                Heart::Renderer::IsUsingReverseDepth(),
-                m_GizmoOperation,
-                m_GizmoMode,
-                glm::value_ptr(transform),
-                nullptr,
-                nullptr,
-                nullptr,
-                nullptr
+            ImGui::PopStyleVar();
+
+            Heart::ImGuiUtils::AssetDropTarget(
+                Heart::Asset::Type::Scene,
+                [](const std::string& path)
+                {
+                    Editor::OpenSceneFromAsset(Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Scene, path));
+                }
             );
 
-            if (ImGuizmo::IsUsing())
+            // draw the imguizmo if an entity is selected
+            auto selectedEntity = Editor::GetState().SelectedEntity;
+            if (selectedEntity.IsValid())
             {
-                glm::vec3 invscale, invtranslation, invskew;
-                glm::vec4 invperspective;
-                glm::quat invrotation;
-            
-                // convert the word space transform to local space by multiplying it by the inverse of the parent transform
-                glm::decompose(glm::inverse(parentTransform) * transform, invscale, invrotation, invtranslation, invskew, invperspective);
-                selectedEntity.SetTransform(invtranslation, glm::degrees(glm::eulerAngles(invrotation)), invscale);
+                glm::mat4 parentTransform;
+                glm::mat4 transform = Editor::GetActiveScene().CalculateEntityTransform(selectedEntity, &parentTransform);
+
+                ImGuizmo::Manipulate(
+                    glm::value_ptr(view),
+                    glm::value_ptr(proj),
+                    Heart::Renderer::IsUsingReverseDepth(),
+                    m_GizmoOperation,
+                    m_GizmoMode,
+                    glm::value_ptr(transform),
+                    nullptr,
+                    nullptr,
+                    nullptr,
+                    nullptr
+                );
+
+                if (ImGuizmo::IsUsing())
+                {
+                    glm::vec3 invscale, invtranslation, invskew;
+                    glm::vec4 invperspective;
+                    glm::quat invrotation;
+                
+                    // convert the word space transform to local space by multiplying it by the inverse of the parent transform
+                    glm::decompose(glm::inverse(parentTransform) * transform, invscale, invrotation, invtranslation, invskew, invperspective);
+                    selectedEntity.SetTransform(invtranslation, glm::degrees(glm::eulerAngles(invrotation)), invscale);
+                }
             }
         }
 
@@ -252,32 +259,51 @@ namespace Widgets
 
         if (!m_Open) return;
 
-        if (Editor::GetSceneState() == SceneState::Playing)
+        if (m_AttachCamera && Editor::GetSceneState() == SceneState::Playing && m_ViewportInput)
         {
             auto& activeScene = Editor::GetActiveScene();
             auto primaryCamEnt = activeScene.GetPrimaryCameraEntity();
             if (primaryCamEnt.IsValid())
             {
                 auto& camComp = primaryCamEnt.GetComponent<Heart::CameraComponent>();
-                auto& transformComp = primaryCamEnt.GetComponent<Heart::TransformComponent>();
                 *m_ActiveCamera = Heart::Camera(
                     camComp.FOV,
                     camComp.NearClipPlane,
                     camComp.FarClipPlane,
                     m_AspectRatio
                 );
-                m_ActiveCameraPos = transformComp.Translation;
-                m_ActiveCameraRot = transformComp.Rotation;
-                m_ActiveCamera->UpdateViewMatrix(transformComp.Rotation, transformComp.Translation);
+                m_ActiveCameraPos = primaryCamEnt.GetWorldPosition();
+                m_ActiveCameraRot = primaryCamEnt.GetWorldRotation();
+                m_ActiveCamera->UpdateViewMatrix(m_ActiveCameraPos, m_ActiveCameraRot);
+                m_EditorCameraActive = false;
 
                 return;
             }
         }
         
         m_EditorCamera->OnUpdate(EditorApp::Get().GetLastTimestep(), m_ViewportInput, m_ViewportHover);
+        m_EditorCamera->UpdateAspectRatio(m_AspectRatio);
         m_ActiveCameraPos = m_EditorCamera->GetPosition();
         m_ActiveCameraRot = { m_EditorCamera->GetRotation().x, m_EditorCamera->GetRotation().y, 0.f };
         *m_ActiveCamera = *m_EditorCamera;
+        m_EditorCameraActive = true;
+    }
+
+    void Viewport::SetFocused(bool focused)
+    {
+        if (focused)
+        {
+            m_ViewportInput = true;
+            EditorApp::Get().GetWindow().DisableCursor();
+            ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_NoMouse;
+            ImGui::SetWindowFocus();
+            Heart::ScriptingEngine::SetScriptInputEnabled(true);
+            return;
+        }
+        m_ViewportInput = false;
+        EditorApp::Get().GetWindow().EnableCursor();
+        ImGui::GetIO().ConfigFlags &= ~ImGuiConfigFlags_NoMouse;
+        Heart::ScriptingEngine::SetScriptInputEnabled(false);
     }
 }
 }

@@ -31,6 +31,7 @@ namespace Widgets
         void Deserialize(const nlohmann::json& elem) override;
 
         void UpdateCamera();
+        void SetFocused(bool focus);
 
         inline bool IsFocused() const { return m_ViewportInput; }
         inline bool IsHovered() const { return m_ViewportHover; }
@@ -41,7 +42,6 @@ namespace Widgets
         inline glm::vec3 GetActiveCameraPosition() const { return m_ActiveCameraPos; }
         inline glm::vec3 GetActiveCameraRotation() const { return m_ActiveCameraRot; }
         inline EditorCamera& GetEditorCamera() { return *m_EditorCamera; }
-        inline void SetFocused(bool focus) { m_ViewportInput = focus; }
 
     private:
         Heart::Ref<Heart::SceneRenderer> m_SceneRenderer;
@@ -49,6 +49,8 @@ namespace Widgets
         Heart::Ref<EditorCamera> m_EditorCamera;
         glm::vec3 m_ActiveCameraPos;
         glm::vec3 m_ActiveCameraRot;
+        bool m_EditorCameraActive;
+        bool m_AttachCamera = true;
         glm::vec2 m_ViewportMousePos; // mouse position relative to the viewport window
         glm::vec2 m_ViewportSize;
         bool m_ViewportInput = false;

@@ -70,10 +70,10 @@ namespace Heart
          * 
          * @note Calling this will automatically update the frustum data.
          * 
-         * @param rotation The rotation of the camera in degrees.
          * @param position The world position of the camera.
+         * @param rotation The rotation of the camera in degrees.
          */
-        void UpdateViewMatrix(glm::vec3 rotation, glm::vec3 position);
+        void UpdateViewMatrix(glm::vec3 position, glm::vec3 rotation);
 
         /**
          * @brief Generate a view matrix orbiting around a point.

@@ -370,8 +370,8 @@ namespace Widgets
         {
             if (ImGui::IsMouseDragging(0))
             {
-                m_SwivelRotation.x += static_cast<float>(Heart::Input::GetMouseDeltaX());
-                m_SwivelRotation.y += static_cast<float>(Heart::Input::GetMouseDeltaY());
+                m_SwivelRotation.y += static_cast<float>(Heart::Input::GetMouseDeltaX());
+                m_SwivelRotation.x += -static_cast<float>(Heart::Input::GetMouseDeltaY());
             }
 
             // Camera will orbit around { 0, 0, 0 }

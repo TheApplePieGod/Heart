@@ -98,10 +98,8 @@ namespace HeartEditor
             event.GetKeyCode() == Heart::KeyCode::Escape)
         {
             auto& viewport = (Widgets::Viewport&)Editor::GetWindow("Viewport");
-            viewport.SetFocused(false);
-            EditorApp::Get().GetWindow().EnableCursor();
-            ImGui::GetIO().ConfigFlags &= ~ImGuiConfigFlags_NoMouse;
-            Heart::ScriptingEngine::SetScriptInputEnabled(false);
+            if (!viewport.IsFocused())
+                Editor::StopScene();
         }
         if (event.GetKeyCode() == Heart::KeyCode::F11)
             EditorApp::Get().GetWindow().ToggleFullscreen();

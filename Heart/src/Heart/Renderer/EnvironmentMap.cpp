@@ -278,12 +278,12 @@ namespace Heart
 
         // +X -X +Y -Y +Z -Z rotations for rendering each face of the cubemap
         glm::vec3 rotations[] = {
-            { 90.f, 0.f, 0.f },
-            { -90.f, 0.f, 0.f },
             { 0.f, 90.f, 0.f },
             { 0.f, -90.f, 0.f },
+            { -90.f, 0.f, 0.f },
+            { 90.f, 0.f, 0.f },
             { 0.f, 0.f, 0.f },
-            { 180.f, 0.f, 0.f }
+            { 0.f, 180.f, 0.f }
         };
 
         // The camera that will be used to render each face
@@ -303,7 +303,7 @@ namespace Heart
 
             m_CubemapFramebuffer->BindPipeline(std::to_string(i));  
 
-            cubemapCam.UpdateViewMatrix(rotations[i], { 0.f, 0.f, 0.f });
+            cubemapCam.UpdateViewMatrix(glm::vec3(0.f), rotations[i]);
 
             CubemapData mapData = { cubemapCam.GetProjectionMatrix(), cubemapCam.GetViewMatrix(), glm::vec4(0.f) };
             m_CubemapDataBuffer->SetElements(&mapData, 1, cubeDataIndex);
@@ -338,7 +338,7 @@ namespace Heart
 
             m_IrradianceMapFramebuffer->BindPipeline(std::to_string(i));  
 
-            cubemapCam.UpdateViewMatrix(rotations[i], { 0.f, 0.f, 0.f });
+            cubemapCam.UpdateViewMatrix(glm::vec3(0.f), rotations[i]);
 
             CubemapData mapData = { cubemapCam.GetProjectionMatrix(), cubemapCam.GetViewMatrix(), glm::vec4(0.f) };
             m_CubemapDataBuffer->SetElements(&mapData, 1, cubeDataIndex);
@@ -375,7 +375,7 @@ namespace Heart
 
                 m_PrefilterFramebuffers[i]->BindPipeline(std::to_string(j));  
 
-                cubemapCam.UpdateViewMatrix(rotations[i], { 0.f, 0.f, 0.f });
+                cubemapCam.UpdateViewMatrix(glm::vec3(0.f), rotations[i]);
 
                 CubemapData mapData = { cubemapCam.GetProjectionMatrix(), cubemapCam.GetViewMatrix(), glm::vec4(roughness, m_EnvironmentMap->GetWidth(), 0.f, 0.f) };
                 m_CubemapDataBuffer->SetElements(&mapData, 1, cubeDataIndex);

@@ -49,6 +49,8 @@ namespace Widgets
                     selectedEntity.AddComponent<Heart::LightComponent>();
                 if (ImGui::MenuItem("Script Component"))
                     selectedEntity.AddComponent<Heart::ScriptComponent>();
+                if (ImGui::MenuItem("Camera Component"))
+                    selectedEntity.AddComponent<Heart::CameraComponent>();
 
                 ImGui::EndPopup();
             }
@@ -57,6 +59,7 @@ namespace Widgets
             RenderMeshComponent();
             RenderLightComponent();
             RenderScriptComponent();
+            RenderCameraComponent();
         }
 
         ImGui::End();
@@ -320,6 +323,51 @@ namespace Widgets
                     for (auto& val : fields)
                         RenderScriptField(val, scriptComp);
                 }
+
+                ImGui::Unindent();
+            }
+        }
+    }
+
+    void PropertiesPanel::RenderCameraComponent()
+    {
+        auto selectedEntity = Editor::GetState().SelectedEntity;
+        if (selectedEntity.HasComponent<Heart::CameraComponent>())
+        {
+            bool headerOpen = ImGui::CollapsingHeader("Camera");
+            if (!RenderComponentPopup<Heart::CameraComponent>("CameraPopup", true) && headerOpen)
+            {
+                auto& camComp = selectedEntity.GetComponent<Heart::CameraComponent>();
+
+                ImGui::Indent();
+
+                ImGui::Text("Primary:");
+                ImGui::SameLine();
+                bool primary = selectedEntity.HasComponent<Heart::PrimaryCameraComponent>();
+                if (ImGui::Checkbox("##primary", &primary))
+                {
+                    if (primary)
+                    {
+                        auto prevPrimary = Editor::GetActiveScene().GetPrimaryCameraEntity();
+                        if (prevPrimary.IsValid())
+                            prevPrimary.RemoveComponent<Heart::PrimaryCameraComponent>();
+                        selectedEntity.AddComponent<Heart::PrimaryCameraComponent>();
+                    }
+                    else if (selectedEntity.HasComponent<Heart::PrimaryCameraComponent>())
+                        selectedEntity.RemoveComponent<Heart::PrimaryCameraComponent>();
+                }
+
+                ImGui::Text("FOV");
+                ImGui::SameLine();
+                ImGui::DragFloat("##fov", &camComp.FOV, 0.5f, 0.f, 259.f);
+
+                ImGui::Text("Near Clip");
+                ImGui::SameLine();
+                ImGui::DragFloat("##nearclip", &camComp.NearClipPlane, 0.005f, 0.f, 1000.f);
+
+                ImGui::Text("Far Clip");
+                ImGui::SameLine();
+                ImGui::DragFloat("##farclip", &camComp.FarClipPlane, 0.005f, 0.f, 1000.f);
 
                 ImGui::Unindent();
             }

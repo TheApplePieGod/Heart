@@ -24,7 +24,7 @@ namespace Heart
 
         // Will replace existing component of same type
         template<typename Component, typename ... Args>
-        Component& AddComponent(Args&& ... args)
+        decltype(auto) AddComponent(Args&& ... args)
         {
             return m_Scene->GetRegistry().emplace_or_replace<Component>(m_EntityHandle, std::forward<Args>(args)...);
         }

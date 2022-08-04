@@ -138,6 +138,18 @@ namespace Heart
                     }
                     entity.AddComponent<ScriptComponent>(comp);
                 }
+
+                // Camera component
+                if (loaded.contains("cameraComponent"))
+                {
+                    CameraComponent comp;
+                    comp.FOV = loaded["cameraComponent"]["fov"];
+                    comp.NearClipPlane = loaded["cameraComponent"]["nearClip"];
+                    comp.FarClipPlane = loaded["cameraComponent"]["farClip"];
+                    entity.AddComponent<CameraComponent>(comp);
+                    if (loaded["cameraComponent"]["primary"])
+                        entity.AddComponent<PrimaryCameraComponent>();
+                }
             }
 
             // make sure all the transforms get cached
@@ -225,6 +237,16 @@ namespace Heart
                     auto& scriptComp = entity.GetComponent<ScriptComponent>();
                     entry["scriptComponent"]["type"] = scriptComp.Instance.GetScriptClass();
                     entry["scriptComponent"]["fields"] = scriptComp.Instance.SerializeFieldsToJson();
+                }
+
+                // Camera component
+                if (entity.HasComponent<CameraComponent>())
+                {
+                    auto& camComp = entity.GetComponent<CameraComponent>();
+                    entry["cameraComponent"]["primary"] = entity.HasComponent<PrimaryCameraComponent>();
+                    entry["cameraComponent"]["fov"] = camComp.FOV;
+                    entry["cameraComponent"]["nearClip"] = camComp.NearClipPlane;
+                    entry["cameraComponent"]["farClip"] = camComp.FarClipPlane;
                 }
 
                 field[index++] = entry;
