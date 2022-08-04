@@ -5,19 +5,13 @@
 #include "HeartEditor/Editor.h"
 #include "HeartEditor/EditorApp.h"
 #include "Heart/Core/Window.h"
-#include "Heart/Renderer/Renderer.h"
 #include "Heart/Renderer/Framebuffer.h"
 #include "Heart/Renderer/SceneRenderer.h"
-#include "Heart/Scene/Components.h"
 #include "Heart/Scene/Entity.h"
 #include "Heart/Input/Input.h"
-#include "Heart/Util/FilesystemUtils.h"
-#include "Heart/Util/ImGuiUtils.h"
-#include "Heart/Asset/AssetManager.h"
-#include "Heart/Asset/TextureAsset.h"
-#include "Heart/Asset/SceneAsset.h"
 #include "Heart/Events/KeyboardEvents.h"
 #include "Heart/Events/MouseEvents.h"
+#include "Heart/Scripting/ScriptingEngine.h"
 #include "imgui/imgui_internal.h"
 
 
@@ -40,6 +34,8 @@ namespace HeartEditor
         SubscribeToEmitter(&EditorApp::Get().GetWindow());
 
         Editor::CreateWindows();
+
+        Heart::ScriptingEngine::SetScriptInputEnabled(false);
 
         HE_LOG_INFO("Editor attached");
     }
@@ -95,8 +91,15 @@ namespace HeartEditor
 
     bool EditorLayer::KeyPressedEvent(Heart::KeyPressedEvent& event)
     {
-        // if (event.GetKeyCode() == Heart::KeyCode::Escape)
-        //     EditorApp::Get().Close();
+        if (Editor::GetSceneState() == SceneState::Playing &&
+            event.GetKeyCode() == Heart::KeyCode::Escape)
+        {
+            auto& viewport = (Widgets::Viewport&)Editor::GetWindow("Viewport");
+            viewport.SetFocused(false);
+            EditorApp::Get().GetWindow().EnableCursor();
+            ImGui::GetIO().ConfigFlags &= ~ImGuiConfigFlags_NoMouse;
+            Heart::ScriptingEngine::SetScriptInputEnabled(false);
+        }
         if (event.GetKeyCode() == Heart::KeyCode::F11)
             EditorApp::Get().GetWindow().ToggleFullscreen();
         
@@ -128,14 +131,6 @@ namespace HeartEditor
 
     bool EditorLayer::MouseButtonReleasedEvent(Heart::MouseButtonReleasedEvent& event)
     {
-        auto& viewport = (Widgets::Viewport&)Editor::GetWindow("Viewport");
-        if (event.GetMouseCode() == Heart::MouseCode::RightButton)
-        {
-            viewport.SetFocused(false);
-            EditorApp::Get().GetWindow().EnableCursor();
-            ImGui::GetIO().ConfigFlags &= ~ImGuiConfigFlags_NoMouse;
-        }
-
-        return true;
+        return false;
     }
 }

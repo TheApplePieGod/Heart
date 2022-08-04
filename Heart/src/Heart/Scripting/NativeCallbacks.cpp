@@ -7,6 +7,7 @@
 #include "Heart/Scene/Entity.h"
 #include "Heart/Container/HArray.h"
 #include "Heart/Container/HString.h"
+#include "Heart/Scripting/ScriptingEngine.h"
 
 #define HE_INTEROP_EXPORT_BASE extern "C" [[maybe_unused]]
 #ifdef HE_PLATFORM_WINDOWS
@@ -98,11 +99,13 @@ HE_INTEROP_EXPORT void Native_Variant_Destroy(Heart::Variant* variant)
 
 HE_INTEROP_EXPORT bool Native_Input_IsKeyPressed(Heart::KeyCode key)
 {
+    if (!Heart::ScriptingEngine::IsScriptInputEnabled()) return false;
     return Heart::Input::IsKeyPressed(key);
 }
 
 HE_INTEROP_EXPORT bool Native_Input_IsMouseButtonPressed(Heart::MouseCode button)
 {
+    if (!Heart::ScriptingEngine::IsScriptInputEnabled()) return false;
     return Heart::Input::IsMouseButtonPressed(button);
 }
 

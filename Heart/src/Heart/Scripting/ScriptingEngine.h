@@ -29,11 +29,14 @@ namespace Heart
         inline static bool IsClassInstantiable(const HString& name) { return s_InstantiableClasses.find(name) != s_InstantiableClasses.end(); }
         inline static ScriptClass& GetInstantiableClass(const HString& name) { return s_InstantiableClasses[name]; }
         inline static const auto& GetInstantiableClasses() { return s_InstantiableClasses; }
+        inline static bool IsScriptInputEnabled() { return s_ScriptInputEnabled; }
+        inline static void SetScriptInputEnabled(bool enabled) { s_ScriptInputEnabled = enabled; }
 
     private:
         inline static ManagedCallbacks s_CoreCallbacks;
         inline static bool s_ClientPluginLoaded;
         inline static std::unordered_map<HString, ScriptClass> s_InstantiableClasses;
+        inline static bool s_ScriptInputEnabled = true;
 
         friend class ScriptClass;
     };

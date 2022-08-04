@@ -12,6 +12,7 @@
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/TextureAsset.h"
 #include "Heart/Asset/SceneAsset.h"
+#include "Heart/Scripting/ScriptingEngine.h"
 #include "Heart/Util/ImGuiUtils.h"
 #include "imgui/imgui_internal.h"
 #include "glm/vec4.hpp"
@@ -92,6 +93,14 @@ namespace Widgets
             EditorApp::Get().GetWindow().DisableCursor();
             ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_NoMouse;
             ImGui::SetWindowFocus();
+            Heart::ScriptingEngine::SetScriptInputEnabled(true);
+        }
+        else if (ImGui::IsMouseReleased(1) && Editor::GetSceneState() != SceneState::Playing)
+        {
+            m_ViewportInput = false;
+            EditorApp::Get().GetWindow().EnableCursor();
+            ImGui::GetIO().ConfigFlags &= ~ImGuiConfigFlags_NoMouse;
+            Heart::ScriptingEngine::SetScriptInputEnabled(false);
         }
 
         // gizmo buttons
@@ -108,6 +117,8 @@ namespace Widgets
                 { 25, 25 }
             ))
             { m_GizmoOperation = ImGuizmo::OPERATION::TRANSLATE; }
+            if (ImGui::IsItemHovered())
+                m_ViewportHover = false;
             Heart::ImGuiUtils::RenderTooltip("Change gizmo to translate mode");
 
             // rotate
@@ -117,6 +128,8 @@ namespace Widgets
                 { 25, 25 }
             ))
             { m_GizmoOperation = ImGuizmo::OPERATION::ROTATE; }
+            if (ImGui::IsItemHovered())
+                m_ViewportHover = false;
             Heart::ImGuiUtils::RenderTooltip("Change gizmo to rotate mode");
 
             // scale
@@ -126,6 +139,8 @@ namespace Widgets
                 { 25, 25 }
             ))
             { m_GizmoOperation = ImGuizmo::OPERATION::SCALE; }
+            if (ImGui::IsItemHovered())
+                m_ViewportHover = false;
             Heart::ImGuiUtils::RenderTooltip("Change gizmo to scale mode");
 
             ImGui::TableSetColumnIndex(3);
@@ -138,6 +153,8 @@ namespace Widgets
                 { 25, 25 }
             ))
             { m_GizmoMode = (ImGuizmo::MODE)(!m_GizmoMode); }
+            if (ImGui::IsItemHovered())
+                m_ViewportHover = false;
             Heart::ImGuiUtils::RenderTooltip(m_GizmoMode ? "Change gizmo to operate in local space" : "Change gizmo to operate in world space");
 
             ImGui::EndTable();
@@ -151,11 +168,10 @@ namespace Widgets
         ImGui::PushItemWidth(200.f);
         ImGui::Combo("##OutputSelect", &m_SelectedOutput, outputs.data(), outputs.size());
         ImGui::PopItemWidth();
+        if (ImGui::IsItemHovered())
+            m_ViewportHover = false;
 
         ImGui::PopStyleVar();
-
-        // hover is false if we are hovering over the buttons
-        m_ViewportHover = m_ViewportHover && !ImGui::IsItemHovered();
 
         Heart::ImGuiUtils::AssetDropTarget(
             Heart::Asset::Type::Scene,
