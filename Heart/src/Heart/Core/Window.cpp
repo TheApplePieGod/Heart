@@ -186,6 +186,12 @@ namespace Heart
         glfwSetInputMode(m_Window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     }
 
+    void Window::SetWindowTitle(const char* newTitle)
+    {
+        m_WindowData.Title = newTitle;
+        glfwSetWindowTitle(m_Window, newTitle);
+    }
+
     void Window::SetFullscreen(bool fullscreen)
     {
         bool fullscreenStatus = IsFullscreen();

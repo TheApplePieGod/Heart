@@ -8,6 +8,7 @@ project(
 
 option(HEART_BUILD_DOCS "Build documentation" OFF)
 option(HEART_BUILD_EDITOR "Build the editor" ON)
+option(HEART_BUILD_RUNTIME "Build the standalone runtime" OFF)
 
 if(HEART_BUILD_DOCS)
     find_package(Doxygen)
@@ -42,4 +43,6 @@ add_subdirectory("Heart")
 add_subdirectory("HeartScripting")
 if (HEART_BUILD_EDITOR)
     add_subdirectory("HeartEditor")
+elseif (HEART_BUILD_RUNTIME)
+    add_subdirectory("HeartRuntime")
 endif()

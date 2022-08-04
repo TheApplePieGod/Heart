@@ -185,12 +185,12 @@ namespace Heart
         void ComputeFrustum(glm::vec3 position);
 
     protected:
-        const glm::vec3 m_XAxis = { 1.f, 0.f, 0.f };
-        const glm::vec3 m_YAxis = { 0.f, 1.f, 0.f };
-        const glm::vec3 m_ZAxis = { 0.f, 0.f, 1.f };
-        const glm::vec3 m_DefaultUpVector = m_YAxis;
-        const glm::vec3 m_DefaultForwardVector = m_ZAxis;
-        const glm::vec3 m_DefaultRightVector = m_XAxis;
+        inline static constexpr glm::vec3 m_XAxis = { 1.f, 0.f, 0.f };
+        inline static constexpr glm::vec3 m_YAxis = { 0.f, 1.f, 0.f };
+        inline static constexpr glm::vec3 m_ZAxis = { 0.f, 0.f, 1.f };
+        inline static constexpr glm::vec3 m_DefaultUpVector = m_YAxis;
+        inline static constexpr glm::vec3 m_DefaultForwardVector = m_ZAxis;
+        inline static constexpr glm::vec3 m_DefaultRightVector = m_XAxis;
 
         f32 m_FOV, m_OrthoWidth, m_OrthoHeight, m_NearClip, m_FarClip, m_AspectRatio;
         ProjectionType m_ProjectionType;

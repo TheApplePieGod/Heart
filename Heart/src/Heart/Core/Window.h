@@ -48,6 +48,9 @@ namespace Heart
         /*! @brief Enable the cursor while this window is focused. */
         void EnableCursor();
 
+        /*! @brief Updates the window's title. */
+        void SetWindowTitle(const char* newTitle);
+
         /**
          * @brief Set the fullscreen status of the window.
          * 

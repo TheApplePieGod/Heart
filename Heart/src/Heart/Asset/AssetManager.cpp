@@ -20,10 +20,15 @@ namespace Heart
         RegisterAssetsInDirectory(s_ResourceDirectory, false, true);
         timer.Log();
 
-        timer.SetName("Registering assets");
-        timer.Reset();
-        RegisterAssetsInDirectory(s_AssetsDirectory, false, false);
-        timer.Log();
+        if (!s_AssetsDirectory.empty())
+        {
+            timer.SetName("Registering assets");
+            timer.Reset();
+            RegisterAssetsInDirectory(s_AssetsDirectory, false, false);
+            timer.Log();
+        }
+        else
+            HE_ENGINE_LOG_INFO("Assets directory not specified, skipping registration");
 
         //s_AssetThread = std::thread(AssetManager::ProcessQueue);
         //s_AssetThread.detach();
