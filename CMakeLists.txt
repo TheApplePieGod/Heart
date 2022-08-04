@@ -10,6 +10,10 @@ option(HEART_BUILD_DOCS "Build documentation" OFF)
 option(HEART_BUILD_EDITOR "Build the editor" ON)
 option(HEART_BUILD_RUNTIME "Build the standalone runtime" OFF)
 
+if(HEART_BUILD_EDITOR AND HEART_BUILD_RUNTIME)
+    message(FATAL_ERROR "Cannot build both the editor and the runtime")
+endif()
+
 if(HEART_BUILD_DOCS)
     find_package(Doxygen)
 
@@ -24,7 +28,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/${CMAKE_BUILD_TYPE})
 set(OUTPUT_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}) 
 set(CMAKE_CXX_STANDARD 17)
 
-if (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
+if(${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
     message("Detected GNU compiler")
     set(CMAKE_CXX_FLAGS "-fpermissive")
 elseif(MSVC)
@@ -32,7 +36,7 @@ elseif(MSVC)
     add_compile_options(/MP /INCREMENTAL)
 endif()
 
-if (${CMAKE_BUILD_TYPE} MATCHES Debug)
+if(${CMAKE_BUILD_TYPE} MATCHES Debug)
     message("Building HeartEngine in Debug mode")
     add_compile_definitions(HE_DEBUG)
 else()

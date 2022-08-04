@@ -17,8 +17,8 @@ namespace HeartRuntime
     private:
         Heart::Ref<Heart::SceneRenderer> m_SceneRenderer;
         Heart::SceneRenderSettings m_RenderSettings;
-        Heart::Camera m_TestCamera = Heart::Camera(70.f, 0.1f, 500.f, 1.f);
-        glm::vec3 m_TestCameraPos = { 0.f, 0.f, -1.f };
-        glm::vec2 m_TestCameraRot = { 0.f, 0.f};
+        Heart::Camera m_Camera = Heart::Camera(70.f, 0.1f, 500.f, 1.f);
+        glm::vec3 m_DebugCameraPos = { 0.f, 0.f, -1.f };
+        glm::vec3 m_DebugCameraRot = { 0.f, 0.f, 0.f };
     };
 }

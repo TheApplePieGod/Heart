@@ -5,6 +5,8 @@
 #include "Heart/Core/Camera.h"
 #include "Heart/Core/Window.h"
 #include "Heart/Input/Input.h"
+#include "Heart/Scene/Components.h"
+#include "Heart/Scene/Entity.h"
 #include "Heart/Renderer/Texture.h"
 
 namespace HeartRuntime
@@ -30,32 +32,53 @@ namespace HeartRuntime
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.f, 0.f });
         ImGui::Begin("##viewport", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoResize);
 
-#if 1
-        f32 moveSpeed = 2.f; // m/s
-        f32 mouseScale = 0.1f;
-        auto ts = RuntimeApp::Get().GetLastTimestep();
-        if (Heart::Input::IsKeyPressed(Heart::KeyCode::A))
-            m_TestCameraPos -= (m_TestCamera.GetRightVector() * moveSpeed * static_cast<f32>(ts.StepSeconds()));
-        if (Heart::Input::IsKeyPressed(Heart::KeyCode::D))
-            m_TestCameraPos += (m_TestCamera.GetRightVector() * moveSpeed * static_cast<f32>(ts.StepSeconds()));
-        if (Heart::Input::IsKeyPressed(Heart::KeyCode::W))
-            m_TestCameraPos += (m_TestCamera.GetForwardVector() * moveSpeed * static_cast<f32>(ts.StepSeconds()));
-        if (Heart::Input::IsKeyPressed(Heart::KeyCode::S))
-            m_TestCameraPos -= (m_TestCamera.GetForwardVector() * moveSpeed * static_cast<f32>(ts.StepSeconds()));
-
-        m_TestCameraRot.x += mouseScale * static_cast<f32>(Heart::Input::GetMouseDeltaX());
-        m_TestCameraRot.y += -mouseScale * static_cast<f32>(Heart::Input::GetMouseDeltaY());
-#endif
-
+        glm::vec3 cameraPosition;
         float aspectRatio = viewportSize.x / viewportSize.y;
-        m_TestCamera.UpdateAspectRatio(aspectRatio);
-        m_TestCamera.UpdateViewMatrix(m_TestCameraRot.x, m_TestCameraRot.y, m_TestCameraPos);
+        auto primaryCamEntity = sceneContext->GetPrimaryCameraEntity();
+        if (!primaryCamEntity.IsValid())
+        {
+            auto& camComp = primaryCamEntity.GetComponent<Heart::CameraComponent>();
+            m_Camera = Heart::Camera(
+                camComp.FOV,
+                camComp.NearClipPlane,
+                camComp.FarClipPlane,
+                aspectRatio
+            );
+            cameraPosition = primaryCamEntity.GetWorldPosition();
+            m_Camera.UpdateViewMatrix(cameraPosition, primaryCamEntity.GetWorldRotation());
+        }
+        else
+        {
+            f32 moveSpeed = 2.f; // m/s
+            f32 mouseScale = 0.1f;
+            auto ts = RuntimeApp::Get().GetLastTimestep();
+            if (Heart::Input::IsKeyPressed(Heart::KeyCode::A))
+                m_DebugCameraPos -= (m_Camera.GetRightVector() * moveSpeed * static_cast<f32>(ts.StepSeconds()));
+            if (Heart::Input::IsKeyPressed(Heart::KeyCode::D))
+                m_DebugCameraPos += (m_Camera.GetRightVector() * moveSpeed * static_cast<f32>(ts.StepSeconds()));
+            if (Heart::Input::IsKeyPressed(Heart::KeyCode::W))
+                m_DebugCameraPos += (m_Camera.GetForwardVector() * moveSpeed * static_cast<f32>(ts.StepSeconds()));
+            if (Heart::Input::IsKeyPressed(Heart::KeyCode::S))
+                m_DebugCameraPos -= (m_Camera.GetForwardVector() * moveSpeed * static_cast<f32>(ts.StepSeconds()));
+
+            m_DebugCameraRot.y += mouseScale * static_cast<f32>(Heart::Input::GetMouseDeltaX());
+            m_DebugCameraRot.x += mouseScale * static_cast<f32>(Heart::Input::GetMouseDeltaY());
+
+            m_Camera = Heart::Camera(
+                70.f,
+                0.1f,
+                500.f,
+                aspectRatio
+            );
+            m_Camera.UpdateViewMatrix(m_DebugCameraPos, m_DebugCameraRot);
+            cameraPosition = m_DebugCameraPos;
+        }
 
         m_SceneRenderer->RenderScene(
             RuntimeApp::Get().GetWindow().GetContext(),
             sceneContext,
-            m_TestCamera,
-            m_TestCameraPos,
+            m_Camera,
+            m_DebugCameraPos,
             m_RenderSettings
         );
 
