@@ -264,6 +264,20 @@ HE_INTEROP_EXPORT void Native_ScriptComponent_DestroyScript(u32 entityHandle, He
     instance.Destroy();
 }
 
+// Primary camera component
+EXPORT_COMPONENT_EXISTS_FN(PrimaryCameraComponent);
+
+// Camera component
+EXPORT_COMPONENT_BASIC_FNS(CameraComponent);
+
+HE_INTEROP_EXPORT void Native_CameraComponent_SetPrimary(u32 entityHandle, Heart::Scene* sceneHandle, bool primary)
+{
+    ASSERT_ENTITY_IS_VALID();
+    ASSERT_ENTITY_HAS_COMPONENT(CameraComponent);
+    Heart::Entity entity(sceneHandle, entityHandle);
+    entity.SetIsPrimaryCameraEntity(primary);
+}
+
 // We need this in order to ensure that the dllexports inside the engine static lib
 // do not get removed
 void* exportVariable = nullptr;

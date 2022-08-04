@@ -70,6 +70,8 @@ namespace Heart
         Variant GetScriptProperty(const HString& name) const;
         void SetScriptProperty(const HString& name, const Variant& value);
 
+        void SetIsPrimaryCameraEntity(bool primary);
+
     private:
         entt::entity m_EntityHandle = entt::null;
         Scene* m_Scene = nullptr;

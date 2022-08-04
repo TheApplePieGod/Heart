@@ -345,17 +345,7 @@ namespace Widgets
                 ImGui::SameLine();
                 bool primary = selectedEntity.HasComponent<Heart::PrimaryCameraComponent>();
                 if (ImGui::Checkbox("##primary", &primary))
-                {
-                    if (primary)
-                    {
-                        auto prevPrimary = Editor::GetActiveScene().GetPrimaryCameraEntity();
-                        if (prevPrimary.IsValid())
-                            prevPrimary.RemoveComponent<Heart::PrimaryCameraComponent>();
-                        selectedEntity.AddComponent<Heart::PrimaryCameraComponent>();
-                    }
-                    else if (selectedEntity.HasComponent<Heart::PrimaryCameraComponent>())
-                        selectedEntity.RemoveComponent<Heart::PrimaryCameraComponent>();
-                }
+                    selectedEntity.SetIsPrimaryCameraEntity(primary);
 
                 ImGui::Text("FOV");
                 ImGui::SameLine();

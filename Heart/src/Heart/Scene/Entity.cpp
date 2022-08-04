@@ -87,4 +87,17 @@ namespace Heart
         auto& comp = GetComponent<ScriptComponent>();
         comp.Instance.SetFieldValue(name, value);
     }
+
+    void Entity::SetIsPrimaryCameraEntity(bool primary)
+    {
+        if (primary)
+        {
+            auto prevPrimary = m_Scene->GetPrimaryCameraEntity();
+            if (prevPrimary.IsValid())
+                prevPrimary.RemoveComponent<PrimaryCameraComponent>();
+            AddComponent<PrimaryCameraComponent>();
+        }
+        else if (HasComponent<PrimaryCameraComponent>())
+            RemoveComponent<PrimaryCameraComponent>();
+    }
 }
