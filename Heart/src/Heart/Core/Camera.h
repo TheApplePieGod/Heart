@@ -70,11 +70,10 @@ namespace Heart
          * 
          * @note Calling this will automatically update the frustum data.
          * 
-         * @param xRotation The x rotation (yaw) of the camera in degrees.
-         * @param yRotation The y rotation (pitch) of the camera in degrees.
+         * @param rotation The rotation of the camera in degrees.
          * @param position The world position of the camera.
          */
-        void UpdateViewMatrix(f32 xRotation, f32 yRotation, glm::vec3 position);
+        void UpdateViewMatrix(glm::vec3 rotation, glm::vec3 position);
 
         /**
          * @brief Generate a view matrix orbiting around a point.
@@ -86,10 +85,9 @@ namespace Heart
          * 
          * @param centerPoint The world space coordinates of the origin to orbit around.
          * @param radius The world space radius of the orbit.
-         * @param xRotation The x rotation (yaw) of the camera relative to the orbit in degrees.
-         * @param yRotation The y rotation (pitch) of the camera relative to the orbit in degrees.
+         * @param rotation The rotation of the camera relative to the orbit in degrees.
          */
-        void UpdateViewMatrix(glm::vec3 centerPoint, f32 radius, f32 xRotation, f32 yRotation);
+        void UpdateViewMatrix(glm::vec3 centerPoint, f32 radius, glm::vec3 rotation);
 
         /**
          * @brief Update the camera's view volume width (orthographic only).

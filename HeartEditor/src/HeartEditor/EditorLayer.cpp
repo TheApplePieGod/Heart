@@ -53,6 +53,9 @@ namespace HeartEditor
     {
         if (Editor::GetSceneState() == SceneState::Playing)
             Editor::GetActiveScene().OnUpdateRuntime(ts);
+
+        auto& viewport = (Widgets::Viewport&)Editor::GetWindow("Viewport");
+        viewport.UpdateCamera();
     }
 
     void EditorLayer::OnImGuiRender()

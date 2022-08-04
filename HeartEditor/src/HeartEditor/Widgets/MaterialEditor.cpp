@@ -31,7 +31,7 @@ namespace Widgets
         m_DemoEntity.GetComponent<Heart::MeshComponent>().Mesh = Heart::AssetManager::GetAssetUUID("engine/DefaultCube.gltf", true);
         m_DemoEntity.GetComponent<Heart::MeshComponent>().Materials.Add(0);
 
-        m_SceneCamera.UpdateViewMatrix({ 0.f, 0.f, 0.f }, m_Radius, 0, 0);
+        m_SceneCamera.UpdateViewMatrix(glm::vec3(0.f), m_Radius, glm::vec3(0.f));
         m_SceneCameraPosition = -m_SceneCamera.GetForwardVector() * m_Radius;
 
         // Register an in-memory asset for the in-progress material
@@ -376,7 +376,7 @@ namespace Widgets
 
             // Camera will orbit around { 0, 0, 0 }
             m_Radius = std::clamp(m_Radius + static_cast<float>(-Heart::Input::GetScrollOffsetY()), 0.f, 100.f);
-            m_SceneCamera.UpdateViewMatrix({ 0.f, 0.f, 0.f }, m_Radius, m_SwivelRotation.x, m_SwivelRotation.y);
+            m_SceneCamera.UpdateViewMatrix(glm::vec3(0.f), m_Radius, m_SwivelRotation);
             m_SceneCameraPosition = -m_SceneCamera.GetForwardVector() * m_Radius;
         }
     }

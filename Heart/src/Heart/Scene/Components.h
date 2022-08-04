@@ -90,4 +90,14 @@ namespace Heart
     {
         ScriptInstance Instance;
     };
+
+    struct PrimaryCameraComponent
+    {};
+
+    struct CameraComponent
+    {
+        f32 FOV = 70.f;
+        f32 NearClipPlane = 0.1f;
+        f32 FarClipPlane = 500.f;
+    };
 }

@@ -5,6 +5,7 @@
 #include "HeartEditor/Editor.h"
 #include "HeartEditor/EditorCamera.h"
 #include "Heart/Core/Window.h"
+#include "Heart/Core/Camera.h"
 #include "Heart/Scene/Scene.h"
 #include "Heart/Renderer/Renderer.h"
 #include "Heart/Renderer/SceneRenderer.h"
@@ -27,6 +28,7 @@ namespace Widgets
         : Widget(name, initialOpen)
     {
         m_SceneRenderer = Heart::CreateScope<Heart::SceneRenderer>();
+        m_ActiveCamera = Heart::CreateScope<Heart::Camera>(70.f, 0.1f, 500.f, 1.f);
         m_EditorCamera = Heart::CreateScope<EditorCamera>(70.f, 0.1f, 500.f, 1.f, glm::vec3(0.f, 1.f, 0.f));
     }
 
@@ -37,8 +39,6 @@ namespace Widgets
         if (!m_Open) return;
 
         ImGui::Begin(m_Name.c_str(), &m_Open);
-
-        m_EditorCamera->OnUpdate(EditorApp::Get().GetLastTimestep(), m_ViewportInput, m_ViewportHover);
 
         m_SceneRenderer->RenderScene(
             EditorApp::Get().GetWindow().GetContext(),
@@ -55,7 +55,7 @@ namespace Widgets
         m_ViewportSize = { viewportMax.x - viewportMin.x, viewportMax.y - viewportMin.y };
         glm::vec2 viewportStart = { viewportMin.x + viewportPos.x, viewportMin.y + viewportPos.y };
         glm::vec2 viewportEnd = viewportStart + m_ViewportSize;
-        m_EditorCamera->UpdateAspectRatio(m_ViewportSize.x / m_ViewportSize.y);
+        m_AspectRatio = m_ViewportSize.x / m_ViewportSize.y;
         m_ViewportMousePos = glm::vec2(std::clamp(ImGui::GetMousePos().x - viewportStart.x, 0.f, m_ViewportSize.x), std::clamp(ImGui::GetMousePos().y - viewportStart.y, 0.f, m_ViewportSize.y));
 
         // draw the viewport background
@@ -242,8 +242,42 @@ namespace Widgets
             auto& camField = elem["editorCamera"];
 
             m_EditorCamera->SetPosition({ camField["pos"][0], camField["pos"][1], camField["pos"][2] });
-            m_EditorCamera->SetRotation(camField["rot"][0], camField["rot"][1]);
+            m_EditorCamera->SetRotation({ camField["rot"][0], camField["rot"][1], 0.f });
         }
+    }
+
+    void Viewport::UpdateCamera()
+    {
+        HE_PROFILE_FUNCTION();
+
+        if (!m_Open) return;
+
+        if (Editor::GetSceneState() == SceneState::Playing)
+        {
+            auto& activeScene = Editor::GetActiveScene();
+            auto primaryCamEnt = activeScene.GetPrimaryCameraEntity();
+            if (primaryCamEnt.IsValid())
+            {
+                auto& camComp = primaryCamEnt.GetComponent<Heart::CameraComponent>();
+                auto& transformComp = primaryCamEnt.GetComponent<Heart::TransformComponent>();
+                *m_ActiveCamera = Heart::Camera(
+                    camComp.FOV,
+                    camComp.NearClipPlane,
+                    camComp.FarClipPlane,
+                    m_AspectRatio
+                );
+                m_ActiveCameraPos = transformComp.Translation;
+                m_ActiveCameraRot = transformComp.Rotation;
+                m_ActiveCamera->UpdateViewMatrix(transformComp.Rotation, transformComp.Translation);
+
+                return;
+            }
+        }
+        
+        m_EditorCamera->OnUpdate(EditorApp::Get().GetLastTimestep(), m_ViewportInput, m_ViewportHover);
+        m_ActiveCameraPos = m_EditorCamera->GetPosition();
+        m_ActiveCameraRot = { m_EditorCamera->GetRotation().x, m_EditorCamera->GetRotation().y, 0.f };
+        *m_ActiveCamera = *m_EditorCamera;
     }
 }
 }

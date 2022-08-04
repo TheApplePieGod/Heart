@@ -12,22 +12,19 @@ namespace HeartEditor
 
         void OnUpdate(Heart::Timestep ts, bool viewportFocused, bool viewportHovered);
 
-        inline void AddRotation(f32 x, f32 y) { m_XRotation += x; m_YRotation += y; InternalUpdateViewMatrix(); };
-        inline void SetRotation(f32 x, f32 y) { m_XRotation = x; m_YRotation = y; InternalUpdateViewMatrix(); }
+        inline void AddRotation(glm::vec3 rotation) { m_Rotation += rotation; InternalUpdateViewMatrix(); };
+        inline void SetRotation(glm::vec3 rotation) { m_Rotation = rotation; InternalUpdateViewMatrix(); }
         inline void SetPosition(glm::vec3 pos) { m_Position = pos; InternalUpdateViewMatrix(); }
         inline glm::mat4 GetViewProjectionMatrix() const { return m_ProjectionMatrix * m_ViewMatrix; }
         inline glm::vec3 GetPosition() const { return m_Position; }
-        inline f32 GetXRotation() const { return m_XRotation; }
-        inline f32 GetYRotation() const { return m_YRotation; }
-        inline glm::vec2 GetRotation() const { return { m_XRotation, m_YRotation }; }
+        inline glm::vec3 GetRotation() const { return m_Rotation; }
         inline glm::vec3 GetForwardVector() const { return m_ForwardVector; }
 
     private:
-        inline void InternalUpdateViewMatrix() { UpdateViewMatrix(m_XRotation, m_YRotation, m_Position); }
+        inline void InternalUpdateViewMatrix() { UpdateViewMatrix(m_Rotation, m_Position); }
 
     private:
         glm::vec3 m_Position = { 0.f, 0.f, 0.f };
-        f32 m_XRotation = 0;
-        f32 m_YRotation = 0;
+        glm::vec3 m_Rotation = { 0.f, 0.f, 0.f };
     };
 }

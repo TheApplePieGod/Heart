@@ -37,7 +37,7 @@ namespace Widgets
         Heart::Ref<Heart::Scene> m_Scene;
         Heart::Camera m_SceneCamera = Heart::Camera(70.f, 0.1f, 500.f, 1.f);
         glm::vec3 m_SceneCameraPosition = { 0.f, 0.f, 0.f };
-        glm::vec2 m_SwivelRotation = { 0.f, 0.f };
+        glm::vec3 m_SwivelRotation = { 0.f, 0.f, 0.f };
         float m_Radius = 2.f;
         Heart::Entity m_DemoEntity;
         glm::vec2 m_WindowSizes = { 0.f, 0.f };

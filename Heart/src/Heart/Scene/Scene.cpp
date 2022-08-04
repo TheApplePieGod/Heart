@@ -322,6 +322,15 @@ namespace Heart
         if (m_UUIDMap.find(uuid) == m_UUIDMap.end()) return Entity();
         return GetEntityFromUUIDUnchecked(uuid);
     }
+
+    Entity Scene::GetPrimaryCameraEntity()
+    {
+        auto view = m_Registry.view<ScriptComponent>();
+        HE_ENGINE_ASSERT(view.size() <= 1, "Found more than one primary camera entity");
+        if (view.size() == 1)
+            return { this, view[0] };
+        return Entity();
+    }
     
     Entity Scene::GetEntityFromUUIDUnchecked(UUID uuid)
     {
