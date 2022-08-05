@@ -8,7 +8,7 @@
 
 namespace Heart
 {
-    VulkanShader::VulkanShader(const HStringView& path, Type shaderType)
+    VulkanShader::VulkanShader(const HStringView8& path, Type shaderType)
         : Shader(path, shaderType)
     {
         VulkanDevice& device = VulkanContext::GetDevice();

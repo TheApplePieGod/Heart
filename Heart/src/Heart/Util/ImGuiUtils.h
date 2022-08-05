@@ -8,14 +8,17 @@
 namespace Heart
 {
     class HString;
+    class HString8;
+    class HString8View;
     template <typename T>
     class HVector;
     struct ImGuiUtils
     {
-        static void RenderTooltip(const HStringView& text);
+        static void RenderTooltip(const HStringView8& text);
+        static bool InputText(const char* id, HString8& text);
         static bool InputText(const char* id, HString& text);
 
-        static void AssetDropTarget(Asset::Type typeFilter, std::function<void(const HStringView&)>&& dropCallback);
+        static void AssetDropTarget(Asset::Type typeFilter, std::function<void(const HStringView8&)>&& dropCallback);
         static void ResizableWindowSplitter(
             glm::vec2& storedWindowSizes,
             glm::vec2 minWindowSize,
@@ -29,17 +32,17 @@ namespace Heart
         static void AssetPicker(
             Asset::Type assetType,
             UUID selectedAsset,
-            const HStringView& nullSelectionText,
-            const HStringView& widgetId,
+            const HStringView8& nullSelectionText,
+            const HStringView8& widgetId,
             ImGuiTextFilter& textFilter,
             std::function<void()>&& contextMenuCallback,
             std::function<void(UUID)>&& selectCallback
         );
         static void StringPicker(
-            const HVector<HString>& options,
-            const HStringView& selected,
-            const HStringView& nullSelectionText,
-            const HStringView& widgetId,
+            const HVector<HString8>& options,
+            const HStringView8& selected,
+            const HStringView8& nullSelectionText,
+            const HStringView8& widgetId,
             ImGuiTextFilter& textFilter,
             std::function<void()>&& contextMenuCallback,
             std::function<void(u32)>&& selectCallback

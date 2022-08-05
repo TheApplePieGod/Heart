@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Heart/Container/HString.h"
+#include "Heart/Container/HString8.h"
 
 namespace HeartEditor
 {
@@ -12,7 +12,7 @@ namespace HeartEditor
         void OnImGuiRender();
 
     private:
-        Heart::HString m_NewProjectPath;
-        Heart::HString m_NewProjectName;
+        Heart::HString8 m_NewProjectPath;
+        Heart::HString8 m_NewProjectName;
     };
 }

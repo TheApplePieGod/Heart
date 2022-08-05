@@ -13,6 +13,6 @@ namespace Heart
         HArray outFields;
         ScriptingEngine::s_CoreCallbacks.PluginReflection_GetClientSerializableFields(&m_FullName, &outFields);
         for (u32 i = 0; i < outFields.GetCount(); i++)
-            m_SerializableFields.Add(outFields[i].String().ToUTF8());
+            m_SerializableFields.Add(outFields[i].String().Convert(HString::Encoding::UTF8));
     }   
 }

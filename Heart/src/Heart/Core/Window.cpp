@@ -49,12 +49,12 @@ namespace Heart
 
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
-        HString fullTitle = createInfo.Title;
+        HString8 fullTitle = createInfo.Title;
         fullTitle += " (";
         fullTitle += HE_ENUM_TO_STRING(RenderApi, Renderer::GetApiType());
         fullTitle += ")";
 
-        m_Window = glfwCreateWindow(createInfo.Width, createInfo.Height, fullTitle.DataUTF8(), nullptr, nullptr);
+        m_Window = glfwCreateWindow(createInfo.Width, createInfo.Height, fullTitle.Data(), nullptr, nullptr);
         s_WindowCount++;
 
         m_GraphicsContext = GraphicsContext::Create(m_Window);

@@ -3,7 +3,7 @@
 
 namespace Heart
 {
-    ShaderAsset::ShaderAsset(const HStringView& path, const HStringView& absolutePath)
+    ShaderAsset::ShaderAsset(const HStringView8& path, const HStringView8& absolutePath)
         : Asset(path, absolutePath)
     {
         m_Type = Type::Shader;

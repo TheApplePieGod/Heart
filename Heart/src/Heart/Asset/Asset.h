@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Heart/Container/HString.h"
+#include "Heart/Container/HString8.h"
 
 namespace Heart
 {
@@ -33,7 +33,7 @@ namespace Heart
          * @param path The path of the asset relative to the project directory.
          * @param absolutePath The absolute filesystem path of the asset.
          */
-        Asset(const HStringView& path, const HStringView& absolutePath);
+        Asset(const HStringView8& path, const HStringView8& absolutePath);
 
         /*! @brief Load the asset's data. */
         virtual void Load() = 0;
@@ -52,16 +52,16 @@ namespace Heart
          * @param path The path of the asset relative to the project directory.
          * @param absolutePath The absolute filesystem path of the asset.
          */
-        void UpdatePath(const HStringView& path, const HStringView& absolutePath);
+        void UpdatePath(const HStringView8& path, const HStringView8& absolutePath);
 
         /*! @brief Get the asset's relative path. */
-        inline const HString& GetPath() const { return m_Path; }
+        inline const HString8& GetPath() const { return m_Path; }
 
         /*! @brief Get the asset's absolute path. */
-        inline const HString& GetAbsolutePath() const { return m_AbsolutePath; }
+        inline const HString8& GetAbsolutePath() const { return m_AbsolutePath; }
 
         /*! @brief Get the asset's filename. */
-        inline const HString& GetFilename() const { return m_Filename; }
+        inline const HString8& GetFilename() const { return m_Filename; }
 
         /**
          * @brief Check if the asset has been loaded.
@@ -89,7 +89,7 @@ namespace Heart
          * @param absolutePath The absolute filesystem path of the asset.
          * @return A ref to a new asset object.
          */
-        static Ref<Asset> Create(Type type, const HStringView& path, const HStringView& absolutePath);
+        static Ref<Asset> Create(Type type, const HStringView8& path, const HStringView8& absolutePath);
 
         /**
          * @brief Convert a base64 string into an array of bytes.
@@ -97,7 +97,7 @@ namespace Heart
          * @param encoded The encoded string.
          * @return A vector containing the decoded bytes.
          */
-        static std::vector<unsigned char> Base64Decode(const HStringView& encoded);
+        static std::vector<unsigned char> Base64Decode(const HStringView8& encoded);
 
         /**
          * @brief Determine if a given character is base64.
@@ -108,11 +108,11 @@ namespace Heart
         inline static bool IsBase64(unsigned char c) { return (isalnum(c) || (c == '+') || (c == '/')); }
 
     protected:
-        HString m_Path;
-        HString m_AbsolutePath;
-        HString m_ParentPath;
-        HString m_Filename;
-        HString m_Extension;
+        HString8 m_Path;
+        HString8 m_AbsolutePath;
+        HString8 m_ParentPath;
+        HString8 m_Filename;
+        HString8 m_Extension;
         void* m_Data = nullptr;
         bool m_Loaded = false;
         bool m_Loading = false;
@@ -120,7 +120,7 @@ namespace Heart
         Type m_Type = Type::None;
 
     protected:
-        static inline const HString s_Base64Chars =
+        static inline const HString8 s_Base64Chars =
             "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
             "abcdefghijklmnopqrstuvwxyz"
             "0123456789+/";

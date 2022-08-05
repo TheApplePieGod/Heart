@@ -3,7 +3,7 @@
 #include "Heart/Core/Timestep.h"
 #include "Heart/Events/EventEmitter.h"
 #include "Heart/Renderer/Renderer.h"
-#include "Heart/Container/HString.h"
+#include "Heart/Container/HString8.h"
 
 extern int main(int argc, char** argv);
 
@@ -23,7 +23,7 @@ namespace Heart
          * 
          * @param windowName The initial name of the window.
          */
-        App(const HStringView& windowName = "Heart Engine");
+        App(const HStringView8& windowName = "Heart Engine");
 
         /*! @brief Default destructor. */
         ~App();
@@ -54,7 +54,7 @@ namespace Heart
          * 
          * @param newDirectory The absolute path of the new assets directory. 
          */
-        void SwitchAssetsDirectory(const HStringView& newDirectory);
+        void SwitchAssetsDirectory(const HStringView8& newDirectory);
 
         /**
          * @brief Stop running and close the application.
@@ -111,7 +111,7 @@ namespace Heart
 
     private:
         RenderApi::Type m_SwitchingApi = RenderApi::Type::None;
-        HString m_SwitchingAssetsDirectory = "";
+        HString8 m_SwitchingAssetsDirectory = "";
 
     private:
         static App* s_Instance;

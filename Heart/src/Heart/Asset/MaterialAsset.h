@@ -14,7 +14,7 @@ namespace Heart
          * @param path The path of the asset relative to the project directory.
          * @param absolutePath The absolute filesystem path of the asset.
          */
-        MaterialAsset(const HStringView& path, const HStringView& absolutePath)
+        MaterialAsset(const HStringView8& path, const HStringView8& absolutePath)
             : Asset(path, absolutePath)
         { m_Type = Type::Material; }
 
@@ -34,7 +34,7 @@ namespace Heart
          * @param path The absolute path of the material file. 
          * @return A material containing the loaded data.
          */
-        static Material DeserializeMaterial(const HStringView& path);
+        static Material DeserializeMaterial(const HStringView8& path);
 
         /**
          * @brief Save a material to disk.
@@ -42,7 +42,7 @@ namespace Heart
          * @param path The absolute path of the output file.
          * @param material The material to serialize.
          */
-        static void SerializeMaterial(const HStringView& path, const Material& material);
+        static void SerializeMaterial(const HStringView8& path, const Material& material);
 
     private:
         Material m_Material;

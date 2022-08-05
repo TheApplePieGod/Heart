@@ -8,7 +8,7 @@ namespace Heart
     class VulkanShader : public Shader
     {
     public:
-        VulkanShader(const HStringView& path, Type shaderType);
+        VulkanShader(const HStringView8& path, Type shaderType);
         ~VulkanShader() override;
 
         inline VkShaderModule GetShaderModule() const { return m_ShaderModule; }

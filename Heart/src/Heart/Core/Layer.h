@@ -2,7 +2,7 @@
 
 #include "Heart/Events/EventEmitter.h"
 #include "Heart/Core/Timestep.h"
-#include "Heart/Container/HString.h"
+#include "Heart/Container/HString8.h"
 
 namespace Heart
 {
@@ -15,7 +15,7 @@ namespace Heart
          *
          * @param name Debug name for the layer.
          */
-        Layer(const HStringView& name = "DefaultLayer");
+        Layer(const HStringView8& name = "DefaultLayer");
 
         /*! @brief Default destructor. */
         virtual ~Layer() = default;
@@ -37,6 +37,6 @@ namespace Heart
         virtual void OnDetach() {}
 
     protected:
-        HString m_Name;
+        HString8 m_Name;
     };
 }

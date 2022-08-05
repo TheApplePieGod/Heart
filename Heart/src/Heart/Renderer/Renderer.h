@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Heart/Renderer/RenderApi.h"
-#include "Heart/Container/HString.h"
+#include "Heart/Container/HString8.h"
 
 namespace Heart
 {
@@ -23,8 +23,8 @@ namespace Heart
         inline static RenderApi::Type GetApiType() { return s_RenderApiType; }
         inline static bool IsUsingReverseDepth() { return s_UseReverseDepth; }
         inline static auto& GetStatistics() { return s_RenderStatistics; }
-        inline static void PushStatistic(const HStringView& name, s64 value) { s_RenderStatistics[name].Value += value; }
-        inline static void ClearStatistic(const HStringView& name) { s_RenderStatistics[name].Value = 0; }
+        inline static void PushStatistic(const HStringView8& name, s64 value) { s_RenderStatistics[name].Value += value; }
+        inline static void ClearStatistic(const HStringView8& name) { s_RenderStatistics[name].Value = 0; }
 
         inline static constexpr u32 FrameBufferCount = 2;
 
@@ -32,6 +32,6 @@ namespace Heart
         inline static Scope<RenderApi> s_RenderApi;
         inline static RenderApi::Type s_RenderApiType;
         inline static bool s_UseReverseDepth = true;
-        inline static std::map<HString, RenderStatistic> s_RenderStatistics;
+        inline static std::map<HString8, RenderStatistic> s_RenderStatistics;
     };
 }

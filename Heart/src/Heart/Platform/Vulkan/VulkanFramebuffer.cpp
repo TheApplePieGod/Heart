@@ -553,7 +553,7 @@ namespace Heart
         //VulkanCommon::TransitionImageLayout(VulkanContext::GetDevice().Device(), buffer, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     }
 
-    void VulkanFramebuffer::BindPipeline(const HStringView& name)
+    void VulkanFramebuffer::BindPipeline(const HStringView8& name)
     {
         HE_PROFILE_FUNCTION();
 

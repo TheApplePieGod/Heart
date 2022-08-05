@@ -16,7 +16,7 @@ namespace Heart
         static void Initialize();
         static void Shutdown();
 
-        static bool LoadClientPlugin(const HStringView& absolutePath);
+        static bool LoadClientPlugin(const HStringView8& absolutePath);
         static bool UnloadClientPlugin();
 
         static uptr InstantiateObject(const HString& type, u32 entityHandle, Scene* sceneHandle);

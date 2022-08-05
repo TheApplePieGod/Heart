@@ -25,12 +25,12 @@ namespace Heart
         void* pixels = nullptr;
         int width, height, channels;
         if (floatComponents)
-            pixels = stbi_loadf(m_AbsolutePath.DataUTF8(), &width, &height, &channels, m_DesiredChannelCount);
+            pixels = stbi_loadf(m_AbsolutePath.Data(), &width, &height, &channels, m_DesiredChannelCount);
         else
-            pixels = stbi_load(m_AbsolutePath.DataUTF8(), &width, &height, &channels, m_DesiredChannelCount);
+            pixels = stbi_load(m_AbsolutePath.Data(), &width, &height, &channels, m_DesiredChannelCount);
         if (pixels == nullptr)
         {
-            HE_ENGINE_LOG_ERROR("Failed to load texture at path {0}", m_AbsolutePath.DataUTF8());
+            HE_ENGINE_LOG_ERROR("Failed to load texture at path {0}", m_AbsolutePath.Data());
             m_Loaded = true;
             m_Loading = false;
             return;

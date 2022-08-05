@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Heart/Renderer/Framebuffer.h"
-#include "Heart/Container/HString.h"
+#include "Heart/Container/HString8.h"
 
 namespace Heart
 {
@@ -15,7 +15,7 @@ namespace Heart
         ~OpenGLFramebuffer() override;
 
         void Bind(ComputePipeline* preRenderComputePipeline = nullptr) override;
-        void BindPipeline(const HStringView& name) override;
+        void BindPipeline(const HStringView8& name) override;
         void BindShaderBufferResource(u32 bindingIndex, u32 offset, u32 elementCount, Buffer* buffer) override;
         void BindShaderTextureResource(u32 bindingIndex, Texture* texture) override;
         void BindShaderTextureLayerResource(u32 bindingIndex, Texture* texture, u32 layerIndex, u32 mipLevel) override;
@@ -86,7 +86,7 @@ namespace Heart
         int m_CurrentSubpass = -1;
         bool m_FlushedThisFrame = false;
         OpenGLGraphicsPipeline* m_BoundPipeline = nullptr;
-        HString m_BoundPipelineName = "";
+        HString8 m_BoundPipelineName = "";
 
         friend class OpenGLRenderApi;
     };

@@ -117,7 +117,7 @@ namespace Heart
         }
     }
 
-    bool ScriptingEngine::LoadClientPlugin(const HStringView& absolutePath)
+    bool ScriptingEngine::LoadClientPlugin(const HStringView8& absolutePath)
     {
         auto timer = Timer("Client plugin load"); 
 
@@ -128,13 +128,13 @@ namespace Heart
         }
 
         HArray outClasses;
-        bool res = s_CoreCallbacks.EntryPoint_LoadClientPlugin(absolutePath.DataUTF8(), &outClasses);
+        bool res = s_CoreCallbacks.EntryPoint_LoadClientPlugin(absolutePath.Data(), &outClasses);
         if (res)
         {
             // Populate local array
             for (u32 i = 0; i < outClasses.GetCount(); i++)
             {
-                auto convertedString = outClasses[i].String().ToUTF8();
+                auto convertedString = outClasses[i].String().Convert(HString::Encoding::UTF8);
                 s_InstantiableClasses[convertedString] = ScriptClass(convertedString);
             }
 

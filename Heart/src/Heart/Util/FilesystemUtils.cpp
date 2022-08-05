@@ -8,9 +8,9 @@
 
 namespace Heart
 {
-    HString FilesystemUtils::ReadFileToString(const HStringView& path)
+    HString8 FilesystemUtils::ReadFileToString(const HStringView8& path)
     {
-        std::ifstream file(path.DataUTF8(), std::ios::ate | std::ios::binary);
+        std::ifstream file(path.Data(), std::ios::ate | std::ios::binary);
         if (!file.is_open())
             return "";
         
@@ -20,12 +20,12 @@ namespace Heart
         file.read(buffer.data(), fileSize);
         file.close();
 
-        return HString(buffer.data(), buffer.size());
+        return HString8(buffer.data(), buffer.size());
     }
 
-    unsigned char* FilesystemUtils::ReadFile(const HStringView& path, u32& outLength)
+    unsigned char* FilesystemUtils::ReadFile(const HStringView8& path, u32& outLength)
     {
-        std::ifstream file(path.DataUTF8(), std::ios::ate | std::ios::binary);
+        std::ifstream file(path.Data(), std::ios::ate | std::ios::binary);
         if (!file.is_open())
             return nullptr;
         
@@ -40,12 +40,12 @@ namespace Heart
         return buffer;
     }
 
-    HString FilesystemUtils::GetParentDirectory(const HStringView& path)
+    HString8 FilesystemUtils::GetParentDirectory(const HStringView8& path)
     {
-        return std::filesystem::path(path.DataUTF8()).parent_path().generic_u8string();
+        return std::filesystem::path(path.Data()).parent_path().generic_u8string();
     }
 
-    HString FilesystemUtils::SaveAsDialog(const HStringView& initialPath, const HStringView& title, const HStringView& defaultFileName, const HStringView& extension)
+    HString8 FilesystemUtils::SaveAsDialog(const HStringView8& initialPath, const HStringView8& title, const HStringView8& defaultFileName, const HStringView8& extension)
     {
         #ifdef HE_PLATFORM_WINDOWS
             return Win32OpenDialog(initialPath, title, defaultFileName, extension, false, true);
@@ -56,7 +56,7 @@ namespace Heart
         return "";
     }
 
-    HString FilesystemUtils::OpenFileDialog(const HStringView& initialPath, const HStringView& title, const HStringView& extension)
+    HString8 FilesystemUtils::OpenFileDialog(const HStringView8& initialPath, const HStringView8& title, const HStringView8& extension)
     {
         #ifdef HE_PLATFORM_WINDOWS
             return Win32OpenDialog(initialPath, title, "", extension, false, false);
@@ -68,7 +68,7 @@ namespace Heart
     }
 
     // https://cpp.hotexamples.com/examples/-/IFileDialog/-/cpp-ifiledialog-class-examples.html
-    HString FilesystemUtils::OpenFolderDialog(const HStringView& initialPath, const HStringView& title)
+    HString8 FilesystemUtils::OpenFolderDialog(const HStringView8& initialPath, const HStringView8& title)
     {
         #ifdef HE_PLATFORM_WINDOWS
             return Win32OpenDialog(initialPath, title, "", "", true, false);
@@ -79,11 +79,11 @@ namespace Heart
         return "";
     }
 
-    HString FilesystemUtils::Win32OpenDialog(const HStringView& initialPath, const HStringView& title, const HStringView& defaultFileName, const HStringView& extension, bool folder, bool save)
+    HString8 FilesystemUtils::Win32OpenDialog(const HStringView8& initialPath, const HStringView8& title, const HStringView8& defaultFileName, const HStringView8& extension, bool folder, bool save)
     {
         HE_ENGINE_ASSERT(!folder || !save, "Cannot open a dialog with folder and save flags set to true");
 
-        HString outputPath = "";
+        HString8 outputPath = "";
         #ifdef HE_PLATFORM_WINDOWS
             HRESULT hr = S_OK;
 
@@ -103,7 +103,7 @@ namespace Heart
 
             if (!title.IsEmpty())
             {
-                hr = pDialog->SetTitle((LPCWSTR)title.ToUTF16().DataUTF16());
+                hr = pDialog->SetTitle((LPCWSTR)title.ToUTF16().Data());
                 if (FAILED(hr)) goto done;
             }
 
@@ -114,24 +114,24 @@ namespace Heart
 
             if (!folder)
             {
-                HString wideExtension = extension.ToUTF16();
-                HString filterFirst = wideExtension + u" (*." + wideExtension + u")";
-                HString filterSecond = u"*." + wideExtension;
+                HString16 wideExtension = extension.ToUTF16();
+                HString16 filterFirst = wideExtension + u" (*." + wideExtension + u")";
+                HString16 filterSecond = u"*." + wideExtension;
                 COMDLG_FILTERSPEC rgSpec[] = 
                 {
                     { L"All Files (*.*)", L"*.*" },
-                    { (LPCWSTR)filterFirst.DataUTF16(), (LPCWSTR)filterSecond.DataUTF16() }
+                    { (LPCWSTR)filterFirst.Data(), (LPCWSTR)filterSecond.Data() }
                 };
                 hr = pDialog->SetFileTypes(extension.IsEmpty() ? 1 : ARRAYSIZE(rgSpec), rgSpec);
                 if (FAILED(hr)) goto done;
 
                 pDialog->SetFileTypeIndex(2);
                 if (save)
-                    pDialog->SetDefaultExtension((LPCWSTR)wideExtension.DataUTF16());
+                    pDialog->SetDefaultExtension((LPCWSTR)wideExtension.Data());
 
                 if (save && !defaultFileName.IsEmpty())
                 {
-                    hr = pDialog->SetFileName((LPCWSTR)defaultFileName.ToUTF16().DataUTF16());
+                    hr = pDialog->SetFileName((LPCWSTR)defaultFileName.ToUTF16().Data());
                     if (FAILED(hr)) goto done;
                 }
             }
@@ -145,7 +145,7 @@ namespace Heart
             hr = pItem->GetDisplayName(SIGDN_FILESYSPATH, &pwszFilePath);
             if (FAILED(hr)) goto done;
 
-            outputPath = HString((char16*)pwszFilePath).ToUTF8();
+            outputPath = HString16((char16*)pwszFilePath).ToUTF8();
             success = true;
 
         done:
@@ -163,11 +163,11 @@ namespace Heart
         return outputPath;
     }
 
-    HString FilesystemUtils::LinuxOpenDialog(const HStringView& initialPath, const HStringView& title, const HStringView& defaultFileName, const HStringView& extension, bool folder, bool save)
+    HString8 FilesystemUtils::LinuxOpenDialog(const HStringView8& initialPath, const HStringView8& title, const HStringView8& defaultFileName, const HStringView8& extension, bool folder, bool save)
     {
         HE_ENGINE_ASSERT(!folder || !save, "Cannot open a dialog with folder and save flags set to true");
 
-        HString outputPath = "";
+        HString8 outputPath = "";
         #ifdef HE_PLATFORM_LINUX
             const char zenityPath[] = "/usr/bin/zenity";
             char command[2048];
@@ -178,7 +178,7 @@ namespace Heart
                     command,
                     "%s --file-selection --directory --modal --confirm-overwrite --title=\"%s\" ",
                     zenityPath,
-                    title.DataUTF8()
+                    title.Data()
                 );
             }
             else
@@ -188,11 +188,11 @@ namespace Heart
                     "%s --file-selection %s --filename=\"%s.%s\" --file-filter=\"%s | *.%s\" --file-filter=\"All files | *.*\" --modal --confirm-overwrite --title=\"%s\" ",
                     zenityPath,
                     save ? "--save" : "",
-                    defaultFileName.DataUTF8(),
-                    extension.DataUTF8(),
-                    extension.DataUTF8(),
-                    extension.DataUTF8(),
-                    title.DataUTF8()
+                    defaultFileName.Data(),
+                    extension.Data(),
+                    extension.Data(),
+                    extension.Data(),
+                    title.Data()
                 );
             }
 

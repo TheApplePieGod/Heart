@@ -14,7 +14,7 @@ namespace Heart
         ~ImGuiInstance();
 
         void Recreate();
-        void OverrideImGuiConfig(const HStringView& newBasePath);
+        void OverrideImGuiConfig(const HStringView8& newBasePath);
         void ReloadImGuiConfig();
         
         void BeginFrame();
@@ -26,7 +26,7 @@ namespace Heart
 
     private:
         bool m_Initialized = false;
-        HString m_ImGuiConfigPath = "";
+        HString8 m_ImGuiConfigPath = "";
         Ref<Window> m_Window;
     };
 }

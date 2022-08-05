@@ -7,7 +7,7 @@
 
 namespace Heart
 {
-    OpenGLShader::OpenGLShader(const HStringView& path, Type shaderType)
+    OpenGLShader::OpenGLShader(const HStringView8& path, Type shaderType)
         : Shader(path, shaderType)
     {
         m_ShaderId = glCreateShader(OpenGLCommon::ShaderTypeToOpenGL(shaderType));

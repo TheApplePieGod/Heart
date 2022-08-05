@@ -67,8 +67,8 @@ namespace Heart
         void SetScale(glm::vec3 scale);
         void SetTransform(glm::vec3 pos, glm::vec3 rot, glm::vec3 scale);
 
-        Variant GetScriptProperty(const HStringView& name) const;
-        void SetScriptProperty(const HStringView& name, const Variant& value);
+        Variant GetScriptProperty(const HStringView8& name) const;
+        void SetScriptProperty(const HStringView8& name, const Variant& value);
 
         void SetIsPrimaryCameraEntity(bool primary);
 

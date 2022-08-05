@@ -10,7 +10,7 @@ namespace Widgets
     class SceneHierarchyPanel : public Widget
     {
     public:
-        SceneHierarchyPanel(const Heart::HStringView& name, bool initialOpen)
+        SceneHierarchyPanel(const Heart::HStringView8& name, bool initialOpen)
             : Widget(name, initialOpen)
         {}
 

@@ -15,12 +15,12 @@
 
 namespace HeartEditor
 {
-    Heart::Ref<Project> Project::CreateAndLoad(const Heart::HStringView& absolutePath, const Heart::HStringView& name)
+    Heart::Ref<Project> Project::CreateAndLoad(const Heart::HStringView8& absolutePath, const Heart::HStringView8& name)
     {
         const char* extension = ".heproj";
-        Heart::HString filename = name + extension;
+        Heart::HString8 filename = name + extension;
 
-        std::filesystem::path finalPath = std::filesystem::path(absolutePath.DataUTF8()).append(name.DataUTF8());
+        std::filesystem::path finalPath = std::filesystem::path(absolutePath.Data()).append(name.Data());
         std::filesystem::create_directory(finalPath);
         
         /*
@@ -29,7 +29,7 @@ namespace HeartEditor
         nlohmann::json j;
         j["name"] = name;
 
-        std::filesystem::path mainProjectFilePath = std::filesystem::path(finalPath).append(filename.DataUTF8());
+        std::filesystem::path mainProjectFilePath = std::filesystem::path(finalPath).append(filename.Data());
         std::ofstream file(mainProjectFilePath);
         file << j;
         file.close();
@@ -48,45 +48,45 @@ namespace HeartEditor
         /*
          * Load templates and create visual studio project files
          */
-        Heart::HString scriptsRootPath = std::filesystem::current_path()
+        Heart::HString8 scriptsRootPath = std::filesystem::current_path()
             .append("scripting")
             .generic_u8string();
 
         // Csproj
-        Heart::HString csprojTemplate = Heart::FilesystemUtils::ReadFileToString("templates/ProjectTemplate.csproj");
-        Heart::HString finalCsproj = std::regex_replace(csprojTemplate.DataUTF8(), std::regex("\\$\\{SCRIPTS_ROOT_PATH\\}"), scriptsRootPath.DataUTF8());
+        Heart::HString8 csprojTemplate = Heart::FilesystemUtils::ReadFileToString("templates/ProjectTemplate.csproj");
+        Heart::HString8 finalCsproj = std::regex_replace(csprojTemplate.Data(), std::regex("\\$\\{SCRIPTS_ROOT_PATH\\}"), scriptsRootPath.Data());
         file = std::ofstream(
-            std::filesystem::path(finalPath).append((name + ".csproj").DataUTF8()),
+            std::filesystem::path(finalPath).append((name + ".csproj").Data()),
             std::ios::binary
         );
-        file << finalCsproj.DataUTF8();
+        file << finalCsproj.Data();
         file.close();
 
         // Sln
-        Heart::HString slnTemplate = Heart::FilesystemUtils::ReadFileToString("templates/ProjectTemplate.sln");
-        Heart::HString finalSln = std::regex_replace(slnTemplate.DataUTF8(), std::regex("\\$\\{SCRIPTS_ROOT_PATH\\}"), scriptsRootPath.DataUTF8());
-        finalSln = (Heart::HString)std::regex_replace(finalSln.DataUTF8(), std::regex("\\$\\{PROJECT_NAME\\}"), name.DataUTF8());
+        Heart::HString8 slnTemplate = Heart::FilesystemUtils::ReadFileToString("templates/ProjectTemplate.sln");
+        Heart::HString8 finalSln = std::regex_replace(slnTemplate.Data(), std::regex("\\$\\{SCRIPTS_ROOT_PATH\\}"), scriptsRootPath.Data());
+        finalSln = std::regex_replace(finalSln.Data(), std::regex("\\$\\{PROJECT_NAME\\}"), name.Data());
         file = std::ofstream(
-            std::filesystem::path(finalPath).append((name + ".sln").DataUTF8()),
+            std::filesystem::path(finalPath).append((name + ".sln").Data()),
             std::ios::binary
         );
-        file << finalSln.DataUTF8();
+        file << finalSln.Data();
         file.close();
 
         // Empty entity
-        Heart::HString entityTemplate = Heart::FilesystemUtils::ReadFileToString("templates/EmptyEntity.csfile");
-        Heart::HString finalEntity = std::regex_replace(entityTemplate.DataUTF8(), std::regex("\\$\\{PROJECT_NAME\\}"), name.DataUTF8());
+        Heart::HString8 entityTemplate = Heart::FilesystemUtils::ReadFileToString("templates/EmptyEntity.csfile");
+        Heart::HString8 finalEntity = std::regex_replace(entityTemplate.Data(), std::regex("\\$\\{PROJECT_NAME\\}"), name.Data());
         file = std::ofstream(
             std::filesystem::path(finalPath).append("Scripts").append("EmptyEntity.cs"),
             std::ios::binary
         );
-        file << finalEntity.DataUTF8();
+        file << finalEntity.Data();
         file.close();
         
         return LoadFromPath(mainProjectFilePath.generic_u8string());
     }
 
-    Heart::Ref<Project> Project::LoadFromPath(const Heart::HStringView& absolutePath)
+    Heart::Ref<Project> Project::LoadFromPath(const Heart::HStringView8& absolutePath)
     {
         Heart::Ref<Project> project = Heart::CreateRef<Project>(absolutePath);
         
@@ -117,7 +117,7 @@ namespace HeartEditor
         auto j = nlohmann::json::parse(data);
 
         if (j.contains("name"))
-            project->m_Name = (Heart::HString)j["name"];
+            project->m_Name = j["name"];
         
         if (j.contains("loadedScene") && j["loadedScene"] != "")
         {
@@ -130,8 +130,8 @@ namespace HeartEditor
         {
             auto& field = j["widgets"];
             for (auto& pair : Editor::GetWindows())
-                if (field.contains(pair.first.DataUTF8()))
-                    pair.second->Deserialize(field[pair.first.DataUTF8()]);
+                if (field.contains(pair.first.Data()))
+                    pair.second->Deserialize(field[pair.first.Data()]);
         }
 
         s_ActiveProject = project;
@@ -155,17 +155,17 @@ namespace HeartEditor
             {
                 nlohmann::json serialized = pair.second->Serialize();
                 if (!serialized.empty())
-                    field[pair.first.DataUTF8()] = serialized;
+                    field[pair.first.Data()] = serialized;
             }
         }
 
-        std::ofstream file(m_AbsolutePath.DataUTF8());
+        std::ofstream file(m_AbsolutePath.Data());
         file << j;
     }
 
     void Project::LoadScriptsPlugin()
     {
-        auto assemblyPath = std::filesystem::path(Heart::AssetManager::GetAssetsDirectory().DataUTF8())
+        auto assemblyPath = std::filesystem::path(Heart::AssetManager::GetAssetsDirectory().Data())
             .append("bin")
             .append("ClientScripts.dll");
         if (!std::filesystem::exists(assemblyPath))

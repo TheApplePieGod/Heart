@@ -20,7 +20,7 @@ namespace Widgets
         if (!m_Open) return;
 
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 5.0f));
-        ImGui::Begin(m_Name.DataUTF8(), &m_Open);
+        ImGui::Begin(m_Name.Data(), &m_Open);
 
         Project* activeProject = Project::GetActiveProject();
         if (!activeProject)
@@ -34,8 +34,8 @@ namespace Widgets
             ImGui::BeginDisabled();
             ImGui::InputText(
                 "##ProjPath",
-                (char*)Heart::AssetManager::GetAssetsDirectory().DataUTF8(),
-                Heart::AssetManager::GetAssetsDirectory().GetCountUTF8(),
+                (char*)Heart::AssetManager::GetAssetsDirectory().Data(),
+                Heart::AssetManager::GetAssetsDirectory().GetCount(),
                 ImGuiInputTextFlags_ReadOnly
             );
             ImGui::EndDisabled();

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Heart/Container/HString.h"
+#include "Heart/Container/HString8.h"
 
 namespace Heart
 {
@@ -13,7 +13,7 @@ namespace Heart
          * @param name The debug name for the timer.
          * @param shouldLog Whether or not the timer should log when destructed.
          */
-        Timer(const HStringView& name, bool shouldLog = true)
+        Timer(const HStringView8& name, bool shouldLog = true)
             : m_Name(name), m_ShouldLog(shouldLog)
         { Reset(); }
 
@@ -32,7 +32,7 @@ namespace Heart
         inline void Log()
         {
             if (!m_Name.IsEmpty())
-                HE_ENGINE_LOG_INFO("{0} took {1} ms", m_Name.DataUTF8(), static_cast<u32>(ElapsedMilliseconds()));
+                HE_ENGINE_LOG_INFO("{0} took {1} ms", m_Name.Data(), static_cast<u32>(ElapsedMilliseconds()));
         }
 
         /*! @brief Reset the timer to zero. */
@@ -43,7 +43,7 @@ namespace Heart
          *
          * @param newName The new name of the timer.
          */
-        inline void SetName(const HStringView& newName) { m_Name = newName; } 
+        inline void SetName(const HStringView8& newName) { m_Name = newName; } 
 
         /*! @brief Get the elapsed time of the timer in seconds. */
         inline double ElapsedSeconds()
@@ -66,7 +66,7 @@ namespace Heart
 
     protected:
         std::chrono::time_point<std::chrono::high_resolution_clock> m_Start;
-        HString m_Name;
+        HString8 m_Name;
         bool m_ShouldLog;
     };
 
@@ -78,7 +78,7 @@ namespace Heart
          *
          * @param name The name/id associated with this timer.
          */
-        AggregateTimer(const HStringView& name)
+        AggregateTimer(const HStringView8& name)
             : Timer(name, false)
         {}
 
@@ -96,7 +96,7 @@ namespace Heart
          * @param current True if the time should be retrieved from the current frame and false for the previous frame.
          * @return The time in milliseconds or zero if the id is invalid.
          */
-        static double GetAggregateTime(const HStringView& name, bool current)
+        static double GetAggregateTime(const HStringView8& name, bool current)
         {
             if (current)
             {
@@ -119,7 +119,7 @@ namespace Heart
          *
          * @param name The name/id of the timer.
          */
-        static void ResetAggregateTime(const HStringView& name)
+        static void ResetAggregateTime(const HStringView8& name)
         {
             std::unique_lock lock(s_CurrentMutex);
             if (s_AggregateTimes.find(name) != s_AggregateTimes.end())
@@ -135,14 +135,14 @@ namespace Heart
         }
 
         /*! @brief Get the map containing all timer ids and aggregate times from the last frame. */
-        inline static const std::map<HString, double>& GetTimeMap() { return s_AggregateTimesLastFrame; }
+        inline static const std::map<HString8, double>& GetTimeMap() { return s_AggregateTimesLastFrame; }
 
         /*! @brief Clear all current stored timer ids and aggregate times. */
         inline static void ClearTimeMap() { std::unique_lock lock(s_CurrentMutex); s_AggregateTimes.clear(); }
 
     private:
-        inline static std::map<HString, double> s_AggregateTimes; // stored in millis
-        inline static std::map<HString, double> s_AggregateTimesLastFrame;
+        inline static std::map<HString8, double> s_AggregateTimes; // stored in millis
+        inline static std::map<HString8, double> s_AggregateTimesLastFrame;
         inline static std::shared_mutex s_CurrentMutex;
     };
 }

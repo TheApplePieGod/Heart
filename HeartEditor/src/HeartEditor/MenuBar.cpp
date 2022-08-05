@@ -55,7 +55,7 @@ namespace HeartEditor
 
                     if (ImGui::MenuItem("Open Project"))
                     {
-                        Heart::HString path = Heart::FilesystemUtils::OpenFileDialog(Heart::AssetManager::GetAssetsDirectory(), "Open Project", "heproj");
+                        Heart::HString8 path = Heart::FilesystemUtils::OpenFileDialog(Heart::AssetManager::GetAssetsDirectory(), "Open Project", "heproj");
                         if (!path.IsEmpty())
                             Project::LoadFromPath(path);
                     }
@@ -74,14 +74,14 @@ namespace HeartEditor
 
                     if (ImGui::MenuItem("Save Scene As"))
                     {
-                        Heart::HString path = Heart::FilesystemUtils::SaveAsDialog(Heart::AssetManager::GetAssetsDirectory(), "Save Scene As", "Scene", "hescn");
+                        Heart::HString8 path = Heart::FilesystemUtils::SaveAsDialog(Heart::AssetManager::GetAssetsDirectory(), "Save Scene As", "Scene", "hescn");
                         if (!path.IsEmpty())
                             Heart::SceneAsset::SerializeScene(path, &Editor::GetEditorScene());
                     }
 
                     if (ImGui::MenuItem("Load Scene"))
                     {
-                        Heart::HString path = Heart::FilesystemUtils::OpenFileDialog(Heart::AssetManager::GetAssetsDirectory(), "Load Scene", "hescn");
+                        Heart::HString8 path = Heart::FilesystemUtils::OpenFileDialog(Heart::AssetManager::GetAssetsDirectory(), "Load Scene", "hescn");
                         if (!path.IsEmpty())
                         {
                             Heart::UUID assetId = Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Scene, path);
@@ -118,7 +118,7 @@ namespace HeartEditor
                     for (auto& pair : Editor::s_Windows)
                     {
                         bool open = pair.second->IsOpen();
-                        ImGui::MenuItem(pair.second->GetName().DataUTF8(), nullptr, &open);
+                        ImGui::MenuItem(pair.second->GetName().Data(), nullptr, &open);
                         pair.second->SetOpen(open);
                     }
 
@@ -141,7 +141,7 @@ namespace HeartEditor
         {
             ImGui::Text("Path (new folder will be created inside):");
             ImGui::BeginDisabled();
-            ImGui::InputText("##ProjPath", (char*)m_NewProjectPath.DataUTF8(), m_NewProjectPath.GetCountUTF8(), ImGuiInputTextFlags_ReadOnly);
+            ImGui::InputText("##ProjPath", (char*)m_NewProjectPath.Data(), m_NewProjectPath.GetCount(), ImGuiInputTextFlags_ReadOnly);
             ImGui::EndDisabled();
             ImGui::SameLine();
             if (ImGui::Button("...##ProjPathSelect"))

@@ -18,7 +18,7 @@ namespace Heart
         }
         catch (std::exception e)
         {
-            HE_ENGINE_LOG_ERROR("Failed to load material at path {0}", m_AbsolutePath.DataUTF8());
+            HE_ENGINE_LOG_ERROR("Failed to load material at path {0}", m_AbsolutePath.Data());
             m_Loaded = true;
             m_Loading = false;
             return;
@@ -48,7 +48,7 @@ namespace Heart
             m_Material = material;
     }
 
-    Material MaterialAsset::DeserializeMaterial(const HStringView& path)
+    Material MaterialAsset::DeserializeMaterial(const HStringView8& path)
     {
         Material material;
 
@@ -104,7 +104,7 @@ namespace Heart
         return material;
     }
 
-    void MaterialAsset::SerializeMaterial(const HStringView& path, const Material& material)
+    void MaterialAsset::SerializeMaterial(const HStringView8& path, const Material& material)
     {
         nlohmann::json j;
 
@@ -145,7 +145,7 @@ namespace Heart
             field["occlusion"]["engineResource"] = AssetManager::IsAssetAResource(material.m_OcclusionTextureAsset);
         }
 
-        std::ofstream file(path.DataUTF8());
+        std::ofstream file(path.Data());
         file << j;
     }
 }

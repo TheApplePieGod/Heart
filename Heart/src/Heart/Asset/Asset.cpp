@@ -9,7 +9,7 @@
 
 namespace Heart
 {
-    Asset::Asset(const HStringView& path, const HStringView& absolutePath)
+    Asset::Asset(const HStringView8& path, const HStringView8& absolutePath)
         : m_Path(path), m_AbsolutePath(absolutePath)
     {
         UpdatePath(path, absolutePath);
@@ -22,21 +22,21 @@ namespace Heart
         Load();
     }
 
-    void Asset::UpdatePath(const HStringView& path, const HStringView& absolutePath)
+    void Asset::UpdatePath(const HStringView8& path, const HStringView8& absolutePath)
     {
-        auto entry = std::filesystem::path(path.DataUTF8());
-        m_Filename = (HString)entry.filename().generic_u8string();
-        m_Extension = (HString)entry.extension().generic_u8string();
-        m_ParentPath = (HString)entry.parent_path().generic_u8string();
+        auto entry = std::filesystem::path(path.Data());
+        m_Filename = entry.filename().generic_u8string();
+        m_Extension = entry.extension().generic_u8string();
+        m_ParentPath = entry.parent_path().generic_u8string();
 
         // convert the extension to lowercase
-        std::transform(m_Extension.BeginUTF8(), m_Extension.EndUTF8(), m_Extension.BeginUTF8(), [](unsigned char c) { return std::tolower(c); });
+        std::transform(m_Extension.Begin(), m_Extension.End(), m_Extension.Begin(), [](unsigned char c) { return std::tolower(c); });
 
         m_Path = path;
         m_AbsolutePath = absolutePath;
     }
 
-    Ref<Asset> Asset::Create(Type type, const HStringView& path, const HStringView& absolutePath)
+    Ref<Asset> Asset::Create(Type type, const HStringView8& path, const HStringView8& absolutePath)
     {
         switch (type)
         {
@@ -56,22 +56,22 @@ namespace Heart
     }
 
     // adapted from https://stackoverflow.com/questions/180947/base64-decode-snippet-in-c
-    std::vector<unsigned char> Asset::Base64Decode(const HStringView& encoded)
+    std::vector<unsigned char> Asset::Base64Decode(const HStringView8& encoded)
     {
-        int in_len = static_cast<int>(encoded.GetCountUTF8());
+        int in_len = static_cast<int>(encoded.GetCount());
         int i = 0;
         int j = 0;
         int in_ = 0;
         unsigned char char_array_4[4], char_array_3[3];
         std::vector<unsigned char> ret;
 
-        while (in_len-- && (encoded.GetUTF8(in_) != '=') && IsBase64(encoded.GetUTF8(in_)))
+        while (in_len-- && (encoded.Get(in_) != '=') && IsBase64(encoded.Get(in_)))
         {
-            char_array_4[i++] = encoded.GetUTF8(in_); in_++;
+            char_array_4[i++] = encoded.Get(in_); in_++;
             if (i ==4)
             {
                 for (i = 0; i <4; i++)
-                    char_array_4[i] = static_cast<unsigned char>(s_Base64Chars.FindUTF8Char(char_array_4[i]));
+                    char_array_4[i] = static_cast<unsigned char>(s_Base64Chars.Find(char_array_4[i]));
 
                 char_array_3[0] = (char_array_4[0] << 2) + ((char_array_4[1] & 0x30) >> 4);
                 char_array_3[1] = ((char_array_4[1] & 0xf) << 4) + ((char_array_4[2] & 0x3c) >> 2);
@@ -89,7 +89,7 @@ namespace Heart
                 char_array_4[j] = 0;
 
             for (j = 0; j <4; j++)
-                char_array_4[j] = static_cast<unsigned char>(s_Base64Chars.FindUTF8Char(char_array_4[j]));
+                char_array_4[j] = static_cast<unsigned char>(s_Base64Chars.Find(char_array_4[j]));
 
             char_array_3[0] = (char_array_4[0] << 2) + ((char_array_4[1] & 0x30) >> 4);
             char_array_3[1] = ((char_array_4[1] & 0xf) << 4) + ((char_array_4[2] & 0x3c) >> 2);

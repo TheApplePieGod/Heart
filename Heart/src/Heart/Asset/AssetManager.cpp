@@ -124,7 +124,7 @@ namespace Heart
         entry.LoadedFrame = std::numeric_limits<u64>::max() - s_AssetFrameLimit; // prevent extraneous unloading
     }
 
-    UUID AssetManager::RegisterAsset(Asset::Type type, const HStringView& path, bool persistent, bool isResource)
+    UUID AssetManager::RegisterAsset(Asset::Type type, const HStringView8& path, bool persistent, bool isResource)
     {
         if (path.IsEmpty())
             return 0;
@@ -134,7 +134,7 @@ namespace Heart
             return oldUUID;
 
         // Only register if the path exists (resources are assumed to exist)
-        if (!isResource && !std::filesystem::exists(GetAbsolutePath(path).DataUTF8()))
+        if (!isResource && !std::filesystem::exists(GetAbsolutePath(path).Data()))
             return 0;
 
         UUID newUUID = UUID();
@@ -142,8 +142,8 @@ namespace Heart
         {
             if (s_Resources.find(path) == s_Resources.end())
             {  
-                HE_ENGINE_LOG_TRACE("Registering {0} resource @ {1}", HE_ENUM_TO_STRING(Asset, type), path.DataUTF8());
-                HString absolutePath = std::filesystem::path(s_ResourceDirectory.DataUTF8()).append(path.DataUTF8()).generic_u8string();
+                HE_ENGINE_LOG_TRACE("Registering {0} resource @ {1}", HE_ENUM_TO_STRING(Asset, type), path.Data());
+                HString8 absolutePath = std::filesystem::path(s_ResourceDirectory.Data()).append(path.Data()).generic_u8string();
                 s_Resources[path] = { Asset::Create(type, path, absolutePath), std::numeric_limits<u64>::max() - s_AssetFrameLimit, persistent };
             }
             s_UUIDs[newUUID] = { path, isResource, type };
@@ -152,8 +152,8 @@ namespace Heart
         {
             if (s_Registry.find(path) == s_Registry.end())
             {
-                HE_ENGINE_LOG_TRACE("Registering {0} asset @ {1}", HE_ENUM_TO_STRING(Asset, type), path.DataUTF8());
-                HString absolutePath = std::filesystem::path(s_AssetsDirectory.DataUTF8()).append(path.DataUTF8()).generic_u8string();
+                HE_ENGINE_LOG_TRACE("Registering {0} asset @ {1}", HE_ENUM_TO_STRING(Asset, type), path.Data());
+                HString8 absolutePath = std::filesystem::path(s_AssetsDirectory.Data()).append(path.Data()).generic_u8string();
                 s_Registry[path] = { Asset::Create(type, path, absolutePath), std::numeric_limits<u64>::max() - s_AssetFrameLimit, persistent };
             }
             s_UUIDs[newUUID] = { path, isResource, type };
@@ -179,7 +179,7 @@ namespace Heart
 
         // UUID as a string should be sufficient for a unique
         // place in the registry
-        HString idPath = std::to_string(newUUID);
+        HString8 idPath = std::to_string(newUUID);
 
         // Mark the asset's data as loaded & valid so that it never tries
         // to reload it (and fail)
@@ -195,11 +195,11 @@ namespace Heart
         return newUUID;
     }
 
-    void AssetManager::RegisterAssetsInDirectory(const HStringView& directory, bool persistent, bool isResource)
+    void AssetManager::RegisterAssetsInDirectory(const HStringView8& directory, bool persistent, bool isResource)
     {
         try
         {
-            for (const auto& entry : std::filesystem::directory_iterator(directory.DataUTF8()))
+            for (const auto& entry : std::filesystem::directory_iterator(directory.Data()))
                 if (entry.is_directory())
                     RegisterAssetsInDirectory(entry.path().generic_u8string(), persistent, isResource);
                 else
@@ -209,7 +209,7 @@ namespace Heart
                     if (type != Asset::Type::None)
                     {
                         // remove the base from the start of the path so it doesn't need to be included when referencing
-                        HString basePath = path.lexically_relative(isResource ? s_ResourceDirectory.DataUTF8() : s_AssetsDirectory.DataUTF8()).generic_u8string();
+                        HString8 basePath = path.lexically_relative(isResource ? s_ResourceDirectory.Data() : s_AssetsDirectory.Data()).generic_u8string();
                         RegisterAsset(type, basePath, persistent, isResource);
                     }
                 }
@@ -218,7 +218,7 @@ namespace Heart
         { return; }
     }
 
-    void AssetManager::RenameAsset(const HStringView& oldPath, const HStringView& newPath)
+    void AssetManager::RenameAsset(const HStringView8& oldPath, const HStringView8& newPath)
     {
         bool entryFound = false;
         for (auto& entry : s_UUIDs)
@@ -244,7 +244,7 @@ namespace Heart
         s_Registry[newPath].Asset->UpdatePath(newPath, GetAbsolutePath(newPath));
     }
 
-    void AssetManager::UpdateAssetsDirectory(const HStringView& directory)
+    void AssetManager::UpdateAssetsDirectory(const HStringView8& directory)
     {
         UnloadAllAssets();
         s_AssetsDirectory = directory;
@@ -265,9 +265,9 @@ namespace Heart
         RegisterAssetsInDirectory(directory, false, false);
     }
 
-    Asset::Type AssetManager::DeduceAssetTypeFromFile(const HStringView& path)
+    Asset::Type AssetManager::DeduceAssetTypeFromFile(const HStringView8& path)
     {
-        auto extension = std::filesystem::path(path.DataUTF8()).extension().generic_u8string();
+        auto extension = std::filesystem::path(path.Data()).extension().generic_u8string();
 
         // convert the extension to lowercase
         std::transform(extension.begin(), extension.end(), extension.begin(), [](unsigned char c) { return std::tolower(c); });
@@ -287,14 +287,14 @@ namespace Heart
         return type;
     }
 
-    UUID AssetManager::GetAssetUUID(const HStringView& path, bool isResource)
+    UUID AssetManager::GetAssetUUID(const HStringView8& path, bool isResource)
     {
         for (auto& entry : s_UUIDs)
             if (isResource == entry.second.IsResource && entry.second.Path == path) return entry.first;
         return 0;
     }
 
-    HString AssetManager::GetPathFromUUID(UUID uuid)
+    HString8 AssetManager::GetPathFromUUID(UUID uuid)
     {
         if (!uuid) return "";
         if (s_UUIDs.find(uuid) == s_UUIDs.end()) return "";
@@ -308,7 +308,7 @@ namespace Heart
         return s_UUIDs[uuid].IsResource;
     }
 
-    Asset* AssetManager::RetrieveAsset(const HStringView& path, bool isResource)
+    Asset* AssetManager::RetrieveAsset(const HStringView8& path, bool isResource)
     {
         if (path.IsEmpty()) return nullptr;
         if (isResource)

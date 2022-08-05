@@ -5,6 +5,8 @@
 #include "Heart/Container/HVector.hpp"
 #include "Heart/Container/HArray.h"
 #include "Heart/Container/HString.h"
+#include "Heart/Container/HStringTyped.hpp"
+#include "Heart/Container/HString8.h"
 
 namespace Heart
 {
@@ -32,16 +34,12 @@ namespace Heart
 
     void PerfTests::RunHStringTest()
     {
-        HString test1 = "123";
-        HString test2 = "123";
-        bool test = test1 == test2;
+        HString8 str1 = "asd";
+        HStringView8 view1 = str1;
 
-        HString utf8 = "\xE0\xA4\xAF\xE0\xA5\x82\xE0\xA4\xA8\xE0\xA4\xBF\xE0\xA4\x95\xE0\xA5\x8B\xE0\xA4\xA1";
-        HE_ENGINE_LOG_WARN(utf8.DataUTF8());
-        HString utf16 = utf8.ToUTF16();
-        utf8 = utf16.ToUTF8();
-        HE_ENGINE_LOG_WARN(utf16.DataUTF8());
-        HE_ENGINE_LOG_WARN(sizeof(HString));
+        HStringViewTyped<char8> view2 = view1;
+
+        int d = 0;
     }
 
     void PerfTests::RunHArrayTest()

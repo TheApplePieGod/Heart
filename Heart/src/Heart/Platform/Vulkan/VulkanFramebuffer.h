@@ -2,7 +2,7 @@
 
 #include "Heart/Renderer/Framebuffer.h"
 #include "Heart/Platform/Vulkan/VulkanCommon.h"
-#include "Heart/Container/HString.h"
+#include "Heart/Container/HString8.h"
 
 namespace Heart
 {
@@ -16,7 +16,7 @@ namespace Heart
         ~VulkanFramebuffer() override;
 
         void Bind(ComputePipeline* preRenderComputePipeline = nullptr) override;
-        void BindPipeline(const HStringView& name) override;
+        void BindPipeline(const HStringView8& name) override;
         void BindShaderBufferResource(u32 bindingIndex, u32 offset, u32 elementCount, Buffer* buffer) override;
         void BindShaderTextureResource(u32 bindingIndex, Texture* texture) override;
         void BindShaderTextureLayerResource(u32 bindingIndex, Texture* texture, u32 layerIndex, u32 mipLevel) override;
@@ -92,7 +92,7 @@ namespace Heart
         std::array<VkFramebuffer, Renderer::FrameBufferCount> m_Framebuffers;
         VkRenderPass m_RenderPass;
         VulkanGraphicsPipeline* m_BoundPipeline = nullptr;
-        HString m_BoundPipelineName = "";
+        HString8 m_BoundPipelineName = "";
         std::array<VkCommandBuffer, Renderer::FrameBufferCount> m_CommandBuffers{};
         std::array<VkCommandBuffer, Renderer::FrameBufferCount> m_TransferCommandBuffers{};
         std::array<std::vector<VulkanFramebufferAttachment>, Renderer::FrameBufferCount> m_AttachmentData;

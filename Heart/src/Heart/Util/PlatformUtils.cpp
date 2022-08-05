@@ -1,17 +1,17 @@
 #include "hepch.h"
 #include "PlatformUtils.h"
 
-#include "Heart/Container/HString.h"
+#include "Heart/Container/HString8.h"
 
 namespace Heart
 {
-    void* PlatformUtils::LoadDynamicLibrary(const HStringView& path)
+    void* PlatformUtils::LoadDynamicLibrary(const HStringView8& path)
     {
         #ifdef HE_PLATFORM_WINDOWS
-            HMODULE lib = LoadLibraryA(path.DataUTF8());
+            HMODULE lib = LoadLibraryA(path.Data());
             return (void*)lib;
         #elif defined(HE_PLATFORM_LINUX) || defined(HE_PLATFORM_MACOS)
-            void* lib = dlopen(path.DataUTF8(), RTLD_LAZY, RTLD_LOCAL);
+            void* lib = dlopen(path.Data(), RTLD_LAZY, RTLD_LOCAL);
             return lib;
         #endif
 
@@ -27,13 +27,13 @@ namespace Heart
         #endif
     }
 
-    void* PlatformUtils::GetDynamicLibraryExport(void* lib, const HStringView& name)
+    void* PlatformUtils::GetDynamicLibraryExport(void* lib, const HStringView8& name)
     {
         #ifdef HE_PLATFORM_WINDOWS
-            void* func = GetProcAddress((HMODULE)lib, name.DataUTF8());
+            void* func = GetProcAddress((HMODULE)lib, name.Data());
             return func;
         #elif defined(HE_PLATFORM_LINUX) || defined(HE_PLATFORM_MACOS)
-            void* func = dlsym(lib, name.DataUTF8());
+            void* func = dlsym(lib, name.Data());
             return func;
         #endif
 

@@ -35,47 +35,61 @@ namespace Heart
 
         switch (encoding)
         {
-            case Encoding::UTF8: return ToUTF8();
-            case Encoding::UTF16: return ToUTF16();
+            case Encoding::UTF8:
+            {
+                switch (m_Encoding)
+                {
+                    case Encoding::UTF16: return HString(ww898::utf::convz<char8>(DataUTF16()));
+                }
+            }
+            case Encoding::UTF16:
+            {
+                switch (m_Encoding)
+                {
+                    case Encoding::UTF16: return HString(ww898::utf::convz<char16>(DataUTF8()));
+                }
+            }
         }
 
         HE_ENGINE_ASSERT(false, "HString Convert() not fully implemented");
         return HString();
     }
 
-    HString HString::ToUTF8() const
+    HString8 HString::ToUTF8() const
     {
-        if (m_Encoding == Encoding::UTF8) return Clone();
+        if (m_Encoding == Encoding::UTF8)
+            return HString8(DataUTF8(), GetCountUTF8());
 
         // Not optimal because the converted string is being allocated twice,
         // but it's fine for now
         switch (m_Encoding)
         {
             case Encoding::UTF16:
-            { return HString(ww898::utf::convz<char8>(DataUTF16())); }
+            { return HString8(ww898::utf::convz<char8>(DataUTF16())); }
         }
 
         HE_ENGINE_ASSERT(false, "HString ToUTF8() not fully implemented");
-        return HString();
+        return HString8();
     }
 
-    HString HString::ToUTF16() const
+    HString16 HString::ToUTF16() const
     {
-        if (m_Encoding == Encoding::UTF16) return Clone();
+        if (m_Encoding == Encoding::UTF16)
+            return HString16(DataUTF16(), GetCountUTF16());
 
         // Not optimal because the converted string is being allocated twice,
         // but it's fine for now
         switch (m_Encoding)
         {
             case Encoding::UTF8:
-            { return HString(ww898::utf::convz<char16>(DataUTF8())); }
+            { return HString16(ww898::utf::convz<char16>(DataUTF8())); }
         }
 
         HE_ENGINE_ASSERT(false, "HString ToUTF16() not fully implemented");
-        return HString();
+        return HString16();
     }
 
-    int HString::Compare(Comparison type, const HStringView& other) const
+    int HString::Compare(StringComparison type, const HStringView& other) const
     {
         if (other.m_Encoding != m_Encoding)
         {
@@ -86,29 +100,39 @@ namespace Heart
 
         switch (type)
         {
-            case Comparison::Value:
+            case StringComparison::Value:
             {
                 switch (m_Encoding)
                 {
                     case Encoding::UTF8:
-                    { return CompareByValue(DataUTF8(), GetCountUTF8(), other.DataUTF8(), other.GetCountUTF8()); }
+                    { return StringUtils::CompareByValue(DataUTF8(), GetCountUTF8(), other.DataUTF8(), other.GetCountUTF8()); }
                     case Encoding::UTF16:
-                    { return CompareByValue(DataUTF16(), GetCountUTF16(), other.DataUTF16(), other.GetCountUTF16()); }
+                    { return StringUtils::CompareByValue(DataUTF16(), GetCountUTF16(), other.DataUTF16(), other.GetCountUTF16()); }
                 }
             }
-            case Comparison::Alphabetical:
+            case StringComparison::Alphabetical:
             {
                 switch (m_Encoding)
                 {
                     case Encoding::UTF8:
-                    { return CompareAlphabetical(DataUTF8(), GetCountUTF8(), other.DataUTF8(), other.GetCountUTF8()); }
+                    { return StringUtils::CompareAlphabetical(DataUTF8(), GetCountUTF8(), other.DataUTF8(), other.GetCountUTF8()); }
                     case Encoding::UTF16:
-                    { return CompareAlphabetical(DataUTF16(), GetCountUTF16(), other.DataUTF16(), other.GetCountUTF16()); }
+                    { return StringUtils::CompareAlphabetical(DataUTF16(), GetCountUTF16(), other.DataUTF16(), other.GetCountUTF16()); }
+                }
+            }
+            case StringComparison::Equality:
+            {
+                switch (m_Encoding)
+                {
+                    case Encoding::UTF8:
+                    { return !StringUtils::CompareEq(DataUTF8(), GetCountUTF8(), other.DataUTF8(), other.GetCountUTF8()); }
+                    case Encoding::UTF16:
+                    { return !StringUtils::CompareEq(DataUTF16(), GetCountUTF16(), other.DataUTF16(), other.GetCountUTF16()); }
                 }
             }
         }
 
-        HE_ENGINE_ASSERT(false, "HString comparison not fully implemented");
+        HE_ENGINE_ASSERT(false, "HString StringComparison not fully implemented");
         return 0;
     }
 
@@ -124,37 +148,13 @@ namespace Heart
         switch (m_Encoding)
         {
             case Encoding::UTF8:
-            { return Find(DataUTF8(), GetCountUTF8(), value.DataUTF8(), value.GetCountUTF8()); }
+            { return StringUtils::Find(DataUTF8(), GetCountUTF8(), value.DataUTF8(), value.GetCountUTF8()); }
             case Encoding::UTF16:
-            { return Find(DataUTF16(), GetCountUTF16(), value.DataUTF16(), value.GetCountUTF16()); }
+            { return StringUtils::Find(DataUTF16(), GetCountUTF16(), value.DataUTF16(), value.GetCountUTF16()); }
         }
 
         HE_ENGINE_ASSERT(false, "HString find not fully implemented");
         return InvalidIndex;
-    }
-
-    u32 HString::FindUTF8Char(char8 value) const
-    {
-        if (m_Encoding != Encoding::UTF8)
-        {
-            HE_ENGINE_LOG_ERROR("Attempting to search a non-UTF8 HString for a UTF8 value, aborting");
-            HE_ENGINE_ASSERT(false);
-            return InvalidIndex;
-        }
-
-        return Find(DataUTF8(), GetCountUTF8(), &value, 1);
-    }
-
-    u32 HString::FindUTF16Char(char16 value) const
-    {
-        if (m_Encoding != Encoding::UTF16)
-        {
-            HE_ENGINE_LOG_ERROR("Attempting to search a non-UTF16 HString for a UTF16 value, aborting");
-            HE_ENGINE_ASSERT(false);
-            return InvalidIndex;
-        }
-
-        return Find(DataUTF16(), GetCountUTF16(), &value, 1);
     }
 
     HString HString::Substr(u32 start, u32 offset)
@@ -176,33 +176,17 @@ namespace Heart
 
     bool HString::operator==(const HStringView& other) const
     {
-        if (other.m_Encoding != m_Encoding)
-        {
-            HE_ENGINE_LOG_ERROR("Attempting to compare two HStrings with different encodings, aborting");
-            HE_ENGINE_ASSERT(false);
-            return false;
-        }
+        return Compare(StringComparison::Equality, other) == 0;
+    }
 
-        switch (m_Encoding)
-        {
-            case Encoding::UTF8:
-            { return CompareEq(DataUTF8(), GetCountUTF8(), other.DataUTF8(), other.GetCountUTF8()); }
-            case Encoding::UTF16:
-            { return CompareEq(DataUTF16(), GetCountUTF16(), other.DataUTF16(), other.GetCountUTF16()); }
-        }
-
-        HE_ENGINE_ASSERT(false, "HString equality operator not fully implemented");
-        return false;
+    bool HString::operator<(const HStringView& other) const
+    {
+        return Compare(StringComparison::Alphabetical, other) == -1;
     }
 
     bool HString::operator!=(const HStringView& other) const
     {
         return !(*this == other);
-    }
-
-    bool HString::operator<(const HStringView& other) const
-    {
-        return Compare(Comparison::Alphabetical, other) == -1;
     }
 
     bool HString::operator<=(const HStringView& other) const
@@ -265,68 +249,10 @@ namespace Heart
 
     HString HString::operator+(const HStringView& other) const
     {
-        if (other.m_Encoding != m_Encoding)
-        {
-            HE_ENGINE_LOG_ERROR("Attempting to add two HStrings with different encodings, aborting");
-            HE_ENGINE_ASSERT(false);
-            return HString();
-        }
-
-        switch (m_Encoding)
-        {
-            case Encoding::UTF8:
-            {
-                const char8* data[2] = { DataUTF8(), other.DataUTF8() };
-                u32 lens[2] = { GetCountUTF8(), other.GetCountUTF8() };
-                return HString(data, lens, 2);
-            }
-            case Encoding::UTF16:
-            {
-                const char16* data[2] = { DataUTF16(), other.DataUTF16() };
-                u32 lens[2] = { GetCountUTF16(), other.GetCountUTF16() };
-                return HString(data, lens, 2);
-            }
-        }
-
-        HE_ENGINE_ASSERT(false, "HString operator+ not fully implemented");
-        return HString();
-    }
-
-    HString HString::operator+(const char8* other) const
-    {
-        if (m_Encoding != Encoding::UTF8)
-        {
-            HE_ENGINE_LOG_ERROR("Attempting to add UTF8 characters to a non-UTF8 HString, aborting");
-            HE_ENGINE_ASSERT(false);
-            return HString();
-        }
-
-        return AddPtr<char8>(other, false);
-    }
-
-    HString HString::operator+(const char16* other) const
-    {
-        if (m_Encoding != Encoding::UTF16)
-        {
-            HE_ENGINE_LOG_ERROR("Attempting to add UTF16 characters to a non-UTF16 HString, aborting");
-            HE_ENGINE_ASSERT(false);
-            return HString();
-        }
-
-        return AddPtr<char16>(other, false);
+        return HStringView(*this) + other;
     }
 
     void HString::operator+=(const HStringView& other)
-    {
-        *this = *this + other;
-    }
-
-    void HString::operator+=(const char8* other)
-    {
-        *this = *this + other;
-    }
-
-    void HString::operator+=(const char16* other)
     {
         *this = *this + other;
     }
@@ -371,7 +297,7 @@ namespace Heart
         switch (str.GetEncoding())
         {
             default:
-            { j = nlohmann::json(str.ToUTF8().DataUTF8()); } return;
+            { j = nlohmann::json(str.ToUTF8().Data()); } return;
             case HString::Encoding::UTF8:
             { j = nlohmann::json(str.DataUTF8()); } return;
         }

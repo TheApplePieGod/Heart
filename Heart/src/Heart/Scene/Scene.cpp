@@ -3,6 +3,7 @@
 
 #include "Heart/Core/Timing.h"
 #include "Heart/Container/HArray.h"
+#include "Heart/Container/HString8.h"
 #include "Heart/Scripting/ScriptingEngine.h"
 #include "Heart/Scene/Entity.h"
 #include "Heart/Scene/Components.h"
@@ -53,12 +54,12 @@ namespace Heart
         }
     }
 
-    Entity Scene::CreateEntity(const HStringView& name)
+    Entity Scene::CreateEntity(const HStringView8& name)
     {
         return CreateEntityWithUUID(name, UUID());
     }
 
-    Entity Scene::CreateEntityWithUUID(const HStringView& name, UUID uuid)
+    Entity Scene::CreateEntityWithUUID(const HStringView8& name, UUID uuid)
     {
         Entity entity = { this, m_Registry.create() };
         m_UUIDMap[uuid] = entity.GetHandle();
