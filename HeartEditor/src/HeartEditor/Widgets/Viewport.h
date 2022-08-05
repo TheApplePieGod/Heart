@@ -35,6 +35,7 @@ namespace Widgets
 
         inline bool IsFocused() const { return m_ViewportInput; }
         inline bool IsHovered() const { return m_ViewportHover; }
+        inline bool ShouldCameraAttach() const { return m_AttachCamera; }
         inline glm::vec2 GetRelativeMousePos() const { return m_ViewportMousePos; }
         inline glm::vec2 GetSize() const { return m_ViewportSize; }
         inline Heart::SceneRenderer& GetSceneRenderer() { return *m_SceneRenderer; }

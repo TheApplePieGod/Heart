@@ -139,6 +139,10 @@ namespace HeartEditor
         s_ActiveScene->StartRuntime();
 
         s_EditorState.SelectedEntity = Heart::Entity();
+
+        auto& viewport = (Widgets::Viewport&)GetWindow("Viewport");
+        if (viewport.ShouldCameraAttach())
+            viewport.SetFocused(true);
     }
 
     void Editor::StopScene()
