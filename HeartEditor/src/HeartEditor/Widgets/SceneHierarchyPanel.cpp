@@ -32,7 +32,7 @@ namespace Widgets
             nameMap.insert({ view.get<Heart::NameComponent>(entity).Name, entity });
 
         ImGui::BeginChild("HierarchyChild");
-        for (auto pair : nameMap)
+        for (auto& pair : nameMap)
             if (RenderEntity(pair.second))
                 break;
         ImGui::EndChild();
