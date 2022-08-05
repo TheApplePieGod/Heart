@@ -1,6 +1,7 @@
 #pragma once
 
 #include "HeartEditor/Widgets/Widget.h"
+#include "Heart/Container/HVector.hpp"
 #include "glm/vec2.hpp"
 
 namespace HeartEditor
@@ -28,9 +29,9 @@ namespace Widgets
         const glm::vec2 m_CardSize = { 75.f, 75.f };
         const f32 m_CardSpacing = 5.f;
         glm::vec2 m_WindowSizes = { 0.f, 0.f };
-        std::vector<Heart::HString8> m_DirectoryStack = { "" };
+        Heart::HVector<Heart::HString8> m_DirectoryStack = { "" };
         int m_DirectoryStackIndex = 0;
-        std::vector<std::filesystem::directory_entry> m_DirectoryList;
+        Heart::HVector<std::filesystem::directory_entry> m_DirectoryList;
         bool m_ShouldRescan = false;
 
         std::filesystem::path m_RenamingPath;

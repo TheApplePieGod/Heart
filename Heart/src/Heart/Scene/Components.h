@@ -38,7 +38,7 @@ namespace Heart
 
     struct ChildComponent
     {
-        std::vector<UUID> Children;
+        HVector<UUID> Children;
     };
 
     struct TransformComponent

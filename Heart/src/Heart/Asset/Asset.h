@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Heart/Container/HVector.hpp"
 #include "Heart/Container/HString8.h"
 
 namespace Heart
@@ -97,7 +98,7 @@ namespace Heart
          * @param encoded The encoded string.
          * @return A vector containing the decoded bytes.
          */
-        static std::vector<unsigned char> Base64Decode(const HStringView8& encoded);
+        static HVector<unsigned char> Base64Decode(const HStringView8& encoded);
 
         /**
          * @brief Determine if a given character is base64.

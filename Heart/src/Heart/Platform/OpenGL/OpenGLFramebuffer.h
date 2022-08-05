@@ -2,6 +2,7 @@
 
 #include "Heart/Renderer/Framebuffer.h"
 #include "Heart/Container/HString8.h"
+#include "Heart/Container/HVector.hpp"
 
 namespace Heart
 {
@@ -73,14 +74,14 @@ namespace Heart
 
     private:
         u32 m_PBOFramebuffer;
-        std::vector<u32> m_Framebuffers;
-        std::vector<u32> m_BlitFramebuffers;
-        std::vector<OpenGLFramebufferAttachment> m_AttachmentData;
-        std::vector<OpenGLFramebufferAttachment> m_DepthAttachmentData;
-        std::vector<u32> m_CachedAttachmentHandles;
+        HVector<u32> m_Framebuffers;
+        HVector<u32> m_BlitFramebuffers;
+        HVector<OpenGLFramebufferAttachment> m_AttachmentData;
+        HVector<OpenGLFramebufferAttachment> m_DepthAttachmentData;
+        HVector<u32> m_CachedAttachmentHandles;
 
-        std::array<std::vector<u32>, 2> m_QueryIds;
-        std::vector<double> m_PerformanceTimestamps;
+        std::array<HVector<u32>, 2> m_QueryIds;
+        HVector<double> m_PerformanceTimestamps;
 
         int m_ImageSamples = 1;
         int m_CurrentSubpass = -1;

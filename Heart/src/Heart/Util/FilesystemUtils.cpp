@@ -15,12 +15,12 @@ namespace Heart
             return "";
         
         u32 fileSize = static_cast<u32>(file.tellg());
-        std::vector<char> buffer(fileSize);
+        HVector<char> buffer(fileSize);
         file.seekg(0, std::ios::beg);
-        file.read(buffer.data(), fileSize);
+        file.read(buffer.Data(), fileSize);
         file.close();
 
-        return HString8(buffer.data(), buffer.size());
+        return HString8(buffer.Data(), buffer.GetCount());
     }
 
     unsigned char* FilesystemUtils::ReadFile(const HStringView8& path, u32& outLength)

@@ -4,6 +4,7 @@
 #include "glm/vec2.hpp"
 #include "glm/vec3.hpp"
 #include "glm/mat4x4.hpp"
+#include "Heart/Container/HVector.hpp"
 
 namespace Heart
 {
@@ -50,7 +51,7 @@ namespace Heart
         inline Texture& GetEntityIdsTexture() { return *m_EntityIdsTexture; }
         inline Framebuffer& GetMainFramebuffer() { return *m_MainFramebuffer; }
         inline ComputePipeline& GetCullPipeline() { return *m_ComputeCullPipeline; }
-        inline std::vector<std::array<Ref<Framebuffer>, 2>>& GetBloomFramebuffers() { return m_BloomFramebuffers; }
+        inline HVector<std::array<Ref<Framebuffer>, 2>>& GetBloomFramebuffers() { return m_BloomFramebuffers; }
 
     private:
         struct IndirectBatch
@@ -140,7 +141,7 @@ namespace Heart
         bool m_Initialized = false;
 
         Ref<Framebuffer> m_MainFramebuffer;
-        std::vector<std::array<Ref<Framebuffer>, 2>> m_BloomFramebuffers; // one for each mip level and one for horizontal / vertical passes
+        HVector<std::array<Ref<Framebuffer>, 2>> m_BloomFramebuffers; // one for each mip level and one for horizontal / vertical passes
 
         Ref<ComputePipeline> m_ComputeCullPipeline;
         Ref<Buffer> m_CullDataBuffer;
@@ -172,8 +173,8 @@ namespace Heart
         EnvironmentMap* m_EnvironmentMap;
         const Camera* m_Camera;
         std::unordered_map<u64, IndirectBatch> m_IndirectBatches;
-        std::vector<IndirectBatch*> m_DeferredIndirectBatches;
-        std::vector<std::vector<u32>> m_EntityListPool;
+        HVector<IndirectBatch*> m_DeferredIndirectBatches;
+        HVector<HVector<u32>> m_EntityListPool;
         SceneRenderSettings m_SceneRenderSettings;
         u32 m_RenderedInstanceCount;
 

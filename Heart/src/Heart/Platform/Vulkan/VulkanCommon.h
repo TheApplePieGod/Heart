@@ -41,8 +41,8 @@ namespace Heart
         struct SwapChainSupportDetails
         {
             VkSurfaceCapabilitiesKHR Capabilities;
-            std::vector<VkSurfaceFormatKHR> Formats;
-            std::vector<VkPresentModeKHR> PresentModes;
+            HVector<VkSurfaceFormatKHR> Formats;
+            HVector<VkPresentModeKHR> PresentModes;
         };
 
         static SwapChainSupportDetails GetSwapChainSupport(VkPhysicalDevice device, VkSurfaceKHR surface);

@@ -13,13 +13,13 @@ namespace Heart
     {
         VulkanDevice& device = VulkanContext::GetDevice();
 
-        std::vector<u32> compiled = CompileSpirvFromFile(path, shaderType);
+        HVector<u32> compiled = CompileSpirvFromFile(path, shaderType);
         Reflect(shaderType, compiled);
 
         VkShaderModuleCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-        createInfo.codeSize = compiled.size() * sizeof(u32);
-        createInfo.pCode = compiled.data();
+        createInfo.codeSize = compiled.GetCount() * sizeof(u32);
+        createInfo.pCode = compiled.Data();
 
         HE_VULKAN_CHECK_RESULT(vkCreateShaderModule(device.Device(), &createInfo, nullptr, &m_ShaderModule));
 

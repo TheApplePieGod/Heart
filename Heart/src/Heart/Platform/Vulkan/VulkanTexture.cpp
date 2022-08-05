@@ -274,8 +274,8 @@ namespace Heart
                 for (u32 j = 0; j < m_MipLevels; j++)
                 {
                     VkImageView layerView = VulkanCommon::CreateImageView(device.Device(), image, m_Format, 1, j, 1, i, VK_IMAGE_ASPECT_COLOR_BIT);
-                    m_LayerViews[frame].emplace_back(layerView);
-                    m_ImGuiHandles[frame].emplace_back(ImGui_ImplVulkan_AddTexture(m_Sampler, layerView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL));
+                    m_LayerViews[frame].AddInPlace(layerView);
+                    m_ImGuiHandles[frame].AddInPlace(ImGui_ImplVulkan_AddTexture(m_Sampler, layerView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL));
                 }
             }
         }

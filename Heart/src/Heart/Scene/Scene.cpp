@@ -156,7 +156,7 @@ namespace Heart
 
         // add this child to the new parent
         if (parent.HasComponent<ChildComponent>())
-            parent.GetComponent<ChildComponent>().Children.push_back(childUUID);
+            parent.GetComponent<ChildComponent>().Children.Add(childUUID);
         else
             parent.AddComponent<ChildComponent>(std::initializer_list<UUID>({ childUUID }));
 
@@ -194,8 +194,8 @@ namespace Heart
             {
                 if (elem == childUUID)
                 {
-                    elem = childComp.Children.back();
-                    childComp.Children.pop_back();
+                    elem = childComp.Children.Back();
+                    childComp.Children.Pop();
                     break;
                 }
             }

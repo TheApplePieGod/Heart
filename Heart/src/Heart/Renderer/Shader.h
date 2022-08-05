@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Heart/Container/HString8.h"
+#include "Heart/Container/HVector.hpp"
 
 namespace Heart
 {
@@ -18,6 +19,7 @@ namespace Heart
 
     struct ReflectionDataElement
     {
+        ReflectionDataElement() = default;
         ReflectionDataElement(u32 uniqueId, ShaderResourceType resourceType, ShaderResourceAccessType accessType, u32 bindingIndex, u32 setIndex, u32 arrayCount)
             : UniqueId(uniqueId), ResourceType(resourceType), AccessType(accessType), BindingIndex(bindingIndex), SetIndex(setIndex), ArrayCount(arrayCount)
         {}
@@ -47,19 +49,19 @@ namespace Heart
         {}
         virtual ~Shader() = default;
 
-        inline const std::vector<ReflectionDataElement>& GetReflectionData() { return m_ReflectionData; }
+        inline const HVector<ReflectionDataElement>& GetReflectionData() { return m_ReflectionData; }
 
     public:
         static Ref<Shader> Create(const HStringView8& path, Type shaderType);
 
     protected:
-        std::vector<u32> CompileSpirvFromFile(const HStringView8& path, Type shaderType);
-        void Reflect(Type shaderType, const std::vector<u32>& compiledData);
+        HVector<u32> CompileSpirvFromFile(const HStringView8& path, Type shaderType);
+        void Reflect(Type shaderType, const HVector<u32>& compiledData);
 
     protected:
         Type m_Type;
         HString8 m_Path;
         bool m_Loaded;
-        std::vector<ReflectionDataElement> m_ReflectionData;
+        HVector<ReflectionDataElement> m_ReflectionData;
     };
 }

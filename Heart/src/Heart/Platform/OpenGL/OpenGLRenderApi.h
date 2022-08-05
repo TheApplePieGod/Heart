@@ -23,9 +23,9 @@ namespace Heart
 
         void DrawIndexedIndirect(Buffer* indirectBuffer, u32 commandOffset, u32 drawCount) override;
 
-        void RenderFramebuffers(GraphicsContext& context, const std::vector<FramebufferSubmission>& submissions) override;
+        void RenderFramebuffers(GraphicsContext& context, const HVector<FramebufferSubmission>& submissions) override;
 
-        void DispatchComputePipelines(GraphicsContext& context, const std::vector<ComputePipeline*>& pipelines) override {}
+        void DispatchComputePipelines(GraphicsContext& context, const HVector<ComputePipeline*>& pipelines) override {}
 
     private:
     };

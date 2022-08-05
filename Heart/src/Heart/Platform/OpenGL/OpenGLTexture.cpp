@@ -84,8 +84,8 @@ namespace Heart
         glGenerateMipmap(m_Target);
 
         // generate a texture view for each layer / mipmap
-        m_ViewTextures.resize(m_Info.ArrayCount * m_MipLevels);
-        glGenTextures(static_cast<u32>(m_ViewTextures.size()), m_ViewTextures.data());
+        m_ViewTextures.Resize(m_Info.ArrayCount * m_MipLevels, false);
+        glGenTextures(static_cast<u32>(m_ViewTextures.GetCount()), m_ViewTextures.Data());
         u32 viewIndex = 0;
         for (u32 i = 0; i < m_Info.ArrayCount; i++)
         {
@@ -102,7 +102,7 @@ namespace Heart
                 glTextureParameteri(m_ViewTextures[viewIndex], GL_TEXTURE_REDUCTION_MODE_ARB, OpenGLCommon::SamplerReductionModeToOpenGL(m_Info.SamplerState.ReductionMode));
                 glTextureParameterf(m_ViewTextures[viewIndex], GL_TEXTURE_MAX_ANISOTROPY, m_Info.SamplerState.AnisotropyEnable ? std::min(maxAnisotropy, static_cast<float>(m_Info.SamplerState.MaxAnisotropy)) : 1);
 
-                m_ImGuiHandles.emplace_back((void*)static_cast<size_t>(m_ViewTextures[viewIndex]));
+                m_ImGuiHandles.AddInPlace((void*)static_cast<size_t>(m_ViewTextures[viewIndex]));
                 viewIndex++;
             }
         }

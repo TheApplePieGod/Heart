@@ -4,6 +4,7 @@
 #include "Heart/Events/EventEmitter.h"
 #include "Heart/Renderer/Renderer.h"
 #include "Heart/Container/HString8.h"
+#include "Heart/Container/HVector.hpp"
 
 extern int main(int argc, char** argv);
 
@@ -90,7 +91,7 @@ namespace Heart
         inline Timestep GetLastTimestep() const { return m_LastTimestep; }
 
     protected:
-        std::vector<Ref<Layer>> m_Layers;
+        HVector<Ref<Layer>> m_Layers;
         Ref<ImGuiInstance> m_ImGuiInstance;
         Ref<Window> m_Window;
         bool m_Running = true;

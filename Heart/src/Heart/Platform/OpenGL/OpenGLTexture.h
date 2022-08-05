@@ -27,9 +27,9 @@ namespace Heart
         inline ColorFormat GetGeneralFormat() const { return m_GeneralFormat; }
 
     private:
-        std::vector<u32> m_ViewTextures;
+        HVector<u32> m_ViewTextures;
         std::array<Ref<OpenGLBuffer>, 2> m_PixelBuffers;
-        std::vector<void*> m_ImGuiHandles;
+        HVector<void*> m_ImGuiHandles;
 
         s64 m_DataSize = 0;
         ColorFormat m_GeneralFormat;

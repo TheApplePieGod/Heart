@@ -2,6 +2,7 @@
 #include "VulkanContext.h"
 
 #include "Heart/Core/Timing.h"
+#include "Heart/Container/HVector.hpp"
 #include "Heart/Platform/Vulkan/VulkanFramebuffer.h"
 #include "imgui/imgui.h"
 #include "imgui/backends/imgui_impl_vulkan.h"
@@ -149,8 +150,8 @@ namespace Heart
         // get api extension support
         u32 supportedExtensionCount = 0;
         vkEnumerateInstanceExtensionProperties(nullptr, &supportedExtensionCount, nullptr);
-        std::vector<VkExtensionProperties> supportedExtensions(supportedExtensionCount);
-        vkEnumerateInstanceExtensionProperties(nullptr, &supportedExtensionCount, supportedExtensions.data());
+        HVector<VkExtensionProperties> supportedExtensions(supportedExtensionCount);
+        vkEnumerateInstanceExtensionProperties(nullptr, &supportedExtensionCount, supportedExtensions.Data());
 
         // get required extensions
         u32 glfwExtensionCount = 0;
@@ -164,7 +165,7 @@ namespace Heart
         }
 
         // create a new extensions array to add debug item
-        std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
+        HVector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
 
         // finally create instance
         VkInstanceCreateInfo createInfo{};
@@ -173,14 +174,14 @@ namespace Heart
         #if HE_DEBUG
             HE_ENGINE_LOG_TRACE("VULKAN: Configuring validation layers");
             auto validationLayers = ConfigureValidationLayers();
-            createInfo.enabledLayerCount = static_cast<u32>(validationLayers.size());
-            createInfo.ppEnabledLayerNames = validationLayers.data();
-            extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+            createInfo.enabledLayerCount = static_cast<u32>(validationLayers.GetCount());
+            createInfo.ppEnabledLayerNames = validationLayers.Data();
+            extensions.Add(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
         #else
             createInfo.enabledLayerCount = 0;
         #endif
-        createInfo.enabledExtensionCount = static_cast<u32>(extensions.size());
-        createInfo.ppEnabledExtensionNames = extensions.data();
+        createInfo.enabledExtensionCount = static_cast<u32>(extensions.GetCount());
+        createInfo.ppEnabledExtensionNames = extensions.Data();
 
         HE_VULKAN_CHECK_RESULT(vkCreateInstance(&createInfo, nullptr, &s_Instance));
 
@@ -325,15 +326,15 @@ namespace Heart
 		}
     }
 
-    std::vector<const char*> VulkanContext::ConfigureValidationLayers()
+    HVector<const char*> VulkanContext::ConfigureValidationLayers()
     {
         std::array<const char*, 1> requestedLayers = { "VK_LAYER_KHRONOS_validation" };
-        std::vector<const char*> finalLayers;
+        HVector<const char*> finalLayers;
 
         u32 supportedLayerCount;
         vkEnumerateInstanceLayerProperties(&supportedLayerCount, nullptr);
-        std::vector<VkLayerProperties> supportedLayers(supportedLayerCount);
-        vkEnumerateInstanceLayerProperties(&supportedLayerCount, supportedLayers.data());
+        HVector<VkLayerProperties> supportedLayers(supportedLayerCount);
+        vkEnumerateInstanceLayerProperties(&supportedLayerCount, supportedLayers.Data());
 
         // check for compatability
         for (auto rl : requestedLayers)
@@ -342,7 +343,7 @@ namespace Heart
             {
                 if (strcmp(rl, sl.layerName) == 0)
                 {
-                    finalLayers.emplace_back(rl);
+                    finalLayers.AddInPlace(rl);
                     break;
                 }
             }

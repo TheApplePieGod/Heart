@@ -23,13 +23,15 @@ namespace Heart
         Container(const T* data, u32 dataCount)
         {
             Resize(dataCount, false);
-            memcpy(m_Data, data, dataCount * sizeof(T));
+            for (u32 i = 0; i < dataCount; i++)
+                HE_PLACEMENT_NEW(m_Data + i, T, data[i]);
         }
 
         Container(std::initializer_list<T> list)
         {
             Resize(list.size(), false);
-            memcpy(m_Data, list.begin(), list.size() * sizeof(T));
+            for (u32 i = 0; i < GetCount(); i++)
+                HE_PLACEMENT_NEW(m_Data + i, T, list.begin()[i]);
         }
 
         ~Container()

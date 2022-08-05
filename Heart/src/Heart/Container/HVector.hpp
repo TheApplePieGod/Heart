@@ -27,6 +27,10 @@ namespace Heart
             : m_Container(list)
         {}
 
+        HVector(T* start, T* end)
+            : m_Container(start, end - start)
+        {}
+
         void Add(const T& elem)
         {
             u32 addIndex = PreAdd();
@@ -83,6 +87,17 @@ namespace Heart
                 m_Container[m_Container.DecrementCount()].~T();
         }
 
+        void CopyFrom(const T* start, const T* end)
+        {
+            m_Container = Container(start, end - start);
+        }
+
+        void Append(const HVector<T>& other)
+        {
+            Reserve(GetCount() + other.GetCount());
+            memcpy(End(), other.Begin(), other.GetCount());
+        }
+
         // insert
         // find
         
@@ -90,12 +105,13 @@ namespace Heart
         inline void Clear(bool shrink = false) { m_Container.Clear(shrink); }
         inline void Resize(u32 elemCount, bool construct = true) { m_Container.Resize(elemCount, construct); }
         inline HVector Clone() const { return HVector(m_Container.Clone()); }
+        inline HVector& CloneInPlace() { m_Container = Container(Data(), GetCount()); return *this; }
         inline u32 GetCount() const { return m_Container.GetCount(); }
         inline T* Data() const { return m_Container.Data(); }
         inline T* Begin() const { return m_Container.Begin(); }
         inline T* End() const { return m_Container.End(); }
-        inline T* Front() const { return m_Container.Begin(); }
-        inline T* Back() const { return GetCount() > 0 ? m_Container.End() - 1 : m_Container.Begin(); }
+        inline T& Front() const { return *m_Container.Begin(); }
+        inline T& Back() const { return *(m_Container.End() - 1); }
         inline T& Get(u32 index) const { return m_Container.Get(index); }
         inline bool IsEmpty() const { return m_Container.IsEmpty(); }
 

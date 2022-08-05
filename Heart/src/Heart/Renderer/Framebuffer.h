@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Heart/Container/HString8.h"
+#include "Heart/Container/HVector.hpp"
 #include "Heart/Renderer/Texture.h"
 #include "Heart/Events/EventEmitter.h"
 #include "glm/vec4.hpp"
@@ -29,8 +30,8 @@ namespace Heart
 
     struct Subpass
     {
-        std::vector<SubpassAttachment> InputAttachments;
-        std::vector<SubpassAttachment> OutputAttachments;
+        HVector<SubpassAttachment> InputAttachments;
+        HVector<SubpassAttachment> OutputAttachments;
     };
 
     struct FramebufferColorAttachment
@@ -55,9 +56,9 @@ namespace Heart
     {
         FramebufferCreateInfo() = default;
 
-        std::vector<FramebufferColorAttachment> ColorAttachments;
-        std::vector<FramebufferDepthAttachment> DepthAttachments;
-        std::vector<Subpass> Subpasses; // leave empty for no
+        HVector<FramebufferColorAttachment> ColorAttachments;
+        HVector<FramebufferDepthAttachment> DepthAttachments;
+        HVector<Subpass> Subpasses; // leave empty for no
         u32 Width, Height = 0; // set to zero to match screen width and height
         MsaaSampleCount SampleCount = MsaaSampleCount::None; // will be clamped to device max supported sample count
         bool AllowPerformanceQuerying = false;

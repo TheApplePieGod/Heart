@@ -55,7 +55,7 @@ namespace Heart
 
     void App::PushLayer(const Ref<Layer>& layer)
     {
-        m_Layers.emplace_back(layer);
+        m_Layers.Add(layer);
         layer->OnAttach();
     }
 

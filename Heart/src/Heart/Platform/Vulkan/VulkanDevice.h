@@ -37,7 +37,7 @@ namespace Heart
         };
 
     private:
-        bool IsDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface, const std::vector<const char*>& deviceExtensions, OptionalDeviceFeatures& outOptionalFeatures);
+        bool IsDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface, const HVector<const char*>& deviceExtensions, OptionalDeviceFeatures& outOptionalFeatures);
         VkSampleCountFlagBits GetMaxSampleCount();
 
     private:

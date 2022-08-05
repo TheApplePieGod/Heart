@@ -34,17 +34,18 @@ namespace Heart
         inline Mesh& GetSubmesh(u32 index) { return m_Submeshes[index]; }
 
         /*! @brief Get the total number of submeshes of the loaded mesh. */
-        inline u32 GetSubmeshCount() const { return static_cast<u32>(m_Submeshes.size()); }
+        inline u32 GetSubmeshCount() const { return static_cast<u32>(m_Submeshes.GetCount()); }
 
         /*! @brief Get the total number of material slots of the loaded mesh. */
-        inline u32 GetMaxMaterials() const { return static_cast<u32>(m_DefaultMaterials.size()); }
+        inline u32 GetMaxMaterials() const { return static_cast<u32>(m_DefaultMaterials.GetCount()); }
 
         /*! @brief Get a reference to the default materials loaded with the mesh. */
-        inline std::vector<Material>& GetDefaultMaterials() { return m_DefaultMaterials; }
+        inline HVector<Material>& GetDefaultMaterials() { return m_DefaultMaterials; }
 
     private:
         struct BufferView
         {
+            BufferView() = default;
             BufferView(u32 index, u32 length, u32 offset)
                 : BufferIndex(index), ByteLength(length), ByteOffset(offset)
             {}
@@ -56,6 +57,7 @@ namespace Heart
 
         struct Accessor
         {
+            Accessor() = default;
             Accessor(u32 index, u32 offset, u32 count, u32 type)
                 : BufferViewIndex(index), ByteOffset(offset), Count(count), ComponentType(type)
             {}
@@ -68,6 +70,7 @@ namespace Heart
 
         struct TextureView
         {
+            TextureView() = default;
             TextureView(u32 sampIndex, u32 srcIndex)
                 : SamplerIndex(sampIndex), SourceIndex(srcIndex)
             {}
@@ -78,6 +81,7 @@ namespace Heart
 
         struct TextureSource
         {
+            TextureSource() = default;
             TextureSource(const HStringView8& path, UUID assetId)
                 : Path(path), AssetId(assetId)
             {}
@@ -88,30 +92,30 @@ namespace Heart
 
         struct PrimitiveParseData
         {
-            std::vector<Mesh::Vertex> Vertices = {};
-            std::vector<u32> Indices = {};
+            HVector<Mesh::Vertex> Vertices = {};
+            HVector<u32> Indices = {};
             u32 MaterialIndex = 0;
         };
 
         struct MeshParseData
         {
-            std::vector<PrimitiveParseData> Primitives;
+            HVector<PrimitiveParseData> Primitives;
         };
 
         struct SubmeshData
         {
-            std::vector<Mesh::Vertex> Vertices = {};
-            std::vector<u32> Indices = {};
+            HVector<Mesh::Vertex> Vertices = {};
+            HVector<u32> Indices = {};
             u32 VertexOffset;
             u32 IndexOffset;
         };
 
     private:
         void ParseGLTF(unsigned char* data);
-        void ParseGLTFNode(const nlohmann::json& root, u32 nodeIndex, const std::vector<MeshParseData>& meshData, std::unordered_map<u32, SubmeshData>& submeshData, const glm::mat4& parentTransform);
+        void ParseGLTFNode(const nlohmann::json& root, u32 nodeIndex, const HVector<MeshParseData>& meshData, std::unordered_map<u32, SubmeshData>& submeshData, const glm::mat4& parentTransform);
 
     private:
-        std::vector<Mesh> m_Submeshes;
-        std::vector<Material> m_DefaultMaterials;
+        HVector<Mesh> m_Submeshes;
+        HVector<Material> m_DefaultMaterials;
     };
 }

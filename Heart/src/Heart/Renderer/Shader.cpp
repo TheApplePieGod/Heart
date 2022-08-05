@@ -69,7 +69,7 @@ namespace Heart
         }
     }
 
-    std::vector<u32> Shader::CompileSpirvFromFile(const HStringView8& path, Type shaderType)
+    HVector<u32> Shader::CompileSpirvFromFile(const HStringView8& path, Type shaderType)
     {
         shaderc::Compiler compiler;
 		shaderc::CompileOptions options;
@@ -133,7 +133,7 @@ namespace Heart
 
         //         size_t numStart = pos + tokenLen + 1;
         //         u32 bindingIndex = atoi(preprocessed.substr(numStart, eol - numStart).c_str());
-        //         m_PreprocessData.DynamicBindings.emplace_back(bindingIndex);
+        //         m_PreprocessData.DynamicBindings.AddInPlace(bindingIndex);
 
         //         pos = preprocessed.find(token, eol);
         //     }
@@ -146,14 +146,14 @@ namespace Heart
             HE_ENGINE_ASSERT(false);
         }
 
-        return std::vector<u32>(compiled.cbegin(), compiled.cend());
+        return HVector<u32>((u32*)compiled.cbegin(), (u32*)compiled.cend());
     }
 
-    void Shader::Reflect(Type shaderType, const std::vector<u32>& compiledData)
+    void Shader::Reflect(Type shaderType, const HVector<u32>& compiledData)
     {
-        m_ReflectionData.clear();
+        m_ReflectionData.Clear();
 
-        spirv_cross::Compiler compiler(compiledData);
+        spirv_cross::Compiler compiler(compiledData.Data(), compiledData.GetCount());
 		spirv_cross::ShaderResources resources = compiler.get_shader_resources();
 
         ShaderResourceAccessType accessType = ShaderResourceAccessType::Vertex;
@@ -177,7 +177,7 @@ namespace Heart
             u32 set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
 			size_t memberCount = bufferType.member_types.size();
 
-            m_ReflectionData.emplace_back(resource.id, ShaderResourceType::UniformBuffer, accessType, binding, set, 1);
+            m_ReflectionData.AddInPlace(resource.id, ShaderResourceType::UniformBuffer, accessType, binding, set, 1);
 
 			HE_ENGINE_LOG_TRACE("    {0}", resource.name);
 			HE_ENGINE_LOG_TRACE("      Size = {0}", bufferSize);
@@ -198,7 +198,7 @@ namespace Heart
             u32 set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
 			size_t memberCount = bufferType.member_types.size();
 
-            m_ReflectionData.emplace_back(resource.id, ShaderResourceType::StorageBuffer, accessType, binding, set, 1);
+            m_ReflectionData.AddInPlace(resource.id, ShaderResourceType::StorageBuffer, accessType, binding, set, 1);
 
 			HE_ENGINE_LOG_TRACE("    {0}", resource.name);
 			HE_ENGINE_LOG_TRACE("      Size = {0}", bufferSize);
@@ -217,7 +217,7 @@ namespace Heart
 			u32 binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
             u32 set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
             
-            m_ReflectionData.emplace_back(resource.id, ShaderResourceType::Texture, accessType, binding, set, imageType.array.empty() ? 1 : imageType.array[0]);
+            m_ReflectionData.AddInPlace(resource.id, ShaderResourceType::Texture, accessType, binding, set, imageType.array.empty() ? 1 : imageType.array[0]);
 
 			HE_ENGINE_LOG_TRACE("    Image", resource.name);
             HE_ENGINE_LOG_TRACE("      ArrayCount = {0}", imageType.array[0]);
@@ -236,7 +236,7 @@ namespace Heart
             u32 set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
             u32 attachmentIndex = compiler.get_decoration(resource.id, spv::DecorationInputAttachmentIndex);
             
-            m_ReflectionData.emplace_back(resource.id, ShaderResourceType::SubpassInput, accessType, binding, set, 1);
+            m_ReflectionData.AddInPlace(resource.id, ShaderResourceType::SubpassInput, accessType, binding, set, 1);
 
 			HE_ENGINE_LOG_TRACE("    Input", resource.name);
             HE_ENGINE_LOG_TRACE("      Set = {0}", set);

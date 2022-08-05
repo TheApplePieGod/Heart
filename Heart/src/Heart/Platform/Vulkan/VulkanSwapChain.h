@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Heart/Platform/Vulkan/VulkanCommon.h"
+#include "Heart/Container/HVector.hpp"
 
 namespace Heart
 {
@@ -8,10 +9,10 @@ namespace Heart
     {
         VkFormat ImageFormat;
         VkExtent2D Extent;
-        std::vector<VkImage> Images;
-        std::vector<VkImageView> ImageViews;
-        std::vector<VkFramebuffer> Framebuffers;
-        std::vector<VkCommandBuffer> CommandBuffers;
+        HVector<VkImage> Images;
+        HVector<VkImageView> ImageViews;
+        HVector<VkFramebuffer> Framebuffers;
+        HVector<VkCommandBuffer> CommandBuffers;
     };
     struct VulkanFramebufferSubmit
     {
@@ -34,11 +35,11 @@ namespace Heart
 
         void BeginFrame();
         void EndFrame();
-        void SubmitCommandBuffers(const std::vector<VulkanFramebufferSubmit>& submits);
+        void SubmitCommandBuffers(const HVector<VulkanFramebufferSubmit>& submits);
 
         void InvalidateSwapChain(u32 newWidth, u32 newHeight);
 
-        inline u32 GetImageCount() const { return static_cast<u32>(m_SwapChainData.Images.size()); }
+        inline u32 GetImageCount() const { return static_cast<u32>(m_SwapChainData.Images.GetCount()); }
         inline VkFormat GetImageFormat() const { return m_SwapChainData.ImageFormat; }
         inline VkRenderPass GetRenderPass() const { return m_RenderPass; }
         inline VkCommandBuffer GetCommandBuffer() const { return m_CommandBuffers[m_InFlightFrameIndex]; }
@@ -86,8 +87,8 @@ namespace Heart
 
         void Present();
 
-        VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats);
-        VkPresentModeKHR ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& presentModes);
+        VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const HVector<VkSurfaceFormatKHR>& formats);
+        VkPresentModeKHR ChooseSwapPresentMode(const HVector<VkPresentModeKHR>& presentModes);
         VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
 
     private:
@@ -101,17 +102,17 @@ namespace Heart
         VkRenderPass m_RenderPass;
         std::array<VkCommandBuffer, Renderer::FrameBufferCount> m_CommandBuffers; // secondary
 
-        std::vector<VkCommandBuffer> m_SubmittedCommandBuffers{};
-        std::vector<FramebufferSubmissionData> m_FramebufferSubmissions = {}; // collection of all submitted framebuffers
+        HVector<VkCommandBuffer> m_SubmittedCommandBuffers{};
+        HVector<FramebufferSubmissionData> m_FramebufferSubmissions = {}; // collection of all submitted framebuffers
 
         std::array<VkSemaphore, Renderer::FrameBufferCount> m_ImageAvailableSemaphores;
         std::array<VkSemaphore, Renderer::FrameBufferCount> m_RenderFinishedSemaphores;
-        std::vector<VkSemaphore> m_AuxiliaryRenderFinishedSemaphores = {};
-        std::vector<VkSemaphore> m_AuxiliaryComputeFinishedSemaphores = {};
+        HVector<VkSemaphore> m_AuxiliaryRenderFinishedSemaphores = {};
+        HVector<VkSemaphore> m_AuxiliaryComputeFinishedSemaphores = {};
         std::array<VkFence, Renderer::FrameBufferCount> m_InFlightFences;
         std::array<VkFence, Renderer::FrameBufferCount> m_InFlightTransferFences;
         std::array<VkFence, Renderer::FrameBufferCount> m_InFlightComputeFences;
-        std::vector<VkFence> m_ImagesInFlight = {};
+        HVector<VkFence> m_ImagesInFlight = {};
         u32 m_PresentImageIndex;
         bool m_ShouldPresentThisFrame;
         u32 m_InFlightFrameIndex = 0;

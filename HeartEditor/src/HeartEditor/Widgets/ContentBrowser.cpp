@@ -59,7 +59,7 @@ namespace Widgets
         bool isRoot = m_DirectoryStack[m_DirectoryStackIndex].IsEmpty();
 
         // Populate the directory list with each item in the directory
-        m_DirectoryList.clear();
+        m_DirectoryList.Clear();
         try
         {
             m_ShouldRescan = false;
@@ -76,20 +76,20 @@ namespace Widgets
                     filename == "obj"
                 ))
                     continue;
-                m_DirectoryList.push_back(entry);
+                m_DirectoryList.Add(entry);
             }
         }
         catch (std::filesystem::filesystem_error e) // likely failed to open directory so just reset
         {
             HE_ENGINE_LOG_ERROR("Failed to scan directory: {0}", e.what());
-            m_DirectoryStack.resize(1);
+            m_DirectoryStack.Resize(1);
             m_DirectoryStackIndex = 0;
         }  
     }
 
     void ContentBrowser::PushDirectoryStack(const Heart::HStringView8& entry)
     {
-        m_DirectoryStack.push_back(entry);
+        m_DirectoryStack.Add(entry);
         m_DirectoryStackIndex++;
         m_ShouldRescan = true;
     }
@@ -108,19 +108,19 @@ namespace Widgets
             return;
 
         // Get each item in the directory
-        std::vector<std::filesystem::directory_entry> directories;
+        Heart::HVector<std::filesystem::directory_entry> directories;
         try
         {
             for (const auto& entry : std::filesystem::directory_iterator(absolutePath))
                 if (entry.is_directory())
-                    directories.push_back(entry);
+                    directories.Add(entry);
         }
         catch (std::exception e) // likely invalid path so cut off this node
         { return; }
 
         // Render the directory tree node
         bool selected = path == m_DirectoryStack[m_DirectoryStackIndex];
-        ImGuiTreeNodeFlags node_flags = (directories.size() > 0 ? 0 : ImGuiTreeNodeFlags_Leaf) | ImGuiTreeNodeFlags_OpenOnArrow | (selected ? ImGuiTreeNodeFlags_Selected : 0);
+        ImGuiTreeNodeFlags node_flags = (directories.GetCount() > 0 ? 0 : ImGuiTreeNodeFlags_Leaf) | ImGuiTreeNodeFlags_OpenOnArrow | (selected ? ImGuiTreeNodeFlags_Selected : 0);
         bool open = ImGui::TreeNodeEx(path.IsEmpty() ? "Project Root" : path.Data(), node_flags, path.IsEmpty() ? "Project Root" : filename.Data());
         if (!selected && ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0))
             PushDirectoryStack(path);
@@ -156,7 +156,7 @@ namespace Widgets
         // Go forwards in the directory stack
         if (ImGui::Button(">##forwards"))
         {
-            if (++m_DirectoryStackIndex >= m_DirectoryStack.size())
+            if (++m_DirectoryStackIndex >= m_DirectoryStack.GetCount())
                 m_DirectoryStackIndex--;
             else
                 m_ShouldRescan = true;
@@ -247,7 +247,7 @@ namespace Widgets
             if (entry.is_directory())
             {
                 // Make the current location the front of the stack
-                m_DirectoryStack.resize(m_DirectoryStackIndex + 1);
+                m_DirectoryStack.Resize(m_DirectoryStackIndex + 1);
 
                 // Push new directory to the stack
                 PushDirectoryStack(

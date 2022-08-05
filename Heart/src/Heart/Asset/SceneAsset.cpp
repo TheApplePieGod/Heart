@@ -87,10 +87,10 @@ namespace Heart
                 if (loaded.contains("childComponent"))
                 {
                     auto& children = loaded["childComponent"]["children"];
-                    std::vector<UUID> ids;
-                    ids.reserve(children.size());
+                    HVector<UUID> ids;
+                    ids.Reserve(children.size());
                     for (auto& childId : children)
-                        ids.emplace_back(static_cast<UUID>(childId));
+                        ids.AddInPlace(static_cast<UUID>(childId));
                     entity.AddComponent<ChildComponent>(ids);
                 }
 
@@ -205,7 +205,7 @@ namespace Heart
                 if (entity.HasComponent<ChildComponent>())
                 {
                     auto& childComp = entity.GetComponent<ChildComponent>();
-                    for (size_t i = 0; i < childComp.Children.size(); i++)
+                    for (size_t i = 0; i < childComp.Children.GetCount(); i++)
                         entry["childComponent"]["children"][i] = static_cast<u64>(childComp.Children[i]);
                 }
 

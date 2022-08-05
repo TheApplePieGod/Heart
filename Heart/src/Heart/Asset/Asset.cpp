@@ -56,14 +56,14 @@ namespace Heart
     }
 
     // adapted from https://stackoverflow.com/questions/180947/base64-decode-snippet-in-c
-    std::vector<unsigned char> Asset::Base64Decode(const HStringView8& encoded)
+    HVector<unsigned char> Asset::Base64Decode(const HStringView8& encoded)
     {
         int in_len = static_cast<int>(encoded.GetCount());
         int i = 0;
         int j = 0;
         int in_ = 0;
         unsigned char char_array_4[4], char_array_3[3];
-        std::vector<unsigned char> ret;
+        HVector<unsigned char> ret;
 
         while (in_len-- && (encoded.Get(in_) != '=') && IsBase64(encoded.Get(in_)))
         {
@@ -78,7 +78,7 @@ namespace Heart
                 char_array_3[2] = ((char_array_4[2] & 0x3) << 6) + char_array_4[3];
 
                 for (i = 0; (i < 3); i++)
-                    ret.push_back(char_array_3[i]);
+                    ret.Add(char_array_3[i]);
                 i = 0;
             }
         }
@@ -96,7 +96,7 @@ namespace Heart
             char_array_3[2] = ((char_array_4[2] & 0x3) << 6) + char_array_4[3];
 
             for (j = 0; (j < i - 1); j++)
-                ret.push_back(char_array_3[j]);
+                ret.Add(char_array_3[j]);
         }
 
         return ret;
