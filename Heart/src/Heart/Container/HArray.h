@@ -36,6 +36,7 @@ namespace Heart
         inline Variant* Front() const { return m_Data.Begin(); }
         inline Variant* Back() const { return GetCount() > 0 ? m_Data.End() - 1 : m_Data.Begin(); }
         inline Variant& Get(u32 index) const { return m_Data.Get(index); }
+        inline bool IsEmpty() const { return m_Data.IsEmpty(); }
 
         inline Variant& operator[](u32 index) const { return m_Data[index]; }
         inline void operator=(const HArray& other) { m_Data = other.m_Data; }

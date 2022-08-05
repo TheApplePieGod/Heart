@@ -16,7 +16,7 @@ namespace Heart
 {
     App* App::s_Instance = nullptr;
 
-    App::App(const std::string& windowName)
+    App::App(const HString& windowName)
     {
         HE_ENGINE_ASSERT(!s_Instance, "App instance already exists");
         s_Instance = this;
@@ -64,7 +64,7 @@ namespace Heart
         m_SwitchingApi = type;
     }
     
-    void App::SwitchAssetsDirectory(const std::string& newDirectory)
+    void App::SwitchAssetsDirectory(const HString& newDirectory)
     {
         m_SwitchingAssetsDirectory = newDirectory;
     }

@@ -8,9 +8,9 @@
 
 namespace Heart
 {
-    std::string FilesystemUtils::ReadFileToString(const std::string& path)
+    HString FilesystemUtils::ReadFileToString(const HString& path)
     {
-        std::ifstream file(path, std::ios::ate | std::ios::binary);
+        std::ifstream file(path.DataUTF8(), std::ios::ate | std::ios::binary);
         if (!file.is_open())
             return "";
         
@@ -20,12 +20,12 @@ namespace Heart
         file.read(buffer.data(), fileSize);
         file.close();
 
-        return std::string(buffer.data(), buffer.size());
+        return HString(buffer.data(), buffer.size());
     }
 
-    unsigned char* FilesystemUtils::ReadFile(const std::string& path, u32& outLength)
+    unsigned char* FilesystemUtils::ReadFile(const HString& path, u32& outLength)
     {
-        std::ifstream file(path, std::ios::ate | std::ios::binary);
+        std::ifstream file(path.DataUTF8(), std::ios::ate | std::ios::binary);
         if (!file.is_open())
             return nullptr;
         
@@ -40,12 +40,12 @@ namespace Heart
         return buffer;
     }
 
-    std::string FilesystemUtils::GetParentDirectory(const std::string& path)
+    HString FilesystemUtils::GetParentDirectory(const HString& path)
     {
-        return std::filesystem::path(path).parent_path().generic_u8string();
+        return std::filesystem::path(path.DataUTF8()).parent_path().generic_u8string();
     }
 
-    std::string FilesystemUtils::SaveAsDialog(const std::string& initialPath, const std::string& title, const std::string& defaultFileName, const std::string& extension)
+    HString FilesystemUtils::SaveAsDialog(const HString& initialPath, const HString& title, const HString& defaultFileName, const HString& extension)
     {
         #ifdef HE_PLATFORM_WINDOWS
             return Win32OpenDialog(initialPath, title, defaultFileName, extension, false, true);
@@ -56,7 +56,7 @@ namespace Heart
         return "";
     }
 
-    std::string FilesystemUtils::OpenFileDialog(const std::string& initialPath, const std::string& title, const std::string& extension)
+    HString FilesystemUtils::OpenFileDialog(const HString& initialPath, const HString& title, const HString& extension)
     {
         #ifdef HE_PLATFORM_WINDOWS
             return Win32OpenDialog(initialPath, title, "", extension, false, false);
@@ -68,7 +68,7 @@ namespace Heart
     }
 
     // https://cpp.hotexamples.com/examples/-/IFileDialog/-/cpp-ifiledialog-class-examples.html
-    std::string FilesystemUtils::OpenFolderDialog(const std::string& initialPath, const std::string& title)
+    HString FilesystemUtils::OpenFolderDialog(const HString& initialPath, const HString& title)
     {
         #ifdef HE_PLATFORM_WINDOWS
             return Win32OpenDialog(initialPath, title, "", "", true, false);
@@ -79,11 +79,11 @@ namespace Heart
         return "";
     }
 
-    std::string FilesystemUtils::Win32OpenDialog(const std::string& initialPath, const std::string& title, const std::string& defaultFileName, const std::string& extension, bool folder, bool save)
+    HString FilesystemUtils::Win32OpenDialog(const HString& initialPath, const HString& title, const HString& defaultFileName, const HString& extension, bool folder, bool save)
     {
         HE_ENGINE_ASSERT(!folder || !save, "Cannot open a dialog with folder and save flags set to true");
 
-        std::string outputPath = "";
+        HString outputPath = "";
         #ifdef HE_PLATFORM_WINDOWS
             HRESULT hr = S_OK;
 
@@ -101,9 +101,9 @@ namespace Heart
             );
             if (FAILED(hr)) goto done;
 
-            if (!title.empty())
+            if (!title.IsEmpty())
             {
-                hr = pDialog->SetTitle(PlatformUtils::NarrowToWideString(title).c_str());
+                hr = pDialog->SetTitle((LPCWSTR)title.ToUTF16().DataUTF16());
                 if (FAILED(hr)) goto done;
             }
 
@@ -114,24 +114,24 @@ namespace Heart
 
             if (!folder)
             {
-                std::wstring wideExtension = PlatformUtils::NarrowToWideString(extension);
-                std::wstring filterFirst = wideExtension + L" (*." + wideExtension + L")";
-                std::wstring filterSecond = L"*." + wideExtension;
+                HString wideExtension = extension.ToUTF16();
+                HString filterFirst = wideExtension + u" (*." + wideExtension + u")";
+                HString filterSecond = u"*." + wideExtension;
                 COMDLG_FILTERSPEC rgSpec[] = 
                 {
                     { L"All Files (*.*)", L"*.*" },
-                    { filterFirst.c_str(), filterSecond.c_str() }
+                    { (LPCWSTR)filterFirst.DataUTF16(), (LPCWSTR)filterSecond.DataUTF16() }
                 };
-                hr = pDialog->SetFileTypes(extension.empty() ? 1 : ARRAYSIZE(rgSpec), rgSpec);
+                hr = pDialog->SetFileTypes(extension.IsEmpty() ? 1 : ARRAYSIZE(rgSpec), rgSpec);
                 if (FAILED(hr)) goto done;
 
                 pDialog->SetFileTypeIndex(2);
                 if (save)
-                    pDialog->SetDefaultExtension(wideExtension.c_str());
+                    pDialog->SetDefaultExtension((LPCWSTR)wideExtension.DataUTF16());
 
-                if (save && !defaultFileName.empty())
+                if (save && !defaultFileName.IsEmpty())
                 {
-                    hr = pDialog->SetFileName(PlatformUtils::NarrowToWideString(defaultFileName).c_str());
+                    hr = pDialog->SetFileName((LPCWSTR)defaultFileName.ToUTF16().DataUTF16());
                     if (FAILED(hr)) goto done;
                 }
             }
@@ -145,8 +145,7 @@ namespace Heart
             hr = pItem->GetDisplayName(SIGDN_FILESYSPATH, &pwszFilePath);
             if (FAILED(hr)) goto done;
 
-            outputPath = PlatformUtils::WideToNarrowString(pwszFilePath);
-
+            outputPath = HString((char16*)pwszFilePath).ToUTF8();
             success = true;
 
         done:
@@ -164,11 +163,11 @@ namespace Heart
         return outputPath;
     }
 
-    std::string FilesystemUtils::LinuxOpenDialog(const std::string& initialPath, const std::string& title, const std::string& defaultFileName, const std::string& extension, bool folder, bool save)
+    HString FilesystemUtils::LinuxOpenDialog(const HString& initialPath, const HString& title, const HString& defaultFileName, const HString& extension, bool folder, bool save)
     {
         HE_ENGINE_ASSERT(!folder || !save, "Cannot open a dialog with folder and save flags set to true");
 
-        std::string outputPath = "";
+        HString outputPath = "";
         #ifdef HE_PLATFORM_LINUX
             const char zenityPath[] = "/usr/bin/zenity";
             char command[2048];
@@ -179,7 +178,7 @@ namespace Heart
                     command,
                     "%s --file-selection --directory --modal --confirm-overwrite --title=\"%s\" ",
                     zenityPath,
-                    title.c_str()
+                    title.DataUTF8()
                 );
             }
             else
@@ -189,11 +188,11 @@ namespace Heart
                     "%s --file-selection %s --filename=\"%s.%s\" --file-filter=\"%s | *.%s\" --file-filter=\"All files | *.*\" --modal --confirm-overwrite --title=\"%s\" ",
                     zenityPath,
                     save ? "--save" : "",
-                    defaultFileName.c_str(),
-                    extension.c_str(),
-                    extension.c_str(),
-                    extension.c_str(),
-                    title.c_str()
+                    defaultFileName.DataUTF8(),
+                    extension.DataUTF8(),
+                    extension.DataUTF8(),
+                    extension.DataUTF8(),
+                    title.DataUTF8()
                 );
             }
 

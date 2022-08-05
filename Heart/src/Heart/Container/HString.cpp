@@ -100,6 +100,68 @@ namespace Heart
         return 0;
     }
 
+    u32 HString::Find(const HString& value) const
+    {
+        if (value.m_Encoding != m_Encoding)
+        {
+            HE_ENGINE_LOG_ERROR("Attempting to search a HString for a value with a different encoding, aborting");
+            HE_ENGINE_ASSERT(false);
+            return InvalidIndex;
+        }
+
+        switch (m_Encoding)
+        {
+            case Encoding::UTF8:
+            { return Find(DataUTF8(), GetCountUTF8(), value.DataUTF8(), value.GetCountUTF8()); }
+            case Encoding::UTF16:
+            { return Find(DataUTF16(), GetCountUTF16(), value.DataUTF16(), value.GetCountUTF16()); }
+        }
+
+        HE_ENGINE_ASSERT(false, "HString find not fully implemented");
+        return InvalidIndex;
+    }
+
+    u32 HString::FindUTF8Char(char8 value) const
+    {
+        if (m_Encoding != Encoding::UTF8)
+        {
+            HE_ENGINE_LOG_ERROR("Attempting to search a non-UTF8 HString for a UTF8 value, aborting");
+            HE_ENGINE_ASSERT(false);
+            return InvalidIndex;
+        }
+
+        return Find(DataUTF8(), GetCountUTF8(), &value, 1);
+    }
+
+    u32 HString::FindUTF16Char(char16 value) const
+    {
+        if (m_Encoding != Encoding::UTF16)
+        {
+            HE_ENGINE_LOG_ERROR("Attempting to search a non-UTF16 HString for a UTF16 value, aborting");
+            HE_ENGINE_ASSERT(false);
+            return InvalidIndex;
+        }
+
+        return Find(DataUTF16(), GetCountUTF16(), &value, 1);
+    }
+
+    HString HString::Substr(u32 start, u32 offset)
+    {
+        if (GetCount() == 0) return HString();
+
+        u32 size = std::min(offset, GetCount()) - start;
+        switch (m_Encoding)
+        {
+            case Encoding::UTF8:
+            { return HString(DataUTF8() + start, size); }
+            case Encoding::UTF16:
+            { return HString(DataUTF16() + start, size); }
+        }
+
+        HE_ENGINE_ASSERT(false, "HString substr not fully implemented");
+        return HString();   
+    }
+
     bool HString::operator==(const HString& other) const
     {
         if (other.m_Encoding != m_Encoding)
@@ -119,6 +181,11 @@ namespace Heart
 
         HE_ENGINE_ASSERT(false, "HString equality operator not fully implemented");
         return false;
+    }
+
+    bool HString::operator!=(const HString& other) const
+    {
+        return !(*this == other);
     }
 
     bool HString::operator<(const HString& other) const
@@ -200,6 +267,21 @@ namespace Heart
         return AddPtr<char16>(other, false);
     }
 
+    void HString::operator+=(const HString& other)
+    {
+        *this = *this + other;
+    }
+
+    void HString::operator+=(const char8* other)
+    {
+        *this = *this + other;
+    }
+
+    void HString::operator+=(const char16* other)
+    {
+        *this = *this + other;
+    }
+
     HString operator+(const char8* left, const HString& right)
     {
         if (right.GetEncoding() != HString::Encoding::UTF8)
@@ -226,7 +308,7 @@ namespace Heart
 
     void to_json(nlohmann::json& j, const HString& str)
     {
-        if (str.Empty())
+        if (str.IsEmpty())
         {
             j = "";
             return;

@@ -7,7 +7,7 @@ namespace Heart
     class OpenGLShader : public Shader
     {
     public:
-        OpenGLShader(const std::string& path, Type shaderType);
+        OpenGLShader(const HString& path, Type shaderType);
         ~OpenGLShader() override;
 
         inline u32 GetShaderId() const { return m_ShaderId; }

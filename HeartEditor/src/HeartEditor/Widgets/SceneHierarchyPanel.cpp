@@ -21,7 +21,7 @@ namespace Widgets
         if (!m_Open) return;
 
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 5.0f));
-        ImGui::Begin(m_Name.c_str(), &m_Open);
+        ImGui::Begin(m_Name.DataUTF8(), &m_Open);
 
         // Only top level components
         auto view = Editor::GetActiveScene().GetRegistry().view<Heart::NameComponent>(entt::exclude<Heart::ParentComponent>);

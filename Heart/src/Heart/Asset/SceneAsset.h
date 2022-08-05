@@ -14,7 +14,7 @@ namespace Heart
          * @param path The path of the asset relative to the project directory.
          * @param absolutePath The absolute filesystem path of the asset.
          */
-        SceneAsset(const std::string& path, const std::string& absolutePath)
+        SceneAsset(const HString& path, const HString& absolutePath)
             : Asset(path, absolutePath)
         { m_Type = Type::Scene; }
 
@@ -34,7 +34,7 @@ namespace Heart
          * @param path The absolute path of the scene file. 
          * @return A shared reference containing the loaded scene.
          */
-        static Ref<Scene> DeserializeScene(const std::string& path);
+        static Ref<Scene> DeserializeScene(const HString& path);
 
         /**
          * @brief Save a scene to disk.
@@ -42,7 +42,7 @@ namespace Heart
          * @param path The absolute path of the output file.
          * @param scene The scene to serialize.
          */
-        static void SerializeScene(const std::string& path, Scene* scene);
+        static void SerializeScene(const HString& path, Scene* scene);
 
     private:
         Ref<Scene> m_Scene;

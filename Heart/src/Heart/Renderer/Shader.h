@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Heart/Container/HString.h"
+
 namespace Heart
 {
     enum class ShaderResourceType
@@ -40,7 +42,7 @@ namespace Heart
         };
         
     public:
-        Shader(const std::string& path, Type shaderType)
+        Shader(const HString& path, Type shaderType)
             : m_Path(path), m_Type(shaderType)
         {}
         virtual ~Shader() = default;
@@ -48,15 +50,15 @@ namespace Heart
         inline const std::vector<ReflectionDataElement>& GetReflectionData() { return m_ReflectionData; }
 
     public:
-        static Ref<Shader> Create(const std::string& path, Type shaderType);
+        static Ref<Shader> Create(const HString& path, Type shaderType);
 
     protected:
-        std::vector<u32> CompileSpirvFromFile(const std::string& path, Type shaderType);
+        std::vector<u32> CompileSpirvFromFile(const HString& path, Type shaderType);
         void Reflect(Type shaderType, const std::vector<u32>& compiledData);
 
     protected:
         Type m_Type;
-        std::string m_Path;
+        HString m_Path;
         bool m_Loaded;
         std::vector<ReflectionDataElement> m_ReflectionData;
     };

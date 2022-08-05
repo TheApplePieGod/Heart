@@ -16,7 +16,7 @@ namespace Widgets
         if (!m_Open) return;
 
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 5.0f));
-        ImGui::Begin(m_Name.c_str(), &m_Open);
+        ImGui::Begin(m_Name.DataUTF8(), &m_Open);
 
         ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(2.f, 2.f));
         if (ImGui::BeginTable("RegistryTable", 4, ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_SizingFixedFit))
@@ -45,7 +45,7 @@ namespace Widgets
                 if (!PassAssetTypeFilter((u32)pair.second.Type) ||
                     !PassIsResourceFilter(pair.second.IsResource) ||
                     !m_UUIDFilter.PassFilter(uuid.DataUTF8()) ||
-                    !m_PathFilter.PassFilter(pair.second.Path.c_str())
+                    !m_PathFilter.PassFilter(pair.second.Path.DataUTF8())
                 )
                     continue;
 
@@ -67,7 +67,7 @@ namespace Widgets
                 ImGui::TableNextColumn();
                 ImGui::BeginDisabled();
                 ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-                ImGui::InputText(id2.DataUTF8(), (char*)pair.second.Path.c_str(), pair.second.Path.size(), ImGuiInputTextFlags_ReadOnly);
+                ImGui::InputText(id2.DataUTF8(), (char*)pair.second.Path.DataUTF8(), pair.second.Path.GetCountUTF8(), ImGuiInputTextFlags_ReadOnly);
                 ImGui::EndDisabled();
             }
 

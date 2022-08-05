@@ -38,6 +38,14 @@ namespace Heart
             : m_Encoding(Encoding::UTF16)
         { Allocate<char16>(str); }
 
+        HString(const char8* str, u32 len)
+            : m_Encoding(Encoding::UTF8)
+        { Allocate<char8>(str, len); }
+
+        HString(const char16* str, u32 len)
+            : m_Encoding(Encoding::UTF16)
+        { Allocate<char16>(str, len); }
+
         HString(const char8** strs, u32* lens, u32 count)
             : m_Encoding(Encoding::UTF8)
         { AllocateMany<char8>(strs, lens, count); }
@@ -59,6 +67,10 @@ namespace Heart
         HString ToUTF8() const;
         HString ToUTF16() const;
         int Compare(Comparison type, const HString& other) const;
+        u32 Find(const HString& value) const;
+        u32 FindUTF8Char(char8 value) const;
+        u32 FindUTF16Char(char16 value) const;
+        HString Substr(u32 start, u32 offset = InvalidIndex);
 
         // Unchecked
         // TODO: checked data() call
@@ -67,20 +79,29 @@ namespace Heart
         inline const char16* DataUTF16() const { return Data<char16>(); }
         inline char8 GetUTF8(u32 index) const { return Get<char8>(index); }
         inline char16 GetUTF16(u32 index) const { return Get<char16>(index); }
-        // Subtract one b/c of null character
+        inline char8* BeginUTF8() const { return Begin<char8>(); }
+        inline char8* EndUTF8() const { return End<char8>(); }
+        inline char16* BeginUTF16() const { return Begin<char16>(); }
+        inline char16* EndUTF16() const { return End<char16>(); }
         inline u32 GetCountUTF8() const { return m_Container.Data() ? (m_Container.GetCountUnchecked() - 1) : 0; }
         inline u32 GetCountUTF16() const { return m_Container.Data() ? (m_Container.GetCountUnchecked() * 0.5 - 1) : 0; }
 
         template <typename T>
-        inline T* Data() const { return reinterpret_cast<T*>(m_Container.Data()); }
+        inline T* Data() const
+        { return !reinterpret_cast<T*>(m_Container.Data()) ? (T*)"" : reinterpret_cast<T*>(m_Container.Data()); }
         template <typename T>
         inline T& Get(u32 index) const { return reinterpret_cast<T&>(m_Container[index]); }
+        template <typename T>
+        inline T* Begin() const { return reinterpret_cast<T*>(m_Container.Begin()); }
+        template <typename T>
+        inline T* End() const { return reinterpret_cast<T*>(m_Container.End()); }
         inline Encoding GetEncoding() const { return m_Encoding; }
         inline HString Clone() const { return HString(m_Container.Clone()); }
-        inline bool Empty() const { return GetCount() == 0; }
+        inline bool IsEmpty() const { return m_Container.IsEmpty(); }
         inline void Clear() { m_Container.Resize(0); }
 
         bool operator==(const HString& other) const;
+        bool operator!=(const HString& other) const;
         bool operator<(const HString& other) const;
         bool operator<=(const HString& other) const;
         bool operator>(const HString& other) const;
@@ -89,13 +110,39 @@ namespace Heart
         HString operator+(const HString& other) const;
         HString operator+(const char8* other) const;
         HString operator+(const char16* other) const;
+        void operator+=(const HString& other);
+        void operator+=(const char8* other);
+        void operator+=(const char16* other);
         friend HString operator+(const char8* left, const HString& right);
         friend HString operator+(const char16* other, const HString& right);
+    
+        inline static constexpr u32 InvalidIndex = std::numeric_limits<u32>::max();
 
     private:
         HString(const Container<u8>& container)
             : m_Container(container)
         {}
+
+        template <typename T>
+        u32 Find(const T* str1, u32 len1, const T* str2, u32 len2) const
+        {
+            if (!str1 || !str2) return InvalidIndex;
+            if (len1 == 0 || len2 == 0) return InvalidIndex;
+            u32 strPtr = 0;
+            u32 searchPtr = 0;
+            while (strPtr < len1)
+            {
+                if (str1[strPtr] == str2[searchPtr])
+                    searchPtr++;
+                else
+                    searchPtr = 0;
+                strPtr++;
+
+                if (searchPtr == len2)
+                    return strPtr - len2;
+            }
+            return InvalidIndex;
+        }
 
         template <typename T>
         int ToInt(const T* str, u32 len) const
@@ -225,6 +272,7 @@ namespace Heart
         {
             if (!str) return;
             if (len == 0) len = StrLen(str);
+            if (len == 0) return;
             HE_PLACEMENT_NEW(&m_Container, Container<u8>, (const u8*)str, (len + 1) * sizeof(T));
             reinterpret_cast<T*>(m_Container.Data())[len] = (T)'\0';
         }

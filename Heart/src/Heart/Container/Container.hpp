@@ -68,6 +68,7 @@ namespace Heart
         inline T* Begin() const{ return m_Data; }
         inline T* End() const { return m_Data + GetCount(); }
         inline T& Get(u32 index) const{ return m_Data[index]; }
+        inline bool IsEmpty() const { return GetCount() == 0; }
 
         inline T& operator[](u32 index) const { return m_Data[index]; }
         inline void operator=(const Container<T>& other) { Copy(other); }
@@ -83,8 +84,9 @@ namespace Heart
     private:
         void Copy(const Container<T>& other)
         {
-            if (!other.m_Data) return;
+            if (m_Data) Cleanup();
             m_Data = other.m_Data;
+            if (!other.m_Data) return;
             IncrementRefCount();
         }
 
@@ -136,7 +138,7 @@ namespace Heart
             m_Data = newData;
 
             if (construct && ShouldConstruct())
-                for (u32 i = oldCount; i < elemCount; i++)
+                for (u32 i = oldCount; i < allocCount; i++)
                     HE_PLACEMENT_NEW(m_Data + i, T);
         }
 

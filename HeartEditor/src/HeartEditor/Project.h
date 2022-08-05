@@ -1,12 +1,14 @@
 #pragma once
 
+#include "Heart/Container/HString.h"
+
 namespace HeartEditor
 {
     namespace Widgets { class ProjectSettings; }
     class Project
     {
     public:
-         Project::Project(const std::string& absolutePath)
+         Project::Project(const Heart::HString& absolutePath)
             : m_AbsolutePath(absolutePath)
         {}
 
@@ -15,17 +17,17 @@ namespace HeartEditor
         void LoadScriptsPlugin();
 
     public:
-        static Heart::Ref<Project> CreateAndLoad(const std::string& absolutePath, const std::string& name);
-        static Heart::Ref<Project> LoadFromPath(const std::string& absolutePath);
+        static Heart::Ref<Project> CreateAndLoad(const Heart::HString& absolutePath, const Heart::HString& name);
+        static Heart::Ref<Project> LoadFromPath(const Heart::HString& absolutePath);
 
         static Project* GetActiveProject() { return s_ActiveProject.get(); }
 
     private:
-        static Heart::Ref<Project> s_ActiveProject;
+        inline static Heart::Ref<Project> s_ActiveProject = nullptr;
         
     private:
-        std::string m_Name;
-        std::string m_AbsolutePath;
+        Heart::HString m_Name;
+        Heart::HString m_AbsolutePath;
 
         friend class Widgets::ProjectSettings;
     };

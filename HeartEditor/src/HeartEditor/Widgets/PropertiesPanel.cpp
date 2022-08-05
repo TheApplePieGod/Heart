@@ -27,7 +27,7 @@ namespace Widgets
         if (!m_Open) return;
 
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 5.0f));
-        ImGui::Begin(m_Name.c_str(), &m_Open);
+        ImGui::Begin(m_Name.DataUTF8(), &m_Open);
 
         auto selectedEntity = Editor::GetState().SelectedEntity;
         if (selectedEntity.IsValid())
@@ -132,7 +132,7 @@ namespace Widgets
                 // Assign mesh on drop
                 Heart::ImGuiUtils::AssetDropTarget(
                     Heart::Asset::Type::Mesh,
-                    [&meshComp](const std::string& path)
+                    [&meshComp](const Heart::HString& path)
                     {
                         meshComp.Mesh = Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Mesh, path);      
                         auto meshAsset = Heart::AssetManager::RetrieveAsset<Heart::MeshAsset>(meshComp.Mesh);
@@ -154,13 +154,13 @@ namespace Widgets
                     ImGui::Text("Materials");
                     ImGui::Separator();
                     u32 index = 0;
-                    std::string baseName = "Material ";
+                    Heart::HString baseName = "Material ";
                     for (auto& materialId : meshComp.Materials)
                     {
-                        std::string entryName = baseName + std::to_string(index);
+                        Heart::HString entryName = baseName + std::to_string(index);
 
                         // Material picker
-                        ImGui::Text(entryName.c_str(), index);
+                        ImGui::Text(entryName.DataUTF8(), index);
                         ImGui::SameLine();
                         Heart::ImGuiUtils::AssetPicker(
                             Heart::Asset::Type::Material,
@@ -188,8 +188,8 @@ namespace Widgets
                                             exportingMaterial = &materialAsset->GetMaterial();
                                     }
 
-                                    std::string path = Heart::FilesystemUtils::SaveAsDialog(Heart::AssetManager::GetAssetsDirectory(), "Export Material", "Material", "hemat");
-                                    if (!path.empty())
+                                    Heart::HString path = Heart::FilesystemUtils::SaveAsDialog(Heart::AssetManager::GetAssetsDirectory(), "Export Material", "Material", "hemat");
+                                    if (!path.IsEmpty())
                                         Heart::MaterialAsset::SerializeMaterial(path, *exportingMaterial);
                                 }
                             },
@@ -199,7 +199,7 @@ namespace Widgets
                         // Assign material on drop
                         Heart::ImGuiUtils::AssetDropTarget(
                             Heart::Asset::Type::Material,
-                            [&materialId](const std::string& path) { materialId = Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Material, path); }
+                            [&materialId](const Heart::HString& path) { materialId = Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Material, path); }
                         );
 
                         index++;
@@ -364,11 +364,11 @@ namespace Widgets
         }
     }
 
-    void PropertiesPanel::RenderXYZSlider(const std::string& name, f32* x, f32* y, f32* z, f32 min, f32 max, f32 step)
+    void PropertiesPanel::RenderXYZSlider(const Heart::HString& name, f32* x, f32* y, f32* z, f32 min, f32 max, f32 step)
     {
         f32 width = ImGui::GetContentRegionAvail().x;
         ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(0.f, 0.5f));
-        if (ImGui::BeginTable(name.c_str(), 7, ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingFixedFit))
+        if (ImGui::BeginTable(name.DataUTF8(), 7, ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingFixedFit))
         {
             ImGui::TableNextRow();
 
@@ -378,7 +378,7 @@ namespace Widgets
             ImU32 textColor = ImGui::GetColorU32(ImVec4(0.f, 0.0f, 0.0f, 1.f));
 
             ImGui::TableSetColumnIndex(0);
-            ImGui::Text(name.c_str());
+            ImGui::Text(name.DataUTF8());
 
             ImGui::TableSetColumnIndex(1);
             ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, xColor);

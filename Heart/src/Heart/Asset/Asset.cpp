@@ -9,7 +9,7 @@
 
 namespace Heart
 {
-    Asset::Asset(const std::string& path, const std::string& absolutePath)
+    Asset::Asset(const HString& path, const HString& absolutePath)
         : m_Path(path), m_AbsolutePath(absolutePath)
     {
         UpdatePath(path, absolutePath);
@@ -22,21 +22,21 @@ namespace Heart
         Load();
     }
 
-    void Asset::UpdatePath(const std::string& path, const std::string& absolutePath)
+    void Asset::UpdatePath(const HString& path, const HString& absolutePath)
     {
-        auto entry = std::filesystem::path(path);
+        auto entry = std::filesystem::path(path.DataUTF8());
         m_Filename = entry.filename().generic_u8string();
         m_Extension = entry.extension().generic_u8string();
         m_ParentPath = entry.parent_path().generic_u8string();
 
         // convert the extension to lowercase
-        std::transform(m_Extension.begin(), m_Extension.end(), m_Extension.begin(), [](unsigned char c) { return std::tolower(c); });
+        std::transform(m_Extension.BeginUTF8(), m_Extension.EndUTF8(), m_Extension.BeginUTF8(), [](unsigned char c) { return std::tolower(c); });
 
         m_Path = path;
         m_AbsolutePath = absolutePath;
     }
 
-    Ref<Asset> Asset::Create(Type type, const std::string& path, const std::string& absolutePath)
+    Ref<Asset> Asset::Create(Type type, const HString& path, const HString& absolutePath)
     {
         switch (type)
         {
@@ -56,22 +56,22 @@ namespace Heart
     }
 
     // adapted from https://stackoverflow.com/questions/180947/base64-decode-snippet-in-c
-    std::vector<unsigned char> Asset::Base64Decode(const std::string& encoded)
+    std::vector<unsigned char> Asset::Base64Decode(const HString& encoded)
     {
-        int in_len = static_cast<int>(encoded.size());
+        int in_len = static_cast<int>(encoded.GetCountUTF8());
         int i = 0;
         int j = 0;
         int in_ = 0;
         unsigned char char_array_4[4], char_array_3[3];
         std::vector<unsigned char> ret;
 
-        while (in_len-- && ( encoded[in_] != '=') && IsBase64(encoded[in_]))
+        while (in_len-- && (encoded.GetUTF8(in_) != '=') && IsBase64(encoded.GetUTF8(in_)))
         {
-            char_array_4[i++] = encoded[in_]; in_++;
+            char_array_4[i++] = encoded.GetUTF8(in_); in_++;
             if (i ==4)
             {
                 for (i = 0; i <4; i++)
-                    char_array_4[i] = static_cast<unsigned char>(s_Base64Chars.find(char_array_4[i]));
+                    char_array_4[i] = static_cast<unsigned char>(s_Base64Chars.FindUTF8Char(char_array_4[i]));
 
                 char_array_3[0] = (char_array_4[0] << 2) + ((char_array_4[1] & 0x30) >> 4);
                 char_array_3[1] = ((char_array_4[1] & 0xf) << 4) + ((char_array_4[2] & 0x3c) >> 2);
@@ -89,7 +89,7 @@ namespace Heart
                 char_array_4[j] = 0;
 
             for (j = 0; j <4; j++)
-                char_array_4[j] = static_cast<unsigned char>(s_Base64Chars.find(char_array_4[j]));
+                char_array_4[j] = static_cast<unsigned char>(s_Base64Chars.FindUTF8Char(char_array_4[j]));
 
             char_array_3[0] = (char_array_4[0] << 2) + ((char_array_4[1] & 0x30) >> 4);
             char_array_3[1] = ((char_array_4[1] & 0xf) << 4) + ((char_array_4[2] & 0x3c) >> 2);

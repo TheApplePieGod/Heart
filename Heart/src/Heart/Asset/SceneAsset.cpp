@@ -22,7 +22,7 @@ namespace Heart
         }
         catch (std::exception e)
         {
-            HE_ENGINE_LOG_ERROR("Failed to load scene at path {0}", m_AbsolutePath);
+            HE_ENGINE_LOG_ERROR("Failed to load scene at path {0}", m_AbsolutePath.DataUTF8());
             m_Loaded = true;
             m_Loading = false;
             return;
@@ -52,7 +52,7 @@ namespace Heart
             m_Scene = scene->Clone();
     }
 
-    Ref<Scene> SceneAsset::DeserializeScene(const std::string& path)
+    Ref<Scene> SceneAsset::DeserializeScene(const HString& path)
     {
         auto scene = CreateRef<Scene>();
 
@@ -70,7 +70,7 @@ namespace Heart
             {
                 // REQUIRED: Id & name components
                 UUID id = static_cast<UUID>(loaded["idComponent"]["id"]);
-                std::string name = loaded["nameComponent"]["name"];
+                HString name = loaded["nameComponent"]["name"];
                 auto entity = scene->CreateEntityWithUUID(name, id);
 
                 // REQUIRED: Transform component
@@ -171,7 +171,7 @@ namespace Heart
         return scene;
     }
 
-    void SceneAsset::SerializeScene(const std::string& path, Scene* scene)
+    void SceneAsset::SerializeScene(const HString& path, Scene* scene)
     {
         nlohmann::json j;
 
@@ -262,7 +262,7 @@ namespace Heart
             field["environmentMap"]["engineResource"] = scene->GetEnvironmentMap() ? AssetManager::IsAssetAResource(scene->GetEnvironmentMap()->GetMapAsset()) : false;
         }
 
-        std::ofstream file(path);
+        std::ofstream file(path.DataUTF8());
         file << j;
     }
 }

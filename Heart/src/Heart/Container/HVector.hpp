@@ -97,6 +97,7 @@ namespace Heart
         inline T* Front() const { return m_Container.Begin(); }
         inline T* Back() const { return GetCount() > 0 ? m_Container.End() - 1 : m_Container.Begin(); }
         inline T& Get(u32 index) const { return m_Container.Get(index); }
+        inline bool IsEmpty() const { return m_Container.IsEmpty(); }
 
         inline T& operator[](u32 index) const { return m_Container[index]; }
         inline void operator=(const HVector& other) { m_Container = other.m_Container; }
@@ -114,7 +115,7 @@ namespace Heart
         {
             u32 count = GetCount();
             if (count >= m_Container.GetAllocatedCount())
-                m_Container.Resize(count + 1, false);
+                m_Container.Resize(count + 1, true);
             else
                 m_Container.IncrementCount();
             return count;

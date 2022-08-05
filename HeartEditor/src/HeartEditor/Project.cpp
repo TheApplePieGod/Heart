@@ -15,14 +15,12 @@
 
 namespace HeartEditor
 {
-    Heart::Ref<Project> Project::s_ActiveProject = nullptr;
-
-    Heart::Ref<Project> Project::CreateAndLoad(const std::string& absolutePath, const std::string& name)
+    Heart::Ref<Project> Project::CreateAndLoad(const Heart::HString& absolutePath, const Heart::HString& name)
     {
         const char* extension = ".heproj";
-        std::string filename = name + extension;
+        Heart::HString filename = name + extension;
 
-        std::filesystem::path finalPath = std::filesystem::path(absolutePath).append(name);
+        std::filesystem::path finalPath = std::filesystem::path(absolutePath.DataUTF8()).append(name.DataUTF8());
         std::filesystem::create_directory(finalPath);
         
         /*
@@ -31,7 +29,7 @@ namespace HeartEditor
         nlohmann::json j;
         j["name"] = name;
 
-        std::filesystem::path mainProjectFilePath = std::filesystem::path(finalPath).append(filename);
+        std::filesystem::path mainProjectFilePath = std::filesystem::path(finalPath).append(filename.DataUTF8());
         std::ofstream file(mainProjectFilePath);
         file << j;
         file.close();
@@ -50,45 +48,45 @@ namespace HeartEditor
         /*
          * Load templates and create visual studio project files
          */
-        std::string scriptsRootPath = std::filesystem::current_path()
+        Heart::HString scriptsRootPath = std::filesystem::current_path()
             .append("scripting")
             .generic_u8string();
 
         // Csproj
-        std::string csprojTemplate = Heart::FilesystemUtils::ReadFileToString("templates/ProjectTemplate.csproj");
-        std::string finalCsproj = std::regex_replace(csprojTemplate, std::regex("\\$\\{SCRIPTS_ROOT_PATH\\}"), scriptsRootPath);
+        Heart::HString csprojTemplate = Heart::FilesystemUtils::ReadFileToString("templates/ProjectTemplate.csproj");
+        Heart::HString finalCsproj = std::regex_replace(csprojTemplate.DataUTF8(), std::regex("\\$\\{SCRIPTS_ROOT_PATH\\}"), scriptsRootPath.DataUTF8());
         file = std::ofstream(
-            std::filesystem::path(finalPath).append(name + ".csproj"),
+            std::filesystem::path(finalPath).append((name + ".csproj").DataUTF8()),
             std::ios::binary
         );
-        file << finalCsproj;
+        file << finalCsproj.DataUTF8();
         file.close();
 
         // Sln
-        std::string slnTemplate = Heart::FilesystemUtils::ReadFileToString("templates/ProjectTemplate.sln");
-        std::string finalSln = std::regex_replace(slnTemplate, std::regex("\\$\\{SCRIPTS_ROOT_PATH\\}"), scriptsRootPath);
-        finalSln = std::regex_replace(finalSln, std::regex("\\$\\{PROJECT_NAME\\}"), name);
+        Heart::HString slnTemplate = Heart::FilesystemUtils::ReadFileToString("templates/ProjectTemplate.sln");
+        Heart::HString finalSln = std::regex_replace(slnTemplate.DataUTF8(), std::regex("\\$\\{SCRIPTS_ROOT_PATH\\}"), scriptsRootPath.DataUTF8());
+        finalSln = std::regex_replace(finalSln.DataUTF8(), std::regex("\\$\\{PROJECT_NAME\\}"), name.DataUTF8());
         file = std::ofstream(
-            std::filesystem::path(finalPath).append(name + ".sln"),
+            std::filesystem::path(finalPath).append((name + ".sln").DataUTF8()),
             std::ios::binary
         );
-        file << finalSln;
+        file << finalSln.DataUTF8();
         file.close();
 
         // Empty entity
-        std::string entityTemplate = Heart::FilesystemUtils::ReadFileToString("templates/EmptyEntity.csfile");
-        std::string finalEntity = std::regex_replace(entityTemplate, std::regex("\\$\\{PROJECT_NAME\\}"), name);
+        Heart::HString entityTemplate = Heart::FilesystemUtils::ReadFileToString("templates/EmptyEntity.csfile");
+        Heart::HString finalEntity = std::regex_replace(entityTemplate.DataUTF8(), std::regex("\\$\\{PROJECT_NAME\\}"), name.DataUTF8());
         file = std::ofstream(
             std::filesystem::path(finalPath).append("Scripts").append("EmptyEntity.cs"),
             std::ios::binary
         );
-        file << finalEntity;
+        file << finalEntity.DataUTF8();
         file.close();
         
         return LoadFromPath(mainProjectFilePath.generic_u8string());
     }
 
-    Heart::Ref<Project> Project::LoadFromPath(const std::string& absolutePath)
+    Heart::Ref<Project> Project::LoadFromPath(const Heart::HString& absolutePath)
     {
         Heart::Ref<Project> project = Heart::CreateRef<Project>(absolutePath);
         
@@ -132,8 +130,8 @@ namespace HeartEditor
         {
             auto& field = j["widgets"];
             for (auto& pair : Editor::GetWindows())
-                if (field.contains(pair.first))
-                    pair.second->Deserialize(field[pair.first]);
+                if (field.contains(pair.first.DataUTF8()))
+                    pair.second->Deserialize(field[pair.first.DataUTF8()]);
         }
 
         s_ActiveProject = project;
@@ -157,17 +155,17 @@ namespace HeartEditor
             {
                 nlohmann::json serialized = pair.second->Serialize();
                 if (!serialized.empty())
-                    field[pair.first] = serialized;
+                    field[pair.first.DataUTF8()] = serialized;
             }
         }
 
-        std::ofstream file(m_AbsolutePath);
+        std::ofstream file(m_AbsolutePath.DataUTF8());
         file << j;
     }
 
     void Project::LoadScriptsPlugin()
     {
-        auto assemblyPath = std::filesystem::path(Heart::AssetManager::GetAssetsDirectory())
+        auto assemblyPath = std::filesystem::path(Heart::AssetManager::GetAssetsDirectory().DataUTF8())
             .append("bin")
             .append("ClientScripts.dll");
         if (!std::filesystem::exists(assemblyPath))

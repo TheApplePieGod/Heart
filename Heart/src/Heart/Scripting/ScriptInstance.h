@@ -42,7 +42,7 @@ namespace Heart
         inline uptr GetObjectHandle() const { return m_ObjectHandle; }
         inline const HString& GetScriptClass() const { return m_ScriptClass; }
         inline void SetScriptClass(const HString& value) { m_ScriptClass = value; }
-        inline bool IsInstantiable() const { return !m_ScriptClass.Empty(); }
+        inline bool IsInstantiable() const { return !m_ScriptClass.IsEmpty(); }
         inline bool IsAlive() const { return m_ObjectHandle != 0; }
 
     private:

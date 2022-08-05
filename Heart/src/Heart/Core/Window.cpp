@@ -11,9 +11,6 @@
 
 namespace Heart
 {
-    int Window::s_WindowCount = 0;
-    Ref<Window> Window::s_MainWindow = nullptr;
-
     static void GLFWErrorCallback(int err, const char* desc)
     {
         HE_ENGINE_LOG_ERROR("GLFW Error ({0}): {1}", err, desc);
@@ -52,12 +49,12 @@ namespace Heart
 
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
-        std::string fullTitle = createInfo.Title;
+        HString fullTitle = createInfo.Title;
         fullTitle += " (";
         fullTitle += HE_ENUM_TO_STRING(RenderApi, Renderer::GetApiType());
         fullTitle += ")";
 
-        m_Window = glfwCreateWindow(createInfo.Width, createInfo.Height, fullTitle.c_str(), nullptr, nullptr);
+        m_Window = glfwCreateWindow(createInfo.Width, createInfo.Height, fullTitle.DataUTF8(), nullptr, nullptr);
         s_WindowCount++;
 
         m_GraphicsContext = GraphicsContext::Create(m_Window);

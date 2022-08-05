@@ -211,7 +211,7 @@ namespace Heart
         m_BoundPipelineName = "";
     }
 
-    void OpenGLFramebuffer::BindPipeline(const std::string& name)
+    void OpenGLFramebuffer::BindPipeline(const HString& name)
     {
         HE_PROFILE_FUNCTION();
         

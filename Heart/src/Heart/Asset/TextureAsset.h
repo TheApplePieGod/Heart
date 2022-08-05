@@ -14,7 +14,7 @@ namespace Heart
          * @param path The path of the asset relative to the project directory.
          * @param absolutePath The absolute filesystem path of the asset.
          */
-        TextureAsset(const std::string& path, const std::string& absolutePath)
+        TextureAsset(const HString& path, const HString& absolutePath)
             : Asset(path, absolutePath)
         { m_Type = Type::Texture; }
 

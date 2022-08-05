@@ -33,7 +33,7 @@ namespace Heart
         }
         catch (std::exception e)
         {
-            HE_ENGINE_LOG_ERROR("Failed to load mesh at path {0}", m_AbsolutePath);
+            HE_ENGINE_LOG_ERROR("Failed to load mesh at path {0}", m_AbsolutePath.DataUTF8());
             m_Loaded = true;
             m_Loading = false;
             return;
@@ -63,16 +63,16 @@ namespace Heart
         std::vector<std::vector<unsigned char>> buffers;
         for (auto& buffer : j["buffers"])
         {
-            std::string uri = buffer["uri"];
-            if (uri.find("base64") != std::string::npos)
+            HString uri = buffer["uri"];
+            if (uri.Find("base64") != HString::InvalidIndex)
             {
-                std::string base64 = uri.substr(uri.find(',') + 1);
+                HString base64 = uri.Substr(uri.Find(",") + 1);
                 buffers.emplace_back(Base64Decode(base64));
             }
-            else if (uri.find(".bin") != std::string::npos)
+            else if (uri.Find(".bin") != HString::InvalidIndex)
             {
                 u32 fileLength;
-                std::string binPath = std::filesystem::path(m_AbsolutePath).parent_path().append(uri).generic_u8string();
+                HString binPath = std::filesystem::path(m_AbsolutePath.DataUTF8()).parent_path().append(uri.DataUTF8()).generic_u8string();
                 unsigned char* bin = FilesystemUtils::ReadFile(binPath, fileLength);
                 buffers.emplace_back();
                 buffers.back().assign(bin, bin + fileLength);
@@ -111,18 +111,18 @@ namespace Heart
         {
             for (auto& image : j["images"])
             {
-                std::string uri = image["uri"];
-                if (uri.find("base64") != std::string::npos)
+                HString uri = image["uri"];
+                if (uri.Find("base64") != HString::InvalidIndex)
                 {
                     HE_ENGINE_LOG_ERROR("Cannot load GLTF mesh that uses inline textures (not supported yet)");
                     throw std::exception();
-                    //std::string base64 = uri.substr(uri.find(',') + 1);
+                    //HString base64 = uri.substr(uri.find(',') + 1);
                     //buffers.emplace_back(Base64Decode(base64));
                 }
                 else
                 {
-                    std::string finalPath = std::filesystem::path(m_ParentPath).append(uri).generic_u8string();
-                    finalPath = std::regex_replace(finalPath, std::regex("%20"), " "); // replace URL encoded spaces with actual spaces
+                    HString finalPath = std::filesystem::path(m_ParentPath.DataUTF8()).append(uri.DataUTF8()).generic_u8string();
+                    finalPath = std::regex_replace(finalPath.DataUTF8(), std::regex("%20"), " "); // replace URL encoded spaces with actual spaces
                     textureSources.emplace_back(finalPath, AssetManager::RegisterAsset(Asset::Type::Texture, finalPath));
                 }
             }
@@ -142,8 +142,8 @@ namespace Heart
         }
 
         // parse materials
-        std::string materialFilenameStart = "material";
-        std::string materialFilenameEnd = ".hemat";
+        HString materialFilenameStart = "material";
+        HString materialFilenameEnd = ".hemat";
         if (j.contains("materials"))
         {
             u32 materialIndex = 0;

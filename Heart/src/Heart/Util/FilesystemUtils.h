@@ -1,18 +1,20 @@
 #pragma once
 
+#include "Heart/Container/HString.h"
+
 namespace Heart
 {
     class FilesystemUtils
     {
     public:
-        static std::string ReadFileToString(const std::string& path);
-        static unsigned char* ReadFile(const std::string& path, u32& outLength);
-        static std::string GetParentDirectory(const std::string& path);
-        static std::string SaveAsDialog(const std::string& initialPath, const std::string& title, const std::string& defaultFileName, const std::string& extension);
-        static std::string OpenFileDialog(const std::string& initialPath, const std::string& title, const std::string& extension);
-        static std::string OpenFolderDialog(const std::string& initialPath, const std::string& title);
+        static HString ReadFileToString(const HString& path);
+        static unsigned char* ReadFile(const HString& path, u32& outLength);
+        static HString GetParentDirectory(const HString& path);
+        static HString SaveAsDialog(const HString& initialPath, const HString& title, const HString& defaultFileName, const HString& extension);
+        static HString OpenFileDialog(const HString& initialPath, const HString& title, const HString& extension);
+        static HString OpenFolderDialog(const HString& initialPath, const HString& title);
     private:
-        static std::string Win32OpenDialog(const std::string& initialPath, const std::string& title, const std::string& defaultFileName, const std::string& extension, bool folder, bool save);
-        static std::string LinuxOpenDialog(const std::string& initialPath, const std::string& title, const std::string& defaultFileName, const std::string& extension, bool folder, bool save);
+        static HString Win32OpenDialog(const HString& initialPath, const HString& title, const HString& defaultFileName, const HString& extension, bool folder, bool save);
+        static HString LinuxOpenDialog(const HString& initialPath, const HString& title, const HString& defaultFileName, const HString& extension, bool folder, bool save);
     };
 }

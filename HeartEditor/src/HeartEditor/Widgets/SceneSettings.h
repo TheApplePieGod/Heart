@@ -10,7 +10,7 @@ namespace Widgets
     class SceneSettings : public Widget
     {
     public:
-        SceneSettings(const std::string& name, bool initialOpen)
+        SceneSettings(const Heart::HString& name, bool initialOpen)
             : Widget(name, initialOpen)
         {}
 

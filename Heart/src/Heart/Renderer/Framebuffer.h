@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Heart/Container/HString.h"
 #include "Heart/Renderer/Texture.h"
 #include "Heart/Events/EventEmitter.h"
 #include "glm/vec4.hpp"
@@ -74,7 +75,7 @@ namespace Heart
         virtual ~Framebuffer();
 
         virtual void Bind(ComputePipeline* preRenderComputePipeline = nullptr) = 0;
-        virtual void BindPipeline(const std::string& name) = 0;
+        virtual void BindPipeline(const HString& name) = 0;
 
         // must be called after BindPipeline()
         virtual void BindShaderBufferResource(u32 bindingIndex, u32 elementOffset, u32 elementCount, Buffer* buffer) = 0;
@@ -107,8 +108,8 @@ namespace Heart
 
         void OnEvent(Event& event) override;
 
-        Ref<GraphicsPipeline> RegisterGraphicsPipeline(const std::string& name, const GraphicsPipelineCreateInfo& createInfo);
-        Ref<GraphicsPipeline> LoadPipeline(const std::string& name);
+        Ref<GraphicsPipeline> RegisterGraphicsPipeline(const HString& name, const GraphicsPipelineCreateInfo& createInfo);
+        Ref<GraphicsPipeline> LoadPipeline(const HString& name);
 
         inline u32 GetWidth() const { return m_ActualWidth; }
         inline u32 GetHeight() const { return m_ActualHeight; }
@@ -140,7 +141,7 @@ namespace Heart
 
     protected:
         FramebufferCreateInfo m_Info;
-        std::unordered_map<std::string, Ref<GraphicsPipeline>> m_GraphicsPipelines;
+        std::unordered_map<HString, Ref<GraphicsPipeline>> m_GraphicsPipelines;
         bool m_Valid = true;
         u32 m_ActualWidth, m_ActualHeight = 0;
 

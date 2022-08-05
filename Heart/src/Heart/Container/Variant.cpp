@@ -29,9 +29,9 @@ namespace Heart
     Variant::Variant(double value)
     { m_Type = Type::Float; m_Data.Float = value; }
     Variant::Variant(const HArray& array)
-    { m_Type = Type::Array; *reinterpret_cast<HArray*>(m_Data.Any) = array; }
+    { m_Type = Type::Array; HE_PLACEMENT_NEW(m_Data.Any, HArray, array); }
     Variant::Variant(const HString& str)
-    { m_Type = Type::String; *reinterpret_cast<HString*>(m_Data.Any) = str; }
+    { m_Type = Type::String; HE_PLACEMENT_NEW(m_Data.Any, HString, str); }
 
     Variant::~Variant()
     {
@@ -74,9 +74,9 @@ namespace Heart
             case Type::Float:
             { m_Data.Float = other.Float(); } return;
             case Type::Array:
-            { *reinterpret_cast<HArray*>(m_Data.Any) = other.Array(); } return;
+            { HE_PLACEMENT_NEW(m_Data.Any, HArray, other.Array()); } return;
             case Type::String:
-            { *reinterpret_cast<HString*>(m_Data.Any) = other.String(); } return;
+            { HE_PLACEMENT_NEW(m_Data.Any, HString, other.String()); } return;
         }
 
         HE_ENGINE_ASSERT(false, "Variant copy constructor not fully implemented");

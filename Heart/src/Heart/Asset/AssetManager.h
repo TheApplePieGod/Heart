@@ -2,6 +2,7 @@
 
 #include "Heart/Asset/Asset.h"
 #include "Heart/Core/UUID.h"
+#include "Heart/Container/HString.h"
 
 namespace Heart
 {
@@ -30,7 +31,7 @@ namespace Heart
         /*! @brief The internal representation of an asset inside the UUID registry. */
         struct UUIDEntry
         {
-            std::string Path;
+            HString Path;
             bool IsResource;
             Asset::Type Type;
         };
@@ -64,14 +65,16 @@ namespace Heart
         static void OnUpdate();
 
         /*! @brief Get the current project directory. */
-        inline static const std::string& GetAssetsDirectory() { return s_AssetsDirectory; }
+        inline static const HString& GetAssetsDirectory() { return s_AssetsDirectory; }
 
         /*! @brief Get a reference to the internal asset UUID registry. */
         inline static const std::unordered_map<UUID, UUIDEntry>& GetUUIDRegistry() { return s_UUIDs; }
 
-        inline static std::string GetAbsolutePath(const std::string& relative) { return std::filesystem::path(s_AssetsDirectory).append(relative).generic_u8string(); }
+        inline static HString GetAbsolutePath(const HString& relative)
+        { return std::filesystem::path(s_AssetsDirectory.DataUTF8()).append(relative.DataUTF8()).generic_u8string(); }
 
-        inline static std::string GetRelativePath(const std::string& absolute) { return std::filesystem::path(absolute).lexically_relative(Heart::AssetManager::GetAssetsDirectory()).generic_u8string(); }
+        inline static HString GetRelativePath(const HString& absolute)
+        { return std::filesystem::path(absolute.DataUTF8()).lexically_relative(Heart::AssetManager::GetAssetsDirectory().DataUTF8()).generic_u8string(); }
 
         /**
          * @brief Register an asset in the manager's registry.
@@ -89,7 +92,7 @@ namespace Heart
          * @param isResource Store this asset as a resource.
          * @return The UUID of the newly registered asset.
          */
-        static UUID RegisterAsset(Asset::Type type, const std::string& path, bool persistent = false, bool isResource = false);
+        static UUID RegisterAsset(Asset::Type type, const HString& path, bool persistent = false, bool isResource = false);
 
         static void UnregisterAsset(UUID uuid);
 
@@ -105,7 +108,7 @@ namespace Heart
          * @param persistent Mark all assets as persistent (will never automatically unload).
          * @param isResource Store all assets as resources.
          */
-        static void RegisterAssetsInDirectory(const std::filesystem::path& directory, bool persistent = false, bool isResource = false);
+        static void RegisterAssetsInDirectory(const HString& directory, bool persistent = false, bool isResource = false);
 
         /**
          * @brief Change the name and/or path of a registered non-resource asset.
@@ -115,7 +118,7 @@ namespace Heart
          * @param oldPath The old path of the asset relative to the project directory.
          * @param newPath The new path of the asset relative to the project directory.
          */
-        static void RenameAsset(const std::string& oldPath, const std::string& newPath);
+        static void RenameAsset(const HString& oldPath, const HString& newPath);
 
         /**
          * @brief Change the project directory.
@@ -125,7 +128,7 @@ namespace Heart
          * 
          * @param directory The absolute path of the new project directory.
          */
-        static void UpdateAssetsDirectory(const std::string& directory);
+        static void UpdateAssetsDirectory(const HString& directory);
 
         /**
          * @brief Get the associated asset type of a file.
@@ -135,7 +138,7 @@ namespace Heart
          * @param path The path of the asset.
          * @return The type of the asset or Asset::Type::None if it is unassociated.
          */
-        static Asset::Type DeduceAssetTypeFromFile(const std::string& path);
+        static Asset::Type DeduceAssetTypeFromFile(const HString& path);
 
         /**
          * @brief Get the UUID of a registered asset from its filepath.
@@ -144,7 +147,7 @@ namespace Heart
          * @param isResource Whether or not this path references a resource asset.
          * @return The UUID of the registered path or zero if it could not be located.
          */
-        static UUID GetAssetUUID(const std::string& path, bool isResource = false);
+        static UUID GetAssetUUID(const HString& path, bool isResource = false);
 
         /**
          * @brief Get the path of a registered asset from its UUID.
@@ -155,7 +158,7 @@ namespace Heart
          * @param uuid The UUID of the registered asset.
          * @return The path of the asset relative to the project directory or an empty string if it could not be located.
          */
-        static std::string GetPathFromUUID(UUID uuid);
+        static HString GetPathFromUUID(UUID uuid);
 
         /**
          * @brief Check if a UUID points to a resource asset.
@@ -175,7 +178,7 @@ namespace Heart
          * @param isResource Whether or not this path references a resource asset.
          * @return The pointer to the asset or nullptr if it could not be located. 
          */
-        static Asset* RetrieveAsset(const std::string& path, bool isResource = false);
+        static Asset* RetrieveAsset(const HString& path, bool isResource = false);
 
         /**
          * @brief Retrieve an asset from a path.
@@ -189,7 +192,7 @@ namespace Heart
          * @return The pointer to the asset or nullptr if it could not be located. 
          */
         template<typename T>
-        static T* RetrieveAsset(const std::string& path, bool isResource = false)
+        static T* RetrieveAsset(const HString& path, bool isResource = false)
         {
             return static_cast<T*>(RetrieveAsset(path, isResource));
         }
@@ -239,15 +242,15 @@ namespace Heart
         static void PushOperation(const LoadOperation& operation);
 
     private:
-        static inline const u64 s_AssetFrameLimit = 1000;
-        static inline const std::string s_ResourceDirectory = "resources";
-        static std::unordered_map<UUID, UUIDEntry> s_UUIDs;
-        static std::unordered_map<std::string, AssetEntry> s_Registry;
-        static std::unordered_map<std::string, AssetEntry> s_Resources;
-        static std::string s_AssetsDirectory;
+        inline static constexpr u64 s_AssetFrameLimit = 1000;
+        inline static const HString s_ResourceDirectory = "resources";
+        inline static std::unordered_map<UUID, UUIDEntry> s_UUIDs;
+        inline static std::unordered_map<HString, AssetEntry> s_Registry;
+        inline static std::unordered_map<HString, AssetEntry> s_Resources;
+        inline static HString s_AssetsDirectory;
 
-        static std::thread s_AssetThread;
-        static std::queue<LoadOperation> s_OperationQueue;
-        static std::mutex s_QueueLock;
+        inline static std::thread s_AssetThread;
+        inline static std::queue<LoadOperation> s_OperationQueue;
+        inline static std::mutex s_QueueLock;
     };
 }

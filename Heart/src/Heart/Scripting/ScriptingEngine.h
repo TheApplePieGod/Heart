@@ -16,7 +16,7 @@ namespace Heart
         static void Initialize();
         static void Shutdown();
 
-        static bool LoadClientPlugin(const std::string& absolutePath);
+        static bool LoadClientPlugin(const HString& absolutePath);
         static bool UnloadClientPlugin();
 
         static uptr InstantiateObject(const HString& type, u32 entityHandle, Scene* sceneHandle);
