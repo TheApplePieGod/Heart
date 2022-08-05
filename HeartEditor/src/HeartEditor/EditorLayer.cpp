@@ -4,6 +4,7 @@
 #include "HeartEditor/Widgets/Viewport.h"
 #include "HeartEditor/Editor.h"
 #include "HeartEditor/EditorApp.h"
+#include "HeartEditor/Project.h"
 #include "Heart/Core/Window.h"
 #include "Heart/Renderer/Framebuffer.h"
 #include "Heart/Renderer/SceneRenderer.h"
@@ -33,7 +34,11 @@ namespace HeartEditor
 
         SubscribeToEmitter(&EditorApp::Get().GetWindow());
 
-        Editor::CreateWindows();
+        // Crappy default project solution until we get some sort of settings file
+        if (std::filesystem::exists("D:/Projects/Heart/HeartProjects/TestProject/TestProject.heproj"))
+            Project::LoadFromPath("D:/Projects/Heart/HeartProjects/TestProject/TestProject.heproj");
+        else
+            Editor::CreateWindows();
 
         Heart::ScriptingEngine::SetScriptInputEnabled(false);
 
