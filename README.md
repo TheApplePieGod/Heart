@@ -55,6 +55,9 @@ Setting up Heart Engine is relatively simple, and it utilizes CMake and git subm
 - [VulkanSDK](https://vulkan.lunarg.com/) >= 1.2.198
     - Make sure to include the 64-bit debuggable shader API libraries when installing
 - [.NET Core SDK](https://dotnet.microsoft.com/en-us/download/dotnet) >= 6.0
+- [Visual Studio](https://visualstudio.microsoft.com/vs/) >= 2022
+    - For writing code for scripted entities
+    - Using MSBuild directly will also likely work (not tested)
 
 ## General Setup
 
