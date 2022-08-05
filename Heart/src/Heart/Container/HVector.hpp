@@ -33,8 +33,9 @@ namespace Heart
 
         void Add(const T& elem)
         {
+            // Placement new here prevents accidental double destruction
             u32 addIndex = PreAdd();
-            m_Container[addIndex] = elem;
+            HE_PLACEMENT_NEW(m_Container.Begin() + addIndex, T, elem);
         }
 
         template <class... Args>
@@ -138,7 +139,7 @@ namespace Heart
         {
             u32 count = GetCount();
             if (count >= m_Container.GetAllocatedCount())
-                m_Container.Resize(count + 1, true);
+                m_Container.Resize(count + 1, false);
             else
                 m_Container.IncrementCount();
             return count;
