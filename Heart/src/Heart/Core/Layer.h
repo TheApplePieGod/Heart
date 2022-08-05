@@ -15,7 +15,7 @@ namespace Heart
          *
          * @param name Debug name for the layer.
          */
-        Layer(const HString& name = "DefaultLayer");
+        Layer(const HStringView& name = "DefaultLayer");
 
         /*! @brief Default destructor. */
         virtual ~Layer() = default;

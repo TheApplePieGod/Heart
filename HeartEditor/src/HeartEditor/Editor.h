@@ -38,7 +38,7 @@ namespace HeartEditor
 
         static bool IsDirty();
 
-        inline static void PushWindow(const Heart::HString& name, const Heart::Ref<Widget>& window) { s_Windows[name] = window; }
+        inline static void PushWindow(const Heart::HStringView& name, const Heart::Ref<Widget>& window) { s_Windows[name] = window; }
 
         inline static EditorState& GetState() { return s_EditorState; }
         inline static SceneState GetSceneState() { return s_SceneState; }
@@ -46,7 +46,7 @@ namespace HeartEditor
         inline static Heart::Scene& GetEditorScene() { return *s_EditorScene; }
         inline static Heart::UUID GetEditorSceneAsset() { return s_EditorSceneAsset; }
         inline static std::unordered_map<Heart::HString, Heart::Ref<Widget>>& GetWindows() { return s_Windows; }
-        inline static Widget& GetWindow(const Heart::HString& name) { return *s_Windows[name]; }
+        inline static Widget& GetWindow(const Heart::HStringView& name) { return *s_Windows[name]; }
 
     private:
         inline static EditorState s_EditorState;

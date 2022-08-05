@@ -18,7 +18,7 @@ namespace HeartEditor
 {
 namespace Widgets
 {
-    ContentBrowser::ContentBrowser(const Heart::HString& name, bool initialOpen)
+    ContentBrowser::ContentBrowser(const Heart::HStringView& name, bool initialOpen)
             : Widget(name, initialOpen)
     {
         ScanDirectory();
@@ -87,14 +87,14 @@ namespace Widgets
         }  
     }
 
-    void ContentBrowser::PushDirectoryStack(const Heart::HString& entry)
+    void ContentBrowser::PushDirectoryStack(const Heart::HStringView& entry)
     {
         m_DirectoryStack.push_back(entry);
         m_DirectoryStackIndex++;
         m_ShouldRescan = true;
     }
 
-    void ContentBrowser::RenderDirectoryNode(const Heart::HString& path, u32 depth)
+    void ContentBrowser::RenderDirectoryNode(const Heart::HStringView& path, u32 depth)
     {
         auto absolutePath = std::filesystem::path(Heart::AssetManager::GetAssetsDirectory().DataUTF8()).append(path.DataUTF8());
 

@@ -8,7 +8,7 @@ namespace HeartEditor
     class Widget
     {
     public:
-        Widget(const Heart::HString& name, bool initialOpen)
+        Widget(const Heart::HStringView& name, bool initialOpen)
             : m_Name(name), m_Open(initialOpen)
         {}
 

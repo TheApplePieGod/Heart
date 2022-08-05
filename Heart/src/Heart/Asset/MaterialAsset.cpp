@@ -48,7 +48,7 @@ namespace Heart
             m_Material = material;
     }
 
-    Material MaterialAsset::DeserializeMaterial(const HString& path)
+    Material MaterialAsset::DeserializeMaterial(const HStringView& path)
     {
         Material material;
 
@@ -104,7 +104,7 @@ namespace Heart
         return material;
     }
 
-    void MaterialAsset::SerializeMaterial(const HString& path, const Material& material)
+    void MaterialAsset::SerializeMaterial(const HStringView& path, const Material& material)
     {
         nlohmann::json j;
 

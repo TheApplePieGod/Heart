@@ -42,7 +42,7 @@ namespace Heart
         };
         
     public:
-        Shader(const HString& path, Type shaderType)
+        Shader(const HStringView& path, Type shaderType)
             : m_Path(path), m_Type(shaderType)
         {}
         virtual ~Shader() = default;
@@ -50,10 +50,10 @@ namespace Heart
         inline const std::vector<ReflectionDataElement>& GetReflectionData() { return m_ReflectionData; }
 
     public:
-        static Ref<Shader> Create(const HString& path, Type shaderType);
+        static Ref<Shader> Create(const HStringView& path, Type shaderType);
 
     protected:
-        std::vector<u32> CompileSpirvFromFile(const HString& path, Type shaderType);
+        std::vector<u32> CompileSpirvFromFile(const HStringView& path, Type shaderType);
         void Reflect(Type shaderType, const std::vector<u32>& compiledData);
 
     protected:

@@ -33,7 +33,7 @@ namespace Heart
          * @param path The path of the asset relative to the project directory.
          * @param absolutePath The absolute filesystem path of the asset.
          */
-        Asset(const HString& path, const HString& absolutePath);
+        Asset(const HStringView& path, const HStringView& absolutePath);
 
         /*! @brief Load the asset's data. */
         virtual void Load() = 0;
@@ -52,7 +52,7 @@ namespace Heart
          * @param path The path of the asset relative to the project directory.
          * @param absolutePath The absolute filesystem path of the asset.
          */
-        void UpdatePath(const HString& path, const HString& absolutePath);
+        void UpdatePath(const HStringView& path, const HStringView& absolutePath);
 
         /*! @brief Get the asset's relative path. */
         inline const HString& GetPath() const { return m_Path; }
@@ -89,7 +89,7 @@ namespace Heart
          * @param absolutePath The absolute filesystem path of the asset.
          * @return A ref to a new asset object.
          */
-        static Ref<Asset> Create(Type type, const HString& path, const HString& absolutePath);
+        static Ref<Asset> Create(Type type, const HStringView& path, const HStringView& absolutePath);
 
         /**
          * @brief Convert a base64 string into an array of bytes.
@@ -97,7 +97,7 @@ namespace Heart
          * @param encoded The encoded string.
          * @return A vector containing the decoded bytes.
          */
-        static std::vector<unsigned char> Base64Decode(const HString& encoded);
+        static std::vector<unsigned char> Base64Decode(const HStringView& encoded);
 
         /**
          * @brief Determine if a given character is base64.

@@ -10,7 +10,7 @@ namespace Widgets
     class ContentBrowser : public Widget
     {
     public:
-        ContentBrowser(const Heart::HString& name, bool initialOpen);
+        ContentBrowser(const Heart::HStringView& name, bool initialOpen);
 
         void OnImGuiRender() override;
 
@@ -19,9 +19,9 @@ namespace Widgets
     private:
         void ScanDirectory();
         void RenderFileCard(const std::filesystem::directory_entry& entry);
-        void RenderDirectoryNode(const Heart::HString& path, u32 depth = 0);
+        void RenderDirectoryNode(const Heart::HStringView& path, u32 depth = 0);
         void RenderFileList();
-        void PushDirectoryStack(const Heart::HString& entry);
+        void PushDirectoryStack(const Heart::HStringView& entry);
         void FileTransferDropTarget(const std::filesystem::path& destination);
 
     private:

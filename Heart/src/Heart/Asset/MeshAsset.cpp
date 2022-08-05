@@ -122,7 +122,7 @@ namespace Heart
                 else
                 {
                     HString finalPath = std::filesystem::path(m_ParentPath.DataUTF8()).append(uri.DataUTF8()).generic_u8string();
-                    finalPath = std::regex_replace(finalPath.DataUTF8(), std::regex("%20"), " "); // replace URL encoded spaces with actual spaces
+                    finalPath = (HString)std::regex_replace(finalPath.DataUTF8(), std::regex("%20"), " "); // replace URL encoded spaces with actual spaces
                     textureSources.emplace_back(finalPath, AssetManager::RegisterAsset(Asset::Type::Texture, finalPath));
                 }
             }

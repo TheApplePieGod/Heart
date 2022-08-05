@@ -8,7 +8,7 @@ namespace HeartEditor
     class Project
     {
     public:
-         Project::Project(const Heart::HString& absolutePath)
+         Project::Project(const Heart::HStringView& absolutePath)
             : m_AbsolutePath(absolutePath)
         {}
 
@@ -17,8 +17,8 @@ namespace HeartEditor
         void LoadScriptsPlugin();
 
     public:
-        static Heart::Ref<Project> CreateAndLoad(const Heart::HString& absolutePath, const Heart::HString& name);
-        static Heart::Ref<Project> LoadFromPath(const Heart::HString& absolutePath);
+        static Heart::Ref<Project> CreateAndLoad(const Heart::HStringView& absolutePath, const Heart::HStringView& name);
+        static Heart::Ref<Project> LoadFromPath(const Heart::HStringView& absolutePath);
 
         static Project* GetActiveProject() { return s_ActiveProject.get(); }
 

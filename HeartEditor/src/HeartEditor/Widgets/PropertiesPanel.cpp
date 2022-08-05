@@ -132,7 +132,7 @@ namespace Widgets
                 // Assign mesh on drop
                 Heart::ImGuiUtils::AssetDropTarget(
                     Heart::Asset::Type::Mesh,
-                    [&meshComp](const Heart::HString& path)
+                    [&meshComp](const Heart::HStringView& path)
                     {
                         meshComp.Mesh = Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Mesh, path);      
                         auto meshAsset = Heart::AssetManager::RetrieveAsset<Heart::MeshAsset>(meshComp.Mesh);
@@ -199,7 +199,7 @@ namespace Widgets
                         // Assign material on drop
                         Heart::ImGuiUtils::AssetDropTarget(
                             Heart::Asset::Type::Material,
-                            [&materialId](const Heart::HString& path) { materialId = Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Material, path); }
+                            [&materialId](const Heart::HStringView& path) { materialId = Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Material, path); }
                         );
 
                         index++;
@@ -364,7 +364,7 @@ namespace Widgets
         }
     }
 
-    void PropertiesPanel::RenderXYZSlider(const Heart::HString& name, f32* x, f32* y, f32* z, f32 min, f32 max, f32 step)
+    void PropertiesPanel::RenderXYZSlider(const Heart::HStringView& name, f32* x, f32* y, f32* z, f32 min, f32 max, f32 step)
     {
         f32 width = ImGui::GetContentRegionAvail().x;
         ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(0.f, 0.5f));
@@ -412,7 +412,7 @@ namespace Widgets
         ImGui::PopStyleVar();
     }
 
-    void PropertiesPanel::RenderScriptField(const Heart::HString& fieldName, Heart::ScriptComponent& scriptComp)
+    void PropertiesPanel::RenderScriptField(const Heart::HStringView& fieldName, Heart::ScriptComponent& scriptComp)
     {
         ImGui::Text(fieldName.DataUTF8());
         ImGui::SameLine();

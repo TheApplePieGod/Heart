@@ -8,7 +8,7 @@
 
 namespace Heart
 {
-    HString FilesystemUtils::ReadFileToString(const HString& path)
+    HString FilesystemUtils::ReadFileToString(const HStringView& path)
     {
         std::ifstream file(path.DataUTF8(), std::ios::ate | std::ios::binary);
         if (!file.is_open())
@@ -23,7 +23,7 @@ namespace Heart
         return HString(buffer.data(), buffer.size());
     }
 
-    unsigned char* FilesystemUtils::ReadFile(const HString& path, u32& outLength)
+    unsigned char* FilesystemUtils::ReadFile(const HStringView& path, u32& outLength)
     {
         std::ifstream file(path.DataUTF8(), std::ios::ate | std::ios::binary);
         if (!file.is_open())
@@ -40,12 +40,12 @@ namespace Heart
         return buffer;
     }
 
-    HString FilesystemUtils::GetParentDirectory(const HString& path)
+    HString FilesystemUtils::GetParentDirectory(const HStringView& path)
     {
         return std::filesystem::path(path.DataUTF8()).parent_path().generic_u8string();
     }
 
-    HString FilesystemUtils::SaveAsDialog(const HString& initialPath, const HString& title, const HString& defaultFileName, const HString& extension)
+    HString FilesystemUtils::SaveAsDialog(const HStringView& initialPath, const HStringView& title, const HStringView& defaultFileName, const HStringView& extension)
     {
         #ifdef HE_PLATFORM_WINDOWS
             return Win32OpenDialog(initialPath, title, defaultFileName, extension, false, true);
@@ -56,7 +56,7 @@ namespace Heart
         return "";
     }
 
-    HString FilesystemUtils::OpenFileDialog(const HString& initialPath, const HString& title, const HString& extension)
+    HString FilesystemUtils::OpenFileDialog(const HStringView& initialPath, const HStringView& title, const HStringView& extension)
     {
         #ifdef HE_PLATFORM_WINDOWS
             return Win32OpenDialog(initialPath, title, "", extension, false, false);
@@ -68,7 +68,7 @@ namespace Heart
     }
 
     // https://cpp.hotexamples.com/examples/-/IFileDialog/-/cpp-ifiledialog-class-examples.html
-    HString FilesystemUtils::OpenFolderDialog(const HString& initialPath, const HString& title)
+    HString FilesystemUtils::OpenFolderDialog(const HStringView& initialPath, const HStringView& title)
     {
         #ifdef HE_PLATFORM_WINDOWS
             return Win32OpenDialog(initialPath, title, "", "", true, false);
@@ -79,7 +79,7 @@ namespace Heart
         return "";
     }
 
-    HString FilesystemUtils::Win32OpenDialog(const HString& initialPath, const HString& title, const HString& defaultFileName, const HString& extension, bool folder, bool save)
+    HString FilesystemUtils::Win32OpenDialog(const HStringView& initialPath, const HStringView& title, const HStringView& defaultFileName, const HStringView& extension, bool folder, bool save)
     {
         HE_ENGINE_ASSERT(!folder || !save, "Cannot open a dialog with folder and save flags set to true");
 
@@ -163,7 +163,7 @@ namespace Heart
         return outputPath;
     }
 
-    HString FilesystemUtils::LinuxOpenDialog(const HString& initialPath, const HString& title, const HString& defaultFileName, const HString& extension, bool folder, bool save)
+    HString FilesystemUtils::LinuxOpenDialog(const HStringView& initialPath, const HStringView& title, const HStringView& defaultFileName, const HStringView& extension, bool folder, bool save)
     {
         HE_ENGINE_ASSERT(!folder || !save, "Cannot open a dialog with folder and save flags set to true");
 

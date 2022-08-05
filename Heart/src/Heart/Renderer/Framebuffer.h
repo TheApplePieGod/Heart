@@ -75,7 +75,7 @@ namespace Heart
         virtual ~Framebuffer();
 
         virtual void Bind(ComputePipeline* preRenderComputePipeline = nullptr) = 0;
-        virtual void BindPipeline(const HString& name) = 0;
+        virtual void BindPipeline(const HStringView& name) = 0;
 
         // must be called after BindPipeline()
         virtual void BindShaderBufferResource(u32 bindingIndex, u32 elementOffset, u32 elementCount, Buffer* buffer) = 0;
@@ -108,8 +108,8 @@ namespace Heart
 
         void OnEvent(Event& event) override;
 
-        Ref<GraphicsPipeline> RegisterGraphicsPipeline(const HString& name, const GraphicsPipelineCreateInfo& createInfo);
-        Ref<GraphicsPipeline> LoadPipeline(const HString& name);
+        Ref<GraphicsPipeline> RegisterGraphicsPipeline(const HStringView& name, const GraphicsPipelineCreateInfo& createInfo);
+        Ref<GraphicsPipeline> LoadPipeline(const HStringView& name);
 
         inline u32 GetWidth() const { return m_ActualWidth; }
         inline u32 GetHeight() const { return m_ActualHeight; }

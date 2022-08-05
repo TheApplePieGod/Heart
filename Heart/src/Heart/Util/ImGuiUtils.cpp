@@ -8,7 +8,7 @@
 
 namespace Heart
 {
-    void ImGuiUtils::RenderTooltip(const HString& text)
+    void ImGuiUtils::RenderTooltip(const HStringView& text)
     {
         if (ImGui::IsItemHovered())
         {
@@ -36,7 +36,7 @@ namespace Heart
         return false;
     }
 
-    void ImGuiUtils::AssetDropTarget(Asset::Type typeFilter, std::function<void(const HString&)>&& dropCallback)
+    void ImGuiUtils::AssetDropTarget(Asset::Type typeFilter, std::function<void(const HStringView&)>&& dropCallback)
     {
         if (AssetManager::GetAssetsDirectory().IsEmpty());
             return;
@@ -113,8 +113,8 @@ namespace Heart
     void ImGuiUtils::AssetPicker(
         Asset::Type assetType,
         UUID selectedAsset,
-        const HString& nullSelectionText,
-        const HString& widgetId,
+        const HStringView& nullSelectionText,
+        const HStringView& widgetId,
         ImGuiTextFilter& textFilter,
         std::function<void()>&& contextMenuCallback,
         std::function<void(UUID)>&& selectCallback
@@ -160,9 +160,9 @@ namespace Heart
     
     void ImGuiUtils::StringPicker(
         const HVector<HString>& options,
-        const HString& selected,
-        const HString& nullSelectionText,
-        const HString& widgetId,
+        const HStringView& selected,
+        const HStringView& nullSelectionText,
+        const HStringView& widgetId,
         ImGuiTextFilter& textFilter,
         std::function<void()>&& contextMenuCallback,
         std::function<void(u32)>&& selectCallback

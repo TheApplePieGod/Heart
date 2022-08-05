@@ -117,7 +117,7 @@ namespace Heart
         }
     }
 
-    bool ScriptingEngine::LoadClientPlugin(const HString& absolutePath)
+    bool ScriptingEngine::LoadClientPlugin(const HStringView& absolutePath)
     {
         auto timer = Timer("Client plugin load"); 
 

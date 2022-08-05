@@ -53,12 +53,12 @@ namespace Heart
         }
     }
 
-    Entity Scene::CreateEntity(const HString& name)
+    Entity Scene::CreateEntity(const HStringView& name)
     {
         return CreateEntityWithUUID(name, UUID());
     }
 
-    Entity Scene::CreateEntityWithUUID(const HString& name, UUID uuid)
+    Entity Scene::CreateEntityWithUUID(const HStringView& name, UUID uuid)
     {
         Entity entity = { this, m_Registry.create() };
         m_UUIDMap[uuid] = entity.GetHandle();

@@ -7,6 +7,7 @@ namespace Heart
 {
     // TODO: typed variants
     // TODO: macros for duplicated code?
+    class HStringView;
     class HString
     {
     public:
@@ -57,17 +58,19 @@ namespace Heart
         HString(const std::basic_string<char8>& str)
             : m_Encoding(Encoding::UTF8)
         { Allocate<char8>(str.data(), str.length()); }
-
+        
         HString(const std::basic_string<char16>& str)
             : m_Encoding(Encoding::UTF16)
         { Allocate<char16>(str.data(), str.length()); }
+
+        HString(const HStringView& other);
 
         u32 GetCount() const;
         HString Convert(Encoding encoding) const;
         HString ToUTF8() const;
         HString ToUTF16() const;
-        int Compare(Comparison type, const HString& other) const;
-        u32 Find(const HString& value) const;
+        int Compare(Comparison type, const HStringView& other) const;
+        u32 Find(const HStringView& value) const;
         u32 FindUTF8Char(char8 value) const;
         u32 FindUTF16Char(char16 value) const;
         HString Substr(u32 start, u32 offset = InvalidIndex);
@@ -100,21 +103,23 @@ namespace Heart
         inline bool IsEmpty() const { return m_Container.IsEmpty(); }
         inline void Clear() { m_Container.Resize(0); }
 
-        bool operator==(const HString& other) const;
-        bool operator!=(const HString& other) const;
-        bool operator<(const HString& other) const;
-        bool operator<=(const HString& other) const;
-        bool operator>(const HString& other) const;
-        bool operator>=(const HString& other) const;
+        bool operator==(const HStringView& other) const;
+        bool operator!=(const HStringView& other) const;
+        bool operator<(const HStringView& other) const;
+        bool operator<=(const HStringView& other) const;
+        bool operator>(const HStringView& other) const;
+        bool operator>=(const HStringView& other) const;
+        void operator=(const char8* other);
+        void operator=(const char16* other);
+        void operator=(const HStringView& other);
         void operator=(const HString& other);
-        HString operator+(const HString& other) const;
+        HString operator+(const HStringView& other) const;
         HString operator+(const char8* other) const;
         HString operator+(const char16* other) const;
-        void operator+=(const HString& other);
+        void operator+=(const HStringView& other);
         void operator+=(const char8* other);
         void operator+=(const char16* other);
-        friend HString operator+(const char8* left, const HString& right);
-        friend HString operator+(const char16* other, const HString& right);
+        friend HString operator+(const HStringView& left, const HStringView& right);
     
         inline static constexpr u32 InvalidIndex = std::numeric_limits<u32>::max();
 
@@ -124,7 +129,7 @@ namespace Heart
         {}
 
         template <typename T>
-        u32 Find(const T* str1, u32 len1, const T* str2, u32 len2) const
+        static constexpr u32 Find(const T* str1, u32 len1, const T* str2, u32 len2)
         {
             if (!str1 || !str2) return InvalidIndex;
             if (len1 == 0 || len2 == 0) return InvalidIndex;
@@ -145,7 +150,7 @@ namespace Heart
         }
 
         template <typename T>
-        int ToInt(const T* str, u32 len) const
+        static constexpr int ToInt(const T* str, u32 len)
         {
             if (!str) return 0;
             if (len == 0) return 0;
@@ -160,7 +165,7 @@ namespace Heart
         }
 
         template <typename T>
-        u32 StrLen(const T* str) const
+        static constexpr u32 StrLen(const T* str)
         {
             if (!str) return 0;
             u32 len = 0;
@@ -169,7 +174,7 @@ namespace Heart
         }
 
         template <typename T>
-        bool CompareEq(const T* str1, u32 len1, const T* str2, u32 len2) const
+        static constexpr bool CompareEq(const T* str1, u32 len1, const T* str2, u32 len2)
         {
             if (!str1 || !str2) return false;
             if (len1 != len2) return false;
@@ -184,7 +189,7 @@ namespace Heart
 
         // 0 if eq, -1 if str1 less, +1 if str1 greater
         template <typename T>
-        int CompareByValue(const T* str1, u32 len1, const T* str2, u32 len2) const
+        static constexpr int CompareByValue(const T* str1, u32 len1, const T* str2, u32 len2)
         {
             if (!str1 || !str2) return 1;
             u32 ptr = 0;
@@ -200,7 +205,7 @@ namespace Heart
         // 0 if eq, -1 if str1 less, +1 if str1 greater
         // only supported for standard english
         template <typename T>
-        int CompareAlphabetical(const T* str1, u32 len1, const T* str2, u32 len2) const
+        static constexpr int CompareAlphabetical(const T* str1, u32 len1, const T* str2, u32 len2)
         {
             if (!str1 || !str2) return 1;
             u32 ptr = 0;
@@ -250,19 +255,19 @@ namespace Heart
         }
 
         template <typename T>
-        bool IsDigit(T value) const
+        inline static constexpr bool IsDigit(T value)
         {
             return value >= 48 && value <= 57;
         }
 
         template <typename T>
-        int GetNumericValue(T value) const
+        inline static constexpr int GetNumericValue(T value)
         {
             return value - 48;
         }
 
         template <typename T>
-        bool IsAsciiUppercase(T value) const
+        inline static constexpr bool IsAsciiUppercase(T value)
         {
             return value >= 65 && value <= 90;
         }
@@ -272,8 +277,13 @@ namespace Heart
         {
             if (!str) return;
             if (len == 0) len = StrLen(str);
-            if (len == 0) return;
-            HE_PLACEMENT_NEW(&m_Container, Container<u8>, (const u8*)str, (len + 1) * sizeof(T));
+            if (len == 0)
+            {
+                m_Container = Container<u8>();
+                return;
+            }
+            //HE_PLACEMENT_NEW(&m_Container, Container<u8>, (const u8*)str, (len + 1) * sizeof(T));
+            m_Container = Container<u8>((const u8*)str, (len + 1) * sizeof(T));
             reinterpret_cast<T*>(m_Container.Data())[len] = (T)'\0';
         }
 
@@ -323,6 +333,154 @@ namespace Heart
         // are immutable
         Encoding m_Encoding = Encoding::UTF8;
         Container<u8> m_Container alignas(8);
+
+        friend class HStringView;
+    };
+
+    class HStringView
+    {
+    public:
+        HStringView() = default;
+        ~HStringView() = default;
+
+        HStringView(const HString& other)
+            : m_Encoding(other.m_Encoding), m_Data(other.DataRaw()), m_Count(other.GetCount())
+        {}
+
+        HStringView(const std::basic_string<char8>& str)
+            : m_Encoding(HString::Encoding::UTF8), m_Data(str.data()), m_Count(str.length())
+        {}
+
+        HStringView(const std::basic_string<char16>& str)
+            : m_Encoding(HString::Encoding::UTF16), m_Data(str.data()), m_Count(str.length())
+        {}
+
+        constexpr HStringView(const HStringView& other)
+            : m_Encoding(other.m_Encoding), m_Data(other.m_Data), m_Count(other.m_Count)
+        {}
+
+        constexpr HStringView(const std::basic_string_view<char8>& str)
+            : m_Encoding(HString::Encoding::UTF8), m_Data(str.data()), m_Count(str.length())
+        {}
+
+        constexpr HStringView(const std::basic_string_view<char16>& str)
+            : m_Encoding(HString::Encoding::UTF16), m_Data(str.data()), m_Count(str.length())
+        {}
+
+        constexpr HStringView(const char8* str)
+            : m_Encoding(HString::Encoding::UTF8), m_Data(str), m_Count(HString::StrLen(str))
+        {}
+
+        constexpr HStringView(const char16* str)
+            : m_Encoding(HString::Encoding::UTF8), m_Data(str), m_Count(HString::StrLen(str))
+        {}
+
+        constexpr HStringView(const char8* str, u32 len)
+            : m_Encoding(HString::Encoding::UTF8), m_Data(str), m_Count(len)
+        {}
+
+        constexpr HStringView(const char16* str, u32 len)
+            : m_Encoding(HString::Encoding::UTF8), m_Data(str), m_Count(len)
+        {}
+
+        inline HString ToUTF8() const { return HString(DataUTF8(), GetCountUTF8()); }
+        inline HString ToUTF16() const { return HString(DataUTF16(), GetCountUTF16()); }
+
+        inline constexpr const void* DataRaw() const { return Data<void>(); }
+        inline constexpr const char8* DataUTF8() const { return Data<char8>(); }
+        inline constexpr const char16* DataUTF16() const { return Data<char16>(); }
+        inline constexpr char8 GetUTF8(u32 index) const { return Get<char8>(index); }
+        inline constexpr char16 GetUTF16(u32 index) const { return Get<char16>(index); }
+        inline constexpr const char8* BeginUTF8() const { return Begin<char8>(); }
+        inline constexpr const char8* EndUTF8() const { return End<char8>(); }
+        inline constexpr const char16* BeginUTF16() const { return Begin<char16>(); }
+        inline constexpr const char16* EndUTF16() const { return End<char16>(); }
+        inline constexpr u32 GetCountUTF8() const { return m_Count; }
+        inline constexpr u32 GetCountUTF16() const { return m_Count; }
+        
+        template <typename T>
+        inline constexpr const T* Data() const
+        { return !reinterpret_cast<const T*>(m_Data) ? (const T*)"" : reinterpret_cast<const T*>(m_Data); }
+        template <typename T>
+        inline constexpr const T& Get(u32 index) const { return reinterpret_cast<const T*>(m_Data)[index]; }
+        template <typename T>
+        inline constexpr const T* Begin() const { return reinterpret_cast<const T*>(m_Data); }
+        template <typename T>
+        inline constexpr const T* End() const { return reinterpret_cast<const T*>(m_Data) + m_Count; }
+        inline constexpr HString::Encoding GetEncoding() const { return m_Encoding; }
+        inline constexpr u32 GetCount() const { return m_Count; }
+        inline constexpr bool IsEmpty() const { return m_Count == 0; }
+
+        constexpr int HStringView::Compare(HString::Comparison type, const HStringView& other) const
+        {
+            if (other.m_Encoding != m_Encoding)
+            {
+                HE_ENGINE_LOG_ERROR("Attempting to compare two HStringViews with different encodings, aborting");
+                HE_ENGINE_ASSERT(false);
+                return 0;
+            }
+
+            switch (type)
+            {
+                case HString::Comparison::Value:
+                {
+                    switch (m_Encoding)
+                    {
+                        case HString::Encoding::UTF8:
+                        { return HString::CompareByValue(DataUTF8(), GetCountUTF8(), other.DataUTF8(), other.GetCountUTF8()); }
+                        case HString::Encoding::UTF16:
+                        { return HString::CompareByValue(DataUTF16(), GetCountUTF16(), other.DataUTF16(), other.GetCountUTF16()); }
+                    }
+                }
+                case HString::Comparison::Alphabetical:
+                {
+                    switch (m_Encoding)
+                    {
+                        case HString::Encoding::UTF8:
+                        { return HString::CompareAlphabetical(DataUTF8(), GetCountUTF8(), other.DataUTF8(), other.GetCountUTF8()); }
+                        case HString::Encoding::UTF16:
+                        { return HString::CompareAlphabetical(DataUTF16(), GetCountUTF16(), other.DataUTF16(), other.GetCountUTF16()); }
+                    }
+                }
+            }
+
+            HE_ENGINE_ASSERT(false, "HString comparison not fully implemented");
+            return 0;
+        }
+
+        constexpr bool operator==(const HStringView& other) const
+        {
+            if (other.m_Encoding != m_Encoding)
+            {
+                HE_ENGINE_LOG_ERROR("Attempting to compare two HStringViews with different encodings, aborting");
+                HE_ENGINE_ASSERT(false);
+                return false;
+            }
+
+            switch (m_Encoding)
+            {
+                case HString::Encoding::UTF8:
+                { return HString::CompareEq(DataUTF8(), GetCountUTF8(), other.DataUTF8(), other.GetCountUTF8()); }
+                case HString::Encoding::UTF16:
+                { return HString::CompareEq(DataUTF16(), GetCountUTF16(), other.DataUTF16(), other.GetCountUTF16()); }
+            }
+
+            HE_ENGINE_ASSERT(false, "HStringView equality operator not fully implemented");
+            return false;
+        }
+
+        inline constexpr bool operator!=(const HStringView& other) const { return !(*this == other); }
+        inline constexpr bool operator<(const HStringView& other) const { return Compare(HString::Comparison::Alphabetical, other) == -1; }
+        inline constexpr bool operator<=(const HStringView& other) const { return !(*this > other); }
+        inline constexpr bool operator>(const HStringView& other) const { return other < *this; }
+        inline constexpr bool operator>=(const HStringView& other) const { return !(other > *this); }
+
+    private:
+        HString::Encoding m_Encoding = HString::Encoding::UTF8;
+        const void* m_Data;
+        u32 m_Count;
+
+        friend class HString;
     };
 
     void to_json(nlohmann::json& j, const HString& str);

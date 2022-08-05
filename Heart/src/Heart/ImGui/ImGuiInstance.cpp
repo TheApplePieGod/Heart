@@ -77,11 +77,11 @@ namespace Heart
         m_Initialized = true;
     }
 
-	void ImGuiInstance::OverrideImGuiConfig(const HString& newBasePath)
+	void ImGuiInstance::OverrideImGuiConfig(const HStringView& newBasePath)
 	{
 		ImGuiIO& io = ImGui::GetIO();
 
-		m_ImGuiConfigPath = std::filesystem::path(newBasePath.DataUTF8()).append("imgui.ini").u8string();
+		m_ImGuiConfigPath = (HString)std::filesystem::path(newBasePath.DataUTF8()).append("imgui.ini").u8string();
 		io.IniFilename = m_ImGuiConfigPath.DataUTF8();
 	}
 

@@ -12,10 +12,10 @@ namespace Heart
     class HVector;
     struct ImGuiUtils
     {
-        static void RenderTooltip(const HString& text);
+        static void RenderTooltip(const HStringView& text);
         static bool InputText(const char* id, HString& text);
 
-        static void AssetDropTarget(Asset::Type typeFilter, std::function<void(const HString&)>&& dropCallback);
+        static void AssetDropTarget(Asset::Type typeFilter, std::function<void(const HStringView&)>&& dropCallback);
         static void ResizableWindowSplitter(
             glm::vec2& storedWindowSizes,
             glm::vec2 minWindowSize,
@@ -29,17 +29,17 @@ namespace Heart
         static void AssetPicker(
             Asset::Type assetType,
             UUID selectedAsset,
-            const HString& nullSelectionText,
-            const HString& widgetId,
+            const HStringView& nullSelectionText,
+            const HStringView& widgetId,
             ImGuiTextFilter& textFilter,
             std::function<void()>&& contextMenuCallback,
             std::function<void(UUID)>&& selectCallback
         );
         static void StringPicker(
             const HVector<HString>& options,
-            const HString& selected,
-            const HString& nullSelectionText,
-            const HString& widgetId,
+            const HStringView& selected,
+            const HStringView& nullSelectionText,
+            const HStringView& widgetId,
             ImGuiTextFilter& textFilter,
             std::function<void()>&& contextMenuCallback,
             std::function<void(u32)>&& selectCallback

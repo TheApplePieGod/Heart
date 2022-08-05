@@ -19,7 +19,7 @@ namespace HeartEditor
 {
 namespace Widgets
 {
-    MaterialEditor::MaterialEditor(const Heart::HString& name, bool initialOpen)
+    MaterialEditor::MaterialEditor(const Heart::HStringView& name, bool initialOpen)
         : Widget(name, initialOpen)
     {
         m_SceneRenderer = Heart::CreateScope<Heart::SceneRenderer>();
@@ -117,7 +117,7 @@ namespace Widgets
         // Display material on drop
         Heart::ImGuiUtils::AssetDropTarget(
             Heart::Asset::Type::Material,
-            [&](const Heart::HString& path) { m_SelectedMaterial = Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Material, path); }
+            [&](const Heart::HStringView& path) { m_SelectedMaterial = Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Material, path); }
         );
 
         ImGui::End();

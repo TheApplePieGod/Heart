@@ -5,6 +5,18 @@
 
 namespace Heart
 {
+    HString::HString(const HStringView& other)
+        : m_Encoding(other.GetEncoding())
+    {
+        switch (m_Encoding)
+        {
+            case Encoding::UTF8: { Allocate<char8>(other.DataUTF8(), other.GetCountUTF8()); } return;
+            case Encoding::UTF16: { Allocate<char16>(other.DataUTF16(), other.GetCountUTF16()); } return;
+        }
+
+        HE_ENGINE_ASSERT(false, "HString from HStringView constructor not fully implemented");
+    }
+
     u32 HString::GetCount() const
     {
         switch (m_Encoding)
@@ -63,7 +75,7 @@ namespace Heart
         return HString();
     }
 
-    int HString::Compare(Comparison type, const HString& other) const
+    int HString::Compare(Comparison type, const HStringView& other) const
     {
         if (other.m_Encoding != m_Encoding)
         {
@@ -100,7 +112,7 @@ namespace Heart
         return 0;
     }
 
-    u32 HString::Find(const HString& value) const
+    u32 HString::Find(const HStringView& value) const
     {
         if (value.m_Encoding != m_Encoding)
         {
@@ -162,7 +174,7 @@ namespace Heart
         return HString();   
     }
 
-    bool HString::operator==(const HString& other) const
+    bool HString::operator==(const HStringView& other) const
     {
         if (other.m_Encoding != m_Encoding)
         {
@@ -183,38 +195,75 @@ namespace Heart
         return false;
     }
 
-    bool HString::operator!=(const HString& other) const
+    bool HString::operator!=(const HStringView& other) const
     {
         return !(*this == other);
     }
 
-    bool HString::operator<(const HString& other) const
+    bool HString::operator<(const HStringView& other) const
     {
         return Compare(Comparison::Alphabetical, other) == -1;
     }
 
-    bool HString::operator<=(const HString& other) const
+    bool HString::operator<=(const HStringView& other) const
     {
         return !(*this > other);
     }
 
-    bool HString::operator>(const HString& other) const
+    bool HString::operator>(const HStringView& other) const
     {
         return other < *this;
     }
 
-    bool HString::operator>=(const HString& other) const
+    bool HString::operator>=(const HStringView& other) const
     {
         return !(other > *this);
     }
+
+    void HString::operator=(const char8* other)
+    {
+        if (m_Encoding != Encoding::UTF8)
+        {
+            HE_ENGINE_LOG_ERROR("Attempting to set UTF8 characters to a non-UTF8 HString, aborting");
+            HE_ENGINE_ASSERT(false);
+        }
+
+        Allocate(other);
+    }
+
+    void HString::operator=(const char16* other)
+    {
+        if (m_Encoding != Encoding::UTF16)
+        {
+            HE_ENGINE_LOG_ERROR("Attempting to set UTF16 characters to a non-UTF16 HString, aborting");
+            HE_ENGINE_ASSERT(false);
+        }
+
+        Allocate(other);
+    }
     
+    void HString::operator=(const HStringView& other)
+    {
+        m_Encoding = other.m_Encoding;
+
+        switch (m_Encoding)
+        {
+            case Encoding::UTF8:
+            { Allocate(other.DataUTF8(), other.GetCountUTF8()); } return;
+            case Encoding::UTF16:
+            { Allocate(other.DataUTF16(), other.GetCountUTF16()); } return;
+        }
+
+        HE_ENGINE_ASSERT(false, "HString from HStringView operator= not fully implemented");
+    }
+
     void HString::operator=(const HString& other)
     {
         m_Encoding = other.m_Encoding;
         m_Container = other.m_Container;
     }
 
-    HString HString::operator+(const HString& other) const
+    HString HString::operator+(const HStringView& other) const
     {
         if (other.m_Encoding != m_Encoding)
         {
@@ -267,7 +316,7 @@ namespace Heart
         return AddPtr<char16>(other, false);
     }
 
-    void HString::operator+=(const HString& other)
+    void HString::operator+=(const HStringView& other)
     {
         *this = *this + other;
     }
@@ -282,28 +331,33 @@ namespace Heart
         *this = *this + other;
     }
 
-    HString operator+(const char8* left, const HString& right)
+    HString operator+(const HStringView& left, const HStringView& right)
     {
-        if (right.GetEncoding() != HString::Encoding::UTF8)
+        if (left.GetEncoding() != right.GetEncoding())
         {
-            HE_ENGINE_LOG_ERROR("Attempting to add UTF8 characters to a non-UTF8 HString, aborting");
+            HE_ENGINE_LOG_ERROR("Attempting to add HStringViews of different encodings, aborting");
             HE_ENGINE_ASSERT(false);
             return HString();
         }
 
-        return right.AddPtr<char8>(left, true);
-    }
-
-    HString operator+(const char16* left, const HString& right)
-    {
-        if (right.GetEncoding() != HString::Encoding::UTF16)
+        switch (left.GetEncoding())
         {
-            HE_ENGINE_LOG_ERROR("Attempting to add UTF16 characters to a non-UTF16 HString, aborting");
-            HE_ENGINE_ASSERT(false);
-            return HString();
+            case HString::Encoding::UTF8:
+            {
+                const char8* data[2] = { left.DataUTF8(), right.DataUTF8() };
+                u32 lens[2] = { left.GetCountUTF8(), right.GetCountUTF8() };
+                return HString(data, lens, 2);
+            }
+            case HString::Encoding::UTF16:
+            {
+                const char16* data[2] = { left.DataUTF16(), right.DataUTF16() };
+                u32 lens[2] = { left.GetCountUTF16(), right.GetCountUTF16() };
+                return HString(data, lens, 2);
+            }
         }
 
-        return right.AddPtr<char16>(left, true);
+        HE_ENGINE_ASSERT(false, "HStringView operator+ not fully implemented");
+        return HString();
     }
 
     void to_json(nlohmann::json& j, const HString& str)

@@ -16,7 +16,7 @@ namespace Heart
         static void Initialize();
         static void Shutdown();
 
-        static bool LoadClientPlugin(const HString& absolutePath);
+        static bool LoadClientPlugin(const HStringView& absolutePath);
         static bool UnloadClientPlugin();
 
         static uptr InstantiateObject(const HString& type, u32 entityHandle, Scene* sceneHandle);
@@ -26,8 +26,8 @@ namespace Heart
         static Variant GetFieldValue(uptr entity, const HString& fieldName);
         static bool SetFieldValue(uptr entity, const HString& fieldName, const Variant& value);
 
-        inline static bool IsClassInstantiable(const HString& name) { return s_InstantiableClasses.find(name) != s_InstantiableClasses.end(); }
-        inline static ScriptClass& GetInstantiableClass(const HString& name) { return s_InstantiableClasses[name]; }
+        inline static bool IsClassInstantiable(const HStringView& name) { return s_InstantiableClasses.find(name) != s_InstantiableClasses.end(); }
+        inline static ScriptClass& GetInstantiableClass(const HStringView& name) { return s_InstantiableClasses[name]; }
         inline static const auto& GetInstantiableClasses() { return s_InstantiableClasses; }
         inline static bool IsScriptInputEnabled() { return s_ScriptInputEnabled; }
         inline static void SetScriptInputEnabled(bool enabled) { s_ScriptInputEnabled = enabled; }

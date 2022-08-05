@@ -23,7 +23,7 @@ namespace Heart
          * 
          * @param windowName The initial name of the window.
          */
-        App(const HString& windowName = "Heart Engine");
+        App(const HStringView& windowName = "Heart Engine");
 
         /*! @brief Default destructor. */
         ~App();
@@ -54,7 +54,7 @@ namespace Heart
          * 
          * @param newDirectory The absolute path of the new assets directory. 
          */
-        void SwitchAssetsDirectory(const HString& newDirectory);
+        void SwitchAssetsDirectory(const HStringView& newDirectory);
 
         /**
          * @brief Stop running and close the application.

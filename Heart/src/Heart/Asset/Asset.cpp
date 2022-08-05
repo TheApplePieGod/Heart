@@ -9,7 +9,7 @@
 
 namespace Heart
 {
-    Asset::Asset(const HString& path, const HString& absolutePath)
+    Asset::Asset(const HStringView& path, const HStringView& absolutePath)
         : m_Path(path), m_AbsolutePath(absolutePath)
     {
         UpdatePath(path, absolutePath);
@@ -22,12 +22,12 @@ namespace Heart
         Load();
     }
 
-    void Asset::UpdatePath(const HString& path, const HString& absolutePath)
+    void Asset::UpdatePath(const HStringView& path, const HStringView& absolutePath)
     {
         auto entry = std::filesystem::path(path.DataUTF8());
-        m_Filename = entry.filename().generic_u8string();
-        m_Extension = entry.extension().generic_u8string();
-        m_ParentPath = entry.parent_path().generic_u8string();
+        m_Filename = (HString)entry.filename().generic_u8string();
+        m_Extension = (HString)entry.extension().generic_u8string();
+        m_ParentPath = (HString)entry.parent_path().generic_u8string();
 
         // convert the extension to lowercase
         std::transform(m_Extension.BeginUTF8(), m_Extension.EndUTF8(), m_Extension.BeginUTF8(), [](unsigned char c) { return std::tolower(c); });
@@ -36,7 +36,7 @@ namespace Heart
         m_AbsolutePath = absolutePath;
     }
 
-    Ref<Asset> Asset::Create(Type type, const HString& path, const HString& absolutePath)
+    Ref<Asset> Asset::Create(Type type, const HStringView& path, const HStringView& absolutePath)
     {
         switch (type)
         {
@@ -56,7 +56,7 @@ namespace Heart
     }
 
     // adapted from https://stackoverflow.com/questions/180947/base64-decode-snippet-in-c
-    std::vector<unsigned char> Asset::Base64Decode(const HString& encoded)
+    std::vector<unsigned char> Asset::Base64Decode(const HStringView& encoded)
     {
         int in_len = static_cast<int>(encoded.GetCountUTF8());
         int i = 0;

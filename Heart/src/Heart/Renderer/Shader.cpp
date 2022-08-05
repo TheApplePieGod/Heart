@@ -14,7 +14,7 @@ namespace Heart
     class ShaderIncluder : public shaderc::CompileOptions::IncluderInterface
     {
     public:
-        ShaderIncluder(const HString& basePath)
+        ShaderIncluder(const HStringView& basePath)
             : m_BasePath(basePath)
         {}
 
@@ -56,7 +56,7 @@ namespace Heart
         HString m_BasePath;
     };
 
-    Ref<Shader> Shader::Create(const HString& path, Type shaderType)
+    Ref<Shader> Shader::Create(const HStringView& path, Type shaderType)
     {
         switch (Renderer::GetApiType())
         {
@@ -69,7 +69,7 @@ namespace Heart
         }
     }
 
-    std::vector<u32> Shader::CompileSpirvFromFile(const HString& path, Type shaderType)
+    std::vector<u32> Shader::CompileSpirvFromFile(const HStringView& path, Type shaderType)
     {
         shaderc::Compiler compiler;
 		shaderc::CompileOptions options;

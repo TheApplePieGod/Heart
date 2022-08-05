@@ -15,7 +15,7 @@
 
 namespace HeartEditor
 {
-    Heart::Ref<Project> Project::CreateAndLoad(const Heart::HString& absolutePath, const Heart::HString& name)
+    Heart::Ref<Project> Project::CreateAndLoad(const Heart::HStringView& absolutePath, const Heart::HStringView& name)
     {
         const char* extension = ".heproj";
         Heart::HString filename = name + extension;
@@ -65,7 +65,7 @@ namespace HeartEditor
         // Sln
         Heart::HString slnTemplate = Heart::FilesystemUtils::ReadFileToString("templates/ProjectTemplate.sln");
         Heart::HString finalSln = std::regex_replace(slnTemplate.DataUTF8(), std::regex("\\$\\{SCRIPTS_ROOT_PATH\\}"), scriptsRootPath.DataUTF8());
-        finalSln = std::regex_replace(finalSln.DataUTF8(), std::regex("\\$\\{PROJECT_NAME\\}"), name.DataUTF8());
+        finalSln = (Heart::HString)std::regex_replace(finalSln.DataUTF8(), std::regex("\\$\\{PROJECT_NAME\\}"), name.DataUTF8());
         file = std::ofstream(
             std::filesystem::path(finalPath).append((name + ".sln").DataUTF8()),
             std::ios::binary
@@ -86,7 +86,7 @@ namespace HeartEditor
         return LoadFromPath(mainProjectFilePath.generic_u8string());
     }
 
-    Heart::Ref<Project> Project::LoadFromPath(const Heart::HString& absolutePath)
+    Heart::Ref<Project> Project::LoadFromPath(const Heart::HStringView& absolutePath)
     {
         Heart::Ref<Project> project = Heart::CreateRef<Project>(absolutePath);
         
@@ -117,7 +117,7 @@ namespace HeartEditor
         auto j = nlohmann::json::parse(data);
 
         if (j.contains("name"))
-            project->m_Name = j["name"];
+            project->m_Name = (Heart::HString)j["name"];
         
         if (j.contains("loadedScene") && j["loadedScene"] != "")
         {

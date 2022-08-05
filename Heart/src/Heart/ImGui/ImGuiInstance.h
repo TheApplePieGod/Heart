@@ -14,7 +14,7 @@ namespace Heart
         ~ImGuiInstance();
 
         void Recreate();
-        void OverrideImGuiConfig(const HString& newBasePath);
+        void OverrideImGuiConfig(const HStringView& newBasePath);
         void ReloadImGuiConfig();
         
         void BeginFrame();

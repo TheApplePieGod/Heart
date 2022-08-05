@@ -37,7 +37,7 @@ namespace Heart
         }
     }
 
-    Ref<GraphicsPipeline> Framebuffer::RegisterGraphicsPipeline(const HString& name, const GraphicsPipelineCreateInfo& createInfo)
+    Ref<GraphicsPipeline> Framebuffer::RegisterGraphicsPipeline(const HStringView& name, const GraphicsPipelineCreateInfo& createInfo)
     {
         if (m_GraphicsPipelines.find(name) != m_GraphicsPipelines.end())
         {
@@ -52,7 +52,7 @@ namespace Heart
         return newPipeline;
     }
 
-    Ref<GraphicsPipeline> Framebuffer::LoadPipeline(const HString& name)
+    Ref<GraphicsPipeline> Framebuffer::LoadPipeline(const HStringView& name)
     {
         HE_PROFILE_FUNCTION()
 

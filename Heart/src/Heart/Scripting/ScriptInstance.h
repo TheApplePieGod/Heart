@@ -16,7 +16,7 @@ namespace Heart
         ScriptInstance() = default;
         ~ScriptInstance() = default;
 
-        ScriptInstance(const HString& scriptClass)
+        ScriptInstance(const HStringView& scriptClass)
             : m_ScriptClass(scriptClass)
         {}
 
@@ -28,8 +28,8 @@ namespace Heart
         void OnPlayEnd();
         void OnUpdate(Timestep ts);
 
-        Variant GetFieldValue(const HString& fieldName) const;
-        bool SetFieldValue(const HString& fieldName, const Variant& value);
+        Variant GetFieldValue(const HStringView& fieldName) const;
+        bool SetFieldValue(const HStringView& fieldName, const Variant& value);
 
         nlohmann::json SerializeFieldsToJson();
         void* SerializeFieldsToBinary();
@@ -41,13 +41,13 @@ namespace Heart
         inline void ClearObjectHandle() { m_ObjectHandle = 0; }
         inline uptr GetObjectHandle() const { return m_ObjectHandle; }
         inline const HString& GetScriptClass() const { return m_ScriptClass; }
-        inline void SetScriptClass(const HString& value) { m_ScriptClass = value; }
+        inline void SetScriptClass(const HStringView& value) { m_ScriptClass = value; }
         inline bool IsInstantiable() const { return !m_ScriptClass.IsEmpty(); }
         inline bool IsAlive() const { return m_ObjectHandle != 0; }
 
     private:
-        Variant GetFieldValueUnchecked(const HString& fieldName) const;
-        bool SetFieldValueUnchecked(const HString& fieldName, const Variant& value);
+        Variant GetFieldValueUnchecked(const HStringView& fieldName) const;
+        bool SetFieldValueUnchecked(const HStringView& fieldName, const Variant& value);
 
     private:
         uptr m_ObjectHandle = 0;

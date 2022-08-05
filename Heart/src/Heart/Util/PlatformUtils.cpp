@@ -5,13 +5,13 @@
 
 namespace Heart
 {
-    void* PlatformUtils::LoadDynamicLibrary(const HString& path)
+    void* PlatformUtils::LoadDynamicLibrary(const HStringView& path)
     {
         #ifdef HE_PLATFORM_WINDOWS
             HMODULE lib = LoadLibraryA(path.DataUTF8());
             return (void*)lib;
         #elif defined(HE_PLATFORM_LINUX) || defined(HE_PLATFORM_MACOS)
-            void* lib = dlopen(lib, RTLD_LAZY, RTLD_LOCAL);
+            void* lib = dlopen(path.DataUTF8(), RTLD_LAZY, RTLD_LOCAL);
             return lib;
         #endif
 
@@ -27,7 +27,7 @@ namespace Heart
         #endif
     }
 
-    void* PlatformUtils::GetDynamicLibraryExport(void* lib, const HString& name)
+    void* PlatformUtils::GetDynamicLibraryExport(void* lib, const HStringView& name)
     {
         #ifdef HE_PLATFORM_WINDOWS
             void* func = GetProcAddress((HMODULE)lib, name.DataUTF8());

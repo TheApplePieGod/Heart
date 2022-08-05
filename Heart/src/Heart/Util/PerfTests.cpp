@@ -32,6 +32,10 @@ namespace Heart
 
     void PerfTests::RunHStringTest()
     {
+        HString test1 = "123";
+        HString test2 = "123";
+        bool test = test1 == test2;
+
         HString utf8 = "\xE0\xA4\xAF\xE0\xA5\x82\xE0\xA4\xA8\xE0\xA4\xBF\xE0\xA4\x95\xE0\xA5\x8B\xE0\xA4\xA1";
         HE_ENGINE_LOG_WARN(utf8.DataUTF8());
         HString utf16 = utf8.ToUTF16();

@@ -52,7 +52,7 @@ namespace Heart
             m_Scene = scene->Clone();
     }
 
-    Ref<Scene> SceneAsset::DeserializeScene(const HString& path)
+    Ref<Scene> SceneAsset::DeserializeScene(const HStringView& path)
     {
         auto scene = CreateRef<Scene>();
 
@@ -171,7 +171,7 @@ namespace Heart
         return scene;
     }
 
-    void SceneAsset::SerializeScene(const HString& path, Scene* scene)
+    void SceneAsset::SerializeScene(const HStringView& path, Scene* scene)
     {
         nlohmann::json j;
 

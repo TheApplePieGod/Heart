@@ -12,7 +12,7 @@ namespace Heart
         HString Title;
         u32 Width, Height;
 
-        WindowCreateInfo(const HString& title = "Window",
+        WindowCreateInfo(const HStringView& title = "Window",
 			        u32 width = 1920,
 			        u32 height = 1080)
 			: Title(title), Width(width), Height(height)

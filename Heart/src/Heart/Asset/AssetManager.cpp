@@ -124,7 +124,7 @@ namespace Heart
         entry.LoadedFrame = std::numeric_limits<u64>::max() - s_AssetFrameLimit; // prevent extraneous unloading
     }
 
-    UUID AssetManager::RegisterAsset(Asset::Type type, const HString& path, bool persistent, bool isResource)
+    UUID AssetManager::RegisterAsset(Asset::Type type, const HStringView& path, bool persistent, bool isResource)
     {
         if (path.IsEmpty())
             return 0;
@@ -195,7 +195,7 @@ namespace Heart
         return newUUID;
     }
 
-    void AssetManager::RegisterAssetsInDirectory(const HString& directory, bool persistent, bool isResource)
+    void AssetManager::RegisterAssetsInDirectory(const HStringView& directory, bool persistent, bool isResource)
     {
         try
         {
@@ -218,7 +218,7 @@ namespace Heart
         { return; }
     }
 
-    void AssetManager::RenameAsset(const HString& oldPath, const HString& newPath)
+    void AssetManager::RenameAsset(const HStringView& oldPath, const HStringView& newPath)
     {
         bool entryFound = false;
         for (auto& entry : s_UUIDs)
@@ -244,7 +244,7 @@ namespace Heart
         s_Registry[newPath].Asset->UpdatePath(newPath, GetAbsolutePath(newPath));
     }
 
-    void AssetManager::UpdateAssetsDirectory(const HString& directory)
+    void AssetManager::UpdateAssetsDirectory(const HStringView& directory)
     {
         UnloadAllAssets();
         s_AssetsDirectory = directory;
@@ -265,7 +265,7 @@ namespace Heart
         RegisterAssetsInDirectory(directory, false, false);
     }
 
-    Asset::Type AssetManager::DeduceAssetTypeFromFile(const HString& path)
+    Asset::Type AssetManager::DeduceAssetTypeFromFile(const HStringView& path)
     {
         auto extension = std::filesystem::path(path.DataUTF8()).extension().generic_u8string();
 
@@ -287,7 +287,7 @@ namespace Heart
         return type;
     }
 
-    UUID AssetManager::GetAssetUUID(const HString& path, bool isResource)
+    UUID AssetManager::GetAssetUUID(const HStringView& path, bool isResource)
     {
         for (auto& entry : s_UUIDs)
             if (isResource == entry.second.IsResource && entry.second.Path == path) return entry.first;
@@ -308,7 +308,7 @@ namespace Heart
         return s_UUIDs[uuid].IsResource;
     }
 
-    Asset* AssetManager::RetrieveAsset(const HString& path, bool isResource)
+    Asset* AssetManager::RetrieveAsset(const HStringView& path, bool isResource)
     {
         if (path.IsEmpty()) return nullptr;
         if (isResource)

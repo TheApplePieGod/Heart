@@ -13,7 +13,7 @@ namespace Heart
          * @param name The debug name for the timer.
          * @param shouldLog Whether or not the timer should log when destructed.
          */
-        Timer(const HString& name, bool shouldLog = true)
+        Timer(const HStringView& name, bool shouldLog = true)
             : m_Name(name), m_ShouldLog(shouldLog)
         { Reset(); }
 
@@ -43,7 +43,7 @@ namespace Heart
          *
          * @param newName The new name of the timer.
          */
-        inline void SetName(const HString& newName) { m_Name = newName; } 
+        inline void SetName(const HStringView& newName) { m_Name = newName; } 
 
         /*! @brief Get the elapsed time of the timer in seconds. */
         inline double ElapsedSeconds()
@@ -78,7 +78,7 @@ namespace Heart
          *
          * @param name The name/id associated with this timer.
          */
-        AggregateTimer(const HString& name)
+        AggregateTimer(const HStringView& name)
             : Timer(name, false)
         {}
 
@@ -96,7 +96,7 @@ namespace Heart
          * @param current True if the time should be retrieved from the current frame and false for the previous frame.
          * @return The time in milliseconds or zero if the id is invalid.
          */
-        static double GetAggregateTime(const HString& name, bool current)
+        static double GetAggregateTime(const HStringView& name, bool current)
         {
             if (current)
             {
@@ -119,7 +119,7 @@ namespace Heart
          *
          * @param name The name/id of the timer.
          */
-        static void ResetAggregateTime(const HString& name)
+        static void ResetAggregateTime(const HStringView& name)
         {
             std::unique_lock lock(s_CurrentMutex);
             if (s_AggregateTimes.find(name) != s_AggregateTimes.end())

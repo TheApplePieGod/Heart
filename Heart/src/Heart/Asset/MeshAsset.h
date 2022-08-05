@@ -18,7 +18,7 @@ namespace Heart
          * @param path The path of the asset relative to the project directory.
          * @param absolutePath The absolute filesystem path of the asset.
          */
-        MeshAsset(const HString& path, const HString& absolutePath)
+        MeshAsset(const HStringView& path, const HStringView& absolutePath)
             : Asset(path, absolutePath)
         { m_Type = Type::Mesh; }
 
@@ -78,7 +78,7 @@ namespace Heart
 
         struct TextureSource
         {
-            TextureSource(const HString& path, UUID assetId)
+            TextureSource(const HStringView& path, UUID assetId)
                 : Path(path), AssetId(assetId)
             {}
 

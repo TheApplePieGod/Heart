@@ -30,6 +30,8 @@ namespace Heart
     { m_Type = Type::Float; m_Data.Float = value; }
     Variant::Variant(const HArray& array)
     { m_Type = Type::Array; HE_PLACEMENT_NEW(m_Data.Any, HArray, array); }
+    Variant::Variant(const HStringView& str)
+    { m_Type = Type::String; HE_PLACEMENT_NEW(m_Data.Any, HString, str); }
     Variant::Variant(const HString& str)
     { m_Type = Type::String; HE_PLACEMENT_NEW(m_Data.Any, HString, str); }
 

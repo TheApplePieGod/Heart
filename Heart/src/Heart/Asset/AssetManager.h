@@ -70,10 +70,10 @@ namespace Heart
         /*! @brief Get a reference to the internal asset UUID registry. */
         inline static const std::unordered_map<UUID, UUIDEntry>& GetUUIDRegistry() { return s_UUIDs; }
 
-        inline static HString GetAbsolutePath(const HString& relative)
+        inline static HString GetAbsolutePath(const HStringView& relative)
         { return std::filesystem::path(s_AssetsDirectory.DataUTF8()).append(relative.DataUTF8()).generic_u8string(); }
 
-        inline static HString GetRelativePath(const HString& absolute)
+        inline static HString GetRelativePath(const HStringView& absolute)
         { return std::filesystem::path(absolute.DataUTF8()).lexically_relative(Heart::AssetManager::GetAssetsDirectory().DataUTF8()).generic_u8string(); }
 
         /**
@@ -92,7 +92,7 @@ namespace Heart
          * @param isResource Store this asset as a resource.
          * @return The UUID of the newly registered asset.
          */
-        static UUID RegisterAsset(Asset::Type type, const HString& path, bool persistent = false, bool isResource = false);
+        static UUID RegisterAsset(Asset::Type type, const HStringView& path, bool persistent = false, bool isResource = false);
 
         static void UnregisterAsset(UUID uuid);
 
@@ -108,7 +108,7 @@ namespace Heart
          * @param persistent Mark all assets as persistent (will never automatically unload).
          * @param isResource Store all assets as resources.
          */
-        static void RegisterAssetsInDirectory(const HString& directory, bool persistent = false, bool isResource = false);
+        static void RegisterAssetsInDirectory(const HStringView& directory, bool persistent = false, bool isResource = false);
 
         /**
          * @brief Change the name and/or path of a registered non-resource asset.
@@ -118,7 +118,7 @@ namespace Heart
          * @param oldPath The old path of the asset relative to the project directory.
          * @param newPath The new path of the asset relative to the project directory.
          */
-        static void RenameAsset(const HString& oldPath, const HString& newPath);
+        static void RenameAsset(const HStringView& oldPath, const HStringView& newPath);
 
         /**
          * @brief Change the project directory.
@@ -128,7 +128,7 @@ namespace Heart
          * 
          * @param directory The absolute path of the new project directory.
          */
-        static void UpdateAssetsDirectory(const HString& directory);
+        static void UpdateAssetsDirectory(const HStringView& directory);
 
         /**
          * @brief Get the associated asset type of a file.
@@ -138,7 +138,7 @@ namespace Heart
          * @param path The path of the asset.
          * @return The type of the asset or Asset::Type::None if it is unassociated.
          */
-        static Asset::Type DeduceAssetTypeFromFile(const HString& path);
+        static Asset::Type DeduceAssetTypeFromFile(const HStringView& path);
 
         /**
          * @brief Get the UUID of a registered asset from its filepath.
@@ -147,7 +147,7 @@ namespace Heart
          * @param isResource Whether or not this path references a resource asset.
          * @return The UUID of the registered path or zero if it could not be located.
          */
-        static UUID GetAssetUUID(const HString& path, bool isResource = false);
+        static UUID GetAssetUUID(const HStringView& path, bool isResource = false);
 
         /**
          * @brief Get the path of a registered asset from its UUID.
@@ -178,7 +178,7 @@ namespace Heart
          * @param isResource Whether or not this path references a resource asset.
          * @return The pointer to the asset or nullptr if it could not be located. 
          */
-        static Asset* RetrieveAsset(const HString& path, bool isResource = false);
+        static Asset* RetrieveAsset(const HStringView& path, bool isResource = false);
 
         /**
          * @brief Retrieve an asset from a path.
@@ -192,7 +192,7 @@ namespace Heart
          * @return The pointer to the asset or nullptr if it could not be located. 
          */
         template<typename T>
-        static T* RetrieveAsset(const HString& path, bool isResource = false)
+        static T* RetrieveAsset(const HStringView& path, bool isResource = false)
         {
             return static_cast<T*>(RetrieveAsset(path, isResource));
         }

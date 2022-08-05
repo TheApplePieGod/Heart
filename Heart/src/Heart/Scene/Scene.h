@@ -11,6 +11,7 @@ namespace Heart
 {
     class Entity;
     class HString;
+    class HStringView;
     class HArray;
     class ScriptComponent;
     class Scene
@@ -19,8 +20,8 @@ namespace Heart
         Scene();
         ~Scene();
 
-        Entity CreateEntity(const HString& name);
-        Entity CreateEntityWithUUID(const HString& name, UUID uuid);
+        Entity CreateEntity(const HStringView& name);
+        Entity CreateEntityWithUUID(const HStringView& name, UUID uuid);
         Entity DuplicateEntity(Entity source, bool keepParent, bool keepChildren);
         void DestroyEntity(Entity entity);
         void AssignRelationship(Entity parent, Entity child);
