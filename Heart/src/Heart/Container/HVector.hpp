@@ -92,10 +92,17 @@ namespace Heart
             m_Container = Container(start, end - start);
         }
 
-        void Append(const HVector<T>& other)
+        void Append(const HVector<T>& other, bool shallow = false)
         {
-            Reserve(GetCount() + other.GetCount());
-            memcpy(End(), other.Begin(), other.GetCount());
+            u32 oldCount = GetCount();
+            Resize(oldCount + other.GetCount(), false);
+            if (shallow)
+                memcpy(End(), other.Begin(), other.GetCount() * sizeof(T));
+            else
+            {
+                for (u32 i = 0; i < other.GetCount(); i++)
+                    HE_PLACEMENT_NEW(Begin() + i + oldCount, T, other[i]);
+            }
         }
 
         // insert
@@ -136,7 +143,7 @@ namespace Heart
                 m_Container.IncrementCount();
             return count;
         }
-
+        
         inline constexpr bool ShouldDestruct() const { return std::is_destructible<T>::value && !std::is_trivially_destructible<T>::value; }
 
     private:

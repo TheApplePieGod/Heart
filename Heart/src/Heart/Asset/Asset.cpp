@@ -30,7 +30,7 @@ namespace Heart
         m_ParentPath = entry.parent_path().generic_u8string();
 
         // convert the extension to lowercase
-        std::transform(m_Extension.Begin(), m_Extension.End(), m_Extension.Begin(), [](unsigned char c) { return std::tolower(c); });
+        std::transform((char*)m_Extension.Begin(), (char*)m_Extension.End(), (char*)m_Extension.Begin(), [](unsigned char c) { return std::tolower(c); });
 
         m_Path = path;
         m_AbsolutePath = absolutePath;

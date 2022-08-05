@@ -15,7 +15,7 @@ namespace Heart
         ~HStringTyped() = default;
 
         HStringTyped(const HStringTyped& other)
-            : m_Container(other.m_Container)
+            : m_Container(other.m_Container, true)
         {}
 
         HStringTyped(const T* str)
@@ -38,10 +38,10 @@ namespace Heart
         HStringTyped<T> Substr(u32 start, u32 offset = InvalidIndex) const;
 
         inline u32 GetCount() const { return m_Container.Data() ? (m_Container.GetCountUnchecked() - 1) : 0; }
-        inline T* Data() const { return !m_Container.Data() ? (T*)"" : m_Container.Data(); }
-        inline T& Get(u32 index) const { return m_Container[index]; }
-        inline T* Begin() const { return m_Container.Begin(); }
-        inline T* End() const { return m_Container.End(); }
+        inline const T* Data() const { return !m_Container.Data() ? (const T*)"" : m_Container.Data(); }
+        inline const T& Get(u32 index) const { return m_Container[index]; }
+        inline const T* Begin() const { return m_Container.Begin(); }
+        inline const T* End() const { return m_Container.End(); }
         inline HStringTyped Clone() const { return HStringTyped(m_Container.Clone()); }
         inline bool IsEmpty() const { return m_Container.IsEmpty(); }
         inline void Clear() { m_Container.Resize(0); }
@@ -188,7 +188,7 @@ namespace Heart
     template <typename T>
     void HStringTyped<T>::operator=(const HStringTyped<T>& other)
     {
-        m_Container = other.m_Container;
+        m_Container.Copy(other.m_Container, true);
     }
 
     template <typename T>

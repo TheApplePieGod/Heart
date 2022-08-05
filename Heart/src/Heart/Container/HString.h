@@ -20,7 +20,7 @@ namespace Heart
         ~HString() = default;
 
         HString(const HString& other)
-            : m_Encoding(other.m_Encoding), m_Container(other.m_Container)
+            : m_Encoding(other.m_Encoding), m_Container(other.m_Container, true)
         {}
         
         HString(const char8* str)
@@ -71,24 +71,24 @@ namespace Heart
         inline const char16* DataUTF16() const { return Data<char16>(); }
         inline char8 GetUTF8(u32 index) const { return Get<char8>(index); }
         inline char16 GetUTF16(u32 index) const { return Get<char16>(index); }
-        inline char8* BeginUTF8() const { return Begin<char8>(); }
-        inline char8* EndUTF8() const { return End<char8>(); }
-        inline char16* BeginUTF16() const { return Begin<char16>(); }
-        inline char16* EndUTF16() const { return End<char16>(); }
+        inline const char8* BeginUTF8() const { return Begin<char8>(); }
+        inline const char8* EndUTF8() const { return End<char8>(); }
+        inline const char16* BeginUTF16() const { return Begin<char16>(); }
+        inline const char16* EndUTF16() const { return End<char16>(); }
         inline u32 GetCountUTF8() const { return m_Container.Data() ? (m_Container.GetCountUnchecked() - 1) : 0; }
         inline u32 GetCountUTF16() const { return m_Container.Data() ? (m_Container.GetCountUnchecked() * 0.5 - 1) : 0; }
         inline HStringView8 GetViewUTF8() const { return HStringView8(DataUTF8(), GetCountUTF8()); }
         inline HStringView16 GetViewUTF16() const { return HStringView16(DataUTF16(), GetCountUTF16()); }
 
         template <typename T>
-        inline T* Data() const
-        { return !reinterpret_cast<T*>(m_Container.Data()) ? (T*)"" : reinterpret_cast<T*>(m_Container.Data()); }
+        inline const T* Data() const
+        { return !reinterpret_cast<const T*>(m_Container.Data()) ? (const T*)"" : reinterpret_cast<const T*>(m_Container.Data()); }
         template <typename T>
-        inline T& Get(u32 index) const { return reinterpret_cast<T&>(m_Container[index]); }
+        inline const T& Get(u32 index) const { return reinterpret_cast<const T&>(m_Container[index]); }
         template <typename T>
-        inline T* Begin() const { return reinterpret_cast<T*>(m_Container.Begin()); }
+        inline const T* Begin() const { return reinterpret_cast<const T*>(m_Container.Begin()); }
         template <typename T>
-        inline T* End() const { return reinterpret_cast<T*>(m_Container.End()); }
+        inline const T* End() const { return reinterpret_cast<const T*>(m_Container.End()); }
         inline Encoding GetEncoding() const { return m_Encoding; }
         inline HString Clone() const { return HString(m_Container.Clone()); }
         inline bool IsEmpty() const { return m_Container.IsEmpty(); }

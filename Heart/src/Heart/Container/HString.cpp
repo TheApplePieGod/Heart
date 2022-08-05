@@ -244,7 +244,7 @@ namespace Heart
     void HString::operator=(const HString& other)
     {
         m_Encoding = other.m_Encoding;
-        m_Container = other.m_Container;
+        m_Container.Copy(other.m_Container, true);
     }
 
     HString HString::operator+(const HStringView& other) const

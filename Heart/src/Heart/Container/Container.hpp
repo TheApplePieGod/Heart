@@ -9,8 +9,8 @@ namespace Heart
     public:
         Container() = default;
 
-        Container(const Container<T>& other)
-        { Copy(other); }
+        Container(const Container<T>& other, bool shallow = false)
+        { Copy(other, shallow); }
 
         Container(u32 elemCount, bool fill = true)
         {
@@ -40,11 +40,38 @@ namespace Heart
             Cleanup();
         }
 
+        void Copy(const Container<T>& other, bool shallow = false)
+        {
+            if (m_Data) Cleanup();
+            if (shallow)
+            {
+                m_Data = other.m_Data;
+                if (!other.m_Data) return;
+                IncrementRefCount();
+                return;
+            }
+            if (other.GetCount() == 0) return;
+            Resize(other.GetCount(), false);
+            for (u32 i = 0; i < other.GetCount(); i++)
+                HE_PLACEMENT_NEW(m_Data + i, T, other[i]);
+        }
+
         void Clear(bool shrink = false)
         {
             if (GetCount() == 0) return;
+
+            if (shrink)
+            {
+                Resize(0);
+                return;
+            }
+
+            // Destruct removed elements
+            if (ShouldDestruct())
+                for (u32 i = 0; i < GetCount(); i++)
+                    m_Data[i].~T();    
+
             SetCount(0);
-            if (shrink) Resize(0);
         }
 
         void Reserve(u32 allocCount)
@@ -84,14 +111,6 @@ namespace Heart
         };
 
     private:
-        void Copy(const Container<T>& other)
-        {
-            if (m_Data) Cleanup();
-            m_Data = other.m_Data;
-            if (!other.m_Data) return;
-            IncrementRefCount();
-        }
-
         // Value must not be zero
         u32 GetNextPowerOfTwo(u32 value)
         {
@@ -125,19 +144,22 @@ namespace Heart
                 SetCount(elemCount);
             }
             
-            ContainerInfo* data = reinterpret_cast<ContainerInfo*>(::operator new(allocCount * sizeof(T) + sizeof(ContainerInfo)));
-            data->RefCount = GetRefCount();
-            data->AllocatedCount = allocCount;
-            data->ElemCount = elemCount;
-            T* newData = reinterpret_cast<T*>(data + 1);
-    
-            if (m_Data)
+            if (allocCount != GetAllocatedCount())
             {
-                memcpy(newData, m_Data, oldCount * sizeof(T));
-                FreeMemory();
+                ContainerInfo* data = reinterpret_cast<ContainerInfo*>(::operator new(allocCount * sizeof(T) + sizeof(ContainerInfo)));
+                data->RefCount = GetRefCount();
+                data->AllocatedCount = allocCount;
+                data->ElemCount = elemCount;
+                T* newData = reinterpret_cast<T*>(data + 1);
+        
+                if (m_Data)
+                {
+                    memcpy(newData, m_Data, oldCount * sizeof(T));
+                    FreeMemory();
+                }
+                
+                m_Data = newData;
             }
-            
-            m_Data = newData;
 
             if (construct && ShouldConstruct())
                 for (u32 i = oldCount; i < allocCount; i++)
@@ -161,9 +183,6 @@ namespace Heart
                         m_Data[i].~T();
                     
                 FreeMemory();
-
-                // static int freed = 0;
-                // HE_ENGINE_LOG_WARN("Freed {0} on thread {1}", ++freed, std::hash<std::thread::id>{}(std::this_thread::get_id()));
             }
             m_Data = nullptr;
         }

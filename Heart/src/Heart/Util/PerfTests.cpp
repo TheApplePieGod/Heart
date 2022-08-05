@@ -22,6 +22,7 @@ namespace Heart
         f32 Field2 = 12345.f;
         bool Field3 = true;
         u64 Field4 = 24680;
+        HVector<u32> Field5;
 
         inline bool operator==(const TestStruct& other)
         {
@@ -77,9 +78,20 @@ namespace Heart
 
     void PerfTests::RunHVectorTest()
     {
-        HVector<TestStruct> vec = { TestStruct(), TestStruct(), TestStruct(), TestStruct() };
-        vec.Pop();
-        int e = 0;
+        TestStruct struct1;
+        struct1.Field5.Add(5);
+        TestStruct struct2 = struct1;
+        struct1.Field5.Add(6);
+
+        HVector<u32> testVec1 = { 1, 2, 3 };
+        HVector<u32> testVec2 = { 4, 5, 6 };
+        testVec1.Append(testVec2);
+
+        HString8 testStr1 = "";
+        HString8 testStr2 = "asd";
+        HString8 testStr3;
+        testStr2 = testStr1;
+        int d = 0; 
 
         /*
          * HVector - Add
@@ -157,6 +169,6 @@ namespace Heart
             }
         }
 
-        int d = 0;
+        int g = 0;
     }
 }
