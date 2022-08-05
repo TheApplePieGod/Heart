@@ -17,6 +17,8 @@ namespace Heart
     VulkanTexture::VulkanTexture(const TextureCreateInfo& createInfo, void* initialData)
         : Texture(createInfo)
     {
+        HE_PROFILE_FUNCTION();
+
         if (initialData != nullptr)
             ScanForTransparency(createInfo.Width, createInfo.Height, createInfo.Channels, initialData);
         CreateTexture(initialData);

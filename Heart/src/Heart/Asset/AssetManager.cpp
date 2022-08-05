@@ -112,15 +112,11 @@ namespace Heart
     {
         for (auto& pair : s_Registry)
             UnloadAsset(pair.second);
-        for (auto& pair : s_Resources)
-            UnloadAsset(pair.second);
     }
 
     void AssetManager::LoadAllAssets()
     {
         for (auto& pair : s_Registry)
-            LoadAsset(pair.second);
-        for (auto& pair : s_Resources)
             LoadAsset(pair.second);
     }
 
@@ -261,7 +257,7 @@ namespace Heart
         UnloadAllAssets();
         s_AssetsDirectory = directory;
 
-        // clear all the regisitered assets
+        // clear all the registered assets
         s_Registry.clear();
 
         // remove all UUID entries that aren't resources

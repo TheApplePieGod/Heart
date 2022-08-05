@@ -15,6 +15,8 @@ namespace Heart
 {
     void MeshAsset::Load()
     {
+        HE_PROFILE_FUNCTION();
+        
         if (m_Loaded || m_Loading) return;
         m_Loading = true;
 
