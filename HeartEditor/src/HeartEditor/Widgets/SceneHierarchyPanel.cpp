@@ -98,6 +98,11 @@ namespace Widgets
         // right click menu
         if (ImGui::BeginPopupContextItem((nameString + std::to_string(static_cast<u32>(entity))).DataUTF8()))
         {
+            if (ImGui::MenuItem("Create Child Entity"))
+            {
+                auto newEntity = Editor::GetActiveScene().CreateEntity("New Entity");
+                activeScene.AssignRelationship({ &activeScene, entity }, newEntity);
+            }
             if (ImGui::MenuItem("Remove Entity"))
             {
                 activeScene.DestroyEntity({ &activeScene, entity });
