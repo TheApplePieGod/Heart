@@ -36,13 +36,12 @@ namespace Heart
 
         ~Container()
         {
-            if (!m_Data) return;
             Cleanup();
         }
 
         void Copy(const Container<T>& other, bool shallow = false)
         {
-            if (m_Data) Cleanup();
+            Cleanup();
             if (shallow)
             {
                 m_Data = other.m_Data;
@@ -131,7 +130,7 @@ namespace Heart
 
         void ResizeExplicit(u32 elemCount, u32 allocCount, bool construct = true)
         {
-            if (elemCount == 0 && m_Data)
+            if (elemCount == 0)
             {
                 Cleanup();
                 return;
@@ -176,6 +175,7 @@ namespace Heart
 
         void Cleanup()
         {
+            if (!m_Data) return;
             if (DecrementRefCount() == 0)
             {
                 // Destruct
