@@ -2,6 +2,7 @@
 #include "FilesystemUtils.h"
 
 #include "Heart/Util/PlatformUtils.h"
+#include "Heart/Container/HString16.h"
 #include "Heart/Core/App.h"
 #include "GLFW/glfw3.h"
 #include "GLFW/glfw3native.h"

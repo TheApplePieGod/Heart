@@ -2,7 +2,7 @@
 
 #include "Heart/Asset/Asset.h"
 #include "Heart/Core/UUID.h"
-#include "Heart/Container/HString.h"
+#include "Heart/Container/HString8.h"
 
 namespace Heart
 {

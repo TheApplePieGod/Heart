@@ -112,7 +112,7 @@ namespace Heart
             for (auto& image : j["images"])
             {
                 HString8 uri = image["uri"];
-                if (uri.Find("base64") != HString::InvalidIndex)
+                if (uri.Find("base64") != HString8::InvalidIndex)
                 {
                     HE_ENGINE_LOG_ERROR("Cannot load GLTF mesh that uses inline textures (not supported yet)");
                     throw std::exception();
