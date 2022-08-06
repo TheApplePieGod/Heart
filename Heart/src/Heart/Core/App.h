@@ -115,7 +115,7 @@ namespace Heart
         HString8 m_SwitchingAssetsDirectory = "";
 
     private:
-        static App* s_Instance;
+        inline static App* s_Instance = nullptr;
         friend int ::main(int argc, char** argv);
     };
 }

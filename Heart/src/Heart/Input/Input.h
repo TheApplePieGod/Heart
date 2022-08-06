@@ -45,11 +45,11 @@ namespace Heart
         static void ClearDeltas();
 
     private:
-        static double s_MouseDeltaX;
-        static double s_MouseDeltaY;
-        static double s_ScrollOffsetX;
-        static double s_ScrollOffsetY;
-        static double s_LastMousePosX;
-        static double s_LastMousePosY;
+        inline static double s_MouseDeltaX = 0.0;
+        inline static double s_MouseDeltaY = 0.0;
+        inline static double s_ScrollOffsetX = 0.0;
+        inline static double s_ScrollOffsetY = 0.0;
+        inline static double s_LastMousePosX = 0.0;
+        inline static double s_LastMousePosY = 0.0;
     };
 }

@@ -10,9 +10,6 @@
 
 namespace Heart
 {
-    OpenGLFramebuffer* OpenGLContext::s_BoundFramebuffer = nullptr;
-    int OpenGLContext::s_MsaaMaxSamples = 1;
-
     static void debugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam)
     {
         if (id == 131154) return; // pixel-path performance warning

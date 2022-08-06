@@ -64,14 +64,14 @@ namespace Heart
         static void CreateDefaultSampler();
 
     private:
-        static u32 s_ContextCount;
-        static VkInstance s_Instance;
-        static VkDebugUtilsMessengerEXT s_DebugMessenger;
-        static VulkanDevice s_VulkanDevice;
-        static VkCommandPool s_GraphicsPool, s_ComputePool, s_TransferPool;
-        static VulkanFramebuffer* s_BoundFramebuffer;
-        static VkSampler s_DefaultSampler;
-        static std::deque<std::function<void()>> s_DeleteQueue;
-        static EventEmitter s_EventEmitter;
+        inline static u32 s_ContextCount = 0;
+        inline static VkInstance s_Instance = nullptr;
+        inline static VkDebugUtilsMessengerEXT s_DebugMessenger = nullptr;
+        inline static VulkanDevice s_VulkanDevice;
+        inline static VkCommandPool s_GraphicsPool, s_ComputePool, s_TransferPool;
+        inline static VulkanFramebuffer* s_BoundFramebuffer = nullptr;
+        inline static VkSampler s_DefaultSampler;
+        inline static std::deque<std::function<void()>> s_DeleteQueue;
+        inline static EventEmitter s_EventEmitter;
     };
 }

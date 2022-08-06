@@ -14,8 +14,6 @@
 
 namespace Heart
 {
-    App* App::s_Instance = nullptr;
-
     App::App(const HStringView8& windowName)
     {
         HE_ENGINE_ASSERT(!s_Instance, "App instance already exists");

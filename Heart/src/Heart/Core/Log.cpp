@@ -7,9 +7,6 @@
 
 namespace Heart
 {
-    Ref<spdlog::logger> Logger::s_EngineLogger;
-    Ref<spdlog::logger> Logger::s_ClientLogger;
-
     void Logger::Initialize()
     {
         HVector<spdlog::sink_ptr> logSinks = {

@@ -24,8 +24,7 @@ namespace Heart
         inline static int MaxMsaaSamples() { return s_MsaaMaxSamples; }
 
     private:
-        static OpenGLFramebuffer* s_BoundFramebuffer;
-        static int s_MsaaMaxSamples;
-
+        inline static OpenGLFramebuffer* s_BoundFramebuffer = nullptr;
+        inline static int s_MsaaMaxSamples = 1;
     };
 }

@@ -10,18 +10,6 @@
 
 namespace Heart
 {
-    u32 VulkanContext::s_ContextCount = 0;
-    VkInstance VulkanContext::s_Instance = nullptr;
-    VkDebugUtilsMessengerEXT VulkanContext::s_DebugMessenger = nullptr;
-    VulkanDevice VulkanContext::s_VulkanDevice;
-    VkCommandPool VulkanContext::s_GraphicsPool;
-    VkCommandPool VulkanContext::s_ComputePool;
-    VkCommandPool VulkanContext::s_TransferPool;
-    VulkanFramebuffer* VulkanContext::s_BoundFramebuffer = nullptr;
-    VkSampler VulkanContext::s_DefaultSampler;
-    std::deque<std::function<void()>> VulkanContext::s_DeleteQueue;
-    EventEmitter VulkanContext::s_EventEmitter;
-
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
         VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
         VkDebugUtilsMessageTypeFlagsEXT messageType,

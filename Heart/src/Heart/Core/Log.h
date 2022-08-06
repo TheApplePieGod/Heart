@@ -13,8 +13,8 @@ namespace Heart
         inline static spdlog::logger& GetClientLogger() { return *s_ClientLogger; }
 
     private:
-        static Ref<spdlog::logger> s_EngineLogger;
-        static Ref<spdlog::logger> s_ClientLogger;
+        inline static Ref<spdlog::logger> s_EngineLogger;
+        inline static Ref<spdlog::logger> s_ClientLogger;
     };
 }
 
