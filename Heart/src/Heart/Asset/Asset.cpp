@@ -58,7 +58,7 @@ namespace Heart
     // adapted from https://stackoverflow.com/questions/180947/base64-decode-snippet-in-c
     HVector<unsigned char> Asset::Base64Decode(const HStringView8& encoded)
     {
-        int in_len = static_cast<int>(encoded.GetCount());
+        int in_len = static_cast<int>(encoded.Count());
         int i = 0;
         int j = 0;
         int in_ = 0;

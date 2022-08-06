@@ -21,7 +21,7 @@ namespace Heart
         file.read(buffer.Data(), fileSize);
         file.close();
 
-        return HString8(buffer.Data(), buffer.GetCount());
+        return HString8(buffer.Data(), buffer.Count());
     }
 
     unsigned char* FilesystemUtils::ReadFile(const HStringView8& path, u32& outLength)

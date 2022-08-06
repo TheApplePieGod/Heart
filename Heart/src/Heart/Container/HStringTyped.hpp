@@ -37,7 +37,7 @@ namespace Heart
         u32 Find(T value) const;
         HStringTyped<T> Substr(u32 start, u32 offset = InvalidIndex) const;
 
-        inline u32 GetCount() const { return m_Container.Data() ? (m_Container.GetCountUnchecked() - 1) : 0; }
+        inline u32 Count() const { return m_Container.Data() ? (m_Container.CountUnchecked() - 1) : 0; }
         inline const T* Data() const { return !m_Container.Data() ? (const T*)"" : m_Container.Data(); }
         inline const T& Get(u32 index) const { return m_Container[index]; }
         inline const T* Begin() const { return m_Container.Begin(); }
@@ -47,7 +47,7 @@ namespace Heart
         inline void Clear() { m_Container.Clear(true); }
 
         inline bool operator==(const HStringViewTyped<T>& other) const
-        { return StringUtils::CompareEq(Data(), GetCount(), other.Data(), other.GetCount()); }
+        { return StringUtils::CompareEq(Data(), Count(), other.Data(), other.Count()); }
         inline bool operator<(const HStringViewTyped<T>& other) const
         { return Compare(StringComparison::Alphabetical, other) == -1; }
         inline bool operator!=(const HStringViewTyped<T>& other) const { return !(*this == other); }
@@ -86,7 +86,7 @@ namespace Heart
         ~HStringViewTyped() = default;
 
         HStringViewTyped(const HStringTyped<T>& other)
-            : m_Data(other.Data()), m_Count(other.GetCount())
+            : m_Data(other.Data()), m_Count(other.Count())
         {}
 
         HStringViewTyped(const std::basic_string<T>& str)
@@ -111,7 +111,7 @@ namespace Heart
 
         constexpr int Compare(StringComparison type, const HStringViewTyped<T>& other) const;
 
-        inline constexpr u32 GetCount() const { return m_Count; }
+        inline constexpr u32 Count() const { return m_Count; }
         inline constexpr const T* Data() const { return !m_Data ? (const T*)"" : m_Data; }
         inline constexpr const T& Get(u32 index) const { return m_Data[index]; }
         inline constexpr const T* Begin() const { return m_Data; }
@@ -138,7 +138,7 @@ namespace Heart
     template <typename T>
     HStringTyped<T>::HStringTyped(const HStringViewTyped<T>& other)
     {
-        Allocate(other.Data(), other.GetCount());
+        Allocate(other.Data(), other.Count());
     }
 
     template <typename T>
@@ -147,11 +147,11 @@ namespace Heart
         switch (type)
         {
             case StringComparison::Value:
-            { return StringUtils::CompareByValue(Data(), GetCount(), other.Data(), other.GetCount()); }
+            { return StringUtils::CompareByValue(Data(), Count(), other.Data(), other.Count()); }
             case StringComparison::Alphabetical:
-            { return StringUtils::CompareAlphabetical(Data(), GetCount(), other.Data(), other.GetCount()); }
+            { return StringUtils::CompareAlphabetical(Data(), Count(), other.Data(), other.Count()); }
             case StringComparison::Equality:
-            { return !StringUtils::CompareEq(Data(), GetCount(), other.Data(), other.GetCount()); }
+            { return !StringUtils::CompareEq(Data(), Count(), other.Data(), other.Count()); }
         }
 
         HE_ENGINE_ASSERT(false, "HStringTyped comparison not fully implemented");
@@ -161,28 +161,28 @@ namespace Heart
     template <typename T>
     u32 HStringTyped<T>::Find(const HStringViewTyped<T>& value) const
     {
-        return StringUtils::Find(Data(), GetCount(), value.Data(), value.GetCount());
+        return StringUtils::Find(Data(), Count(), value.Data(), value.Count());
     }
 
     template <typename T>
     u32 HStringTyped<T>::Find(T value) const
     {
-        return StringUtils::Find(Data(), GetCount(), &value, 1);
+        return StringUtils::Find(Data(), Count(), &value, 1);
     }
 
     template <typename T>
     HStringTyped<T> HStringTyped<T>::Substr(u32 start, u32 offset) const
     {
-        if (GetCount() == 0) return HStringTyped<T>();
+        if (Count() == 0) return HStringTyped<T>();
 
-        u32 size = std::min(offset, GetCount()) - start;
+        u32 size = std::min(offset, Count()) - start;
         return HStringTyped<T>(Data() + start, size);
     }
 
     template <typename T>
     void HStringTyped<T>::operator=(const HStringViewTyped<T>& other)
     {
-        Allocate(other.Data(), other.GetCount());
+        Allocate(other.Data(), other.Count());
     }
 
     template <typename T>
@@ -195,7 +195,7 @@ namespace Heart
     HStringTyped<T> HStringTyped<T>::operator+(const HStringViewTyped<T>& other) const
     {
         const T* data[2] = { Data(), other.Data() };
-        u32 lens[2] = { GetCount(), other.GetCount() };
+        u32 lens[2] = { Count(), other.Count() };
         return HStringTyped<T>(data, lens, 2);
     }
 
@@ -247,13 +247,13 @@ namespace Heart
     HStringTyped<T> HStringTyped<T>::AddPtr(const T* other, bool prepend) const
     {
         const T* data[2] = { Data(), other };
-        u32 lens[2] = { GetCount(), 0 };
+        u32 lens[2] = { Count(), 0 };
         if (prepend)
         {
             data[0] = other;
             data[1] = Data();
             lens[0] = 0;
-            lens[1] = GetCount();
+            lens[1] = Count();
         }
 
         return HString(data, lens, 2);
@@ -265,11 +265,11 @@ namespace Heart
         switch (type)
         {
             case StringComparison::Value:
-            { return StringUtils::CompareByValue(Data(), GetCount(), other.Data(), other.GetCount()); }
+            { return StringUtils::CompareByValue(Data(), Count(), other.Data(), other.Count()); }
             case StringComparison::Alphabetical:
-            { return StringUtils::CompareAlphabetical(Data(), GetCount(), other.Data(), other.GetCount()); }
+            { return StringUtils::CompareAlphabetical(Data(), Count(), other.Data(), other.Count()); }
             case StringComparison::Equality:
-            { return !StringUtils::CompareEq(Data(), GetCount(), other.Data(), other.GetCount()); }
+            { return !StringUtils::CompareEq(Data(), Count(), other.Data(), other.Count()); }
         }
 
         HE_ENGINE_ASSERT(false, "HStringViewTyped comparison not fully implemented");

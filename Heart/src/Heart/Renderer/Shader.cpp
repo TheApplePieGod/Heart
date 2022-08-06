@@ -38,10 +38,10 @@ namespace Heart
             data->user_data = container;
 
             data->source_name = (*container)[0].Data();
-            data->source_name_length = (*container)[0].GetCount();
+            data->source_name_length = (*container)[0].Count();
 
             data->content = (*container)[1].Data();
-            data->content_length = (*container)[1].GetCount();
+            data->content_length = (*container)[1].Count();
 
             return data;
         };
@@ -153,7 +153,7 @@ namespace Heart
     {
         m_ReflectionData.Clear();
 
-        spirv_cross::Compiler compiler(compiledData.Data(), compiledData.GetCount());
+        spirv_cross::Compiler compiler(compiledData.Data(), compiledData.Count());
 		spirv_cross::ShaderResources resources = compiler.get_shader_resources();
 
         ShaderResourceAccessType accessType = ShaderResourceAccessType::Vertex;

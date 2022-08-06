@@ -35,7 +35,7 @@ namespace Widgets
             ImGui::InputText(
                 "##ProjPath",
                 (char*)Heart::AssetManager::GetAssetsDirectory().Data(),
-                Heart::AssetManager::GetAssetsDirectory().GetCount(),
+                Heart::AssetManager::GetAssetsDirectory().Count(),
                 ImGuiInputTextFlags_ReadOnly
             );
             ImGui::EndDisabled();

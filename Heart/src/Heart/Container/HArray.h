@@ -29,12 +29,12 @@ namespace Heart
         inline void Clear(bool shrink = false) { m_Data.Clear(shrink); }
         inline void Resize(u32 elemCount, bool construct = true) { m_Data.Resize(elemCount, construct); }
         inline HArray Clone() const { return HArray(m_Data.Clone()); }
-        inline u32 GetCount() const { return m_Data.GetCount(); }
+        inline u32 Count() const { return m_Data.Count(); }
         inline Variant* Data() const { return m_Data.Data(); }
         inline Variant* Begin() const { return m_Data.Begin(); }
         inline Variant* End() const { return m_Data.End(); }
         inline Variant* Front() const { return m_Data.Begin(); }
-        inline Variant* Back() const { return GetCount() > 0 ? m_Data.End() - 1 : m_Data.Begin(); }
+        inline Variant* Back() const { return Count() > 0 ? m_Data.End() - 1 : m_Data.Begin(); }
         inline Variant& Get(u32 index) const { return m_Data.Get(index); }
         inline bool IsEmpty() const { return m_Data.IsEmpty(); }
 

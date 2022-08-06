@@ -12,7 +12,7 @@ namespace Heart
 
     HString HString8::ToHString() const
     {
-        return HString(Data(), GetCount());
+        return HString(Data(), Count());
     }
 
     HString16 HString8::ToUTF16() const
@@ -28,7 +28,7 @@ namespace Heart
     HStringTyped<char8> operator+(const HStringViewTyped<char8>& left, const HStringViewTyped<char8>& right)
     {
         const char8* data[2] = { left.Data(), right.Data() };
-        u32 lens[2] = { left.GetCount(), right.GetCount() };
+        u32 lens[2] = { left.Count(), right.Count() };
         return HStringTyped<char8>(data, lens, 2);
     }
 

@@ -21,10 +21,10 @@ namespace Heart
 
     static HVector<VkVertexInputAttributeDescription> GenerateVertexAttributeDescriptions(const HVector<BufferLayoutElement>& elements)
     {
-        HVector<VkVertexInputAttributeDescription> attributeDescriptions(elements.GetCount());
+        HVector<VkVertexInputAttributeDescription> attributeDescriptions(elements.Count());
 
         u32 offset = 0;
-        for (u32 i = 0; i < elements.GetCount(); i++)
+        for (u32 i = 0; i < elements.Count(); i++)
         {
             attributeDescriptions[i].binding = 0;
             attributeDescriptions[i].location = static_cast<u32>(i);
@@ -57,7 +57,7 @@ namespace Heart
         vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
         vertexInputInfo.vertexBindingDescriptionCount = createInfo.VertexInput ? 1 : 0;
         vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
-        vertexInputInfo.vertexAttributeDescriptionCount = createInfo.VertexInput ? static_cast<u32>(attributeDescriptions.GetCount()) : 0;
+        vertexInputInfo.vertexAttributeDescriptionCount = createInfo.VertexInput ? static_cast<u32>(attributeDescriptions.Count()) : 0;
         vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.Data();
         
         VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
@@ -106,8 +106,8 @@ namespace Heart
         multisampling.alphaToCoverageEnable = VK_FALSE; // Optional
         multisampling.alphaToOneEnable = VK_FALSE; // Optional
 
-        HVector<VkPipelineColorBlendAttachmentState> colorBlendAttachments(createInfo.BlendStates.GetCount());
-        for (u32 i = 0; i < createInfo.BlendStates.GetCount(); i++)
+        HVector<VkPipelineColorBlendAttachmentState> colorBlendAttachments(createInfo.BlendStates.Count());
+        for (u32 i = 0; i < createInfo.BlendStates.Count(); i++)
         {
             colorBlendAttachments[i].colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
             colorBlendAttachments[i].blendEnable = createInfo.BlendStates[i].BlendEnable;
@@ -123,7 +123,7 @@ namespace Heart
         colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
         colorBlending.logicOpEnable = VK_FALSE;
         colorBlending.logicOp = VK_LOGIC_OP_COPY; // Optional
-        colorBlending.attachmentCount = static_cast<u32>(colorBlendAttachments.GetCount());
+        colorBlending.attachmentCount = static_cast<u32>(colorBlendAttachments.Count());
         colorBlending.pAttachments = colorBlendAttachments.Data();
         colorBlending.blendConstants[0] = 0.0f; // Optional
         colorBlending.blendConstants[1] = 0.0f; // Optional
@@ -150,7 +150,7 @@ namespace Heart
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        pipelineLayoutInfo.setLayoutCount = static_cast<u32>(layouts.GetCount());
+        pipelineLayoutInfo.setLayoutCount = static_cast<u32>(layouts.Count());
         pipelineLayoutInfo.pSetLayouts = layouts.Data();
         pipelineLayoutInfo.pushConstantRangeCount = 0;
         pipelineLayoutInfo.pPushConstantRanges = nullptr;

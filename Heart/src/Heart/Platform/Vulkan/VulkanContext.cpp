@@ -162,13 +162,13 @@ namespace Heart
         #if HE_DEBUG
             HE_ENGINE_LOG_TRACE("VULKAN: Configuring validation layers");
             auto validationLayers = ConfigureValidationLayers();
-            createInfo.enabledLayerCount = static_cast<u32>(validationLayers.GetCount());
+            createInfo.enabledLayerCount = static_cast<u32>(validationLayers.Count());
             createInfo.ppEnabledLayerNames = validationLayers.Data();
             extensions.Add(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
         #else
             createInfo.enabledLayerCount = 0;
         #endif
-        createInfo.enabledExtensionCount = static_cast<u32>(extensions.GetCount());
+        createInfo.enabledExtensionCount = static_cast<u32>(extensions.Count());
         createInfo.ppEnabledExtensionNames = extensions.Data();
 
         HE_VULKAN_CHECK_RESULT(vkCreateInstance(&createInfo, nullptr, &s_Instance));

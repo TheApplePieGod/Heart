@@ -51,24 +51,24 @@ namespace Heart
 
         void Remove(u32 index)
         {
-            if (index >= GetCount()) throw std::out_of_range("Called Remove() on container with out of range index");
+            if (index >= Count()) throw std::out_of_range("Called Remove() on container with out of range index");
 
             // Destruct
             if (ShouldDestruct())
                 m_Container[index].~T();
 
-            if (m_Container.DecrementCount() == 0 || index == GetCount()) return;
+            if (m_Container.DecrementCount() == 0 || index == Count()) return;
 
             memmove(
                 Begin() + index,
                 Begin() + index + 1,
-                (GetCount() - index) * sizeof(T)
+                (Count() - index) * sizeof(T)
             );
         }
 
         void RemoveUnordered(u32 index)
         {
-            if (index >= GetCount()) throw std::out_of_range("Called Remove() on container with out of range index");
+            if (index >= Count()) throw std::out_of_range("Called Remove() on container with out of range index");
 
             // Destruct
             if (ShouldDestruct())
@@ -78,14 +78,14 @@ namespace Heart
             
             memmove(
                 Begin() + index,
-                Begin() + GetCount(),
+                Begin() + Count(),
                 sizeof(T)
             );
         }
 
         void Pop()
         {
-            if (GetCount() == 0) throw std::out_of_range("Called Pop() on container with a count of zero");
+            if (Count() == 0) throw std::out_of_range("Called Pop() on container with a count of zero");
 
             // Destruct
             if (ShouldDestruct())
@@ -99,13 +99,13 @@ namespace Heart
 
         void Append(const HVector<T>& other, bool shallow = false)
         {
-            u32 oldCount = GetCount();
-            Resize(oldCount + other.GetCount(), false);
+            u32 oldCount = Count();
+            Resize(oldCount + other.Count(), false);
             if (shallow)
-                memcpy(Data() + oldCount, other.Begin(), other.GetCount() * sizeof(T));
+                memcpy(Data() + oldCount, other.Begin(), other.Count() * sizeof(T));
             else
             {
-                for (u32 i = 0; i < other.GetCount(); i++)
+                for (u32 i = 0; i < other.Count(); i++)
                     HE_PLACEMENT_NEW(Begin() + i + oldCount, T, other[i]);
             }
         }
@@ -117,9 +117,9 @@ namespace Heart
         inline void Clear(bool shrink = false) { m_Container.Clear(shrink); }
         inline void Resize(u32 elemCount, bool construct = true) { m_Container.Resize(elemCount, construct); }
         inline HVector Clone() const { return HVector(m_Container.Clone()); }
-        inline HVector& CloneInPlace() { m_Container = Container(Data(), GetCount()); return *this; }
+        inline HVector& CloneInPlace() { m_Container = Container(Data(), Count()); return *this; }
         inline void ShallowCopy(const HVector& from) { m_Container.Copy(from.m_Container, true); }
-        inline u32 GetCount() const { return m_Container.GetCount(); }
+        inline u32 Count() const { return m_Container.Count(); }
         inline u32 GetAllocatedCount() const { return m_Container.GetAllocatedCount(); }
         inline u32 GetRefCount() const { return m_Container.GetRefCount(); }
         inline T* Data() const { return m_Container.Data(); }
@@ -144,7 +144,7 @@ namespace Heart
 
         u32 PreAdd()
         {
-            u32 count = GetCount();
+            u32 count = Count();
             if (count >= m_Container.GetAllocatedCount())
                 m_Container.Resize(count + 1, false);
             else

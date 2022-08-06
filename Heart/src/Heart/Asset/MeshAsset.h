@@ -34,10 +34,10 @@ namespace Heart
         inline Mesh& GetSubmesh(u32 index) { return m_Submeshes[index]; }
 
         /*! @brief Get the total number of submeshes of the loaded mesh. */
-        inline u32 GetSubmeshCount() const { return static_cast<u32>(m_Submeshes.GetCount()); }
+        inline u32 GetSubmeshCount() const { return static_cast<u32>(m_Submeshes.Count()); }
 
         /*! @brief Get the total number of material slots of the loaded mesh. */
-        inline u32 GetMaxMaterials() const { return static_cast<u32>(m_DefaultMaterials.GetCount()); }
+        inline u32 GetMaxMaterials() const { return static_cast<u32>(m_DefaultMaterials.Count()); }
 
         /*! @brief Get a reference to the default materials loaded with the mesh. */
         inline HVector<Material>& GetDefaultMaterials() { return m_DefaultMaterials; }

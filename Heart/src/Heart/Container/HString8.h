@@ -93,7 +93,7 @@ namespace std
         std::size_t operator()(const Heart::HString8& str) const
         {
             return std::hash<std::basic_string_view<char8>>{}(
-                std::basic_string_view<char8>(str.Data(), str.GetCount())
+                std::basic_string_view<char8>(str.Data(), str.Count())
             );
         }
     };

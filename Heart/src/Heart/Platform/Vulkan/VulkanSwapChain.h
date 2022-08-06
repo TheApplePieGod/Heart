@@ -39,7 +39,7 @@ namespace Heart
 
         void InvalidateSwapChain(u32 newWidth, u32 newHeight);
 
-        inline u32 GetImageCount() const { return static_cast<u32>(m_SwapChainData.Images.GetCount()); }
+        inline u32 GetImageCount() const { return static_cast<u32>(m_SwapChainData.Images.Count()); }
         inline VkFormat GetImageFormat() const { return m_SwapChainData.ImageFormat; }
         inline VkRenderPass GetRenderPass() const { return m_RenderPass; }
         inline VkCommandBuffer GetCommandBuffer() const { return m_CommandBuffers[m_InFlightFrameIndex]; }

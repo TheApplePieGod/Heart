@@ -15,7 +15,7 @@ namespace Heart
         HVector<u32> compiled = CompileSpirvFromFile(path, shaderType);
         Reflect(shaderType, compiled);
 
-        glShaderBinary(1, &m_ShaderId, GL_SHADER_BINARY_FORMAT_SPIR_V, compiled.Data(), static_cast<int>(compiled.GetCount() * sizeof(u32)));
+        glShaderBinary(1, &m_ShaderId, GL_SHADER_BINARY_FORMAT_SPIR_V, compiled.Data(), static_cast<int>(compiled.Count() * sizeof(u32)));
         glSpecializeShader(m_ShaderId, "main", 0, nullptr, nullptr);
     }
 

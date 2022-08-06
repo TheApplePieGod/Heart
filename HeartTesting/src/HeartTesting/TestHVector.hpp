@@ -16,18 +16,18 @@ TEST_CASE("Testing HVector")
     DataStructsAllocated = 0;
     DataStructsDeallocated = 0;
 
-    REQUIRE(vData.GetCount() == 3);
+    REQUIRE(vData.Count() == 3);
     REQUIRE(vData.GetAllocatedCount() >= 0);
     REQUIRE(vTest.Data() == nullptr);
     REQUIRE(vTest.IsEmpty());
-    REQUIRE(vTest.GetCount() == 0);
+    REQUIRE(vTest.Count() == 0);
     REQUIRE(vTest.GetAllocatedCount() == 0);
 
     SUBCASE("Copy constructor")
     {
         Heart::HVector<DataStruct> vTest2(vData);
 
-        CHECK(vTest2.GetCount() == vData.GetCount());
+        CHECK(vTest2.Count() == vData.Count());
         CHECK(vTest2.Data() != vData.Data()); // ensure copy
         CHECK(vTest2.GetRefCount() == 1);
         CHECK(vTest2.Front() == vData.Front());
@@ -39,7 +39,7 @@ TEST_CASE("Testing HVector")
     {
         Heart::HVector<DataStruct> vTest2(3, false);
 
-        CHECK(vTest2.GetCount() == 0);
+        CHECK(vTest2.Count() == 0);
         CHECK(vTest2.GetAllocatedCount() > 0);
         CHECK(vTest2.GetRefCount() == 1);
         CHECK(DataStructsAllocated == 0);
@@ -48,7 +48,7 @@ TEST_CASE("Testing HVector")
     {
         Heart::HVector<DataStruct> vTest2(3, true);
 
-        CHECK(vTest2.GetCount() == 3);
+        CHECK(vTest2.Count() == 3);
         CHECK(vTest2.GetAllocatedCount() > 0);
         CHECK(vTest2.GetRefCount() == 1);
         CHECK(vTest2.Front().GetRefCount() == 1);
@@ -57,9 +57,9 @@ TEST_CASE("Testing HVector")
     }
     SUBCASE("Data constructor")
     {
-        Heart::HVector<DataStruct> vTest2(vData.Data(), vData.GetCount());
+        Heart::HVector<DataStruct> vTest2(vData.Data(), vData.Count());
 
-        CHECK(vTest2.GetCount() == 3);
+        CHECK(vTest2.Count() == 3);
         CHECK(vTest2.Data() != vData.Data()); // ensure copy
         CHECK(vTest2.GetRefCount() == 1);
         CHECK(vTest2.Front() == vData.Front());
@@ -76,7 +76,7 @@ TEST_CASE("Testing HVector")
         };
         Heart::HVector<DataStruct> vTest2(list);
 
-        CHECK(vTest2.GetCount() == 3);
+        CHECK(vTest2.Count() == 3);
         CHECK(vTest2.Data() != list.begin()); // ensure copy
         CHECK(vTest2.GetRefCount() == 1);
         CHECK(vTest2.Front() == *list.begin());
@@ -88,7 +88,7 @@ TEST_CASE("Testing HVector")
     {
         Heart::HVector<DataStruct> vTest2(vData.Begin(), vData.End());
 
-        CHECK(vTest2.GetCount() == 3);
+        CHECK(vTest2.Count() == 3);
         CHECK(vTest2.Data() != vData.begin()); // ensure copy
         CHECK(vTest2.GetRefCount() == 1);
         CHECK(vTest2.Front() == vData.Front());
@@ -101,7 +101,7 @@ TEST_CASE("Testing HVector")
         vTest.Add(DataStruct(1));
 
         void* oldData = vTest.Data();
-        CHECK(vTest.GetCount() == 1);
+        CHECK(vTest.Count() == 1);
         CHECK(vTest.GetRefCount() == 1);
         CHECK(vTest.Front().Value == 1);
         CHECK(vTest.Back().Value == 1);
@@ -110,7 +110,7 @@ TEST_CASE("Testing HVector")
 
         vTest.Add(DataStruct(2));
 
-        CHECK(vTest.GetCount() == 2);
+        CHECK(vTest.Count() == 2);
         CHECK(vTest.GetRefCount() == 1);
         CHECK(vTest.Data() == oldData);
         CHECK(vTest.Front().Value == 1);
@@ -119,10 +119,10 @@ TEST_CASE("Testing HVector")
         CHECK(DataStructsAllocated == 2);
 
         u32 allocCount = Heart::Container<DataStruct>::MinimumAllocCount + 1;
-        while (vTest.GetCount() < allocCount)
+        while (vTest.Count() < allocCount)
             vTest.Add(DataStruct(3));
 
-        CHECK(vTest.GetCount() == allocCount);
+        CHECK(vTest.Count() == allocCount);
         CHECK(vTest.GetRefCount() == 1);
         CHECK(vTest.Data() != oldData); // data moved
         CHECK(vTest.Front().Value == 1);
@@ -135,7 +135,7 @@ TEST_CASE("Testing HVector")
         vTest.AddInPlace(1);
 
         void* oldData = vTest.Data();
-        CHECK(vTest.GetCount() == 1);
+        CHECK(vTest.Count() == 1);
         CHECK(vTest.GetRefCount() == 1);
         CHECK(vTest.Front().Value == 1);
         CHECK(vTest.Back().Value == 1);
@@ -144,7 +144,7 @@ TEST_CASE("Testing HVector")
 
         vTest.AddInPlace(2);
 
-        CHECK(vTest.GetCount() == 2);
+        CHECK(vTest.Count() == 2);
         CHECK(vTest.GetRefCount() == 1);
         CHECK(vTest.Data() == oldData);
         CHECK(vTest.Front().Value == 1);
@@ -153,10 +153,10 @@ TEST_CASE("Testing HVector")
         CHECK(DataStructsAllocated == 2);
 
         u32 allocCount = Heart::Container<DataStruct>::MinimumAllocCount + 1;
-        while (vTest.GetCount() < allocCount)
+        while (vTest.Count() < allocCount)
             vTest.AddInPlace(3);
 
-        CHECK(vTest.GetCount() == allocCount);
+        CHECK(vTest.Count() == allocCount);
         CHECK(vTest.GetRefCount() == 1);
         CHECK(vTest.Data() != oldData); // data moved
         CHECK(vTest.Front().Value == 1);
@@ -169,7 +169,7 @@ TEST_CASE("Testing HVector")
         void* oldData = vData.Data();
         vData.Remove(1);
 
-        CHECK(vData.GetCount() == 2);
+        CHECK(vData.Count() == 2);
         CHECK(vData.GetRefCount() == 1);
         CHECK(vData.Data() == oldData);
         CHECK(vData.Get(0).Value == 1);
@@ -181,7 +181,7 @@ TEST_CASE("Testing HVector")
         vData.Remove(0);
         vData.Remove(0);
 
-        CHECK(vData.GetCount() == 0);
+        CHECK(vData.Count() == 0);
         CHECK(vData.GetRefCount() == 1);
         CHECK(vData.Data() == oldData);
         CHECK(DataStructsAllocated == 0);
@@ -197,7 +197,7 @@ TEST_CASE("Testing HVector")
         void* oldData = vData.Data();
         vData.RemoveUnordered(1);
 
-        CHECK(vData.GetCount() == 3);
+        CHECK(vData.Count() == 3);
         CHECK(vData.GetRefCount() == 1);
         CHECK(vData.Data() == oldData);
         CHECK(vData.Get(0).Value == 1);
@@ -210,7 +210,7 @@ TEST_CASE("Testing HVector")
         vData.RemoveUnordered(0);
         vData.RemoveUnordered(0);
 
-        CHECK(vData.GetCount() == 0);
+        CHECK(vData.Count() == 0);
         CHECK(vData.GetRefCount() == 1);
         CHECK(vData.Data() == oldData);
         CHECK(DataStructsAllocated == 0);
@@ -223,7 +223,7 @@ TEST_CASE("Testing HVector")
         void* oldData = vData.Data();
         vData.Pop();
 
-        CHECK(vData.GetCount() == 2);
+        CHECK(vData.Count() == 2);
         CHECK(vData.GetRefCount() == 1);
         CHECK(vData.Data() == oldData);
         CHECK(vData.Get(0).Value == 1);
@@ -234,7 +234,7 @@ TEST_CASE("Testing HVector")
         vData.Pop();
         vData.Pop();
 
-        CHECK(vData.GetCount() == 0);
+        CHECK(vData.Count() == 0);
         CHECK(vData.GetRefCount() == 1);
         CHECK(vData.Data() == oldData);
         CHECK(DataStructsAllocated == 0);
@@ -246,7 +246,7 @@ TEST_CASE("Testing HVector")
     {
         vTest.CopyFrom(vData.Begin(), vData.End());
 
-        CHECK(vTest.GetCount() == vData.GetCount());
+        CHECK(vTest.Count() == vData.Count());
         CHECK(vTest.GetRefCount() == 1);
         CHECK(vTest.Front() == vData.Front());
         CHECK(vTest.Back() == vData.Back());
@@ -266,7 +266,7 @@ TEST_CASE("Testing HVector")
         void* oldData = vTest2.Data();
         vTest2.Append(vData, false);
 
-        CHECK(vTest2.GetCount() == vData.GetCount() + 3);
+        CHECK(vTest2.Count() == vData.Count() + 3);
         CHECK(vTest2.GetRefCount() == 1);
         CHECK(vTest2.Data() == oldData);
         CHECK(vTest2.Front().Value == 1);
@@ -288,7 +288,7 @@ TEST_CASE("Testing HVector")
         void* oldData = vTest2.Data();
         vTest2.Append(vData, true);
 
-        CHECK(vTest2.GetCount() == vData.GetCount() + 3);
+        CHECK(vTest2.Count() == vData.Count() + 3);
         CHECK(vTest2.GetRefCount() == 1);
         CHECK(vTest2.Data() == oldData);
         CHECK(vTest2.Front().Value == 1);
@@ -303,7 +303,7 @@ TEST_CASE("Testing HVector")
         u32 allocCount = Heart::Container<DataStruct>::MinimumAllocCount;
         vTest.Reserve(allocCount);
 
-        CHECK(vTest.GetCount() == 0);
+        CHECK(vTest.Count() == 0);
         CHECK(vTest.GetRefCount() == 1);
         CHECK(vTest.GetAllocatedCount() == allocCount);
         CHECK(DataStructsAllocated == 0);
@@ -311,7 +311,7 @@ TEST_CASE("Testing HVector")
         void* oldData = vTest.Data();
         vTest.Reserve(allocCount - 1);
 
-        CHECK(vTest.GetCount() == 0);
+        CHECK(vTest.Count() == 0);
         CHECK(vTest.GetRefCount() == 1);
         CHECK(vTest.GetAllocatedCount() == allocCount);
         CHECK(vTest.Data() == oldData);
@@ -319,12 +319,12 @@ TEST_CASE("Testing HVector")
     }
     SUBCASE("Clear (shrink = false)")
     {
-        u32 oldSize = vData.GetCount();
+        u32 oldSize = vData.Count();
         u32 oldAllocated = vData.GetAllocatedCount();
         void* oldData = vData.Data();
         vData.Clear(false);
 
-        CHECK(vData.GetCount() == 0);
+        CHECK(vData.Count() == 0);
         CHECK(vData.GetRefCount() == 1);
         CHECK(vData.GetAllocatedCount() == oldAllocated);
         CHECK(vData.Data() == oldData);
@@ -332,10 +332,10 @@ TEST_CASE("Testing HVector")
     }
     SUBCASE("Clear (shrink = true)")
     {
-        u32 oldSize = vData.GetCount();
+        u32 oldSize = vData.Count();
         vData.Clear(true);
 
-        CHECK(vData.GetCount() == 0);
+        CHECK(vData.Count() == 0);
         CHECK(vData.GetRefCount() == 1);
         CHECK(vData.GetAllocatedCount() == 0);
         CHECK(vData.Data() == nullptr);
@@ -345,7 +345,7 @@ TEST_CASE("Testing HVector")
     {
         vTest.Resize(3, false);
 
-        CHECK(vTest.GetCount() == 3);
+        CHECK(vTest.Count() == 3);
         CHECK(vTest.GetRefCount() == 1);
         CHECK(vTest.GetAllocatedCount() >= 3);
         CHECK(DataStructsAllocated == 0);
@@ -354,14 +354,14 @@ TEST_CASE("Testing HVector")
         // will handle construction. If that doesn't happen, then garbage
         // data will get destructed when the vector goes out of scope which
         // will cause a crash in this scenario
-        memset(vTest.Data(), 0, vTest.GetCount() * sizeof(DataStruct));
+        memset(vTest.Data(), 0, vTest.Count() * sizeof(DataStruct));
     }
     SUBCASE("Resize (construct = true)")
     {
         u32 allocCount = Heart::Container<DataStruct>::MinimumAllocCount;
         vTest.Resize(allocCount, true);
 
-        CHECK(vTest.GetCount() == allocCount);
+        CHECK(vTest.Count() == allocCount);
         CHECK(vTest.GetRefCount() == 1);
         CHECK(vTest.GetAllocatedCount() == allocCount);
         CHECK(vTest.Front().GetRefCount() == 1);
@@ -370,7 +370,7 @@ TEST_CASE("Testing HVector")
         void* oldData = vTest.Data();
         vTest.Resize(1, true);
 
-        CHECK(vTest.GetCount() == 1);
+        CHECK(vTest.Count() == 1);
         CHECK(vTest.GetRefCount() == 1);
         CHECK(vTest.GetAllocatedCount() == allocCount);
         CHECK(vTest.Front().GetRefCount() == 1);
@@ -380,7 +380,7 @@ TEST_CASE("Testing HVector")
 
         vTest.Resize(0, true);
 
-        CHECK(vTest.GetCount() == 0);
+        CHECK(vTest.Count() == 0);
         CHECK(vTest.GetRefCount() == 1);
         CHECK(vTest.GetAllocatedCount() == 0);
         CHECK(vTest.Data() == nullptr);
@@ -391,7 +391,7 @@ TEST_CASE("Testing HVector")
     {
         vTest = vData.Clone();
 
-        CHECK(vTest.GetCount() == vData.GetCount());
+        CHECK(vTest.Count() == vData.Count());
         CHECK(vTest.GetRefCount() == 1);
         CHECK(vData.GetRefCount() == 1);
         CHECK(vTest.Front() == vData.Front());
@@ -404,7 +404,7 @@ TEST_CASE("Testing HVector")
     {
         vTest.ShallowCopy(vData);
 
-        CHECK(vTest.GetCount() == vData.GetCount());
+        CHECK(vTest.Count() == vData.Count());
         CHECK(vTest.GetRefCount() == 2);
         CHECK(vTest.Data() == vData.Data());
         CHECK(DataStructsAllocated == 0);
@@ -414,7 +414,7 @@ TEST_CASE("Testing HVector")
     {
         vTest = vData;
 
-        CHECK(vTest.GetCount() == vData.GetCount());
+        CHECK(vTest.Count() == vData.Count());
         CHECK(vTest.GetRefCount() == 1);
         CHECK(vData.GetRefCount() == 1);
         CHECK(vTest.Front() == vData.Front());

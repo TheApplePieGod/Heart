@@ -141,7 +141,7 @@ namespace HeartEditor
         {
             ImGui::Text("Path (new folder will be created inside):");
             ImGui::BeginDisabled();
-            ImGui::InputText("##ProjPath", (char*)m_NewProjectPath.Data(), m_NewProjectPath.GetCount(), ImGuiInputTextFlags_ReadOnly);
+            ImGui::InputText("##ProjPath", (char*)m_NewProjectPath.Data(), m_NewProjectPath.Count(), ImGuiInputTextFlags_ReadOnly);
             ImGui::EndDisabled();
             ImGui::SameLine();
             if (ImGui::Button("...##ProjPathSelect"))

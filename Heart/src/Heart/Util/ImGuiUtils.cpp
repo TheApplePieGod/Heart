@@ -201,7 +201,7 @@ namespace Heart
             if (textFilter.Draw() || popupOpened)
                 ImGui::SetKeyboardFocusHere(-1);
             ImGui::Separator();
-            for (u32 i = 0; i < options.GetCount(); i++)
+            for (u32 i = 0; i < options.Count(); i++)
             {
                 if (textFilter.PassFilter(options[i].Data()) && ImGui::MenuItem(options[i].Data()))
                 {

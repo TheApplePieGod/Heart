@@ -85,7 +85,7 @@ namespace Heart
 
         // generate a texture view for each layer / mipmap
         m_ViewTextures.Resize(m_Info.ArrayCount * m_MipLevels, false);
-        glGenTextures(static_cast<u32>(m_ViewTextures.GetCount()), m_ViewTextures.Data());
+        glGenTextures(static_cast<u32>(m_ViewTextures.Count()), m_ViewTextures.Data());
         u32 viewIndex = 0;
         for (u32 i = 0; i < m_Info.ArrayCount; i++)
         {

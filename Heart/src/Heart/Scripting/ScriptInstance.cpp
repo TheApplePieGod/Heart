@@ -62,7 +62,7 @@ namespace Heart
         auto& scriptClassObj = ScriptingEngine::GetInstantiableClass(m_ScriptClass);
         auto& fields = scriptClassObj.GetSerializableFields();
 
-        for (u32 i = 0; i < fields.GetCount(); i++)
+        for (u32 i = 0; i < fields.Count(); i++)
         {
             Variant value = GetFieldValueUnchecked(fields[i]);
             if (value.GetType() == Variant::Type::None) continue;

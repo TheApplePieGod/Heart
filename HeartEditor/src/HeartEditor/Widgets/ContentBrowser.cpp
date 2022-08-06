@@ -120,7 +120,7 @@ namespace Widgets
 
         // Render the directory tree node
         bool selected = path == m_DirectoryStack[m_DirectoryStackIndex];
-        ImGuiTreeNodeFlags node_flags = (directories.GetCount() > 0 ? 0 : ImGuiTreeNodeFlags_Leaf) | ImGuiTreeNodeFlags_OpenOnArrow | (selected ? ImGuiTreeNodeFlags_Selected : 0);
+        ImGuiTreeNodeFlags node_flags = (directories.Count() > 0 ? 0 : ImGuiTreeNodeFlags_Leaf) | ImGuiTreeNodeFlags_OpenOnArrow | (selected ? ImGuiTreeNodeFlags_Selected : 0);
         bool open = ImGui::TreeNodeEx(path.IsEmpty() ? "Project Root" : path.Data(), node_flags, path.IsEmpty() ? "Project Root" : filename.Data());
         if (!selected && ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0))
             PushDirectoryStack(path);
@@ -156,7 +156,7 @@ namespace Widgets
         // Go forwards in the directory stack
         if (ImGui::Button(">##forwards"))
         {
-            if (++m_DirectoryStackIndex >= m_DirectoryStack.GetCount())
+            if (++m_DirectoryStackIndex >= m_DirectoryStack.Count())
                 m_DirectoryStackIndex--;
             else
                 m_ShouldRescan = true;
@@ -230,7 +230,7 @@ namespace Widgets
         // File transfer drag source
         if (ImGui::BeginDragDropSource())
         {
-            ImGui::SetDragDropPayload("FileTransfer", fullPath.Data(), fullPath.GetCount() * sizeof(char) + 1);
+            ImGui::SetDragDropPayload("FileTransfer", fullPath.Data(), fullPath.Count() * sizeof(char) + 1);
             ImGui::Image(
                 Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>(entry.is_directory() ? "editor/folder.png" :  "editor/file.png", true)->GetTexture()->GetImGuiHandle(),
                 { m_CardSize.x * 0.5f, m_CardSize.y * 0.5f }

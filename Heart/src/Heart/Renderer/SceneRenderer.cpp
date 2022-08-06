@@ -574,7 +574,7 @@ namespace Heart
 
                 // Create a hash based on the submesh and its material if applicable
                 u64 hash = mesh.Mesh ^ (i * 45787893);
-                if (meshData.GetMaterialIndex() < mesh.Materials.GetCount())
+                if (meshData.GetMaterialIndex() < mesh.Materials.Count())
                     hash ^= mesh.Materials[meshData.GetMaterialIndex()];
 
                 // Get/create a batch associated with this hash
@@ -585,13 +585,13 @@ namespace Heart
                 {
                     // Retrieve a vector from the pool
                     batch.EntityListIndex = batchIndex;
-                    if (batchIndex >= m_EntityListPool.GetCount())
+                    if (batchIndex >= m_EntityListPool.Count())
                         m_EntityListPool.AddInPlace();
 
                     // Set the material & mesh associated with this batch
                     batch.Mesh = &meshData;
                     batch.Material = &meshAsset->GetDefaultMaterials()[meshData.GetMaterialIndex()]; // default material
-                    if (mesh.Materials.GetCount() > meshData.GetMaterialIndex())
+                    if (mesh.Materials.Count() > meshData.GetMaterialIndex())
                     {
                         auto materialAsset = AssetManager::RetrieveAsset<MaterialAsset>(mesh.Materials[meshData.GetMaterialIndex()]);
                         if (materialAsset && materialAsset->IsValid())
@@ -894,7 +894,7 @@ namespace Heart
     {
         if (m_SceneRenderSettings.BloomEnable)
         {
-            for (u32 i = 0; i < m_BloomFramebuffers.GetCount(); i++)
+            for (u32 i = 0; i < m_BloomFramebuffers.Count(); i++)
             {
                 auto& framebuffers = m_BloomFramebuffers[i];
 
@@ -903,7 +903,7 @@ namespace Heart
                 bloomData.ReverseDepth = Renderer::IsUsingReverseDepth();
                 bloomData.BlurScale = m_SceneRenderSettings.BloomBlurScale;
                 bloomData.BlurStrength = m_SceneRenderSettings.BloomBlurStrength;
-                bloomData.MipLevel = static_cast<u32>(m_BloomFramebuffers.GetCount() - 1 - i); // Reverse the index because we start rendering the lowest mip first
+                bloomData.MipLevel = static_cast<u32>(m_BloomFramebuffers.Count() - 1 - i); // Reverse the index because we start rendering the lowest mip first
                 m_BloomDataBuffer->SetElements(&bloomData, 1, i);
 
                 // Horizontal framebuffer
@@ -927,7 +927,7 @@ namespace Heart
                 framebuffers[1]->BindPipeline("bloomVertical");
                 framebuffers[1]->BindShaderBufferResource(0, i, 1, m_BloomDataBuffer.get());
                 framebuffers[1]->BindShaderTextureResource(1, m_BloomBufferTexture.get());
-                if (i == m_BloomFramebuffers.GetCount() - 1)
+                if (i == m_BloomFramebuffers.Count() - 1)
                 {
                     // Bind the pre bloom & upsample texture if this is the last iteration
                     framebuffers[1]->BindShaderTextureResource(2, m_PreBloomTexture.get());
@@ -942,7 +942,7 @@ namespace Heart
         }
         else
         {
-            auto& framebuffers = m_BloomFramebuffers[m_BloomFramebuffers.GetCount() - 1];
+            auto& framebuffers = m_BloomFramebuffers[m_BloomFramebuffers.Count() - 1];
 
             // Clear the horizontal blur texture so that the final composite shader only inputs from the HDR output
             framebuffers[0]->Bind();
@@ -951,7 +951,7 @@ namespace Heart
 
             framebuffers[1]->Bind();
             framebuffers[1]->BindPipeline("bloomVertical");
-            framebuffers[1]->BindShaderBufferResource(0, m_BloomFramebuffers.GetCount() - 1, 1, m_BloomDataBuffer.get());
+            framebuffers[1]->BindShaderBufferResource(0, m_BloomFramebuffers.Count() - 1, 1, m_BloomDataBuffer.get());
             framebuffers[1]->BindShaderTextureResource(1, m_BloomBufferTexture.get());
             framebuffers[1]->BindShaderTextureResource(2, m_PreBloomTexture.get());
             framebuffers[1]->BindShaderTextureResource(3, m_BloomUpsampleBufferTexture.get());
@@ -999,7 +999,7 @@ namespace Heart
             pos.z += 1.f;
         }
 
-        m_GridVertices = Buffer::Create(Buffer::Type::Vertex, BufferUsageType::Static, { BufferDataType::Float3 }, static_cast<u32>(vertices.GetCount()), (void*)vertices.Data());
-        m_GridIndices = Buffer::CreateIndexBuffer(BufferUsageType::Static, static_cast<u32>(indices.GetCount()), (void*)indices.Data());
+        m_GridVertices = Buffer::Create(Buffer::Type::Vertex, BufferUsageType::Static, { BufferDataType::Float3 }, static_cast<u32>(vertices.Count()), (void*)vertices.Data());
+        m_GridIndices = Buffer::CreateIndexBuffer(BufferUsageType::Static, static_cast<u32>(indices.Count()), (void*)indices.Data());
     }
 }

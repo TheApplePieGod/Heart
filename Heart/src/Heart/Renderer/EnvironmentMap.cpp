@@ -363,7 +363,7 @@ namespace Heart
         // ------------------------------------------------------------------
         // Prefilter the environment map based on roughness
         // ------------------------------------------------------------------
-        for (u32 i = 0; i < m_PrefilterFramebuffers.GetCount(); i++)
+        for (u32 i = 0; i < m_PrefilterFramebuffers.Count(); i++)
         {
             m_PrefilterFramebuffers[i]->Bind();
 

@@ -56,7 +56,7 @@ namespace Widgets
 
                 ImGui::TableNextColumn();
                 ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-                ImGui::InputText(id1.Data(), (char*)uuid.Data(), uuid.GetCount(), ImGuiInputTextFlags_ReadOnly);
+                ImGui::InputText(id1.Data(), (char*)uuid.Data(), uuid.Count(), ImGuiInputTextFlags_ReadOnly);
 
                 ImGui::TableNextColumn();
                 ImGui::Text(HE_ENUM_TO_STRING(Heart::Asset, pair.second.Type));
@@ -67,7 +67,7 @@ namespace Widgets
                 ImGui::TableNextColumn();
                 ImGui::BeginDisabled();
                 ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-                ImGui::InputText(id2.Data(), (char*)pair.second.Path.Data(), pair.second.Path.GetCount(), ImGuiInputTextFlags_ReadOnly);
+                ImGui::InputText(id2.Data(), (char*)pair.second.Path.Data(), pair.second.Path.Count(), ImGuiInputTextFlags_ReadOnly);
                 ImGui::EndDisabled();
             }
 

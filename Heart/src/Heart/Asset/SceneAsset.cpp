@@ -205,7 +205,7 @@ namespace Heart
                 if (entity.HasComponent<ChildComponent>())
                 {
                     auto& childComp = entity.GetComponent<ChildComponent>();
-                    for (size_t i = 0; i < childComp.Children.GetCount(); i++)
+                    for (size_t i = 0; i < childComp.Children.Count(); i++)
                         entry["childComponent"]["children"][i] = static_cast<u64>(childComp.Children[i]);
                 }
 
@@ -215,7 +215,7 @@ namespace Heart
                     auto& meshComp = entity.GetComponent<MeshComponent>();
                     entry["meshComponent"]["mesh"]["path"] = AssetManager::GetPathFromUUID(meshComp.Mesh);
                     entry["meshComponent"]["mesh"]["engineResource"] = AssetManager::IsAssetAResource(meshComp.Mesh);
-                    for (size_t i = 0; i < meshComp.Materials.GetCount(); i++)
+                    for (size_t i = 0; i < meshComp.Materials.Count(); i++)
                     {
                         entry["meshComponent"]["materials"][i]["path"] = AssetManager::GetPathFromUUID(meshComp.Materials[i]);
                         entry["meshComponent"]["materials"][i]["engineResource"] = AssetManager::IsAssetAResource(meshComp.Materials[i]);

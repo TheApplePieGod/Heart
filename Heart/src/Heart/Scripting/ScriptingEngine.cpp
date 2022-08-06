@@ -132,7 +132,7 @@ namespace Heart
         if (res)
         {
             // Populate local array
-            for (u32 i = 0; i < outClasses.GetCount(); i++)
+            for (u32 i = 0; i < outClasses.Count(); i++)
             {
                 auto convertedString = outClasses[i].String().Convert(HString::Encoding::UTF8);
                 s_InstantiableClasses[convertedString] = ScriptClass(convertedString);

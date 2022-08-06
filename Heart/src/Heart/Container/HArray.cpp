@@ -5,13 +5,13 @@ namespace Heart
 {
     void to_json(nlohmann::json& j, const HArray& array)
     {
-        if (array.GetCount() == 0)
+        if (array.Count() == 0)
         {
             j = nlohmann::json::array();
             return;
         }
 
-        for (u32 i = 0; i < array.GetCount(); i++)
+        for (u32 i = 0; i < array.Count(); i++)
             j[i] = array.Get(i);
     }
 

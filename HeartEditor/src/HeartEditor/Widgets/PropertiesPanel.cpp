@@ -146,7 +146,7 @@ namespace Widgets
                 {
                     // Resize the materials to match the max of the mesh
                     // This will add more zeros (defaults) if need be but will not replace old overridden materials
-                    if (meshComp.Materials.GetCount() == 0)
+                    if (meshComp.Materials.Count() == 0)
                         meshComp.Materials.Resize(meshAsset->GetMaxMaterials());
 
                     // Selection for each material

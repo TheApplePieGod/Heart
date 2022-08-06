@@ -17,7 +17,7 @@ namespace Heart
     VulkanFramebuffer::VulkanFramebuffer(const FramebufferCreateInfo& createInfo)
         : Framebuffer(createInfo)
     {
-        HE_ENGINE_ASSERT(createInfo.ColorAttachments.GetCount() > 0, "Cannot create a framebuffer with zero color attachments");
+        HE_ENGINE_ASSERT(createInfo.ColorAttachments.Count() > 0, "Cannot create a framebuffer with zero color attachments");
 
         VulkanDevice& device = VulkanContext::GetDevice();
         Window& mainWindow = Window::GetMainWindow();
@@ -146,8 +146,8 @@ namespace Heart
             }
         }
 
-        HVector<VkSubpassDescription> subpasses(createInfo.Subpasses.GetCount());
-        HVector<VkSubpassDependency> dependencies(createInfo.Subpasses.GetCount());
+        HVector<VkSubpassDescription> subpasses(createInfo.Subpasses.Count());
+        HVector<VkSubpassDependency> dependencies(createInfo.Subpasses.Count());
         HVector<VkAttachmentReference> inputAttachmentRefs;
         HVector<VkAttachmentReference> outputAttachmentRefs;
         HVector<VkAttachmentReference> outputResolveAttachmentRefs;
@@ -156,16 +156,16 @@ namespace Heart
         inputAttachmentRefs.Reserve(100);
         outputAttachmentRefs.Reserve(100);
         outputResolveAttachmentRefs.Reserve(100);
-        depthAttachmentRefs.Reserve(createInfo.Subpasses.GetCount());
-        for (u32 i = 0; i < subpasses.GetCount(); i++)
+        depthAttachmentRefs.Reserve(createInfo.Subpasses.Count());
+        for (u32 i = 0; i < subpasses.Count(); i++)
         {
-            HE_ENGINE_ASSERT(i != 0 || inputAttachmentRefs.GetCount() == 0, "Subpass 0 cannot have input attachments");
+            HE_ENGINE_ASSERT(i != 0 || inputAttachmentRefs.Count() == 0, "Subpass 0 cannot have input attachments");
 
             depthAttachmentRefs.Add({ VK_ATTACHMENT_UNUSED, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL });
 
             u32 inputAttachmentCount = 0;
             u32 outputAttachmentCount = 0;
-            for (u32 j = 0; j < createInfo.Subpasses[i].InputAttachments.GetCount(); j++)
+            for (u32 j = 0; j < createInfo.Subpasses[i].InputAttachments.Count(); j++)
             {
                 auto& attachment = createInfo.Subpasses[i].InputAttachments[j];
                 if (attachment.Type == SubpassAttachmentType::Color)
@@ -174,7 +174,7 @@ namespace Heart
                     inputAttachmentRefs.Add({ m_DepthAttachmentData[0][attachment.AttachmentIndex].ImageAttachmentIndex, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL });
                 inputAttachmentCount++;
             }
-            for (u32 j = 0; j < createInfo.Subpasses[i].OutputAttachments.GetCount(); j++)
+            for (u32 j = 0; j < createInfo.Subpasses[i].OutputAttachments.Count(); j++)
             {
                 auto& attachment = createInfo.Subpasses[i].OutputAttachments[j];
                 if (attachment.Type == SubpassAttachmentType::Depth)
@@ -194,11 +194,11 @@ namespace Heart
             subpasses[i] = {};
             subpasses[i].pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
             subpasses[i].colorAttachmentCount = outputAttachmentCount;
-            subpasses[i].pColorAttachments = outputAttachmentRefs.Data() + outputAttachmentRefs.GetCount() - outputAttachmentCount;
-            subpasses[i].pResolveAttachments = outputResolveAttachmentRefs.Data() + outputResolveAttachmentRefs.GetCount() - outputAttachmentCount;
+            subpasses[i].pColorAttachments = outputAttachmentRefs.Data() + outputAttachmentRefs.Count() - outputAttachmentCount;
+            subpasses[i].pResolveAttachments = outputResolveAttachmentRefs.Data() + outputResolveAttachmentRefs.Count() - outputAttachmentCount;
             subpasses[i].pDepthStencilAttachment = depthAttachmentRefs.Data() + i;
             subpasses[i].inputAttachmentCount = inputAttachmentCount;
-            subpasses[i].pInputAttachments = inputAttachmentRefs.Data() + inputAttachmentRefs.GetCount() - inputAttachmentCount;
+            subpasses[i].pInputAttachments = inputAttachmentRefs.Data() + inputAttachmentRefs.Count() - inputAttachmentCount;
 
             dependencies[i] = {};
             dependencies[i].srcSubpass = static_cast<u32>(i - 1);
@@ -217,7 +217,7 @@ namespace Heart
                 dependencies[i].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
                 dependencies[i].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT; //| VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
             }
-            if (i == subpasses.GetCount() - 1)
+            if (i == subpasses.Count() - 1)
             {
                 dependencies[i].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT; //| VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
                 dependencies[i].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
@@ -227,18 +227,18 @@ namespace Heart
 
         VkRenderPassCreateInfo renderPassInfo{};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-        renderPassInfo.attachmentCount = static_cast<u32>(attachmentDescriptions.GetCount());
+        renderPassInfo.attachmentCount = static_cast<u32>(attachmentDescriptions.Count());
         renderPassInfo.pAttachments = attachmentDescriptions.Data();
-        renderPassInfo.subpassCount = static_cast<u32>(subpasses.GetCount());
+        renderPassInfo.subpassCount = static_cast<u32>(subpasses.Count());
         renderPassInfo.pSubpasses = subpasses.Data();
-        renderPassInfo.dependencyCount = static_cast<u32>(dependencies.GetCount());;
+        renderPassInfo.dependencyCount = static_cast<u32>(dependencies.Count());;
         renderPassInfo.pDependencies = dependencies.Data();
           
         HE_VULKAN_CHECK_RESULT(vkCreateRenderPass(device.Device(), &renderPassInfo, nullptr, &m_RenderPass));
 
         if (m_Info.AllowPerformanceQuerying)
         {
-            m_QueryPoolSize = static_cast<u32>(m_Info.Subpasses.GetCount() + 1);
+            m_QueryPoolSize = static_cast<u32>(m_Info.Subpasses.Count() + 1);
 
             VkQueryPoolCreateInfo poolInfo{};
             poolInfo.sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
@@ -247,7 +247,7 @@ namespace Heart
                         
             for (u32 frame = 0; frame < Renderer::FrameBufferCount; frame++)
                 HE_VULKAN_CHECK_RESULT(vkCreateQueryPool(device.Device(), &poolInfo, nullptr, &m_QueryPools[frame]));
-            m_PerformanceTimestamps.Resize(m_Info.Subpasses.GetCount() + 1);
+            m_PerformanceTimestamps.Resize(m_Info.Subpasses.Count() + 1);
         }
 
         CreateFramebuffer();
@@ -357,7 +357,7 @@ namespace Heart
             renderPassInfo.renderArea.offset = { 0, 0 };
             renderPassInfo.renderArea.extent = { m_ActualWidth, m_ActualHeight };
 
-            renderPassInfo.clearValueCount = static_cast<u32>(m_CachedClearValues.GetCount());
+            renderPassInfo.clearValueCount = static_cast<u32>(m_CachedClearValues.Count());
             renderPassInfo.pClearValues = m_CachedClearValues.Data();
 
             vkCmdBeginRenderPass(buffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
@@ -370,7 +370,7 @@ namespace Heart
 
         HE_ENGINE_ASSERT(!m_SubmittedThisFrame, "Cannot submit framebuffer twice in the same frame");
         HE_ENGINE_ASSERT(m_SubmittedThisFrame || m_BoundThisFrame, "Cannot submit framebuffer that has not been bound this frame");
-        HE_ENGINE_ASSERT(m_CurrentSubpass == m_Info.Subpasses.GetCount() - 1, "Attempting to submit a framebuffer without completing all subpasses");
+        HE_ENGINE_ASSERT(m_CurrentSubpass == m_Info.Subpasses.Count() - 1, "Attempting to submit a framebuffer without completing all subpasses");
 
         if (!m_SubmittedThisFrame)
         {
@@ -467,12 +467,12 @@ namespace Heart
                     device.Device(),
                     m_QueryPools[m_InFlightFrameIndex],
                     0, m_QueryPoolSize,
-                    sizeof(u64) * results.GetCount(), results.Data(),
+                    sizeof(u64) * results.Count(), results.Data(),
                     sizeof(u64),
                     VK_QUERY_RESULT_64_BIT
                 );
 
-                for (size_t i = 0; i < m_PerformanceTimestamps.GetCount(); i++)
+                for (size_t i = 0; i < m_PerformanceTimestamps.Count(); i++)
                 {
                     double timestamp = device.PhysicalDeviceProperties().limits.timestampPeriod;
                     if (i == 0) // overall timestamp uses first and last results
@@ -657,7 +657,7 @@ namespace Heart
             m_BoundPipeline->GetLayout(),
             0, 1,
             sets,
-            static_cast<u32>(descriptorSet.GetDynamicOffsets().GetCount()),
+            static_cast<u32>(descriptorSet.GetDynamicOffsets().Count()),
             descriptorSet.GetDynamicOffsets().Data()
         );
 
@@ -666,7 +666,7 @@ namespace Heart
     
     void* VulkanFramebuffer::GetColorAttachmentImGuiHandle(u32 attachmentIndex)
     {
-        HE_ENGINE_ASSERT(attachmentIndex < m_AttachmentData[m_InFlightFrameIndex].GetCount(), "Color attachment access on framebuffer out of range");
+        HE_ENGINE_ASSERT(attachmentIndex < m_AttachmentData[m_InFlightFrameIndex].Count(), "Color attachment access on framebuffer out of range");
  
         return (
             m_AttachmentData[m_InFlightFrameIndex][attachmentIndex].HasResolve ?
@@ -677,7 +677,7 @@ namespace Heart
 
     void* VulkanFramebuffer::GetColorAttachmentPixelData(u32 attachmentIndex)
     {
-        HE_ENGINE_ASSERT(attachmentIndex < m_AttachmentData[m_InFlightFrameIndex].GetCount(), "Color attachment access on framebuffer out of range");
+        HE_ENGINE_ASSERT(attachmentIndex < m_AttachmentData[m_InFlightFrameIndex].Count(), "Color attachment access on framebuffer out of range");
         HE_ENGINE_ASSERT(m_AttachmentData[m_InFlightFrameIndex][attachmentIndex].CPUVisible, "Cannot read pixel data of color attachment that does not have 'AllowCPURead' enabled");
 
         return m_AttachmentData[m_InFlightFrameIndex][attachmentIndex].AttachmentBuffer->GetMappedMemory();
@@ -693,7 +693,7 @@ namespace Heart
     double VulkanFramebuffer::GetSubpassPerformanceTimestamp(u32 subpassIndex)
     {
         HE_ENGINE_ASSERT(m_Info.AllowPerformanceQuerying, "Cannot get performance timestamp unless the framebuffer was created with 'AllowPerformanceQuerying' enabled");
-        HE_ENGINE_ASSERT(subpassIndex < m_Info.Subpasses.GetCount(), "Subpass index out of range");
+        HE_ENGINE_ASSERT(subpassIndex < m_Info.Subpasses.Count(), "Subpass index out of range");
 
         return m_PerformanceTimestamps[subpassIndex + 1];
     }
@@ -701,7 +701,7 @@ namespace Heart
     void VulkanFramebuffer::StartNextSubpass()
     {
         m_CurrentSubpass++;
-        HE_ENGINE_ASSERT(m_CurrentSubpass < m_Info.Subpasses.GetCount(), "Attempting to start a subpass that does not exist");
+        HE_ENGINE_ASSERT(m_CurrentSubpass < m_Info.Subpasses.Count(), "Attempting to start a subpass that does not exist");
 
         if (m_Info.AllowPerformanceQuerying)
         {
@@ -744,8 +744,8 @@ namespace Heart
 
     Ref<GraphicsPipeline> VulkanFramebuffer::InternalInitializeGraphicsPipeline(const GraphicsPipelineCreateInfo& createInfo)
     {
-        HE_ENGINE_ASSERT(createInfo.SubpassIndex >= 0 && createInfo.SubpassIndex < m_Info.Subpasses.GetCount(), "Graphics pipeline subpass index is out of range");
-        HE_ENGINE_ASSERT(createInfo.BlendStates.GetCount() == GetSubpassOutputColorAttachmentCount(createInfo.SubpassIndex), "Graphics pipeline blend state count must match subpass color attachment output count");
+        HE_ENGINE_ASSERT(createInfo.SubpassIndex >= 0 && createInfo.SubpassIndex < m_Info.Subpasses.Count(), "Graphics pipeline subpass index is out of range");
+        HE_ENGINE_ASSERT(createInfo.BlendStates.Count() == GetSubpassOutputColorAttachmentCount(createInfo.SubpassIndex), "Graphics pipeline blend state count must match subpass color attachment output count");
 
         VulkanDevice& device = VulkanContext::GetDevice();
 
@@ -925,7 +925,7 @@ namespace Heart
             VkFramebufferCreateInfo framebufferInfo{};
             framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
             framebufferInfo.renderPass = m_RenderPass;
-            framebufferInfo.attachmentCount = static_cast<u32>(m_CachedImageViews[frame].GetCount());
+            framebufferInfo.attachmentCount = static_cast<u32>(m_CachedImageViews[frame].Count());
             framebufferInfo.pAttachments = m_CachedImageViews[frame].Data();
             framebufferInfo.width = m_ActualWidth;
             framebufferInfo.height = m_ActualHeight;
@@ -985,9 +985,9 @@ namespace Heart
             m_SubmittedThisFrame = false;
 
             // free old auxiliary command buffers
-            if (m_AuxiliaryCommandBuffers[m_InFlightFrameIndex].GetCount() > 0)
+            if (m_AuxiliaryCommandBuffers[m_InFlightFrameIndex].Count() > 0)
             {
-                vkFreeCommandBuffers(device.Device(), VulkanContext::GetGraphicsPool(), static_cast<u32>(m_AuxiliaryCommandBuffers[m_InFlightFrameIndex].GetCount()), m_AuxiliaryCommandBuffers[m_InFlightFrameIndex].Data());
+                vkFreeCommandBuffers(device.Device(), VulkanContext::GetGraphicsPool(), static_cast<u32>(m_AuxiliaryCommandBuffers[m_InFlightFrameIndex].Count()), m_AuxiliaryCommandBuffers[m_InFlightFrameIndex].Data());
                 m_AuxiliaryCommandBuffers[m_InFlightFrameIndex].Clear();
             }
         }

@@ -57,7 +57,7 @@ namespace Heart
 
         HString(const HStringView& other);
 
-        u32 GetCount() const;
+        u32 Count() const;
         HString Convert(Encoding encoding) const;
         HString8 ToUTF8() const;
         HString16 ToUTF16() const;
@@ -75,10 +75,10 @@ namespace Heart
         inline const char8* EndUTF8() const { return End<char8>(); }
         inline const char16* BeginUTF16() const { return Begin<char16>(); }
         inline const char16* EndUTF16() const { return End<char16>(); }
-        inline u32 GetCountUTF8() const { return m_Container.Data() ? (m_Container.GetCountUnchecked() - 1) : 0; }
-        inline u32 GetCountUTF16() const { return m_Container.Data() ? (m_Container.GetCountUnchecked() * 0.5 - 1) : 0; }
-        inline HStringView8 GetViewUTF8() const { return HStringView8(DataUTF8(), GetCountUTF8()); }
-        inline HStringView16 GetViewUTF16() const { return HStringView16(DataUTF16(), GetCountUTF16()); }
+        inline u32 CountUTF8() const { return m_Container.Data() ? (m_Container.CountUnchecked() - 1) : 0; }
+        inline u32 CountUTF16() const { return m_Container.Data() ? (m_Container.CountUnchecked() * 0.5 - 1) : 0; }
+        inline HStringView8 GetViewUTF8() const { return HStringView8(DataUTF8(), CountUTF8()); }
+        inline HStringView16 GetViewUTF16() const { return HStringView16(DataUTF16(), CountUTF16()); }
 
         template <typename T>
         inline const T* Data() const
@@ -157,13 +157,13 @@ namespace Heart
         HString AddPtr(const T* other, bool prepend) const
         {
             const T* data[2] = { Data<T>(), other };
-            u32 lens[2] = { GetCount(), 0 };
+            u32 lens[2] = { Count(), 0 };
             if (prepend)
             {
                 data[0] = other;
                 data[1] = Data<T>();
                 lens[0] = 0;
-                lens[1] = GetCount();
+                lens[1] = Count();
             }
 
             return HString(data, lens, 2);
@@ -185,7 +185,7 @@ namespace Heart
         ~HStringView() = default;
 
         HStringView(const HString& other)
-            : m_Encoding(other.m_Encoding), m_Data(other.DataRaw()), m_Count(other.GetCount())
+            : m_Encoding(other.m_Encoding), m_Data(other.DataRaw()), m_Count(other.Count())
         {}
 
         HStringView(const std::basic_string<char8>& str)
@@ -234,8 +234,8 @@ namespace Heart
 
         constexpr int Compare(StringComparison type, const HStringView& other) const;
 
-        inline HString8 ToUTF8() const { return HString8(DataUTF8(), GetCountUTF8()); }
-        inline HString16 ToUTF16() const { return HString16(DataUTF16(), GetCountUTF16()); }
+        inline HString8 ToUTF8() const { return HString8(DataUTF8(), CountUTF8()); }
+        inline HString16 ToUTF16() const { return HString16(DataUTF16(), CountUTF16()); }
 
         inline constexpr const void* DataRaw() const { return Data<void>(); }
         inline constexpr const char8* DataUTF8() const { return Data<char8>(); }
@@ -246,8 +246,8 @@ namespace Heart
         inline constexpr const char8* EndUTF8() const { return End<char8>(); }
         inline constexpr const char16* BeginUTF16() const { return Begin<char16>(); }
         inline constexpr const char16* EndUTF16() const { return End<char16>(); }
-        inline constexpr u32 GetCountUTF8() const { return m_Count; }
-        inline constexpr u32 GetCountUTF16() const { return m_Count; }
+        inline constexpr u32 CountUTF8() const { return m_Count; }
+        inline constexpr u32 CountUTF16() const { return m_Count; }
         
         template <typename T>
         inline constexpr const T* Data() const
@@ -259,7 +259,7 @@ namespace Heart
         template <typename T>
         inline constexpr const T* End() const { return reinterpret_cast<const T*>(m_Data) + m_Count; }
         inline constexpr HString::Encoding GetEncoding() const { return m_Encoding; }
-        inline constexpr u32 GetCount() const { return m_Count; }
+        inline constexpr u32 Count() const { return m_Count; }
         inline constexpr bool IsEmpty() const { return m_Count == 0; }
 
         inline constexpr bool operator==(const HStringView& other) const
@@ -298,9 +298,9 @@ namespace Heart
                 switch (m_Encoding)
                 {
                     case HString::Encoding::UTF8:
-                    { return StringUtils::CompareByValue(DataUTF8(), GetCountUTF8(), other.DataUTF8(), other.GetCountUTF8()); }
+                    { return StringUtils::CompareByValue(DataUTF8(), CountUTF8(), other.DataUTF8(), other.CountUTF8()); }
                     case HString::Encoding::UTF16:
-                    { return StringUtils::CompareByValue(DataUTF16(), GetCountUTF16(), other.DataUTF16(), other.GetCountUTF16()); }
+                    { return StringUtils::CompareByValue(DataUTF16(), CountUTF16(), other.DataUTF16(), other.CountUTF16()); }
                 }
             }
             case StringComparison::Alphabetical:
@@ -308,9 +308,9 @@ namespace Heart
                 switch (m_Encoding)
                 {
                     case HString::Encoding::UTF8:
-                    { return StringUtils::CompareAlphabetical(DataUTF8(), GetCountUTF8(), other.DataUTF8(), other.GetCountUTF8()); }
+                    { return StringUtils::CompareAlphabetical(DataUTF8(), CountUTF8(), other.DataUTF8(), other.CountUTF8()); }
                     case HString::Encoding::UTF16:
-                    { return StringUtils::CompareAlphabetical(DataUTF16(), GetCountUTF16(), other.DataUTF16(), other.GetCountUTF16()); }
+                    { return StringUtils::CompareAlphabetical(DataUTF16(), CountUTF16(), other.DataUTF16(), other.CountUTF16()); }
                 }
             }
             case StringComparison::Equality:
@@ -318,9 +318,9 @@ namespace Heart
                 switch (m_Encoding)
                 {
                     case HString::Encoding::UTF8:
-                    { return !StringUtils::CompareEq(DataUTF8(), GetCountUTF8(), other.DataUTF8(), other.GetCountUTF8()); }
+                    { return !StringUtils::CompareEq(DataUTF8(), CountUTF8(), other.DataUTF8(), other.CountUTF8()); }
                     case HString::Encoding::UTF16:
-                    { return !StringUtils::CompareEq(DataUTF16(), GetCountUTF16(), other.DataUTF16(), other.GetCountUTF16()); }
+                    { return !StringUtils::CompareEq(DataUTF16(), CountUTF16(), other.DataUTF16(), other.CountUTF16()); }
                 }
             }
         }
@@ -344,13 +344,13 @@ namespace std
                 case Heart::HString::Encoding::UTF8:
                 {
                     return std::hash<std::basic_string_view<char8>>{}(
-                        std::basic_string_view<char8>(str.DataUTF8(), str.GetCountUTF8())
+                        std::basic_string_view<char8>(str.DataUTF8(), str.CountUTF8())
                     );
                 }
                 case Heart::HString::Encoding::UTF16:
                 {
                     return std::hash<std::basic_string_view<char16>>{}(
-                        std::basic_string_view<char16>(str.DataUTF16(), str.GetCountUTF16())
+                        std::basic_string_view<char16>(str.DataUTF16(), str.CountUTF16())
                     );
                 }
             }

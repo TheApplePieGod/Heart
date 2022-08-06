@@ -18,7 +18,7 @@ namespace Heart
 
         VkShaderModuleCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-        createInfo.codeSize = compiled.GetCount() * sizeof(u32);
+        createInfo.codeSize = compiled.Count() * sizeof(u32);
         createInfo.pCode = compiled.Data();
 
         HE_VULKAN_CHECK_RESULT(vkCreateShaderModule(device.Device(), &createInfo, nullptr, &m_ShaderModule));

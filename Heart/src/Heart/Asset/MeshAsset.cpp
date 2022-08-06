@@ -256,7 +256,7 @@ namespace Heart
                     auto& bufferView = bufferViews[accessor.BufferViewIndex];
                     auto& buffer = buffers[bufferView.BufferIndex];
 
-                    if (accessor.Count > parseData.Indices.GetCount())
+                    if (accessor.Count > parseData.Indices.Count())
                         parseData.Indices.Resize(accessor.Count, false);
 
                     u32 offset = 0; // bytes
@@ -287,7 +287,7 @@ namespace Heart
                     auto& bufferView = bufferViews[accessor.BufferViewIndex];
                     auto& buffer = buffers[bufferView.BufferIndex];
 
-                    if (accessor.Count > parseData.Vertices.GetCount())
+                    if (accessor.Count > parseData.Vertices.Count())
                         parseData.Vertices.Resize(accessor.Count, false);
 
                     // parse vertex data
@@ -346,7 +346,7 @@ namespace Heart
             // calculate the normals and/or tangents of the submesh if they aren't provided
             if (!hasNormals || !hasTangents)
             {
-                for (size_t i = 0; i < pair.second.Indices.GetCount(); i += 3)
+                for (size_t i = 0; i < pair.second.Indices.Count(); i += 3)
                 {
                     Mesh::Vertex& v0 = pair.second.Vertices[pair.second.Indices[i]];
                     Mesh::Vertex& v1 = pair.second.Vertices[pair.second.Indices[i + 1]];
@@ -438,8 +438,8 @@ namespace Heart
                     submesh.Vertices.AddInPlace(vertex);
                 }
 
-                submesh.IndexOffset += static_cast<u32>(primitive.Indices.GetCount());
-                submesh.VertexOffset += static_cast<u32>(primitive.Vertices.GetCount());
+                submesh.IndexOffset += static_cast<u32>(primitive.Indices.Count());
+                submesh.VertexOffset += static_cast<u32>(primitive.Vertices.Count());
             }
         }
 

@@ -64,7 +64,7 @@ namespace Heart
                 queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
                 queueCreateInfo.queueFamilyIndex = pair.first;
                 queueCreateInfo.queueCount = pair.second;
-                queueCreateInfo.pQueuePriorities = queuePriorities.Data() + queuePriorities.GetCount();
+                queueCreateInfo.pQueuePriorities = queuePriorities.Data() + queuePriorities.Count();
                 queueCreateInfos.Add(queueCreateInfo);
 
                 for (u32 i = 0; i < pair.second; i++)
@@ -100,12 +100,12 @@ namespace Heart
             createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
             createInfo.pNext = &vulkan12Features;
             createInfo.pQueueCreateInfos = queueCreateInfos.Data();
-            createInfo.queueCreateInfoCount = static_cast<u32>(queueCreateInfos.GetCount());
+            createInfo.queueCreateInfoCount = static_cast<u32>(queueCreateInfos.Count());
             createInfo.pEnabledFeatures = &deviceFeatures;
-            createInfo.enabledExtensionCount = static_cast<u32>(deviceExtensions.GetCount());
+            createInfo.enabledExtensionCount = static_cast<u32>(deviceExtensions.Count());
             createInfo.ppEnabledExtensionNames = deviceExtensions.Data();
             #if HE_DEBUG
-                createInfo.enabledLayerCount = static_cast<u32>(validationLayers.GetCount());
+                createInfo.enabledLayerCount = static_cast<u32>(validationLayers.Count());
                 createInfo.ppEnabledLayerNames = validationLayers.Data();
             #else
                 createInfo.enabledLayerCount = 0;
@@ -163,7 +163,7 @@ namespace Heart
 
         // check for compatability
         int count = 0;
-        for (int i = 0; i < deviceExtensions.GetCount(); i++)
+        for (int i = 0; i < deviceExtensions.Count(); i++)
         {
             // device is not supported if any extension is not supported, so return false
             if (std::find_if(supportedExtensions.Begin(), supportedExtensions.End(), [&deviceExtensions, &i](const VkExtensionProperties& arg) { return strcmp(arg.extensionName, deviceExtensions[i]); }) == supportedExtensions.end())

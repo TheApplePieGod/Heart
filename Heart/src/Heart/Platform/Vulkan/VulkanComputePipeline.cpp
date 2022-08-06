@@ -27,7 +27,7 @@ namespace Heart
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        pipelineLayoutInfo.setLayoutCount = static_cast<u32>(layouts.GetCount());
+        pipelineLayoutInfo.setLayoutCount = static_cast<u32>(layouts.Count());
         pipelineLayoutInfo.pSetLayouts = layouts.Data();
         pipelineLayoutInfo.pushConstantRangeCount = 0;
         pipelineLayoutInfo.pPushConstantRanges = nullptr;
@@ -167,7 +167,7 @@ namespace Heart
             m_PipelineLayout,
             0, 1,
             sets,
-            static_cast<u32>(m_DescriptorSet.GetDynamicOffsets().GetCount()),
+            static_cast<u32>(m_DescriptorSet.GetDynamicOffsets().Count()),
             m_DescriptorSet.GetDynamicOffsets().Data()
         );
         vkCmdBindDescriptorSets(
@@ -176,7 +176,7 @@ namespace Heart
             m_PipelineLayout,
             0, 1,
             sets,
-            static_cast<u32>(m_DescriptorSet.GetDynamicOffsets().GetCount()),
+            static_cast<u32>(m_DescriptorSet.GetDynamicOffsets().Count()),
             m_DescriptorSet.GetDynamicOffsets().Data()
         );
 
