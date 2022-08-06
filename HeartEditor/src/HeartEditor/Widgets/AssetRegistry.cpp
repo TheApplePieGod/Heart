@@ -23,11 +23,16 @@ namespace Widgets
         {
             ImGui::TableNextColumn();
             ImGui::Text("UUID");
-            DrawTextFilter(m_UUIDFilter, "##idfilter");
+            Heart::ImGuiUtils::DrawTextFilter(m_UUIDFilter, "##idfilter");
 
             ImGui::TableNextColumn();
             ImGui::Text("Type");
-            DrawAssetTypeFilter();
+            Heart::ImGuiUtils::DrawStringDropdownFilter(
+                Heart::Asset::TypeStrings,
+                HE_ARRAY_SIZE(Heart::Asset::TypeStrings),
+                m_AssetTypeFilter,
+                "##typefilter"
+            );
 
             ImGui::TableNextColumn();
             ImGui::Text("Is Resource");
@@ -35,7 +40,7 @@ namespace Widgets
 
             ImGui::TableNextColumn();
             ImGui::Text("Path");
-            DrawTextFilter(m_PathFilter, "##pathfilter");
+            Heart::ImGuiUtils::DrawTextFilter(m_PathFilter, "##pathfilter");
 
             auto& registry = Heart::AssetManager::GetUUIDRegistry();
             for (auto& pair : registry)
@@ -80,74 +85,10 @@ namespace Widgets
         ImGui::PopStyleVar();
     }
 
-    void AssetRegistry::DrawFilterPopup(const char* popupName, bool focusOnOpen, std::function<void()>&& drawCallback, std::function<void()>&& clearCallback)
-    {
-        ImGui::SameLine();
-
-        Heart::HString8 b1id = Heart::HStringView8("V##v") + popupName;
-        Heart::HString8 b2id = Heart::HStringView8("X##x") + popupName;
-
-        bool popupOpened = ImGui::Button(b1id.Data());
-        if (popupOpened)
-            ImGui::OpenPopup(popupName);
-
-        ImGui::SameLine(0.f, 3.f);
-        if (ImGui::Button(b2id.Data()))
-            clearCallback();
-
-        if (ImGui::BeginPopup(popupName, ImGuiWindowFlags_HorizontalScrollbar))
-        {
-            drawCallback();
-            if (focusOnOpen && popupOpened)
-                ImGui::SetKeyboardFocusHere(-1);
-            ImGui::EndPopup();
-        }
-    }
-
-    void AssetRegistry::DrawTextFilter(ImGuiTextFilter& filter, const char* popupName)
-    {
-        DrawFilterPopup(
-            popupName,
-            true,
-            [&filter] ()
-            {
-                if (filter.Draw())
-                    ImGui::SetKeyboardFocusHere(-1);
-            },
-            [&filter] ()
-            {
-                filter.Clear();
-            }
-        );
-    }
-
-    void AssetRegistry::DrawAssetTypeFilter()
-    {
-        auto& filter = m_AssetTypeFilter;
-        DrawFilterPopup(
-            "##typefilter",
-            false,
-            [&filter] ()
-            {
-                u32 index = 0;
-                for (auto str : Heart::Asset::TypeStrings)
-                {
-                    if (ImGui::Selectable(str, filter == index))
-                        filter = index;
-                    index++;
-                }
-            },
-            [&filter] ()
-            {
-                filter = 0;
-            }
-        );
-    }
-
     void AssetRegistry::DrawIsResourceFilter()
     {
         auto& filter = m_IsResourceFilter;
-        DrawFilterPopup(
+        Heart::ImGuiUtils::DrawFilterPopup(
             "##resfilter",
             false,
             [&filter] ()

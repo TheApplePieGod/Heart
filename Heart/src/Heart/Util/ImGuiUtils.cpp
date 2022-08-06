@@ -50,6 +50,65 @@ namespace Heart
         return false;
     }
 
+    void ImGuiUtils::DrawFilterPopup(const char* popupName, bool focusOnOpen, std::function<void()>&& drawCallback, std::function<void()>&& clearCallback)
+    {
+        ImGui::SameLine();
+
+        Heart::HString8 b1id = Heart::HStringView8("V##v") + popupName;
+        Heart::HString8 b2id = Heart::HStringView8("X##x") + popupName;
+
+        bool popupOpened = ImGui::Button(b1id.Data());
+        if (popupOpened)
+            ImGui::OpenPopup(popupName);
+
+        ImGui::SameLine(0.f, 3.f);
+        if (ImGui::Button(b2id.Data()))
+            clearCallback();
+
+        if (ImGui::BeginPopup(popupName, ImGuiWindowFlags_HorizontalScrollbar))
+        {
+            drawCallback();
+            if (focusOnOpen && popupOpened)
+                ImGui::SetKeyboardFocusHere(-1);
+            ImGui::EndPopup();
+        }
+    }
+
+    void ImGuiUtils::DrawTextFilter(ImGuiTextFilter& filter, const char* popupName)
+    {
+        DrawFilterPopup(
+            popupName,
+            true,
+            [&filter] ()
+            {
+                if (filter.Draw())
+                    ImGui::SetKeyboardFocusHere(-1);
+            },
+            [&filter] ()
+            {
+                filter.Clear();
+            }
+        );
+    }
+
+    void ImGuiUtils::DrawStringDropdownFilter(const char** options, u32 optionCount, u32& selected, const char* popupName)
+    {
+        Heart::ImGuiUtils::DrawFilterPopup(
+            popupName,
+            false,
+            [&selected, options, optionCount] ()
+            {
+                for (u32 i = 0; i < optionCount; i++)
+                    if (ImGui::Selectable(options[i], selected == i))
+                        selected = i;
+            },
+            [&selected] ()
+            {
+                selected = 0;
+            }
+        );
+    }
+
     void ImGuiUtils::AssetDropTarget(Asset::Type typeFilter, std::function<void(const HStringView8&)>&& dropCallback)
     {
         if (AssetManager::GetAssetsDirectory().IsEmpty());

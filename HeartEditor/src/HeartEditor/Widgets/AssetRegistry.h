@@ -17,9 +17,6 @@ namespace Widgets
         void OnImGuiRender() override;
 
     private:
-        void DrawFilterPopup(const char* popupName, bool focusOnOpen, std::function<void()>&& drawCallback, std::function<void()>&& clearCallback);
-        void DrawTextFilter(ImGuiTextFilter& filter, const char* popupName);
-        void DrawAssetTypeFilter();
         void DrawIsResourceFilter();
 
         bool PassAssetTypeFilter(u32 type);

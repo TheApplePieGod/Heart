@@ -124,6 +124,7 @@
         "*.ipp": "cpp",
         "csignal": "cpp",
         "span": "cpp",
-        "memory_resource": "cpp"
+        "memory_resource": "cpp",
+        "*.def": "cpp"
     },
 }

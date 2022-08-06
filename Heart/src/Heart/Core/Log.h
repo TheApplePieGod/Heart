@@ -4,6 +4,39 @@
 
 namespace Heart
 {
+    enum class LogLevel
+    {
+        Trace = 0,
+        Debug = 1,
+        Info = 2,
+        Warn = 3,
+        Error = 4,
+        Critical = 5
+    };
+
+    struct LogListEntry
+    {
+        LogListEntry(
+            LogLevel level,
+            spdlog::string_view_t timestamp,
+            spdlog::string_view_t source,
+            spdlog::string_view_t message)
+            : Level(level),
+              Timestamp(timestamp.begin(), timestamp.size()),
+              Source(source.begin(), source.size()),
+              Message(message.begin(), message.size())
+        {}
+
+        inline static const char* TypeStrings[] = {
+            "Trace", "Debug", "Info", "Warn", "Error", "Critical"
+        };
+
+        LogLevel Level;
+        std::string Timestamp;
+        std::string Source;
+        std::string Message;
+    };
+
     class Logger
     {
     public:
@@ -11,10 +44,12 @@ namespace Heart
 
         inline static spdlog::logger& GetEngineLogger() { return *s_EngineLogger; }
         inline static spdlog::logger& GetClientLogger() { return *s_ClientLogger; }
+        inline static auto& GetLogList() { return s_LogList; }
 
     private:
         inline static Ref<spdlog::logger> s_EngineLogger;
         inline static Ref<spdlog::logger> s_ClientLogger;
+        inline static std::vector<LogListEntry> s_LogList;
     };
 }
 
