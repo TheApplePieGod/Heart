@@ -14,21 +14,21 @@
 	#define HE_DEBUGBREAK()
 #endif
 
-typedef int8_t s8;
-typedef int16_t s16;
-typedef int32_t s32;
-typedef int64_t s64;
-typedef int32_t b32;
-typedef uint8_t u8;
-typedef uint16_t u16;
-typedef uint32_t u32;
-typedef uint64_t u64;
-typedef float_t f32;
-typedef double_t d64;
-typedef intptr_t uptr;
-typedef wchar_t wchar;
-typedef char char8;
-typedef char16_t char16;
+using s8 = int8_t;
+using s16 = int16_t;
+using s32 = int32_t;
+using s64 = int64_t;
+using b32 = int32_t;
+using u8 = uint8_t;
+using u16 = uint16_t;
+using u32 = uint32_t;
+using u64 = uint64_t;
+using f32 = float_t;
+using d64 = double_t;
+using uptr = intptr_t;
+using wchar = wchar_t;
+using char8 = char;
+using char16 = char16_t;
 
 #define HE_ENUM_TO_STRING(class, value) class::TypeStrings[static_cast<u16>(value)]
 #define HE_EXPAND_ARGS(args) args
