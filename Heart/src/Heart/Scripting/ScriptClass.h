@@ -10,7 +10,7 @@ namespace Heart
     public:
         ScriptClass() = default;
 
-        ScriptClass(const HString& fullName)
+        ScriptClass(const HStringView& fullName)
             : m_FullName(fullName)
         { ReloadSerializableFields(); }
 

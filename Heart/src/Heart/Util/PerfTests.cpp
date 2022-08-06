@@ -5,6 +5,8 @@
 #include "Heart/Container/HVector.hpp"
 #include "Heart/Container/HArray.h"
 #include "Heart/Container/HString.h"
+#include "Heart/Container/HStringTyped.hpp"
+#include "Heart/Container/HString8.h"
 
 namespace Heart
 {
@@ -20,6 +22,7 @@ namespace Heart
         f32 Field2 = 12345.f;
         bool Field3 = true;
         u64 Field4 = 24680;
+        HVector<u32> Field5;
 
         inline bool operator==(const TestStruct& other)
         {
@@ -32,12 +35,12 @@ namespace Heart
 
     void PerfTests::RunHStringTest()
     {
-        HString utf8 = "\xE0\xA4\xAF\xE0\xA5\x82\xE0\xA4\xA8\xE0\xA4\xBF\xE0\xA4\x95\xE0\xA5\x8B\xE0\xA4\xA1";
-        HE_ENGINE_LOG_WARN(utf8.DataUTF8());
-        HString utf16 = utf8.ToUTF16();
-        utf8 = utf16.ToUTF8();
-        HE_ENGINE_LOG_WARN(utf16.DataUTF8());
-        HE_ENGINE_LOG_WARN(sizeof(HString));
+        HString8 str1 = "asd";
+        HStringView8 view1 = str1;
+
+        HStringViewTyped<char8> view2 = view1;
+
+        int d = 0;
     }
 
     void PerfTests::RunHArrayTest()
@@ -75,9 +78,20 @@ namespace Heart
 
     void PerfTests::RunHVectorTest()
     {
-        HVector<TestStruct> vec = { TestStruct(), TestStruct(), TestStruct(), TestStruct() };
-        vec.Pop();
-        int e = 0;
+        TestStruct struct1;
+        struct1.Field5.Add(5);
+        TestStruct struct2 = struct1;
+        struct1.Field5.Add(6);
+
+        HVector<u32> testVec1 = { 1, 2, 3 };
+        HVector<u32> testVec2 = { 4, 5, 6 };
+        testVec1.Append(testVec2);
+
+        HString8 testStr1 = "";
+        HString8 testStr2 = "asd";
+        HString8 testStr3;
+        testStr2 = testStr1;
+        int d = 0;
 
         /*
          * HVector - Add
@@ -155,6 +169,6 @@ namespace Heart
             }
         }
 
-        int d = 0;
+        int g = 0;
     }
 }

@@ -19,7 +19,7 @@ namespace HeartEditor
 {
 namespace Widgets
 {
-    MaterialEditor::MaterialEditor(const std::string& name, bool initialOpen)
+    MaterialEditor::MaterialEditor(const Heart::HStringView8& name, bool initialOpen)
         : Widget(name, initialOpen)
     {
         m_SceneRenderer = Heart::CreateScope<Heart::SceneRenderer>();
@@ -59,7 +59,7 @@ namespace Widgets
         }
 
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 5.0f));
-        ImGui::Begin(m_Name.c_str(), &m_Open);
+        ImGui::Begin(m_Name.Data(), &m_Open);
         
         auto materialAsset = Heart::AssetManager::RetrieveAsset<Heart::MaterialAsset>(m_SelectedMaterial);
         bool shouldRenderViewport = materialAsset && materialAsset->IsValid();
@@ -117,7 +117,7 @@ namespace Widgets
         // Display material on drop
         Heart::ImGuiUtils::AssetDropTarget(
             Heart::Asset::Type::Material,
-            [&](const std::string& path) { m_SelectedMaterial = Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Material, path); }
+            [&](const Heart::HStringView8& path) { m_SelectedMaterial = Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Material, path); }
         );
 
         ImGui::End();
@@ -147,7 +147,7 @@ namespace Widgets
             auto& materialData = editingMaterial.GetMaterialData();
 
             // Material path
-            ImGui::Text(materialAsset->GetPath().c_str());
+            ImGui::Text(materialAsset->GetPath().Data());
 
             // Save buttons
             bool disabled = !m_Dirty;

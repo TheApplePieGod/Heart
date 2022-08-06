@@ -1,15 +1,17 @@
 #include "hepch.h"
 #include "PlatformUtils.h"
 
+#include "Heart/Container/HString8.h"
+
 namespace Heart
 {
-    void* PlatformUtils::LoadDynamicLibrary(const std::string& path)
+    void* PlatformUtils::LoadDynamicLibrary(const HStringView8& path)
     {
         #ifdef HE_PLATFORM_WINDOWS
-            HMODULE lib = LoadLibraryA(path.c_str());
+            HMODULE lib = LoadLibraryA(path.Data());
             return (void*)lib;
         #elif defined(HE_PLATFORM_LINUX) || defined(HE_PLATFORM_MACOS)
-            void* lib = dlopen(lib, RTLD_LAZY, RTLD_LOCAL);
+            void* lib = dlopen(path.Data(), RTLD_LAZY, RTLD_LOCAL);
             return lib;
         #endif
 
@@ -25,13 +27,13 @@ namespace Heart
         #endif
     }
 
-    void* PlatformUtils::GetDynamicLibraryExport(void* lib, const std::string& name)
+    void* PlatformUtils::GetDynamicLibraryExport(void* lib, const HStringView8& name)
     {
         #ifdef HE_PLATFORM_WINDOWS
-            void* func = GetProcAddress((HMODULE)lib, name.c_str());
+            void* func = GetProcAddress((HMODULE)lib, name.Data());
             return func;
         #elif defined(HE_PLATFORM_LINUX) || defined(HE_PLATFORM_MACOS)
-            void* func = dlsym(lib, name.c_str());
+            void* func = dlsym(lib, name.Data());
             return func;
         #endif
 
@@ -60,28 +62,6 @@ namespace Heart
         #endif
 
         return nullptr;
-    }
-
-    std::string PlatformUtils::WideToNarrowString(const std::wstring& wide)
-    {
-        std::string output;
-        output.reserve(wide.length());
-
-        for (wchar c : wide)
-            output.push_back((char)c);
-
-        return output;
-    }
-
-    std::wstring PlatformUtils::NarrowToWideString(const std::string& narrow)
-    {
-        std::wstring output;
-        output.reserve(narrow.length());
-
-        for (char c : narrow)
-            output.push_back((wchar)c);
-
-        return output;
     }
 
     void PlatformUtils::InitializePlatform()

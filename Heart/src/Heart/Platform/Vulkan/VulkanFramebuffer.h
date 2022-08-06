@@ -2,6 +2,8 @@
 
 #include "Heart/Renderer/Framebuffer.h"
 #include "Heart/Platform/Vulkan/VulkanCommon.h"
+#include "Heart/Container/HString8.h"
+#include "Heart/Container/HVector.hpp"
 
 namespace Heart
 {
@@ -15,7 +17,7 @@ namespace Heart
         ~VulkanFramebuffer() override;
 
         void Bind(ComputePipeline* preRenderComputePipeline = nullptr) override;
-        void BindPipeline(const std::string& name) override;
+        void BindPipeline(const HStringView8& name) override;
         void BindShaderBufferResource(u32 bindingIndex, u32 offset, u32 elementCount, Buffer* buffer) override;
         void BindShaderTextureResource(u32 bindingIndex, Texture* texture) override;
         void BindShaderTextureLayerResource(u32 bindingIndex, Texture* texture, u32 layerIndex, u32 mipLevel) override;
@@ -38,7 +40,7 @@ namespace Heart
         inline VkCommandBuffer GetTransferCommandBuffer() { UpdateFrameIndex(); return m_TransferCommandBuffers[m_InFlightFrameIndex]; }
         inline bool CanDraw() const { return m_FlushedThisFrame; }
         inline VulkanGraphicsPipeline* GetBoundPipeline() { return m_BoundPipeline; }
-        inline void PushAuxiliaryCommandBuffer(VkCommandBuffer buffer) { UpdateFrameIndex(); m_AuxiliaryCommandBuffers[m_InFlightFrameIndex].push_back(buffer); }
+        inline void PushAuxiliaryCommandBuffer(VkCommandBuffer buffer) { UpdateFrameIndex(); m_AuxiliaryCommandBuffers[m_InFlightFrameIndex].Add(buffer); }
         inline bool WasBoundThisFrame() const { return m_BoundThisFrame; }
         inline bool WasSubmittedThisFrame() const { return m_SubmittedThisFrame; }
         inline VkPipelineStageFlagBits GetCurrentPipelineStage() const { return m_CurrentPipelineStage; }
@@ -91,17 +93,17 @@ namespace Heart
         std::array<VkFramebuffer, Renderer::FrameBufferCount> m_Framebuffers;
         VkRenderPass m_RenderPass;
         VulkanGraphicsPipeline* m_BoundPipeline = nullptr;
-        std::string m_BoundPipelineName = "";
+        HString8 m_BoundPipelineName = "";
         std::array<VkCommandBuffer, Renderer::FrameBufferCount> m_CommandBuffers{};
         std::array<VkCommandBuffer, Renderer::FrameBufferCount> m_TransferCommandBuffers{};
-        std::array<std::vector<VulkanFramebufferAttachment>, Renderer::FrameBufferCount> m_AttachmentData;
-        std::array<std::vector<VulkanFramebufferAttachment>, Renderer::FrameBufferCount> m_DepthAttachmentData;
-        std::vector<VkClearValue> m_CachedClearValues;
-        std::array<std::vector<VkImageView>, Renderer::FrameBufferCount> m_CachedImageViews;
-        std::array<std::vector<VkCommandBuffer>, Renderer::FrameBufferCount> m_AuxiliaryCommandBuffers;
+        std::array<HVector<VulkanFramebufferAttachment>, Renderer::FrameBufferCount> m_AttachmentData;
+        std::array<HVector<VulkanFramebufferAttachment>, Renderer::FrameBufferCount> m_DepthAttachmentData;
+        HVector<VkClearValue> m_CachedClearValues;
+        std::array<HVector<VkImageView>, Renderer::FrameBufferCount> m_CachedImageViews;
+        std::array<HVector<VkCommandBuffer>, Renderer::FrameBufferCount> m_AuxiliaryCommandBuffers;
         std::array<VkQueryPool, Renderer::FrameBufferCount> m_QueryPools;
 
-        std::vector<double> m_PerformanceTimestamps;
+        HVector<double> m_PerformanceTimestamps;
         u32 m_QueryPoolSize = 0;
         u32 m_CurrentSubpass = 0;
         u64 m_LastUpdateFrame = 0;

@@ -14,7 +14,7 @@ namespace Heart
          * @param path The path of the asset relative to the project directory.
          * @param absolutePath The absolute filesystem path of the asset.
          */
-        ShaderAsset(const std::string& path, const std::string& absolutePath);
+        ShaderAsset(const HStringView8& path, const HStringView8& absolutePath);
 
         void Load() override;
         void Unload() override;

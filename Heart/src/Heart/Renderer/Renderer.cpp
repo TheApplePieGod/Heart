@@ -7,11 +7,6 @@
 
 namespace Heart
 {
-    Scope<RenderApi> Renderer::s_RenderApi;
-    RenderApi::Type Renderer::s_RenderApiType;
-    bool Renderer::s_UseReverseDepth = true;
-    std::map<std::string, RenderStatistic> Renderer::s_RenderStatistics;
-
     void Renderer::Initialize(RenderApi::Type apiType)
     {
         HE_ENGINE_LOG_INFO("Initializing Renderer with api type {0}", RenderApi::TypeStrings[static_cast<u16>(apiType)]);

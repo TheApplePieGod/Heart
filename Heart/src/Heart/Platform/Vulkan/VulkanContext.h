@@ -45,7 +45,7 @@ namespace Heart
         inline static void SetBoundFramebuffer(VulkanFramebuffer* buffer) { s_BoundFramebuffer = buffer; }
         inline static void PushDeleteQueue(std::function<void()>&& func) { s_DeleteQueue.emplace_back(func); }
 
-        static std::vector<const char*> ConfigureValidationLayers();
+        static HVector<const char*> ConfigureValidationLayers();
     
     private:
         void CreateSurface(VkSurfaceKHR& surface);

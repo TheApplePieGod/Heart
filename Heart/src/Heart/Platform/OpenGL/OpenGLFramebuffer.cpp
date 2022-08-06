@@ -23,15 +23,15 @@ namespace Heart
     OpenGLFramebuffer::OpenGLFramebuffer(const FramebufferCreateInfo& createInfo)
         : Framebuffer(createInfo)
     {
-        HE_ENGINE_ASSERT(createInfo.ColorAttachments.size() > 0, "Cannot create a framebuffer with zero attachments");
+        HE_ENGINE_ASSERT(createInfo.ColorAttachments.GetCount() > 0, "Cannot create a framebuffer with zero attachments");
         Window& mainWindow = Window::GetMainWindow();
 
         m_ActualWidth = createInfo.Width == 0 ? mainWindow.GetWidth() : createInfo.Width;
         m_ActualHeight = createInfo.Height == 0 ? mainWindow.GetHeight() : createInfo.Height;
 
         // populate cached attachment handles
-        m_CachedAttachmentHandles.resize(createInfo.ColorAttachments.size());
-        for (size_t i = 0; i < createInfo.ColorAttachments.size(); i++)
+        m_CachedAttachmentHandles.Resize(createInfo.ColorAttachments.GetCount(), false);
+        for (size_t i = 0; i < createInfo.ColorAttachments.GetCount(); i++)
             m_CachedAttachmentHandles[i] = GL_COLOR_ATTACHMENT0 + static_cast<int>(i);
         
         m_ImageSamples = OpenGLCommon::MsaaSampleCountToOpenGL(createInfo.SampleCount);
@@ -51,7 +51,7 @@ namespace Heart
 
             CreateAttachmentTextures(attachmentData);
 
-            m_DepthAttachmentData.emplace_back(attachmentData);
+            m_DepthAttachmentData.AddInPlace(attachmentData);
         }
 
         for (auto& attachment : m_Info.ColorAttachments)
@@ -78,12 +78,12 @@ namespace Heart
 
             CreatePixelBuffers(attachmentData);
 
-            m_AttachmentData.emplace_back(attachmentData);
+            m_AttachmentData.AddInPlace(attachmentData);
         }
 
-        m_Framebuffers.resize(createInfo.Subpasses.size());
+        m_Framebuffers.Resize(createInfo.Subpasses.GetCount());
         if (m_ImageSamples > 1)
-            m_BlitFramebuffers.resize(createInfo.Subpasses.size());
+            m_BlitFramebuffers.Resize(createInfo.Subpasses.GetCount());
 
         CreateFramebuffers();
 
@@ -92,10 +92,10 @@ namespace Heart
         {
             for (size_t i = 0; i < m_QueryIds.size(); i++)
             {
-                m_QueryIds[i].resize(m_Info.Subpasses.size() + 2);
-                glGenQueries(static_cast<int>(m_QueryIds[i].size()), m_QueryIds[i].data());
+                m_QueryIds[i].Resize(m_Info.Subpasses.GetCount() + 2, false);
+                glGenQueries(static_cast<int>(m_QueryIds[i].GetCount()), m_QueryIds[i].Data());
             }
-            m_PerformanceTimestamps.resize(m_Info.Subpasses.size() + 1, 0.0);
+            m_PerformanceTimestamps.Resize(m_Info.Subpasses.GetCount() + 1, 0.0);
         }
     }
 
@@ -113,7 +113,7 @@ namespace Heart
 
         if (m_Info.AllowPerformanceQuerying)
             for (size_t i = 0; i < m_QueryIds.size(); i++)
-                glDeleteQueries(static_cast<int>(m_QueryIds[i].size()), m_QueryIds[i].data());
+                glDeleteQueries(static_cast<int>(m_QueryIds[i].GetCount()), m_QueryIds[i].Data());
     }
 
     void OpenGLFramebuffer::Bind(ComputePipeline* preRenderComputePipeline)
@@ -135,7 +135,7 @@ namespace Heart
                 glQueryCounter(m_QueryIds[App::Get().GetFrameCount() % 2][0], GL_TIMESTAMP);
 
             // clear each attachment with the provided color
-            for (size_t i = 0; i < m_AttachmentData.size(); i++)
+            for (u32 i = 0; i < m_AttachmentData.GetCount(); i++)
                 glClearTexImage(m_AttachmentData[i].Image, 0, m_AttachmentData[i].ColorFormat, GL_FLOAT, &m_Info.ColorAttachments[i].ClearColor);
 
             // sorta jank
@@ -145,7 +145,7 @@ namespace Heart
                 glClearDepth(0.f);
             else
                 glClearDepth(1.f);
-            for (size_t i = 0; i < m_Framebuffers.size(); i++)
+            for (u32 i = 0; i < m_Framebuffers.GetCount(); i++)
             {
                 glBindFramebuffer(GL_FRAMEBUFFER, m_Framebuffers[i]);
                 glClear(GL_DEPTH_BUFFER_BIT);
@@ -162,23 +162,23 @@ namespace Heart
     {
         HE_PROFILE_FUNCTION();
 
-        HE_ENGINE_ASSERT(m_CurrentSubpass == m_Info.Subpasses.size() - 1, "Attempting to submit a framebuffer without completing all subpasses");
+        HE_ENGINE_ASSERT(m_CurrentSubpass == m_Info.Subpasses.GetCount() - 1, "Attempting to submit a framebuffer without completing all subpasses");
 
         BlitFramebuffers(m_CurrentSubpass);
 
         if (m_Info.AllowPerformanceQuerying)
         {
             u64 frameIndex = App::Get().GetFrameCount() % 2;
-            glQueryCounter(m_QueryIds[frameIndex].back(), GL_TIMESTAMP);
+            glQueryCounter(m_QueryIds[frameIndex].Back(), GL_TIMESTAMP);
 
-            for (size_t i = 0; i < m_PerformanceTimestamps.size(); i++)
+            for (u32 i = 0; i < m_PerformanceTimestamps.GetCount(); i++)
             {
                 u64 t1 = 0;
                 u64 t2 = 0;
                 if (i == 0)
                 {
-                    glGetQueryObjectui64v(m_QueryIds[frameIndex].front(), GL_QUERY_RESULT, &t1);
-                    glGetQueryObjectui64v(m_QueryIds[frameIndex].back(), GL_QUERY_RESULT, &t2);
+                    glGetQueryObjectui64v(m_QueryIds[frameIndex].Front(), GL_QUERY_RESULT, &t1);
+                    glGetQueryObjectui64v(m_QueryIds[frameIndex].Back(), GL_QUERY_RESULT, &t2);
                 }
                 else
                 {
@@ -211,7 +211,7 @@ namespace Heart
         m_BoundPipelineName = "";
     }
 
-    void OpenGLFramebuffer::BindPipeline(const std::string& name)
+    void OpenGLFramebuffer::BindPipeline(const HStringView8& name)
     {
         HE_PROFILE_FUNCTION();
         
@@ -331,7 +331,7 @@ namespace Heart
 
     void* OpenGLFramebuffer::GetColorAttachmentImGuiHandle(u32 attachmentIndex)
     {
-        HE_ENGINE_ASSERT(attachmentIndex < m_AttachmentData.size(), "Color attachment access on framebuffer out of range");
+        HE_ENGINE_ASSERT(attachmentIndex < m_AttachmentData.GetCount(), "Color attachment access on framebuffer out of range");
 
         if (m_Info.SampleCount == MsaaSampleCount::None)
             return (void*)static_cast<size_t>(m_AttachmentData[attachmentIndex].Image);
@@ -341,7 +341,7 @@ namespace Heart
 
     void* OpenGLFramebuffer::GetColorAttachmentPixelData(u32 attachmentIndex)
     {
-        HE_ENGINE_ASSERT(attachmentIndex < m_AttachmentData.size(), "Color attachment of pixel read out of range");
+        HE_ENGINE_ASSERT(attachmentIndex < m_AttachmentData.GetCount(), "Color attachment of pixel read out of range");
         HE_ENGINE_ASSERT(m_AttachmentData[attachmentIndex].CPUVisible, "Cannot read pixel data of attachment that does not have 'AllowCPURead' enabled");
 
         return m_AttachmentData[attachmentIndex].PixelBuffers[(App::Get().GetFrameCount() + 1) % 2]->Map(true);
@@ -357,7 +357,7 @@ namespace Heart
     double OpenGLFramebuffer::GetSubpassPerformanceTimestamp(u32 subpassIndex)
     {
         HE_ENGINE_ASSERT(m_Info.AllowPerformanceQuerying, "Cannot get performance timestamp unless the framebuffer was created with 'AllowPerformanceQuerying' enabled");
-        HE_ENGINE_ASSERT(subpassIndex < m_Info.Subpasses.size(), "Subpass index out of range");
+        HE_ENGINE_ASSERT(subpassIndex < m_Info.Subpasses.GetCount(), "Subpass index out of range");
 
         return m_PerformanceTimestamps[subpassIndex + 1];
     }
@@ -365,7 +365,7 @@ namespace Heart
     void OpenGLFramebuffer::ClearOutputAttachment(u32 outputAttachmentIndex, bool clearDepth)
     {
         u32 attachmentIndex = 0;
-        for (size_t i = 0; i < m_Info.Subpasses[m_CurrentSubpass].OutputAttachments.size(); i++)
+        for (u32 i = 0; i < m_Info.Subpasses[m_CurrentSubpass].OutputAttachments.GetCount(); i++)
         {
             if (attachmentIndex == outputAttachmentIndex)
             {
@@ -394,7 +394,7 @@ namespace Heart
     {
         m_CurrentSubpass++;
 
-        HE_ENGINE_ASSERT(m_CurrentSubpass < m_Info.Subpasses.size(), "Attempting to start a subpass that does not exist");
+        HE_ENGINE_ASSERT(m_CurrentSubpass < m_Info.Subpasses.GetCount(), "Attempting to start a subpass that does not exist");
 
         // if using a multisampled buffer, perform a framebuffer blit (copy) operation on the previous subpass
         if (m_CurrentSubpass > 0)
@@ -407,7 +407,7 @@ namespace Heart
         glViewport(0, 0, m_ActualWidth, m_ActualHeight);
 
         // enable draw for all attachments
-        glDrawBuffers(GetSubpassOutputColorAttachmentCount(m_CurrentSubpass), m_CachedAttachmentHandles.data());
+        glDrawBuffers(GetSubpassOutputColorAttachmentCount(m_CurrentSubpass), m_CachedAttachmentHandles.Data());
 
         m_FlushedThisFrame = false;
         m_BoundPipeline = nullptr;
@@ -416,7 +416,7 @@ namespace Heart
 
     Ref<GraphicsPipeline> OpenGLFramebuffer::InternalInitializeGraphicsPipeline(const GraphicsPipelineCreateInfo& createInfo)
     {
-        HE_ENGINE_ASSERT(createInfo.BlendStates.size() == GetSubpassOutputColorAttachmentCount(createInfo.SubpassIndex), "Graphics pipeline blend state count must match subpass color attachment output count");
+        HE_ENGINE_ASSERT(createInfo.BlendStates.GetCount() == GetSubpassOutputColorAttachmentCount(createInfo.SubpassIndex), "Graphics pipeline blend state count must match subpass color attachment output count");
 
         return CreateRef<OpenGLGraphicsPipeline>(createInfo);
     }
@@ -506,9 +506,9 @@ namespace Heart
 
     void OpenGLFramebuffer::CreateFramebuffers()
     {
-        glGenFramebuffers(static_cast<int>(m_Framebuffers.size()), m_Framebuffers.data());
+        glGenFramebuffers(static_cast<int>(m_Framebuffers.GetCount()), m_Framebuffers.Data());
         if (m_ImageSamples > 1)
-            glGenFramebuffers(static_cast<int>(m_BlitFramebuffers.size()), m_BlitFramebuffers.data());
+            glGenFramebuffers(static_cast<int>(m_BlitFramebuffers.GetCount()), m_BlitFramebuffers.Data());
 
         // create a framebuffer which we bind all CPU visible attachments to so we can use glReadPixels at the end of the frame
         u32 pboAttachmentIndex = 0;
@@ -527,7 +527,7 @@ namespace Heart
             }
         }
 
-        for (size_t i = 0; i < m_Info.Subpasses.size(); i++)
+        for (size_t i = 0; i < m_Info.Subpasses.GetCount(); i++)
         {
             bool depthFree = true;
             u32 attachmentIndex = 0;
@@ -570,9 +570,9 @@ namespace Heart
 
     void OpenGLFramebuffer::CleanupFramebuffers()
     {
-        glDeleteFramebuffers(static_cast<int>(m_Framebuffers.size()), m_Framebuffers.data());
+        glDeleteFramebuffers(static_cast<int>(m_Framebuffers.GetCount()), m_Framebuffers.Data());
         if (m_ImageSamples > 1)
-            glDeleteFramebuffers(static_cast<int>(m_BlitFramebuffers.size()), m_BlitFramebuffers.data());
+            glDeleteFramebuffers(static_cast<int>(m_BlitFramebuffers.GetCount()), m_BlitFramebuffers.Data());
 
         glDeleteFramebuffers(1, &m_PBOFramebuffer);
     }

@@ -33,7 +33,7 @@ namespace Heart
         }
         catch (std::exception e)
         {
-            HE_ENGINE_LOG_ERROR("Failed to load mesh at path {0}", m_AbsolutePath);
+            HE_ENGINE_LOG_ERROR("Failed to load mesh at path {0}", m_AbsolutePath.Data());
             m_Loaded = true;
             m_Loading = false;
             return;
@@ -49,8 +49,8 @@ namespace Heart
     {
         if (!m_Loaded) return;
 
-        m_Submeshes.clear();
-        m_DefaultMaterials.clear();
+        m_Submeshes.Clear();
+        m_DefaultMaterials.Clear();
         m_Loaded = false;
         m_Valid = false;
     }
@@ -60,22 +60,22 @@ namespace Heart
         auto j = nlohmann::json::parse(data);
         
         // parse buffers
-        std::vector<std::vector<unsigned char>> buffers;
+        HVector<HVector<unsigned char>> buffers;
         for (auto& buffer : j["buffers"])
         {
-            std::string uri = buffer["uri"];
-            if (uri.find("base64") != std::string::npos)
+            HString8 uri = buffer["uri"];
+            if (uri.Find("base64") != HString8::InvalidIndex)
             {
-                std::string base64 = uri.substr(uri.find(',') + 1);
-                buffers.emplace_back(Base64Decode(base64));
+                HString8 base64 = uri.Substr(uri.Find(',') + 1);
+                buffers.AddInPlace(Base64Decode(base64));
             }
-            else if (uri.find(".bin") != std::string::npos)
+            else if (uri.Find(".bin") != HString8::InvalidIndex)
             {
                 u32 fileLength;
-                std::string binPath = std::filesystem::path(m_AbsolutePath).parent_path().append(uri).generic_u8string();
+                HString8 binPath = std::filesystem::path(m_AbsolutePath.Data()).parent_path().append(uri.Data()).generic_u8string();
                 unsigned char* bin = FilesystemUtils::ReadFile(binPath, fileLength);
-                buffers.emplace_back();
-                buffers.back().assign(bin, bin + fileLength);
+                buffers.AddInPlace();
+                buffers.Back().CopyFrom(bin, bin + fileLength);
                 delete[] bin;
             }
             else
@@ -86,50 +86,50 @@ namespace Heart
         }
 
         // parse buffer views
-        std::vector<BufferView> bufferViews;
+        HVector<BufferView> bufferViews;
         for (auto& view : j["bufferViews"])
         {
             u32 byteOffset = 0;
             if (view.contains("byteOffset"))
                 byteOffset = view["byteOffset"];
-            bufferViews.emplace_back(view["buffer"], view["byteLength"], byteOffset);
+            bufferViews.AddInPlace(view["buffer"], view["byteLength"], byteOffset);
         }
 
         // parse accessors
-        std::vector<Accessor> accessors;
+        HVector<Accessor> accessors;
         for (auto& accessor : j["accessors"])
         {
             u32 byteOffset = 0;
             if (accessor.contains("byteOffset"))
                 byteOffset = accessor["byteOffset"];
-            accessors.emplace_back(accessor["bufferView"], byteOffset, accessor["count"], accessor["componentType"]);
+            accessors.AddInPlace(accessor["bufferView"], byteOffset, accessor["count"], accessor["componentType"]);
         }
 
         // parse texture sources
-        std::vector<TextureSource> textureSources;
+        HVector<TextureSource> textureSources;
         if (j.contains("images"))
         {
             for (auto& image : j["images"])
             {
-                std::string uri = image["uri"];
-                if (uri.find("base64") != std::string::npos)
+                HString8 uri = image["uri"];
+                if (uri.Find("base64") != HString::InvalidIndex)
                 {
                     HE_ENGINE_LOG_ERROR("Cannot load GLTF mesh that uses inline textures (not supported yet)");
                     throw std::exception();
-                    //std::string base64 = uri.substr(uri.find(',') + 1);
-                    //buffers.emplace_back(Base64Decode(base64));
+                    //HString base64 = uri.substr(uri.find(',') + 1);
+                    //buffers.AddInPlace(Base64Decode(base64));
                 }
                 else
                 {
-                    std::string finalPath = std::filesystem::path(m_ParentPath).append(uri).generic_u8string();
-                    finalPath = std::regex_replace(finalPath, std::regex("%20"), " "); // replace URL encoded spaces with actual spaces
-                    textureSources.emplace_back(finalPath, AssetManager::RegisterAsset(Asset::Type::Texture, finalPath));
+                    HString8 finalPath = std::filesystem::path(m_ParentPath.Data()).append(uri.Data()).generic_u8string();
+                    finalPath = std::regex_replace(finalPath.Data(), std::regex("%20"), " "); // replace URL encoded spaces with actual spaces
+                    textureSources.AddInPlace(finalPath, AssetManager::RegisterAsset(Asset::Type::Texture, finalPath));
                 }
             }
         }
 
         // parse textures
-        std::vector<TextureView> textureViews;
+        HVector<TextureView> textureViews;
         if (j.contains("textures"))
         {
             for (auto& texture : j["textures"])
@@ -137,13 +137,13 @@ namespace Heart
                 u32 samplerIndex = 0;
                 if (texture.contains("sampler"))
                     samplerIndex = texture["sampler"];
-                textureViews.emplace_back(samplerIndex, texture["source"]);
+                textureViews.AddInPlace(samplerIndex, texture["source"]);
             }
         }
 
         // parse materials
-        std::string materialFilenameStart = "material";
-        std::string materialFilenameEnd = ".hemat";
+        HStringView8 materialFilenameStart = "material";
+        HStringView8 materialFilenameEnd = ".hemat";
         if (j.contains("materials"))
         {
             u32 materialIndex = 0;
@@ -213,17 +213,17 @@ namespace Heart
                 if (material.contains("emissiveFactor"))
                     parsingMaterial.m_MaterialData.SetEmissiveFactor({ material["emissiveFactor"][0], material["emissiveFactor"][1], material["emissiveFactor"][2], 0.f });
 
-                m_DefaultMaterials.emplace_back(parsingMaterial);
+                m_DefaultMaterials.AddInPlace(parsingMaterial);
                 materialIndex++;
             }
         }
         else // should always have one material
-            m_DefaultMaterials.emplace_back();
+            m_DefaultMaterials.AddInPlace();
 
         // parse meshes
         bool hasTangents = false;
         bool hasNormals = false;
-        std::vector<MeshParseData> meshes;
+        HVector<MeshParseData> meshes;
         for (auto& mesh : j["meshes"])
         {
             MeshParseData meshData;
@@ -256,8 +256,8 @@ namespace Heart
                     auto& bufferView = bufferViews[accessor.BufferViewIndex];
                     auto& buffer = buffers[bufferView.BufferIndex];
 
-                    if (accessor.Count > parseData.Indices.size())
-                        parseData.Indices.resize(accessor.Count);
+                    if (accessor.Count > parseData.Indices.GetCount())
+                        parseData.Indices.Resize(accessor.Count, false);
 
                     u32 offset = 0; // bytes
                     for (int i = static_cast<int>(accessor.Count) - 1; i >= 0; i--) // parse the indices in reverse order to account for coordinate system flip
@@ -287,8 +287,8 @@ namespace Heart
                     auto& bufferView = bufferViews[accessor.BufferViewIndex];
                     auto& buffer = buffers[bufferView.BufferIndex];
 
-                    if (accessor.Count > parseData.Vertices.size())
-                        parseData.Vertices.resize(accessor.Count);
+                    if (accessor.Count > parseData.Vertices.GetCount())
+                        parseData.Vertices.Resize(accessor.Count, false);
 
                     // parse vertex data
                     u32 offset = 0; // bytes
@@ -321,10 +321,10 @@ namespace Heart
                     lastCount = accessor.Count;
                 }
 
-                meshData.Primitives.push_back(parseData);
+                meshData.Primitives.Add(parseData);
             }
 
-            meshes.push_back(meshData);
+            meshes.Add(meshData);
         }
 
         // iterate through the nodes and create submeshes based on each material in the scene
@@ -346,7 +346,7 @@ namespace Heart
             // calculate the normals and/or tangents of the submesh if they aren't provided
             if (!hasNormals || !hasTangents)
             {
-                for (size_t i = 0; i < pair.second.Indices.size(); i += 3)
+                for (size_t i = 0; i < pair.second.Indices.GetCount(); i += 3)
                 {
                     Mesh::Vertex& v0 = pair.second.Vertices[pair.second.Indices[i]];
                     Mesh::Vertex& v1 = pair.second.Vertices[pair.second.Indices[i + 1]];
@@ -379,21 +379,21 @@ namespace Heart
                 }
             }
 
-            m_Submeshes.emplace_back(pair.second.Vertices, pair.second.Indices, pair.first);
+            m_Submeshes.AddInPlace(pair.second.Vertices, pair.second.Indices, pair.first);
         }
     }
 
-    void MeshAsset::ParseGLTFNode(const nlohmann::json& root, u32 nodeIndex, const std::vector<MeshParseData>& meshData, std::unordered_map<u32, SubmeshData>& submeshData, const glm::mat4& parentTransform)
+    void MeshAsset::ParseGLTFNode(const nlohmann::json& root, u32 nodeIndex, const HVector<MeshParseData>& meshData, std::unordered_map<u32, SubmeshData>& submeshData, const glm::mat4& parentTransform)
     {
         auto& node = root["nodes"][nodeIndex];
 
         glm::mat4 positionMatrix;
         if (node.contains("matrix"))
         {
-            std::vector<float> valueArr(16);
+            HVector<float> valueArr(16);
             for (size_t i = 0; i < node["matrix"].size(); i++)
                 valueArr[i] = node["matrix"][i];
-            positionMatrix = glm::make_mat4(valueArr.data());
+            positionMatrix = glm::make_mat4(valueArr.Data());
         }
         else
         {
@@ -427,7 +427,7 @@ namespace Heart
 
                 // push the new indices into the material submesh
                 for (auto index : primitive.Indices)
-                    submesh.Indices.emplace_back(index + submesh.VertexOffset);
+                    submesh.Indices.AddInPlace(index + submesh.VertexOffset);
 
                 // transform the vertices and push them into the material submesh
                 for (auto vertex : primitive.Vertices)
@@ -435,11 +435,11 @@ namespace Heart
                     vertex.Position = finalMatrix * glm::vec4(vertex.Position, 1.f);
                     vertex.Normal = (glm::mat3)finalMatrix * vertex.Normal;
                     vertex.Tangent = glm::vec4((glm::mat3)finalMatrix * glm::vec3(vertex.Tangent), vertex.Tangent.w);
-                    submesh.Vertices.emplace_back(vertex);
+                    submesh.Vertices.AddInPlace(vertex);
                 }
 
-                submesh.IndexOffset += static_cast<u32>(primitive.Indices.size());
-                submesh.VertexOffset += static_cast<u32>(primitive.Vertices.size());
+                submesh.IndexOffset += static_cast<u32>(primitive.Indices.GetCount());
+                submesh.VertexOffset += static_cast<u32>(primitive.Vertices.GetCount());
             }
         }
 

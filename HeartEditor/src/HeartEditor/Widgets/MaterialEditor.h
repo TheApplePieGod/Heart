@@ -19,7 +19,7 @@ namespace Widgets
     class MaterialEditor : public Widget
     {
     public:
-        MaterialEditor(const std::string& name, bool initialOpen);
+        MaterialEditor(const Heart::HStringView8& name, bool initialOpen);
         ~MaterialEditor();
         
         void OnImGuiRender() override;

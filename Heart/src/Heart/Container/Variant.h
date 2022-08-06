@@ -6,6 +6,7 @@ namespace Heart
 {
     class HArray;
     class HString;
+    class HStringView;
     class Variant
     {
     public:
@@ -30,6 +31,7 @@ namespace Heart
         Variant(float value);
         Variant(double value);
         Variant(const HArray& array);
+        Variant(const HStringView& str);
         Variant(const HString& str);
         Variant(const Variant& other) { Copy(other); }
         ~Variant();

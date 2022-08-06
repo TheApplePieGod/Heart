@@ -9,8 +9,8 @@ namespace Heart
     public:
         Container() = default;
 
-        Container(const Container<T>& other)
-        { Copy(other); }
+        Container(const Container<T>& other, bool shallow = false)
+        { Copy(other, shallow); }
 
         Container(u32 elemCount, bool fill = true)
         {
@@ -23,13 +23,15 @@ namespace Heart
         Container(const T* data, u32 dataCount)
         {
             Resize(dataCount, false);
-            memcpy(m_Data, data, dataCount * sizeof(T));
+            for (u32 i = 0; i < dataCount; i++)
+                HE_PLACEMENT_NEW(m_Data + i, T, data[i]);
         }
 
         Container(std::initializer_list<T> list)
         {
             Resize(list.size(), false);
-            memcpy(m_Data, list.begin(), list.size() * sizeof(T));
+            for (u32 i = 0; i < GetCount(); i++)
+                HE_PLACEMENT_NEW(m_Data + i, T, list.begin()[i]);
         }
 
         ~Container()
@@ -38,11 +40,38 @@ namespace Heart
             Cleanup();
         }
 
+        void Copy(const Container<T>& other, bool shallow = false)
+        {
+            if (m_Data) Cleanup();
+            if (shallow)
+            {
+                m_Data = other.m_Data;
+                if (!other.m_Data) return;
+                IncrementRefCount();
+                return;
+            }
+            if (other.GetCount() == 0) return;
+            Resize(other.GetCount(), false);
+            for (u32 i = 0; i < other.GetCount(); i++)
+                HE_PLACEMENT_NEW(m_Data + i, T, other[i]);
+        }
+
         void Clear(bool shrink = false)
         {
             if (GetCount() == 0) return;
+
+            if (shrink)
+            {
+                Resize(0);
+                return;
+            }
+
+            // Destruct removed elements
+            if (ShouldDestruct())
+                for (u32 i = 0; i < GetCount(); i++)
+                    m_Data[i].~T();    
+
             SetCount(0);
-            if (shrink) Resize(0);
         }
 
         void Reserve(u32 allocCount)
@@ -62,15 +91,19 @@ namespace Heart
         inline u32 GetCount() const { return m_Data ? GetCountUnchecked() : 0; }
         inline u32 GetCountUnchecked() const { return GetInfoPtr()->ElemCount; }
         inline u32 GetAllocatedCount() const { return m_Data ? GetInfoPtr()->AllocatedCount : 0; }
+        inline u32 GetRefCount() const { return m_Data ? GetInfoPtr()->RefCount : 1; } // Default is 1 for this obj
         inline u32 IncrementCount() { return ++GetInfoPtr()->ElemCount; }
         inline u32 DecrementCount() { return --GetInfoPtr()->ElemCount; }
         inline T* Data() const { return m_Data; }
         inline T* Begin() const{ return m_Data; }
         inline T* End() const { return m_Data + GetCount(); }
         inline T& Get(u32 index) const{ return m_Data[index]; }
+        inline bool IsEmpty() const { return GetCount() == 0; }
 
         inline T& operator[](u32 index) const { return m_Data[index]; }
         inline void operator=(const Container<T>& other) { Copy(other); }
+
+        inline static constexpr u32 MinimumAllocCount = 16;
 
     private:
         struct ContainerInfo
@@ -81,18 +114,11 @@ namespace Heart
         };
 
     private:
-        void Copy(const Container<T>& other)
-        {
-            if (!other.m_Data) return;
-            m_Data = other.m_Data;
-            IncrementRefCount();
-        }
-
         // Value must not be zero
         u32 GetNextPowerOfTwo(u32 value)
         {
-            // Minimum alloc size of 16 elems
-            if (value <= 16) return 16;
+            // Minimum alloc amount
+            if (value <= MinimumAllocCount) return MinimumAllocCount;
             u32 two = value - 1;
             two |= two >> 1;
             two |= two >> 2;
@@ -117,23 +143,24 @@ namespace Heart
                 if (ShouldDestruct())
                     for (u32 i = elemCount; i < oldCount; i++)
                         m_Data[i].~T();
-
-                SetCount(elemCount);
             }
             
-            ContainerInfo* data = reinterpret_cast<ContainerInfo*>(::operator new(allocCount * sizeof(T) + sizeof(ContainerInfo)));
-            data->RefCount = GetRefCount();
-            data->AllocatedCount = allocCount;
-            data->ElemCount = elemCount;
-            T* newData = reinterpret_cast<T*>(data + 1);
-    
-            if (m_Data)
+            if (allocCount != GetAllocatedCount())
             {
-                memcpy(newData, m_Data, oldCount * sizeof(T));
-                FreeMemory();
+                ContainerInfo* data = reinterpret_cast<ContainerInfo*>(::operator new(allocCount * sizeof(T) + sizeof(ContainerInfo)));
+                data->RefCount = GetRefCount();
+                data->AllocatedCount = allocCount;
+                T* newData = reinterpret_cast<T*>(data + 1);
+        
+                if (m_Data)
+                {
+                    memcpy(newData, m_Data, oldCount * sizeof(T));
+                    FreeMemory();
+                }
+                
+                m_Data = newData;
             }
-            
-            m_Data = newData;
+            SetCount(elemCount);
 
             if (construct && ShouldConstruct())
                 for (u32 i = oldCount; i < elemCount; i++)
@@ -157,15 +184,11 @@ namespace Heart
                         m_Data[i].~T();
                     
                 FreeMemory();
-
-                // static int freed = 0;
-                // HE_ENGINE_LOG_WARN("Freed {0} on thread {1}", ++freed, std::hash<std::thread::id>{}(std::this_thread::get_id()));
             }
             m_Data = nullptr;
         }
 
         inline ContainerInfo* GetInfoPtr() const { return reinterpret_cast<ContainerInfo*>(m_Data) - 1; }
-        inline u32 GetRefCount() { return m_Data ? GetInfoPtr()->RefCount : 1; } // Default one for this obj
         inline u32 IncrementRefCount() { return ++GetInfoPtr()->RefCount; }
         inline u32 DecrementRefCount() { return --GetInfoPtr()->RefCount; }
         inline void SetCount(u32 count) { GetInfoPtr()->ElemCount = count; }

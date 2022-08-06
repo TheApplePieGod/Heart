@@ -10,7 +10,7 @@ namespace Widgets
     class AssetRegistry : public Widget
     {
     public:
-        AssetRegistry(const std::string& name, bool initialOpen)
+        AssetRegistry(const Heart::HStringView8& name, bool initialOpen)
             : Widget(name, initialOpen)
         {}
 

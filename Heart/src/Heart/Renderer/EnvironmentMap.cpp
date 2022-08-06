@@ -194,17 +194,17 @@ namespace Heart
         };
         for (u32 i = 0; i < 5; i++) // each mip level
         {
-            prefilterFbCreateInfo.ColorAttachments.clear();
+            prefilterFbCreateInfo.ColorAttachments.Clear();
             for (u32 j = 0; j < 6; j++) // each face
-                prefilterFbCreateInfo.ColorAttachments.push_back({ { 0.f, 0.f, 0.f, 0.f }, false, ColorFormat::None, m_PrefilterMap, j, i });
+                prefilterFbCreateInfo.ColorAttachments.Add({ { 0.f, 0.f, 0.f, 0.f }, false, ColorFormat::None, m_PrefilterMap, j, i });
             prefilterFbCreateInfo.Width = static_cast<u32>(m_PrefilterMap->GetWidth() * pow(0.5f, i));
             prefilterFbCreateInfo.Height = static_cast<u32>(m_PrefilterMap->GetHeight() * pow(0.5f, i));
 
-            m_PrefilterFramebuffers.emplace_back(Framebuffer::Create(prefilterFbCreateInfo));
+            m_PrefilterFramebuffers.AddInPlace(Framebuffer::Create(prefilterFbCreateInfo));
             for (u32 j = 0; j < 6; j++) // each face
             {
                 prefilterPipeline.SubpassIndex = j;
-                m_PrefilterFramebuffers.back()->RegisterGraphicsPipeline(std::to_string(j), prefilterPipeline);
+                m_PrefilterFramebuffers.Back()->RegisterGraphicsPipeline(std::to_string(j), prefilterPipeline);
             }
         }
 
@@ -251,7 +251,7 @@ namespace Heart
 
         for (auto& buffer : m_PrefilterFramebuffers)
             buffer.reset();
-        m_PrefilterFramebuffers.clear();
+        m_PrefilterFramebuffers.Clear();
         m_BRDFFramebuffer.reset();
         m_CubemapFramebuffer.reset();
         m_IrradianceMapFramebuffer.reset();
@@ -363,7 +363,7 @@ namespace Heart
         // ------------------------------------------------------------------
         // Prefilter the environment map based on roughness
         // ------------------------------------------------------------------
-        for (size_t i = 0; i < m_PrefilterFramebuffers.size(); i++)
+        for (u32 i = 0; i < m_PrefilterFramebuffers.GetCount(); i++)
         {
             m_PrefilterFramebuffers[i]->Bind();
 

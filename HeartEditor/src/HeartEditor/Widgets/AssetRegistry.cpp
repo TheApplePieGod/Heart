@@ -1,7 +1,7 @@
 #include "hepch.h"
 #include "AssetRegistry.h"
 
-#include "Heart/Container/HString.h"
+#include "Heart/Container/HString8.h"
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Util/ImGuiUtils.h"
 
@@ -16,7 +16,7 @@ namespace Widgets
         if (!m_Open) return;
 
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 5.0f));
-        ImGui::Begin(m_Name.c_str(), &m_Open);
+        ImGui::Begin(m_Name.Data(), &m_Open);
 
         ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(2.f, 2.f));
         if (ImGui::BeginTable("RegistryTable", 4, ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_SizingFixedFit))
@@ -40,23 +40,23 @@ namespace Widgets
             auto& registry = Heart::AssetManager::GetUUIDRegistry();
             for (auto& pair : registry)
             {
-                Heart::HString uuid = std::to_string(pair.first);
+                Heart::HString8 uuid = std::to_string(pair.first);
 
                 if (!PassAssetTypeFilter((u32)pair.second.Type) ||
                     !PassIsResourceFilter(pair.second.IsResource) ||
-                    !m_UUIDFilter.PassFilter(uuid.DataUTF8()) ||
-                    !m_PathFilter.PassFilter(pair.second.Path.c_str())
+                    !m_UUIDFilter.PassFilter(uuid.Data()) ||
+                    !m_PathFilter.PassFilter(pair.second.Path.Data())
                 )
                     continue;
 
                 ImGui::TableNextRow();
 
-                Heart::HString id1 = "##" + uuid;
-                Heart::HString id2 = id1 + "p";
+                Heart::HString8 id1 = "##" + uuid;
+                Heart::HString8 id2 = id1 + "p";
 
                 ImGui::TableNextColumn();
                 ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-                ImGui::InputText(id1.DataUTF8(), (char*)uuid.DataUTF8(), uuid.GetCountUTF8(), ImGuiInputTextFlags_ReadOnly);
+                ImGui::InputText(id1.Data(), (char*)uuid.Data(), uuid.GetCount(), ImGuiInputTextFlags_ReadOnly);
 
                 ImGui::TableNextColumn();
                 ImGui::Text(HE_ENUM_TO_STRING(Heart::Asset, pair.second.Type));
@@ -67,7 +67,7 @@ namespace Widgets
                 ImGui::TableNextColumn();
                 ImGui::BeginDisabled();
                 ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-                ImGui::InputText(id2.DataUTF8(), (char*)pair.second.Path.c_str(), pair.second.Path.size(), ImGuiInputTextFlags_ReadOnly);
+                ImGui::InputText(id2.Data(), (char*)pair.second.Path.Data(), pair.second.Path.GetCount(), ImGuiInputTextFlags_ReadOnly);
                 ImGui::EndDisabled();
             }
 
@@ -84,15 +84,15 @@ namespace Widgets
     {
         ImGui::SameLine();
 
-        Heart::HString b1id = Heart::HString("V##v") + popupName;
-        Heart::HString b2id = Heart::HString("X##x") + popupName;
+        Heart::HString8 b1id = Heart::HStringView8("V##v") + popupName;
+        Heart::HString8 b2id = Heart::HStringView8("X##x") + popupName;
 
-        bool popupOpened = ImGui::Button(b1id.DataUTF8());
+        bool popupOpened = ImGui::Button(b1id.Data());
         if (popupOpened)
             ImGui::OpenPopup(popupName);
 
         ImGui::SameLine(0.f, 3.f);
-        if (ImGui::Button(b2id.DataUTF8()))
+        if (ImGui::Button(b2id.Data()))
             clearCallback();
 
         if (ImGui::BeginPopup(popupName, ImGuiWindowFlags_HorizontalScrollbar))

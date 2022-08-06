@@ -107,24 +107,24 @@ namespace Heart
         return Heart::ScriptingEngine::IsClassInstantiable(m_ScriptClass);
     }
 
-    Variant ScriptInstance::GetFieldValue(const HString& fieldName) const
+    Variant ScriptInstance::GetFieldValue(const HStringView& fieldName) const
     {
         if (!IsAlive()) return Variant();
         return GetFieldValueUnchecked(fieldName);
     }
 
-    bool ScriptInstance::SetFieldValue(const HString& fieldName, const Variant& value)
+    bool ScriptInstance::SetFieldValue(const HStringView& fieldName, const Variant& value)
     {
         if (!IsAlive()) return false;
         return SetFieldValueUnchecked(fieldName, value);
     }
     
-    Variant ScriptInstance::GetFieldValueUnchecked(const HString& fieldName) const
+    Variant ScriptInstance::GetFieldValueUnchecked(const HStringView& fieldName) const
     {
         return ScriptingEngine::GetFieldValue(m_ObjectHandle, fieldName);
     }
 
-    bool ScriptInstance::SetFieldValueUnchecked(const HString& fieldName, const Variant& value)
+    bool ScriptInstance::SetFieldValueUnchecked(const HStringView& fieldName, const Variant& value)
     {
         return ScriptingEngine::SetFieldValue(m_ObjectHandle, fieldName, value);
     }

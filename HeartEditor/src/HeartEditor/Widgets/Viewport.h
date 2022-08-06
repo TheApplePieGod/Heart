@@ -24,7 +24,7 @@ namespace Widgets
     class Viewport : public Widget
     {
     public:
-        Viewport(const std::string& name, bool initialOpen);
+        Viewport(const Heart::HStringView8& name, bool initialOpen);
 
         void OnImGuiRender() override;
         nlohmann::json Serialize() override;

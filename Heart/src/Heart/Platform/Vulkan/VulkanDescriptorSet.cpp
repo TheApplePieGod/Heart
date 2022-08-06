@@ -11,7 +11,7 @@
 
 namespace Heart
 {
-    void VulkanDescriptorSet::Initialize(const std::vector<ReflectionDataElement>& reflectionData)
+    void VulkanDescriptorSet::Initialize(const HVector<ReflectionDataElement>& reflectionData)
     {
         VulkanDevice& device = VulkanContext::GetDevice();
 
@@ -19,7 +19,7 @@ namespace Heart
 
         // reflection data should give us sorted binding indexes so we can make some shortcuts here
         // create the descriptor set layout and cache the associated pool sizes
-        std::vector<VkDescriptorSetLayoutBinding> bindings;
+        HVector<VkDescriptorSetLayoutBinding> bindings;
         std::unordered_map<VkDescriptorType, u32> descriptorCounts;
         u32 lastBindingIndex = 0;
         for (auto& element : reflectionData)
@@ -29,7 +29,7 @@ namespace Heart
 
             while (element.BindingIndex - lastBindingIndex > 1)
             {
-                m_Bindings.emplace_back();
+                m_Bindings.AddInPlace();
                 lastBindingIndex++;
             }
 
@@ -39,7 +39,7 @@ namespace Heart
             binding.descriptorCount = element.ArrayCount;
             binding.stageFlags = VulkanCommon::ShaderResourceAccessTypeToVulkan(element.AccessType);
             binding.pImmutableSamplers = nullptr;
-            bindings.emplace_back(binding);
+            bindings.AddInPlace(binding);
 
             descriptorCounts[binding.descriptorType] += element.ArrayCount * m_MaxSetsPerPool;
 
@@ -51,30 +51,30 @@ namespace Heart
             descriptorWrite.descriptorType = binding.descriptorType;
             descriptorWrite.descriptorCount = element.ArrayCount;
 
-            bindingData.DescriptorWriteMapping = m_CachedDescriptorWrites.size(); 
-            m_CachedDescriptorWrites.emplace_back(descriptorWrite);
+            bindingData.DescriptorWriteMapping = m_CachedDescriptorWrites.GetCount(); 
+            m_CachedDescriptorWrites.AddInPlace(descriptorWrite);
 
             // populate the dynamic offset info if applicable
             if (element.ResourceType == ShaderResourceType::UniformBuffer || element.ResourceType == ShaderResourceType::StorageBuffer)
             {
-                bindingData.OffsetIndex = m_DynamicOffsets.size();
-                m_DynamicOffsets.emplace_back(0);
+                bindingData.OffsetIndex = m_DynamicOffsets.GetCount();
+                m_DynamicOffsets.AddInPlace(0);
             }
 
-            m_Bindings.emplace_back(bindingData);
+            m_Bindings.AddInPlace(bindingData);
             lastBindingIndex = element.BindingIndex;
         }
 
         VkDescriptorSetLayoutCreateInfo layoutInfo{};
         layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        layoutInfo.bindingCount = static_cast<u32>(bindings.size());
-        layoutInfo.pBindings = bindings.data();
+        layoutInfo.bindingCount = static_cast<u32>(bindings.GetCount());
+        layoutInfo.pBindings = bindings.Data();
 
         HE_VULKAN_CHECK_RESULT(vkCreateDescriptorSetLayout(device.Device(), &layoutInfo, nullptr, &m_DescriptorSetLayout));
 
         // populate cached layouts because one is needed for each allocation
         for (u32 i = 0; i < m_MaxSetsPerPool; i++)
-            m_CachedSetLayouts.emplace_back(m_DescriptorSetLayout);
+            m_CachedSetLayouts.AddInPlace(m_DescriptorSetLayout);
 
         // populate the cached pool sizes
         for (auto& element : descriptorCounts)
@@ -83,15 +83,15 @@ namespace Heart
             poolSize.type = element.first;
             poolSize.descriptorCount = element.second;
 
-            m_CachedPoolSizes.emplace_back(poolSize);
+            m_CachedPoolSizes.AddInPlace(poolSize);
         }
 
         for (u32 frame = 0; frame < Renderer::FrameBufferCount; frame++)
-            m_AvailableSets[frame].resize(m_MaxSetsPerPool);
+            m_AvailableSets[frame].Resize(m_MaxSetsPerPool);
 
         // create the initial descriptor pools per frame
         for (size_t i = 0; i < m_DescriptorPools.size(); i++)
-            m_DescriptorPools[i].push_back(CreateDescriptorPool());
+            m_DescriptorPools[i].Add(CreateDescriptorPool());
     }
 
     void VulkanDescriptorSet::Shutdown()
@@ -228,21 +228,21 @@ namespace Heart
         for (auto& write : m_CachedDescriptorWrites)
             write.dstSet = m_MostRecentDescriptorSet;
         
-        vkUpdateDescriptorSets(device.Device(), static_cast<u32>(m_CachedDescriptorWrites.size()), m_CachedDescriptorWrites.data(), 0, nullptr);
+        vkUpdateDescriptorSets(device.Device(), static_cast<u32>(m_CachedDescriptorWrites.GetCount()), m_CachedDescriptorWrites.Data(), 0, nullptr);
 
         m_CachedDescriptorSets[m_InFlightFrameIndex][hash] = m_MostRecentDescriptorSet;
     }
 
     VkDescriptorPool VulkanDescriptorSet::CreateDescriptorPool()
     {
-        if (m_CachedPoolSizes.empty()) return nullptr; // no descriptors so don't create pool
+        if (m_CachedPoolSizes.IsEmpty()) return nullptr; // no descriptors so don't create pool
 
         VulkanDevice& device = VulkanContext::GetDevice();
 
         VkDescriptorPoolCreateInfo poolInfo{};
         poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-        poolInfo.poolSizeCount = static_cast<u32>(m_CachedPoolSizes.size());
-        poolInfo.pPoolSizes = m_CachedPoolSizes.data();
+        poolInfo.poolSizeCount = static_cast<u32>(m_CachedPoolSizes.GetCount());
+        poolInfo.pPoolSizes = m_CachedPoolSizes.Data();
         poolInfo.maxSets = m_MaxSetsPerPool;
         poolInfo.flags = 0;
 
@@ -255,11 +255,11 @@ namespace Heart
     VkDescriptorSet VulkanDescriptorSet::AllocateSet()
     {
         // generate if we go over the size limit or if this is the first allocation of the frame
-        if (m_AvailablePoolIndex[m_InFlightFrameIndex] == 0 || m_AvailableSetIndex[m_InFlightFrameIndex] >= m_AvailableSets[m_InFlightFrameIndex].size())
+        if (m_AvailablePoolIndex[m_InFlightFrameIndex] == 0 || m_AvailableSetIndex[m_InFlightFrameIndex] >= m_AvailableSets[m_InFlightFrameIndex].GetCount())
         {
             m_AvailableSetIndex[m_InFlightFrameIndex] = 0;
 
-            if (m_AvailablePoolIndex[m_InFlightFrameIndex] >= m_DescriptorPools[m_InFlightFrameIndex].size())
+            if (m_AvailablePoolIndex[m_InFlightFrameIndex] >= m_DescriptorPools[m_InFlightFrameIndex].GetCount())
                 PushDescriptorPool();
 
             VulkanDevice& device = VulkanContext::GetDevice();
@@ -267,9 +267,9 @@ namespace Heart
             allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
             allocInfo.descriptorPool = m_DescriptorPools[m_InFlightFrameIndex][m_AvailablePoolIndex[m_InFlightFrameIndex]++];
             allocInfo.descriptorSetCount = m_MaxSetsPerPool;
-            allocInfo.pSetLayouts = m_CachedSetLayouts.data();
+            allocInfo.pSetLayouts = m_CachedSetLayouts.Data();
 
-            VkResult result = vkAllocateDescriptorSets(device.Device(), &allocInfo, m_AvailableSets[m_InFlightFrameIndex].data());
+            VkResult result = vkAllocateDescriptorSets(device.Device(), &allocInfo, m_AvailableSets[m_InFlightFrameIndex].Data());
         }
         return m_AvailableSets[m_InFlightFrameIndex][m_AvailableSetIndex[m_InFlightFrameIndex]++];
     }

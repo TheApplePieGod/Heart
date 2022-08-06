@@ -3,6 +3,8 @@
 #include "Heart/Core/Timestep.h"
 #include "Heart/Events/EventEmitter.h"
 #include "Heart/Renderer/Renderer.h"
+#include "Heart/Container/HString8.h"
+#include "Heart/Container/HVector.hpp"
 
 extern int main(int argc, char** argv);
 
@@ -22,7 +24,7 @@ namespace Heart
          * 
          * @param windowName The initial name of the window.
          */
-        App(const std::string& windowName = "Heart Engine");
+        App(const HStringView8& windowName = "Heart Engine");
 
         /*! @brief Default destructor. */
         ~App();
@@ -53,7 +55,7 @@ namespace Heart
          * 
          * @param newDirectory The absolute path of the new assets directory. 
          */
-        void SwitchAssetsDirectory(const std::string& newDirectory);
+        void SwitchAssetsDirectory(const HStringView8& newDirectory);
 
         /**
          * @brief Stop running and close the application.
@@ -89,7 +91,7 @@ namespace Heart
         inline Timestep GetLastTimestep() const { return m_LastTimestep; }
 
     protected:
-        std::vector<Ref<Layer>> m_Layers;
+        HVector<Ref<Layer>> m_Layers;
         Ref<ImGuiInstance> m_ImGuiInstance;
         Ref<Window> m_Window;
         bool m_Running = true;
@@ -110,7 +112,7 @@ namespace Heart
 
     private:
         RenderApi::Type m_SwitchingApi = RenderApi::Type::None;
-        std::string m_SwitchingAssetsDirectory = "";
+        HString8 m_SwitchingAssetsDirectory = "";
 
     private:
         static App* s_Instance;

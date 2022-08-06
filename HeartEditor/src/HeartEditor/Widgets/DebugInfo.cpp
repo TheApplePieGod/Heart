@@ -24,7 +24,7 @@ namespace Widgets
         if (!m_Open) return;
 
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 5.0f));
-        ImGui::Begin(m_Name.c_str(), &m_Open);
+        ImGui::Begin(m_Name.Data(), &m_Open);
 
         ImGui::Text("Basic Info:");
         ImGui::Indent();
@@ -50,7 +50,7 @@ namespace Widgets
         ImGui::Text("CPU Timing:");
         ImGui::Indent();
         for (auto& pair : Heart::AggregateTimer::GetTimeMap())
-            ImGui::Text("%s: %.1fms", pair.first.c_str(), pair.second);
+            ImGui::Text("%s: %.1fms", pair.first.Data(), pair.second);
         ImGui::Unindent();
 
         ImGui::Text("GPU Timing:");
@@ -70,7 +70,7 @@ namespace Widgets
         ImGui::Text("Render Statistics:");
         ImGui::Indent();
         for (auto& pair : Heart::Renderer::GetStatistics())
-            ImGui::Text("%s: %lld", pair.first.c_str(), pair.second);
+            ImGui::Text("%s: %lld", pair.first.Data(), pair.second);
         ImGui::Unindent();
 
         ImGui::End();

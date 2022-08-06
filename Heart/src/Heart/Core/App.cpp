@@ -16,7 +16,7 @@ namespace Heart
 {
     App* App::s_Instance = nullptr;
 
-    App::App(const std::string& windowName)
+    App::App(const HStringView8& windowName)
     {
         HE_ENGINE_ASSERT(!s_Instance, "App instance already exists");
         s_Instance = this;
@@ -55,7 +55,7 @@ namespace Heart
 
     void App::PushLayer(const Ref<Layer>& layer)
     {
-        m_Layers.emplace_back(layer);
+        m_Layers.Add(layer);
         layer->OnAttach();
     }
 
@@ -64,7 +64,7 @@ namespace Heart
         m_SwitchingApi = type;
     }
     
-    void App::SwitchAssetsDirectory(const std::string& newDirectory)
+    void App::SwitchAssetsDirectory(const HStringView8& newDirectory)
     {
         m_SwitchingAssetsDirectory = newDirectory;
     }

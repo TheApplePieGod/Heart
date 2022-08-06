@@ -24,7 +24,7 @@ namespace HeartEditor
 {
 namespace Widgets
 {
-    Viewport::Viewport(const std::string& name, bool initialOpen)
+    Viewport::Viewport(const Heart::HStringView8& name, bool initialOpen)
         : Widget(name, initialOpen)
     {
         m_SceneRenderer = Heart::CreateScope<Heart::SceneRenderer>();
@@ -38,7 +38,7 @@ namespace Widgets
 
         if (!m_Open) return;
 
-        ImGui::Begin(m_Name.c_str(), &m_Open);
+        ImGui::Begin(m_Name.Data(), &m_Open);
 
         m_SceneRenderer->RenderScene(
             EditorApp::Get().GetWindow().GetContext(),
@@ -181,7 +181,7 @@ namespace Widgets
 
             Heart::ImGuiUtils::AssetDropTarget(
                 Heart::Asset::Type::Scene,
-                [](const std::string& path)
+                [](const Heart::HStringView8& path)
                 {
                     Editor::OpenSceneFromAsset(Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Scene, path));
                 }

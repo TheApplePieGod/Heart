@@ -9,7 +9,7 @@ namespace Widgets
     class ProjectSettings : public Widget
     {
     public:
-        ProjectSettings(const std::string& name, bool initialOpen)
+        ProjectSettings(const Heart::HStringView8& name, bool initialOpen)
             : Widget(name, initialOpen)
         {}
 

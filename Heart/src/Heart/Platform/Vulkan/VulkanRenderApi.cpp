@@ -107,14 +107,14 @@ namespace Heart
         );
     }
 
-    void VulkanRenderApi::RenderFramebuffers(GraphicsContext& _context, const std::vector<FramebufferSubmission>& submissions)
+    void VulkanRenderApi::RenderFramebuffers(GraphicsContext& _context, const HVector<FramebufferSubmission>& submissions)
     {
         HE_PROFILE_FUNCTION();
         auto timer = AggregateTimer("VulkanRenderApi::RenderFramebuffers");
 
         VulkanContext& context = static_cast<VulkanContext&>(_context);
 
-        std::vector<VulkanFramebufferSubmit> submits;
+        HVector<VulkanFramebufferSubmit> submits;
         for (auto& submission : submissions)
         {
             HE_ENGINE_ASSERT(submission.Framebuffer, "Cannot submit a nullptr framebuffer");
@@ -122,7 +122,7 @@ namespace Heart
             VulkanFramebuffer* buffer = static_cast<VulkanFramebuffer*>(submission.Framebuffer);
             buffer->Submit(submission.PostRenderComputePipeline);
 
-            submits.push_back({
+            submits.Add({
                 buffer->GetCommandBuffer(),
                 buffer->GetTransferCommandBuffer()
             });
@@ -131,7 +131,7 @@ namespace Heart
         context.GetSwapChain().SubmitCommandBuffers(submits);
     }
 
-    // void VulkanRenderApi::RenderComputePipelines(const std::vector<ComputePipeline*>& pipelines)
+    // void VulkanRenderApi::RenderComputePipelines(const HVector<ComputePipeline*>& pipelines)
     // {
     //     HE_PROFILE_FUNCTION();
     //     auto timer = AggregateTimer("VulkanRenderApi::RenderComputePipelines");
@@ -160,14 +160,14 @@ namespace Heart
     //     );
     // }
 
-    void VulkanRenderApi::DispatchComputePipelines(GraphicsContext& _context, const std::vector<ComputePipeline*>& pipelines)
+    void VulkanRenderApi::DispatchComputePipelines(GraphicsContext& _context, const HVector<ComputePipeline*>& pipelines)
     {
         // HE_PROFILE_FUNCTION();
         // auto timer = AggregateTimer("VulkanRenderApi::DispatchComputePipelines");
 
         // VulkanContext& context = static_cast<VulkanContext&>(_context);
 
-        // std::vector<VulkanFramebufferSubmit> submits;
+        // HVector<VulkanFramebufferSubmit> submits;
         // for (auto& _pipeline : pipelines)
         // {
         //     VulkanComputePipeline* pipeline = static_cast<VulkanComputePipeline*>(_pipeline);

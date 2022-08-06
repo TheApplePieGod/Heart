@@ -26,17 +26,7 @@ namespace Heart
     hostfxr_close_fn s_CloseFunc;
     void* s_HostFXRHandle;
 
-    using HostFXRString = std::basic_string<char_t>;
     using InitializeFn = bool (*)(void*, ManagedCallbacks*);
-
-    HostFXRString StringToHostFXR(const std::string& str)
-    {
-        #ifdef HE_PLATFORM_WINDOWS
-            return PlatformUtils::NarrowToWideString(str);
-        #else
-            return str;
-        #endif
-    }
 
     #ifdef HE_PLATFORM_WINDOWS
         #define HOSTFXR_STR(str) L##str
@@ -127,7 +117,7 @@ namespace Heart
         }
     }
 
-    bool ScriptingEngine::LoadClientPlugin(const std::string& absolutePath)
+    bool ScriptingEngine::LoadClientPlugin(const HStringView8& absolutePath)
     {
         auto timer = Timer("Client plugin load"); 
 
@@ -138,13 +128,13 @@ namespace Heart
         }
 
         HArray outClasses;
-        bool res = s_CoreCallbacks.EntryPoint_LoadClientPlugin(absolutePath.c_str(), &outClasses);
+        bool res = s_CoreCallbacks.EntryPoint_LoadClientPlugin(absolutePath.Data(), &outClasses);
         if (res)
         {
             // Populate local array
             for (u32 i = 0; i < outClasses.GetCount(); i++)
             {
-                auto convertedString = outClasses[i].String().ToUTF8();
+                auto convertedString = outClasses[i].String().Convert(HString::Encoding::UTF8);
                 s_InstantiableClasses[convertedString] = ScriptClass(convertedString);
             }
 

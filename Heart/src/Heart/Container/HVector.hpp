@@ -27,10 +27,15 @@ namespace Heart
             : m_Container(list)
         {}
 
+        HVector(T* start, T* end)
+            : m_Container(start, end - start)
+        {}
+
         void Add(const T& elem)
         {
+            // Placement new here prevents accidental double destruction
             u32 addIndex = PreAdd();
-            m_Container[addIndex] = elem;
+            HE_PLACEMENT_NEW(Begin() + addIndex, T, elem);
         }
 
         template <class... Args>
@@ -38,7 +43,7 @@ namespace Heart
         {
             u32 addIndex = PreAdd();
             HE_PLACEMENT_NEW(
-                m_Container.Begin() + addIndex,
+                Begin() + addIndex,
                 T,
                 std::forward<Args>(args)...
             );
@@ -55,8 +60,8 @@ namespace Heart
             if (m_Container.DecrementCount() == 0 || index == GetCount()) return;
 
             memmove(
-                m_Container.Begin() + index,
-                m_Container.Begin() + index + 1,
+                Begin() + index,
+                Begin() + index + 1,
                 (GetCount() - index) * sizeof(T)
             );
         }
@@ -71,7 +76,11 @@ namespace Heart
 
             if (m_Container.DecrementCount() == 0) return;
             
-            m_Container[index] = m_Container[GetCount()];
+            memmove(
+                Begin() + index,
+                Begin() + GetCount(),
+                sizeof(T)
+            );
         }
 
         void Pop()
@@ -83,6 +92,24 @@ namespace Heart
                 m_Container[m_Container.DecrementCount()].~T();
         }
 
+        void CopyFrom(const T* start, const T* end)
+        {
+            m_Container = Container(start, end - start);
+        }
+
+        void Append(const HVector<T>& other, bool shallow = false)
+        {
+            u32 oldCount = GetCount();
+            Resize(oldCount + other.GetCount(), false);
+            if (shallow)
+                memcpy(Data() + oldCount, other.Begin(), other.GetCount() * sizeof(T));
+            else
+            {
+                for (u32 i = 0; i < other.GetCount(); i++)
+                    HE_PLACEMENT_NEW(Begin() + i + oldCount, T, other[i]);
+            }
+        }
+
         // insert
         // find
         
@@ -90,13 +117,18 @@ namespace Heart
         inline void Clear(bool shrink = false) { m_Container.Clear(shrink); }
         inline void Resize(u32 elemCount, bool construct = true) { m_Container.Resize(elemCount, construct); }
         inline HVector Clone() const { return HVector(m_Container.Clone()); }
+        inline HVector& CloneInPlace() { m_Container = Container(Data(), GetCount()); return *this; }
+        inline void ShallowCopy(const HVector& from) { m_Container.Copy(from.m_Container, true); }
         inline u32 GetCount() const { return m_Container.GetCount(); }
+        inline u32 GetAllocatedCount() const { return m_Container.GetAllocatedCount(); }
+        inline u32 GetRefCount() const { return m_Container.GetRefCount(); }
         inline T* Data() const { return m_Container.Data(); }
         inline T* Begin() const { return m_Container.Begin(); }
         inline T* End() const { return m_Container.End(); }
-        inline T* Front() const { return m_Container.Begin(); }
-        inline T* Back() const { return GetCount() > 0 ? m_Container.End() - 1 : m_Container.Begin(); }
+        inline T& Front() const { return *m_Container.Begin(); }
+        inline T& Back() const { return *(m_Container.End() - 1); }
         inline T& Get(u32 index) const { return m_Container.Get(index); }
+        inline bool IsEmpty() const { return m_Container.IsEmpty(); }
 
         inline T& operator[](u32 index) const { return m_Container[index]; }
         inline void operator=(const HVector& other) { m_Container = other.m_Container; }
@@ -119,7 +151,7 @@ namespace Heart
                 m_Container.IncrementCount();
             return count;
         }
-
+        
         inline constexpr bool ShouldDestruct() const { return std::is_destructible<T>::value && !std::is_trivially_destructible<T>::value; }
 
     private:

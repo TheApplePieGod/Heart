@@ -3,7 +3,7 @@
 
 namespace Heart
 {
-    Layer::Layer(const std::string& name)
+    Layer::Layer(const HStringView8& name)
         : m_Name(name)
     {}
 }

@@ -30,3 +30,7 @@
 	path = Heart/lib/json
 	url = https://github.com/nlohmann/json.git
 	branch = develop
+[submodule "HeartTesting/lib/doctest"]
+	path = HeartTesting/lib/doctest
+	url = https://github.com/doctest/doctest.git
+	branch = master

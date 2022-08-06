@@ -37,8 +37,8 @@ namespace Heart
         auto vertShader = AssetManager::RetrieveAsset<ShaderAsset>(m_Info.VertexShaderAsset)->GetShader();
         auto fragShader = AssetManager::RetrieveAsset<ShaderAsset>(m_Info.FragmentShaderAsset)->GetShader();
 
-        m_ProgramReflectionData.clear();
-        m_ProgramReflectionData.insert(m_ProgramReflectionData.end(), vertShader->GetReflectionData().begin(), vertShader->GetReflectionData().end());
+        m_ProgramReflectionData.Clear();
+        m_ProgramReflectionData.Append(vertShader->GetReflectionData());
 
         for (auto& fragData : fragShader->GetReflectionData())
         {
@@ -54,7 +54,7 @@ namespace Heart
                 }
             }
             if (add)
-                m_ProgramReflectionData.push_back(fragData);
+                m_ProgramReflectionData.Add(fragData);
         }
 
         SortReflectionData();
@@ -71,8 +71,8 @@ namespace Heart
     {
         auto compShader = AssetManager::RetrieveAsset<ShaderAsset>(m_Info.ComputeShaderAsset)->GetShader();
 
-        m_ProgramReflectionData.clear();
-        m_ProgramReflectionData.insert(m_ProgramReflectionData.end(), compShader->GetReflectionData().begin(), compShader->GetReflectionData().end());
+        m_ProgramReflectionData.Clear();
+        m_ProgramReflectionData.Append(compShader->GetReflectionData());
 
         SortReflectionData();
     }

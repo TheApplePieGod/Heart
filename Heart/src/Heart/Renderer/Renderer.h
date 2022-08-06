@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Heart/Renderer/RenderApi.h"
+#include "Heart/Container/HString8.h"
 
 namespace Heart
 {
@@ -21,16 +22,16 @@ namespace Heart
         inline static RenderApi& Api() { return *s_RenderApi; }
         inline static RenderApi::Type GetApiType() { return s_RenderApiType; }
         inline static bool IsUsingReverseDepth() { return s_UseReverseDepth; }
-        inline static std::map<std::string, RenderStatistic>& GetStatistics() { return s_RenderStatistics; }
-        inline static void PushStatistic(const std::string& name, s64 value) { s_RenderStatistics[name].Value += value; }
-        inline static void ClearStatistic(const std::string& name) { s_RenderStatistics[name].Value = 0; }
+        inline static auto& GetStatistics() { return s_RenderStatistics; }
+        inline static void PushStatistic(const HStringView8& name, s64 value) { s_RenderStatistics[name].Value += value; }
+        inline static void ClearStatistic(const HStringView8& name) { s_RenderStatistics[name].Value = 0; }
 
         inline static constexpr u32 FrameBufferCount = 2;
 
     private:
-        static Scope<RenderApi> s_RenderApi;
-        static RenderApi::Type s_RenderApiType;
-        static bool s_UseReverseDepth;
-        static std::map<std::string, RenderStatistic> s_RenderStatistics;
+        inline static Scope<RenderApi> s_RenderApi;
+        inline static RenderApi::Type s_RenderApiType;
+        inline static bool s_UseReverseDepth = true;
+        inline static std::map<HString8, RenderStatistic> s_RenderStatistics;
     };
 }

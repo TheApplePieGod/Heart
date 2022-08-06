@@ -6,11 +6,6 @@
 #include "Heart/Scene/Components.h"
 #include "imgui/imgui.h"
 
-namespace Heart
-{
-    class HString;
-}
-
 namespace HeartEditor
 {
 namespace Widgets
@@ -18,7 +13,7 @@ namespace Widgets
     class PropertiesPanel : public Widget
     {
     public:
-        PropertiesPanel(const std::string& name, bool initialOpen)
+        PropertiesPanel(const Heart::HStringView8& name, bool initialOpen)
             : Widget(name, initialOpen)
         {}
 
@@ -31,16 +26,16 @@ namespace Widgets
         void RenderScriptComponent();
         void RenderCameraComponent();
 
-        void RenderXYZSlider(const std::string& name, f32* x, f32* y, f32* z, f32 min, f32 max, f32 step);
-        void RenderScriptField(const Heart::HString& fieldName, Heart::ScriptComponent& scriptComp);
+        void RenderXYZSlider(const Heart::HStringView8& name, f32* x, f32* y, f32* z, f32 min, f32 max, f32 step);
+        void RenderScriptField(const Heart::HStringView& fieldName, Heart::ScriptComponent& scriptComp);
 
         // returns true if the component was deleted
         template<typename Component>
-        bool RenderComponentPopup(const std::string& popupName, bool canRemove = true)
+        bool RenderComponentPopup(const Heart::HStringView8& popupName, bool canRemove = true)
         {
             if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1))
-                ImGui::OpenPopup(popupName.c_str());
-            if (ImGui::BeginPopup(popupName.c_str()))
+                ImGui::OpenPopup(popupName.Data());
+            if (ImGui::BeginPopup(popupName.Data()))
             {
                 if (!canRemove)
                     ImGui::BeginDisabled();

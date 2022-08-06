@@ -12,15 +12,15 @@ namespace Heart
         u32 formatCount = 0;
         vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);
         if (formatCount != 0) {
-            details.Formats.resize(formatCount);
-            vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, details.Formats.data());
+            details.Formats.Resize(formatCount, false);
+            vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, details.Formats.Data());
         }
 
         u32 presentModeCount = 0;
         vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, nullptr);
         if (presentModeCount != 0) {
-            details.PresentModes.resize(presentModeCount);
-            vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, details.PresentModes.data());
+            details.PresentModes.Resize(presentModeCount, false);
+            vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, details.PresentModes.Data());
         }
 
         return details;
@@ -32,8 +32,8 @@ namespace Heart
 
         u32 supportedQueueFamilyCount = 0;
         vkGetPhysicalDeviceQueueFamilyProperties(device, &supportedQueueFamilyCount, nullptr);
-        std::vector<VkQueueFamilyProperties> supportedQueueFamilies(supportedQueueFamilyCount);
-        vkGetPhysicalDeviceQueueFamilyProperties(device, &supportedQueueFamilyCount, supportedQueueFamilies.data());
+        HVector<VkQueueFamilyProperties> supportedQueueFamilies(supportedQueueFamilyCount);
+        vkGetPhysicalDeviceQueueFamilyProperties(device, &supportedQueueFamilyCount, supportedQueueFamilies.Data());
 
         // pass over the supported families and populate indices with the first available option
         int i = 0;

@@ -21,7 +21,7 @@ namespace Widgets
         if (!m_Open) return;
 
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 5.0f));
-        ImGui::Begin(m_Name.c_str(), &m_Open);
+        ImGui::Begin(m_Name.Data(), &m_Open);
 
         // Only top level components
         auto view = Editor::GetActiveScene().GetRegistry().view<Heart::NameComponent>(entt::exclude<Heart::ParentComponent>);
@@ -32,7 +32,7 @@ namespace Widgets
             nameMap.insert({ view.get<Heart::NameComponent>(entity).Name, entity });
 
         ImGui::BeginChild("HierarchyChild");
-        for (auto pair : nameMap)
+        for (auto& pair : nameMap)
             if (RenderEntity(pair.second))
                 break;
         ImGui::EndChild();
@@ -65,10 +65,10 @@ namespace Widgets
         Heart::Scene& activeScene = Editor::GetActiveScene();
 
         auto& nameComponent = activeScene.GetRegistry().get<Heart::NameComponent>(entity);
-        bool hasChildren = activeScene.GetRegistry().any_of<Heart::ChildComponent>(entity) && activeScene.GetRegistry().get<Heart::ChildComponent>(entity).Children.size() > 0;
+        bool hasChildren = activeScene.GetRegistry().any_of<Heart::ChildComponent>(entity) && activeScene.GetRegistry().get<Heart::ChildComponent>(entity).Children.GetCount() > 0;
         bool open = false;
         bool justDestroyed = false;
-        Heart::HString nameString = "EntityPopup";
+        Heart::HStringView8 nameString = "EntityPopup";
 
         // create the tree node
         ImGuiTreeNodeFlags node_flags = (hasChildren ? 0 : ImGuiTreeNodeFlags_Leaf) | ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | (Editor::GetState().SelectedEntity.GetHandle() == entity ? ImGuiTreeNodeFlags_Selected : 0);
@@ -96,7 +96,7 @@ namespace Widgets
         }
 
         // right click menu
-        if (ImGui::BeginPopupContextItem((nameString + std::to_string(static_cast<u32>(entity))).DataUTF8()))
+        if (ImGui::BeginPopupContextItem((nameString + std::to_string(static_cast<u32>(entity))).Data()))
         {
             if (ImGui::MenuItem("Create Child Entity"))
             {

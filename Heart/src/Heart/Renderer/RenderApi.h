@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Heart/Container/HVector.hpp"
+
 namespace Heart
 {
     class Buffer;
@@ -41,9 +43,9 @@ namespace Heart
 
         virtual void DrawIndexedIndirect(Buffer* indirectBuffer, u32 commandOffset, u32 drawCount) = 0;
 
-        virtual void RenderFramebuffers(GraphicsContext& context, const std::vector<FramebufferSubmission>& submissions) = 0;
+        virtual void RenderFramebuffers(GraphicsContext& context, const HVector<FramebufferSubmission>& submissions) = 0;
 
-        virtual void DispatchComputePipelines(GraphicsContext& context, const std::vector<ComputePipeline*>& pipelines) = 0;
+        virtual void DispatchComputePipelines(GraphicsContext& context, const HVector<ComputePipeline*>& pipelines) = 0;
 
     private:
         

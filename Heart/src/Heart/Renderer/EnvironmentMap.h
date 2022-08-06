@@ -2,6 +2,7 @@
 
 #include "Heart/Core/UUID.h"
 #include "Heart/Events/EventEmitter.h"
+#include "Heart/Container/HVector.hpp"
 #include "glm/mat4x4.hpp"
 #include "glm/vec4.hpp"
 #include "glm/vec3.hpp"
@@ -52,7 +53,7 @@ namespace Heart
         Ref<Texture> m_PrefilterMap;
         Ref<Texture> m_BRDFTexture;
 
-        std::vector<Ref<Framebuffer>> m_PrefilterFramebuffers; // one for each mip level
+        HVector<Ref<Framebuffer>> m_PrefilterFramebuffers; // one for each mip level
         Ref<Framebuffer> m_BRDFFramebuffer;
         Ref<Framebuffer> m_CubemapFramebuffer;
         Ref<Framebuffer> m_IrradianceMapFramebuffer;

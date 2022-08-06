@@ -76,13 +76,13 @@ namespace Heart
         m_Scene->CacheEntityTransform(*this);
     }
 
-    Variant Entity::GetScriptProperty(const HString& name) const
+    Variant Entity::GetScriptProperty(const HStringView8& name) const
     {
         auto& comp = GetComponent<ScriptComponent>();
         return comp.Instance.GetFieldValue(name);
     }
 
-    void Entity::SetScriptProperty(const HString& name, const Variant& value)
+    void Entity::SetScriptProperty(const HStringView8& name, const Variant& value)
     {
         auto& comp = GetComponent<ScriptComponent>();
         comp.Instance.SetFieldValue(name, value);

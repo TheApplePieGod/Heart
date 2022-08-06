@@ -18,7 +18,7 @@ namespace HeartEditor
 {
 namespace Widgets
 {
-    ContentBrowser::ContentBrowser(const std::string& name, bool initialOpen)
+    ContentBrowser::ContentBrowser(const Heart::HStringView8& name, bool initialOpen)
             : Widget(name, initialOpen)
     {
         ScanDirectory();
@@ -31,7 +31,7 @@ namespace Widgets
         if (!m_Open) return;
 
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 5.0f));
-        ImGui::Begin(m_Name.c_str(), &m_Open);
+        ImGui::Begin(m_Name.Data(), &m_Open);
         
         if (m_ShouldRescan)
             ScanDirectory();
@@ -53,53 +53,53 @@ namespace Widgets
 
     void ContentBrowser::ScanDirectory()
     {
-        if (Heart::AssetManager::GetAssetsDirectory().empty())
+        if (Heart::AssetManager::GetAssetsDirectory().IsEmpty())
             return;
 
-        bool isRoot = m_DirectoryStack[m_DirectoryStackIndex].empty();
+        bool isRoot = m_DirectoryStack[m_DirectoryStackIndex].IsEmpty();
 
         // Populate the directory list with each item in the directory
-        m_DirectoryList.clear();
+        m_DirectoryList.Clear();
         try
         {
             m_ShouldRescan = false;
             for (const auto& entry : std::filesystem::directory_iterator(
-                std::filesystem::path(Heart::AssetManager::GetAssetsDirectory())
-                    .append(m_DirectoryStack[m_DirectoryStackIndex]))
+                std::filesystem::path(Heart::AssetManager::GetAssetsDirectory().Data())
+                    .append(m_DirectoryStack[m_DirectoryStackIndex].Data()))
             )
             {
                 // Root (exclude unnecessary folders)
-                std::string filename = entry.path().filename().generic_u8string();
+                Heart::HString filename = entry.path().filename().generic_u8string();
                 if (isRoot && (
                     filename == ".vs" ||
                     filename == "bin" ||
                     filename == "obj"
                 ))
                     continue;
-                m_DirectoryList.push_back(entry);
+                m_DirectoryList.Add(entry);
             }
         }
         catch (std::filesystem::filesystem_error e) // likely failed to open directory so just reset
         {
             HE_ENGINE_LOG_ERROR("Failed to scan directory: {0}", e.what());
-            m_DirectoryStack.resize(1);
+            m_DirectoryStack.Resize(1);
             m_DirectoryStackIndex = 0;
         }  
     }
 
-    void ContentBrowser::PushDirectoryStack(const std::string& entry)
+    void ContentBrowser::PushDirectoryStack(const Heart::HStringView8& entry)
     {
-        m_DirectoryStack.push_back(entry);
+        m_DirectoryStack.Add(entry);
         m_DirectoryStackIndex++;
         m_ShouldRescan = true;
     }
 
-    void ContentBrowser::RenderDirectoryNode(const std::string& path, u32 depth)
+    void ContentBrowser::RenderDirectoryNode(const Heart::HStringView8& path, u32 depth)
     {
-        auto absolutePath = std::filesystem::path(Heart::AssetManager::GetAssetsDirectory()).append(path);
+        auto absolutePath = std::filesystem::path(Heart::AssetManager::GetAssetsDirectory().Data()).append(path.Data());
 
         // Exclude unnecessary folders from list
-        std::string filename = absolutePath.filename().generic_u8string();
+        Heart::HString8 filename = absolutePath.filename().generic_u8string();
         if (depth == 1 && (
             filename == ".vs" ||
             filename == "bin" ||
@@ -108,22 +108,22 @@ namespace Widgets
             return;
 
         // Get each item in the directory
-        std::vector<std::filesystem::directory_entry> directories;
+        Heart::HVector<std::filesystem::directory_entry> directories;
         try
         {
             for (const auto& entry : std::filesystem::directory_iterator(absolutePath))
                 if (entry.is_directory())
-                    directories.push_back(entry);
+                    directories.Add(entry);
         }
         catch (std::exception e) // likely invalid path so cut off this node
         { return; }
 
         // Render the directory tree node
         bool selected = path == m_DirectoryStack[m_DirectoryStackIndex];
-        ImGuiTreeNodeFlags node_flags = (directories.size() > 0 ? 0 : ImGuiTreeNodeFlags_Leaf) | ImGuiTreeNodeFlags_OpenOnArrow | (selected ? ImGuiTreeNodeFlags_Selected : 0);
-        bool open = ImGui::TreeNodeEx(path.empty() ? "Project Root" : path.c_str(), node_flags, path.empty() ? "Project Root" : filename.c_str());
+        ImGuiTreeNodeFlags node_flags = (directories.GetCount() > 0 ? 0 : ImGuiTreeNodeFlags_Leaf) | ImGuiTreeNodeFlags_OpenOnArrow | (selected ? ImGuiTreeNodeFlags_Selected : 0);
+        bool open = ImGui::TreeNodeEx(path.IsEmpty() ? "Project Root" : path.Data(), node_flags, path.IsEmpty() ? "Project Root" : filename.Data());
         if (!selected && ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0))
-            PushDirectoryStack(path.c_str());
+            PushDirectoryStack(path);
         
         // Create the drop target
         FileTransferDropTarget(absolutePath);
@@ -132,14 +132,14 @@ namespace Widgets
         if (open)
         {
             for (auto& entry : directories)
-                RenderDirectoryNode(entry.path().generic_u8string().c_str(), depth + 1);
+                RenderDirectoryNode(entry.path().generic_u8string(), depth + 1);
             ImGui::TreePop();
         }
     }
 
     void ContentBrowser::RenderFileList()
     {
-        if (Heart::AssetManager::GetAssetsDirectory().empty())
+        if (Heart::AssetManager::GetAssetsDirectory().IsEmpty())
             return;
 
         // Go backwards in the directory stack
@@ -156,7 +156,7 @@ namespace Widgets
         // Go forwards in the directory stack
         if (ImGui::Button(">##forwards"))
         {
-            if (++m_DirectoryStackIndex >= m_DirectoryStack.size())
+            if (++m_DirectoryStackIndex >= m_DirectoryStack.GetCount())
                 m_DirectoryStackIndex--;
             else
                 m_ShouldRescan = true;
@@ -178,13 +178,13 @@ namespace Widgets
             // Create material
             if (ImGui::MenuItem("Material"))
             {
-                std::filesystem::path path = Heart::AssetManager::GetAssetsDirectory();
-                path.append(m_DirectoryStack[m_DirectoryStackIndex]);
-                std::string fileName = "NewMaterial";
+                std::filesystem::path path = Heart::AssetManager::GetAssetsDirectory().Data();
+                path.append(m_DirectoryStack[m_DirectoryStackIndex].Data());
+                Heart::HString8 fileName = "NewMaterial";
                 fileName += std::to_string(Heart::UUID());
                 fileName += ".hemat";
                 Heart::Material defaultMaterial;
-                Heart::MaterialAsset::SerializeMaterial(path.append(fileName).generic_u8string(), defaultMaterial);
+                Heart::MaterialAsset::SerializeMaterial(path.append(fileName.Data()).generic_u8string(), defaultMaterial);
                 m_ShouldRescan = true;
             }
             ImGui::EndPopup();
@@ -211,16 +211,16 @@ namespace Widgets
 
     void ContentBrowser::RenderFileCard(const std::filesystem::directory_entry& entry)
     {
-        auto entryName = entry.path().filename().generic_u8string();
-        auto fullPath = entry.path().generic_u8string();
-        auto relativePath = Heart::AssetManager::GetRelativePath(fullPath);
+        Heart::HString8 entryName = entry.path().filename().generic_u8string();
+        Heart::HString8 fullPath = entry.path().generic_u8string();
+        Heart::HString8 relativePath = Heart::AssetManager::GetRelativePath(fullPath);
 
         ImGui::BeginGroup();
         
         ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.f, 0.f, 0.f, 0.f));
         
         // Render the icon based on the file
-        ImGui::PushID(entryName.c_str());
+        ImGui::PushID(entryName.Data());
         ImGui::ImageButton(
             Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>(entry.is_directory() ? "editor/folder.png" :  "editor/file.png", true)->GetTexture()->GetImGuiHandle(),
             { m_CardSize.x, m_CardSize.y }
@@ -230,7 +230,7 @@ namespace Widgets
         // File transfer drag source
         if (ImGui::BeginDragDropSource())
         {
-            ImGui::SetDragDropPayload("FileTransfer", fullPath.data(), fullPath.size() * sizeof(char) + 1);
+            ImGui::SetDragDropPayload("FileTransfer", fullPath.Data(), fullPath.GetCount() * sizeof(char) + 1);
             ImGui::Image(
                 Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>(entry.is_directory() ? "editor/folder.png" :  "editor/file.png", true)->GetTexture()->GetImGuiHandle(),
                 { m_CardSize.x * 0.5f, m_CardSize.y * 0.5f }
@@ -247,10 +247,14 @@ namespace Widgets
             if (entry.is_directory())
             {
                 // Make the current location the front of the stack
-                m_DirectoryStack.resize(m_DirectoryStackIndex + 1);
+                m_DirectoryStack.Resize(m_DirectoryStackIndex + 1);
 
                 // Push new directory to the stack
-                PushDirectoryStack(std::filesystem::path(m_DirectoryStack[m_DirectoryStackIndex]).append(entryName).generic_u8string());
+                PushDirectoryStack(
+                    std::filesystem::path(m_DirectoryStack[m_DirectoryStackIndex].Data())
+                    .append(entryName.Data())
+                    .generic_u8string()
+                );
             }
             else
             {
@@ -271,7 +275,7 @@ namespace Widgets
 
         // Card right click popup
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 5.f, 5.f });
-        if (ImGui::BeginPopupContextItem(entryName.c_str()))
+        if (ImGui::BeginPopupContextItem(entryName.Data()))
         {
             // Disabling this for now until we get a confirm dialog
             ImGui::BeginDisabled();
@@ -301,15 +305,15 @@ namespace Widgets
         // Center and wrap the filename if we are not renaming
         ImGui::PushTextWrapPos(ImGui::GetCursorPos().x + ImGui::GetItemRectSize().x);
         if (m_RenamingPath.empty() || m_RenamingPath != entry)
-            ImGui::TextWrapped(entryName.c_str());
+            ImGui::TextWrapped(entryName.Data());
         else
         {
             // Resize the text input box 
             ImGui::SetNextItemWidth(ImGui::GetItemRectSize().x);
 
             // Render the input box
-            std::string id = "##Rename";
-            Heart::ImGuiUtils::InputText((id + entryName).c_str(), m_Rename);
+            Heart::HStringView8 id = "##Rename";
+            Heart::ImGuiUtils::InputText((id + entryName).Data(), m_Rename);
             if (m_ShouldRename)
                 ImGui::SetKeyboardFocusHere(-1);
 
@@ -317,15 +321,15 @@ namespace Widgets
             if (!ImGui::IsItemHovered() && ImGui::IsAnyMouseDown())
             {
                 // If we left click and the new name is not blank, attempt to rename the file
-                if (ImGui::IsMouseDown(0) && !m_Rename.empty())
+                if (ImGui::IsMouseDown(0) && !m_Rename.IsEmpty())
                 {
                     try
                     {
-                        auto newPath = m_RenamingPath.parent_path().append(m_Rename);
+                        auto newPath = m_RenamingPath.parent_path().append(m_Rename.Data());
                         std::filesystem::rename(m_RenamingPath, newPath);
                         Heart::AssetManager::RenameAsset(
-                            m_RenamingPath.lexically_relative(Heart::AssetManager::GetAssetsDirectory()).generic_u8string(),
-                            newPath.lexically_relative(Heart::AssetManager::GetAssetsDirectory()).generic_u8string()
+                            m_RenamingPath.lexically_relative(Heart::AssetManager::GetAssetsDirectory().Data()).generic_u8string(),
+                            newPath.lexically_relative(Heart::AssetManager::GetAssetsDirectory().Data()).generic_u8string()
                         );
                     }
                     catch (std::exception e) {}

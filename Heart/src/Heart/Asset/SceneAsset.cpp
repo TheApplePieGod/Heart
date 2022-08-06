@@ -22,7 +22,7 @@ namespace Heart
         }
         catch (std::exception e)
         {
-            HE_ENGINE_LOG_ERROR("Failed to load scene at path {0}", m_AbsolutePath);
+            HE_ENGINE_LOG_ERROR("Failed to load scene at path {0}", m_AbsolutePath.Data());
             m_Loaded = true;
             m_Loading = false;
             return;
@@ -52,7 +52,7 @@ namespace Heart
             m_Scene = scene->Clone();
     }
 
-    Ref<Scene> SceneAsset::DeserializeScene(const std::string& path)
+    Ref<Scene> SceneAsset::DeserializeScene(const HStringView8& path)
     {
         auto scene = CreateRef<Scene>();
 
@@ -70,7 +70,7 @@ namespace Heart
             {
                 // REQUIRED: Id & name components
                 UUID id = static_cast<UUID>(loaded["idComponent"]["id"]);
-                std::string name = loaded["nameComponent"]["name"];
+                HString8 name = loaded["nameComponent"]["name"];
                 auto entity = scene->CreateEntityWithUUID(name, id);
 
                 // REQUIRED: Transform component
@@ -87,10 +87,10 @@ namespace Heart
                 if (loaded.contains("childComponent"))
                 {
                     auto& children = loaded["childComponent"]["children"];
-                    std::vector<UUID> ids;
-                    ids.reserve(children.size());
+                    HVector<UUID> ids;
+                    ids.Reserve(children.size());
                     for (auto& childId : children)
-                        ids.emplace_back(static_cast<UUID>(childId));
+                        ids.AddInPlace(static_cast<UUID>(childId));
                     entity.AddComponent<ChildComponent>(ids);
                 }
 
@@ -121,15 +121,15 @@ namespace Heart
                 if (loaded.contains("scriptComponent"))
                 {
                     ScriptComponent comp;
-                    HString scriptClass = loaded["scriptComponent"]["type"];
-                    comp.Instance = ScriptInstance(scriptClass);
+                    HString8 scriptClass = loaded["scriptComponent"]["type"];
+                    comp.Instance = ScriptInstance(scriptClass.ToHString());
                     if (comp.Instance.IsInstantiable())
                     {
                         if (!comp.Instance.ValidateClass())
                         {
                             HE_ENGINE_LOG_WARN(
                                 "Class '{0}' referenced in scene is no longer instantiable",
-                                scriptClass.DataUTF8()
+                                scriptClass.Data()
                             );
                         }
                         else
@@ -171,7 +171,7 @@ namespace Heart
         return scene;
     }
 
-    void SceneAsset::SerializeScene(const std::string& path, Scene* scene)
+    void SceneAsset::SerializeScene(const HStringView8& path, Scene* scene)
     {
         nlohmann::json j;
 
@@ -205,7 +205,7 @@ namespace Heart
                 if (entity.HasComponent<ChildComponent>())
                 {
                     auto& childComp = entity.GetComponent<ChildComponent>();
-                    for (size_t i = 0; i < childComp.Children.size(); i++)
+                    for (size_t i = 0; i < childComp.Children.GetCount(); i++)
                         entry["childComponent"]["children"][i] = static_cast<u64>(childComp.Children[i]);
                 }
 
@@ -262,7 +262,7 @@ namespace Heart
             field["environmentMap"]["engineResource"] = scene->GetEnvironmentMap() ? AssetManager::IsAssetAResource(scene->GetEnvironmentMap()->GetMapAsset()) : false;
         }
 
-        std::ofstream file(path);
+        std::ofstream file(path.Data());
         file << j;
     }
 }
