@@ -118,6 +118,7 @@ namespace Heart
         u32 GetNextPowerOfTwo(u32 value)
         {
             // Minimum alloc amount
+            if (value == 0) return 0;
             if (value <= MinimumAllocCount) return MinimumAllocCount;
             u32 two = value - 1;
             two |= two >> 1;

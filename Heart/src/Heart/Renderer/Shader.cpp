@@ -93,7 +93,7 @@ namespace Heart
             options.SetOptimizationLevel(shaderc_optimization_level_performance);
         #endif
         HString8 sourceCode = FilesystemUtils::ReadFileToString(path);
-        if (sourceCode == "")
+        if (sourceCode.IsEmpty())
         {
             HE_ENGINE_LOG_ERROR("Failed to load file {0}", path.Data());
             HE_ENGINE_ASSERT(false);

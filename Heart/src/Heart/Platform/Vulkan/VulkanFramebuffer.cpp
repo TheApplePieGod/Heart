@@ -492,7 +492,7 @@ namespace Heart
 
             m_CurrentPipelineStage = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
             m_BoundPipeline = nullptr;
-            m_BoundPipelineName = "";
+            m_BoundPipelineName.Clear();
             m_BoundThisFrame = false;
             m_SubmittedThisFrame = true;
             m_FlushedThisFrame = false;
@@ -717,7 +717,7 @@ namespace Heart
 
         m_FlushedThisFrame = false;
         m_BoundPipeline = nullptr;
-        m_BoundPipelineName = "";
+        m_BoundPipelineName.Clear();
     }
 
     void VulkanFramebuffer::ClearOutputAttachment(u32 outputAttachmentIndex, bool clearDepth)

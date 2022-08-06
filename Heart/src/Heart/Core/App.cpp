@@ -156,7 +156,7 @@ namespace Heart
 
     void App::CheckForAssetsDirectorySwitch()
     {
-        if (m_SwitchingAssetsDirectory != "")
+        if (!m_SwitchingAssetsDirectory.IsEmpty())
         {
             AssetManager::UpdateAssetsDirectory(m_SwitchingAssetsDirectory);
             
@@ -165,7 +165,7 @@ namespace Heart
             // the assets directory changes, force a full reload on the graphics backend
             m_SwitchingApi = Renderer::GetApiType();
 
-            m_SwitchingAssetsDirectory = "";
+            m_SwitchingAssetsDirectory.Clear();
         }
     }
 

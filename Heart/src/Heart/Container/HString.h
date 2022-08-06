@@ -25,11 +25,11 @@ namespace Heart
         
         HString(const char8* str)
             : m_Encoding(Encoding::UTF8)
-        { Allocate<char8>(str); }
+        { Allocate<char8>(str, StringUtils::StrLen(str)); }
 
         HString(const char16* str)
             : m_Encoding(Encoding::UTF16)
-        { Allocate<char16>(str); }
+        { Allocate<char16>(str, StringUtils::StrLen(str)); }
 
         HString(const char8* str, u32 len)
             : m_Encoding(Encoding::UTF8)
@@ -92,7 +92,7 @@ namespace Heart
         inline Encoding GetEncoding() const { return m_Encoding; }
         inline HString Clone() const { return HString(m_Container.Clone()); }
         inline bool IsEmpty() const { return m_Container.IsEmpty(); }
-        inline void Clear() { m_Container.Resize(0); }
+        inline void Clear() { m_Container.Clear(true); }
 
         bool operator==(const HStringView& other) const;
         bool operator<(const HStringView& other) const;
@@ -116,17 +116,15 @@ namespace Heart
         {}
 
         template <typename T>
-        void Allocate(const T* str, u32 len = 0)
+        void Allocate(const T* str, u32 len)
         {
             if (!str) return;
-            if (len == 0) len = StringUtils::StrLen(str);
             if (len == 0)
             {
-                m_Container = Container<u8>();
+                m_Container.Clear(true);
                 return;
             }
-            //HE_PLACEMENT_NEW(&m_Container, Container<u8>, (const u8*)str, (len + 1) * sizeof(T));
-            m_Container = Container<u8>((const u8*)str, (len + 1) * sizeof(T));
+            m_Container.Copy(Container<u8>((const u8*)str, (len + 1) * sizeof(T)), true);
             reinterpret_cast<T*>(m_Container.Data())[len] = (T)'\0';
         }
 
@@ -145,7 +143,7 @@ namespace Heart
             }
 
             // Allocate & place termination char
-            m_Container = Container<u8>((totalLen + 1) * sizeof(T), true);
+            m_Container.Copy(Container<u8>((totalLen + 1) * sizeof(T), true), true);
             reinterpret_cast<T*>(m_Container.Data())[totalLen] = (T)'\0';
 
             // Fill

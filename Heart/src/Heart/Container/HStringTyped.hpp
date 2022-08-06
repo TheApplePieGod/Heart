@@ -19,7 +19,7 @@ namespace Heart
         {}
 
         HStringTyped(const T* str)
-        { Allocate(str); }
+        { Allocate(str, StringUtils::StrLen(str)); }
 
         HStringTyped(const T* str, u32 len)
         { Allocate(str, len); }
@@ -44,7 +44,7 @@ namespace Heart
         inline const T* End() const { return m_Container.End(); }
         inline HStringTyped Clone() const { return HStringTyped(m_Container.Clone()); }
         inline bool IsEmpty() const { return m_Container.IsEmpty(); }
-        inline void Clear() { m_Container.Resize(0); }
+        inline void Clear() { m_Container.Clear(true); }
 
         inline bool operator==(const HStringViewTyped<T>& other) const
         { return StringUtils::CompareEq(Data(), GetCount(), other.Data(), other.GetCount()); }
@@ -68,7 +68,7 @@ namespace Heart
             : m_Container(container)
         {}
 
-        void Allocate(const T* str, u32 len = 0);
+        void Allocate(const T* str, u32 len);
         void AllocateMany(const T** strs, u32* lens, u32 count);
         HStringTyped<T> AddPtr(const T* other, bool prepend) const;
 
@@ -209,13 +209,12 @@ namespace Heart
     void HStringTyped<T>::Allocate(const T* str, u32 len)
     {
         if (!str) return;
-        if (len == 0) len = StringUtils::StrLen(str);
         if (len == 0)
         {
-            m_Container = Container<T>();
+            m_Container.Clear(true);
             return;
         }
-        m_Container = Container<T>(str, len + 1);
+        m_Container.Copy(Container<T>(str, len + 1), true);
         m_Container.Data()[len] = (T)'\0';
     }
 
@@ -234,7 +233,7 @@ namespace Heart
         }
 
         // Allocate & place termination char
-        m_Container = Container<T>(totalLen + 1, true);
+        m_Container.Copy(Container<T>(totalLen + 1, true), true);
         m_Container.Data()[totalLen] = (T)'\0';
 
         // Fill

@@ -119,7 +119,7 @@ namespace HeartEditor
         if (j.contains("name"))
             project->m_Name = j["name"];
         
-        if (j.contains("loadedScene") && j["loadedScene"] != "")
+        if (j.contains("loadedScene") && !j["loadedScene"].empty())
         {
             Heart::UUID sceneAssetId = Heart::AssetManager::GetAssetUUID(j["loadedScene"]);
             Editor::OpenSceneFromAsset(sceneAssetId);

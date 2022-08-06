@@ -212,7 +212,7 @@ namespace Heart
             HE_ENGINE_ASSERT(false);
         }
 
-        Allocate(other);
+        Allocate(other, StringUtils::StrLen(other));
     }
 
     void HString::operator=(const char16* other)
@@ -223,7 +223,7 @@ namespace Heart
             HE_ENGINE_ASSERT(false);
         }
 
-        Allocate(other);
+        Allocate(other, StringUtils::StrLen(other));
     }
     
     void HString::operator=(const HStringView& other)

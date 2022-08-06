@@ -208,7 +208,7 @@ namespace Heart
         m_CurrentSubpass = -1;
         m_FlushedThisFrame = false;
         m_BoundPipeline = nullptr;
-        m_BoundPipelineName = "";
+        m_BoundPipelineName.Clear();
     }
 
     void OpenGLFramebuffer::BindPipeline(const HStringView8& name)
@@ -411,7 +411,7 @@ namespace Heart
 
         m_FlushedThisFrame = false;
         m_BoundPipeline = nullptr;
-        m_BoundPipelineName = "";
+        m_BoundPipelineName.Clear();
     }
 
     Ref<GraphicsPipeline> OpenGLFramebuffer::InternalInitializeGraphicsPipeline(const GraphicsPipelineCreateInfo& createInfo)

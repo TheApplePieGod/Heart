@@ -84,7 +84,7 @@ namespace Heart
     {
         HE_ENGINE_ASSERT(!folder || !save, "Cannot open a dialog with folder and save flags set to true");
 
-        HString8 outputPath = "";
+        HString8 outputPath;
         #ifdef HE_PLATFORM_WINDOWS
             HRESULT hr = S_OK;
 
@@ -168,7 +168,7 @@ namespace Heart
     {
         HE_ENGINE_ASSERT(!folder || !save, "Cannot open a dialog with folder and save flags set to true");
 
-        HString8 outputPath = "";
+        HString8 outputPath;
         #ifdef HE_PLATFORM_LINUX
             const char zenityPath[] = "/usr/bin/zenity";
             char command[2048];

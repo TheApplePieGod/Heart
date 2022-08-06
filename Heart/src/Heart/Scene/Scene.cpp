@@ -65,7 +65,7 @@ namespace Heart
         m_UUIDMap[uuid] = entity.GetHandle();
 
         entity.AddComponent<IdComponent>(uuid);
-        entity.AddComponent<NameComponent>(name == "" ? "New Entity" : name);
+        entity.AddComponent<NameComponent>(name.IsEmpty() ? "New Entity" : name);
         entity.AddComponent<TransformComponent>();
 
         CacheEntityTransform(entity);
