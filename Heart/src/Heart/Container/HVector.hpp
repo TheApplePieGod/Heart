@@ -35,7 +35,7 @@ namespace Heart
         {
             // Placement new here prevents accidental double destruction
             u32 addIndex = PreAdd();
-            HE_PLACEMENT_NEW(m_Container.Begin() + addIndex, T, elem);
+            HE_PLACEMENT_NEW(Begin() + addIndex, T, elem);
         }
 
         template <class... Args>
@@ -43,7 +43,7 @@ namespace Heart
         {
             u32 addIndex = PreAdd();
             HE_PLACEMENT_NEW(
-                m_Container.Begin() + addIndex,
+                Begin() + addIndex,
                 T,
                 std::forward<Args>(args)...
             );
@@ -60,8 +60,8 @@ namespace Heart
             if (m_Container.DecrementCount() == 0 || index == GetCount()) return;
 
             memmove(
-                m_Container.Begin() + index,
-                m_Container.Begin() + index + 1,
+                Begin() + index,
+                Begin() + index + 1,
                 (GetCount() - index) * sizeof(T)
             );
         }
@@ -76,7 +76,11 @@ namespace Heart
 
             if (m_Container.DecrementCount() == 0) return;
             
-            m_Container[index] = m_Container[GetCount()];
+            memmove(
+                Begin() + index,
+                Begin() + GetCount(),
+                sizeof(T)
+            );
         }
 
         void Pop()
@@ -114,7 +118,10 @@ namespace Heart
         inline void Resize(u32 elemCount, bool construct = true) { m_Container.Resize(elemCount, construct); }
         inline HVector Clone() const { return HVector(m_Container.Clone()); }
         inline HVector& CloneInPlace() { m_Container = Container(Data(), GetCount()); return *this; }
+        inline void ShallowCopy(const HVector& from) { m_Container.Copy(from.m_Container); }
         inline u32 GetCount() const { return m_Container.GetCount(); }
+        inline u32 GetAllocatedCount() const { return m_Container.GetAllocatedCount(); }
+        inline u32 GetRefCount() const { return m_Container.GetRefCount(); }
         inline T* Data() const { return m_Container.Data(); }
         inline T* Begin() const { return m_Container.Begin(); }
         inline T* End() const { return m_Container.End(); }

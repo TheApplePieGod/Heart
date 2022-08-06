@@ -91,7 +91,7 @@ namespace Heart
         HString8 testStr2 = "asd";
         HString8 testStr3;
         testStr2 = testStr1;
-        int d = 0; 
+        int d = 0;
 
         /*
          * HVector - Add

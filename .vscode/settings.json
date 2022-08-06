@@ -5,8 +5,9 @@
         "CMAKE_BUILD_TYPE": "${buildType}",
         "CMAKE_BUILD_PARALLEL_LEVEL": 4,
         "HEART_BUILD_DOCS": false,
-        "HEART_BUILD_EDITOR": true,
-        "HEART_BUILD_RUNTIME": false
+        "HEART_BUILD_EDITOR": false,
+        "HEART_BUILD_RUNTIME": false,
+        "HEART_BUILD_TESTS": true
     },
     "files.associations": {
         "iostream": "cpp",

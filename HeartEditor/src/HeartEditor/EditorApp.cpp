@@ -3,14 +3,12 @@
 
 #include "HeartEditor/Editor.h"
 #include "HeartEditor/EditorLayer.h"
-#include "Heart/Util/PerfTests.h"
 
 namespace HeartEditor
 {
     EditorApp::EditorApp()
         : App("Heart Editor")
     {
-        // Heart::PerfTests::RunHVectorTest();
         PushLayer(Heart::CreateRef<EditorLayer>());
     }
 

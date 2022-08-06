@@ -91,6 +91,7 @@ namespace Heart
         inline u32 GetCount() const { return m_Data ? GetCountUnchecked() : 0; }
         inline u32 GetCountUnchecked() const { return GetInfoPtr()->ElemCount; }
         inline u32 GetAllocatedCount() const { return m_Data ? GetInfoPtr()->AllocatedCount : 0; }
+        inline u32 GetRefCount() const { return m_Data ? GetInfoPtr()->RefCount : 1; } // Default is 1 for this obj
         inline u32 IncrementCount() { return ++GetInfoPtr()->ElemCount; }
         inline u32 DecrementCount() { return --GetInfoPtr()->ElemCount; }
         inline T* Data() const { return m_Data; }
@@ -101,6 +102,8 @@ namespace Heart
 
         inline T& operator[](u32 index) const { return m_Data[index]; }
         inline void operator=(const Container<T>& other) { Copy(other); }
+
+        inline static constexpr u32 MinimumAllocCount = 16;
 
     private:
         struct ContainerInfo
@@ -114,8 +117,8 @@ namespace Heart
         // Value must not be zero
         u32 GetNextPowerOfTwo(u32 value)
         {
-            // Minimum alloc size of 16 elems
-            if (value <= 16) return 16;
+            // Minimum alloc amount
+            if (value <= MinimumAllocCount) return MinimumAllocCount;
             u32 two = value - 1;
             two |= two >> 1;
             two |= two >> 2;
@@ -162,7 +165,7 @@ namespace Heart
             }
 
             if (construct && ShouldConstruct())
-                for (u32 i = oldCount; i < allocCount; i++)
+                for (u32 i = oldCount; i < elemCount; i++)
                     HE_PLACEMENT_NEW(m_Data + i, T);
         }
 
@@ -188,7 +191,6 @@ namespace Heart
         }
 
         inline ContainerInfo* GetInfoPtr() const { return reinterpret_cast<ContainerInfo*>(m_Data) - 1; }
-        inline u32 GetRefCount() { return m_Data ? GetInfoPtr()->RefCount : 1; } // Default one for this obj
         inline u32 IncrementRefCount() { return ++GetInfoPtr()->RefCount; }
         inline u32 DecrementRefCount() { return --GetInfoPtr()->RefCount; }
         inline void SetCount(u32 count) { GetInfoPtr()->ElemCount = count; }
