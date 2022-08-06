@@ -24,10 +24,10 @@ namespace Heart.Scene
 
     public class Component
     {
-        internal uint _entityHandle;
-        internal IntPtr _sceneHandle;
+        internal uint _entityHandle = Entity.InvalidEntityHandle;
+        internal IntPtr _sceneHandle = IntPtr.Zero;
 
-        public Component(uint entityHandle, IntPtr sceneHandle)
+        internal Component(uint entityHandle, IntPtr sceneHandle)
         {
             _entityHandle = entityHandle;
             _sceneHandle = sceneHandle;
@@ -100,44 +100,10 @@ namespace Heart.Scene
             return new Vec3(value);
         }
 
-        // This is mid
-        public static unsafe T GetComponent<T>(uint entityHandle, IntPtr sceneHandle) where T : Component
+        public static unsafe T GetComponent<T>(uint entityHandle, IntPtr sceneHandle) where T : Component, new()
         {
-            switch (typeof(T))
-            {
-                case var t when t == typeof(IdComponent):
-                    {
-                        var comp = new IdComponent(entityHandle, sceneHandle);
-                        return Unsafe.As<IdComponent, T>(ref comp);
-                    }
-                case var t when t == typeof(NameComponent):
-                    {
-                        var comp = new NameComponent(entityHandle, sceneHandle);
-                        return Unsafe.As<NameComponent, T>(ref comp);
-                    }
-                case var t when t == typeof(TransformComponent):
-                    {
-                        var comp = new TransformComponent(entityHandle, sceneHandle);
-                        return Unsafe.As<TransformComponent, T>(ref comp);
-                    }
-                case var t when t == typeof(MeshComponent):
-                    {
-                        var comp = new MeshComponent(entityHandle, sceneHandle);
-                        return Unsafe.As<MeshComponent, T>(ref comp);
-                    }
-                case var t when t == typeof(LightComponent):
-                    {
-                        var comp = new LightComponent(entityHandle, sceneHandle);
-                        return Unsafe.As<LightComponent, T>(ref comp);
-                    }
-                case var t when t == typeof(ScriptComponent):
-                    {
-                        var comp = new ScriptComponent(entityHandle, sceneHandle);
-                        return Unsafe.As<ScriptComponent, T>(ref comp);
-                    }
-            }
-
-            throw new NotImplementedException("GetComponent does not support " + typeof(T).FullName);
+            if (!HasComponent<T>(entityHandle, sceneHandle)) return null;
+            return new T { _entityHandle = entityHandle, _sceneHandle = sceneHandle };
         }
 
         public static unsafe bool HasComponent<T>(uint entityHandle, IntPtr sceneHandle) where T : Component

@@ -69,7 +69,7 @@ namespace Heart.Scene
             => ComponentUtils.GetForwardVector(_entityHandle, _sceneHandle);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public T GetComponent<T>() where T : Component
+        public T GetComponent<T>() where T : Component, new()
             => ComponentUtils.GetComponent<T>(_entityHandle, _sceneHandle);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
