@@ -143,8 +143,6 @@ namespace Heart
                 if (ShouldDestruct())
                     for (u32 i = elemCount; i < oldCount; i++)
                         m_Data[i].~T();
-
-                SetCount(elemCount);
             }
             
             if (allocCount != GetAllocatedCount())
@@ -152,7 +150,6 @@ namespace Heart
                 ContainerInfo* data = reinterpret_cast<ContainerInfo*>(::operator new(allocCount * sizeof(T) + sizeof(ContainerInfo)));
                 data->RefCount = GetRefCount();
                 data->AllocatedCount = allocCount;
-                data->ElemCount = elemCount;
                 T* newData = reinterpret_cast<T*>(data + 1);
         
                 if (m_Data)
@@ -163,6 +160,7 @@ namespace Heart
                 
                 m_Data = newData;
             }
+            SetCount(elemCount);
 
             if (construct && ShouldConstruct())
                 for (u32 i = oldCount; i < elemCount; i++)

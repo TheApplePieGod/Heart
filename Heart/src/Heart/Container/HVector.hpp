@@ -102,7 +102,7 @@ namespace Heart
             u32 oldCount = GetCount();
             Resize(oldCount + other.GetCount(), false);
             if (shallow)
-                memcpy(End(), other.Begin(), other.GetCount() * sizeof(T));
+                memcpy(Data() + oldCount, other.Begin(), other.GetCount() * sizeof(T));
             else
             {
                 for (u32 i = 0; i < other.GetCount(); i++)
@@ -118,7 +118,7 @@ namespace Heart
         inline void Resize(u32 elemCount, bool construct = true) { m_Container.Resize(elemCount, construct); }
         inline HVector Clone() const { return HVector(m_Container.Clone()); }
         inline HVector& CloneInPlace() { m_Container = Container(Data(), GetCount()); return *this; }
-        inline void ShallowCopy(const HVector& from) { m_Container.Copy(from.m_Container); }
+        inline void ShallowCopy(const HVector& from) { m_Container.Copy(from.m_Container, true); }
         inline u32 GetCount() const { return m_Container.GetCount(); }
         inline u32 GetAllocatedCount() const { return m_Container.GetAllocatedCount(); }
         inline u32 GetRefCount() const { return m_Container.GetRefCount(); }
