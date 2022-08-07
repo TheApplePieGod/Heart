@@ -26,6 +26,7 @@ namespace Heart
 
         void* GetColorAttachmentImGuiHandle(u32 attachmentIndex) override;
         void* GetColorAttachmentPixelData(u32 attachmentIndex) override;
+        void UpdateColorAttachmentCPUVisibliity(u32 attachmentIndex, bool visible) override;
 
         double GetPerformanceTimestamp() override;
         double GetSubpassPerformanceTimestamp(u32 subpassIndex) override;
@@ -65,6 +66,7 @@ namespace Heart
             void* ImageImGuiId;
             void* ResolveImageImGuiId;
             bool HasResolve;
+            bool AllowCPURead;
             bool CPUVisible;
             bool IsDepthAttachment;
             VulkanTexture* ExternalTexture;
@@ -75,13 +77,16 @@ namespace Heart
 
     private:
         void AllocateCommandBuffers();
-        void FreeCommandBuffers();
+        void FreeCommandBuffers(
+            const std::array<VkCommandBuffer, Renderer::FrameBufferCount>& commandBufferList,
+            const std::array<VkCommandBuffer, Renderer::FrameBufferCount>& transferBufferList
+        );
 
         void CreateAttachmentImages(VulkanFramebufferAttachment& attachmentData, u32 inFlightFrameIndex);
         void CleanupAttachmentImages(VulkanFramebufferAttachment& attachmentData);
 
         void CreateFramebuffer();
-        void CleanupFramebuffer();
+        void CleanupFramebuffer(const std::array<VkFramebuffer, Renderer::FrameBufferCount>& framebufferList);
 
         void Recreate();
 

@@ -87,8 +87,9 @@ namespace Heart
 
         virtual void* GetColorAttachmentImGuiHandle(u32 attachmentIndex) = 0;
 
-        // attachment must be created with 'AllowCPURead' enabled
+        // attachment must have been initially created with 'AllowCPURead' enabled
         virtual void* GetColorAttachmentPixelData(u32 attachmentIndex) = 0;
+        virtual void UpdateColorAttachmentCPUVisibliity(u32 attachmentIndex, bool visible) = 0; 
 
         // framebuffer must be created with 'AllowPerformanceQuerying' enabled
         virtual double GetPerformanceTimestamp() = 0;

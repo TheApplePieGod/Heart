@@ -25,6 +25,7 @@ namespace Heart
 
         void* GetColorAttachmentImGuiHandle(u32 attachmentIndex) override;
         void* GetColorAttachmentPixelData(u32 attachmentIndex) override;
+        void UpdateColorAttachmentCPUVisibliity(u32 attachmentIndex, bool visible) override;
 
         double GetPerformanceTimestamp() override;
         double GetSubpassPerformanceTimestamp(u32 subpassIndex) override;
@@ -47,6 +48,7 @@ namespace Heart
             u32 Image;
             u32 BlitImage;
             bool HasResolve;
+            bool AllowCPURead;
             bool CPUVisible;
             bool IsDepthAttachment;
             std::array<Ref<OpenGLBuffer>, 2> PixelBuffers;

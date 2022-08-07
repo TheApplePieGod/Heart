@@ -40,7 +40,7 @@ namespace Heart
         auto dataSize = m_DataSize;
         void* pointer = this;
 
-        VulkanContext::PushDeleteQueue([=]()
+        Renderer::PushJobQueue([=]()
         {
             VulkanDevice& device = VulkanContext::GetDevice();
 

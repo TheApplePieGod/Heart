@@ -37,7 +37,7 @@ namespace Heart
         Asset(const HStringView8& path, const HStringView8& absolutePath);
 
         /*! @brief Load the asset's data. */
-        virtual void Load() = 0;
+        virtual void Load(bool async = false) = 0;
 
         /*! @brief Unload the asset's data. */
         virtual void Unload() = 0;

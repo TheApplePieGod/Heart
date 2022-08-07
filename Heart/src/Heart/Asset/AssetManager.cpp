@@ -3,6 +3,7 @@
 
 #include "Heart/Core/App.h"
 #include "Heart/Core/Timing.h"
+#include <future>
 
 namespace Heart
 {
@@ -22,13 +23,15 @@ namespace Heart
         else
             HE_ENGINE_LOG_INFO("Assets directory not specified, skipping registration");
 
-        //s_AssetThread = std::thread(AssetManager::ProcessQueue);
-        //s_AssetThread.detach();
+
+        s_Initialized = true;
+        s_AssetThread = std::thread(&AssetManager::ProcessQueue);
     }
 
     void AssetManager::Shutdown()
     {
-        //s_AssetThread.join();
+        s_Initialized = false;
+        s_AssetThread.join();
 
         // cleanup assets
         for (auto& pair : s_Registry)
@@ -41,55 +44,50 @@ namespace Heart
 
     void AssetManager::OnUpdate()
     {
-        // check to see if assets should be unloaded
-        // u64 loadLimit = 1000;
-        // for (auto& pair : s_Registry)
-        // {
-        //     if (pair.second.Persistent) continue;
+        // Check to see if assets should be unloaded
+        u64 loadLimit = 1000;
+        for (auto& pair : s_UUIDs)
+        {
+            auto& uuidEntry = pair.second;
+            auto& entry = uuidEntry.IsResource ? s_Resources[uuidEntry.Path] : s_Registry[uuidEntry.Path];
 
-        //     if (App::Get().GetFrameCount() > pair.second.LoadedFrame + loadLimit)
-        //     {
-        //         UnloadAsset(pair.second);
-        //         HE_ENGINE_LOG_TRACE("Unloading asset @ {0}", pair.second.Asset->GetPath());
-        //     }
-        // }
-        // for (auto& pair : s_Resources)
-        // {
-        //     if (pair.second.Persistent) continue;
-
-        //     if (App::Get().GetFrameCount() > pair.second.LoadedFrame + loadLimit)
-        //     {
-        //         UnloadAsset(pair.second);
-        //         HE_ENGINE_LOG_TRACE("Unloading resource @ {0}", pair.second.Asset->GetPath());
-        //     }
-        // }
+            if (App::Get().GetFrameCount() > entry.LoadedFrame + loadLimit)
+            {
+                HE_ENGINE_LOG_TRACE(
+                    "Unloading {0} @ {1}",
+                    uuidEntry.IsResource ? "resource" : "asset", 
+                    entry.Asset->GetPath().Data()
+                );
+                PushOperation({ false, pair.first });
+            }
+        }
     }
 
     void AssetManager::ProcessQueue()
     {
-        while (true)
+        while (s_Initialized)
         {
             while (!s_OperationQueue.empty())
             {
                 s_QueueLock.lock();
                 auto operation = s_OperationQueue.front();
+                s_OperationQueue.pop();
                 s_QueueLock.unlock();
-
+                
                 if (s_UUIDs.find(operation.Asset) != s_UUIDs.end())
                 {
                     auto& uuidEntry = s_UUIDs[operation.Asset];
                     auto& entry = uuidEntry.IsResource ? s_Resources[uuidEntry.Path] : s_Registry[uuidEntry.Path];
 
                     if (operation.Load)
-                        LoadAsset(entry);
+                        LoadAsset(entry, true);
                     else
                         UnloadAsset(entry);
                 }
-                
-                s_OperationQueue.pop();
             }
 
-            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+            if (s_Initialized)
+                std::this_thread::sleep_for(std::chrono::milliseconds(50));
         }
     }
 
@@ -112,13 +110,13 @@ namespace Heart
             LoadAsset(pair.second);
     }
 
-    void AssetManager::LoadAsset(AssetEntry& entry)
+    void AssetManager::LoadAsset(AssetEntry& entry, bool async)
     {
-        entry.Asset->Load(); // TODO: async loading
+        entry.Asset->Load(async);
         entry.LoadedFrame = App::Get().GetFrameCount();
     }
     
-    void AssetManager::UnloadAsset(AssetEntry& entry)
+    void AssetManager::UnloadAsset(AssetEntry& entry, bool async)
     {
         entry.Asset->Unload();
         entry.LoadedFrame = std::numeric_limits<u64>::max() - s_AssetFrameLimit; // prevent extraneous unloading
@@ -331,15 +329,10 @@ namespace Heart
         auto& uuidEntry = s_UUIDs[uuid];
         auto& entry = uuidEntry.IsResource ? s_Resources[uuidEntry.Path] : s_Registry[uuidEntry.Path];
 
-        if (async)
+        if (!entry.Asset->IsLoading())
         {
-            if (!entry.Asset->IsLoading())
+            if (async)
                 PushOperation({ true, uuid });
-        }
-        else
-        {
-            if (entry.Asset->IsLoading())
-                while (entry.Asset->IsLoading()) { std::this_thread::sleep_for(std::chrono::milliseconds(1)); }
             else
                 LoadAsset(entry);
         }

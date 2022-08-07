@@ -17,6 +17,8 @@ namespace Heart
         static void Initialize(RenderApi::Type apiType);
         static void Shutdown();
 
+        static void PushJobQueue(std::function<void()>&& func);
+
         static void OnWindowResize(GraphicsContext& context, u32 width, u32 height);
 
         inline static RenderApi& Api() { return *s_RenderApi; }
@@ -25,6 +27,9 @@ namespace Heart
         inline static auto& GetStatistics() { return s_RenderStatistics; }
         inline static void PushStatistic(const HStringView8& name, s64 value) { s_RenderStatistics[name].Value += value; }
         inline static void ClearStatistic(const HStringView8& name) { s_RenderStatistics[name].Value = 0; }
+        inline static void LockJobQueue() { s_JobQueueMutex.lock(); }
+        inline static void UnlockJobQueue() { s_JobQueueMutex.unlock(); }
+        inline static auto& GetJobQueue() { return s_JobQueue; }
 
         inline static constexpr u32 FrameBufferCount = 2;
 
@@ -33,5 +38,8 @@ namespace Heart
         inline static RenderApi::Type s_RenderApiType;
         inline static bool s_UseReverseDepth = true;
         inline static std::map<HString8, RenderStatistic> s_RenderStatistics;
+
+        inline static std::deque<std::function<void()>> s_JobQueue;
+        inline static std::mutex s_JobQueueMutex;
     };
 }

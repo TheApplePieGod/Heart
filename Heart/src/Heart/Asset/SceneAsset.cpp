@@ -9,7 +9,7 @@
 
 namespace Heart
 {
-    void SceneAsset::Load()
+    void SceneAsset::Load(bool async)
     {
         HE_PROFILE_FUNCTION();
         

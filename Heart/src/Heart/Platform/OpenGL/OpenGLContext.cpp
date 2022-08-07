@@ -1,6 +1,7 @@
 #include "hepch.h"
 #include "OpenGLContext.h"
 
+#include "Heart/Renderer/Renderer.h"
 #include "Heart/Platform/OpenGL/OpenGLFramebuffer.h"
 #include "Heart/Core/Timing.h"
 #include "imgui/imgui.h"
@@ -57,7 +58,7 @@ namespace Heart
 
     OpenGLContext::~OpenGLContext()
     {
-        
+        ProcessJobQueue();
     }
 
     void OpenGLContext::InitializeImGui()
@@ -67,6 +68,7 @@ namespace Heart
 
     void OpenGLContext::ShutdownImGui()
     {
+        ProcessJobQueue();
         ImGui_ImplOpenGL3_Shutdown();
     }
 
@@ -88,6 +90,8 @@ namespace Heart
     void OpenGLContext::BeginFrame()
     {
         HE_PROFILE_FUNCTION();
+
+        ProcessJobQueue();
     }
 
     void OpenGLContext::EndFrame()
@@ -97,5 +101,19 @@ namespace Heart
 
         glfwSwapBuffers((GLFWwindow*)m_WindowHandle);
         s_BoundFramebuffer = nullptr;
+    }
+
+    void OpenGLContext::ProcessJobQueue()
+    {
+        auto& queue = Renderer::GetJobQueue();
+        while (!queue.empty())
+        {
+            Renderer::LockJobQueue();
+            auto job = queue.front();
+            queue.pop_front();
+            Renderer::UnlockJobQueue();
+
+			job(); // Run the job
+		}
     }
 }

@@ -13,7 +13,7 @@
 
 namespace Heart
 {
-    void MeshAsset::Load()
+    void MeshAsset::Load(bool async)
     {
         HE_PROFILE_FUNCTION();
         
@@ -29,7 +29,7 @@ namespace Heart
             if (!data)
                 throw std::exception();
             if (/*m_Extension == ".glb" ||*/ m_Extension == ".gltf") // TODO: glb support
-                ParseGLTF(data);
+                ParseGLTF(data, async);
         }
         catch (std::exception e)
         {
@@ -55,7 +55,7 @@ namespace Heart
         m_Valid = false;
     }
 
-    void MeshAsset::ParseGLTF(unsigned char* data)
+    void MeshAsset::ParseGLTF(unsigned char* data, bool async)
     {
         auto j = nlohmann::json::parse(data);
         
@@ -159,15 +159,6 @@ namespace Heart
 
                     // in case this field is not defined, we default the factor to 1.f to make sure the texture gets utilized
                     parsingMaterial.m_MaterialData.SetBaseColor({ 1.f, 1.f, 1.f, 1.f });
-
-                    // TODO: change this possibly
-                    auto texAsset = AssetManager::RetrieveAsset<TextureAsset>(parsingMaterial.m_AlbedoTextureAsset);
-                    if (texAsset && texAsset->IsValid())
-                    {
-                        if (texAsset->GetTexture()->HasTransparency())
-                            parsingMaterial.m_MaterialData.SetAlphaClipThreshold(0.1f);
-                        parsingMaterial.m_Translucent = texAsset->GetTexture()->HasTranslucency();
-                    }
                 }
                 if (pbrField.contains("baseColorFactor"))
                     parsingMaterial.m_MaterialData.SetBaseColor({ pbrField["baseColorFactor"][0], pbrField["baseColorFactor"][1], pbrField["baseColorFactor"][2], pbrField["baseColorFactor"][3] });

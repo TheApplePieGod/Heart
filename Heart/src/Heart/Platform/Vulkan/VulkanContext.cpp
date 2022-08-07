@@ -64,7 +64,7 @@ namespace Heart
         HE_ENGINE_LOG_TRACE("VULKAN: Destroying context");
         Sync();
 
-        ProcessDeleteQueue();
+        ProcessJobQueue();
 
         m_VulkanSwapChain.Shutdown();
 
@@ -263,8 +263,7 @@ namespace Heart
     {
         Sync();
 
-        ProcessDeleteQueue();
-
+        ProcessJobQueue();
         ImGui_ImplVulkan_Shutdown();
     }
 
@@ -286,7 +285,7 @@ namespace Heart
     {
         HE_PROFILE_FUNCTION();
 
-        ProcessDeleteQueue();
+        ProcessJobQueue();
 
         m_VulkanSwapChain.BeginFrame();
     }
@@ -300,17 +299,19 @@ namespace Heart
         s_BoundFramebuffer = nullptr;
     }
 
-    void VulkanContext::ProcessDeleteQueue()
+    void VulkanContext::ProcessJobQueue()
     {
-        if (!s_DeleteQueue.empty())
+        auto& queue = Renderer::GetJobQueue();
+        while (!queue.empty())
         {
             Sync();
 
-            // Reverse iterate (FIFO)
-		    for (auto it = s_DeleteQueue.rbegin(); it != s_DeleteQueue.rend(); it++)
-			    (*it)(); // Call the function
+            Renderer::LockJobQueue();
+            auto job = queue.front();
+            queue.pop_front();
+            Renderer::UnlockJobQueue();
 
-            s_DeleteQueue.clear();
+			job(); // Run the job
 		}
     }
 

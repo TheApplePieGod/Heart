@@ -22,14 +22,14 @@ namespace Heart
 
         Container(const T* data, u32 dataCount)
         {
-            Resize(dataCount, false);
+            ResizeExplicit(dataCount, GetNextPowerOfTwo(dataCount), false);
             for (u32 i = 0; i < dataCount; i++)
                 HE_PLACEMENT_NEW(m_Data + i, T, data[i]);
         }
 
         Container(std::initializer_list<T> list)
         {
-            Resize(list.size(), false);
+            ResizeExplicit(list.size(), GetNextPowerOfTwo(list.size()), false);
             for (u32 i = 0; i < Count(); i++)
                 HE_PLACEMENT_NEW(m_Data + i, T, list.begin()[i]);
         }
@@ -85,7 +85,11 @@ namespace Heart
         // This WILL shrink the memory
         inline void Resize(u32 elemCount, bool construct = true)
         {
+            u32 oldCount = Count();
             ResizeExplicit(elemCount, GetNextPowerOfTwo(elemCount), construct);
+            // We want to zero out the memory if the default constructors were not run
+            if (!m_ShouldConstruct || (!construct && elemCount > oldCount))
+                memset(m_Data + oldCount, 0, (elemCount - oldCount) * sizeof(T));
         }
 
         inline Container Clone() const { return Container(m_Data, Count()); }
@@ -165,15 +169,13 @@ namespace Heart
             }
             SetCount(elemCount);
 
-            if (construct && elemCount > oldCount)
+            if constexpr (m_ShouldConstruct)
             {
-                if constexpr (m_ShouldConstruct)
+                if (construct && elemCount > oldCount)
                 {
                     for (u32 i = oldCount; i < elemCount; i++)
                         HE_PLACEMENT_NEW(m_Data + i, T);
-                }
-                else
-                    memset(m_Data + oldCount, 0, (elemCount - oldCount) * sizeof(T));
+                }   
             }
         }
 

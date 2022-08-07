@@ -45,6 +45,7 @@ namespace Heart
             attachmentData.ColorFormat = m_DepthFormat;
             attachmentData.ColorFormatInternal = m_DepthFormatInternal;
             attachmentData.HasResolve = m_ImageSamples > 1; // createInfo.SampleCount != MsaaSampleCount::None;
+            attachmentData.AllowCPURead = false;
             attachmentData.CPUVisible = false;
             attachmentData.IsDepthAttachment = true;
             attachmentData.ExternalTexture = nullptr;
@@ -67,11 +68,13 @@ namespace Heart
                 HE_ENGINE_ASSERT(m_Info.Height == attachmentData.ExternalTexture->GetMipHeight(attachment.MipLevel), "Texture dimensions (at the specified mip level) must match the framebuffer (framebuffer width/height cannot be zero)");
             }
 
+            bool allowCPURead = attachment.Texture ? attachmentData.ExternalTexture->CanCPURead() : attachment.AllowCPURead;
             attachmentData.GeneralColorFormat = attachment.Texture ? attachmentData.ExternalTexture->GetGeneralFormat() : attachment.Format;
             attachmentData.ColorFormat = attachment.Texture ? attachmentData.ExternalTexture->GetFormat() : OpenGLCommon::ColorFormatToOpenGL(attachment.Format);
             attachmentData.ColorFormatInternal = attachment.Texture ? attachmentData.ExternalTexture->GetInternalFormat() : OpenGLCommon::ColorFormatToInternalOpenGL(attachment.Format);
             attachmentData.HasResolve = m_ImageSamples > 1;
-            attachmentData.CPUVisible = attachment.Texture ? attachmentData.ExternalTexture->CanCPURead() : attachment.AllowCPURead;
+            attachmentData.AllowCPURead = allowCPURead;
+            attachmentData.CPUVisible = allowCPURead;
             attachmentData.IsDepthAttachment = false;
 
             CreateAttachmentTextures(attachmentData);
@@ -342,9 +345,15 @@ namespace Heart
     void* OpenGLFramebuffer::GetColorAttachmentPixelData(u32 attachmentIndex)
     {
         HE_ENGINE_ASSERT(attachmentIndex < m_AttachmentData.Count(), "Color attachment of pixel read out of range");
-        HE_ENGINE_ASSERT(m_AttachmentData[attachmentIndex].CPUVisible, "Cannot read pixel data of attachment that does not have 'AllowCPURead' enabled");
+        HE_ENGINE_ASSERT(m_Info.ColorAttachments[attachmentIndex].AllowCPURead, "Cannot read pixel data of attachment that was not created with 'AllowCPURead' enabled");
 
         return m_AttachmentData[attachmentIndex].PixelBuffers[(App::Get().GetFrameCount() + 1) % 2]->Map(true);
+    }
+
+    void OpenGLFramebuffer::UpdateColorAttachmentCPUVisibliity(u32 attachmentIndex, bool visible)
+    {
+        HE_ENGINE_ASSERT(m_Info.ColorAttachments[attachmentIndex].AllowCPURead, "Cannot update CPU visibility of color attachment that was not created with 'AllowCPURead' enabled");
+        m_AttachmentData[attachmentIndex].CPUVisible = visible;
     }
 
     double OpenGLFramebuffer::GetPerformanceTimestamp()
@@ -516,7 +525,7 @@ namespace Heart
         glBindFramebuffer(GL_FRAMEBUFFER, m_PBOFramebuffer);
         for (auto& attachment : m_AttachmentData)
         {
-            if (attachment.CPUVisible)
+            if (attachment.AllowCPURead)
             {
                 if (attachment.HasResolve)
                     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + pboAttachmentIndex, GL_TEXTURE_2D,  attachment.BlitImage, 0);
@@ -581,7 +590,7 @@ namespace Heart
     {
         for (auto& attachment : m_AttachmentData)
         {
-            if (attachment.CPUVisible)
+            if (attachment.AllowCPURead)
             {
                 if (attachment.ExternalTexture)
                     attachment.PixelBuffers = attachment.ExternalTexture->GetPixelBuffers();
@@ -605,7 +614,7 @@ namespace Heart
     {
         for (auto& attachment : m_AttachmentData)
         {
-            if (attachment.CPUVisible)
+            if (attachment.AllowCPURead)
             {
                 for (auto& buffer : attachment.PixelBuffers)
                     buffer.reset();

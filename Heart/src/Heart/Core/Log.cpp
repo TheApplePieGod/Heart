@@ -26,12 +26,14 @@ namespace Heart
             formatted.push_back(':');
             spdlog::details::fmt_helper::pad2(localTime.tm_sec, formatted);
 
+            Logger::LockLogList();
             Logger::GetLogList().emplace_back(
                 (LogLevel)msg.level,
                 fmt::to_string(formatted),
                 msg.logger_name,
                 msg.payload
             );
+            Logger::UnlockLogList();
         }
 
         void flush_() override 

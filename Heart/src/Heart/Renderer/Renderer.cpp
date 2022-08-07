@@ -27,6 +27,12 @@ namespace Heart
     {
         
     }
+
+    void Renderer::PushJobQueue(std::function<void()>&& func)
+    {
+        const std::lock_guard lock(s_JobQueueMutex);
+        s_JobQueue.emplace_back(func);
+    }
     
     void Renderer::OnWindowResize(GraphicsContext& context, u32 width, u32 height)
     {

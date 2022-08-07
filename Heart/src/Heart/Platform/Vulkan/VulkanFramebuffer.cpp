@@ -44,6 +44,7 @@ namespace Heart
             attachmentData.GeneralColorFormat = generalDepthFormat;
             attachmentData.ColorFormat = depthFormat;
             attachmentData.HasResolve = false; //m_ImageSamples > VK_SAMPLE_COUNT_1_BIT;
+            attachmentData.AllowCPURead = false;
             attachmentData.CPUVisible = false;
             attachmentData.IsDepthAttachment = true;
             attachmentData.ExternalTexture = nullptr;
@@ -90,10 +91,12 @@ namespace Heart
             VkClearValue clearValue{};
             clearValue.color = { attachment.ClearColor.r, attachment.ClearColor.g, attachment.ClearColor.b, attachment.ClearColor.a };
 
+            bool allowCPURead = attachmentData.ExternalTexture ? attachmentData.ExternalTexture->CanCPURead() : attachment.AllowCPURead;
             attachmentData.GeneralColorFormat = attachment.Texture ? attachmentData.ExternalTexture->GetGeneralFormat() : attachment.Format;
             attachmentData.ColorFormat = colorFormat;
             attachmentData.HasResolve = m_ImageSamples > VK_SAMPLE_COUNT_1_BIT;
-            attachmentData.CPUVisible = attachmentData.ExternalTexture ? attachmentData.ExternalTexture->CanCPURead() : attachment.AllowCPURead;
+            attachmentData.AllowCPURead = allowCPURead;
+            attachmentData.CPUVisible = allowCPURead;
             attachmentData.IsDepthAttachment = false;
 
             // create the associated renderpass
@@ -255,25 +258,37 @@ namespace Heart
 
     VulkanFramebuffer::~VulkanFramebuffer()
     {
-        VulkanDevice& device = VulkanContext::GetDevice();
-        VulkanContext::Sync();
+        // Copy required variables for lambda
+        auto attachmentDataList = m_AttachmentData;
+        auto depthAttachmentDataList = m_DepthAttachmentData;
+        auto queryPools = m_QueryPools;
+        auto commandBuffers = m_CommandBuffers;
+        auto transferBuffers = m_TransferCommandBuffers;
+        auto framebuffers = m_Framebuffers;
+        auto perfQuerying = m_Info.AllowPerformanceQuerying;
+        auto renderPass = m_RenderPass;
 
-        CleanupFramebuffer();
-
-        for (u32 frame = 0; frame < Renderer::FrameBufferCount; frame++)
+        Renderer::PushJobQueue([=]()
         {
-            for (auto& attachmentData : m_AttachmentData[frame])
-                CleanupAttachmentImages(attachmentData);
-            for (auto& attachmentData : m_DepthAttachmentData[frame])
-                CleanupAttachmentImages(attachmentData);
+            VulkanDevice& device = VulkanContext::GetDevice();
 
-            if (m_Info.AllowPerformanceQuerying)
-                vkDestroyQueryPool(device.Device(), m_QueryPools[frame], nullptr);
-        }
+            CleanupFramebuffer(framebuffers);
 
-        vkDestroyRenderPass(device.Device(), m_RenderPass, nullptr);
+            for (u32 frame = 0; frame < Renderer::FrameBufferCount; frame++)
+            {
+                for (auto& attachmentData : attachmentDataList[frame])
+                    CleanupAttachmentImages(attachmentData);
+                for (auto& attachmentData : depthAttachmentDataList[frame])
+                    CleanupAttachmentImages(attachmentData);
 
-        FreeCommandBuffers();
+                if (perfQuerying)
+                    vkDestroyQueryPool(device.Device(), queryPools[frame], nullptr);
+            }
+
+            vkDestroyRenderPass(device.Device(), renderPass, nullptr);
+
+            FreeCommandBuffers(commandBuffers, transferBuffers);
+        });
     }
 
     void VulkanFramebuffer::Bind(ComputePipeline* preRenderComputePipeline)
@@ -678,9 +693,16 @@ namespace Heart
     void* VulkanFramebuffer::GetColorAttachmentPixelData(u32 attachmentIndex)
     {
         HE_ENGINE_ASSERT(attachmentIndex < m_AttachmentData[m_InFlightFrameIndex].Count(), "Color attachment access on framebuffer out of range");
-        HE_ENGINE_ASSERT(m_AttachmentData[m_InFlightFrameIndex][attachmentIndex].CPUVisible, "Cannot read pixel data of color attachment that does not have 'AllowCPURead' enabled");
+        HE_ENGINE_ASSERT(m_Info.ColorAttachments[attachmentIndex].AllowCPURead, "Cannot read pixel data of color attachment that was not created with'AllowCPURead' enabled");
 
         return m_AttachmentData[m_InFlightFrameIndex][attachmentIndex].AttachmentBuffer->GetMappedMemory();
+    }
+
+    void VulkanFramebuffer::UpdateColorAttachmentCPUVisibliity(u32 attachmentIndex, bool visible)
+    {
+        HE_ENGINE_ASSERT(m_Info.ColorAttachments[attachmentIndex].AllowCPURead, "Cannot update CPU visibility of color attachment that was not created with 'AllowCPURead' enabled");
+        for (auto& attachments : m_AttachmentData)
+            attachments[attachmentIndex].CPUVisible = visible;
     }
 
     double VulkanFramebuffer::GetPerformanceTimestamp()
@@ -780,20 +802,23 @@ namespace Heart
         } 
     }
 
-    void VulkanFramebuffer::FreeCommandBuffers()
+    void VulkanFramebuffer::FreeCommandBuffers(
+        const std::array<VkCommandBuffer, Renderer::FrameBufferCount>& commandBufferList,
+        const std::array<VkCommandBuffer, Renderer::FrameBufferCount>& transferBufferList
+    )
     {
         VulkanDevice& device = VulkanContext::GetDevice();
 
-        vkFreeCommandBuffers(device.Device(), VulkanContext::GetGraphicsPool(), static_cast<u32>(m_CommandBuffers.size()), m_CommandBuffers.data());
-        if (GetTransferCommandBuffer())
-            vkFreeCommandBuffers(device.Device(), VulkanContext::GetTransferPool(), static_cast<u32>(m_TransferCommandBuffers.size()), m_TransferCommandBuffers.data());
+        vkFreeCommandBuffers(device.Device(), VulkanContext::GetGraphicsPool(), static_cast<u32>(commandBufferList.size()), commandBufferList.data());
+        if (transferBufferList[0])
+            vkFreeCommandBuffers(device.Device(), VulkanContext::GetTransferPool(), static_cast<u32>(transferBufferList.size()), transferBufferList.data());
     }
 
     void VulkanFramebuffer::CreateAttachmentImages(VulkanFramebufferAttachment& attachmentData, u32 inFlightFrameIndex)
     {
         VulkanDevice& device = VulkanContext::GetDevice();
 
-        bool colorTransferSrc = attachmentData.CPUVisible && !attachmentData.HasResolve;
+        bool colorTransferSrc = attachmentData.AllowCPURead && !attachmentData.HasResolve;
 
         // create the associated images for the framebuffer
         // if we are using an external texture, that texture will be the resolve image in the case of a multisampled framebuffer
@@ -832,7 +857,7 @@ namespace Heart
                 1, 1,
                 VK_SAMPLE_COUNT_1_BIT,
                 VK_IMAGE_TILING_OPTIMAL,
-                (attachmentData.IsDepthAttachment ? VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT : VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | (attachmentData.CPUVisible ? VK_IMAGE_USAGE_TRANSFER_SRC_BIT : 0),
+                (attachmentData.IsDepthAttachment ? VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT : VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | (attachmentData.AllowCPURead ? VK_IMAGE_USAGE_TRANSFER_SRC_BIT : 0),
                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                 attachmentData.ResolveImage,
                 attachmentData.ResolveImageMemory,
@@ -840,7 +865,7 @@ namespace Heart
             );
         }
 
-        if (attachmentData.CPUVisible)
+        if (attachmentData.AllowCPURead)
         {
             if (attachmentData.ExternalTexture)
                 attachmentData.AttachmentBuffer = attachmentData.ExternalTexture->GetCpuBuffer();
@@ -935,12 +960,12 @@ namespace Heart
         }
     }
 
-    void VulkanFramebuffer::CleanupFramebuffer()
+    void VulkanFramebuffer::CleanupFramebuffer(const std::array<VkFramebuffer, Renderer::FrameBufferCount>& framebufferList)
     {
         VulkanDevice& device = VulkanContext::GetDevice();
         
         for (u32 frame = 0; frame < Renderer::FrameBufferCount; frame++)
-            vkDestroyFramebuffer(device.Device(), m_Framebuffers[frame], nullptr);
+            vkDestroyFramebuffer(device.Device(), framebufferList[frame], nullptr);
     }
 
     void VulkanFramebuffer::Recreate()
@@ -949,7 +974,7 @@ namespace Heart
         VulkanContext& mainContext = static_cast<VulkanContext&>(Window::GetMainWindow().GetContext());
         VulkanContext::Sync();
 
-        CleanupFramebuffer();
+        CleanupFramebuffer(m_Framebuffers);
 
         for (u32 frame = 0; frame < Renderer::FrameBufferCount; frame++)
         {
@@ -987,7 +1012,12 @@ namespace Heart
             // free old auxiliary command buffers
             if (m_AuxiliaryCommandBuffers[m_InFlightFrameIndex].Count() > 0)
             {
-                vkFreeCommandBuffers(device.Device(), VulkanContext::GetGraphicsPool(), static_cast<u32>(m_AuxiliaryCommandBuffers[m_InFlightFrameIndex].Count()), m_AuxiliaryCommandBuffers[m_InFlightFrameIndex].Data());
+                vkFreeCommandBuffers(
+                    device.Device(),
+                    VulkanContext::GetGraphicsPool(),
+                    static_cast<u32>(m_AuxiliaryCommandBuffers[m_InFlightFrameIndex].Count()),
+                    m_AuxiliaryCommandBuffers[m_InFlightFrameIndex].Data()
+                );
                 m_AuxiliaryCommandBuffers[m_InFlightFrameIndex].Clear();
             }
         }

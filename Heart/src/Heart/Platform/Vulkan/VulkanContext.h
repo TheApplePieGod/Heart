@@ -38,12 +38,9 @@ namespace Heart
         inline static void EmitEvent(Event& event) { s_EventEmitter.Emit(event); }
         inline static EventEmitter& GetEventEmitter() { return s_EventEmitter; }
 
-        static void ProcessDeleteQueue();
-
         // both bound command & frame buffers should be from the same object
         inline static VulkanFramebuffer* GetBoundFramebuffer() { HE_ENGINE_ASSERT(s_BoundFramebuffer != nullptr, "No framebuffer is bound (forget to call Framebuffer.Bind()?)"); return s_BoundFramebuffer; }
         inline static void SetBoundFramebuffer(VulkanFramebuffer* buffer) { s_BoundFramebuffer = buffer; }
-        inline static void PushDeleteQueue(std::function<void()>&& func) { s_DeleteQueue.emplace_back(func); }
 
         static HVector<const char*> ConfigureValidationLayers();
     
@@ -62,6 +59,7 @@ namespace Heart
         static void InitializeInstance();
         static void InitializeCommandPools();
         static void CreateDefaultSampler();
+        static void ProcessJobQueue();
 
     private:
         inline static u32 s_ContextCount = 0;
@@ -71,7 +69,6 @@ namespace Heart
         inline static VkCommandPool s_GraphicsPool, s_ComputePool, s_TransferPool;
         inline static VulkanFramebuffer* s_BoundFramebuffer = nullptr;
         inline static VkSampler s_DefaultSampler;
-        inline static std::deque<std::function<void()>> s_DeleteQueue;
         inline static EventEmitter s_EventEmitter;
     };
 }

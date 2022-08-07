@@ -100,31 +100,44 @@ namespace Heart
 
     VulkanBuffer::~VulkanBuffer()
     {
-        VulkanDevice& device = VulkanContext::GetDevice();
-        VulkanContext::Sync();
+        // Copy required variables for lambda
+        auto bufferCount = m_BufferCount;
+        auto usesStaging = m_UsesStaging;
+        auto stagingDirection = m_StagingDirection;
+        auto usage = m_Usage;
+        auto stagingBufferMemory = m_StagingBufferMemory;
+        auto bufferMemory = m_BufferMemory;
+        auto stagingBuffers = m_StagingBuffers;
+        auto buffers = m_Buffers;
+        auto dataSize = m_DataSize;
 
-        for (size_t i = 0; i < m_BufferCount; i++)
+        Renderer::PushJobQueue([=]()
         {
-            if (m_UsesStaging && m_StagingDirection == StagingDirection::CPUToGPU)
-            {
-                if (m_Usage == BufferUsageType::Dynamic)
-                    vkUnmapMemory(device.Device(), m_StagingBufferMemory[i]);
-            }
-            else
-                vkUnmapMemory(device.Device(), m_BufferMemory[i]);
-                
-            if (m_UsesStaging && m_Usage == BufferUsageType::Dynamic) // statc should already have the staging buffer destroyed
-            {
-                vkDestroyBuffer(device.Device(), m_StagingBuffers[i], nullptr);
-                vkFreeMemory(device.Device(), m_StagingBufferMemory[i], nullptr);
-            }     
-            
-            vkDestroyBuffer(device.Device(), m_Buffers[i], nullptr);
-            vkFreeMemory(device.Device(), m_BufferMemory[i], nullptr);  
-        }
+            VulkanDevice& device = VulkanContext::GetDevice();
 
-        Renderer::PushStatistic("Buffers", -1);
-        Renderer::PushStatistic("Buffer Memory", -m_DataSize);
+            for (size_t i = 0; i < bufferCount; i++)
+            {
+                if (usesStaging && stagingDirection == StagingDirection::CPUToGPU)
+                {
+                    if (usage == BufferUsageType::Dynamic)
+                        vkUnmapMemory(device.Device(), stagingBufferMemory[i]);
+                }
+                else
+                    vkUnmapMemory(device.Device(), bufferMemory[i]);
+                    
+                if (usesStaging && usage == BufferUsageType::Dynamic) // statc should already have the staging buffer destroyed
+                {
+                    vkDestroyBuffer(device.Device(), stagingBuffers[i], nullptr);
+                    vkFreeMemory(device.Device(), stagingBufferMemory[i], nullptr);
+                }     
+                
+                vkDestroyBuffer(device.Device(), buffers[i], nullptr);
+                vkFreeMemory(device.Device(), bufferMemory[i], nullptr);  
+            }
+            
+            Renderer::PushStatistic("Buffers", -1);
+            Renderer::PushStatistic("Buffer Memory", -dataSize);
+        });
     }
 
     void VulkanBuffer::CreateBuffer(VkDeviceSize size, VkBuffer& outBuffer, VkDeviceMemory& outMemory, VkBuffer& outStagingBuffer, VkDeviceMemory& outStagingMemory)

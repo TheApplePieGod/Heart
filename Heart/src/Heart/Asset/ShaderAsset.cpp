@@ -17,7 +17,7 @@ namespace Heart
             m_ShaderType = Shader::Type::Compute;
     }
 
-    void ShaderAsset::Load()
+    void ShaderAsset::Load(bool async)
     {
         if (m_Loaded || m_Loading) return;
         m_Loading = true;

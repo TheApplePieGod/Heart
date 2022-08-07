@@ -288,14 +288,19 @@ namespace Heart
 
     u64 VulkanDescriptorSet::HashBindings()
     {
-        u64 hash = 0;
+        u64 hash = 78316527u;
 
-        for (auto pair : m_BoundResources)
+        for (auto& pair : m_BoundResources)
         {
-            hash ^= pair.first * 783165634527u;
-            hash ^= (u64)pair.second.Resource + 0x9e3779b9;
-            hash ^= pair.second.Offset * 2503245432798u;
-            hash ^= pair.second.Size * 81254323893u;
+            // Cantor pairing
+            const u32 first = pair.first;
+            const uptr second = (uptr)pair.second.Resource;
+            const u32 third = pair.second.Offset;
+            const u32 fourth = pair.second.Size;
+            hash = (hash + first) * (hash + first + 1) / 2 + first;
+            hash = (hash + second) * (hash + second + 1) / 2 + second;
+            hash = (hash + third) * (hash + third + 1) / 2 + third;
+            hash = (hash + fourth) * (hash + fourth + 1) / 2 + fourth;
         }
 
         return hash;

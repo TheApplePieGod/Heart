@@ -26,6 +26,8 @@ namespace HeartEditor
     {
         s_EditorScene = Heart::CreateRef<Heart::Scene>();
         s_ActiveScene = s_EditorScene;
+
+        GetState().RenderSettings.CopyEntityIdsTextureToCPU = true;
     }
 
     void Editor::Shutdown()

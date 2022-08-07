@@ -458,6 +458,9 @@ namespace Heart
         for (auto& list : m_EntityListPool)
             list.Clear();
 
+        // Update entity id cpu copy status
+        m_MainFramebuffer->UpdateColorAttachmentCPUVisibliity(0, m_SceneRenderSettings.CopyEntityIdsTextureToCPU);
+
         // Set the global data for this frame
         FrameData frameData = {
             camera.GetProjectionMatrix(), camera.GetViewMatrix(), glm::vec4(cameraPosition, 1.f),
@@ -554,6 +557,7 @@ namespace Heart
         HE_PROFILE_FUNCTION();
 
         m_RenderedInstanceCount = 0;
+        bool async = m_SceneRenderSettings.AsyncAssetLoading;
 
         // Loop over each mesh component / submesh, hash the mesh & material, and place the entity in a batch
         // associated with the mesh & material. At this stage, Batch.First is unused and Batch.Count indicates
@@ -565,7 +569,7 @@ namespace Heart
             auto& [transform, mesh] = group.get<TransformComponent, MeshComponent>(entity);
 
             // Skip invalid meshes
-            auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>(mesh.Mesh);
+            auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>(mesh.Mesh, async);
             if (!meshAsset || !meshAsset->IsValid()) continue;
 
             for (u32 i = 0; i < meshAsset->GetSubmeshCount(); i++)
@@ -658,19 +662,19 @@ namespace Heart
                 {
                     auto& materialData = pair.second.Material->GetMaterialData();
 
-                    auto albedoAsset = AssetManager::RetrieveAsset<TextureAsset>(pair.second.Material->GetAlbedoTexture());
+                    auto albedoAsset = AssetManager::RetrieveAsset<TextureAsset>(pair.second.Material->GetAlbedoTexture(), async);
                     materialData.SetHasAlbedo(albedoAsset && albedoAsset->IsValid());
 
-                    auto metallicRoughnessAsset = AssetManager::RetrieveAsset<TextureAsset>(pair.second.Material->GetMetallicRoughnessTexture());
+                    auto metallicRoughnessAsset = AssetManager::RetrieveAsset<TextureAsset>(pair.second.Material->GetMetallicRoughnessTexture(), async);
                     materialData.SetHasMetallicRoughness(metallicRoughnessAsset && metallicRoughnessAsset->IsValid());
 
-                    auto normalAsset = AssetManager::RetrieveAsset<TextureAsset>(pair.second.Material->GetNormalTexture());
+                    auto normalAsset = AssetManager::RetrieveAsset<TextureAsset>(pair.second.Material->GetNormalTexture(), async);
                     materialData.SetHasNormal(normalAsset && normalAsset->IsValid());
 
-                    auto emissiveAsset = AssetManager::RetrieveAsset<TextureAsset>(pair.second.Material->GetEmissiveTexture());
+                    auto emissiveAsset = AssetManager::RetrieveAsset<TextureAsset>(pair.second.Material->GetEmissiveTexture(), async);
                     materialData.SetHasEmissive(emissiveAsset && emissiveAsset->IsValid());
 
-                    auto occlusionAsset = AssetManager::RetrieveAsset<TextureAsset>(pair.second.Material->GetOcclusionTexture());
+                    auto occlusionAsset = AssetManager::RetrieveAsset<TextureAsset>(pair.second.Material->GetOcclusionTexture(), async);
                     materialData.SetHasOcclusion(occlusionAsset && occlusionAsset->IsValid());
 
                     m_MaterialDataBuffer->SetElements(&materialData, 1, objectId);
