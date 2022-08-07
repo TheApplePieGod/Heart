@@ -264,7 +264,6 @@ namespace Heart
         Sync();
 
         ProcessJobQueue();
-
         ImGui_ImplVulkan_Shutdown();
     }
 

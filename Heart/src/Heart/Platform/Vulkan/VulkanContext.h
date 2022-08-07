@@ -38,8 +38,6 @@ namespace Heart
         inline static void EmitEvent(Event& event) { s_EventEmitter.Emit(event); }
         inline static EventEmitter& GetEventEmitter() { return s_EventEmitter; }
 
-        static void ProcessJobQueue();
-
         // both bound command & frame buffers should be from the same object
         inline static VulkanFramebuffer* GetBoundFramebuffer() { HE_ENGINE_ASSERT(s_BoundFramebuffer != nullptr, "No framebuffer is bound (forget to call Framebuffer.Bind()?)"); return s_BoundFramebuffer; }
         inline static void SetBoundFramebuffer(VulkanFramebuffer* buffer) { s_BoundFramebuffer = buffer; }
@@ -61,6 +59,7 @@ namespace Heart
         static void InitializeInstance();
         static void InitializeCommandPools();
         static void CreateDefaultSampler();
+        static void ProcessJobQueue();
 
     private:
         inline static u32 s_ContextCount = 0;

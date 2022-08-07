@@ -44,6 +44,7 @@ namespace Heart
             attachmentData.GeneralColorFormat = generalDepthFormat;
             attachmentData.ColorFormat = depthFormat;
             attachmentData.HasResolve = false; //m_ImageSamples > VK_SAMPLE_COUNT_1_BIT;
+            attachmentData.AllowCPURead = false;
             attachmentData.CPUVisible = false;
             attachmentData.IsDepthAttachment = true;
             attachmentData.ExternalTexture = nullptr;
@@ -90,10 +91,12 @@ namespace Heart
             VkClearValue clearValue{};
             clearValue.color = { attachment.ClearColor.r, attachment.ClearColor.g, attachment.ClearColor.b, attachment.ClearColor.a };
 
+            bool allowCPURead = attachmentData.ExternalTexture ? attachmentData.ExternalTexture->CanCPURead() : attachment.AllowCPURead;
             attachmentData.GeneralColorFormat = attachment.Texture ? attachmentData.ExternalTexture->GetGeneralFormat() : attachment.Format;
             attachmentData.ColorFormat = colorFormat;
             attachmentData.HasResolve = m_ImageSamples > VK_SAMPLE_COUNT_1_BIT;
-            attachmentData.CPUVisible = attachmentData.ExternalTexture ? attachmentData.ExternalTexture->CanCPURead() : attachment.AllowCPURead;
+            attachmentData.AllowCPURead = allowCPURead;
+            attachmentData.CPUVisible = allowCPURead;
             attachmentData.IsDepthAttachment = false;
 
             // create the associated renderpass
@@ -690,9 +693,16 @@ namespace Heart
     void* VulkanFramebuffer::GetColorAttachmentPixelData(u32 attachmentIndex)
     {
         HE_ENGINE_ASSERT(attachmentIndex < m_AttachmentData[m_InFlightFrameIndex].Count(), "Color attachment access on framebuffer out of range");
-        HE_ENGINE_ASSERT(m_AttachmentData[m_InFlightFrameIndex][attachmentIndex].CPUVisible, "Cannot read pixel data of color attachment that does not have 'AllowCPURead' enabled");
+        HE_ENGINE_ASSERT(m_Info.ColorAttachments[attachmentIndex].AllowCPURead, "Cannot read pixel data of color attachment that was not created with'AllowCPURead' enabled");
 
         return m_AttachmentData[m_InFlightFrameIndex][attachmentIndex].AttachmentBuffer->GetMappedMemory();
+    }
+
+    void VulkanFramebuffer::UpdateColorAttachmentCPUVisibliity(u32 attachmentIndex, bool visible)
+    {
+        HE_ENGINE_ASSERT(m_Info.ColorAttachments[attachmentIndex].AllowCPURead, "Cannot update CPU visibility of color attachment that was not created with 'AllowCPURead' enabled");
+        for (auto& attachments : m_AttachmentData)
+            attachments[attachmentIndex].CPUVisible = visible;
     }
 
     double VulkanFramebuffer::GetPerformanceTimestamp()
@@ -808,7 +818,7 @@ namespace Heart
     {
         VulkanDevice& device = VulkanContext::GetDevice();
 
-        bool colorTransferSrc = attachmentData.CPUVisible && !attachmentData.HasResolve;
+        bool colorTransferSrc = attachmentData.AllowCPURead && !attachmentData.HasResolve;
 
         // create the associated images for the framebuffer
         // if we are using an external texture, that texture will be the resolve image in the case of a multisampled framebuffer
@@ -847,7 +857,7 @@ namespace Heart
                 1, 1,
                 VK_SAMPLE_COUNT_1_BIT,
                 VK_IMAGE_TILING_OPTIMAL,
-                (attachmentData.IsDepthAttachment ? VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT : VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | (attachmentData.CPUVisible ? VK_IMAGE_USAGE_TRANSFER_SRC_BIT : 0),
+                (attachmentData.IsDepthAttachment ? VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT : VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | (attachmentData.AllowCPURead ? VK_IMAGE_USAGE_TRANSFER_SRC_BIT : 0),
                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                 attachmentData.ResolveImage,
                 attachmentData.ResolveImageMemory,
@@ -855,7 +865,7 @@ namespace Heart
             );
         }
 
-        if (attachmentData.CPUVisible)
+        if (attachmentData.AllowCPURead)
         {
             if (attachmentData.ExternalTexture)
                 attachmentData.AttachmentBuffer = attachmentData.ExternalTexture->GetCpuBuffer();

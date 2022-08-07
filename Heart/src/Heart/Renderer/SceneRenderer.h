@@ -11,13 +11,13 @@ namespace Heart
     struct SceneRenderSettings
     {
         bool DrawGrid = true;
-        
         bool BloomEnable = true;
         float BloomBlurStrength = 0.2f;
         float BloomBlurScale = 1.f;
         float BloomThreshold = 1.f;
-
         bool CullEnable = true;
+        bool AsyncAssetLoading = true;
+        bool CopyEntityIdsTextureToCPU = false;
     };
 
     class Scene;

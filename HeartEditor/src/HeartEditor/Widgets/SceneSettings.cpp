@@ -67,6 +67,14 @@ namespace Widgets
         ImGui::SameLine();
         ImGui::Checkbox("##CullEnable", &Editor::GetState().RenderSettings.CullEnable);
 
+        ImGui::Text("Async Asset Loading");
+        ImGui::SameLine();
+        ImGui::Checkbox("##AsyncAsset", &Editor::GetState().RenderSettings.AsyncAssetLoading);
+
+        ImGui::Text("Update Entity Ids Texture");
+        ImGui::SameLine();
+        ImGui::Checkbox("##EntityIds", &Editor::GetState().RenderSettings.CopyEntityIdsTextureToCPU);
+
         ImGui::End();
         ImGui::PopStyleVar();
     }
