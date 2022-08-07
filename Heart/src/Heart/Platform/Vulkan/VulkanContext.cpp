@@ -303,9 +303,10 @@ namespace Heart
     void VulkanContext::ProcessJobQueue()
     {
         auto& queue = Renderer::GetJobQueue();
-        if (!queue.empty()) Sync();
         while (!queue.empty())
         {
+            Sync();
+
             Renderer::LockJobQueue();
             auto job = queue.front();
             queue.pop_front();
