@@ -89,7 +89,7 @@ namespace Heart
 
             // Destruct
             if constexpr (m_ShouldDestruct)
-                m_Container[m_Container.DecrementCount()].~T();
+                m_Container.Data()[m_Container.DecrementCount()].~T();
         }
 
         void CopyFrom(const T* start, const T* end)
