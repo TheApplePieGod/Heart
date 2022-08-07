@@ -57,41 +57,44 @@ namespace Widgets
             }
             Heart::Logger::UnlockLogList();
 
-            ImGuiListClipper clipper; // For virtualizing the list
-            clipper.Begin(filteredEntries.Count() + 20); // Add extra to account for text wrapping
-            while (clipper.Step())
+            if (filteredEntries.Count() > 0)
             {
-                for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++)
+                ImGuiListClipper clipper; // For virtualizing the list
+                clipper.Begin(filteredEntries.Count() + 20); // Add extra to account for text wrapping
+                while (clipper.Step())
                 {
-                    if (i >= filteredEntries.Count()) break;
-                    auto& entry = filteredEntries[i];
-
-                    ImVec4 rowColor = { 1.f, 1.f, 1.f, 0.5f };
-                    switch (entry.Level)
+                    for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++)
                     {
-                        default: break;
-                        case Heart::LogLevel::Debug: { rowColor = { 0.5f, 1.0f, 1.0f, 1.f }; } break;
-                        case Heart::LogLevel::Info: { rowColor = { 0.15f, 1.0f, 0.3f, 1.f }; } break;
-                        case Heart::LogLevel::Warn: { rowColor = { 1.0f, 1.0f, 0.3f, 1.f }; } break;
-                        case Heart::LogLevel::Error: { rowColor = { 1.0f, 0.3f, 0.2f, 1.f }; } break;
-                        case Heart::LogLevel::Critical: { rowColor = { 1.0f, 0.0f, 0.0f, 1.f }; } break;
+                        if (i >= filteredEntries.Count()) break;
+                        auto& entry = filteredEntries[i];
+
+                        ImVec4 rowColor = { 1.f, 1.f, 1.f, 0.5f };
+                        switch (entry.Level)
+                        {
+                            default: break;
+                            case Heart::LogLevel::Debug: { rowColor = { 0.5f, 1.0f, 1.0f, 1.f }; } break;
+                            case Heart::LogLevel::Info: { rowColor = { 0.15f, 1.0f, 0.3f, 1.f }; } break;
+                            case Heart::LogLevel::Warn: { rowColor = { 1.0f, 1.0f, 0.3f, 1.f }; } break;
+                            case Heart::LogLevel::Error: { rowColor = { 1.0f, 0.3f, 0.2f, 1.f }; } break;
+                            case Heart::LogLevel::Critical: { rowColor = { 1.0f, 0.0f, 0.0f, 1.f }; } break;
+                        }
+
+                        ImGui::TableNextRow();
+
+                        ImGui::TableNextColumn();
+                        ImGui::TextColored(rowColor, entry.Timestamp.c_str());
+
+                        ImGui::TableNextColumn();
+                        ImGui::TextColored(rowColor, HE_ENUM_TO_STRING(Heart::LogListEntry, entry.Level));
+
+                        ImGui::TableNextColumn();
+                        ImGui::TextColored(rowColor, entry.Source.c_str());
+
+                        ImGui::TableNextColumn();
+                        ImGui::PushTextWrapPos(ImGui::GetContentRegionMax().x);
+                        ImGui::TextColored(rowColor, entry.Message.c_str());
+                        ImGui::PopTextWrapPos();
                     }
-
-                    ImGui::TableNextRow();
-
-                    ImGui::TableNextColumn();
-                    ImGui::TextColored(rowColor, entry.Timestamp.c_str());
-
-                    ImGui::TableNextColumn();
-                    ImGui::TextColored(rowColor, HE_ENUM_TO_STRING(Heart::LogListEntry, entry.Level));
-
-                    ImGui::TableNextColumn();
-                    ImGui::TextColored(rowColor, entry.Source.c_str());
-
-                    ImGui::TableNextColumn();
-                    ImGui::PushTextWrapPos(ImGui::GetContentRegionMax().x);
-                    ImGui::TextColored(rowColor, entry.Message.c_str());
-                    ImGui::PopTextWrapPos();
                 }
             }
 
