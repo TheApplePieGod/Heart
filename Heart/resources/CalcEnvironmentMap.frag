@@ -15,9 +15,18 @@ vec2 SampleSphericalMap(vec3 v)
     return uv;
 }
 
+vec3 Tonemap(vec3 c)
+{
+    float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
+    vec3 tc = c / (c + 1.f);
+    return mix(c / (l + 1.f), tc, tc);
+}
+
 void main() {
     vec2 uv = SampleSphericalMap(normalize(localPos)); // make sure to normalize localPos
     vec3 color = texture(equirectangularMap, uv).rgb;
-    
+
+    // Tonemap to prevent color blowout
+    color = Tonemap(color);
     outColor = vec4(color, 1.0);
 }
