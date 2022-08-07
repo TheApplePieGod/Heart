@@ -7,7 +7,7 @@
 
 namespace Heart
 {
-    void MaterialAsset::Load()
+    void MaterialAsset::Load(bool async)
     {
         if (m_Loaded || m_Loading) return;
         m_Loading = true;

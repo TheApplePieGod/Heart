@@ -1,12 +1,13 @@
 #include "hepch.h"
 #include "TextureAsset.h"
 
+#include "Heart/Renderer/Renderer.h"
 #include "Heart/Renderer/Texture.h"
 #include "stb_image/stb_image.h"
 
 namespace Heart
 {
-    void TextureAsset::Load()
+    void TextureAsset::Load(bool async)
     {
         HE_PROFILE_FUNCTION();
         
@@ -42,17 +43,24 @@ namespace Heart
             BufferUsageType::Static,
             1, 0
         };
-        m_Texture = Texture::Create(createInfo, pixels);
 
-        if (floatComponents)
-            delete[] (float*)pixels;
+        auto finalizeFn = [this, createInfo, pixels, floatComponents]()
+        {
+            m_Texture = Texture::Create(createInfo, pixels);
+            if (floatComponents)
+                delete[] (float*)pixels;
+            else
+                delete[] (unsigned char*)pixels;
+
+            m_Loaded = true;
+            m_Loading = false;
+            m_Valid = true;
+        };
+
+        if (async)
+            Renderer::PushJobQueue(finalizeFn);
         else
-            delete[] (unsigned char*)pixels;
-
-        //m_Data = pixels;
-        m_Loaded = true;
-        m_Loading = false;
-        m_Valid = true;
+            finalizeFn();
     }
 
     void TextureAsset::Unload()

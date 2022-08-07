@@ -64,7 +64,7 @@ namespace Heart
         HE_ENGINE_LOG_TRACE("VULKAN: Destroying context");
         Sync();
 
-        ProcessDeleteQueue();
+        ProcessJobQueue();
 
         m_VulkanSwapChain.Shutdown();
 
@@ -263,7 +263,7 @@ namespace Heart
     {
         Sync();
 
-        ProcessDeleteQueue();
+        ProcessJobQueue();
 
         ImGui_ImplVulkan_Shutdown();
     }
@@ -286,7 +286,7 @@ namespace Heart
     {
         HE_PROFILE_FUNCTION();
 
-        ProcessDeleteQueue();
+        ProcessJobQueue();
 
         m_VulkanSwapChain.BeginFrame();
     }
@@ -300,18 +300,21 @@ namespace Heart
         s_BoundFramebuffer = nullptr;
     }
 
-    void VulkanContext::ProcessDeleteQueue()
+    void VulkanContext::ProcessJobQueue()
     {
-        if (!s_DeleteQueue.empty())
+        Renderer::LockJobQueue();
+        auto& queue = Renderer::GetJobQueue();
+        if (!queue.empty())
         {
             Sync();
 
             // Reverse iterate (FIFO)
-		    for (auto it = s_DeleteQueue.rbegin(); it != s_DeleteQueue.rend(); it++)
+		    for (auto it = queue.rbegin(); it != queue.rend(); it++)
 			    (*it)(); // Call the function
 
-            s_DeleteQueue.clear();
+            queue.clear();
 		}
+        Renderer::UnlockJobQueue();
     }
 
     HVector<const char*> VulkanContext::ConfigureValidationLayers()

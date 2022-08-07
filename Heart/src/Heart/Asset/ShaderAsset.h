@@ -16,7 +16,7 @@ namespace Heart
          */
         ShaderAsset(const HStringView8& path, const HStringView8& absolutePath);
 
-        void Load() override;
+        void Load(bool async = false) override;
         void Unload() override;
 
         /*! @brief Get a pointer to the shader stored in this asset. */

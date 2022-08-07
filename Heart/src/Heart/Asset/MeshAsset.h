@@ -22,7 +22,7 @@ namespace Heart
             : Asset(path, absolutePath)
         { m_Type = Type::Mesh; }
 
-        void Load() override;
+        void Load(bool async = false) override;
         void Unload() override;
 
         /**
@@ -111,8 +111,14 @@ namespace Heart
         };
 
     private:
-        void ParseGLTF(unsigned char* data);
-        void ParseGLTFNode(const nlohmann::json& root, u32 nodeIndex, const HVector<MeshParseData>& meshData, std::unordered_map<u32, SubmeshData>& submeshData, const glm::mat4& parentTransform);
+        void ParseGLTF(unsigned char* data, bool async);
+        void ParseGLTFNode(
+            const nlohmann::json& root,
+            u32 nodeIndex,
+            const HVector<MeshParseData>& meshData,
+            std::unordered_map<u32, SubmeshData>& submeshData,
+            const glm::mat4& parentTransform
+        );
 
     private:
         HVector<Mesh> m_Submeshes;

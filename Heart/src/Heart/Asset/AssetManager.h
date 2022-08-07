@@ -236,8 +236,8 @@ namespace Heart
         };
 
     private:
-        static void LoadAsset(AssetEntry& entry);
-        static void UnloadAsset(AssetEntry& entry);
+        static void LoadAsset(AssetEntry& entry, bool async = false);
+        static void UnloadAsset(AssetEntry& entry, bool async = false);
         static void ProcessQueue();
         static void PushOperation(const LoadOperation& operation);
 
@@ -249,6 +249,7 @@ namespace Heart
         inline static std::unordered_map<HString8, AssetEntry> s_Resources;
         inline static HString8 s_AssetsDirectory;
 
+        inline static bool s_Initialized = false;
         inline static std::thread s_AssetThread;
         inline static std::queue<LoadOperation> s_OperationQueue;
         inline static std::mutex s_QueueLock;

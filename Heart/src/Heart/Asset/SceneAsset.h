@@ -18,7 +18,7 @@ namespace Heart
             : Asset(path, absolutePath)
         { m_Type = Type::Scene; }
 
-        void Load() override;
+        void Load(bool async = false) override;
         void Unload() override;
 
         /*! @brief Take a scene and serialize it to the underlying asset file. */

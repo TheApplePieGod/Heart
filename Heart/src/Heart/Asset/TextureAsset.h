@@ -18,7 +18,7 @@ namespace Heart
             : Asset(path, absolutePath)
         { m_Type = Type::Texture; }
 
-        void Load() override;
+        void Load(bool async = false) override;
         void Unload() override;
 
         /*! @brief Get a pointer to the texture stored in this asset. */
