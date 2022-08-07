@@ -25,6 +25,10 @@ namespace Heart.Scene
     {
         internal unsafe ScriptComponentInternal* _internalValue;
 
+        public ScriptComponent()
+            : base(Entity.InvalidEntityHandle, IntPtr.Zero)
+        { }
+
         internal ScriptComponent(uint entityHandle, IntPtr sceneHandle)
             : base(entityHandle, sceneHandle)
         { }

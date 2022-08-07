@@ -190,12 +190,17 @@ namespace Heart
 
     VulkanGraphicsPipeline::~VulkanGraphicsPipeline()
     {
-        VulkanDevice& device = VulkanContext::GetDevice();
-        VulkanContext::Sync();
-
-        vkDestroyPipeline(device.Device(), m_Pipeline, nullptr);
-        vkDestroyPipelineLayout(device.Device(), m_PipelineLayout, nullptr);
-
         m_DescriptorSet.Shutdown();
+
+        auto pipeline = m_Pipeline;
+        auto layout = m_PipelineLayout;
+
+        Renderer::PushJobQueue([=]()
+        {
+            VulkanDevice& device = VulkanContext::GetDevice();
+
+            vkDestroyPipeline(device.Device(), pipeline, nullptr);
+            vkDestroyPipelineLayout(device.Device(), layout, nullptr);
+        });
     }
 }

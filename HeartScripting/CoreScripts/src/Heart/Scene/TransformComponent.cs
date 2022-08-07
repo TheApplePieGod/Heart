@@ -17,6 +17,10 @@ namespace Heart.Scene
     {
         internal unsafe TransformComponentInternal* _internalValue;
 
+        public TransformComponent()
+            : base(Entity.InvalidEntityHandle, IntPtr.Zero)
+        { }
+
         internal TransformComponent(uint entityHandle, IntPtr sceneHandle)
             : base(entityHandle, sceneHandle)
         {}

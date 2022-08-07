@@ -32,6 +32,7 @@ namespace Heart
     HString HString::Convert(Encoding encoding) const
     {
         if (encoding == m_Encoding) return Clone();
+        if (Count() == 0) return HString(encoding);
 
         switch (encoding)
         {
@@ -46,7 +47,7 @@ namespace Heart
             {
                 switch (m_Encoding)
                 {
-                    case Encoding::UTF16: return HString(ww898::utf::convz<char16>(DataUTF8()));
+                    case Encoding::UTF8: return HString(ww898::utf::convz<char16>(DataUTF8()));
                 }
             }
         }

@@ -64,6 +64,8 @@ namespace Heart
          */
         static void OnUpdate();
 
+        inline static bool IsInitialized() { return s_Initialized; }
+
         /*! @brief Get the current project directory. */
         inline static const HString8& GetAssetsDirectory() { return s_AssetsDirectory; }
 

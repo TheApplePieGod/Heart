@@ -25,7 +25,7 @@ namespace Heart
 
     void Renderer::Shutdown()
     {
-        
+
     }
 
     void Renderer::PushJobQueue(std::function<void()>&& func)

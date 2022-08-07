@@ -19,10 +19,14 @@ namespace Heart
         HString() = default;
         ~HString() = default;
 
+        HString(Encoding encoding)
+            : m_Encoding(encoding)
+        {}
+
         HString(const HString& other)
             : m_Encoding(other.m_Encoding), m_Container(other.m_Container, true)
         {}
-        
+
         HString(const char8* str)
             : m_Encoding(Encoding::UTF8)
         { Allocate<char8>(str, StringUtils::StrLen(str)); }

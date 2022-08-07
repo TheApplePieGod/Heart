@@ -19,6 +19,9 @@ namespace Heart.Scene
     {
         internal unsafe CameraComponentInternal* _internalValue;
 
+        public CameraComponent()
+            : base(Entity.InvalidEntityHandle, IntPtr.Zero)
+        { }
         internal CameraComponent(uint entityHandle, IntPtr sceneHandle)
             : base(entityHandle, sceneHandle)
         { }

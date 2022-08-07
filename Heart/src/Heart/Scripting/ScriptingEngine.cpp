@@ -21,6 +21,7 @@ extern void* exportVariable;
 
 namespace Heart
 {
+    hostfxr_initialize_for_dotnet_command_line_fn s_CmdInitFunc;
     hostfxr_initialize_for_runtime_config_fn s_ConfigInitFunc;
     hostfxr_get_runtime_delegate_fn s_GetDelegateFunc;
     hostfxr_close_fn s_CloseFunc;
@@ -44,6 +45,11 @@ namespace Heart
         s_HostFXRHandle = PlatformUtils::LoadDynamicLibrary(hostfxrName);
         if (!s_HostFXRHandle) return false; 
 
+        s_CmdInitFunc = (hostfxr_initialize_for_dotnet_command_line_fn)
+            PlatformUtils::GetDynamicLibraryExport(
+                s_HostFXRHandle,
+                "hostfxr_initialize_for_dotnet_command_line"
+            );
         s_ConfigInitFunc = (hostfxr_initialize_for_runtime_config_fn)
             PlatformUtils::GetDynamicLibraryExport(
                 s_HostFXRHandle,
@@ -60,7 +66,25 @@ namespace Heart
                 "hostfxr_close"
             );
 
-        return (s_ConfigInitFunc && s_GetDelegateFunc && s_CloseFunc);
+        return (s_CmdInitFunc && s_ConfigInitFunc && s_GetDelegateFunc && s_CloseFunc);
+    }
+
+    void InitHostFXRForCmdline(const char_t* assemblyPath, load_assembly_and_get_function_pointer_fn& outLoadAssemblyFunc)
+    {
+        hostfxr_handle ctx = nullptr;
+        int rc = s_CmdInitFunc(1, &assemblyPath, nullptr, &ctx);
+        if (rc != 0 || !ctx)
+        {
+            s_CloseFunc(ctx);
+            return;
+        }
+
+        void* loadAssemblyFunc = nullptr;
+        rc = s_GetDelegateFunc(ctx, hdt_load_assembly_and_get_function_pointer, &loadAssemblyFunc);
+
+        s_CloseFunc(ctx);
+
+        outLoadAssemblyFunc = (load_assembly_and_get_function_pointer_fn)loadAssemblyFunc;
     }
 
     void InitHostFXRWithConfig(const char_t* configPath, load_assembly_and_get_function_pointer_fn& outLoadAssemblyFunc)
@@ -89,7 +113,11 @@ namespace Heart
         HE_ENGINE_ASSERT(result, "Failed to load hostfxr");
 
         load_assembly_and_get_function_pointer_fn loadAssemblyWithPtrFunc;
-        InitHostFXRWithConfig(HOSTFXR_STR("scripting/CoreScripts.runtimeconfig.json"), loadAssemblyWithPtrFunc);
+        #ifdef HE_DIST
+            InitHostFXRForCmdline(HOSTFXR_STR("scripting/CoreScripts.dll"), loadAssemblyWithPtrFunc);
+        #else
+            InitHostFXRWithConfig(HOSTFXR_STR("scripting/CoreScripts.runtimeconfig.json"), loadAssemblyWithPtrFunc);
+        #endif
         HE_ENGINE_ASSERT(loadAssemblyWithPtrFunc, "Failed to initialize hostfxr with config");
         HE_ENGINE_LOG_DEBUG(".NET hostfxr initialized");
 

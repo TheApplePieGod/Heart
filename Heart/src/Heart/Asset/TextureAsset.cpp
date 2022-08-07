@@ -1,6 +1,7 @@
 #include "hepch.h"
 #include "TextureAsset.h"
 
+#include "Heart/Asset/AssetManager.h"
 #include "Heart/Renderer/Renderer.h"
 #include "Heart/Renderer/Texture.h"
 #include "stb_image/stb_image.h"
@@ -18,10 +19,10 @@ namespace Heart
         if (m_Extension == ".hdr") // environment map: use float components and flip on load
         {
             floatComponents = true;
-            stbi_set_flip_vertically_on_load(true);
+            stbi_set_flip_vertically_on_load_thread(true);
         }
         else
-            stbi_set_flip_vertically_on_load(false);
+            stbi_set_flip_vertically_on_load_thread(false);
 
         void* pixels = nullptr;
         int width, height, channels;
@@ -46,6 +47,7 @@ namespace Heart
 
         auto finalizeFn = [this, createInfo, pixels, floatComponents]()
         {
+            if (!AssetManager::IsInitialized()) return;
             m_Texture = Texture::Create(createInfo, pixels);
             if (floatComponents)
                 delete[] (float*)pixels;

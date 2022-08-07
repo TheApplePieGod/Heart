@@ -26,6 +26,10 @@ namespace Heart.Scene
     {
         internal unsafe LightComponentInternal* _internalValue;
 
+        public LightComponent()
+            : base(Entity.InvalidEntityHandle, IntPtr.Zero)
+        { }
+
         internal LightComponent(uint entityHandle, IntPtr sceneHandle)
             : base(entityHandle, sceneHandle)
         { }
