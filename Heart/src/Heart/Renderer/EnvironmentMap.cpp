@@ -375,7 +375,7 @@ namespace Heart
 
                 m_PrefilterFramebuffers[i]->BindPipeline(std::to_string(j));  
 
-                cubemapCam.UpdateViewMatrix(glm::vec3(0.f), rotations[i]);
+                cubemapCam.UpdateViewMatrix(glm::vec3(0.f), rotations[j]);
 
                 CubemapData mapData = { cubemapCam.GetProjectionMatrix(), cubemapCam.GetViewMatrix(), glm::vec4(roughness, m_EnvironmentMap->GetWidth(), 0.f, 0.f) };
                 m_CubemapDataBuffer->SetElements(&mapData, 1, cubeDataIndex);
