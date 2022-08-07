@@ -98,10 +98,11 @@ namespace Heart
         inline T* Data() const { return m_Data; }
         inline T* Begin() const{ return m_Data; }
         inline T* End() const { return m_Data + Count(); }
-        inline T& Get(u32 index) const{ return m_Data[index]; }
         inline bool IsEmpty() const { return Count() == 0; }
+        inline T& Get(u32 index) const
+        { HE_ENGINE_ASSERT(index < Count(), "Container access out of bounds"); return m_Data[index]; }
 
-        inline T& operator[](u32 index) const { return m_Data[index]; }
+        inline T& operator[](u32 index) const { return Get(index); }
         inline void operator=(const Container<T>& other) { Copy(other); }
 
         inline static constexpr u32 MinimumAllocCount = 16;
