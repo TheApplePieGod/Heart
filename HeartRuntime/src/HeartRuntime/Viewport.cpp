@@ -35,7 +35,7 @@ namespace HeartRuntime
         glm::vec3 cameraPosition;
         float aspectRatio = viewportSize.x / viewportSize.y;
         auto primaryCamEntity = sceneContext->GetPrimaryCameraEntity();
-        if (!primaryCamEntity.IsValid())
+        if (primaryCamEntity.IsValid())
         {
             auto& camComp = primaryCamEntity.GetComponent<Heart::CameraComponent>();
             m_Camera = Heart::Camera(
