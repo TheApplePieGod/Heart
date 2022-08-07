@@ -255,25 +255,37 @@ namespace Heart
 
     VulkanFramebuffer::~VulkanFramebuffer()
     {
-        VulkanDevice& device = VulkanContext::GetDevice();
-        VulkanContext::Sync();
+        // Copy required variables for lambda
+        auto attachmentDataList = m_AttachmentData;
+        auto depthAttachmentDataList = m_DepthAttachmentData;
+        auto queryPools = m_QueryPools;
+        auto commandBuffers = m_CommandBuffers;
+        auto transferBuffers = m_TransferCommandBuffers;
+        auto framebuffers = m_Framebuffers;
+        auto perfQuerying = m_Info.AllowPerformanceQuerying;
+        auto renderPass = m_RenderPass;
 
-        CleanupFramebuffer();
-
-        for (u32 frame = 0; frame < Renderer::FrameBufferCount; frame++)
+        Renderer::PushJobQueue([=]()
         {
-            for (auto& attachmentData : m_AttachmentData[frame])
-                CleanupAttachmentImages(attachmentData);
-            for (auto& attachmentData : m_DepthAttachmentData[frame])
-                CleanupAttachmentImages(attachmentData);
+            VulkanDevice& device = VulkanContext::GetDevice();
 
-            if (m_Info.AllowPerformanceQuerying)
-                vkDestroyQueryPool(device.Device(), m_QueryPools[frame], nullptr);
-        }
+            CleanupFramebuffer(framebuffers);
 
-        vkDestroyRenderPass(device.Device(), m_RenderPass, nullptr);
+            for (u32 frame = 0; frame < Renderer::FrameBufferCount; frame++)
+            {
+                for (auto& attachmentData : attachmentDataList[frame])
+                    CleanupAttachmentImages(attachmentData);
+                for (auto& attachmentData : depthAttachmentDataList[frame])
+                    CleanupAttachmentImages(attachmentData);
 
-        FreeCommandBuffers();
+                if (perfQuerying)
+                    vkDestroyQueryPool(device.Device(), queryPools[frame], nullptr);
+            }
+
+            vkDestroyRenderPass(device.Device(), renderPass, nullptr);
+
+            FreeCommandBuffers(commandBuffers, transferBuffers);
+        });
     }
 
     void VulkanFramebuffer::Bind(ComputePipeline* preRenderComputePipeline)
@@ -780,13 +792,16 @@ namespace Heart
         } 
     }
 
-    void VulkanFramebuffer::FreeCommandBuffers()
+    void VulkanFramebuffer::FreeCommandBuffers(
+        const std::array<VkCommandBuffer, Renderer::FrameBufferCount>& commandBufferList,
+        const std::array<VkCommandBuffer, Renderer::FrameBufferCount>& transferBufferList
+    )
     {
         VulkanDevice& device = VulkanContext::GetDevice();
 
-        vkFreeCommandBuffers(device.Device(), VulkanContext::GetGraphicsPool(), static_cast<u32>(m_CommandBuffers.size()), m_CommandBuffers.data());
-        if (GetTransferCommandBuffer())
-            vkFreeCommandBuffers(device.Device(), VulkanContext::GetTransferPool(), static_cast<u32>(m_TransferCommandBuffers.size()), m_TransferCommandBuffers.data());
+        vkFreeCommandBuffers(device.Device(), VulkanContext::GetGraphicsPool(), static_cast<u32>(commandBufferList.size()), commandBufferList.data());
+        if (transferBufferList[0])
+            vkFreeCommandBuffers(device.Device(), VulkanContext::GetTransferPool(), static_cast<u32>(transferBufferList.size()), transferBufferList.data());
     }
 
     void VulkanFramebuffer::CreateAttachmentImages(VulkanFramebufferAttachment& attachmentData, u32 inFlightFrameIndex)
@@ -935,12 +950,12 @@ namespace Heart
         }
     }
 
-    void VulkanFramebuffer::CleanupFramebuffer()
+    void VulkanFramebuffer::CleanupFramebuffer(const std::array<VkFramebuffer, Renderer::FrameBufferCount>& framebufferList)
     {
         VulkanDevice& device = VulkanContext::GetDevice();
         
         for (u32 frame = 0; frame < Renderer::FrameBufferCount; frame++)
-            vkDestroyFramebuffer(device.Device(), m_Framebuffers[frame], nullptr);
+            vkDestroyFramebuffer(device.Device(), framebufferList[frame], nullptr);
     }
 
     void VulkanFramebuffer::Recreate()
@@ -949,7 +964,7 @@ namespace Heart
         VulkanContext& mainContext = static_cast<VulkanContext&>(Window::GetMainWindow().GetContext());
         VulkanContext::Sync();
 
-        CleanupFramebuffer();
+        CleanupFramebuffer(m_Framebuffers);
 
         for (u32 frame = 0; frame < Renderer::FrameBufferCount; frame++)
         {
@@ -987,7 +1002,12 @@ namespace Heart
             // free old auxiliary command buffers
             if (m_AuxiliaryCommandBuffers[m_InFlightFrameIndex].Count() > 0)
             {
-                vkFreeCommandBuffers(device.Device(), VulkanContext::GetGraphicsPool(), static_cast<u32>(m_AuxiliaryCommandBuffers[m_InFlightFrameIndex].Count()), m_AuxiliaryCommandBuffers[m_InFlightFrameIndex].Data());
+                vkFreeCommandBuffers(
+                    device.Device(),
+                    VulkanContext::GetGraphicsPool(),
+                    static_cast<u32>(m_AuxiliaryCommandBuffers[m_InFlightFrameIndex].Count()),
+                    m_AuxiliaryCommandBuffers[m_InFlightFrameIndex].Data()
+                );
                 m_AuxiliaryCommandBuffers[m_InFlightFrameIndex].Clear();
             }
         }

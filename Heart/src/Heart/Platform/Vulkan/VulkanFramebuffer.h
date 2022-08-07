@@ -75,13 +75,16 @@ namespace Heart
 
     private:
         void AllocateCommandBuffers();
-        void FreeCommandBuffers();
+        void FreeCommandBuffers(
+            const std::array<VkCommandBuffer, Renderer::FrameBufferCount>& commandBufferList,
+            const std::array<VkCommandBuffer, Renderer::FrameBufferCount>& transferBufferList
+        );
 
         void CreateAttachmentImages(VulkanFramebufferAttachment& attachmentData, u32 inFlightFrameIndex);
         void CleanupAttachmentImages(VulkanFramebufferAttachment& attachmentData);
 
         void CreateFramebuffer();
-        void CleanupFramebuffer();
+        void CleanupFramebuffer(const std::array<VkFramebuffer, Renderer::FrameBufferCount>& framebufferList);
 
         void Recreate();
 

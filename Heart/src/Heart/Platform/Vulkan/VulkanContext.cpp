@@ -302,19 +302,17 @@ namespace Heart
 
     void VulkanContext::ProcessJobQueue()
     {
-        Renderer::LockJobQueue();
         auto& queue = Renderer::GetJobQueue();
-        if (!queue.empty())
+        if (!queue.empty()) Sync();
+        while (!queue.empty())
         {
-            Sync();
+            Renderer::LockJobQueue();
+            auto job = queue.front();
+            queue.pop_front();
+            Renderer::UnlockJobQueue();
 
-            // Reverse iterate (FIFO)
-		    for (auto it = queue.rbegin(); it != queue.rend(); it++)
-			    (*it)(); // Call the function
-
-            queue.clear();
+			job(); // Run the job
 		}
-        Renderer::UnlockJobQueue();
     }
 
     HVector<const char*> VulkanContext::ConfigureValidationLayers()
