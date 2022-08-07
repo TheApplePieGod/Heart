@@ -132,7 +132,7 @@ namespace Heart
 
         void ResizeExplicit(u32 elemCount, u32 allocCount, bool construct = true)
         {
-            if (elemCount == 0)
+            if (allocCount == 0)
             {
                 Cleanup();
                 return;
