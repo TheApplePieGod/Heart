@@ -43,37 +43,48 @@ namespace Widgets
             Heart::ImGuiUtils::DrawTextFilter(m_PathFilter, "##pathfilter");
 
             auto& registry = Heart::AssetManager::GetUUIDRegistry();
+            Heart::HVector<std::pair<Heart::HString8, Heart::AssetManager::UUIDEntry>> filteredRegistry;
             for (auto& pair : registry)
             {
                 Heart::HString8 uuid = std::to_string(pair.first);
-
-                if (!PassAssetTypeFilter((u32)pair.second.Type) ||
-                    !PassIsResourceFilter(pair.second.IsResource) ||
-                    !m_UUIDFilter.PassFilter(uuid.Data()) ||
-                    !m_PathFilter.PassFilter(pair.second.Path.Data())
+                if (PassAssetTypeFilter((u32)pair.second.Type) &&
+                    PassIsResourceFilter(pair.second.IsResource) &&
+                    m_UUIDFilter.PassFilter(uuid.Data()) &&
+                    m_PathFilter.PassFilter(pair.second.Path.Data())
                 )
-                    continue;
+                    filteredRegistry.Add({ uuid, pair.second });
+            }
 
-                ImGui::TableNextRow();
+            ImGuiListClipper clipper; // For virtualizing the list
+            clipper.Begin(filteredRegistry.Count());
+            while (clipper.Step())
+            {
+                for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++)
+                {
+                    auto& pair = filteredRegistry[i];
+                    auto& uuid = pair.first;
 
-                Heart::HString8 id1 = "##" + uuid;
-                Heart::HString8 id2 = id1 + "p";
+                    ImGui::TableNextRow();
 
-                ImGui::TableNextColumn();
-                ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-                ImGui::InputText(id1.Data(), (char*)uuid.Data(), uuid.Count(), ImGuiInputTextFlags_ReadOnly);
+                    Heart::HString8 id1 = "##" + uuid;
+                    Heart::HString8 id2 = id1 + "p";
 
-                ImGui::TableNextColumn();
-                ImGui::Text(HE_ENUM_TO_STRING(Heart::Asset, pair.second.Type));
+                    ImGui::TableNextColumn();
+                    ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+                    ImGui::InputText(id1.Data(), (char*)uuid.Data(), uuid.Count(), ImGuiInputTextFlags_ReadOnly);
 
-                ImGui::TableNextColumn();
-                ImGui::Text(pair.second.IsResource ? "true" : "false");
+                    ImGui::TableNextColumn();
+                    ImGui::Text(HE_ENUM_TO_STRING(Heart::Asset, pair.second.Type));
 
-                ImGui::TableNextColumn();
-                ImGui::BeginDisabled();
-                ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-                ImGui::InputText(id2.Data(), (char*)pair.second.Path.Data(), pair.second.Path.Count(), ImGuiInputTextFlags_ReadOnly);
-                ImGui::EndDisabled();
+                    ImGui::TableNextColumn();
+                    ImGui::Text(pair.second.IsResource ? "true" : "false");
+
+                    ImGui::TableNextColumn();
+                    ImGui::BeginDisabled();
+                    ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+                    ImGui::InputText(id2.Data(), (char*)pair.second.Path.Data(), pair.second.Path.Count(), ImGuiInputTextFlags_ReadOnly);
+                    ImGui::EndDisabled();
+                }
             }
 
             ImGui::EndTable();
