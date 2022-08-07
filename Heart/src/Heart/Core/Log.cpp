@@ -45,11 +45,13 @@ namespace Heart
     void Logger::Initialize()
     {
         HVector<spdlog::sink_ptr> logSinks = {
-            CreateRef<LogListSink<std::mutex>>(),
-            CreateRef<spdlog::sinks::basic_file_sink_mt>("Heart.log", true)
+            CreateRef<spdlog::sinks::basic_file_sink_mt>("Heart.log", true),
         };
-        // logSinks[0]->set_pattern("[%T] [%l] %n: %v");
-        logSinks[1]->set_pattern("[%T] [%l] %n: %v");
+        #ifndef HE_DIST
+            logSinks.Add(CreateRef<LogListSink<std::mutex>>());
+        #endif
+
+        logSinks[0]->set_pattern("[%T] [%l] %n: %v");
 
         s_EngineLogger = CreateRef<spdlog::logger>("ENGINE", logSinks.Begin(), logSinks.End());
         spdlog::register_logger(s_EngineLogger);

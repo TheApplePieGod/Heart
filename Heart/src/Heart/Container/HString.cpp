@@ -46,7 +46,7 @@ namespace Heart
             {
                 switch (m_Encoding)
                 {
-                    case Encoding::UTF16: return HString(ww898::utf::convz<char16>(DataUTF8()));
+                    case Encoding::UTF8: return HString(ww898::utf::convz<char16>(DataUTF8()));
                 }
             }
         }
