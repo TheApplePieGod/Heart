@@ -21,6 +21,10 @@ namespace Heart.Scene
     {
         internal unsafe MeshComponentInternal* _internalValue;
 
+        public MeshComponent()
+            : base(Entity.InvalidEntityHandle, IntPtr.Zero)
+        { }
+
         internal MeshComponent(uint entityHandle, IntPtr sceneHandle)
             : base(entityHandle, sceneHandle)
         { }

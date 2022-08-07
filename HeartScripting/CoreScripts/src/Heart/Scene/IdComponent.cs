@@ -8,6 +8,10 @@ namespace Heart.Scene
     {
         internal unsafe UUID* _internalValue;
 
+        public IdComponent()
+            : base(Entity.InvalidEntityHandle, IntPtr.Zero)
+        { }
+
         internal IdComponent(uint entityHandle, IntPtr sceneHandle)
             : base(entityHandle, sceneHandle)
         {}

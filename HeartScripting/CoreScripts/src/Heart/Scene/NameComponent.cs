@@ -10,6 +10,10 @@ namespace Heart.Scene
     {
         internal unsafe HStringInternal* _internalValue;
 
+        public NameComponent()
+            : base(Entity.InvalidEntityHandle, IntPtr.Zero)
+        { }
+
         internal NameComponent(uint entityHandle, IntPtr sceneHandle)
             : base(entityHandle, sceneHandle)
         {}

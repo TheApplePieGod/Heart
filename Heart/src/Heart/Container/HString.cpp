@@ -32,6 +32,7 @@ namespace Heart
     HString HString::Convert(Encoding encoding) const
     {
         if (encoding == m_Encoding) return Clone();
+        if (Count() == 0) return HString(encoding);
 
         switch (encoding)
         {
