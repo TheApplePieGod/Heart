@@ -66,9 +66,11 @@ namespace Heart
             }
 
             // Destruct removed elements
-            if (ShouldDestruct())
+            if constexpr (m_ShouldDestruct)
+            {
                 for (u32 i = 0; i < Count(); i++)
-                    m_Data[i].~T();    
+                    m_Data[i].~T();
+            }
 
             SetCount(0);
         }
@@ -140,7 +142,7 @@ namespace Heart
             if (elemCount < oldCount)
             {
                 // Destruct removed elements
-                if (ShouldDestruct())
+                if constexpr (m_ShouldDestruct)
                     for (u32 i = elemCount; i < oldCount; i++)
                         m_Data[i].~T();
             }
@@ -162,9 +164,16 @@ namespace Heart
             }
             SetCount(elemCount);
 
-            if (construct && ShouldConstruct())
-                for (u32 i = oldCount; i < elemCount; i++)
-                    HE_PLACEMENT_NEW(m_Data + i, T);
+            if (construct && elemCount > oldCount)
+            {
+                if constexpr (m_ShouldConstruct)
+                {
+                    for (u32 i = oldCount; i < elemCount; i++)
+                        HE_PLACEMENT_NEW(m_Data + i, T);
+                }
+                else
+                    memset(m_Data + oldCount, 0, (elemCount - oldCount) * sizeof(T));
+            }
         }
 
         void FreeMemory()
@@ -180,7 +189,7 @@ namespace Heart
             {
                 // Destruct
                 u32 count = Count();
-                if (ShouldDestruct())
+                if constexpr (m_ShouldDestruct)
                     for (u32 i = 0; i < count; i++)
                         m_Data[i].~T();
                     
@@ -193,8 +202,8 @@ namespace Heart
         inline u32 IncrementRefCount() { return ++GetInfoPtr()->RefCount; }
         inline u32 DecrementRefCount() { return --GetInfoPtr()->RefCount; }
         inline void SetCount(u32 count) { GetInfoPtr()->ElemCount = count; }
-        inline constexpr bool ShouldDestruct() const { return std::is_destructible<T>::value && !std::is_trivially_destructible<T>::value; }
-        inline constexpr bool ShouldConstruct() const { return std::is_default_constructible<T>::value; }
+        inline static constexpr bool m_ShouldDestruct = std::is_destructible<T>::value && !std::is_trivially_destructible<T>::value;
+        inline static constexpr bool m_ShouldConstruct = std::is_default_constructible<T>::value;
 
     private:
         T* m_Data = nullptr;

@@ -54,7 +54,7 @@ namespace Heart
             if (index >= Count()) throw std::out_of_range("Called Remove() on container with out of range index");
 
             // Destruct
-            if (ShouldDestruct())
+            if constexpr (m_ShouldDestruct)
                 m_Container[index].~T();
 
             if (m_Container.DecrementCount() == 0 || index == Count()) return;
@@ -71,7 +71,7 @@ namespace Heart
             if (index >= Count()) throw std::out_of_range("Called Remove() on container with out of range index");
 
             // Destruct
-            if (ShouldDestruct())
+            if constexpr (m_ShouldDestruct)
                 m_Container[index].~T();
 
             if (m_Container.DecrementCount() == 0) return;
@@ -88,7 +88,7 @@ namespace Heart
             if (Count() == 0) throw std::out_of_range("Called Pop() on container with a count of zero");
 
             // Destruct
-            if (ShouldDestruct())
+            if constexpr (m_ShouldDestruct)
                 m_Container[m_Container.DecrementCount()].~T();
         }
 
@@ -152,7 +152,7 @@ namespace Heart
             return count;
         }
         
-        inline constexpr bool ShouldDestruct() const { return std::is_destructible<T>::value && !std::is_trivially_destructible<T>::value; }
+        inline static constexpr bool m_ShouldDestruct = std::is_destructible<T>::value && !std::is_trivially_destructible<T>::value;
 
     private:
         Container<T> m_Container;
