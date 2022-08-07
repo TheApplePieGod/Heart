@@ -3,14 +3,7 @@
 #include "HeartRuntime/RuntimeApp.h"
 #include "Heart/Core/Log.h"
 
-// #ifdef HE_PLATFORM_WINDOWS
-//     int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmdLine, int nCmdShow)
-//     {
-//         return main(0, nullptr);
-//     }
-// #endif
-
-int main(int argc, char** argv)
+int Main(int argc, char** argv)
 {
     Heart::Logger::Initialize();
 
@@ -20,3 +13,15 @@ int main(int argc, char** argv)
     
     return 0;
 }
+
+#ifdef HE_PLATFORM_WINDOWS
+    int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmdLine, int nCmdShow)
+    {
+        return Main(0, nullptr);
+    }
+#else
+    int main(int argc, char** argv)
+    {
+        return Main(argc, argv);
+    }
+#endif

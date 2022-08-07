@@ -6,8 +6,6 @@
 #include "Heart/Container/HString8.h"
 #include "Heart/Container/HVector.hpp"
 
-extern int main(int argc, char** argv);
-
 namespace Heart
 {
     class Layer;
@@ -28,6 +26,8 @@ namespace Heart
 
         /*! @brief Default destructor. */
         ~App();
+
+        void Run();
 
         /**
          * @brief Append a new layer to the top of the layer stack.
@@ -101,7 +101,6 @@ namespace Heart
         Timestep m_LastTimestep;
 
     private:
-        void Run();
         void InitializeGraphicsApi(RenderApi::Type type, const WindowCreateInfo& windowCreateInfo);
         void ShutdownGraphicsApi();
         void CheckForGraphicsApiSwitch();
@@ -116,6 +115,5 @@ namespace Heart
 
     private:
         inline static App* s_Instance = nullptr;
-        friend int ::main(int argc, char** argv);
     };
 }

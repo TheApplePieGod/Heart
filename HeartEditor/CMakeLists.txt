@@ -27,5 +27,7 @@ target_include_directories(
 
 target_link_libraries(Editor Engine)
 
+set_target_properties(Editor PROPERTIES WIN32_EXECUTABLE true)
+
 # PCH
 target_precompile_headers(Editor REUSE_FROM Engine)

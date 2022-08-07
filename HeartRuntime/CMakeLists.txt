@@ -15,5 +15,7 @@ target_include_directories(
 
 target_link_libraries(Runtime Engine)
 
+set_target_properties(Runtime PROPERTIES WIN32_EXECUTABLE true)
+
 # PCH
 target_precompile_headers(Runtime REUSE_FROM Engine)

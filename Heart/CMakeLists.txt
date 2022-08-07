@@ -42,7 +42,6 @@ include(GNUInstallDirs)
 
 # Build main
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp" "src/*.h" "src/hepch.h")
-#add_executable(Engine "${SOURCES}" "${DEPENDENCY_SOURCES}" "src/Heart/Core/EntryPoint.cpp")
 add_library(Engine STATIC "${SOURCES}" "${DEPENDENCY_SOURCES}")
 add_library(Heart::Engine ALIAS Engine)
 

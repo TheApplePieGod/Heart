@@ -46,7 +46,7 @@ namespace Heart
             CreateRef<LogListSink<std::mutex>>(),
             CreateRef<spdlog::sinks::basic_file_sink_mt>("Heart.log", true)
         };
-        logSinks[0]->set_pattern("[%T] [%l] %n: %v");
+        // logSinks[0]->set_pattern("[%T] [%l] %n: %v");
         logSinks[1]->set_pattern("[%T] [%l] %n: %v");
 
         s_EngineLogger = CreateRef<spdlog::logger>("ENGINE", logSinks.Begin(), logSinks.End());
