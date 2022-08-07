@@ -51,6 +51,8 @@ namespace Heart
             auto& uuidEntry = pair.second;
             auto& entry = uuidEntry.IsResource ? s_Resources[uuidEntry.Path] : s_Registry[uuidEntry.Path];
 
+            if (entry.Persistent) continue;
+
             if (App::Get().GetFrameCount() > entry.LoadedFrame + loadLimit)
             {
                 HE_ENGINE_LOG_TRACE(

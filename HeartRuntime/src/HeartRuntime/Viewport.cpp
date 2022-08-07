@@ -15,6 +15,8 @@ namespace HeartRuntime
     {
         m_SceneRenderer = Heart::CreateScope<Heart::SceneRenderer>();
         m_RenderSettings.DrawGrid = false;
+        m_RenderSettings.AsyncAssetLoading = true;
+        m_RenderSettings.CopyEntityIdsTextureToCPU = false;
     }
 
     void Viewport::OnImGuiRender(Heart::Scene* sceneContext)
@@ -78,7 +80,7 @@ namespace HeartRuntime
             RuntimeApp::Get().GetWindow().GetContext(),
             sceneContext,
             m_Camera,
-            m_DebugCameraPos,
+            cameraPosition,
             m_RenderSettings
         );
 
@@ -86,7 +88,7 @@ namespace HeartRuntime
         ImGui::GetWindowDrawList()->AddRectFilled(
             viewportPos,
             { viewportPos.x + viewportSize.x, viewportPos.y + viewportSize.y },
-            IM_COL32( 255, 0, 0, 255 )
+            IM_COL32( 0, 0, 0, 255 )
         );
 
         ImGui::Image(
