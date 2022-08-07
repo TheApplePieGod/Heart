@@ -2,6 +2,7 @@
 #include "LogList.h"
 
 #include "Heart/Container/HString8.h"
+#include "Heart/Container/HVector.hpp"
 #include "Heart/Util/ImGuiUtils.h"
 
 namespace HeartEditor
@@ -41,42 +42,55 @@ namespace Widgets
             ImGui::Text("Message");
             Heart::ImGuiUtils::DrawTextFilter(m_MessageFilter, "##msgfilter");
 
-            u32 index = 0;
-            for (auto& entry : Heart::Logger::GetLogList())
+            auto& logList = Heart::Logger::GetLogList();
+            Heart::HVector<Heart::LogListEntry> filteredEntries;
+            for (int i = logList.size() - 1; i >= 0; i--)
             {
-                if (!PassLevelFilter((u32)entry.Level) ||
-                    !m_TimestampFilter.PassFilter(entry.Timestamp.c_str()) ||
-                    !m_SourceFilter.PassFilter(entry.Source.c_str()) ||
-                    !m_MessageFilter.PassFilter(entry.Message.c_str())
+                auto& entry = logList[i];
+                if (PassLevelFilter((u32)entry.Level) &&
+                    m_TimestampFilter.PassFilter(entry.Timestamp.c_str()) &&
+                    m_SourceFilter.PassFilter(entry.Source.c_str()) &&
+                    m_MessageFilter.PassFilter(entry.Message.c_str())
                 )
-                    continue;
+                    filteredEntries.Add(entry);
+            }
 
-                ImVec4 rowColor = { 1.f, 1.f, 1.f, 0.5f };
-                switch (entry.Level)
+            ImGuiListClipper clipper; // For virtualizing the list
+            clipper.Begin(filteredEntries.Count() + 20); // Add extra to account for text wrapping
+            while (clipper.Step())
+            {
+                for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++)
                 {
-                    default: break;
-                    case Heart::LogLevel::Debug: { rowColor = { 0.5f, 1.0f, 1.0f, 1.f }; } break;
-                    case Heart::LogLevel::Info: { rowColor = { 0.15f, 1.0f, 0.3f, 1.f }; } break;
-                    case Heart::LogLevel::Warn: { rowColor = { 1.0f, 1.0f, 0.3f, 1.f }; } break;
-                    case Heart::LogLevel::Error: { rowColor = { 1.0f, 0.3f, 0.2f, 1.f }; } break;
-                    case Heart::LogLevel::Critical: { rowColor = { 1.0f, 0.0f, 0.0f, 1.f }; } break;
+                    if (i >= filteredEntries.Count()) break;
+                    auto& entry = filteredEntries[i];
+
+                    ImVec4 rowColor = { 1.f, 1.f, 1.f, 0.5f };
+                    switch (entry.Level)
+                    {
+                        default: break;
+                        case Heart::LogLevel::Debug: { rowColor = { 0.5f, 1.0f, 1.0f, 1.f }; } break;
+                        case Heart::LogLevel::Info: { rowColor = { 0.15f, 1.0f, 0.3f, 1.f }; } break;
+                        case Heart::LogLevel::Warn: { rowColor = { 1.0f, 1.0f, 0.3f, 1.f }; } break;
+                        case Heart::LogLevel::Error: { rowColor = { 1.0f, 0.3f, 0.2f, 1.f }; } break;
+                        case Heart::LogLevel::Critical: { rowColor = { 1.0f, 0.0f, 0.0f, 1.f }; } break;
+                    }
+
+                    ImGui::TableNextRow();
+
+                    ImGui::TableNextColumn();
+                    ImGui::TextColored(rowColor, entry.Timestamp.c_str());
+
+                    ImGui::TableNextColumn();
+                    ImGui::TextColored(rowColor, HE_ENUM_TO_STRING(Heart::LogListEntry, entry.Level));
+
+                    ImGui::TableNextColumn();
+                    ImGui::TextColored(rowColor, entry.Source.c_str());
+
+                    ImGui::TableNextColumn();
+                    ImGui::PushTextWrapPos(ImGui::GetContentRegionMax().x);
+                    ImGui::TextColored(rowColor, entry.Message.c_str());
+                    ImGui::PopTextWrapPos();
                 }
-
-                ImGui::TableNextRow();
-
-                ImGui::TableNextColumn();
-                ImGui::TextColored(rowColor, entry.Timestamp.c_str());
-
-                ImGui::TableNextColumn();
-                ImGui::TextColored(rowColor, HE_ENUM_TO_STRING(Heart::LogListEntry, entry.Level));
-
-                ImGui::TableNextColumn();
-                ImGui::TextColored(rowColor, entry.Source.c_str());
-
-                ImGui::TableNextColumn();
-                ImGui::TextColored(rowColor, entry.Message.c_str());
-
-                index++;
             }
 
             ImGui::EndTable();
