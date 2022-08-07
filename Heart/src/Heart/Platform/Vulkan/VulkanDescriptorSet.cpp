@@ -96,20 +96,25 @@ namespace Heart
 
     void VulkanDescriptorSet::Shutdown()
     {
-        VulkanDevice& device = VulkanContext::GetDevice();
-        VulkanContext::Sync();
-
         UnsubscribeFromEmitter(&VulkanContext::GetEventEmitter());
 
-        for (size_t i = 0; i < m_DescriptorPools.size(); i++)
-        {
-            for (auto& pool : m_DescriptorPools[i])
-            {
-                vkDestroyDescriptorPool(device.Device(), pool, nullptr);
-            }
-        }
+        auto pools = m_DescriptorPools;
+        auto layout = m_DescriptorSetLayout;
 
-        vkDestroyDescriptorSetLayout(device.Device(), m_DescriptorSetLayout, nullptr);
+        Renderer::PushJobQueue([=]()
+        {
+            VulkanDevice& device = VulkanContext::GetDevice();
+
+            for (size_t i = 0; i < pools.size(); i++)
+            {
+                for (auto& pool : pools[i])
+                {
+                    vkDestroyDescriptorPool(device.Device(), pool, nullptr);
+                }
+            }
+
+            vkDestroyDescriptorSetLayout(device.Device(), layout, nullptr);
+        });
     }
 
     void VulkanDescriptorSet::OnEvent(Event& event)
