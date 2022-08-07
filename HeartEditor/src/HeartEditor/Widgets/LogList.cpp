@@ -42,6 +42,7 @@ namespace Widgets
             ImGui::Text("Message");
             Heart::ImGuiUtils::DrawTextFilter(m_MessageFilter, "##msgfilter");
 
+            Heart::Logger::LockLogList();
             auto& logList = Heart::Logger::GetLogList();
             Heart::HVector<Heart::LogListEntry> filteredEntries;
             for (int i = logList.size() - 1; i >= 0; i--)
@@ -54,6 +55,7 @@ namespace Widgets
                 )
                     filteredEntries.Add(entry);
             }
+            Heart::Logger::UnlockLogList();
 
             ImGuiListClipper clipper; // For virtualizing the list
             clipper.Begin(filteredEntries.Count() + 20); // Add extra to account for text wrapping

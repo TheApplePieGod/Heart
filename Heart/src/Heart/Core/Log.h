@@ -45,11 +45,14 @@ namespace Heart
         inline static spdlog::logger& GetEngineLogger() { return *s_EngineLogger; }
         inline static spdlog::logger& GetClientLogger() { return *s_ClientLogger; }
         inline static auto& GetLogList() { return s_LogList; }
+        inline static void LockLogList() { s_LogListLock.lock(); }
+        inline static void UnlockLogList() { s_LogListLock.unlock(); }
 
     private:
         inline static Ref<spdlog::logger> s_EngineLogger;
         inline static Ref<spdlog::logger> s_ClientLogger;
         inline static std::vector<LogListEntry> s_LogList;
+        inline static std::mutex s_LogListLock;
     };
 }
 
