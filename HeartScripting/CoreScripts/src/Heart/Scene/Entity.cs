@@ -76,6 +76,10 @@ namespace Heart.Scene
             => ComponentUtils.AddChild(_entityHandle, _sceneHandle, entity.GetId());
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Entity CreateChild(string name)
+            => ComponentUtils.CreateChild(_entityHandle, _sceneHandle, name);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void RemoveChild(UUID uuid)
             => ComponentUtils.RemoveChild(_entityHandle, _sceneHandle, uuid);
 

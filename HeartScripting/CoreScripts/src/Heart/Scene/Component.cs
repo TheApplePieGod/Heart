@@ -93,11 +93,7 @@ namespace Heart.Scene
         public static unsafe Entity[] GetChildren(uint entityHandle, IntPtr sceneHandle)
         {
             var ids = GetChildrenIds(entityHandle, sceneHandle);
-            return ids.Select(id =>
-            {
-                Scene.Native_Scene_GetEntityFromUUID(sceneHandle, id, out var childHandle);
-                return new Entity(childHandle, sceneHandle);
-            }).ToArray();
+            return ids.Select(id => Scene.GetEntityFromUUID(sceneHandle, id)).ToArray();
         }
 
         public static unsafe uint GetChildrenCount(uint entityHandle, IntPtr sceneHandle)
@@ -110,6 +106,14 @@ namespace Heart.Scene
         public static void AddChild(uint entityHandle, IntPtr sceneHandle, UUID uuid)
         {
             ChildrenComponent.Native_ChildrenComponent_AddChild(entityHandle, sceneHandle, uuid);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Entity CreateChild(uint entityHandle, IntPtr sceneHandle, string name)
+        {
+            var child = Scene.CreateEntity(sceneHandle, name);
+            ChildrenComponent.Native_ChildrenComponent_AddChild(entityHandle, sceneHandle, child.GetId());
+            return child;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
