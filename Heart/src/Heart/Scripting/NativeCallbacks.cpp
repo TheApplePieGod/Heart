@@ -175,9 +175,18 @@ HE_INTEROP_EXPORT void Native_Entity_Destroy(u32 entityHandle, Heart::Scene* sce
         return entity.HasComponent<Heart::##compName>(); \
     } \
 
+#define EXPORT_COMPONENT_CREATE_FN(compName) \
+    HE_INTEROP_EXPORT void Native_##compName##_Create(u32 entityHandle, Heart::Scene* sceneHandle) \
+    { \
+        ASSERT_ENTITY_IS_VALID(); \
+        Heart::Entity entity(sceneHandle, entityHandle); \
+        entity.AddComponent<Heart::##compName>(); \
+    } \
+
 #define EXPORT_COMPONENT_BASIC_FNS(compName) \
     EXPORT_COMPONENT_GET_FN(compName) \
-    EXPORT_COMPONENT_EXISTS_FN(compName)
+    EXPORT_COMPONENT_EXISTS_FN(compName) \
+    EXPORT_COMPONENT_CREATE_FN(compName) \
 
 // Id component (always exists)
 EXPORT_COMPONENT_GET_FN(IdComponent);

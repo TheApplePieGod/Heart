@@ -1,5 +1,6 @@
 ﻿using Heart.Container;
 using Heart.Math;
+using Heart.NativeInterop;
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -143,5 +144,11 @@ namespace Heart.Scene
 
         [DllImport("__Internal")]
         internal static extern unsafe void Native_LightComponent_Get(uint entityHandle, IntPtr sceneHandle, out LightComponentInternal* comp);
+
+        [DllImport("__Internal")]
+        internal static extern void Native_LightComponent_Create(uint entityHandle, IntPtr sceneHandle);
+
+        [DllImport("__Internal")]
+        internal static extern InteropBool Native_LightComponent_Exists(uint entityHandle, IntPtr sceneHandle);
     }
 }

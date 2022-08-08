@@ -114,6 +114,12 @@ namespace Heart.Scene
         internal static extern unsafe void Native_MeshComponent_Get(uint entityHandle, IntPtr sceneHandle, out MeshComponentInternal* comp);
 
         [DllImport("__Internal")]
+        internal static extern InteropBool Native_MeshComponent_Exists(uint entityHandle, IntPtr sceneHandle);
+
+        [DllImport("__Internal")]
+        internal static extern void Native_MeshComponent_Create(uint entityHandle, IntPtr sceneHandle);
+
+        [DllImport("__Internal")]
         internal static extern void Native_MeshComponent_AddMaterial(uint entityHandle, IntPtr sceneHandle, ulong material);
 
         [DllImport("__Internal")]

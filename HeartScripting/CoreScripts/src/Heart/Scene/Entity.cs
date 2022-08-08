@@ -19,7 +19,6 @@ namespace Heart.Scene
             _sceneHandle = sceneHandle;
         }
 
-        // Client callable methods
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Scene GetScene()
             => new Scene(_sceneHandle);
@@ -128,7 +127,6 @@ namespace Heart.Scene
 
         internal static uint InvalidEntityHandle = uint.MaxValue;
 
-        // Internal fields
         internal uint _entityHandle = InvalidEntityHandle;
         internal IntPtr _sceneHandle = IntPtr.Zero;
 

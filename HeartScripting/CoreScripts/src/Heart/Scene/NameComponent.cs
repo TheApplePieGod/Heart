@@ -28,6 +28,6 @@ namespace Heart.Scene
         internal static extern unsafe void Native_NameComponent_Get(uint entityHandle, IntPtr sceneHandle, out HStringInternal* comp);
 
         [DllImport("__Internal")]
-        internal static extern unsafe void Native_NameComponent_SetName(uint entityHandle, IntPtr sceneHandle, HStringInternal value);
+        internal static extern void Native_NameComponent_SetName(uint entityHandle, IntPtr sceneHandle, HStringInternal value);
     }
 }

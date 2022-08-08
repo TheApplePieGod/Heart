@@ -185,28 +185,44 @@ namespace Heart.Scene
                 case var t when t == typeof(ChildrenComponent):
                     { return true; /* Will always be created if null */ }
                 case var t when t == typeof(MeshComponent):
-                    { return NativeMarshal.InteropBoolToBool(Native_MeshComponent_Exists(entityHandle, sceneHandle)); }
+                    { return NativeMarshal.InteropBoolToBool(MeshComponent.Native_MeshComponent_Exists(entityHandle, sceneHandle)); }
                 case var t when t == typeof(LightComponent):
-                    { return NativeMarshal.InteropBoolToBool(Native_LightComponent_Exists(entityHandle, sceneHandle)); }
+                    { return NativeMarshal.InteropBoolToBool(LightComponent.Native_LightComponent_Exists(entityHandle, sceneHandle)); }
                 case var t when t == typeof(ScriptComponent):
-                    { return NativeMarshal.InteropBoolToBool(Native_ScriptComponent_Exists(entityHandle, sceneHandle)); }
+                    { return NativeMarshal.InteropBoolToBool(ScriptComponent.Native_ScriptComponent_Exists(entityHandle, sceneHandle)); }
                 case var t when t == typeof(CameraComponent):
-                    { return NativeMarshal.InteropBoolToBool(Native_CameraComponent_Exists(entityHandle, sceneHandle)); }
+                    { return NativeMarshal.InteropBoolToBool(CameraComponent.Native_CameraComponent_Exists(entityHandle, sceneHandle)); }
             }
 
             throw new NotImplementedException("HasComponent does not support " + typeof(T).FullName);
         }
 
-        [DllImport("__Internal")]
-        internal static extern InteropBool Native_MeshComponent_Exists(uint entityHandle, IntPtr sceneHandle);
+        // This is mid
+        public static T AddComponent<T>(uint entityHandle, IntPtr sceneHandle) where T : Component, new()
+        {
+            switch (typeof(T))
+            {
+                case var t when t == typeof(IdComponent):
+                    { throw new InvalidOperationException("Cannot add an id component"); }
+                case var t when t == typeof(NameComponent):
+                    { throw new InvalidOperationException("Cannot add a name component"); }
+                case var t when t == typeof(TransformComponent):
+                    { throw new InvalidOperationException("Cannot add a transform component"); }
+                case var t when t == typeof(ParentComponent):
+                    { throw new InvalidOperationException("Cannot add a parent component"); }
+                case var t when t == typeof(ChildrenComponent):
+                    { throw new InvalidOperationException("Cannot add a children component"); }
+                case var t when t == typeof(MeshComponent):
+                    { MeshComponent.Native_MeshComponent_Create(entityHandle, sceneHandle); } break;
+                case var t when t == typeof(LightComponent):
+                    { LightComponent.Native_LightComponent_Create(entityHandle, sceneHandle); } break;
+                case var t when t == typeof(ScriptComponent):
+                    { ScriptComponent.Native_ScriptComponent_Create(entityHandle, sceneHandle); } break;
+                case var t when t == typeof(CameraComponent):
+                    { CameraComponent.Native_CameraComponent_Create(entityHandle, sceneHandle); } break;
+            }
 
-        [DllImport("__Internal")]
-        internal static extern InteropBool Native_LightComponent_Exists(uint entityHandle, IntPtr sceneHandle);
-
-        [DllImport("__Internal")]
-        internal static extern InteropBool Native_ScriptComponent_Exists(uint entityHandle, IntPtr sceneHandle);
-
-        [DllImport("__Internal")]
-        internal static extern InteropBool Native_CameraComponent_Exists(uint entityHandle, IntPtr sceneHandle);
+            return new T { _entityHandle = entityHandle, _sceneHandle = sceneHandle };
+        }
     }
 }

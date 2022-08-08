@@ -26,6 +26,6 @@ namespace Heart.Scene
         internal static extern unsafe void Native_ParentComponent_Get(uint entityHandle, IntPtr sceneHandle, out UUID* comp);
 
         [DllImport("__Internal")]
-        internal static extern unsafe void Native_ParentComponent_SetParent(uint entityHandle, IntPtr sceneHandle, UUID parent);
+        internal static extern void Native_ParentComponent_SetParent(uint entityHandle, IntPtr sceneHandle, UUID parent);
     }
 }
