@@ -218,7 +218,7 @@ namespace Widgets
         }
         ImGui::EndChild();
 
-        if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1))
+        if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(1))
             ImGui::OpenPopup("CreatePopup");
     }
 
