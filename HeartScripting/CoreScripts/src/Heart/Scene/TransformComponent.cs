@@ -15,8 +15,6 @@ namespace Heart.Scene
 
     public class TransformComponent : Component
     {
-        internal unsafe TransformComponentInternal* _internalValue;
-
         public TransformComponent()
             : base(Entity.InvalidEntityHandle, IntPtr.Zero)
         { }
@@ -26,65 +24,32 @@ namespace Heart.Scene
         {}
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private unsafe void RefreshPtr()
-        {
-            // We shouldn't need safety checking here because all entities are guaranteed
-            // to have a transform comp
-            Native_TransformComponent_Get(_entityHandle, _sceneHandle, out _internalValue);
-        }
+        public Vec3 GetTranslation()
+            => ComponentUtils.GetTranslation(_entityHandle, _sceneHandle);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void CacheTransform()
-            => Native_TransformComponent_CacheTransform(_entityHandle, _sceneHandle);
+        public void SetTranslation(Vec3 translation)
+            => ComponentUtils.SetTranslation(_entityHandle, _sceneHandle, translation);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe Vec3 GetTranslation()
-        {
-            RefreshPtr();
-            return new Vec3(_internalValue->Translation);
-        }
-
-        public unsafe void SetTranslation(Vec3 translation)
-        {
-            RefreshPtr();
-            _internalValue->Translation = translation.ToVec3Internal();
-            CacheTransform();
-        }
+        public Vec3 GetRotation()
+            => ComponentUtils.GetRotation(_entityHandle, _sceneHandle);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe Vec3 GetRotation()
-        {
-            RefreshPtr();
-            return new Vec3(_internalValue->Rotation);
-        }
-
-        public unsafe void SetRotation(Vec3 rotation)
-        {
-            RefreshPtr();
-            _internalValue->Rotation = rotation.ToVec3Internal();
-            CacheTransform();
-        }
+        public void SetRotation(Vec3 rotation)
+            => ComponentUtils.SetRotation(_entityHandle, _sceneHandle, rotation);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe Vec3 GetScale()
-        {
-            RefreshPtr();
-            return new Vec3(_internalValue->Scale);
-        }
-
-        public unsafe void SetScale(Vec3 scale)
-        {
-            RefreshPtr();
-            _internalValue->Scale = scale.ToVec3Internal();
-            CacheTransform();
-        }
+        public Vec3 GetScale()
+            => ComponentUtils.GetScale(_entityHandle, _sceneHandle);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe Vec3 GetForwardVector()
-        {
-            Native_TransformComponent_GetForwardVector(_entityHandle, _sceneHandle, out var value);
-            return new Vec3(value);
-        }
+        public void SetScale(Vec3 scale)
+            => ComponentUtils.SetScale(_entityHandle, _sceneHandle, scale);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vec3 GetForwardVector()
+            => ComponentUtils.GetForwardVector(_entityHandle, _sceneHandle);
 
         [DllImport("__Internal")]
         internal static extern unsafe void Native_TransformComponent_Get(uint entityHandle, IntPtr sceneHandle, out TransformComponentInternal* comp);

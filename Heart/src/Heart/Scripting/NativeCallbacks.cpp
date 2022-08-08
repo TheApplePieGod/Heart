@@ -209,6 +209,43 @@ HE_INTEROP_EXPORT void Native_TransformComponent_GetForwardVector(u32 entityHand
     *outValue = entity.GetForwardVector();
 }
 
+// Parent component
+HE_INTEROP_EXPORT void Native_ParentComponent_Get(u32 entityHandle, Heart::Scene* sceneHandle, Heart::UUID** outComp)
+{ 
+    ASSERT_ENTITY_IS_VALID();
+    Heart::Entity entity(sceneHandle, entityHandle);
+    *outComp = &entity.GetParent();
+}
+
+HE_INTEROP_EXPORT void Native_ParentComponent_SetParent(u32 entityHandle, Heart::Scene* sceneHandle, Heart::UUID parent)
+{ 
+    ASSERT_ENTITY_IS_VALID();
+    Heart::Entity entity(sceneHandle, entityHandle);
+    entity.SetParent(parent);
+}
+
+// Children component
+HE_INTEROP_EXPORT void Native_ChildrenComponent_Get(u32 entityHandle, Heart::Scene* sceneHandle, Heart::UUID** outComp)
+{ 
+    ASSERT_ENTITY_IS_VALID();
+    Heart::Entity entity(sceneHandle, entityHandle);
+    *outComp = entity.GetChildren().Data();
+}
+
+HE_INTEROP_EXPORT void Native_ChildrenComponent_AddChild(u32 entityHandle, Heart::Scene* sceneHandle, Heart::UUID uuid)
+{ 
+    ASSERT_ENTITY_IS_VALID();
+    Heart::Entity entity(sceneHandle, entityHandle);
+    entity.AddChild(uuid);
+}
+
+HE_INTEROP_EXPORT void Native_ChildrenComponent_RemoveChild(u32 entityHandle, Heart::Scene* sceneHandle, Heart::UUID uuid)
+{ 
+    ASSERT_ENTITY_IS_VALID();
+    Heart::Entity entity(sceneHandle, entityHandle);
+    entity.RemoveChild(uuid);
+}
+
 // Mesh component
 EXPORT_COMPONENT_BASIC_FNS(MeshComponent);
 

@@ -111,7 +111,11 @@ namespace SourceGenerators
                     sb.Append("\": {\n");
                     if (fieldIsCollection)
                         sb.Append("using var harr = new HArray(value.Array);\n");
-                    sb.Append("this.");
+                    if (fieldSymbol.IsStatic)
+                        sb.Append(typeSymbol.Name);
+                    else
+                        sb.Append("this");
+                    sb.Append(".");
                     sb.Append(fieldName);
                     sb.Append(" = (");
                     sb.Append(fieldTypeName);

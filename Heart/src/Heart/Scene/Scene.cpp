@@ -81,16 +81,14 @@ namespace Heart
         m_UUIDMap[newUUID] = newEntityHandle;
 
         m_Registry.emplace<IdComponent>(newEntityHandle, newUUID);
-
-        if (source.HasComponent<NameComponent>())
-            m_Registry.emplace<NameComponent>(newEntityHandle, m_Registry.get<NameComponent>(source.GetHandle()).Name + " Copy");
+        m_Registry.emplace<NameComponent>(newEntityHandle, m_Registry.get<NameComponent>(source.GetHandle()).Name + " Copy");
 
         if (keepParent && source.HasComponent<ParentComponent>())
             AssignRelationship(GetEntityFromUUIDUnchecked(source.GetComponent<ParentComponent>().ParentUUID), newEntity);
 
-        if (keepChildren && source.HasComponent<ChildComponent>())
+        if (keepChildren && source.HasComponent<ChildrenComponent>())
         {
-            auto& childComp = source.GetComponent<ChildComponent>();
+            auto& childComp = source.GetComponent<ChildrenComponent>();
 
             for (auto& child : childComp.Children)
             {
@@ -155,10 +153,10 @@ namespace Heart
             child.AddComponent<ParentComponent>(parentUUID);
 
         // add this child to the new parent
-        if (parent.HasComponent<ChildComponent>())
-            parent.GetComponent<ChildComponent>().Children.Add(childUUID);
+        if (parent.HasComponent<ChildrenComponent>())
+            parent.GetComponent<ChildrenComponent>().Children.Add(childUUID);
         else
-            parent.AddComponent<ChildComponent>(std::initializer_list<UUID>({ childUUID }));
+            parent.AddComponent<ChildrenComponent>(std::initializer_list<UUID>({ childUUID }));
 
         CacheEntityTransform(child);
     }
@@ -187,9 +185,9 @@ namespace Heart
     {
         Entity parent = GetEntityFromUUIDUnchecked(parentUUID);
 
-        if (parent.HasComponent<ChildComponent>())
+        if (parent.HasComponent<ChildrenComponent>())
         {
-            auto& childComp = parent.GetComponent<ChildComponent>();
+            auto& childComp = parent.GetComponent<ChildrenComponent>();
             for (UUID& elem : childComp.Children)
             {
                 if (elem == childUUID)
@@ -205,9 +203,9 @@ namespace Heart
     void Scene::DestroyChildren(Entity parent)
     {
         // recursively destroy children
-        if (parent.HasComponent<ChildComponent>())
+        if (parent.HasComponent<ChildrenComponent>())
         {
-            auto& childComp = parent.GetComponent<ChildComponent>();
+            auto& childComp = parent.GetComponent<ChildrenComponent>();
 
             for (auto& child : childComp.Children)
             {
@@ -255,7 +253,7 @@ namespace Heart
             CopyComponent<IdComponent>(src.GetHandle(), dst);
             CopyComponent<NameComponent>(src.GetHandle(), dst);
             CopyComponent<ParentComponent>(src.GetHandle(), dst);
-            CopyComponent<ChildComponent>(src.GetHandle(), dst);
+            CopyComponent<ChildrenComponent>(src.GetHandle(), dst);
             CopyComponent<TransformComponent>(src.GetHandle(), dst);
             CopyComponent<MeshComponent>(src.GetHandle(), dst);
             CopyComponent<LightComponent>(src.GetHandle(), dst);
@@ -387,9 +385,9 @@ namespace Heart
             scale
         };
 
-        if (propagateToChildren && entity.HasComponent<ChildComponent>())
+        if (propagateToChildren && entity.HasComponent<ChildrenComponent>())
         {
-            auto& childComp = entity.GetComponent<ChildComponent>();
+            auto& childComp = entity.GetComponent<ChildrenComponent>();
 
             for (auto& child : childComp.Children)
                 CacheEntityTransform(GetEntityFromUUIDUnchecked(child));

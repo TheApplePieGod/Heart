@@ -1,5 +1,7 @@
 ﻿using Heart.Container;
+using Heart.NativeInterop;
 using System;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -11,10 +13,9 @@ namespace Heart.Scene
         [FieldOffset(0)] public UUID Mesh;
         [FieldOffset(8)] public UUID* Materials;
 
-        public ContainerInfo* GetInfo()
-        {
-            return (ContainerInfo*)Materials - 1;
-        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ContainerInfo* GetMaterialInfo()
+            => (ContainerInfo*)Materials - 1;
     }
 
     public class MeshComponent : Component
@@ -53,11 +54,14 @@ namespace Heart.Scene
             }
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe uint MaterialCount()
+        public unsafe uint MaterialCount
         {
-            RefreshPtr();
-            return _internalValue->GetInfo()->ElemCount;
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                RefreshPtr();
+                return _internalValue->GetMaterialInfo()->ElemCount;
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -68,10 +72,24 @@ namespace Heart.Scene
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe UUID[] GetMaterials(uint index)
+        {
+            RefreshPtr();
+            return NativeMarshal.PtrToArray(_internalValue->Materials, _internalValue->GetMaterialInfo()->ElemCount);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe void SetMaterial(uint index, UUID material)
         {
             RefreshPtr();
             _internalValue->Materials[index] = material;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe void SetMaterials(UUID[] materials)
+        {
+            RefreshPtr();
+            NativeMarshal.CopyArrayToPtr(materials, _internalValue->Materials, _internalValue->GetMaterialInfo()->ElemCount);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -89,7 +107,7 @@ namespace Heart.Scene
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe void PopMaterial()
         {
-            Native_MeshComponent_RemoveMaterial(_entityHandle, _sceneHandle, MaterialCount() - 1);
+            Native_MeshComponent_RemoveMaterial(_entityHandle, _sceneHandle, MaterialCount - 1);
         }
 
         [DllImport("__Internal")]

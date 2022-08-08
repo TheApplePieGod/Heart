@@ -13,15 +13,11 @@ namespace Heart.Container
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ContainerInfo* GetInfo()
-        {
-            return (ContainerInfo*)Data - 1;
-        }
+            => (ContainerInfo*)Data - 1;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool IsValid()
-        {
-            return Data != null;
-        }
+            => Data != null;
     }
 
     // Todo: typed version
