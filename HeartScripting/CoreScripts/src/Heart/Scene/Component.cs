@@ -170,7 +170,7 @@ namespace Heart.Scene
         }
 
         // This is mid
-        public static bool HasComponent<T>(uint entityHandle, IntPtr sceneHandle) where T : Component
+        public static bool HasComponent<T>(uint entityHandle, IntPtr sceneHandle) where T : Component, new()
         {
             switch (typeof(T))
             {
@@ -202,6 +202,8 @@ namespace Heart.Scene
         {
             switch (typeof(T))
             {
+                default:
+                    { throw new NotImplementedException("AddComponent does not support " + typeof(T).FullName); }
                 case var t when t == typeof(IdComponent):
                     { throw new InvalidOperationException("Cannot add an id component"); }
                 case var t when t == typeof(NameComponent):
@@ -213,16 +215,52 @@ namespace Heart.Scene
                 case var t when t == typeof(ChildrenComponent):
                     { throw new InvalidOperationException("Cannot add a children component"); }
                 case var t when t == typeof(MeshComponent):
-                    { MeshComponent.Native_MeshComponent_Create(entityHandle, sceneHandle); } break;
+                    { MeshComponent.Native_MeshComponent_Add(entityHandle, sceneHandle); }
+                    break;
                 case var t when t == typeof(LightComponent):
-                    { LightComponent.Native_LightComponent_Create(entityHandle, sceneHandle); } break;
+                    { LightComponent.Native_LightComponent_Add(entityHandle, sceneHandle); }
+                    break;
                 case var t when t == typeof(ScriptComponent):
-                    { ScriptComponent.Native_ScriptComponent_Create(entityHandle, sceneHandle); } break;
+                    { ScriptComponent.Native_ScriptComponent_Add(entityHandle, sceneHandle); }
+                    break;
                 case var t when t == typeof(CameraComponent):
-                    { CameraComponent.Native_CameraComponent_Create(entityHandle, sceneHandle); } break;
+                    { CameraComponent.Native_CameraComponent_Add(entityHandle, sceneHandle); }
+                    break;
             }
 
             return new T { _entityHandle = entityHandle, _sceneHandle = sceneHandle };
+        }
+
+        // This is mid
+        public static void RemoveComponent<T>(uint entityHandle, IntPtr sceneHandle) where T : Component, new()
+        {
+            switch (typeof(T))
+            {
+                case var t when t == typeof(IdComponent):
+                    { throw new InvalidOperationException("Cannot remove an id component"); }
+                case var t when t == typeof(NameComponent):
+                    { throw new InvalidOperationException("Cannot remove a name component"); }
+                case var t when t == typeof(TransformComponent):
+                    { throw new InvalidOperationException("Cannot remove a transform component"); }
+                case var t when t == typeof(ParentComponent):
+                    { throw new InvalidOperationException("Cannot remove a parent component"); }
+                case var t when t == typeof(ChildrenComponent):
+                    { throw new InvalidOperationException("Cannot remove a children component"); }
+                case var t when t == typeof(MeshComponent):
+                    { MeshComponent.Native_MeshComponent_Remove(entityHandle, sceneHandle); }
+                    return;
+                case var t when t == typeof(LightComponent):
+                    { LightComponent.Native_LightComponent_Remove(entityHandle, sceneHandle); }
+                    return;
+                case var t when t == typeof(ScriptComponent):
+                    { ScriptComponent.Native_ScriptComponent_Remove(entityHandle, sceneHandle); }
+                    return;
+                case var t when t == typeof(CameraComponent):
+                    { CameraComponent.Native_CameraComponent_Remove(entityHandle, sceneHandle); }
+                    return;
+            }
+
+            throw new NotImplementedException("RemoveComponent does not support " + typeof(T).FullName);
         }
     }
 }

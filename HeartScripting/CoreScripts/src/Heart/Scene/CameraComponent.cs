@@ -100,7 +100,10 @@ namespace Heart.Scene
         internal static extern InteropBool Native_CameraComponent_Exists(uint entityHandle, IntPtr sceneHandle);
 
         [DllImport("__Internal")]
-        internal static extern void Native_CameraComponent_Create(uint entityHandle, IntPtr sceneHandle);
+        internal static extern void Native_CameraComponent_Add(uint entityHandle, IntPtr sceneHandle);
+
+        [DllImport("__Internal")]
+        internal static extern void Native_CameraComponent_Remove(uint entityHandle, IntPtr sceneHandle);
 
         [DllImport("__Internal")]
         internal static extern void Native_CameraComponent_SetPrimary(uint entityHandle, IntPtr sceneHandle, InteropBool primary);

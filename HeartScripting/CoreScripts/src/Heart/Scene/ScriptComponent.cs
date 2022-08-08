@@ -96,7 +96,10 @@ namespace Heart.Scene
         internal static extern InteropBool Native_ScriptComponent_Exists(uint entityHandle, IntPtr sceneHandle);
 
         [DllImport("__Internal")]
-        internal static extern void Native_ScriptComponent_Create(uint entityHandle, IntPtr sceneHandle);
+        internal static extern void Native_ScriptComponent_Add(uint entityHandle, IntPtr sceneHandle);
+
+        [DllImport("__Internal")]
+        internal static extern void Native_ScriptComponent_Remove(uint entityHandle, IntPtr sceneHandle);
 
         [DllImport("__Internal")]
         internal static extern void Native_ScriptComponent_SetScriptClass(uint entityHandle, IntPtr sceneHandle, HStringInternal value);

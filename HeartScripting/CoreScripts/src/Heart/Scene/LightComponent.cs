@@ -146,7 +146,10 @@ namespace Heart.Scene
         internal static extern unsafe void Native_LightComponent_Get(uint entityHandle, IntPtr sceneHandle, out LightComponentInternal* comp);
 
         [DllImport("__Internal")]
-        internal static extern void Native_LightComponent_Create(uint entityHandle, IntPtr sceneHandle);
+        internal static extern void Native_LightComponent_Add(uint entityHandle, IntPtr sceneHandle);
+
+        [DllImport("__Internal")]
+        internal static extern void Native_LightComponent_Remove(uint entityHandle, IntPtr sceneHandle);
 
         [DllImport("__Internal")]
         internal static extern InteropBool Native_LightComponent_Exists(uint entityHandle, IntPtr sceneHandle);

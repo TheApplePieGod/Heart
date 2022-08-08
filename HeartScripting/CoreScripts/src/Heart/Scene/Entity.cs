@@ -116,8 +116,16 @@ namespace Heart.Scene
             => ComponentUtils.GetComponent<T>(_entityHandle, _sceneHandle);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool HasComponent<T>() where T : Component
+        public bool HasComponent<T>() where T : Component, new()
             => ComponentUtils.HasComponent<T>(_entityHandle, _sceneHandle);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public T AddComponent<T>() where T : Component, new()
+            => ComponentUtils.AddComponent<T>(_entityHandle, _sceneHandle);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void RemoveComponent<T>() where T : Component, new()
+            => ComponentUtils.RemoveComponent<T>(_entityHandle, _sceneHandle);
 
         public void Destroy()
         {
