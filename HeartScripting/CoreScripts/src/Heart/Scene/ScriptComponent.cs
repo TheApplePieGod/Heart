@@ -93,12 +93,21 @@ namespace Heart.Scene
         internal static extern unsafe void Native_ScriptComponent_Get(uint entityHandle, IntPtr sceneHandle, out ScriptComponentInternal* comp);
 
         [DllImport("__Internal")]
-        internal static extern unsafe void Native_ScriptComponent_SetScriptClass(uint entityHandle, IntPtr sceneHandle, HStringInternal value);
+        internal static extern InteropBool Native_ScriptComponent_Exists(uint entityHandle, IntPtr sceneHandle);
 
         [DllImport("__Internal")]
-        internal static extern unsafe void Native_ScriptComponent_InstantiateScript(uint entityHandle, IntPtr sceneHandle);
+        internal static extern void Native_ScriptComponent_Add(uint entityHandle, IntPtr sceneHandle);
 
         [DllImport("__Internal")]
-        internal static extern unsafe void Native_ScriptComponent_DestroyScript(uint entityHandle, IntPtr sceneHandle);
+        internal static extern void Native_ScriptComponent_Remove(uint entityHandle, IntPtr sceneHandle);
+
+        [DllImport("__Internal")]
+        internal static extern void Native_ScriptComponent_SetScriptClass(uint entityHandle, IntPtr sceneHandle, HStringInternal value);
+
+        [DllImport("__Internal")]
+        internal static extern void Native_ScriptComponent_InstantiateScript(uint entityHandle, IntPtr sceneHandle);
+
+        [DllImport("__Internal")]
+        internal static extern void Native_ScriptComponent_DestroyScript(uint entityHandle, IntPtr sceneHandle);
     }
 }

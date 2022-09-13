@@ -111,7 +111,11 @@ namespace SourceGenerators
                     sb.Append("\": {\n");
                     if (fieldIsCollection)
                         sb.Append("using var harr = new HArray(value.Array);\n");
-                    sb.Append("this.");
+                    if (fieldSymbol.IsStatic)
+                        sb.Append(typeSymbol.Name);
+                    else
+                        sb.Append("this");
+                    sb.Append(".");
                     sb.Append(fieldName);
                     sb.Append(" = (");
                     sb.Append(fieldTypeName);
@@ -127,12 +131,23 @@ namespace SourceGenerators
                     }
                     else
                     {
-                        // Runtime error if we don't do a special cast from underlying double type to float
+                        // Runtime error if we don't do special casts
                         if (fieldTypeName == "float")
                             sb.Append("Convert.ToSingle(");
+                        else if (namedTypeSymbol.SpecialType == SpecialType.System_Int32)
+                            sb.Append("Convert.ToInt32(");
+                        else if (namedTypeSymbol.SpecialType == SpecialType.System_Int16)
+                            sb.Append("Convert.ToInt16(");
+                        else if (namedTypeSymbol.SpecialType == SpecialType.System_UInt32)
+                            sb.Append("Convert.ToUInt32(");
+                        else if (namedTypeSymbol.SpecialType == SpecialType.System_UInt16)
+                            sb.Append("Convert.ToUInt16(");
+
+                        bool closeParen = sb[sb.Length - 1] == '(';
                         sb.Append("VariantConverter.VariantToObject(value)");
-                        if (fieldTypeName == "float")
+                        if (closeParen)
                             sb.Append(")");
+
                         sb.Append(";\n");
                     }
 

@@ -20,18 +20,26 @@ namespace Heart.Scene
             _internalValue = sceneHandle;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Entity CreateEntity(string name = "New Entity")
+            => CreateEntity(_internalValue, name);
+
+        internal static Entity CreateEntity(IntPtr sceneHandle, string name = "New Entity")
         {
             using HString hstr = new HString(name);
-            Native_Scene_CreateEntity(_internalValue, hstr._internalVal, out var entityHandle);
-            return new Entity(entityHandle, _internalValue);
+            Native_Scene_CreateEntity(sceneHandle, hstr._internalVal, out var entityHandle);
+            return new Entity(entityHandle, sceneHandle);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Entity GetEntityFromUUID(UUID uuid)
+            => GetEntityFromUUID(_internalValue, uuid);
+
+        internal static Entity GetEntityFromUUID(IntPtr sceneHandle, UUID uuid)
         {
-            Native_Scene_GetEntityFromUUID(_internalValue, uuid, out var entityHandle);
+            Native_Scene_GetEntityFromUUID(sceneHandle, uuid, out var entityHandle);
             if (entityHandle == Entity.InvalidEntityHandle) return null;
-            return new Entity(entityHandle, _internalValue);
+            return new Entity(entityHandle, sceneHandle);
         }
 
         [DllImport("__Internal")]

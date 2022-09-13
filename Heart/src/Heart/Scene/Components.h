@@ -36,7 +36,7 @@ namespace Heart
         UUID ParentUUID;
     };
 
-    struct ChildComponent
+    struct ChildrenComponent
     {
         HVector<UUID> Children;
     };

@@ -6,8 +6,6 @@ namespace Heart.Scene
 {
     public class IdComponent : Component
     {
-        internal unsafe UUID* _internalValue;
-
         public IdComponent()
             : base(Entity.InvalidEntityHandle, IntPtr.Zero)
         { }
@@ -16,22 +14,10 @@ namespace Heart.Scene
             : base(entityHandle, sceneHandle)
         {}
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private unsafe void RefreshPtr()
-        {
-            // We shouldn't need safety checking here because all entities are guaranteed
-            // to have an id comp
-            Native_IdComponent_Get(_entityHandle, _sceneHandle, out _internalValue);
-        }
-
-        public unsafe UUID Id
+        public UUID Id
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get
-            {
-                RefreshPtr();
-                return *_internalValue;
-            }
+            get => ComponentUtils.GetId(_entityHandle, _sceneHandle);
         }
 
         [DllImport("__Internal")]

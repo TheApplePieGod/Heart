@@ -19,7 +19,6 @@ namespace Heart.Scene
             _sceneHandle = sceneHandle;
         }
 
-        // Client callable methods
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Scene GetScene()
             => new Scene(_sceneHandle);
@@ -39,6 +38,54 @@ namespace Heart.Scene
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void SetName(string name)
             => ComponentUtils.SetName(_entityHandle, _sceneHandle, name);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public UUID GetParent()
+            => ComponentUtils.GetParent(_entityHandle, _sceneHandle);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void SetParent(UUID uuid)
+            => ComponentUtils.SetParent(_entityHandle, _sceneHandle, uuid);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public UUID GetChildId(uint index)
+            => ComponentUtils.GetChildId(_entityHandle, _sceneHandle, index);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Entity GetChild(uint index)
+            => ComponentUtils.GetChild(_entityHandle, _sceneHandle, index);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public UUID[] GetChildrenIds()
+            => ComponentUtils.GetChildrenIds(_entityHandle, _sceneHandle);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Entity[] GetChildren()
+            => ComponentUtils.GetChildren(_entityHandle, _sceneHandle);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public uint GetChildrenCount()
+            => ComponentUtils.GetChildrenCount(_entityHandle, _sceneHandle);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void AddChild(UUID uuid)
+            => ComponentUtils.AddChild(_entityHandle, _sceneHandle, uuid);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void AddChild(Entity entity)
+            => ComponentUtils.AddChild(_entityHandle, _sceneHandle, entity.GetId());
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Entity CreateChild(string name)
+            => ComponentUtils.CreateChild(_entityHandle, _sceneHandle, name);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void RemoveChild(UUID uuid)
+            => ComponentUtils.RemoveChild(_entityHandle, _sceneHandle, uuid);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void RemoveChild(Entity entity)
+            => ComponentUtils.RemoveChild(_entityHandle, _sceneHandle, entity.GetId());
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vec3 GetTranslation()
@@ -73,8 +120,16 @@ namespace Heart.Scene
             => ComponentUtils.GetComponent<T>(_entityHandle, _sceneHandle);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool HasComponent<T>() where T : Component
+        public bool HasComponent<T>() where T : Component, new()
             => ComponentUtils.HasComponent<T>(_entityHandle, _sceneHandle);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public T AddComponent<T>() where T : Component, new()
+            => ComponentUtils.AddComponent<T>(_entityHandle, _sceneHandle);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void RemoveComponent<T>() where T : Component, new()
+            => ComponentUtils.RemoveComponent<T>(_entityHandle, _sceneHandle);
 
         public void Destroy()
         {
@@ -84,7 +139,6 @@ namespace Heart.Scene
 
         internal static uint InvalidEntityHandle = uint.MaxValue;
 
-        // Internal fields
         internal uint _entityHandle = InvalidEntityHandle;
         internal IntPtr _sceneHandle = IntPtr.Zero;
 

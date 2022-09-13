@@ -35,8 +35,8 @@ namespace HeartEditor
         SubscribeToEmitter(&EditorApp::Get().GetWindow());
 
         // Crappy default project solution until we get some sort of settings file
-        if (std::filesystem::exists("D:/Projects/Heart/HeartProjects/TestProject/TestProject.heproj"))
-            Project::LoadFromPath("D:/Projects/Heart/HeartProjects/TestProject/TestProject.heproj");
+        if (std::filesystem::exists("D:/Projects/Heart/HeartProjects/DemoGame/DemoGame.heproj"))
+            Project::LoadFromPath("D:/Projects/Heart/HeartProjects/DemoGame/DemoGame.heproj");
         else
             Editor::CreateWindows();
 

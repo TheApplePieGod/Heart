@@ -175,9 +175,27 @@ HE_INTEROP_EXPORT void Native_Entity_Destroy(u32 entityHandle, Heart::Scene* sce
         return entity.HasComponent<Heart::##compName>(); \
     } \
 
+#define EXPORT_COMPONENT_ADD_FN(compName) \
+    HE_INTEROP_EXPORT void Native_##compName##_Add(u32 entityHandle, Heart::Scene* sceneHandle) \
+    { \
+        ASSERT_ENTITY_IS_VALID(); \
+        Heart::Entity entity(sceneHandle, entityHandle); \
+        entity.AddComponent<Heart::##compName>(); \
+    } \
+
+#define EXPORT_COMPONENT_REMOVE_FN(compName) \
+    HE_INTEROP_EXPORT void Native_##compName##_Remove(u32 entityHandle, Heart::Scene* sceneHandle) \
+    { \
+        ASSERT_ENTITY_IS_VALID(); \
+        Heart::Entity entity(sceneHandle, entityHandle); \
+        entity.RemoveComponent<Heart::##compName>(); \
+    } \
+
 #define EXPORT_COMPONENT_BASIC_FNS(compName) \
     EXPORT_COMPONENT_GET_FN(compName) \
-    EXPORT_COMPONENT_EXISTS_FN(compName)
+    EXPORT_COMPONENT_EXISTS_FN(compName) \
+    EXPORT_COMPONENT_ADD_FN(compName) \
+    EXPORT_COMPONENT_REMOVE_FN(compName)
 
 // Id component (always exists)
 EXPORT_COMPONENT_GET_FN(IdComponent);
@@ -207,6 +225,43 @@ HE_INTEROP_EXPORT void Native_TransformComponent_GetForwardVector(u32 entityHand
     ASSERT_ENTITY_IS_VALID();
     Heart::Entity entity(sceneHandle, entityHandle);
     *outValue = entity.GetForwardVector();
+}
+
+// Parent component
+HE_INTEROP_EXPORT void Native_ParentComponent_Get(u32 entityHandle, Heart::Scene* sceneHandle, Heart::UUID** outComp)
+{ 
+    ASSERT_ENTITY_IS_VALID();
+    Heart::Entity entity(sceneHandle, entityHandle);
+    *outComp = &entity.GetParent();
+}
+
+HE_INTEROP_EXPORT void Native_ParentComponent_SetParent(u32 entityHandle, Heart::Scene* sceneHandle, Heart::UUID parent)
+{ 
+    ASSERT_ENTITY_IS_VALID();
+    Heart::Entity entity(sceneHandle, entityHandle);
+    entity.SetParent(parent);
+}
+
+// Children component
+HE_INTEROP_EXPORT void Native_ChildrenComponent_Get(u32 entityHandle, Heart::Scene* sceneHandle, Heart::UUID** outComp)
+{ 
+    ASSERT_ENTITY_IS_VALID();
+    Heart::Entity entity(sceneHandle, entityHandle);
+    *outComp = entity.GetChildren().Data();
+}
+
+HE_INTEROP_EXPORT void Native_ChildrenComponent_AddChild(u32 entityHandle, Heart::Scene* sceneHandle, Heart::UUID uuid)
+{ 
+    ASSERT_ENTITY_IS_VALID();
+    Heart::Entity entity(sceneHandle, entityHandle);
+    entity.AddChild(uuid);
+}
+
+HE_INTEROP_EXPORT void Native_ChildrenComponent_RemoveChild(u32 entityHandle, Heart::Scene* sceneHandle, Heart::UUID uuid)
+{ 
+    ASSERT_ENTITY_IS_VALID();
+    Heart::Entity entity(sceneHandle, entityHandle);
+    entity.RemoveChild(uuid);
 }
 
 // Mesh component

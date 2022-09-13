@@ -34,7 +34,14 @@ namespace Widgets
             "NULL",
             "EnvMapSelect",
             m_EnvMapTextFilter,
-            nullptr,
+            [&]()
+            {
+                if (!mapId)
+                    return;
+
+                if (ImGui::MenuItem("Clear"))
+                    activeScene.SetEnvironmentMap(0);
+            },
             [&](Heart::UUID selected)
             {
                 activeScene.SetEnvironmentMap(selected);

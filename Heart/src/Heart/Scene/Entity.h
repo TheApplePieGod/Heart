@@ -67,6 +67,12 @@ namespace Heart
         void SetScale(glm::vec3 scale);
         void SetTransform(glm::vec3 pos, glm::vec3 rot, glm::vec3 scale);
 
+        const HVector<UUID>& GetChildren();
+        void AddChild(UUID uuid);
+        void RemoveChild(UUID uuid);
+        UUID GetParent() const;
+        void SetParent(UUID uuid);
+
         Variant GetScriptProperty(const HStringView8& name) const;
         void SetScriptProperty(const HStringView8& name, const Variant& value);
 

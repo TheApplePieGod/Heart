@@ -433,8 +433,8 @@ namespace Widgets
             } break;
             case Heart::Variant::Type::Int:
             {
-                s64 min = std::numeric_limits<s64>::min();
-                s64 max = std::numeric_limits<s64>::max();
+                constexpr s64 min = std::numeric_limits<s64>::lowest();
+                constexpr s64 max = std::numeric_limits<s64>::max();
                 s64 intermediate = value.Int();
                 if (ImGui::DragScalar(
                     widgetId.DataUTF8(),
@@ -446,8 +446,8 @@ namespace Widgets
             } break;
             case Heart::Variant::Type::UInt:
             {
-                u64 min = std::numeric_limits<u64>::min();
-                u64 max = std::numeric_limits<u64>::max();
+                constexpr u64 min = std::numeric_limits<u64>::lowest();
+                constexpr u64 max = std::numeric_limits<u64>::max();
                 u64 intermediate = value.UInt();
                 if (ImGui::DragScalar(
                     widgetId.DataUTF8(),
@@ -459,8 +459,8 @@ namespace Widgets
             } break;
             case Heart::Variant::Type::Float:
             {
-                float min = std::numeric_limits<float>::min();
-                float max = std::numeric_limits<float>::max();
+                constexpr float min = std::numeric_limits<float>::lowest();
+                constexpr float max = std::numeric_limits<float>::max();
                 float intermediate = (float)value.Float();
                 if (ImGui::DragFloat(
                     widgetId.DataUTF8(),

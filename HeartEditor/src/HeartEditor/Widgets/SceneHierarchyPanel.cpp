@@ -65,7 +65,7 @@ namespace Widgets
         Heart::Scene& activeScene = Editor::GetActiveScene();
 
         auto& nameComponent = activeScene.GetRegistry().get<Heart::NameComponent>(entity);
-        bool hasChildren = activeScene.GetRegistry().any_of<Heart::ChildComponent>(entity) && activeScene.GetRegistry().get<Heart::ChildComponent>(entity).Children.Count() > 0;
+        bool hasChildren = activeScene.GetRegistry().any_of<Heart::ChildrenComponent>(entity) && activeScene.GetRegistry().get<Heart::ChildrenComponent>(entity).Children.Count() > 0;
         bool open = false;
         bool justDestroyed = false;
         Heart::HStringView8 nameString = "EntityPopup";
@@ -130,7 +130,7 @@ namespace Widgets
             {
                 // Order by name
                 std::multimap<Heart::HString, entt::entity> nameMap;
-                auto& childComp = activeScene.GetRegistry().get<Heart::ChildComponent>(entity);
+                auto& childComp = activeScene.GetRegistry().get<Heart::ChildrenComponent>(entity);
                 for (auto uuid : childComp.Children)
                 {
                     auto entity = activeScene.GetEntityFromUUID(uuid);

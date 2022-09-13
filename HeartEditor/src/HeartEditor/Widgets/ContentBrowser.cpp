@@ -170,13 +170,22 @@ namespace Widgets
 
         ImGui::SameLine(0.f, 10.f);
 
-        // Create asset popup
         if (ImGui::Button("Create"))
             ImGui::OpenPopup("CreatePopup");
+        // Create asset popup
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 5.0f));
         if (ImGui::BeginPopup("CreatePopup"))
         {
-            // Create material
-            if (ImGui::MenuItem("Material"))
+            if (ImGui::MenuItem("New Folder"))
+            {
+                std::filesystem::path path = Heart::AssetManager::GetAssetsDirectory().Data();
+                path.append(m_DirectoryStack[m_DirectoryStackIndex].Data());
+                Heart::HString8 fileName = "NewFolder";
+                fileName += std::to_string(Heart::UUID());
+                std::filesystem::create_directory(path.append(fileName.Data()));
+                m_ShouldRescan = true;
+            }
+            if (ImGui::MenuItem("New Material"))
             {
                 std::filesystem::path path = Heart::AssetManager::GetAssetsDirectory().Data();
                 path.append(m_DirectoryStack[m_DirectoryStackIndex].Data());
@@ -189,6 +198,7 @@ namespace Widgets
             }
             ImGui::EndPopup();
         }
+        ImGui::PopStyleVar();
 
         // Size-aware file list (TODO: redo this)
         ImGui::BeginChild("cbfileslist", ImVec2(m_WindowSizes.y, ImGui::GetContentRegionAvail().y));
@@ -207,6 +217,9 @@ namespace Widgets
             currentExtent += m_CardSize.x;
         }
         ImGui::EndChild();
+
+        if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(1))
+            ImGui::OpenPopup("CreatePopup");
     }
 
     void ContentBrowser::RenderFileCard(const std::filesystem::directory_entry& entry)
@@ -274,17 +287,16 @@ namespace Widgets
         ImGui::PopStyleColor();
 
         // Card right click popup
+        bool deleteDialogOpen = false;
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 5.f, 5.f });
         if (ImGui::BeginPopupContextItem(entryName.Data()))
         {
-            // Disabling this for now until we get a confirm dialog
-            ImGui::BeginDisabled();
+            // Delete dialog
             if (ImGui::MenuItem("Delete"))
             {
-                std::filesystem::remove_all(entry);
-                m_ShouldRescan = true;
+                m_DeletingPath = entry;
+                deleteDialogOpen = true;
             }
-            ImGui::EndDisabled();
 
             // Enable rename mode
             if (ImGui::MenuItem("Rename"))
@@ -300,8 +312,33 @@ namespace Widgets
 
             ImGui::EndPopup();
         }
+
+        auto deletePopupId = Heart::HStringView8("Delete##") + entryName;
+        if (deleteDialogOpen)
+            ImGui::OpenPopup(deletePopupId.Data());
+        ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+        ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+        if (ImGui::BeginPopupModal(deletePopupId.Data(), NULL, ImGuiWindowFlags_AlwaysAutoResize))
+        {
+            ImGui::Text("Are you sure? '%s' will be deleted permanently.", entry.path().filename().generic_u8string().c_str());
+
+            if (ImGui::Button("Delete", ImVec2(120, 0)))
+            {
+                std::filesystem::remove_all(entry);
+                m_ShouldRescan = true;
+                ImGui::CloseCurrentPopup();
+            }
+
+            ImGui::SetItemDefaultFocus();
+            ImGui::SameLine();
+            if (ImGui::Button("Cancel", ImVec2(120, 0)))
+                ImGui::CloseCurrentPopup();
+
+            ImGui::EndPopup();
+        }
+
         ImGui::PopStyleVar();
- 
+
         // Center and wrap the filename if we are not renaming
         ImGui::PushTextWrapPos(ImGui::GetCursorPos().x + ImGui::GetItemRectSize().x);
         if (m_RenamingPath.empty() || m_RenamingPath != entry)

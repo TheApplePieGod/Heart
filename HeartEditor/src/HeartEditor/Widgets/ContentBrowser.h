@@ -35,6 +35,7 @@ namespace Widgets
         bool m_ShouldRescan = false;
 
         std::filesystem::path m_RenamingPath;
+        std::filesystem::path m_DeletingPath;
         Heart::HString8 m_Rename = "";
         bool m_ShouldRename = false;
     };
