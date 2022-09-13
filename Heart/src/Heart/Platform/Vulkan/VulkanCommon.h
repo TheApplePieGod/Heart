@@ -1,6 +1,7 @@
 #pragma once
 
 #include "vulkan/vulkan.h"
+#include "Heart/Renderer/Renderer.h"
 #include "Heart/Renderer/Shader.h"
 #include "Heart/Renderer/Buffer.h"
 #include "Heart/Renderer/Pipeline.h"
@@ -11,9 +12,6 @@
 
 namespace Heart
 {
-    // TODO: make this a parameter?
-    const u32 MAX_FRAMES_IN_FLIGHT = 3;
-
     struct VulkanCommon
     {
         struct QueueFamilyIndices
@@ -43,8 +41,8 @@ namespace Heart
         struct SwapChainSupportDetails
         {
             VkSurfaceCapabilitiesKHR Capabilities;
-            std::vector<VkSurfaceFormatKHR> Formats;
-            std::vector<VkPresentModeKHR> PresentModes;
+            HVector<VkSurfaceFormatKHR> Formats;
+            HVector<VkPresentModeKHR> PresentModes;
         };
 
         static SwapChainSupportDetails GetSwapChainSupport(VkPhysicalDevice device, VkSurfaceKHR surface);

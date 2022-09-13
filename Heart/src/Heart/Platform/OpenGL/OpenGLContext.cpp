@@ -1,6 +1,7 @@
 #include "hepch.h"
 #include "OpenGLContext.h"
 
+#include "Heart/Renderer/Renderer.h"
 #include "Heart/Platform/OpenGL/OpenGLFramebuffer.h"
 #include "Heart/Core/Timing.h"
 #include "imgui/imgui.h"
@@ -10,9 +11,6 @@
 
 namespace Heart
 {
-    OpenGLFramebuffer* OpenGLContext::s_BoundFramebuffer = nullptr;
-    int OpenGLContext::s_MsaaMaxSamples = 1;
-
     static void debugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam)
     {
         if (id == 131154) return; // pixel-path performance warning
@@ -38,10 +36,10 @@ namespace Heart
         int status = gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
 		HE_ENGINE_ASSERT(status, "Failed to initialize Glad");
 
-		HE_ENGINE_ASSERT("OpenGL Info:");
-		HE_ENGINE_ASSERT("  Vendor: {0}", glGetString(GL_VENDOR));
-		HE_ENGINE_ASSERT("  Renderer: {0}", glGetString(GL_RENDERER));
-		HE_ENGINE_ASSERT("  Version: {0}", glGetString(GL_VERSION));
+		HE_ENGINE_LOG_INFO("OpenGL Info:");
+		HE_ENGINE_LOG_INFO("  Vendor: {0}", glGetString(GL_VENDOR));
+		HE_ENGINE_LOG_INFO("  Renderer: {0}", glGetString(GL_RENDERER));
+		HE_ENGINE_LOG_INFO("  Version: {0}", glGetString(GL_VERSION));
 
 		HE_ENGINE_ASSERT(GLVersion.major > 4 || (GLVersion.major == 4 && GLVersion.minor >= 5), "Heart requires at least OpenGL version 4.5");
 
@@ -60,7 +58,7 @@ namespace Heart
 
     OpenGLContext::~OpenGLContext()
     {
-        
+        ProcessJobQueue();
     }
 
     void OpenGLContext::InitializeImGui()
@@ -70,6 +68,7 @@ namespace Heart
 
     void OpenGLContext::ShutdownImGui()
     {
+        ProcessJobQueue();
         ImGui_ImplOpenGL3_Shutdown();
     }
 
@@ -91,6 +90,8 @@ namespace Heart
     void OpenGLContext::BeginFrame()
     {
         HE_PROFILE_FUNCTION();
+
+        ProcessJobQueue();
     }
 
     void OpenGLContext::EndFrame()
@@ -100,5 +101,19 @@ namespace Heart
 
         glfwSwapBuffers((GLFWwindow*)m_WindowHandle);
         s_BoundFramebuffer = nullptr;
+    }
+
+    void OpenGLContext::ProcessJobQueue()
+    {
+        auto& queue = Renderer::GetJobQueue();
+        while (!queue.empty())
+        {
+            Renderer::LockJobQueue();
+            auto job = queue.front();
+            queue.pop_front();
+            Renderer::UnlockJobQueue();
+
+			job(); // Run the job
+		}
     }
 }

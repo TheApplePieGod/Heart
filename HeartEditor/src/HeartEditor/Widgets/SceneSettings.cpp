@@ -19,7 +19,7 @@ namespace Widgets
         if (!m_Open) return;
 
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 5.0f));
-        ImGui::Begin(m_Name.c_str(), &m_Open);
+        ImGui::Begin(m_Name.Data(), &m_Open);
 
         auto& activeScene = Editor::GetActiveScene();
 
@@ -34,7 +34,14 @@ namespace Widgets
             "NULL",
             "EnvMapSelect",
             m_EnvMapTextFilter,
-            nullptr,
+            [&]()
+            {
+                if (!mapId)
+                    return;
+
+                if (ImGui::MenuItem("Clear"))
+                    activeScene.SetEnvironmentMap(0);
+            },
             [&](Heart::UUID selected)
             {
                 activeScene.SetEnvironmentMap(selected);
@@ -66,6 +73,14 @@ namespace Widgets
         ImGui::Text("Cull Enable");
         ImGui::SameLine();
         ImGui::Checkbox("##CullEnable", &Editor::GetState().RenderSettings.CullEnable);
+
+        ImGui::Text("Async Asset Loading");
+        ImGui::SameLine();
+        ImGui::Checkbox("##AsyncAsset", &Editor::GetState().RenderSettings.AsyncAssetLoading);
+
+        ImGui::Text("Update Entity Ids Texture");
+        ImGui::SameLine();
+        ImGui::Checkbox("##EntityIds", &Editor::GetState().RenderSettings.CopyEntityIdsTextureToCPU);
 
         ImGui::End();
         ImGui::PopStyleVar();

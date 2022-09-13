@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Heart/Renderer/Framebuffer.h"
+#include "Heart/Container/HString8.h"
+#include "Heart/Container/HVector.hpp"
 
 namespace Heart
 {
@@ -14,7 +16,7 @@ namespace Heart
         ~OpenGLFramebuffer() override;
 
         void Bind(ComputePipeline* preRenderComputePipeline = nullptr) override;
-        void BindPipeline(const std::string& name) override;
+        void BindPipeline(const HStringView8& name) override;
         void BindShaderBufferResource(u32 bindingIndex, u32 offset, u32 elementCount, Buffer* buffer) override;
         void BindShaderTextureResource(u32 bindingIndex, Texture* texture) override;
         void BindShaderTextureLayerResource(u32 bindingIndex, Texture* texture, u32 layerIndex, u32 mipLevel) override;
@@ -23,6 +25,7 @@ namespace Heart
 
         void* GetColorAttachmentImGuiHandle(u32 attachmentIndex) override;
         void* GetColorAttachmentPixelData(u32 attachmentIndex) override;
+        void UpdateColorAttachmentCPUVisibliity(u32 attachmentIndex, bool visible) override;
 
         double GetPerformanceTimestamp() override;
         double GetSubpassPerformanceTimestamp(u32 subpassIndex) override;
@@ -45,6 +48,7 @@ namespace Heart
             u32 Image;
             u32 BlitImage;
             bool HasResolve;
+            bool AllowCPURead;
             bool CPUVisible;
             bool IsDepthAttachment;
             std::array<Ref<OpenGLBuffer>, 2> PixelBuffers;
@@ -72,20 +76,20 @@ namespace Heart
 
     private:
         u32 m_PBOFramebuffer;
-        std::vector<u32> m_Framebuffers;
-        std::vector<u32> m_BlitFramebuffers;
-        std::vector<OpenGLFramebufferAttachment> m_AttachmentData;
-        std::vector<OpenGLFramebufferAttachment> m_DepthAttachmentData;
-        std::vector<u32> m_CachedAttachmentHandles;
+        HVector<u32> m_Framebuffers;
+        HVector<u32> m_BlitFramebuffers;
+        HVector<OpenGLFramebufferAttachment> m_AttachmentData;
+        HVector<OpenGLFramebufferAttachment> m_DepthAttachmentData;
+        HVector<u32> m_CachedAttachmentHandles;
 
-        std::array<std::vector<u32>, 2> m_QueryIds;
-        std::vector<double> m_PerformanceTimestamps;
+        std::array<HVector<u32>, 2> m_QueryIds;
+        HVector<double> m_PerformanceTimestamps;
 
         int m_ImageSamples = 1;
         int m_CurrentSubpass = -1;
         bool m_FlushedThisFrame = false;
         OpenGLGraphicsPipeline* m_BoundPipeline = nullptr;
-        std::string m_BoundPipelineName = "";
+        HString8 m_BoundPipelineName = "";
 
         friend class OpenGLRenderApi;
     };

@@ -39,9 +39,9 @@ namespace Heart
 
         VkPipelineLayout m_PipelineLayout;
         VkPipeline m_Pipeline;
-        std::array<VkCommandBuffer, MAX_FRAMES_IN_FLIGHT> m_InlineCommandBuffers{};
-        std::array<VkCommandBuffer, MAX_FRAMES_IN_FLIGHT> m_CommandBuffers{};
-        std::array<VkQueryPool, MAX_FRAMES_IN_FLIGHT> m_QueryPools;
+        std::array<VkCommandBuffer, Renderer::FrameBufferCount> m_InlineCommandBuffers{};
+        std::array<VkCommandBuffer, Renderer::FrameBufferCount> m_CommandBuffers{};
+        std::array<VkQueryPool, Renderer::FrameBufferCount> m_QueryPools;
 
         u64 m_LastUpdateFrame = 0;
         u32 m_InFlightFrameIndex = 0;

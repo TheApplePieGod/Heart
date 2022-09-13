@@ -3,6 +3,7 @@
 
 #include "HeartEditor/Editor.h"
 #include "HeartEditor/EditorApp.h"
+#include "Heart/Container/HString.h"
 #include "Heart/Renderer/Renderer.h"
 #include "Heart/Scene/Components.h"
 #include "Heart/Scene/Entity.h"
@@ -20,14 +21,19 @@ namespace Widgets
         if (!m_Open) return;
 
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 5.0f));
-        ImGui::Begin(m_Name.c_str(), &m_Open);
+        ImGui::Begin(m_Name.Data(), &m_Open);
 
-        // only top level components
+        // Only top level components
         auto view = Editor::GetActiveScene().GetRegistry().view<Heart::NameComponent>(entt::exclude<Heart::ParentComponent>);
 
-        ImGui::BeginChild("HierarchyChild");
+        // Order by name
+        std::multimap<Heart::HString, entt::entity> nameMap;
         for (auto entity : view)
-            if (RenderEntity(entity))
+            nameMap.insert({ view.get<Heart::NameComponent>(entity).Name, entity });
+
+        ImGui::BeginChild("HierarchyChild");
+        for (auto& pair : nameMap)
+            if (RenderEntity(pair.second))
                 break;
         ImGui::EndChild();
 
@@ -59,14 +65,14 @@ namespace Widgets
         Heart::Scene& activeScene = Editor::GetActiveScene();
 
         auto& nameComponent = activeScene.GetRegistry().get<Heart::NameComponent>(entity);
-        bool hasChildren = activeScene.GetRegistry().any_of<Heart::ChildComponent>(entity) && activeScene.GetRegistry().get<Heart::ChildComponent>(entity).Children.size() > 0;
+        bool hasChildren = activeScene.GetRegistry().any_of<Heart::ChildrenComponent>(entity) && activeScene.GetRegistry().get<Heart::ChildrenComponent>(entity).Children.Count() > 0;
         bool open = false;
         bool justDestroyed = false;
-        std::string nameString = "EntityPopup";
+        Heart::HStringView8 nameString = "EntityPopup";
 
         // create the tree node
         ImGuiTreeNodeFlags node_flags = (hasChildren ? 0 : ImGuiTreeNodeFlags_Leaf) | ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | (Editor::GetState().SelectedEntity.GetHandle() == entity ? ImGuiTreeNodeFlags_Selected : 0);
-        open = ImGui::TreeNodeEx((void*)(intptr_t)(u32)entity, node_flags, nameComponent.Name.c_str());
+        open = ImGui::TreeNodeEx((void*)(intptr_t)(u32)entity, node_flags, nameComponent.Name.DataUTF8());
         if (ImGui::IsItemClicked())
             Editor::GetState().SelectedEntity = Heart::Entity(&activeScene, entity);
 
@@ -74,7 +80,7 @@ namespace Widgets
         if (ImGui::BeginDragDropSource())
         {
             ImGui::SetDragDropPayload("EntityNode", &entity, sizeof(u64));
-            ImGui::Text(nameComponent.Name.c_str());
+            ImGui::Text(nameComponent.Name.DataUTF8());
             ImGui::EndDragDropSource();
         }
 
@@ -90,8 +96,13 @@ namespace Widgets
         }
 
         // right click menu
-        if (ImGui::BeginPopupContextItem((nameString + std::to_string(static_cast<u32>(entity))).c_str()))
+        if (ImGui::BeginPopupContextItem((nameString + std::to_string(static_cast<u32>(entity))).Data()))
         {
+            if (ImGui::MenuItem("Create Child Entity"))
+            {
+                auto newEntity = Editor::GetActiveScene().CreateEntity("New Entity");
+                activeScene.AssignRelationship({ &activeScene, entity }, newEntity);
+            }
             if (ImGui::MenuItem("Remove Entity"))
             {
                 activeScene.DestroyEntity({ &activeScene, entity });
@@ -117,9 +128,16 @@ namespace Widgets
         {
             if (hasChildren)
             {
-                auto& childComp = activeScene.GetRegistry().get<Heart::ChildComponent>(entity);
+                // Order by name
+                std::multimap<Heart::HString, entt::entity> nameMap;
+                auto& childComp = activeScene.GetRegistry().get<Heart::ChildrenComponent>(entity);
                 for (auto uuid : childComp.Children)
-                    RenderEntity(activeScene.GetEntityFromUUID(uuid).GetHandle());
+                {
+                    auto entity = activeScene.GetEntityFromUUID(uuid);
+                    nameMap.insert({ entity.GetName(), entity.GetHandle() });
+                }
+                for (auto& pair : nameMap)
+                    RenderEntity(pair.second);
             }
             ImGui::TreePop();
         }

@@ -37,28 +37,28 @@ namespace Heart
         }
     }
 
-    Ref<GraphicsPipeline> Framebuffer::RegisterGraphicsPipeline(const std::string& name, const GraphicsPipelineCreateInfo& createInfo)
+    Ref<GraphicsPipeline> Framebuffer::RegisterGraphicsPipeline(const HStringView8& name, const GraphicsPipelineCreateInfo& createInfo)
     {
         if (m_GraphicsPipelines.find(name) != m_GraphicsPipelines.end())
         {
-            HE_ENGINE_LOG_ERROR("Cannot register pipeline, name already exists: {0}", name);
+            HE_ENGINE_LOG_ERROR("Cannot register pipeline, name already exists: {0}", name.Data());
             HE_ENGINE_ASSERT(false);
         }
 
-        HE_ENGINE_LOG_TRACE("Registering graphics pipeline '{0}' to framebuffer", name);
+        HE_ENGINE_LOG_TRACE("Registering graphics pipeline '{0}' to framebuffer", name.Data());
 
         Ref<GraphicsPipeline> newPipeline = InternalInitializeGraphicsPipeline(createInfo);
         m_GraphicsPipelines[name] = newPipeline;
         return newPipeline;
     }
 
-    Ref<GraphicsPipeline> Framebuffer::LoadPipeline(const std::string& name)
+    Ref<GraphicsPipeline> Framebuffer::LoadPipeline(const HStringView8& name)
     {
         HE_PROFILE_FUNCTION()
 
         if (m_GraphicsPipelines.find(name) == m_GraphicsPipelines.end())
         {
-            HE_ENGINE_LOG_ERROR("Pipeline not registered: {0}", name);
+            HE_ENGINE_LOG_ERROR("Pipeline not registered: {0}", name.Data());
             HE_ENGINE_ASSERT(false);
         }
         return m_GraphicsPipelines[name];

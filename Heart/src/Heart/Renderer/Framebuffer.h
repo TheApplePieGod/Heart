@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Heart/Container/HString8.h"
+#include "Heart/Container/HVector.hpp"
 #include "Heart/Renderer/Texture.h"
 #include "Heart/Events/EventEmitter.h"
 #include "glm/vec4.hpp"
@@ -28,8 +30,8 @@ namespace Heart
 
     struct Subpass
     {
-        std::vector<SubpassAttachment> InputAttachments;
-        std::vector<SubpassAttachment> OutputAttachments;
+        HVector<SubpassAttachment> InputAttachments;
+        HVector<SubpassAttachment> OutputAttachments;
     };
 
     struct FramebufferColorAttachment
@@ -54,9 +56,9 @@ namespace Heart
     {
         FramebufferCreateInfo() = default;
 
-        std::vector<FramebufferColorAttachment> ColorAttachments;
-        std::vector<FramebufferDepthAttachment> DepthAttachments;
-        std::vector<Subpass> Subpasses; // leave empty for no
+        HVector<FramebufferColorAttachment> ColorAttachments;
+        HVector<FramebufferDepthAttachment> DepthAttachments;
+        HVector<Subpass> Subpasses; // leave empty for no
         u32 Width, Height = 0; // set to zero to match screen width and height
         MsaaSampleCount SampleCount = MsaaSampleCount::None; // will be clamped to device max supported sample count
         bool AllowPerformanceQuerying = false;
@@ -74,7 +76,7 @@ namespace Heart
         virtual ~Framebuffer();
 
         virtual void Bind(ComputePipeline* preRenderComputePipeline = nullptr) = 0;
-        virtual void BindPipeline(const std::string& name) = 0;
+        virtual void BindPipeline(const HStringView8& name) = 0;
 
         // must be called after BindPipeline()
         virtual void BindShaderBufferResource(u32 bindingIndex, u32 elementOffset, u32 elementCount, Buffer* buffer) = 0;
@@ -85,8 +87,9 @@ namespace Heart
 
         virtual void* GetColorAttachmentImGuiHandle(u32 attachmentIndex) = 0;
 
-        // attachment must be created with 'AllowCPURead' enabled
+        // attachment must have been initially created with 'AllowCPURead' enabled
         virtual void* GetColorAttachmentPixelData(u32 attachmentIndex) = 0;
+        virtual void UpdateColorAttachmentCPUVisibliity(u32 attachmentIndex, bool visible) = 0; 
 
         // framebuffer must be created with 'AllowPerformanceQuerying' enabled
         virtual double GetPerformanceTimestamp() = 0;
@@ -107,8 +110,8 @@ namespace Heart
 
         void OnEvent(Event& event) override;
 
-        Ref<GraphicsPipeline> RegisterGraphicsPipeline(const std::string& name, const GraphicsPipelineCreateInfo& createInfo);
-        Ref<GraphicsPipeline> LoadPipeline(const std::string& name);
+        Ref<GraphicsPipeline> RegisterGraphicsPipeline(const HStringView8& name, const GraphicsPipelineCreateInfo& createInfo);
+        Ref<GraphicsPipeline> LoadPipeline(const HStringView8& name);
 
         inline u32 GetWidth() const { return m_ActualWidth; }
         inline u32 GetHeight() const { return m_ActualHeight; }
@@ -140,7 +143,7 @@ namespace Heart
 
     protected:
         FramebufferCreateInfo m_Info;
-        std::unordered_map<std::string, Ref<GraphicsPipeline>> m_GraphicsPipelines;
+        std::unordered_map<HString8, Ref<GraphicsPipeline>> m_GraphicsPipelines;
         bool m_Valid = true;
         u32 m_ActualWidth, m_ActualHeight = 0;
 

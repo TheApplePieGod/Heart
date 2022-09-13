@@ -70,11 +70,10 @@ namespace Heart
          * 
          * @note Calling this will automatically update the frustum data.
          * 
-         * @param xRotation The x rotation (yaw) of the camera in degrees.
-         * @param yRotation The y rotation (pitch) of the camera in degrees.
          * @param position The world position of the camera.
+         * @param rotation The rotation of the camera in degrees.
          */
-        void UpdateViewMatrix(f32 xRotation, f32 yRotation, glm::vec3 position);
+        void UpdateViewMatrix(glm::vec3 position, glm::vec3 rotation);
 
         /**
          * @brief Generate a view matrix orbiting around a point.
@@ -86,10 +85,9 @@ namespace Heart
          * 
          * @param centerPoint The world space coordinates of the origin to orbit around.
          * @param radius The world space radius of the orbit.
-         * @param xRotation The x rotation (yaw) of the camera relative to the orbit in degrees.
-         * @param yRotation The y rotation (pitch) of the camera relative to the orbit in degrees.
+         * @param rotation The rotation of the camera relative to the orbit in degrees.
          */
-        void UpdateViewMatrix(glm::vec3 centerPoint, f32 radius, f32 xRotation, f32 yRotation);
+        void UpdateViewMatrix(glm::vec3 centerPoint, f32 radius, glm::vec3 rotation);
 
         /**
          * @brief Update the camera's view volume width (orthographic only).
@@ -185,12 +183,12 @@ namespace Heart
         void ComputeFrustum(glm::vec3 position);
 
     protected:
-        const glm::vec3 m_XAxis = { 1.f, 0.f, 0.f };
-        const glm::vec3 m_YAxis = { 0.f, 1.f, 0.f };
-        const glm::vec3 m_ZAxis = { 0.f, 0.f, 1.f };
-        const glm::vec3 m_DefaultUpVector = m_YAxis;
-        const glm::vec3 m_DefaultForwardVector = m_ZAxis;
-        const glm::vec3 m_DefaultRightVector = m_XAxis;
+        inline static constexpr glm::vec3 m_XAxis = { 1.f, 0.f, 0.f };
+        inline static constexpr glm::vec3 m_YAxis = { 0.f, 1.f, 0.f };
+        inline static constexpr glm::vec3 m_ZAxis = { 0.f, 0.f, 1.f };
+        inline static constexpr glm::vec3 m_DefaultUpVector = m_YAxis;
+        inline static constexpr glm::vec3 m_DefaultForwardVector = m_ZAxis;
+        inline static constexpr glm::vec3 m_DefaultRightVector = m_XAxis;
 
         f32 m_FOV, m_OrthoWidth, m_OrthoHeight, m_NearClip, m_FarClip, m_AspectRatio;
         ProjectionType m_ProjectionType;

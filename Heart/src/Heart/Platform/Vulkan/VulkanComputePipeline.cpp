@@ -22,13 +22,13 @@ namespace Heart
         auto computeShader = AssetManager::RetrieveAsset<ShaderAsset>(createInfo.ComputeShaderAsset)->GetShader();
         VkPipelineShaderStageCreateInfo shaderStage = VulkanCommon::DefineShaderStage(static_cast<VulkanShader*>(computeShader)->GetShaderModule(), VK_SHADER_STAGE_COMPUTE_BIT);
 
-        std::vector<VkDescriptorSetLayout> layouts;
-        layouts.emplace_back(m_DescriptorSet.GetLayout());
+        HVector<VkDescriptorSetLayout> layouts;
+        layouts.AddInPlace(m_DescriptorSet.GetLayout());
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        pipelineLayoutInfo.setLayoutCount = static_cast<u32>(layouts.size());
-        pipelineLayoutInfo.pSetLayouts = layouts.data();
+        pipelineLayoutInfo.setLayoutCount = static_cast<u32>(layouts.Count());
+        pipelineLayoutInfo.pSetLayouts = layouts.Data();
         pipelineLayoutInfo.pushConstantRangeCount = 0;
         pipelineLayoutInfo.pPushConstantRanges = nullptr;
         HE_VULKAN_CHECK_RESULT(vkCreatePipelineLayout(device.Device(), &pipelineLayoutInfo, nullptr, &m_PipelineLayout));
@@ -59,7 +59,7 @@ namespace Heart
             poolInfo.queryType = VK_QUERY_TYPE_TIMESTAMP;
             poolInfo.queryCount = 2;
 
-            for (u32 frame = 0; frame < MAX_FRAMES_IN_FLIGHT; frame++)
+            for (u32 frame = 0; frame < Renderer::FrameBufferCount; frame++)
                 HE_VULKAN_CHECK_RESULT(vkCreateQueryPool(device.Device(), &poolInfo, nullptr, &m_QueryPools[frame]));
         }
     }
@@ -76,7 +76,7 @@ namespace Heart
         vkFreeCommandBuffers(device.Device(), VulkanContext::GetGraphicsPool(), static_cast<u32>(m_InlineCommandBuffers.size()), m_InlineCommandBuffers.data());
 
         if (m_Info.AllowPerformanceQuerying)
-            for (u32 frame = 0; frame < MAX_FRAMES_IN_FLIGHT; frame++)
+            for (u32 frame = 0; frame < Renderer::FrameBufferCount; frame++)
                 vkDestroyQueryPool(device.Device(), m_QueryPools[frame], nullptr);
 
         m_DescriptorSet.Shutdown();
@@ -167,8 +167,8 @@ namespace Heart
             m_PipelineLayout,
             0, 1,
             sets,
-            static_cast<u32>(m_DescriptorSet.GetDynamicOffsets().size()),
-            m_DescriptorSet.GetDynamicOffsets().data()
+            static_cast<u32>(m_DescriptorSet.GetDynamicOffsets().Count()),
+            m_DescriptorSet.GetDynamicOffsets().Data()
         );
         vkCmdBindDescriptorSets(
             GetInlineCommandBuffer(),
@@ -176,8 +176,8 @@ namespace Heart
             m_PipelineLayout,
             0, 1,
             sets,
-            static_cast<u32>(m_DescriptorSet.GetDynamicOffsets().size()),
-            m_DescriptorSet.GetDynamicOffsets().data()
+            static_cast<u32>(m_DescriptorSet.GetDynamicOffsets().Count()),
+            m_DescriptorSet.GetDynamicOffsets().Data()
         );
 
         m_FlushedThisFrame = true;

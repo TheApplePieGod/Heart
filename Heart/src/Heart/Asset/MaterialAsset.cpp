@@ -7,7 +7,7 @@
 
 namespace Heart
 {
-    void MaterialAsset::Load()
+    void MaterialAsset::Load(bool async)
     {
         if (m_Loaded || m_Loading) return;
         m_Loading = true;
@@ -18,7 +18,7 @@ namespace Heart
         }
         catch (std::exception e)
         {
-            HE_ENGINE_LOG_ERROR("Failed to load material at path {0}", m_AbsolutePath);
+            HE_ENGINE_LOG_ERROR("Failed to load material at path {0}", m_AbsolutePath.Data());
             m_Loaded = true;
             m_Loading = false;
             return;
@@ -41,7 +41,14 @@ namespace Heart
         m_Valid = false;
     }
 
-    Material MaterialAsset::DeserializeMaterial(const std::string& path)
+    void MaterialAsset::Save(const Material& material)
+    {
+        SerializeMaterial(m_AbsolutePath, material);
+        if (m_Loaded)
+            m_Material = material;
+    }
+
+    Material MaterialAsset::DeserializeMaterial(const HStringView8& path)
     {
         Material material;
 
@@ -97,7 +104,7 @@ namespace Heart
         return material;
     }
 
-    void MaterialAsset::SerializeMaterial(const std::string& path, const Material& material)
+    void MaterialAsset::SerializeMaterial(const HStringView8& path, const Material& material)
     {
         nlohmann::json j;
 
@@ -123,22 +130,22 @@ namespace Heart
         {
             auto& field = j["textures"];
             field["albedo"]["path"] = AssetManager::GetPathFromUUID(material.m_AlbedoTextureAsset);
-            field["albedo"]["engineResource"] = AssetManager::IsAssetAnEngineResource(material.m_AlbedoTextureAsset);
+            field["albedo"]["engineResource"] = AssetManager::IsAssetAResource(material.m_AlbedoTextureAsset);
 
             field["metallicRoughness"]["path"] = AssetManager::GetPathFromUUID(material.m_MetallicRoughnessTextureAsset);
-            field["metallicRoughness"]["engineResource"] = AssetManager::IsAssetAnEngineResource(material.m_MetallicRoughnessTextureAsset);
+            field["metallicRoughness"]["engineResource"] = AssetManager::IsAssetAResource(material.m_MetallicRoughnessTextureAsset);
 
             field["normal"]["path"] = AssetManager::GetPathFromUUID(material.m_NormalTextureAsset);
-            field["normal"]["engineResource"] = AssetManager::IsAssetAnEngineResource(material.m_NormalTextureAsset);
+            field["normal"]["engineResource"] = AssetManager::IsAssetAResource(material.m_NormalTextureAsset);
 
             field["emissive"]["path"] = AssetManager::GetPathFromUUID(material.m_EmissiveTextureAsset);
-            field["emissive"]["engineResource"] = AssetManager::IsAssetAnEngineResource(material.m_EmissiveTextureAsset);
+            field["emissive"]["engineResource"] = AssetManager::IsAssetAResource(material.m_EmissiveTextureAsset);
 
             field["occlusion"]["path"] = AssetManager::GetPathFromUUID(material.m_OcclusionTextureAsset);
-            field["occlusion"]["engineResource"] = AssetManager::IsAssetAnEngineResource(material.m_OcclusionTextureAsset);
+            field["occlusion"]["engineResource"] = AssetManager::IsAssetAResource(material.m_OcclusionTextureAsset);
         }
 
-        std::ofstream file(path);
+        std::ofstream file(path.Data());
         file << j;
     }
 }

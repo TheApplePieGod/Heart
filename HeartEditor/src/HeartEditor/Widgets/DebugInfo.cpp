@@ -24,7 +24,7 @@ namespace Widgets
         if (!m_Open) return;
 
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 5.0f));
-        ImGui::Begin(m_Name.c_str(), &m_Open);
+        ImGui::Begin(m_Name.Data(), &m_Open);
 
         ImGui::Text("Basic Info:");
         ImGui::Indent();
@@ -37,11 +37,11 @@ namespace Widgets
         auto& viewport = (Widgets::Viewport&)Editor::GetWindow("Viewport");
         ImGui::Text("Viewport 1 Info:");
         ImGui::Indent();
-        glm::vec3 cameraPos =  viewport.GetCamera().GetPosition();
-        glm::vec3 cameraFor = viewport.GetCamera().GetForwardVector();
+        glm::vec3 cameraPos =  viewport.GetActiveCameraPosition();
+        glm::vec3 cameraFor = viewport.GetActiveCamera().GetForwardVector();
         ImGui::Text("Camera Pos: (%.2f, %.2f, %.2f)", cameraPos.x, cameraPos.y, cameraPos.z);
         ImGui::Text("Camera Dir: (%.2f, %.2f, %.2f)", cameraFor.x, cameraFor.y, cameraFor.z);
-        ImGui::Text("Camera Rot: (%.2f, %.2f)", viewport.GetCamera().GetXRotation(), viewport.GetCamera().GetYRotation());
+        ImGui::Text("Camera Rot: (%.2f, %.2f)", viewport.GetActiveCameraRotation().x, viewport.GetActiveCameraRotation().y);
         ImGui::Text("Mouse Pos: (%.1f, %.1f)", Heart::Input::GetScreenMousePos().x, Heart::Input::GetScreenMousePos().y);
         ImGui::Text("VP Mouse: (%.1f, %.1f)", viewport.GetRelativeMousePos().x, viewport.GetRelativeMousePos().y);
         ImGui::Text("VP Hover: %s", viewport.IsHovered() ? "true" : "false");
@@ -50,7 +50,7 @@ namespace Widgets
         ImGui::Text("CPU Timing:");
         ImGui::Indent();
         for (auto& pair : Heart::AggregateTimer::GetTimeMap())
-            ImGui::Text("%s: %.1fms", pair.first.c_str(), pair.second);
+            ImGui::Text("%s: %.1fms", pair.first.Data(), pair.second);
         ImGui::Unindent();
 
         ImGui::Text("GPU Timing:");
@@ -70,7 +70,7 @@ namespace Widgets
         ImGui::Text("Render Statistics:");
         ImGui::Indent();
         for (auto& pair : Heart::Renderer::GetStatistics())
-            ImGui::Text("%s: %lld", pair.first.c_str(), pair.second);
+            ImGui::Text("%s: %lld", pair.first.Data(), pair.second);
         ImGui::Unindent();
 
         ImGui::End();

@@ -1,8 +1,12 @@
 #pragma once
 
+#include "Heart/Container/HString8.h"
+
 namespace Heart
 {
     class Window;
+
+    // TODO: redo this class
     class ImGuiInstance
     {
     public:
@@ -10,6 +14,8 @@ namespace Heart
         ~ImGuiInstance();
 
         void Recreate();
+        void OverrideImGuiConfig(const HStringView8& newBasePath);
+        void ReloadImGuiConfig();
         
         void BeginFrame();
         void EndFrame();
@@ -20,6 +26,7 @@ namespace Heart
 
     private:
         bool m_Initialized = false;
+        HString8 m_ImGuiConfigPath = "";
         Ref<Window> m_Window;
     };
 }

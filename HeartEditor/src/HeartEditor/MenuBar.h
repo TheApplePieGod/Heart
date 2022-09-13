@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Heart/Container/HString8.h"
+
 namespace HeartEditor
 {
     class MenuBar
@@ -10,6 +12,7 @@ namespace HeartEditor
         void OnImGuiRender();
 
     private:
-
+        Heart::HString8 m_NewProjectPath;
+        Heart::HString8 m_NewProjectName;
     };
 }

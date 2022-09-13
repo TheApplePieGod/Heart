@@ -1,19 +1,20 @@
 #pragma once
 
+#include "Heart/Container/HString8.h"
+
 namespace Heart
 {
     class FilesystemUtils
     {
     public:
-        static std::string ReadFileToString(const std::string& path);
-        static unsigned char* ReadFile(const std::string& path, u32& outLength);
-        static std::string SaveAsDialog(const std::string& initialPath, const std::string& title, const std::string& defaultFileName, const std::string& extension);
-        static std::string OpenFileDialog(const std::string& initialPath, const std::string& title, const std::string& extension);
-        static std::string OpenFolderDialog(const std::string& initialPath, const std::string& title);
-        static std::string WideToNarrowString(const std::wstring& wide);
-        static std::wstring NarrowToWideString(const std::string& narrow);
+        static HString8 ReadFileToString(const HStringView8& path);
+        static unsigned char* ReadFile(const HStringView8& path, u32& outLength);
+        static HString8 GetParentDirectory(const HStringView8& path);
+        static HString8 SaveAsDialog(const HStringView8& initialPath, const HStringView8& title, const HStringView8& defaultFileName, const HStringView8& extension);
+        static HString8 OpenFileDialog(const HStringView8& initialPath, const HStringView8& title, const HStringView8& extension);
+        static HString8 OpenFolderDialog(const HStringView8& initialPath, const HStringView8& title);
     private:
-        static std::string Win32OpenDialog(const std::string& initialPath, const std::string& title, const std::string& defaultFileName, const std::string& extension, bool folder, bool save);
-        static std::string LinuxOpenDialog(const std::string& initialPath, const std::string& title, const std::string& defaultFileName, const std::string& extension, bool folder, bool save);
+        static HString8 Win32OpenDialog(const HStringView8& initialPath, const HStringView8& title, const HStringView8& defaultFileName, const HStringView8& extension, bool folder, bool save);
+        static HString8 LinuxOpenDialog(const HStringView8& initialPath, const HStringView8& title, const HStringView8& defaultFileName, const HStringView8& extension, bool folder, bool save);
     };
 }

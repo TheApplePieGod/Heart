@@ -7,15 +7,15 @@
 
 namespace Heart
 {
-    OpenGLShader::OpenGLShader(const std::string& path, Type shaderType)
+    OpenGLShader::OpenGLShader(const HStringView8& path, Type shaderType)
         : Shader(path, shaderType)
     {
         m_ShaderId = glCreateShader(OpenGLCommon::ShaderTypeToOpenGL(shaderType));
 
-        std::vector<u32> compiled = CompileSpirvFromFile(path, shaderType);
+        HVector<u32> compiled = CompileSpirvFromFile(path, shaderType);
         Reflect(shaderType, compiled);
 
-        glShaderBinary(1, &m_ShaderId, GL_SHADER_BINARY_FORMAT_SPIR_V, compiled.data(), static_cast<int>(compiled.size() * sizeof(u32)));
+        glShaderBinary(1, &m_ShaderId, GL_SHADER_BINARY_FORMAT_SPIR_V, compiled.Data(), static_cast<int>(compiled.Count() * sizeof(u32)));
         glSpecializeShader(m_ShaderId, "main", 0, nullptr, nullptr);
     }
 

@@ -14,7 +14,7 @@ namespace Heart
     class ShaderIncluder : public shaderc::CompileOptions::IncluderInterface
     {
     public:
-        ShaderIncluder(const std::string& basePath)
+        ShaderIncluder(const HStringView8& basePath)
             : m_BasePath(basePath)
         {}
 
@@ -24,10 +24,12 @@ namespace Heart
             const char* requestingSource,
             size_t includeDepth)
         {
-            std::string name(requestedSource);
-            std::string contents = FilesystemUtils::ReadFileToString(std::filesystem::path(m_BasePath).append(requestedSource).generic_u8string());
+            HString8 name(requestedSource);
+            HString8 contents = FilesystemUtils::ReadFileToString(
+                std::filesystem::path(m_BasePath.Data()).append(requestedSource).generic_u8string()
+            );
 
-            auto container = new std::array<std::string, 2>;
+            auto container = new std::array<HString8, 2>;
             (*container)[0] = name;
             (*container)[1] = contents;
 
@@ -35,26 +37,26 @@ namespace Heart
 
             data->user_data = container;
 
-            data->source_name = (*container)[0].data();
-            data->source_name_length = (*container)[0].size();
+            data->source_name = (*container)[0].Data();
+            data->source_name_length = (*container)[0].Count();
 
-            data->content = (*container)[1].data();
-            data->content_length = (*container)[1].size();
+            data->content = (*container)[1].Data();
+            data->content_length = (*container)[1].Count();
 
             return data;
         };
 
         void ReleaseInclude(shaderc_include_result* data) override
         {
-            delete static_cast<std::array<std::string, 2>*>(data->user_data);
+            delete static_cast<std::array<HString8, 2>*>(data->user_data);
             delete data;
         };
 
     private:
-        std::string m_BasePath;
+        HString8 m_BasePath;
     };
 
-    Ref<Shader> Shader::Create(const std::string& path, Type shaderType)
+    Ref<Shader> Shader::Create(const HStringView8& path, Type shaderType)
     {
         switch (Renderer::GetApiType())
         {
@@ -67,7 +69,7 @@ namespace Heart
         }
     }
 
-    std::vector<u32> Shader::CompileSpirvFromFile(const std::string& path, Type shaderType)
+    HVector<u32> Shader::CompileSpirvFromFile(const HStringView8& path, Type shaderType)
     {
         shaderc::Compiler compiler;
 		shaderc::CompileOptions options;
@@ -82,7 +84,7 @@ namespace Heart
             { options.SetTargetEnvironment(shaderc_target_env::shaderc_target_env_opengl, 0); } break;
         }
         
-        std::string basePath = std::filesystem::path(path).parent_path().generic_u8string();
+        HString8 basePath = std::filesystem::path(path.Data()).parent_path().generic_u8string();
         options.SetIncluder(CreateScope<ShaderIncluder>(basePath));
 
         #ifdef HE_DEBUG
@@ -90,10 +92,10 @@ namespace Heart
         #else
             options.SetOptimizationLevel(shaderc_optimization_level_performance);
         #endif
-        std::string sourceCode = FilesystemUtils::ReadFileToString(path);
-        if (sourceCode == "")
+        HString8 sourceCode = FilesystemUtils::ReadFileToString(path);
+        if (sourceCode.IsEmpty())
         {
-            HE_ENGINE_LOG_ERROR("Failed to load file {0}", path);
+            HE_ENGINE_LOG_ERROR("Failed to load file {0}", path.Data());
             HE_ENGINE_ASSERT(false);
         }
 
@@ -107,14 +109,14 @@ namespace Heart
             case Type::Compute: { shaderKind = shaderc_glsl_compute_shader; } break;
         }
 
-        shaderc::PreprocessedSourceCompilationResult preprocessedResult = compiler.PreprocessGlsl(sourceCode, shaderKind, path.c_str(), options);
+        shaderc::PreprocessedSourceCompilationResult preprocessedResult = compiler.PreprocessGlsl(sourceCode.Data(), shaderKind, path.Data(), options);
         if (preprocessedResult.GetCompilationStatus() != shaderc_compilation_status_success)
         {
             HE_ENGINE_LOG_ERROR("Shader preprocessing failed: {0}", preprocessedResult.GetErrorMessage());
             HE_ENGINE_ASSERT(false);
         }
 
-        std::string preprocessed(preprocessedResult.begin());
+        HString8 preprocessed(preprocessedResult.begin());
 
         // run the custom preprocessor over the source code
         // {
@@ -122,36 +124,36 @@ namespace Heart
         //     size_t tokenLen = strlen(token);
 
         //     size_t pos = preprocessed.find(token, 0);
-        //     while (pos != std::string::npos)
+        //     while (pos != HString::npos)
         //     {
         //         size_t eol = preprocessed.find_first_of("\r\n", pos);
-        //         if (eol == std::string::npos)
+        //         if (eol == HString::npos)
         //             eol = preprocessed.find_first_of("\n", pos);
-        //         HE_ENGINE_ASSERT(eol != std::string::npos, "Token must be followed by a newline");
+        //         HE_ENGINE_ASSERT(eol != HString::npos, "Token must be followed by a newline");
 
         //         size_t numStart = pos + tokenLen + 1;
         //         u32 bindingIndex = atoi(preprocessed.substr(numStart, eol - numStart).c_str());
-        //         m_PreprocessData.DynamicBindings.emplace_back(bindingIndex);
+        //         m_PreprocessData.DynamicBindings.AddInPlace(bindingIndex);
 
         //         pos = preprocessed.find(token, eol);
         //     }
         // }
 
-        shaderc::SpvCompilationResult compiled = compiler.CompileGlslToSpv(preprocessed, shaderKind, path.c_str(), options);
+        shaderc::SpvCompilationResult compiled = compiler.CompileGlslToSpv(preprocessed.Data(), shaderKind, path.Data(), options);
         if (compiled.GetCompilationStatus() != shaderc_compilation_status_success)
         {
             HE_ENGINE_LOG_ERROR("Shader compilation failed: {0}", compiled.GetErrorMessage());
             HE_ENGINE_ASSERT(false);
         }
 
-        return std::vector<u32>(compiled.cbegin(), compiled.cend());
+        return HVector<u32>((u32*)compiled.cbegin(), (u32*)compiled.cend());
     }
 
-    void Shader::Reflect(Type shaderType, const std::vector<u32>& compiledData)
+    void Shader::Reflect(Type shaderType, const HVector<u32>& compiledData)
     {
-        m_ReflectionData.clear();
+        m_ReflectionData.Clear();
 
-        spirv_cross::Compiler compiler(compiledData);
+        spirv_cross::Compiler compiler(compiledData.Data(), compiledData.Count());
 		spirv_cross::ShaderResources resources = compiler.get_shader_resources();
 
         ShaderResourceAccessType accessType = ShaderResourceAccessType::Vertex;
@@ -160,7 +162,7 @@ namespace Heart
         else if (shaderType == Type::Compute)
             accessType = ShaderResourceAccessType::Compute;
 
-		HE_ENGINE_LOG_TRACE("GLSL {0} shader @ {1}", TypeStrings[static_cast<u16>(shaderType)], m_Path);
+		HE_ENGINE_LOG_TRACE("GLSL {0} shader @ {1}", TypeStrings[static_cast<u16>(shaderType)], m_Path.Data());
 		HE_ENGINE_LOG_TRACE("    {0} uniform buffers", resources.uniform_buffers.size());
         HE_ENGINE_LOG_TRACE("    {0} storage buffers", resources.storage_buffers.size());
 		HE_ENGINE_LOG_TRACE("    {0} resources", resources.sampled_images.size());
@@ -175,7 +177,7 @@ namespace Heart
             u32 set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
 			size_t memberCount = bufferType.member_types.size();
 
-            m_ReflectionData.emplace_back(resource.id, ShaderResourceType::UniformBuffer, accessType, binding, set, 1);
+            m_ReflectionData.AddInPlace(resource.id, ShaderResourceType::UniformBuffer, accessType, binding, set, 1);
 
 			HE_ENGINE_LOG_TRACE("    {0}", resource.name);
 			HE_ENGINE_LOG_TRACE("      Size = {0}", bufferSize);
@@ -196,7 +198,7 @@ namespace Heart
             u32 set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
 			size_t memberCount = bufferType.member_types.size();
 
-            m_ReflectionData.emplace_back(resource.id, ShaderResourceType::StorageBuffer, accessType, binding, set, 1);
+            m_ReflectionData.AddInPlace(resource.id, ShaderResourceType::StorageBuffer, accessType, binding, set, 1);
 
 			HE_ENGINE_LOG_TRACE("    {0}", resource.name);
 			HE_ENGINE_LOG_TRACE("      Size = {0}", bufferSize);
@@ -215,7 +217,7 @@ namespace Heart
 			u32 binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
             u32 set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
             
-            m_ReflectionData.emplace_back(resource.id, ShaderResourceType::Texture, accessType, binding, set, imageType.array.empty() ? 1 : imageType.array[0]);
+            m_ReflectionData.AddInPlace(resource.id, ShaderResourceType::Texture, accessType, binding, set, imageType.array.empty() ? 1 : imageType.array[0]);
 
 			HE_ENGINE_LOG_TRACE("    Image", resource.name);
             HE_ENGINE_LOG_TRACE("      ArrayCount = {0}", imageType.array[0]);
@@ -234,7 +236,7 @@ namespace Heart
             u32 set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
             u32 attachmentIndex = compiler.get_decoration(resource.id, spv::DecorationInputAttachmentIndex);
             
-            m_ReflectionData.emplace_back(resource.id, ShaderResourceType::SubpassInput, accessType, binding, set, 1);
+            m_ReflectionData.AddInPlace(resource.id, ShaderResourceType::SubpassInput, accessType, binding, set, 1);
 
 			HE_ENGINE_LOG_TRACE("    Input", resource.name);
             HE_ENGINE_LOG_TRACE("      Set = {0}", set);

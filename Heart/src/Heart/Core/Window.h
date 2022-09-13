@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Heart/Events/EventEmitter.h"
+#include "Heart/Container/HString8.h"
 
 class GLFWwindow;
 namespace Heart
@@ -8,10 +9,10 @@ namespace Heart
     /*! @brief Window creation settings. */
     struct WindowCreateInfo
     {
-        std::string Title;
+        HString8 Title;
         u32 Width, Height;
 
-        WindowCreateInfo(const std::string& title = "Window",
+        WindowCreateInfo(const HStringView8& title = "Window",
 			        u32 width = 1920,
 			        u32 height = 1080)
 			: Title(title), Width(width), Height(height)
@@ -48,6 +49,9 @@ namespace Heart
         /*! @brief Enable the cursor while this window is focused. */
         void EnableCursor();
 
+        /*! @brief Updates the window's title. */
+        void SetWindowTitle(const char* newTitle);
+
         /**
          * @brief Set the fullscreen status of the window.
          * 
@@ -74,7 +78,7 @@ namespace Heart
         inline u32 GetHeight() const { return m_WindowData.Height; }
 
         /*! @brief Get the window's current title. */
-        inline std::string GetTitle() const { return m_WindowData.Title; }
+        inline HString8 GetTitle() const { return m_WindowData.Title; }
 
         /*! @brief Get the window's elapsed lifetime in milliseconds. */
         double GetWindowTime();
@@ -105,15 +109,15 @@ namespace Heart
     private:
         struct WindowData
         {
-            std::string Title = "";
+            HString8 Title = "";
             u32 Width, Height = 0;
 
             EventCallbackFunction EmitEvent;
         };
 
     private:
-        static int s_WindowCount;
-        static Ref<Window> s_MainWindow;
+        inline static int s_WindowCount = 0;
+        inline static Ref<Window> s_MainWindow = nullptr;
 
     private:
         Ref<GraphicsContext> m_GraphicsContext;

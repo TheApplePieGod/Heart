@@ -1,6 +1,9 @@
 #include "hepch.h"
 #include "Entity.h"
 
+#include "Heart/Container/HString.h"
+#include "Heart/Container/Variant.h"
+
 namespace Heart
 {
     Entity::Entity(Scene* scene, entt::entity handle)
@@ -18,8 +21,7 @@ namespace Heart
 
     void Entity::Destroy()
     {
-        m_Scene->m_CachedTransforms.erase(m_EntityHandle);
-        m_Scene->m_Registry.destroy(m_EntityHandle);
+        m_Scene->DestroyEntity(*this);
     }
 
     const glm::mat4x4& Entity::GetWorldTransformMatrix()
@@ -72,5 +74,68 @@ namespace Heart
         comp.Rotation = rot;
         comp.Scale = scale;
         m_Scene->CacheEntityTransform(*this);
+    }
+
+    const HVector<UUID>& Entity::GetChildren()
+    {
+        if (!HasComponent<ChildrenComponent>())
+        {
+            auto& comp = AddComponent<ChildrenComponent>();
+            return comp.Children;
+        }
+        return GetComponent<ChildrenComponent>().Children;
+    }
+
+    void Entity::AddChild(UUID uuid)
+    {
+        Entity child = m_Scene->GetEntityFromUUID(uuid);
+        if (!child.IsValid()) return;
+        m_Scene->AssignRelationship(*this, child);
+    }
+
+    void Entity::RemoveChild(UUID uuid)
+    {
+        Entity child = m_Scene->GetEntityFromUUID(uuid);
+        if (!child.IsValid()) return;
+        m_Scene->UnparentEntity(child);
+    }
+
+    UUID Entity::GetParent() const
+    {
+        if (!HasComponent<ParentComponent>())
+            return 0;
+        return GetComponent<ParentComponent>().ParentUUID;
+    }
+
+    void Entity::SetParent(UUID uuid)
+    {
+        Entity parent = m_Scene->GetEntityFromUUID(uuid);
+        if (!parent.IsValid()) return;
+        m_Scene->AssignRelationship(parent, *this);
+    }
+
+    Variant Entity::GetScriptProperty(const HStringView8& name) const
+    {
+        auto& comp = GetComponent<ScriptComponent>();
+        return comp.Instance.GetFieldValue(name);
+    }
+
+    void Entity::SetScriptProperty(const HStringView8& name, const Variant& value)
+    {
+        auto& comp = GetComponent<ScriptComponent>();
+        comp.Instance.SetFieldValue(name, value);
+    }
+
+    void Entity::SetIsPrimaryCameraEntity(bool primary)
+    {
+        if (primary)
+        {
+            auto prevPrimary = m_Scene->GetPrimaryCameraEntity();
+            if (prevPrimary.IsValid())
+                prevPrimary.RemoveComponent<PrimaryCameraComponent>();
+            AddComponent<PrimaryCameraComponent>();
+        }
+        else if (HasComponent<PrimaryCameraComponent>())
+            RemoveComponent<PrimaryCameraComponent>();
     }
 }

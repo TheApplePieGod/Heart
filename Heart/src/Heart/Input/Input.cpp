@@ -7,13 +7,6 @@
 
 namespace Heart
 {
-    double Input::s_MouseDeltaX = 0.0;
-    double Input::s_MouseDeltaY = 0.0;
-    double Input::s_ScrollOffsetX = 0.0;
-    double Input::s_ScrollOffsetY = 0.0;
-    double Input::s_LastMousePosX = 0.0;
-    double Input::s_LastMousePosY = 0.0;
-
     bool Input::IsKeyPressed(KeyCode key)
     {
         GLFWwindow* window = static_cast<GLFWwindow*>(App::Get().GetWindow().GetWindowHandle());

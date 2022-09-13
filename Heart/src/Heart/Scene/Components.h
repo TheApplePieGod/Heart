@@ -1,5 +1,8 @@
 #pragma once
 
+#include "Heart/Scripting/ScriptInstance.h"
+#include "Heart/Container/HVector.hpp"
+#include "Heart/Container/HString.h"
 #include "Heart/Core/UUID.h"
 #include "glm/vec3.hpp"
 #include "glm/vec4.hpp"
@@ -10,9 +13,13 @@
 namespace Heart
 {
     // -----------------------
-    // To have it officially written, the components all entities MUST have are:
+    // Components all entities MUST have are:
     // Id, Name, Transform
     // -----------------------
+    // When adding new components, make sure to update:
+    // Scene::DuplicateEntity, Scene::Clone, SceneAsset::Serialize & Deserialize
+    // -----------------------
+    
 
     struct IdComponent
     {
@@ -21,7 +28,7 @@ namespace Heart
 
     struct NameComponent
     {
-        std::string Name;
+        HString Name;
     };
 
     struct ParentComponent
@@ -29,9 +36,9 @@ namespace Heart
         UUID ParentUUID;
     };
 
-    struct ChildComponent
+    struct ChildrenComponent
     {
-        std::vector<UUID> Children;
+        HVector<UUID> Children;
     };
 
     struct TransformComponent
@@ -56,12 +63,12 @@ namespace Heart
     struct MeshComponent
     {
         UUID Mesh = 0;
-        std::vector<UUID> Materials;
+        HVector<UUID> Materials;
     };
 
     struct LightComponent
     {
-        enum class Type
+        enum class Type : u32
         {
             Disabled = 0,
             Directional = 1,
@@ -73,10 +80,24 @@ namespace Heart
 
         // TODO: ambient & specular colors
         glm::vec4 Color = { 1.f, 1.f, 1.f, 1.f }; // intensity is stored in the alpha component of the color
-
         Type LightType = Type::Point;
         float ConstantAttenuation = 1.0f;
         float LinearAttenuation = 0.7f;
         float QuadraticAttenuation = 1.8f;
+    };
+
+    struct ScriptComponent
+    {
+        ScriptInstance Instance;
+    };
+
+    struct PrimaryCameraComponent
+    {};
+
+    struct CameraComponent
+    {
+        f32 FOV = 70.f;
+        f32 NearClipPlane = 0.1f;
+        f32 FarClipPlane = 500.f;
     };
 }

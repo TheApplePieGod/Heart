@@ -1,7 +1,10 @@
 #pragma once
 
+#include "Heart/Container/HVector.hpp"
+
 namespace Heart
 {
+    /*! @brief The possible data types for elements within a buffer. */
     enum class BufferDataType
     {
         None = 0,
@@ -14,14 +17,24 @@ namespace Heart
         Mat3, Mat4  
     };
 
-    // static should be used for anything that has completely unchanging data and dynamic should be used if otherwise
+    /**
+     * @brief The usage types for buffers.
+     *
+     * Static should be used for anything that has completely unchanging data and
+     * dynamic should be used otherwise.
+     */
     enum class BufferUsageType
     {
         None = 0,
         Static, Dynamic
     };
 
-    // returns the size in bytes
+    /**
+     * @brief Get the size of a buffer data type.
+     *
+     * @param type The buffer data type.
+     * @return The size of the type in bytes.
+     */
     static u32 BufferDataTypeSize(BufferDataType type)
     {
         switch (type)
@@ -47,6 +60,15 @@ namespace Heart
         return 0;
     }
 
+    /**
+     * @brief Get the number of components in a buffer data type.
+     *
+     * For example, a Float2 represents two individual float components,
+     * so this function would return 2.
+     *
+     * @param type The buffer data type.
+     * @return The number of components.
+     */
     static u32 BufferDataTypeComponents(BufferDataType type)
     {
         switch (type)
@@ -72,8 +94,14 @@ namespace Heart
         return 0;
     }
 
+    /**
+     * @brief The structure encompassing each element in a buffer layout.
+     *
+     * @todo Make some of these fields const?
+     */
     struct BufferLayoutElement
     {
+        BufferLayoutElement() = default;
         BufferLayoutElement(u32 size) // for padding fields
             : CalculatedSize(size)
         {}
@@ -97,17 +125,17 @@ namespace Heart
         }
 
         inline u32 GetStride() const { return m_CalculatedStride; }
-        inline const std::vector<BufferLayoutElement>& GetElements() const { return m_Elements; }
+        inline const HVector<BufferLayoutElement>& GetElements() const { return m_Elements; }
     
     private:
         u32 CalculateStrideAndOffsets();
 
     private:
         u32 m_CalculatedStride;
-        std::vector<BufferLayoutElement> m_Elements;
+        HVector<BufferLayoutElement> m_Elements;
     };
 
-    class Buffer // effectively a uniformbuffer
+    class Buffer
     {
     public:
         enum class Type

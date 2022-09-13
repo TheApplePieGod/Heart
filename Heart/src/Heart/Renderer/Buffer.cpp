@@ -18,7 +18,7 @@ namespace Heart
         }
 
         if (stride % 4 != 0)
-            HE_ENGINE_LOG_WARN("Buffer layout of length {0} has stride {1} that is not four byte aligned", m_Elements.size(), stride);
+            HE_ENGINE_LOG_WARN("Buffer layout of length {0} has stride {1} that is not four byte aligned", m_Elements.Count(), stride);
 
         return stride;
     }

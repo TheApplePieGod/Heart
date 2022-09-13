@@ -25,10 +25,10 @@ namespace Heart
         };
 
     public:
-        Mesh(const std::vector<Vertex>& vertices, const std::vector<u32>& indices, u32 materialIndex);
+        Mesh(const HVector<Vertex>& vertices, const HVector<u32>& indices, u32 materialIndex);
         Mesh() = default;
 
-        const std::vector<Vertex>& GetVertices() const { return m_Vertices; }
+        const HVector<Vertex>& GetVertices() const { return m_Vertices; }
         Buffer* GetVertexBuffer() { return m_VertexBuffer.get(); }
         Buffer* GetIndexBuffer() { return m_IndexBuffer.get(); }
         u32 GetMaterialIndex() const { return m_MaterialIndex; }
@@ -50,8 +50,8 @@ namespace Heart
         void CalculateBounds();
 
     private:
-        std::vector<Vertex> m_Vertices;
-        std::vector<u32> m_Indices;
+        HVector<Vertex> m_Vertices;
+        HVector<u32> m_Indices;
         u32 m_MaterialIndex;
         Ref<Buffer> m_VertexBuffer;
         Ref<Buffer> m_IndexBuffer;

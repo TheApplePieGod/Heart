@@ -9,7 +9,7 @@ namespace Widgets
     class DebugInfo : public Widget
     {
     public:
-        DebugInfo(const std::string& name, bool initialOpen)
+        DebugInfo(const Heart::HStringView8& name, bool initialOpen)
             : Widget(name, initialOpen)
         {}
 

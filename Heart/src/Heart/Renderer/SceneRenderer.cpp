@@ -119,7 +119,7 @@ namespace Heart
             { BufferDataType::Float4 }, // position
             { BufferDataType::Float4 }, // rotation
             { BufferDataType::Float4 }, // color
-            { BufferDataType::Int }, // light type
+            { BufferDataType::UInt }, // light type
             { BufferDataType::Float }, // constant attenuation
             { BufferDataType::Float }, // linear attenuation
             { BufferDataType::Float } // quadratic attenuation
@@ -166,7 +166,7 @@ namespace Heart
 
         // Create compute pipelines
         ComputePipelineCreateInfo compCreate = {
-            AssetManager::GetAssetUUID("IndirectCull.comp", true),
+            AssetManager::GetAssetUUID("engine/IndirectCull.comp", true),
             true
         };
         m_ComputeCullPipeline = ComputePipeline::Create(compCreate);
@@ -239,11 +239,11 @@ namespace Heart
         // Create the main framebuffer
         FramebufferCreateInfo fbCreateInfo = {
             {
-                { { -1.f, 0.f, 0.f, 0.f }, true, Heart::ColorFormat::R32F, m_EntityIdsTexture }, // entity id [0]
-                { { 0.f, 0.f, 0.f, 0.f }, false, Heart::ColorFormat::RGBA16F }, // transparency data [1]
-                { { 1.f, 0.f, 0.f, 0.f }, false, Heart::ColorFormat::R16F }, // transparency data [2]
-                { { 0.f, 0.f, 0.f, 0.f }, false, Heart::ColorFormat::RGBA16F, m_PreBloomTexture }, // pre-bloom target [3]
-                { { 0.f, 0.f, 0.f, 0.f }, false, Heart::ColorFormat::RGBA16F, m_BrightColorsTexture }, // bright colors target [4]
+                { { -1.f, 0.f, 0.f, 0.f }, true, ColorFormat::R32F, m_EntityIdsTexture }, // entity id [0]
+                { { 0.f, 0.f, 0.f, 0.f }, false, ColorFormat::RGBA16F }, // transparency data [1]
+                { { 1.f, 0.f, 0.f, 0.f }, false, ColorFormat::R16F }, // transparency data [2]
+                { { 0.f, 0.f, 0.f, 0.f }, false, ColorFormat::RGBA16F, m_PreBloomTexture }, // pre-bloom target [3]
+                { { 0.f, 0.f, 0.f, 0.f }, false, ColorFormat::RGBA16F, m_BrightColorsTexture }, // bright colors target [4]
             },
             {
                 {}
@@ -264,11 +264,11 @@ namespace Heart
 
         // Register pipelines
         GraphicsPipelineCreateInfo envMapPipeline = {
-            AssetManager::GetAssetUUID("Skybox.vert", true),
-            AssetManager::GetAssetUUID("Skybox.frag", true),
+            AssetManager::GetAssetUUID("engine/Skybox.vert", true),
+            AssetManager::GetAssetUUID("engine/Skybox.frag", true),
             true,
             VertexTopology::TriangleList,
-            Heart::Mesh::GetVertexLayout(),
+            Mesh::GetVertexLayout(),
             { { false }, { false } },
             false,
             false,
@@ -277,8 +277,8 @@ namespace Heart
             0
         };
         GraphicsPipelineCreateInfo gridPipeline = {
-            AssetManager::GetAssetUUID("Grid.vert", true),
-            AssetManager::GetAssetUUID("Grid.frag", true),
+            AssetManager::GetAssetUUID("engine/Grid.vert", true),
+            AssetManager::GetAssetUUID("engine/Grid.frag", true),
             true,
             VertexTopology::LineList,
             { BufferDataType::Float3 },
@@ -290,11 +290,11 @@ namespace Heart
             1
         };
         GraphicsPipelineCreateInfo pbrPipeline = {
-            AssetManager::GetAssetUUID("PBR.vert", true),
-            AssetManager::GetAssetUUID("PBR.frag", true),
+            AssetManager::GetAssetUUID("engine/PBR.vert", true),
+            AssetManager::GetAssetUUID("engine/PBR.frag", true),
             true,
             VertexTopology::TriangleList,
-            Heart::Mesh::GetVertexLayout(),
+            Mesh::GetVertexLayout(),
             { { false }, { false }, { false } },
             true,
             true,
@@ -303,11 +303,11 @@ namespace Heart
             2
         };
         GraphicsPipelineCreateInfo transparencyColorPipeline = {
-            AssetManager::GetAssetUUID("PBR.vert", true),
-            AssetManager::GetAssetUUID("PBRTransparentColor.frag", true),
+            AssetManager::GetAssetUUID("engine/PBR.vert", true),
+            AssetManager::GetAssetUUID("engine/PBRTransparentColor.frag", true),
             true,
             VertexTopology::TriangleList,
-            Heart::Mesh::GetVertexLayout(),
+            Mesh::GetVertexLayout(),
             { { false }, { true, BlendFactor::One, BlendFactor::One, BlendFactor::One, BlendFactor::One }, { true, BlendFactor::Zero, BlendFactor::OneMinusSrcColor, BlendFactor::Zero, BlendFactor::OneMinusSrcAlpha } },
             true,
             true,
@@ -316,11 +316,11 @@ namespace Heart
             3
         };
         GraphicsPipelineCreateInfo transparencyCompositePipeline = {
-            AssetManager::GetAssetUUID("FullscreenTriangle.vert", true),
-            AssetManager::GetAssetUUID("TransparentComposite.frag", true),
+            AssetManager::GetAssetUUID("engine/FullscreenTriangle.vert", true),
+            AssetManager::GetAssetUUID("engine/TransparentComposite.frag", true),
             false,
             VertexTopology::TriangleList,
-            Heart::Mesh::GetVertexLayout(),
+            Mesh::GetVertexLayout(),
             { { true, BlendFactor::OneMinusSrcAlpha, BlendFactor::SrcAlpha, BlendFactor::SrcAlpha, BlendFactor::OneMinusSrcAlpha }, { false } },
             true,
             false,
@@ -338,7 +338,7 @@ namespace Heart
         // Create the bloom framebuffers
         FramebufferCreateInfo bloomFbCreateInfo = {
             {
-                { { 0.f, 0.f, 0.f, 0.f }, false, Heart::ColorFormat::None, m_BloomBufferTexture, 0, 0 },
+                { { 0.f, 0.f, 0.f, 0.f }, false, ColorFormat::None, m_BloomBufferTexture, 0, 0 },
             },
             {
                 {}
@@ -352,11 +352,11 @@ namespace Heart
         };
 
         GraphicsPipelineCreateInfo bloomHorizontal = {
-            AssetManager::GetAssetUUID("Bloom.vert", true),
-            AssetManager::GetAssetUUID("BloomHorizontal.frag", true),
+            AssetManager::GetAssetUUID("engine/Bloom.vert", true),
+            AssetManager::GetAssetUUID("engine/BloomHorizontal.frag", true),
             false,
             VertexTopology::TriangleList,
-            Heart::Mesh::GetVertexLayout(),
+            Mesh::GetVertexLayout(),
             { { false } },
             false,
             false,
@@ -366,18 +366,18 @@ namespace Heart
         };
         
         GraphicsPipelineCreateInfo bloomHorizontalUpscale = bloomHorizontal;
-        bloomHorizontalUpscale.FragmentShaderAsset = AssetManager::GetAssetUUID("BloomHorizontalUpscale.frag", true);
-        bloomHorizontalUpscale.BlendStates.push_back({ false });
+        bloomHorizontalUpscale.FragmentShaderAsset = AssetManager::GetAssetUUID("engine/BloomHorizontalUpscale.frag", true);
+        bloomHorizontalUpscale.BlendStates.Add({ false });
 
         GraphicsPipelineCreateInfo bloomHorizontalDoubleUpscale = bloomHorizontal;
-        bloomHorizontalDoubleUpscale.FragmentShaderAsset = AssetManager::GetAssetUUID("BloomHorizontalDoubleUpscale.frag", true);
-        bloomHorizontalDoubleUpscale.BlendStates.push_back({ false });
+        bloomHorizontalDoubleUpscale.FragmentShaderAsset = AssetManager::GetAssetUUID("engine/BloomHorizontalDoubleUpscale.frag", true);
+        bloomHorizontalDoubleUpscale.BlendStates.Add({ false });
 
         GraphicsPipelineCreateInfo bloomVertical = bloomHorizontal;
-        bloomVertical.FragmentShaderAsset = AssetManager::GetAssetUUID("BloomVertical.frag", true);
+        bloomVertical.FragmentShaderAsset = AssetManager::GetAssetUUID("engine/BloomVertical.frag", true);
 
         GraphicsPipelineCreateInfo bloomVerticalComposite = bloomHorizontal;
-        bloomVerticalComposite.FragmentShaderAsset = AssetManager::GetAssetUUID("BloomVerticalComposite.frag", true);
+        bloomVerticalComposite.FragmentShaderAsset = AssetManager::GetAssetUUID("engine/BloomVerticalComposite.frag", true);
 
         // Start at the lowest mip level
         for (int i = m_BloomMipCount - 1; i >= 0; i--)
@@ -394,10 +394,10 @@ namespace Heart
             if (i < m_BloomMipCount - 1)
             {
                 // Starting after the bottom mip level, push back the second color attachment which will be the upsample buffer
-                bloomFbCreateInfo.ColorAttachments.push_back(
-                    { { 0.f, 0.f, 0.f, 0.f }, false, Heart::ColorFormat::None, m_BloomUpsampleBufferTexture, 0, static_cast<u32>(i) }
+                bloomFbCreateInfo.ColorAttachments.Add(
+                    { { 0.f, 0.f, 0.f, 0.f }, false, ColorFormat::None, m_BloomUpsampleBufferTexture, 0, static_cast<u32>(i) }
                 );
-                bloomFbCreateInfo.Subpasses[0].OutputAttachments.push_back(
+                bloomFbCreateInfo.Subpasses[0].OutputAttachments.Add(
                     { SubpassAttachmentType::Color, 1 }
                 );
             }
@@ -411,8 +411,8 @@ namespace Heart
                 horizontal->RegisterGraphicsPipeline("bloomHorizontal", bloomHorizontalDoubleUpscale);
 
             // Get rid of the second color attachment for the vertical pass
-            bloomFbCreateInfo.ColorAttachments.resize(1);
-            bloomFbCreateInfo.Subpasses[0].OutputAttachments.resize(1);
+            bloomFbCreateInfo.ColorAttachments.Resize(1);
+            bloomFbCreateInfo.Subpasses[0].OutputAttachments.Resize(1);
 
             if (i == 0) // If we are on the last iteration, output directly to the output texture
             {
@@ -428,20 +428,20 @@ namespace Heart
             else
                 vertical->RegisterGraphicsPipeline("bloomVertical", bloomVertical);
 
-            m_BloomFramebuffers.push_back({ horizontal, vertical });
+            m_BloomFramebuffers.Add({ horizontal, vertical });
         }
     }
 
     void SceneRenderer::CleanupFramebuffers()
     {
         m_MainFramebuffer.reset();
-        m_BloomFramebuffers.clear();
+        m_BloomFramebuffers.Clear();
     }
 
     void SceneRenderer::RenderScene(GraphicsContext& context, Scene* scene, const Camera& camera, glm::vec3 cameraPosition, const SceneRenderSettings& renderSettings)
     {
         HE_PROFILE_FUNCTION();
-        auto timer = Heart::AggregateTimer("SceneRenderer::RenderScene");
+        auto timer = AggregateTimer("SceneRenderer::RenderScene");
 
         HE_ENGINE_ASSERT(scene, "Scene cannot be nullptr");
 
@@ -454,9 +454,12 @@ namespace Heart
         m_Camera = &camera;
         m_EnvironmentMap = scene->GetEnvironmentMap();
         m_IndirectBatches.clear();
-        m_DeferredIndirectBatches.clear();
+        m_DeferredIndirectBatches.Clear();
         for (auto& list : m_EntityListPool)
-            list.clear();
+            list.Clear();
+
+        // Update entity id cpu copy status
+        m_MainFramebuffer->UpdateColorAttachmentCPUVisibliity(0, m_SceneRenderSettings.CopyEntityIdsTextureToCPU);
 
         // Set the global data for this frame
         FrameData frameData = {
@@ -554,6 +557,7 @@ namespace Heart
         HE_PROFILE_FUNCTION();
 
         m_RenderedInstanceCount = 0;
+        bool async = m_SceneRenderSettings.AsyncAssetLoading;
 
         // Loop over each mesh component / submesh, hash the mesh & material, and place the entity in a batch
         // associated with the mesh & material. At this stage, Batch.First is unused and Batch.Count indicates
@@ -562,10 +566,10 @@ namespace Heart
         auto group = m_Scene->GetRegistry().group<TransformComponent, MeshComponent>();
         for (auto entity : group)
         {
-            auto [transform, mesh] = group.get<TransformComponent, MeshComponent>(entity);
+            auto& [transform, mesh] = group.get<TransformComponent, MeshComponent>(entity);
 
             // Skip invalid meshes
-            auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>(mesh.Mesh);
+            auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>(mesh.Mesh, async);
             if (!meshAsset || !meshAsset->IsValid()) continue;
 
             for (u32 i = 0; i < meshAsset->GetSubmeshCount(); i++)
@@ -574,7 +578,7 @@ namespace Heart
 
                 // Create a hash based on the submesh and its material if applicable
                 u64 hash = mesh.Mesh ^ (i * 45787893);
-                if (meshData.GetMaterialIndex() < mesh.Materials.size())
+                if (meshData.GetMaterialIndex() < mesh.Materials.Count())
                     hash ^= mesh.Materials[meshData.GetMaterialIndex()];
 
                 // Get/create a batch associated with this hash
@@ -585,13 +589,13 @@ namespace Heart
                 {
                     // Retrieve a vector from the pool
                     batch.EntityListIndex = batchIndex;
-                    if (batchIndex >= m_EntityListPool.size())
-                        m_EntityListPool.emplace_back();
+                    if (batchIndex >= m_EntityListPool.Count())
+                        m_EntityListPool.AddInPlace();
 
                     // Set the material & mesh associated with this batch
                     batch.Mesh = &meshData;
                     batch.Material = &meshAsset->GetDefaultMaterials()[meshData.GetMaterialIndex()]; // default material
-                    if (mesh.Materials.size() > meshData.GetMaterialIndex())
+                    if (mesh.Materials.Count() > meshData.GetMaterialIndex())
                     {
                         auto materialAsset = AssetManager::RetrieveAsset<MaterialAsset>(mesh.Materials[meshData.GetMaterialIndex()]);
                         if (materialAsset && materialAsset->IsValid())
@@ -605,7 +609,7 @@ namespace Heart
                 m_RenderedInstanceCount++;
 
                 // Push the associated entity to the associated vector from the pool
-                m_EntityListPool[batch.EntityListIndex].emplace_back(static_cast<u32>(entity));
+                m_EntityListPool[batch.EntityListIndex].AddInPlace(static_cast<u32>(entity));
             }
         }
 
@@ -658,25 +662,25 @@ namespace Heart
                 {
                     auto& materialData = pair.second.Material->GetMaterialData();
 
-                    auto albedoAsset = AssetManager::RetrieveAsset<TextureAsset>(pair.second.Material->GetAlbedoTexture());
+                    auto albedoAsset = AssetManager::RetrieveAsset<TextureAsset>(pair.second.Material->GetAlbedoTexture(), async);
                     materialData.SetHasAlbedo(albedoAsset && albedoAsset->IsValid());
 
-                    auto metallicRoughnessAsset = AssetManager::RetrieveAsset<TextureAsset>(pair.second.Material->GetMetallicRoughnessTexture());
+                    auto metallicRoughnessAsset = AssetManager::RetrieveAsset<TextureAsset>(pair.second.Material->GetMetallicRoughnessTexture(), async);
                     materialData.SetHasMetallicRoughness(metallicRoughnessAsset && metallicRoughnessAsset->IsValid());
 
-                    auto normalAsset = AssetManager::RetrieveAsset<TextureAsset>(pair.second.Material->GetNormalTexture());
+                    auto normalAsset = AssetManager::RetrieveAsset<TextureAsset>(pair.second.Material->GetNormalTexture(), async);
                     materialData.SetHasNormal(normalAsset && normalAsset->IsValid());
 
-                    auto emissiveAsset = AssetManager::RetrieveAsset<TextureAsset>(pair.second.Material->GetEmissiveTexture());
+                    auto emissiveAsset = AssetManager::RetrieveAsset<TextureAsset>(pair.second.Material->GetEmissiveTexture(), async);
                     materialData.SetHasEmissive(emissiveAsset && emissiveAsset->IsValid());
 
-                    auto occlusionAsset = AssetManager::RetrieveAsset<TextureAsset>(pair.second.Material->GetOcclusionTexture());
+                    auto occlusionAsset = AssetManager::RetrieveAsset<TextureAsset>(pair.second.Material->GetOcclusionTexture(), async);
                     materialData.SetHasOcclusion(occlusionAsset && occlusionAsset->IsValid());
 
                     m_MaterialDataBuffer->SetElements(&materialData, 1, objectId);
                 }
                 else
-                    m_MaterialDataBuffer->SetElements(&AssetManager::RetrieveAsset<MaterialAsset>("DefaultMaterial.hemat", true)->GetMaterial().GetMaterialData(), 1, objectId);
+                    m_MaterialDataBuffer->SetElements(&AssetManager::RetrieveAsset<MaterialAsset>("engine/DefaultMaterial.hemat", true)->GetMaterial().GetMaterialData(), 1, objectId);
 
                 objectId++;
             }
@@ -713,7 +717,7 @@ namespace Heart
         m_MainFramebuffer->BindShaderBufferResource(0, 0, 1, m_FrameDataBuffer.get());
         m_MainFramebuffer->BindShaderTextureResource(1, m_EnvironmentMap->GetEnvironmentCubemap());
 
-        auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>("DefaultCube.gltf", true);
+        auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>("engine/DefaultCube.gltf", true);
         auto& meshData = meshAsset->GetSubmesh(0);
 
         m_MainFramebuffer->FlushBindings();
@@ -801,11 +805,11 @@ namespace Heart
         m_MainFramebuffer->BindShaderBufferResource(3, 0, m_LightingDataBuffer->GetAllocatedCount(), m_LightingDataBuffer.get());
 
         // Default texture binds
-        m_MainFramebuffer->BindShaderTextureResource(4, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
-        m_MainFramebuffer->BindShaderTextureResource(5, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
-        m_MainFramebuffer->BindShaderTextureResource(6, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
-        m_MainFramebuffer->BindShaderTextureResource(7, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
-        m_MainFramebuffer->BindShaderTextureResource(8, AssetManager::RetrieveAsset<TextureAsset>("DefaultTexture.png", true)->GetTexture());
+        m_MainFramebuffer->BindShaderTextureResource(4, AssetManager::RetrieveAsset<TextureAsset>("engine/DefaultTexture.png", true)->GetTexture());
+        m_MainFramebuffer->BindShaderTextureResource(5, AssetManager::RetrieveAsset<TextureAsset>("engine/DefaultTexture.png", true)->GetTexture());
+        m_MainFramebuffer->BindShaderTextureResource(6, AssetManager::RetrieveAsset<TextureAsset>("engine/DefaultTexture.png", true)->GetTexture());
+        m_MainFramebuffer->BindShaderTextureResource(7, AssetManager::RetrieveAsset<TextureAsset>("engine/DefaultTexture.png", true)->GetTexture());
+        m_MainFramebuffer->BindShaderTextureResource(8, AssetManager::RetrieveAsset<TextureAsset>("engine/DefaultTexture.png", true)->GetTexture());
         if (m_EnvironmentMap)
         {
             m_MainFramebuffer->BindShaderTextureResource(9, m_EnvironmentMap->GetIrradianceCubemap());
@@ -839,7 +843,7 @@ namespace Heart
             {
                 if (batch.Material->IsTranslucent())
                 {
-                    m_DeferredIndirectBatches.emplace_back(&batch);
+                    m_DeferredIndirectBatches.AddInPlace(&batch);
                     continue;
                 }
                 BindMaterial(batch.Material);
@@ -894,7 +898,7 @@ namespace Heart
     {
         if (m_SceneRenderSettings.BloomEnable)
         {
-            for (size_t i = 0; i < m_BloomFramebuffers.size(); i++)
+            for (u32 i = 0; i < m_BloomFramebuffers.Count(); i++)
             {
                 auto& framebuffers = m_BloomFramebuffers[i];
 
@@ -903,7 +907,7 @@ namespace Heart
                 bloomData.ReverseDepth = Renderer::IsUsingReverseDepth();
                 bloomData.BlurScale = m_SceneRenderSettings.BloomBlurScale;
                 bloomData.BlurStrength = m_SceneRenderSettings.BloomBlurStrength;
-                bloomData.MipLevel = static_cast<u32>(m_BloomFramebuffers.size() - 1 - i); // Reverse the index because we start rendering the lowest mip first
+                bloomData.MipLevel = static_cast<u32>(m_BloomFramebuffers.Count() - 1 - i); // Reverse the index because we start rendering the lowest mip first
                 m_BloomDataBuffer->SetElements(&bloomData, 1, i);
 
                 // Horizontal framebuffer
@@ -927,7 +931,7 @@ namespace Heart
                 framebuffers[1]->BindPipeline("bloomVertical");
                 framebuffers[1]->BindShaderBufferResource(0, i, 1, m_BloomDataBuffer.get());
                 framebuffers[1]->BindShaderTextureResource(1, m_BloomBufferTexture.get());
-                if (i == m_BloomFramebuffers.size() - 1)
+                if (i == m_BloomFramebuffers.Count() - 1)
                 {
                     // Bind the pre bloom & upsample texture if this is the last iteration
                     framebuffers[1]->BindShaderTextureResource(2, m_PreBloomTexture.get());
@@ -942,7 +946,7 @@ namespace Heart
         }
         else
         {
-            auto& framebuffers = m_BloomFramebuffers[m_BloomFramebuffers.size() - 1];
+            auto& framebuffers = m_BloomFramebuffers[m_BloomFramebuffers.Count() - 1];
 
             // Clear the horizontal blur texture so that the final composite shader only inputs from the HDR output
             framebuffers[0]->Bind();
@@ -951,7 +955,7 @@ namespace Heart
 
             framebuffers[1]->Bind();
             framebuffers[1]->BindPipeline("bloomVertical");
-            framebuffers[1]->BindShaderBufferResource(0, m_BloomFramebuffers.size() - 1, 1, m_BloomDataBuffer.get());
+            framebuffers[1]->BindShaderBufferResource(0, m_BloomFramebuffers.Count() - 1, 1, m_BloomDataBuffer.get());
             framebuffers[1]->BindShaderTextureResource(1, m_BloomBufferTexture.get());
             framebuffers[1]->BindShaderTextureResource(2, m_PreBloomTexture.get());
             framebuffers[1]->BindShaderTextureResource(3, m_BloomUpsampleBufferTexture.get());
@@ -968,9 +972,9 @@ namespace Heart
         // Default size (TODO: parameterize)
         u32 gridSize = 20;
 
-        std::vector<glm::vec3> vertices;
-        vertices.reserve(static_cast<size_t>(pow(gridSize + 1, 2)));
-        std::vector<u32> indices;
+        HVector<glm::vec3> vertices;
+        vertices.Reserve(static_cast<size_t>(pow(gridSize + 1, 2)));
+        HVector<u32> indices;
         
         // Calculate the grid with a line list
         glm::vec3 pos = { gridSize * -0.5f, 0.f, gridSize * -0.5f };
@@ -979,17 +983,17 @@ namespace Heart
         {
             for (u32 j = 0; j <= gridSize; j++)
             {
-                vertices.emplace_back(pos);
+                vertices.AddInPlace(pos);
 
                 if (j != 0)
                 {
-                    indices.emplace_back(vertexIndex);
-                    indices.emplace_back(vertexIndex - 1);
+                    indices.AddInPlace(vertexIndex);
+                    indices.AddInPlace(vertexIndex - 1);
                 }
                 if (i != 0)
                 {
-                    indices.emplace_back(vertexIndex);
-                    indices.emplace_back(vertexIndex - gridSize - 1);
+                    indices.AddInPlace(vertexIndex);
+                    indices.AddInPlace(vertexIndex - gridSize - 1);
                 }
 
                 pos.x += 1.f;
@@ -999,7 +1003,7 @@ namespace Heart
             pos.z += 1.f;
         }
 
-        m_GridVertices = Buffer::Create(Buffer::Type::Vertex, BufferUsageType::Static, { BufferDataType::Float3 }, static_cast<u32>(vertices.size()), (void*)vertices.data());
-        m_GridIndices = Buffer::CreateIndexBuffer(BufferUsageType::Static, static_cast<u32>(indices.size()), (void*)indices.data());
+        m_GridVertices = Buffer::Create(Buffer::Type::Vertex, BufferUsageType::Static, { BufferDataType::Float3 }, static_cast<u32>(vertices.Count()), (void*)vertices.Data());
+        m_GridIndices = Buffer::CreateIndexBuffer(BufferUsageType::Static, static_cast<u32>(indices.Count()), (void*)indices.Data());
     }
 }

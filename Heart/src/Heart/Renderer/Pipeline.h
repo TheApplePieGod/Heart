@@ -58,7 +58,7 @@ namespace Heart
         VertexTopology VertexTopology;
         BufferLayout VertexLayout;
 
-        std::vector<AttachmentBlendState> BlendStates; // one state is required per framebuffer attachment
+        HVector<AttachmentBlendState> BlendStates; // one state is required per framebuffer attachment
 
         bool DepthTest;
         bool DepthWrite;
@@ -84,13 +84,13 @@ namespace Heart
     public:
         virtual ~Pipeline() = default;
 
-        inline const std::vector<ReflectionDataElement>& GetReflectionData() const { return m_ProgramReflectionData; }
+        inline const HVector<ReflectionDataElement>& GetReflectionData() const { return m_ProgramReflectionData; }
 
     protected:
         void SortReflectionData();
 
     protected:
-        std::vector<ReflectionDataElement> m_ProgramReflectionData;
+        HVector<ReflectionDataElement> m_ProgramReflectionData;
     };
 
     class Texture;
@@ -111,7 +111,7 @@ namespace Heart
         inline bool IsDepthTestEnabled() const { return m_Info.DepthTest; }
         inline bool IsDepthWriteEnabled() const { return m_Info.DepthWrite; }
         inline u32 GetVertexLayoutStride() const { return m_Info.VertexLayout.GetStride(); }
-        inline const std::vector<AttachmentBlendState>& GetBlendStates() const { return m_Info.BlendStates; }
+        inline const HVector<AttachmentBlendState>& GetBlendStates() const { return m_Info.BlendStates; }
 
     protected:
         GraphicsPipelineCreateInfo m_Info;

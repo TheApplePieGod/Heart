@@ -3,7 +3,7 @@
 
 namespace Heart
 {
-    ShaderAsset::ShaderAsset(const std::string& path, const std::string& absolutePath)
+    ShaderAsset::ShaderAsset(const HStringView8& path, const HStringView8& absolutePath)
         : Asset(path, absolutePath)
     {
         m_Type = Type::Shader;
@@ -17,7 +17,7 @@ namespace Heart
             m_ShaderType = Shader::Type::Compute;
     }
 
-    void ShaderAsset::Load()
+    void ShaderAsset::Load(bool async)
     {
         if (m_Loaded || m_Loading) return;
         m_Loading = true;

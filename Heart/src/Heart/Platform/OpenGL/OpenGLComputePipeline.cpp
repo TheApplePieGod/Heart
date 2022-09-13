@@ -10,6 +10,7 @@
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/ShaderAsset.h"
 #include "Heart/Renderer/Renderer.h"
+#include "Heart/Container/HVector.hpp"
 #include "glad/glad.h"
 
 namespace Heart
@@ -32,10 +33,10 @@ namespace Heart
             GLint logLength = 0;
             glGetProgramiv(m_ProgramId, GL_INFO_LOG_LENGTH, &logLength);
             
-            std::vector<char> infoLog(logLength);
-            glGetProgramInfoLog(m_ProgramId, logLength, &logLength, infoLog.data());
+            HVector<char> infoLog(logLength);
+            glGetProgramInfoLog(m_ProgramId, logLength, &logLength, infoLog.Data());
 
-            HE_ENGINE_LOG_ERROR("Failed to link OpenGL program: {0}", infoLog.data());
+            HE_ENGINE_LOG_ERROR("Failed to link OpenGL program: {0}", infoLog.Data());
             HE_ENGINE_ASSERT(false);
         }
 
@@ -103,7 +104,7 @@ namespace Heart
     {
         HE_PROFILE_FUNCTION();
 
-        u64 frameIndex = App::Get().GetFrameCount() % 3;
+        u64 frameIndex = App::Get().GetFrameCount() % 2;
 
         int maxCountX, maxCountY, maxCountZ = 0;
         glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 0, &maxCountX);

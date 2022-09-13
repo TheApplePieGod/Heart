@@ -2,7 +2,13 @@ project(Editor)
 
 # Copy editor resources
 add_custom_target(CopyEditorResources ALL
-  COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/resources ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${CMAKE_BUILD_TYPE}/resources/editor
+  COMMAND ${CMAKE_COMMAND} -E make_directory ${OUTPUT_DIRECTORY}/resources
+  COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_CURRENT_SOURCE_DIR}/resources ${OUTPUT_DIRECTORY}/resources/editor
+  DEPENDS Engine
+)
+
+add_custom_target(CopyEditorTemplates ALL
+  COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_CURRENT_SOURCE_DIR}/templates ${OUTPUT_DIRECTORY}/templates
   DEPENDS Engine
 )
 
@@ -20,6 +26,8 @@ target_include_directories(
 )
 
 target_link_libraries(Editor Engine)
+
+set_target_properties(Editor PROPERTIES WIN32_EXECUTABLE true)
 
 # PCH
 target_precompile_headers(Editor REUSE_FROM Engine)

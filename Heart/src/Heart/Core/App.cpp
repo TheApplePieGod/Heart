@@ -9,15 +9,17 @@
 #include "Heart/Events/WindowEvents.h"
 #include "Heart/Events/AppEvents.h"
 #include "Heart/Asset/AssetManager.h"
+#include "Heart/Scripting/ScriptingEngine.h"
+#include "Heart/Util/PlatformUtils.h"
 
 namespace Heart
 {
-    App* App::s_Instance = nullptr;
-
-    App::App(const std::string& windowName)
+    App::App(const HStringView8& windowName)
     {
         HE_ENGINE_ASSERT(!s_Instance, "App instance already exists");
         s_Instance = this;
+
+        PlatformUtils::InitializePlatform();
 
         Timer timer = Timer("App initialization");
         #ifdef HE_DEBUG
@@ -29,23 +31,29 @@ namespace Heart
         WindowCreateInfo windowCreateInfo = WindowCreateInfo(windowName);
         InitializeGraphicsApi(RenderApi::Type::Vulkan, windowCreateInfo);
 
+        // Init services
         AssetManager::Initialize();
+        ScriptingEngine::Initialize();
 
         HE_ENGINE_LOG_INFO("App initialized");
     }
 
     App::~App()
     {
+        // Shutdown services
+        ScriptingEngine::Shutdown();
         AssetManager::Shutdown();
 
         ShutdownGraphicsApi();
+
+        PlatformUtils::ShutdownPlatform();
 
         HE_ENGINE_LOG_INFO("Shutdown complete");
     }
 
     void App::PushLayer(const Ref<Layer>& layer)
     {
-        m_Layers.emplace_back(layer);
+        m_Layers.Add(layer);
         layer->OnAttach();
     }
 
@@ -54,7 +62,7 @@ namespace Heart
         m_SwitchingApi = type;
     }
     
-    void App::SwitchAssetsDirectory(const std::string& newDirectory)
+    void App::SwitchAssetsDirectory(const HStringView8& newDirectory)
     {
         m_SwitchingAssetsDirectory = newDirectory;
     }
@@ -146,7 +154,7 @@ namespace Heart
 
     void App::CheckForAssetsDirectorySwitch()
     {
-        if (m_SwitchingAssetsDirectory != "")
+        if (!m_SwitchingAssetsDirectory.IsEmpty())
         {
             AssetManager::UpdateAssetsDirectory(m_SwitchingAssetsDirectory);
             
@@ -155,7 +163,7 @@ namespace Heart
             // the assets directory changes, force a full reload on the graphics backend
             m_SwitchingApi = Renderer::GetApiType();
 
-            m_SwitchingAssetsDirectory = "";
+            m_SwitchingAssetsDirectory.Clear();
         }
     }
 

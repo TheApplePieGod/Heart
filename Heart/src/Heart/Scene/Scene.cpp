@@ -1,12 +1,43 @@
 #include "hepch.h"
 #include "Scene.h"
 
+#include "Heart/Core/Timing.h"
+#include "Heart/Container/HArray.h"
+#include "Heart/Container/HString8.h"
+#include "Heart/Scripting/ScriptingEngine.h"
 #include "Heart/Scene/Entity.h"
 #include "Heart/Scene/Components.h"
 #include "glm/gtx/matrix_decompose.hpp"
 
 namespace Heart
 {
+    template <>
+    void Scene::CopyComponent<ScriptComponent>(entt::entity src, Entity dst)
+    {
+        if (m_Registry.any_of<ScriptComponent>(src))
+        {
+            auto& oldComp = m_Registry.get<ScriptComponent>(src);
+            ScriptComponent newComp = oldComp;
+
+            // Reinstantiate a new object with copied fields
+            // TODO: binary serialization will likely be faster
+            newComp.Instance.ClearObjectHandle();
+            newComp.Instance.Instantiate(dst);
+            newComp.Instance.LoadFieldsFromJson(oldComp.Instance.SerializeFieldsToJson());
+            if (m_IsRuntime)
+                newComp.Instance.OnPlayStart();
+
+            dst.AddComponent<ScriptComponent>(newComp);
+        }
+    }
+
+    template <>
+    void Scene::CopyComponent<PrimaryCameraComponent>(entt::entity src, Entity dst)
+    {
+        if (m_Registry.any_of<PrimaryCameraComponent>(src))
+            dst.AddComponent<PrimaryCameraComponent>();
+    }
+
     Scene::Scene()
     {
         
@@ -14,21 +45,27 @@ namespace Heart
 
     Scene::~Scene()
     {
-
+        // Ensure all script objects have been destroyed
+        auto view = m_Registry.view<ScriptComponent>();
+        for (auto entity : view)
+        {
+            auto& scriptComp = view.get<ScriptComponent>(entity);
+            scriptComp.Instance.Destroy();
+        }
     }
 
-    Entity Scene::CreateEntity(const std::string& name)
+    Entity Scene::CreateEntity(const HStringView8& name)
     {
         return CreateEntityWithUUID(name, UUID());
     }
 
-    Entity Scene::CreateEntityWithUUID(const std::string& name, UUID uuid)
+    Entity Scene::CreateEntityWithUUID(const HStringView8& name, UUID uuid)
     {
         Entity entity = { this, m_Registry.create() };
         m_UUIDMap[uuid] = entity.GetHandle();
 
         entity.AddComponent<IdComponent>(uuid);
-        entity.AddComponent<NameComponent>(name == "" ? "New Entity" : name);
+        entity.AddComponent<NameComponent>(name.IsEmpty() ? "New Entity" : name);
         entity.AddComponent<TransformComponent>();
 
         CacheEntityTransform(entity);
@@ -44,27 +81,28 @@ namespace Heart
         m_UUIDMap[newUUID] = newEntityHandle;
 
         m_Registry.emplace<IdComponent>(newEntityHandle, newUUID);
-
-        if (source.HasComponent<NameComponent>())
-            m_Registry.emplace<NameComponent>(newEntityHandle, m_Registry.get<NameComponent>(source.GetHandle()).Name + " Copy");
+        m_Registry.emplace<NameComponent>(newEntityHandle, m_Registry.get<NameComponent>(source.GetHandle()).Name + " Copy");
 
         if (keepParent && source.HasComponent<ParentComponent>())
-            AssignRelationship(GetEntityFromUUID(source.GetComponent<ParentComponent>().ParentUUID), newEntity);
+            AssignRelationship(GetEntityFromUUIDUnchecked(source.GetComponent<ParentComponent>().ParentUUID), newEntity);
 
-        if (keepChildren && source.HasComponent<ChildComponent>())
+        if (keepChildren && source.HasComponent<ChildrenComponent>())
         {
-            auto& childComp = source.GetComponent<ChildComponent>();
+            auto& childComp = source.GetComponent<ChildrenComponent>();
 
             for (auto& child : childComp.Children)
             {
-                Entity entity = DuplicateEntity(GetEntityFromUUID(child), false, true);
+                Entity entity = DuplicateEntity(GetEntityFromUUIDUnchecked(child), false, true);
                 AssignRelationship(newEntity, entity);
             }
         }
 
-        CopyComponent<TransformComponent>(source.GetHandle(), newEntityHandle);
-        CopyComponent<MeshComponent>(source.GetHandle(), newEntityHandle);
-        CopyComponent<LightComponent>(source.GetHandle(), newEntityHandle);
+        CopyComponent<TransformComponent>(source.GetHandle(), newEntity);
+        CopyComponent<MeshComponent>(source.GetHandle(), newEntity);
+        CopyComponent<LightComponent>(source.GetHandle(), newEntity);
+        CopyComponent<ScriptComponent>(source.GetHandle(), newEntity);
+        // Do not copy primary camera component when duplicating entity
+        CopyComponent<CameraComponent>(source.GetHandle(), newEntity);
 
         CacheEntityTransform(newEntity);
 
@@ -73,12 +111,19 @@ namespace Heart
 
     void Scene::DestroyEntity(Entity entity)
     {
-        // remove entity from parent's children
-        UnparentEntity(entity);
-
+        UnparentEntity(entity, false);
         DestroyChildren(entity);
 
-        entity.Destroy();
+        if (entity.HasComponent<ScriptComponent>())
+        {
+            auto& instance = entity.GetComponent<ScriptComponent>().Instance;
+            if (m_IsRuntime)
+                instance.OnPlayEnd();
+            instance.Destroy();
+        }
+
+        m_CachedTransforms.erase(entity.GetHandle());
+        m_Registry.destroy(entity.GetHandle());
     }
 
     void Scene::AssignRelationship(Entity parent, Entity child)
@@ -108,15 +153,15 @@ namespace Heart
             child.AddComponent<ParentComponent>(parentUUID);
 
         // add this child to the new parent
-        if (parent.HasComponent<ChildComponent>())
-            parent.GetComponent<ChildComponent>().Children.push_back(childUUID);
+        if (parent.HasComponent<ChildrenComponent>())
+            parent.GetComponent<ChildrenComponent>().Children.Add(childUUID);
         else
-            parent.AddComponent<ChildComponent>(std::initializer_list<UUID>({ childUUID }));
+            parent.AddComponent<ChildrenComponent>(std::initializer_list<UUID>({ childUUID }));
 
         CacheEntityTransform(child);
     }
 
-    void Scene::UnparentEntity(Entity child)
+    void Scene::UnparentEntity(Entity child, bool recache)
     {
         HE_ENGINE_ASSERT(child.IsValid(), "Child entity must be valid");
 
@@ -132,22 +177,23 @@ namespace Heart
             child.RemoveComponent<ParentComponent>();
         }
 
-        CacheEntityTransform(child);
+        if (recache)
+            CacheEntityTransform(child);
     }
 
     void Scene::RemoveChild(UUID parentUUID, UUID childUUID)
     {
-        Entity parent = GetEntityFromUUID(parentUUID);
+        Entity parent = GetEntityFromUUIDUnchecked(parentUUID);
 
-        if (parent.HasComponent<ChildComponent>())
+        if (parent.HasComponent<ChildrenComponent>())
         {
-            auto& childComp = parent.GetComponent<ChildComponent>();
+            auto& childComp = parent.GetComponent<ChildrenComponent>();
             for (UUID& elem : childComp.Children)
             {
                 if (elem == childUUID)
                 {
-                    elem = childComp.Children.back();
-                    childComp.Children.pop_back();
+                    elem = childComp.Children.Back();
+                    childComp.Children.Pop();
                     break;
                 }
             }
@@ -157,15 +203,14 @@ namespace Heart
     void Scene::DestroyChildren(Entity parent)
     {
         // recursively destroy children
-        if (parent.HasComponent<ChildComponent>())
+        if (parent.HasComponent<ChildrenComponent>())
         {
-            auto& childComp = parent.GetComponent<ChildComponent>();
+            auto& childComp = parent.GetComponent<ChildrenComponent>();
 
             for (auto& child : childComp.Children)
             {
-                Entity entity = GetEntityFromUUID(child);
-                DestroyChildren(entity);
-                entity.Destroy();
+                Entity entity = GetEntityFromUUIDUnchecked(child);
+                DestroyEntity(entity);
             }
         }
     }
@@ -186,9 +231,41 @@ namespace Heart
     glm::mat4 Scene::GetEntityParentTransform(Entity target)
     {
         if (target.HasComponent<ParentComponent>())
-            return CalculateEntityTransform(GetEntityFromUUID(target.GetComponent<ParentComponent>().ParentUUID));
+            return CalculateEntityTransform(GetEntityFromUUIDUnchecked(target.GetComponent<ParentComponent>().ParentUUID));
 
         return glm::mat4(1.f);
+    }
+
+    Ref<Scene> Scene::Clone()
+    {
+        Ref<Scene> newScene = CreateRef<Scene>();
+
+        // Copy each entity & associated data to the new registry
+        m_Registry.each([&](auto srcHandle)
+        {
+            Entity src = { this, srcHandle };
+            Entity dst = { newScene.get(), newScene->GetRegistry().create() };
+
+            UUID uuid = src.GetUUID();
+            newScene->m_UUIDMap[uuid] = dst.GetHandle(); // Update dst uuid mapping
+            newScene->m_CachedTransforms[dst.GetHandle()] = m_CachedTransforms[src.GetHandle()]; // Copy this entity's cached transform
+
+            CopyComponent<IdComponent>(src.GetHandle(), dst);
+            CopyComponent<NameComponent>(src.GetHandle(), dst);
+            CopyComponent<ParentComponent>(src.GetHandle(), dst);
+            CopyComponent<ChildrenComponent>(src.GetHandle(), dst);
+            CopyComponent<TransformComponent>(src.GetHandle(), dst);
+            CopyComponent<MeshComponent>(src.GetHandle(), dst);
+            CopyComponent<LightComponent>(src.GetHandle(), dst);
+            CopyComponent<ScriptComponent>(src.GetHandle(), dst);
+            CopyComponent<PrimaryCameraComponent>(src.GetHandle(), dst);
+            CopyComponent<CameraComponent>(src.GetHandle(), dst);
+        });
+
+        // Copy the environment map
+        newScene->m_EnvironmentMap = m_EnvironmentMap;
+
+        return newScene;
     }
 
     void Scene::ClearScene()
@@ -210,11 +287,66 @@ namespace Heart
         }
     }
 
+    void Scene::StartRuntime()
+    {
+        m_IsRuntime = true;
+
+        // Call OnPlayStart lifecycle method
+        auto view = m_Registry.view<ScriptComponent>();
+        for (auto entity : view)
+        {
+            auto& scriptComp = view.get<ScriptComponent>(entity);
+            scriptComp.Instance.OnPlayStart();
+        }
+    }
+
+    void Scene::StopRuntime()
+    {
+        m_IsRuntime = false;
+
+        // Call OnPlayEnd lifecycle method
+        auto view = m_Registry.view<ScriptComponent>();
+        for (auto entity : view)
+        {
+            auto& scriptComp = view.get<ScriptComponent>(entity);
+            scriptComp.Instance.OnPlayEnd();
+        }
+    }
+
+    void Scene::OnUpdateRuntime(Timestep ts)
+    {
+        HE_PROFILE_FUNCTION();
+        auto timer = AggregateTimer("Scene::OnUpdateRuntime");
+
+        // Call OnUpdate lifecycle method
+        auto view = m_Registry.view<ScriptComponent>();
+        for (auto entity : view)
+        {
+            auto& scriptComp = view.get<ScriptComponent>(entity);
+            scriptComp.Instance.OnUpdate(ts);
+        }
+    }
+
     Entity Scene::GetEntityFromUUID(UUID uuid)
+    {
+        if (m_UUIDMap.find(uuid) == m_UUIDMap.end()) return Entity();
+        return GetEntityFromUUIDUnchecked(uuid);
+    }
+
+    Entity Scene::GetPrimaryCameraEntity()
+    {
+        auto view = m_Registry.view<PrimaryCameraComponent>();
+        HE_ENGINE_ASSERT(view.size() <= 1, "Found more than one primary camera entity");
+        if (view.size() == 1)
+            return { this, view[0] };
+        return Entity();
+    }
+    
+    Entity Scene::GetEntityFromUUIDUnchecked(UUID uuid)
     {
         return { this, m_UUIDMap[uuid] };
     }
-    
+
     const glm::mat4& Scene::GetEntityCachedTransform(Entity entity)
     {
         return m_CachedTransforms[entity.GetHandle()].Transform;
@@ -253,12 +385,12 @@ namespace Heart
             scale
         };
 
-        if (propagateToChildren && entity.HasComponent<ChildComponent>())
+        if (propagateToChildren && entity.HasComponent<ChildrenComponent>())
         {
-            auto& childComp = entity.GetComponent<ChildComponent>();
+            auto& childComp = entity.GetComponent<ChildrenComponent>();
 
             for (auto& child : childComp.Children)
-                CacheEntityTransform(GetEntityFromUUID(child));
+                CacheEntityTransform(GetEntityFromUUIDUnchecked(child));
         }
     }
 }

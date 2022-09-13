@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Heart/Renderer/EnvironmentMap.h"
+#include "Heart/Core/Timestep.h"
 #include "Heart/Core/UUID.h"
 #include "entt/entt.hpp"
 #include "glm/mat4x4.hpp"
@@ -9,18 +10,23 @@
 namespace Heart
 {
     class Entity;
+    class HStringView8;
+    class HArray;
+    class ScriptComponent;
     class Scene
     {
     public:
         Scene();
         ~Scene();
 
-        Entity CreateEntity(const std::string& name);
-        Entity CreateEntityWithUUID(const std::string& name, UUID uuid);
+        Entity CreateEntity(const HStringView8& name);
+        Entity CreateEntityWithUUID(const HStringView8& name, UUID uuid);
         Entity DuplicateEntity(Entity source, bool keepParent, bool keepChildren);
         void DestroyEntity(Entity entity);
         void AssignRelationship(Entity parent, Entity child);
-        void UnparentEntity(Entity child);
+        void UnparentEntity(Entity child, bool recache = true);
+        Entity GetEntityFromUUID(UUID uuid);
+        Entity GetPrimaryCameraEntity();
 
         glm::mat4 CalculateEntityTransform(Entity target, glm::mat4* outParentTransform = nullptr);
         glm::mat4 GetEntityParentTransform(Entity target);
@@ -30,18 +36,21 @@ namespace Heart
         glm::vec3 GetEntityCachedScale(Entity entity);
         void CacheEntityTransform(Entity entity, bool propagateToChildren = true);
 
+        Ref<Scene> Clone();
+        void ClearScene();
+        void SetEnvironmentMap(UUID mapAsset);
+        void StartRuntime();
+        void StopRuntime();
+        void OnUpdateRuntime(Timestep ts);
+
+        inline entt::registry& GetRegistry() { return m_Registry; }
+        inline EnvironmentMap* GetEnvironmentMap() { return m_EnvironmentMap.get(); }
+        
         template<typename Component>
         void ClearComponent()
         {
             m_Registry.clear<Component>();
         }
-
-        void ClearScene();
-        void SetEnvironmentMap(UUID mapAsset);
-
-        inline entt::registry& GetRegistry() { return m_Registry; }
-        inline EnvironmentMap* GetEnvironmentMap() { return m_EnvironmentMap.get(); }
-        Entity GetEntityFromUUID(UUID uuid);
 
     private:
         struct CachedTransform
@@ -54,20 +63,22 @@ namespace Heart
 
     private:
         template<typename Component>
-        void CopyComponent(entt::entity src, entt::entity dst)
+        void CopyComponent(entt::entity src, Entity dst)
         {
             if (m_Registry.any_of<Component>(src))
-                m_Registry.emplace<Component>(dst, m_Registry.get<Component>(src));
+                dst.AddComponent<Component>(m_Registry.get<Component>(src));
         }
 
         void RemoveChild(UUID parentUUID, UUID childUUID);
         void DestroyChildren(Entity parent);
+        Entity GetEntityFromUUIDUnchecked(UUID uuid);
 
     private:
         entt::registry m_Registry;
         std::unordered_map<UUID, entt::entity> m_UUIDMap;
         std::unordered_map<entt::entity, CachedTransform> m_CachedTransforms;
-        Ref<EnvironmentMap> m_EnvironmentMap;
+        Ref<EnvironmentMap> m_EnvironmentMap; // TODO: move this out of scene
+        bool m_IsRuntime = false;
 
         friend class Entity;
     };

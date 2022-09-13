@@ -38,14 +38,11 @@ namespace Heart
         inline static void EmitEvent(Event& event) { s_EventEmitter.Emit(event); }
         inline static EventEmitter& GetEventEmitter() { return s_EventEmitter; }
 
-        static void ProcessDeleteQueue();
-
         // both bound command & frame buffers should be from the same object
         inline static VulkanFramebuffer* GetBoundFramebuffer() { HE_ENGINE_ASSERT(s_BoundFramebuffer != nullptr, "No framebuffer is bound (forget to call Framebuffer.Bind()?)"); return s_BoundFramebuffer; }
         inline static void SetBoundFramebuffer(VulkanFramebuffer* buffer) { s_BoundFramebuffer = buffer; }
-        inline static void PushDeleteQueue(std::function<void()>&& func) { s_DeleteQueue.emplace_back(func); }
 
-        static std::vector<const char*> ConfigureValidationLayers();
+        static HVector<const char*> ConfigureValidationLayers();
     
     private:
         void CreateSurface(VkSurfaceKHR& surface);
@@ -62,16 +59,16 @@ namespace Heart
         static void InitializeInstance();
         static void InitializeCommandPools();
         static void CreateDefaultSampler();
+        static void ProcessJobQueue();
 
     private:
-        static u32 s_ContextCount;
-        static VkInstance s_Instance;
-        static VkDebugUtilsMessengerEXT s_DebugMessenger;
-        static VulkanDevice s_VulkanDevice;
-        static VkCommandPool s_GraphicsPool, s_ComputePool, s_TransferPool;
-        static VulkanFramebuffer* s_BoundFramebuffer;
-        static VkSampler s_DefaultSampler;
-        static std::deque<std::function<void()>> s_DeleteQueue;
-        static EventEmitter s_EventEmitter;
+        inline static u32 s_ContextCount = 0;
+        inline static VkInstance s_Instance = nullptr;
+        inline static VkDebugUtilsMessengerEXT s_DebugMessenger = nullptr;
+        inline static VulkanDevice s_VulkanDevice;
+        inline static VkCommandPool s_GraphicsPool, s_ComputePool, s_TransferPool;
+        inline static VulkanFramebuffer* s_BoundFramebuffer = nullptr;
+        inline static VkSampler s_DefaultSampler;
+        inline static EventEmitter s_EventEmitter;
     };
 }

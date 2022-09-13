@@ -50,18 +50,23 @@ Setting up Heart Engine is relatively simple, and it utilizes CMake and git subm
 
 ## Requirements
 
-- Compiler using C++17 or higher
-- [CMake](https://cmake.org/download/) 3.16 or higher
+- Compiler using C++17
+- [CMake](https://cmake.org/download/) >= 3.16
 - [VulkanSDK](https://vulkan.lunarg.com/) >= 1.2.198
     - Make sure to include the 64-bit debuggable shader API libraries when installing
+- [.NET Core SDK](https://dotnet.microsoft.com/en-us/download/dotnet) >= 6.0
+- [Visual Studio](https://visualstudio.microsoft.com/vs/) >= 2022
+    - For writing code for scripted entities
+    - Using MSBuild directly will also likely work (not tested)
 
 ## General Setup
 
 Regardless of how you intend to use Heart Engine, you'll want to follow these initial setup steps first.
 
 1. Clone the repo using the `--recursive` flag to ensure all submodules are downloaded
-2. Make sure the VulkanSDK is accessable in your PATH via `${VULKAN_SDK}` (this should happen automatically with the installer)
-3. Create a `build` directory in the project root
+2. Make sure the VulkanSDK is accessable via the `${VULKAN_SDK}` environment variable (this should happen automatically with the installer)
+3. Make sure the .NET SDK is accessable via the `${DOTNET_SDK}` environment variable
+4. Create a `build` directory in the project root
 
 ## Editor Setup
 
@@ -141,6 +146,16 @@ int main(int argc, char** argv)
 }
 ```
 
+# Scripting
+
+The workflow for scripting within the engine is still a work in progress. To get started, use the in-engine interface to create a new project. Projects will link a NuGet package called "Heart.NET.Sdk," which contains the standard library used to interface from C# to the engine. For now, the package is not yet released on the NuGet package manager, so you'll have to build and install it manually.
+
+1. Ensure the [NuGet CLI](https://docs.microsoft.com/en-us/nuget/reference/nuget-exe-cli-reference) is installed
+2. Navigate to the `HeartScripting` directory and open/build the `HeartScripting.sln` solution
+3. Run the `CreateNugetPackage` script using either powershell or bash
+4. Open your new project's visual studio solution and add the `HeartScripting` directory as a [NuGet package source](https://docs.microsoft.com/en-us/nuget/consume-packages/install-use-packages-visual-studio#package-sources)
+5. Restart visual studio. The package should have been installed and should now be accessible
+
 # Documentation
 
 Documenation is built using [Doxygen](https://www.doxygen.nl/). To build, run the following commands:
@@ -154,7 +169,7 @@ The docs should then be available in `build/docs/html`. Open up the `index.html`
 
 # License
 
-Copyright (C) 2021 [Evan Thompson](https://evanthompson.site/)
+Copyright (C) 2022 [Evan Thompson](https://evanthompson.site/)
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

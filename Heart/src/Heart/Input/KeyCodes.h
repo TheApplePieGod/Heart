@@ -2,6 +2,7 @@
 
 namespace Heart
 {
+    /*! @brief All of the significant key codes represented as an enum. */
     enum class KeyCode : u16
     {
         Space = 32,

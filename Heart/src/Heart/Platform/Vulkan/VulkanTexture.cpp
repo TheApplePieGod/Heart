@@ -17,6 +17,8 @@ namespace Heart
     VulkanTexture::VulkanTexture(const TextureCreateInfo& createInfo, void* initialData)
         : Texture(createInfo)
     {
+        HE_PROFILE_FUNCTION();
+
         if (initialData != nullptr)
             ScanForTransparency(createInfo.Width, createInfo.Height, createInfo.Channels, initialData);
         CreateTexture(initialData);
@@ -38,7 +40,7 @@ namespace Heart
         auto dataSize = m_DataSize;
         void* pointer = this;
 
-        VulkanContext::PushDeleteQueue([=]()
+        Renderer::PushJobQueue([=]()
         {
             VulkanDevice& device = VulkanContext::GetDevice();
 
@@ -158,7 +160,7 @@ namespace Heart
         if (m_MipLevels > maxMipLevels || m_MipLevels == 0)
             m_MipLevels = maxMipLevels;
 
-        m_ImageCount = m_Info.UsageType == BufferUsageType::Dynamic ? MAX_FRAMES_IN_FLIGHT : 1;
+        m_ImageCount = m_Info.UsageType == BufferUsageType::Dynamic ? Renderer::FrameBufferCount : 1;
 
         // if the texture is cpu visible, create the readonly buffer
         if (m_Info.AllowCPURead)
@@ -272,8 +274,8 @@ namespace Heart
                 for (u32 j = 0; j < m_MipLevels; j++)
                 {
                     VkImageView layerView = VulkanCommon::CreateImageView(device.Device(), image, m_Format, 1, j, 1, i, VK_IMAGE_ASPECT_COLOR_BIT);
-                    m_LayerViews[frame].emplace_back(layerView);
-                    m_ImGuiHandles[frame].emplace_back(ImGui_ImplVulkan_AddTexture(m_Sampler, layerView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL));
+                    m_LayerViews[frame].AddInPlace(layerView);
+                    m_ImGuiHandles[frame].AddInPlace(ImGui_ImplVulkan_AddTexture(m_Sampler, layerView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL));
                 }
             }
         }

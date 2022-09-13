@@ -13,7 +13,7 @@ namespace Heart
         VkInstance instance = VulkanContext::GetInstance();
 
         // setup physical device
-        std::vector<const char*> deviceExtensions = {
+        HVector<const char*> deviceExtensions = {
             VK_KHR_SWAPCHAIN_EXTENSION_NAME,
             VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME,
             VK_EXT_SAMPLER_FILTER_MINMAX_EXTENSION_NAME
@@ -26,8 +26,8 @@ namespace Heart
             u32 deviceCount = 0;
             vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
             HE_ENGINE_ASSERT(deviceCount != 0);
-            std::vector<VkPhysicalDevice> devices(deviceCount);
-            vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
+            HVector<VkPhysicalDevice> devices(deviceCount);
+            vkEnumeratePhysicalDevices(instance, &deviceCount, devices.Data());
 
             // find first compatible device
             for (const auto& device: devices)
@@ -47,28 +47,28 @@ namespace Heart
         {
             VulkanCommon::QueueFamilyIndices indices = VulkanCommon::GetQueueFamilies(m_PhysicalDevice, mainWindowSurface);
             
-            std::vector<float> queuePriorities;
-            queuePriorities.reserve(MAX_FRAMES_IN_FLIGHT * 4);
+            HVector<float> queuePriorities;
+            queuePriorities.Reserve(Renderer::FrameBufferCount * 4);
 
             // info for creating queues
             std::unordered_map<u32, u32> uniqueFamilies;
-            uniqueFamilies[indices.PresentFamily.value()] = std::min(indices.PresentQueueCount, MAX_FRAMES_IN_FLIGHT);
-            uniqueFamilies[indices.GraphicsFamily.value()] = std::min(indices.GraphicsQueueCount, MAX_FRAMES_IN_FLIGHT);
-            uniqueFamilies[indices.ComputeFamily.value()] = std::min(indices.ComputeQueueCount, MAX_FRAMES_IN_FLIGHT);
-            uniqueFamilies[indices.TransferFamily.value()] = std::min(indices.TransferQueueCount, MAX_FRAMES_IN_FLIGHT);
+            uniqueFamilies[indices.PresentFamily.value()] = std::min(indices.PresentQueueCount, Renderer::FrameBufferCount);
+            uniqueFamilies[indices.GraphicsFamily.value()] = std::min(indices.GraphicsQueueCount, Renderer::FrameBufferCount);
+            uniqueFamilies[indices.ComputeFamily.value()] = std::min(indices.ComputeQueueCount, Renderer::FrameBufferCount);
+            uniqueFamilies[indices.TransferFamily.value()] = std::min(indices.TransferQueueCount, Renderer::FrameBufferCount);
 
-            std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+            HVector<VkDeviceQueueCreateInfo> queueCreateInfos;
             for (auto& pair : uniqueFamilies)
             {
                 VkDeviceQueueCreateInfo queueCreateInfo{};
                 queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
                 queueCreateInfo.queueFamilyIndex = pair.first;
                 queueCreateInfo.queueCount = pair.second;
-                queueCreateInfo.pQueuePriorities = queuePriorities.data() + queuePriorities.size();
-                queueCreateInfos.push_back(queueCreateInfo);
+                queueCreateInfo.pQueuePriorities = queuePriorities.Data() + queuePriorities.Count();
+                queueCreateInfos.Add(queueCreateInfo);
 
                 for (u32 i = 0; i < pair.second; i++)
-                    queuePriorities.push_back(1.0);
+                    queuePriorities.Add(1.0);
             }
 
             VkPhysicalDeviceFeatures deviceFeatures{};
@@ -99,14 +99,14 @@ namespace Heart
             VkDeviceCreateInfo createInfo{};
             createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
             createInfo.pNext = &vulkan12Features;
-            createInfo.pQueueCreateInfos = queueCreateInfos.data();
-            createInfo.queueCreateInfoCount = static_cast<u32>(queueCreateInfos.size());;
+            createInfo.pQueueCreateInfos = queueCreateInfos.Data();
+            createInfo.queueCreateInfoCount = static_cast<u32>(queueCreateInfos.Count());
             createInfo.pEnabledFeatures = &deviceFeatures;
-            createInfo.enabledExtensionCount = static_cast<u32>(deviceExtensions.size());;
-            createInfo.ppEnabledExtensionNames = deviceExtensions.data();
+            createInfo.enabledExtensionCount = static_cast<u32>(deviceExtensions.Count());
+            createInfo.ppEnabledExtensionNames = deviceExtensions.Data();
             #if HE_DEBUG
-                createInfo.enabledLayerCount = static_cast<u32>(validationLayers.size());
-                createInfo.ppEnabledLayerNames = validationLayers.data();
+                createInfo.enabledLayerCount = static_cast<u32>(validationLayers.Count());
+                createInfo.ppEnabledLayerNames = validationLayers.Data();
             #else
                 createInfo.enabledLayerCount = 0;
             #endif
@@ -118,7 +118,7 @@ namespace Heart
             m_ComputeQueueIndex = indices.ComputeFamily.value();
             m_TransferQueueIndex = indices.TransferFamily.value();
 
-            for (u32 i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+            for (u32 i = 0; i < Renderer::FrameBufferCount; i++)
             {
                 vkGetDeviceQueue(m_LogicalDevice, m_PresentQueueIndex, std::min(i, indices.PresentQueueCount - 1), &m_PresentQueues[i]);
                 vkGetDeviceQueue(m_LogicalDevice, m_GraphicsQueueIndex, std::min(i, indices.GraphicsQueueCount - 1), &m_GraphicsQueues[i]);
@@ -130,7 +130,7 @@ namespace Heart
         m_Initialized = true;
     }
 
-    bool VulkanDevice::IsDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface, const std::vector<const char*>& deviceExtensions, OptionalDeviceFeatures& outOptionalFeatures)
+    bool VulkanDevice::IsDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface, const HVector<const char*>& deviceExtensions, OptionalDeviceFeatures& outOptionalFeatures)
     {
         VkPhysicalDeviceProperties deviceProperties;
         vkGetPhysicalDeviceProperties(device, &deviceProperties);
@@ -158,20 +158,20 @@ namespace Heart
         // get hardware extension support
         u32 supportedExtensionCount = 0;
         vkEnumerateDeviceExtensionProperties(device, nullptr, &supportedExtensionCount, nullptr);
-        std::vector<VkExtensionProperties> supportedExtensions(supportedExtensionCount);
-        vkEnumerateDeviceExtensionProperties(device, nullptr, &supportedExtensionCount, supportedExtensions.data());
+        HVector<VkExtensionProperties> supportedExtensions(supportedExtensionCount);
+        vkEnumerateDeviceExtensionProperties(device, nullptr, &supportedExtensionCount, supportedExtensions.Data());
 
         // check for compatability
         int count = 0;
-        for (int i = 0; i < deviceExtensions.size(); i++)
+        for (int i = 0; i < deviceExtensions.Count(); i++)
         {
             // device is not supported if any extension is not supported, so return false
-            if (std::find_if(supportedExtensions.begin(), supportedExtensions.end(), [&deviceExtensions, &i](const VkExtensionProperties& arg) { return strcmp(arg.extensionName, deviceExtensions[i]); }) == supportedExtensions.end())
+            if (std::find_if(supportedExtensions.Begin(), supportedExtensions.End(), [&deviceExtensions, &i](const VkExtensionProperties& arg) { return strcmp(arg.extensionName, deviceExtensions[i]); }) == supportedExtensions.end())
                 return false;
         }
 
         VulkanCommon::SwapChainSupportDetails swapDetails = VulkanCommon::GetSwapChainSupport(device, surface);
-        bool swapChainAdequate = !swapDetails.Formats.empty() && !swapDetails.PresentModes.empty();
+        bool swapChainAdequate = !swapDetails.Formats.IsEmpty() && !swapDetails.PresentModes.IsEmpty();
 
         outOptionalFeatures.SamplerAnisotropy = deviceFeatures.samplerAnisotropy;
         outOptionalFeatures.WideLines = deviceFeatures.wideLines;

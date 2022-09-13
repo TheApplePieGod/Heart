@@ -21,6 +21,9 @@
 #include <shared_mutex>
 #include <random>
 #include <thread>
+#include <type_traits>
+#include <new>
+#include <locale>
 
 #include <string>
 #include <regex>
@@ -41,4 +44,5 @@
 #ifdef HE_PLATFORM_WINDOWS
 	#include <Windows.h>
 	#include <ShlObj.h>
+	#include <comdef.h>
 #endif

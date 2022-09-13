@@ -99,8 +99,8 @@ namespace Heart
         m_CubemapFramebuffer = Framebuffer::Create(cubemapFbCreateInfo);
 
         GraphicsPipelineCreateInfo envPipeline = {
-            AssetManager::GetAssetUUID("EnvironmentMap.vert", true),
-            AssetManager::GetAssetUUID("CalcEnvironmentMap.frag", true),
+            AssetManager::GetAssetUUID("engine/EnvironmentMap.vert", true),
+            AssetManager::GetAssetUUID("engine/CalcEnvironmentMap.frag", true),
             true,
             VertexTopology::TriangleList,
             Heart::Mesh::GetVertexLayout(),
@@ -144,8 +144,8 @@ namespace Heart
         m_IrradianceMapFramebuffer = Framebuffer::Create(irradianceFbCreateInfo);
 
         GraphicsPipelineCreateInfo irradiancePipeline = {
-            AssetManager::GetAssetUUID("EnvironmentMap.vert", true),
-            AssetManager::GetAssetUUID("CalcIrradianceMap.frag", true),
+            AssetManager::GetAssetUUID("engine/EnvironmentMap.vert", true),
+            AssetManager::GetAssetUUID("engine/CalcIrradianceMap.frag", true),
             true,
             VertexTopology::TriangleList,
             Heart::Mesh::GetVertexLayout(),
@@ -180,8 +180,8 @@ namespace Heart
         };
 
         GraphicsPipelineCreateInfo prefilterPipeline = {
-            AssetManager::GetAssetUUID("EnvironmentMap.vert", true),
-            AssetManager::GetAssetUUID("CalcPrefilterMap.frag", true),
+            AssetManager::GetAssetUUID("engine/EnvironmentMap.vert", true),
+            AssetManager::GetAssetUUID("engine/CalcPrefilterMap.frag", true),
             true,
             VertexTopology::TriangleList,
             Heart::Mesh::GetVertexLayout(),
@@ -194,17 +194,17 @@ namespace Heart
         };
         for (u32 i = 0; i < 5; i++) // each mip level
         {
-            prefilterFbCreateInfo.ColorAttachments.clear();
+            prefilterFbCreateInfo.ColorAttachments.Clear();
             for (u32 j = 0; j < 6; j++) // each face
-                prefilterFbCreateInfo.ColorAttachments.push_back({ { 0.f, 0.f, 0.f, 0.f }, false, ColorFormat::None, m_PrefilterMap, j, i });
+                prefilterFbCreateInfo.ColorAttachments.Add({ { 0.f, 0.f, 0.f, 0.f }, false, ColorFormat::None, m_PrefilterMap, j, i });
             prefilterFbCreateInfo.Width = static_cast<u32>(m_PrefilterMap->GetWidth() * pow(0.5f, i));
             prefilterFbCreateInfo.Height = static_cast<u32>(m_PrefilterMap->GetHeight() * pow(0.5f, i));
 
-            m_PrefilterFramebuffers.emplace_back(Framebuffer::Create(prefilterFbCreateInfo));
+            m_PrefilterFramebuffers.AddInPlace(Framebuffer::Create(prefilterFbCreateInfo));
             for (u32 j = 0; j < 6; j++) // each face
             {
                 prefilterPipeline.SubpassIndex = j;
-                m_PrefilterFramebuffers.back()->RegisterGraphicsPipeline(std::to_string(j), prefilterPipeline);
+                m_PrefilterFramebuffers.Back()->RegisterGraphicsPipeline(std::to_string(j), prefilterPipeline);
             }
         }
 
@@ -225,8 +225,8 @@ namespace Heart
         m_BRDFFramebuffer = Framebuffer::Create(brdfFbCreateInfo);
 
         GraphicsPipelineCreateInfo brdfPipeline = {
-            AssetManager::GetAssetUUID("BRDFQuad.vert", true),
-            AssetManager::GetAssetUUID("CalcBRDF.frag", true),
+            AssetManager::GetAssetUUID("engine/BRDFQuad.vert", true),
+            AssetManager::GetAssetUUID("engine/CalcBRDF.frag", true),
             false,
             VertexTopology::TriangleList,
             Heart::Mesh::GetVertexLayout(),
@@ -251,7 +251,7 @@ namespace Heart
 
         for (auto& buffer : m_PrefilterFramebuffers)
             buffer.reset();
-        m_PrefilterFramebuffers.clear();
+        m_PrefilterFramebuffers.Clear();
         m_BRDFFramebuffer.reset();
         m_CubemapFramebuffer.reset();
         m_IrradianceMapFramebuffer.reset();
@@ -265,7 +265,7 @@ namespace Heart
         auto loadTimer = Timer("Environment map generation");
 
         // Retrieve the basic cube mesh
-        auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>("DefaultCube.gltf", true);
+        auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>("engine/DefaultCube.gltf", true);
         auto& meshData = meshAsset->GetSubmesh(0);
 
         // Retrieve the associated env map asset
@@ -277,7 +277,14 @@ namespace Heart
         }
 
         // +X -X +Y -Y +Z -Z rotations for rendering each face of the cubemap
-        glm::vec2 rotations[] = { { 90.f, 0.f }, { -90.f, 0.f }, { 0.f, 90.f }, { 0.f, -90.f }, { 0.f, 0.f }, { 180.f, 0.f } };
+        glm::vec3 rotations[] = {
+            { 0.f, 90.f, 0.f },
+            { 0.f, -90.f, 0.f },
+            { -90.f, 0.f, 0.f },
+            { 90.f, 0.f, 0.f },
+            { 0.f, 0.f, 0.f },
+            { 0.f, 180.f, 0.f }
+        };
 
         // The camera that will be used to render each face
         Camera cubemapCam(90.f, 0.1f, 50.f, 1.f);
@@ -296,7 +303,7 @@ namespace Heart
 
             m_CubemapFramebuffer->BindPipeline(std::to_string(i));  
 
-            cubemapCam.UpdateViewMatrix(rotations[i].x, rotations[i].y, { 0.f, 0.f, 0.f });
+            cubemapCam.UpdateViewMatrix(glm::vec3(0.f), rotations[i]);
 
             CubemapData mapData = { cubemapCam.GetProjectionMatrix(), cubemapCam.GetViewMatrix(), glm::vec4(0.f) };
             m_CubemapDataBuffer->SetElements(&mapData, 1, cubeDataIndex);
@@ -331,7 +338,7 @@ namespace Heart
 
             m_IrradianceMapFramebuffer->BindPipeline(std::to_string(i));  
 
-            cubemapCam.UpdateViewMatrix(rotations[i].x, rotations[i].y, { 0.f, 0.f, 0.f });
+            cubemapCam.UpdateViewMatrix(glm::vec3(0.f), rotations[i]);
 
             CubemapData mapData = { cubemapCam.GetProjectionMatrix(), cubemapCam.GetViewMatrix(), glm::vec4(0.f) };
             m_CubemapDataBuffer->SetElements(&mapData, 1, cubeDataIndex);
@@ -356,7 +363,7 @@ namespace Heart
         // ------------------------------------------------------------------
         // Prefilter the environment map based on roughness
         // ------------------------------------------------------------------
-        for (size_t i = 0; i < m_PrefilterFramebuffers.size(); i++)
+        for (u32 i = 0; i < m_PrefilterFramebuffers.Count(); i++)
         {
             m_PrefilterFramebuffers[i]->Bind();
 
@@ -368,7 +375,7 @@ namespace Heart
 
                 m_PrefilterFramebuffers[i]->BindPipeline(std::to_string(j));  
 
-                cubemapCam.UpdateViewMatrix(rotations[j].x, rotations[j].y, { 0.f, 0.f, 0.f });
+                cubemapCam.UpdateViewMatrix(glm::vec3(0.f), rotations[j]);
 
                 CubemapData mapData = { cubemapCam.GetProjectionMatrix(), cubemapCam.GetViewMatrix(), glm::vec4(roughness, m_EnvironmentMap->GetWidth(), 0.f, 0.f) };
                 m_CubemapDataBuffer->SetElements(&mapData, 1, cubeDataIndex);
