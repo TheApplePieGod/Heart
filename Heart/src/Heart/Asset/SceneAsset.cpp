@@ -84,9 +84,9 @@ namespace Heart
                     entity.AddComponent<ParentComponent>(static_cast<UUID>(loaded["parentComponent"]["id"]));
 
                 // Child component
-                if (loaded.contains("ChildrenComponent"))
+                if (loaded.contains("childrenComponent"))
                 {
-                    auto& children = loaded["ChildrenComponent"]["children"];
+                    auto& children = loaded["childrenComponent"]["children"];
                     HVector<UUID> ids;
                     ids.Reserve(children.size());
                     for (auto& childId : children)
@@ -206,7 +206,7 @@ namespace Heart
                 {
                     auto& childComp = entity.GetComponent<ChildrenComponent>();
                     for (size_t i = 0; i < childComp.Children.Count(); i++)
-                        entry["ChildrenComponent"]["children"][i] = static_cast<u64>(childComp.Children[i]);
+                        entry["childrenComponent"]["children"][i] = static_cast<u64>(childComp.Children[i]);
                 }
 
                 // Mesh component
