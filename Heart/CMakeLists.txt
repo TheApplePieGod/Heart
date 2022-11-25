@@ -83,60 +83,51 @@ target_include_directories(
 
 # Locate vulkansdk libraries
 if (WIN32)
+  if (${CMAKE_BUILD_TYPE} MATCHES Debug)
+    set(DEBUG_LIB_EXTRAS "d")
+  endif()
   find_library(vulkan
     NAMES "vulkan-1"
     PATHS "$ENV{VULKAN_SDK}/lib"
   )
+  target_link_libraries(Engine ${vulkan})
   find_library(shaderc
     NAMES "shaderc_shared"
     PATHS "$ENV{VULKAN_SDK}/lib"
   )
+  target_link_libraries(Engine ${shaderc})
+  find_library(spirvcore${DEBUG_LIB_EXTRAS}
+    NAMES "spirv-cross-core${DEBUG_LIB_EXTRAS}"
+    PATHS "$ENV{VULKAN_SDK}/lib"
+  )
+  target_link_libraries(Engine ${spirvcore${DEBUG_LIB_EXTRAS}})
   find_library(spirvglsl
     NAMES "spirv-cross-glsl"
     PATHS "$ENV{VULKAN_SDK}/lib"
   )
+  target_link_libraries(Engine ${spirvglsl})
 else()
   find_library(vulkan
     NAMES "libvulkan.so"
     PATHS "$ENV{VULKAN_SDK}/lib"
   )
+  target_link_libraries(Engine ${vulkan})
   find_library(shaderc
     NAMES "libshaderc_shared.so"
     PATHS "$ENV{VULKAN_SDK}/lib"
   )
+  target_link_libraries(Engine ${shaderc})
   find_library(spirvglsl
     NAMES "libspirv-cross-glsl.a"
     PATHS "$ENV{VULKAN_SDK}/lib"
   )
-endif()
-
-# Locate & link accessory vulkan libraries
-if (WIN32)
-  if (${CMAKE_BUILD_TYPE} MATCHES Debug)
-    find_library(spirvcored
-      NAMES "spirv-cross-cored"
-      PATHS "$ENV{VULKAN_SDK}/lib"
-    )
-    target_link_libraries(Engine ${spirvcored})
-  else()
-    find_library(spirvcore
-      NAMES "spirv-cross-core"
-      PATHS "$ENV{VULKAN_SDK}/lib"
-    )
-    target_link_libraries(Engine ${spirvcore})
-  endif()
-else()
-  find_library(spirvcore
-    NAMES "libspirv-cross-core.a"
-    PATHS "$ENV{VULKAN_SDK}/lib"
-  )
-  target_link_libraries(Engine ${spirvcore})
+  target_link_libraries(Engine ${spirvglsl})
 endif()
 
 # Link dependencies
 target_link_libraries(
   Engine
-  glfw glm imgui spdlog glad OptickCore imguizmo nlohmann_json ${vulkan} ${shaderc} ${spirvglsl}
+  glfw glm imgui spdlog glad OptickCore imguizmo nlohmann_json
 )
 
 # Copy required dlls
