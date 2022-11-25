@@ -88,7 +88,7 @@ namespace Heart.NativeBridge
         internal static unsafe FieldInfo FindField(ManagedGCHandle objectHandle, string fieldName)
         {
             return objectHandle.Target.GetType()
-                .GetField(fieldName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                .GetField(fieldName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
         }
 
         [UnmanagedCallersOnly]
