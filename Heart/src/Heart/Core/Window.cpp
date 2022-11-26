@@ -5,9 +5,10 @@
 #include "Heart/Events/KeyboardEvents.h"
 #include "Heart/Events/MouseEvents.h"
 #include "Heart/Input/Input.h"
-#include "Heart/Renderer/Renderer.h"
-#include "Heart/Renderer/GraphicsContext.h"
 #include "GLFW/glfw3.h"
+
+#define FL_USE_GLFW
+#include "Flourish/Api/RenderContext.h"
 
 namespace Heart
 {
@@ -36,37 +37,27 @@ namespace Heart
             glfwSetErrorCallback(GLFWErrorCallback);
         }
 
-        if (Renderer::GetApiType() == RenderApi::Type::Vulkan)
+        if (Flourish::Context::BackendType() == Flourish::BackendType::Vulkan)
         {
             glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
             HE_ENGINE_ASSERT(glfwVulkanSupported(), "Device does not support vulkan rendering");
         }
 
-        #ifdef HE_DEBUG
-        if (Renderer::GetApiType() == RenderApi::Type::OpenGL)
-            glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
-        #endif
-
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
-        HString8 fullTitle = createInfo.Title;
-        fullTitle += " (";
-        fullTitle += HE_ENUM_TO_STRING(RenderApi, Renderer::GetApiType());
-        fullTitle += ")";
-
-        m_Window = glfwCreateWindow(createInfo.Width, createInfo.Height, fullTitle.Data(), nullptr, nullptr);
+        m_Window = glfwCreateWindow(createInfo.Width, createInfo.Height, createInfo.Title.Data(), nullptr, nullptr);
         s_WindowCount++;
 
-        m_GraphicsContext = GraphicsContext::Create(m_Window);
+        Flourish::RenderContextCreateInfo ctxCreateInfo;
+        ctxCreateInfo.Window = m_Window;
+        ctxCreateInfo.Width = createInfo.Width;
+        ctxCreateInfo.Height = createInfo.Height;
+        m_RenderContext = Flourish::RenderContext::Create(ctxCreateInfo);
 
         glfwSetWindowUserPointer(m_Window, &m_WindowData);
         
         if (glfwRawMouseMotionSupported())
             glfwSetInputMode(m_Window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
-
-        // disable vsync permanently (for now)
-        if (Renderer::GetApiType() == RenderApi::Type::OpenGL)
-            glfwSwapInterval(0);
 
         glfwSetWindowSizeCallback(m_Window, [](GLFWwindow* window, int width, int height)
 		{
@@ -157,7 +148,6 @@ namespace Heart
     {
         HE_PROFILE_FUNCTION();
 
-        m_GraphicsContext->BeginFrame();
     }
 
     void Window::PollEvents()
@@ -169,7 +159,6 @@ namespace Heart
 
     void Window::EndFrame()
     {
-        m_GraphicsContext->EndFrame();
         Input::ClearDeltas();
     }
 

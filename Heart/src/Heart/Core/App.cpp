@@ -4,13 +4,13 @@
 #include "Heart/Core/Layer.h"
 #include "Heart/Core/Window.h"
 #include "Heart/Core/Timing.h"
-#include "Heart/Renderer/Renderer.h"
 #include "Heart/ImGui/ImGuiInstance.h"
 #include "Heart/Events/WindowEvents.h"
 #include "Heart/Events/AppEvents.h"
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Scripting/ScriptingEngine.h"
 #include "Heart/Util/PlatformUtils.h"
+#include "Flourish/Api/Context.h"
 
 namespace Heart
 {
@@ -29,7 +29,7 @@ namespace Heart
         #endif
 
         WindowCreateInfo windowCreateInfo = WindowCreateInfo(windowName);
-        InitializeGraphicsApi(RenderApi::Type::Vulkan, windowCreateInfo);
+        InitializeGraphicsApi(windowCreateInfo);
 
         // Init services
         AssetManager::Initialize();
@@ -57,19 +57,19 @@ namespace Heart
         layer->OnAttach();
     }
 
-    void App::SwitchGraphicsApi(RenderApi::Type type)
-    {
-        m_SwitchingApi = type;
-    }
-    
     void App::SwitchAssetsDirectory(const HStringView8& newDirectory)
     {
         m_SwitchingAssetsDirectory = newDirectory;
     }
 
-    void App::InitializeGraphicsApi(RenderApi::Type type, const WindowCreateInfo& windowCreateInfo)
+    void App::InitializeGraphicsApi(const WindowCreateInfo& windowCreateInfo)
     {
-        Renderer::Initialize(type);
+        Flourish::ContextInitializeInfo initInfo;
+        initInfo.ApplicationName = "Heart";
+        initInfo.Backend = Flourish::BackendType::Vulkan;
+        initInfo.FrameBufferCount = 2;
+        initInfo.UseReversedZBuffer = true;
+        Flourish::Context::Initialize(initInfo);
 
         m_Window = Window::Create(windowCreateInfo);
         SubscribeToEmitter(&GetWindow());
@@ -93,7 +93,7 @@ namespace Heart
 
         m_ImGuiInstance.reset();
 
-        Renderer::Shutdown();
+        Flourish::Context::Shutdown();
 
         Window::SetMainWindow(nullptr);
         m_Window.reset();
@@ -114,7 +114,7 @@ namespace Heart
             return false;
         }
 
-        Renderer::OnWindowResize(m_Window->GetContext(), event.GetWidth(), event.GetHeight());
+        // Renderer::OnWindowResize(m_Window->GetContext(), event.GetWidth(), event.GetHeight());
         m_Minimized = false;
 
         return false;
@@ -126,42 +126,11 @@ namespace Heart
         return true;
     }
 
-    void App::CheckForGraphicsApiSwitch()
-    {
-        if (m_SwitchingApi != RenderApi::Type::None)
-        {
-            WindowCreateInfo windowCreateInfo = {
-                m_Window->GetTitle(),
-                m_Window->GetWidth(),
-                m_Window->GetHeight()
-            };
-            bool fullscreen = m_Window->IsFullscreen();
-
-            AssetManager::UnloadAllAssets();
-
-            ShutdownGraphicsApi();
-            AggregateTimer::ClearTimeMap();
-
-            InitializeGraphicsApi(m_SwitchingApi, windowCreateInfo);
-            m_Window->SetFullscreen(fullscreen);
-
-            for (auto layer : m_Layers)
-                layer->OnAttach();
-
-            m_SwitchingApi = RenderApi::Type::None;
-        }
-    }
-
     void App::CheckForAssetsDirectorySwitch()
     {
         if (!m_SwitchingAssetsDirectory.IsEmpty())
         {
             AssetManager::UpdateAssetsDirectory(m_SwitchingAssetsDirectory);
-            
-            // TEMPORARY SOLUTION
-            // Until we have dedicated projects and I figure out what exactly needs to happen when
-            // the assets directory changes, force a full reload on the graphics backend
-            m_SwitchingApi = Renderer::GetApiType();
 
             m_SwitchingAssetsDirectory.Clear();
         }
@@ -216,7 +185,6 @@ namespace Heart
             m_FrameCount++;
 
             CheckForAssetsDirectorySwitch();
-            CheckForGraphicsApiSwitch();
             AggregateTimer::EndFrame();
         }
     }

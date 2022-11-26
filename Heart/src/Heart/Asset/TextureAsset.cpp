@@ -2,8 +2,6 @@
 #include "TextureAsset.h"
 
 #include "Heart/Asset/AssetManager.h"
-#include "Heart/Renderer/Renderer.h"
-#include "Heart/Renderer/Texture.h"
 #include "stb_image/stb_image.h"
 
 namespace Heart
@@ -37,32 +35,32 @@ namespace Heart
             m_Loading = false;
             return;
         }
+        
+        Flourish::TextureCreateInfo createInfo = {
+            static_cast<u32>(width),
+            static_cast<u32>(height),
+            static_cast<u32>(m_DesiredChannelCount),
+            floatComponents ? Flourish::BufferDataType::Float : Flourish::BufferDataType::UInt8,
+            Flourish::BufferUsageType::Static,
+            1, 0,
+            Flourish::TextureSamplerState(),
+            pixels,
+            static_cast<u32>(width * height * m_DesiredChannelCount),
+            async,
+            [this, pixels, floatComponents]()
+            {
+                // TODO: ???
+                if (!AssetManager::IsInitialized()) return;
+                if (floatComponents)
+                    delete[] (float*)pixels;
+                else
+                    delete[] (unsigned char*)pixels;
 
-        TextureCreateInfo createInfo = {
-            static_cast<u32>(width), static_cast<u32>(height), static_cast<u32>(m_DesiredChannelCount),
-            floatComponents ? BufferDataType::Float : BufferDataType::UInt8,
-            BufferUsageType::Static,
-            1, 0
+                m_Loaded = true;
+                m_Loading = false;
+                m_Valid = true;
+            }
         };
-
-        auto finalizeFn = [this, createInfo, pixels, floatComponents]()
-        {
-            if (!AssetManager::IsInitialized()) return;
-            m_Texture = Texture::Create(createInfo, pixels);
-            if (floatComponents)
-                delete[] (float*)pixels;
-            else
-                delete[] (unsigned char*)pixels;
-
-            m_Loaded = true;
-            m_Loading = false;
-            m_Valid = true;
-        };
-
-        if (async)
-            Renderer::PushJobQueue(finalizeFn);
-        else
-            finalizeFn();
     }
 
     void TextureAsset::Unload()

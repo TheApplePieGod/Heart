@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Heart/Asset/Asset.h"
-#include "Heart/Renderer/Shader.h"
+#include "Flourish/Api/Shader.h"
 
 namespace Heart
 {
@@ -20,10 +20,10 @@ namespace Heart
         void Unload() override;
 
         /*! @brief Get a pointer to the shader stored in this asset. */
-        inline Shader* GetShader() { return m_Shader.get(); }
+        inline Flourish::Shader* GetShader() { return m_Shader.get(); }
 
     private:
-        Ref<Shader> m_Shader;
-        Shader::Type m_ShaderType = Shader::Type::None;
+        Ref<Flourish::Shader> m_Shader;
+        Flourish::ShaderType m_ShaderType = Flourish::ShaderType::None;
     };
 }

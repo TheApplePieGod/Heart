@@ -14,6 +14,7 @@ add_subdirectory("lib/optick")
 add_subdirectory("lib/entt")
 add_subdirectory("lib/imguizmo")
 add_subdirectory("lib/json")
+add_subdirectory("lib/Flourish")
 
 # Include other dependency sources that need to be built
 set(DEPENDENCY_SOURCES
@@ -63,7 +64,7 @@ target_include_directories(
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/imguizmo>"
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/json/include>"
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/utf-cpp/include>"
-  "$<BUILD_INTERFACE:$ENV{VULKAN_SDK}/include>"
+  "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/Flourish/Flourish/src>"
   "$<BUILD_INTERFACE:${DOTNET_RUNTIME_DIR}>"
 
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
@@ -76,58 +77,16 @@ target_include_directories(
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/entt/src>"
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/imguizmo>"
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/json/include>"
-  "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/lib/utf-cpp/include>"
-  "$<INSTALL_INTERFACE:$ENV{VULKAN_SDK}/include>"
+  "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/utf-cpp/include>"
+  "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/Flourish/Flourish/src>"
   "$<INSTALL_INTERFACE:${DOTNET_RUNTIME_DIR}>"
 )
-
-# Locate vulkansdk libraries
-if (WIN32)
-  if (${CMAKE_BUILD_TYPE} MATCHES Debug)
-    set(DEBUG_LIB_EXTRAS "d")
-  endif()
-  find_library(vulkan
-    NAMES "vulkan-1"
-    PATHS "$ENV{VULKAN_SDK}/lib"
-  )
-  target_link_libraries(Engine ${vulkan})
-  find_library(shaderc
-    NAMES "shaderc_shared"
-    PATHS "$ENV{VULKAN_SDK}/lib"
-  )
-  target_link_libraries(Engine ${shaderc})
-  find_library(spirvcore${DEBUG_LIB_EXTRAS}
-    NAMES "spirv-cross-core${DEBUG_LIB_EXTRAS}"
-    PATHS "$ENV{VULKAN_SDK}/lib"
-  )
-  target_link_libraries(Engine ${spirvcore${DEBUG_LIB_EXTRAS}})
-  find_library(spirvglsl
-    NAMES "spirv-cross-glsl"
-    PATHS "$ENV{VULKAN_SDK}/lib"
-  )
-  target_link_libraries(Engine ${spirvglsl})
-else()
-  find_library(vulkan
-    NAMES "libvulkan.so"
-    PATHS "$ENV{VULKAN_SDK}/lib"
-  )
-  target_link_libraries(Engine ${vulkan})
-  find_library(shaderc
-    NAMES "libshaderc_shared.so"
-    PATHS "$ENV{VULKAN_SDK}/lib"
-  )
-  target_link_libraries(Engine ${shaderc})
-  find_library(spirvglsl
-    NAMES "libspirv-cross-glsl.a"
-    PATHS "$ENV{VULKAN_SDK}/lib"
-  )
-  target_link_libraries(Engine ${spirvglsl})
-endif()
 
 # Link dependencies
 target_link_libraries(
   Engine
-  glfw glm imgui spdlog glad OptickCore imguizmo nlohmann_json
+  PUBLIC
+  glfw glm imgui spdlog glad OptickCore imguizmo nlohmann_json FlourishCore
 )
 
 # Copy required dlls
@@ -149,7 +108,7 @@ include(CMakePackageConfigHelpers)
 
 set(JSON_Install ON) # Make sure the json lib installs the proper files
 install(
-  TARGETS Engine glm imgui spdlog glad imguizmo nlohmann_json glfw OptickCore
+  TARGETS Engine glm imgui spdlog glad imguizmo nlohmann_json glfw OptickCore FlourishCore
   EXPORT EngineTargets
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}

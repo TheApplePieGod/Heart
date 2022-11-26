@@ -4,11 +4,12 @@
 #include "Heart/Core/App.h"
 #include "imgui/imgui.h"
 #include "Heart/Asset/AssetManager.h"
-#include "Heart/Renderer/Renderer.h"
-#include "Heart/Platform/Vulkan/VulkanContext.h"
 #include "imgui/backends/imgui_impl_glfw.h"
 #include "Heart/Core/Window.h"
 #include "GLFW/glfw3.h"
+
+#include "imgui/backends/imgui_impl_vulkan.h"
+#include "Flourish/Backends/Vulkan/Util/Context.h"
 
 namespace Heart
 {
@@ -45,14 +46,12 @@ namespace Heart
         SetThemeColors();
 
         // do the Inits here because they don't need to be recalled when recreating the instance
-        switch (Renderer::GetApiType())
+        switch (Flourish::Context::BackendType())
         {
             default:
             { HE_ENGINE_ASSERT(false, "Cannot initialize ImGui: selected ApiType is not supported"); } break;
-            case RenderApi::Type::Vulkan:
+            case Flourish::BackendType::Vulkan:
             { ImGui_ImplGlfw_InitForVulkan(window->GetWindowHandle(), true); } break;
-			case RenderApi::Type::OpenGL:
-            { ImGui_ImplGlfw_InitForOpenGL(window->GetWindowHandle(), true); } break;
         }
 
         Recreate();
@@ -72,7 +71,33 @@ namespace Heart
         if (m_Initialized)
             Cleanup();
 
-        m_Window->GetContext().InitializeImGui();
+        switch (Flourish::Context::BackendType())
+        {
+            default:
+            { HE_ENGINE_ASSERT(false, "Cannot initialize ImGui: selected ApiType is not supported"); } break;
+            case Flourish::BackendType::Vulkan:
+            {
+				ImGui_ImplVulkan_InitInfo info = {};
+				info.Instance = Flourish::Vulkan::Context::Instance();
+				info.PhysicalDevice = Flourish::Vulkan::Context::Devices().PhysicalDevice();
+				info.Device = Flourish::Vulkan::Context::Devices().Device();
+				info.QueueFamily = Flourish::Vulkan::Queues().QueueIndex(Flourish::GPUWorkloadType::Graphics);
+				info.Queue = Flourish::Vulkan::Queues().Queue(Flourish::GPUWorkloadType::Graphics);
+				info.PipelineCache = VK_NULL_HANDLE;
+				info.DescriptorPool = m_ImGuiDescriptorPool;
+				info.Allocator = NULL;
+				info.MinImageCount = 2;
+				info.ImageCount = Flourish::Context::FrameBufferCount();
+				info.CheckVkResultFn = NULL;
+				info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+
+				ImGui_ImplVulkan_Init(&info, m_VulkanSwapChain.GetRenderPass());
+				VkCommandBuffer commandBuffer = VulkanCommon::BeginSingleTimeCommands(s_VulkanDevice.Device(), s_GraphicsPool);
+				ImGui_ImplVulkan_CreateFontsTexture(commandBuffer);
+				VulkanCommon::EndSingleTimeCommands(s_VulkanDevice.Device(), s_GraphicsPool, commandBuffer, s_VulkanDevice.GraphicsQueue());
+				ImGui_ImplVulkan_DestroyFontUploadObjects();
+			} break;
+        }
 
         m_Initialized = true;
     }

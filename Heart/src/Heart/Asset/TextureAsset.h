@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Heart/Asset/Asset.h"
+#include "Flourish/Api/Texture.h"
 
 namespace Heart
 {
@@ -22,10 +23,10 @@ namespace Heart
         void Unload() override;
 
         /*! @brief Get a pointer to the texture stored in this asset. */
-        inline Texture* GetTexture() { return m_Texture.get(); }
+        inline Flourish::Texture* GetTexture() { return m_Texture.get(); }
 
     private:
         const int m_DesiredChannelCount = 4; // all images will load as RGBA
-        Ref<Texture> m_Texture;
+        Ref<Flourish::Texture> m_Texture;
     };
 }

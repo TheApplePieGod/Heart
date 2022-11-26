@@ -3,6 +3,11 @@
 #include "Heart/Events/EventEmitter.h"
 #include "Heart/Container/HString8.h"
 
+namespace Flourish
+{
+    class RenderContext;
+}
+
 class GLFWwindow;
 namespace Heart
 {
@@ -20,7 +25,6 @@ namespace Heart
     };
 
     // TODO: describe method lifecycles
-    class GraphicsContext;
     class Window : public EventEmitter
     {
     public:
@@ -66,7 +70,7 @@ namespace Heart
         bool IsFullscreen();
 
         /*! @brief Get the window's graphics context. */
-        inline GraphicsContext& GetContext() const { return *m_GraphicsContext; }
+        inline Flourish::RenderContext* GetRenderContext() const { return m_RenderContext.get(); }
 
         /*! @brief Get the window's underlying GLFW handle. */
         inline GLFWwindow* GetWindowHandle() const { return m_Window; }
@@ -120,7 +124,7 @@ namespace Heart
         inline static Ref<Window> s_MainWindow = nullptr;
 
     private:
-        Ref<GraphicsContext> m_GraphicsContext;
+        Ref<Flourish::RenderContext> m_RenderContext;
         int m_SavedWindowSizeAndPosition[4]; // used when toggling fullscreen
         WindowData m_WindowData;
         GLFWwindow* m_Window;
