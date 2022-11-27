@@ -8,8 +8,21 @@ namespace Heart
     Mesh::Mesh(const HVector<Vertex>& vertices, const HVector<u32>& indices, u32 materialIndex)
         : m_Vertices(vertices), m_Indices(indices), m_MaterialIndex(materialIndex)
     {
-        m_VertexBuffer = Buffer::Create(Buffer::Type::Vertex, BufferUsageType::Static, s_VertexLayout, static_cast<u32>(vertices.Count()), (void*)vertices.Data());
-        m_IndexBuffer = Buffer::CreateIndexBuffer(BufferUsageType::Static, static_cast<u32>(indices.Count()), (void*)indices.Data());
+        Flourish::BufferCreateInfo bufCreateInfo;
+        bufCreateInfo.Type = Flourish::BufferType::Vertex;
+        bufCreateInfo.Usage = Flourish::BufferUsageType::Static;
+        bufCreateInfo.Layout = s_VertexLayout;
+        bufCreateInfo.ElementCount = vertices.Count();
+        bufCreateInfo.InitialData = vertices.Data();
+        bufCreateInfo.InitialDataSize = sizeof(Vertex) * vertices.Count();
+        m_VertexBuffer = Flourish::Buffer::Create(bufCreateInfo);
+
+        bufCreateInfo.Type = Flourish::BufferType::Index;
+        bufCreateInfo.Layout = s_IndexLayout;
+        bufCreateInfo.ElementCount = indices.Count();
+        bufCreateInfo.InitialData = indices.Data();
+        bufCreateInfo.InitialDataSize = sizeof(u32) * indices.Count();
+        m_IndexBuffer = Flourish::Buffer::Create(bufCreateInfo);
         
         CalculateBounds();
     }

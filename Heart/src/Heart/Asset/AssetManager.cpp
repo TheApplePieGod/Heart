@@ -308,7 +308,7 @@ namespace Heart
         return s_UUIDs[uuid].IsResource;
     }
 
-    Asset* AssetManager::RetrieveAsset(const HStringView8& path, bool isResource)
+    Asset* AssetManager::RetrieveAsset(const HStringView8& path, bool isResource, bool async)
     {
         if (path.IsEmpty()) return nullptr;
         if (isResource)
@@ -317,7 +317,7 @@ namespace Heart
         { if (s_Registry.find(path) == s_Registry.end()) return nullptr; }
 
         auto& entry = isResource ? s_Resources[path] : s_Registry[path];
-        LoadAsset(entry);
+        LoadAsset(entry, async);
         return entry.Asset.get();
     }
 

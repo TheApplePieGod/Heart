@@ -46,6 +46,9 @@ namespace Heart
             { Flourish::BufferDataType::Float3 },
             { Flourish::BufferDataType::Float4 }
         };
+        inline static const Flourish::BufferLayout s_IndexLayout = {
+            { Flourish::BufferDataType::UInt }
+        };
 
     private:
         void CalculateBounds();
