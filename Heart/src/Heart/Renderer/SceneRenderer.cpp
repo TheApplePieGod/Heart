@@ -4,18 +4,23 @@
 #include "Heart/Core/App.h"
 #include "Heart/Core/Window.h"
 #include "Heart/Core/Timing.h"
-#include "Heart/Renderer/GraphicsContext.h"
-#include "Heart/Renderer/Framebuffer.h"
-#include "Heart/Renderer/Buffer.h"
-#include "Heart/Renderer/Texture.h"
+#include "Flourish/Api/Context.h"
+#include "Flourish/Api/GraphicsPipeline.h"
+#include "Flourish/Api/ComputePipeline.h"
+#include "Flourish/Api/RenderContext.h"
+#include "Flourish/Api/RenderPass.h"
+#include "Flourish/Api/Framebuffer.h"
+#include "Flourish/Api/Buffer.h"
+#include "Flourish/Api/Texture.h"
+#include "Flourish/Api/CommandBuffer.h"
+#include "Flourish/Api/RenderCommandEncoder.h"
+#include "Flourish/Api/ComputeCommandEncoder.h"
 #include "Heart/Renderer/Material.h"
 #include "Heart/Renderer/Mesh.h"
 #include "Heart/Renderer/EnvironmentMap.h"
 #include "Heart/Core/Camera.h"
 #include "Heart/Events/AppEvents.h"
 #include "Heart/Events/WindowEvents.h"
-#include "Heart/Renderer/Renderer.h"
-#include "Heart/Renderer/Pipeline.h"
 #include "Heart/Scene/Components.h"
 #include "Heart/Scene/Entity.h"
 #include "Heart/Asset/AssetManager.h"
@@ -82,94 +87,118 @@ namespace Heart
         m_Initialized = true;
 
         // Create default environment map cubemap object
-        m_DefaultEnvironmentMap = Texture::Create({ 512, 512, 4, BufferDataType::UInt8, BufferUsageType::Static, 6, 5 });
+        // TODO: we should be reusing this elsewhere
+        Flourish::TextureCreateInfo envTexCreateInfo;
+        envTexCreateInfo.Width = 512;
+        envTexCreateInfo.Height = 512;
+        envTexCreateInfo.Channels = 4;
+        envTexCreateInfo.DataType = Flourish::BufferDataType::UInt8;
+        envTexCreateInfo.UsageType = Flourish::BufferUsageType::Static;
+        envTexCreateInfo.ArrayCount = 6;
+        envTexCreateInfo.MipCount = 5;
+        m_DefaultEnvironmentMap = Flourish::Texture::Create(envTexCreateInfo);
 
         // Initialize data buffers
-        BufferLayout frameDataLayout = {
-            { BufferDataType::Mat4 }, // proj matrix
-            { BufferDataType::Mat4 }, // view matrix
-            { BufferDataType::Float4 }, // camera pos
-            { BufferDataType::Float2 }, // screen size
-            { BufferDataType::Bool }, // reverse depth
-            { BufferDataType::Float }, // bloom threshold
-            { BufferDataType::Bool }, // cull enable
-            { BufferDataType::Bool }, // padding
-            { BufferDataType::Float2 } // padding
+        Flourish::BufferLayout frameDataLayout = {
+            { Flourish::BufferDataType::Mat4 }, // proj matrix
+            { Flourish::BufferDataType::Mat4 }, // view matrix
+            { Flourish::BufferDataType::Float4 }, // camera pos
+            { Flourish::BufferDataType::Float2 }, // screen size
+            { Flourish::BufferDataType::Bool }, // reverse depth
+            { Flourish::BufferDataType::Float }, // bloom threshold
+            { Flourish::BufferDataType::Bool }, // cull enable
+            { Flourish::BufferDataType::Bool }, // padding
+            { Flourish::BufferDataType::Float2 } // padding
         };
-        BufferLayout bloomDataLayout = {
-            { BufferDataType::UInt }, // mip level
-            { BufferDataType::Bool }, // reverse depth
-            { BufferDataType::Float }, // blur scale
-            { BufferDataType::Float } // blur strength
+        Flourish::BufferLayout bloomDataLayout = {
+            { Flourish::BufferDataType::UInt }, // mip level
+            { Flourish::BufferDataType::Bool }, // reverse depth
+            { Flourish::BufferDataType::Float }, // blur scale
+            { Flourish::BufferDataType::Float } // blur strength
         };
-        BufferLayout objectDataLayout = {
-            { BufferDataType::Mat4 }, // transform
-            { BufferDataType::Float4 }, // [0]: entityId
-            { BufferDataType::Float4 }, // boundingSphere
+        Flourish::BufferLayout objectDataLayout = {
+            { Flourish::BufferDataType::Mat4 }, // transform
+            { Flourish::BufferDataType::Float4 }, // [0]: entityId
+            { Flourish::BufferDataType::Float4 }, // boundingSphere
         };
-        BufferLayout materialDataLayout = {
-            { BufferDataType::Float4 }, // position
-            { BufferDataType::Float4 }, // emissive factor
-            { BufferDataType::Float4 }, // texcoord transform
-            { BufferDataType::Float4 }, // has PBR textures
-            { BufferDataType::Float4 }, // has textures
-            { BufferDataType::Float4 } // scalars
+        Flourish::BufferLayout materialDataLayout = {
+            { Flourish::BufferDataType::Float4 }, // position
+            { Flourish::BufferDataType::Float4 }, // emissive factor
+            { Flourish::BufferDataType::Float4 }, // texcoord transform
+            { Flourish::BufferDataType::Float4 }, // has PBR textures
+            { Flourish::BufferDataType::Float4 }, // has textures
+            { Flourish::BufferDataType::Float4 } // scalars
         };
-        BufferLayout lightingDataLayout = {
-            { BufferDataType::Float4 }, // position
-            { BufferDataType::Float4 }, // rotation
-            { BufferDataType::Float4 }, // color
-            { BufferDataType::UInt }, // light type
-            { BufferDataType::Float }, // constant attenuation
-            { BufferDataType::Float }, // linear attenuation
-            { BufferDataType::Float } // quadratic attenuation
+        Flourish::BufferLayout lightingDataLayout = {
+            { Flourish::BufferDataType::Float4 }, // position
+            { Flourish::BufferDataType::Float4 }, // rotation
+            { Flourish::BufferDataType::Float4 }, // color
+            { Flourish::BufferDataType::UInt }, // light type
+            { Flourish::BufferDataType::Float }, // constant attenuation
+            { Flourish::BufferDataType::Float }, // linear attenuation
+            { Flourish::BufferDataType::Float } // quadratic attenuation
         };
-        BufferLayout indirectDataLayout = {
-            { BufferDataType::UInt }, // index count
-            { BufferDataType::UInt }, // instance count
-            { BufferDataType::UInt }, // first index
-            { BufferDataType::Int }, // vertex offset
-            { BufferDataType::UInt }, // first instance
-            { BufferDataType::UInt }, // padding
-            { BufferDataType::Float2 } // padding
+        Flourish::BufferLayout indirectDataLayout = {
+            { Flourish::BufferDataType::UInt }, // index count
+            { Flourish::BufferDataType::UInt }, // instance count
+            { Flourish::BufferDataType::UInt }, // first index
+            { Flourish::BufferDataType::Int }, // vertex offset
+            { Flourish::BufferDataType::UInt }, // first instance
+            { Flourish::BufferDataType::UInt }, // padding
+            { Flourish::BufferDataType::Float2 } // padding
         };
-        BufferLayout instanceDataLayout = {
-            { BufferDataType::UInt }, // object id
-            { BufferDataType::UInt }, // batch id
-            { BufferDataType::Float2 }, // padding
+        Flourish::BufferLayout instanceDataLayout = {
+            { Flourish::BufferDataType::UInt }, // object id
+            { Flourish::BufferDataType::UInt }, // batch id
+            { Flourish::BufferDataType::Float2 }, // padding
         };
-        BufferLayout cullDataLayout = {
-            { BufferDataType::Float4 }, // frustum planes [0]
-            { BufferDataType::Float4 }, // frustum planes [1]
-            { BufferDataType::Float4 }, // frustum planes [2]
-            { BufferDataType::Float4 }, // frustum planes [3]
-            { BufferDataType::Float4 }, // frustum planes [4]
-            { BufferDataType::Float4 }, // frustum planes [5]
-            { BufferDataType::Float4 } // [0]: drawCount
+        Flourish::BufferLayout cullDataLayout = {
+            { Flourish::BufferDataType::Float4 }, // frustum planes [0]
+            { Flourish::BufferDataType::Float4 }, // frustum planes [1]
+            { Flourish::BufferDataType::Float4 }, // frustum planes [2]
+            { Flourish::BufferDataType::Float4 }, // frustum planes [3]
+            { Flourish::BufferDataType::Float4 }, // frustum planes [4]
+            { Flourish::BufferDataType::Float4 }, // frustum planes [5]
+            { Flourish::BufferDataType::Float4 } // [0]: drawCount
         };
 
         u32 maxObjects = 10000;
-        m_FrameDataBuffer = Buffer::Create(Buffer::Type::Uniform, BufferUsageType::Dynamic, frameDataLayout, 1, nullptr);
-        m_BloomDataBuffer = Buffer::Create(Buffer::Type::Storage, BufferUsageType::Dynamic, bloomDataLayout, 50, nullptr);
-        m_ObjectDataBuffer = Buffer::Create(Buffer::Type::Storage, BufferUsageType::Dynamic, objectDataLayout, maxObjects, nullptr);
-        m_MaterialDataBuffer = Buffer::Create(Buffer::Type::Storage, BufferUsageType::Dynamic, materialDataLayout, maxObjects, nullptr);
-        m_LightingDataBuffer = Buffer::Create(Buffer::Type::Storage, BufferUsageType::Dynamic, lightingDataLayout, 500, nullptr);
-        m_CullDataBuffer = Buffer::Create(Buffer::Type::Uniform, BufferUsageType::Dynamic, cullDataLayout, 1, nullptr);
-        m_InstanceDataBuffer = Buffer::Create(Buffer::Type::Storage, BufferUsageType::Dynamic, instanceDataLayout, maxObjects, nullptr);
-        m_FinalInstanceBuffer = Buffer::Create(Buffer::Type::Storage, BufferUsageType::Dynamic, { BufferDataType::Float4 }, maxObjects, nullptr);
-        m_IndirectBuffer = Buffer::Create(Buffer::Type::Indirect, BufferUsageType::Dynamic, indirectDataLayout, maxObjects, nullptr);
+        Flourish::BufferCreateInfo bufCreateInfo;
+        bufCreateInfo.Type = Flourish::BufferType::Uniform;
+        bufCreateInfo.Usage = Flourish::BufferUsageType::Dynamic;
+        bufCreateInfo.Layout = frameDataLayout;
+        bufCreateInfo.ElementCount = 1;
+        m_FrameDataBuffer = Flourish::Buffer::Create(bufCreateInfo);
+        bufCreateInfo.Layout = cullDataLayout;
+        m_CullDataBuffer = Flourish::Buffer::Create(bufCreateInfo);
+        bufCreateInfo.Type = Flourish::BufferType::Storage;
+        bufCreateInfo.Layout = bloomDataLayout;
+        bufCreateInfo.ElementCount = 50;
+        m_BloomDataBuffer = Flourish::Buffer::Create(bufCreateInfo);
+        bufCreateInfo.Layout = lightingDataLayout;
+        bufCreateInfo.ElementCount = 500;
+        m_LightingDataBuffer = Flourish::Buffer::Create(bufCreateInfo);
+        bufCreateInfo.Layout = objectDataLayout;
+        bufCreateInfo.ElementCount = maxObjects;
+        m_ObjectDataBuffer = Flourish::Buffer::Create(bufCreateInfo);
+        bufCreateInfo.Layout = materialDataLayout;
+        m_MaterialDataBuffer = Flourish::Buffer::Create(bufCreateInfo);
+        bufCreateInfo.Layout = instanceDataLayout;
+        m_InstanceDataBuffer = Flourish::Buffer::Create(bufCreateInfo);
+        bufCreateInfo.Layout = { Flourish::BufferDataType::Float4 };
+        m_FinalInstanceBuffer = Flourish::Buffer::Create(bufCreateInfo);
+        bufCreateInfo.Type = Flourish::BufferType::Indirect;
+        bufCreateInfo.Layout = indirectDataLayout;
+        m_IndirectBuffer = Flourish::Buffer::Create(bufCreateInfo);
+
         InitializeGridBuffers();
-
         CreateTextures();
-
         CreateFramebuffers();
 
         // Create compute pipelines
-        ComputePipelineCreateInfo compCreate = {
-            AssetManager::GetAssetUUID("engine/IndirectCull.comp", true),
-            true
-        };
-        m_ComputeCullPipeline = ComputePipeline::Create(compCreate);
+        Flourish::ComputePipelineCreateInfo compCreateInfo;
+        compCreateInfo.ComputeShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/IndirectCull.comp", true)->GetShader();
+        m_ComputeCullPipeline = Flourish::ComputePipeline::Create(compCreateInfo);
     }
 
     void SceneRenderer::Shutdown()
@@ -211,16 +240,27 @@ namespace Heart
 
     void SceneRenderer::CreateTextures()
     {
-        TextureSamplerState samplerState;
-        samplerState.UVWWrap = { SamplerWrapMode::ClampToBorder, SamplerWrapMode::ClampToBorder, SamplerWrapMode::ClampToBorder };
-
-        m_PreBloomTexture = Texture::Create({ m_RenderWidth, m_RenderHeight, 4, BufferDataType::HalfFloat, BufferUsageType::Dynamic, 1, 1, false, samplerState });
-        m_BrightColorsTexture = Texture::Create({ m_RenderWidth, m_RenderHeight, 4, BufferDataType::HalfFloat, BufferUsageType::Dynamic, 1, m_BloomMipCount, false, samplerState });
-        m_BloomBufferTexture = Texture::Create({ m_RenderWidth, m_RenderHeight, 4, BufferDataType::HalfFloat, BufferUsageType::Dynamic, 1, m_BloomMipCount, false, samplerState });
-        m_BloomUpsampleBufferTexture = Texture::Create({ m_RenderWidth, m_RenderHeight, 4, BufferDataType::HalfFloat, BufferUsageType::Dynamic, 1, m_BloomMipCount - 1, false, samplerState });
-
-        m_FinalTexture = Texture::Create({ m_RenderWidth, m_RenderHeight, 4, BufferDataType::UInt8, BufferUsageType::Dynamic, 1, 1, false, samplerState });
-        m_EntityIdsTexture = Texture::Create({ m_RenderWidth, m_RenderHeight, 1, BufferDataType::Float, BufferUsageType::Dynamic, 1, 1, true, samplerState });
+        Flourish::TextureCreateInfo texCreateInfo;
+        texCreateInfo.Width = m_RenderWidth;
+        texCreateInfo.Height = m_RenderHeight;
+        texCreateInfo.Channels = 4;
+        texCreateInfo.DataType = Flourish::BufferDataType::HalfFloat;
+        texCreateInfo.UsageType = Flourish::BufferUsageType::Dynamic;
+        texCreateInfo.ArrayCount = 1;
+        texCreateInfo.MipCount = 1;
+        texCreateInfo.SamplerState.UVWWrap = { Flourish::SamplerWrapMode::ClampToBorder, Flourish::SamplerWrapMode::ClampToBorder, Flourish::SamplerWrapMode::ClampToBorder };
+        m_PreBloomTexture = Flourish::Texture::Create(texCreateInfo);
+        texCreateInfo.MipCount = m_BloomMipCount;
+        m_BrightColorsTexture = Flourish::Texture::Create(texCreateInfo);
+        m_BloomBufferTexture = Flourish::Texture::Create(texCreateInfo);
+        texCreateInfo.MipCount = m_BloomMipCount - 1;
+        m_BloomUpsampleBufferTexture = Flourish::Texture::Create(texCreateInfo);
+        texCreateInfo.DataType = Flourish::BufferDataType::UInt8;
+        texCreateInfo.MipCount = 1;
+        m_FinalTexture = Flourish::Texture::Create(texCreateInfo);
+        texCreateInfo.DataType = Flourish::BufferDataType::Float;
+        texCreateInfo.Channels = 1;
+        m_EntityIdsTexture = Flourish::Texture::Create(texCreateInfo);
     }
 
     void SceneRenderer::CleanupTextures()
@@ -236,105 +276,97 @@ namespace Heart
 
     void SceneRenderer::CreateFramebuffers()
     {
-        // Create the main framebuffer
-        FramebufferCreateInfo fbCreateInfo = {
-            {
-                { { -1.f, 0.f, 0.f, 0.f }, true, ColorFormat::R32F, m_EntityIdsTexture }, // entity id [0]
-                { { 0.f, 0.f, 0.f, 0.f }, false, ColorFormat::RGBA16F }, // transparency data [1]
-                { { 1.f, 0.f, 0.f, 0.f }, false, ColorFormat::R16F }, // transparency data [2]
-                { { 0.f, 0.f, 0.f, 0.f }, false, ColorFormat::RGBA16F, m_PreBloomTexture }, // pre-bloom target [3]
-                { { 0.f, 0.f, 0.f, 0.f }, false, ColorFormat::RGBA16F, m_BrightColorsTexture }, // bright colors target [4]
-            },
-            {
-                {}
-            },
-            {
-                // TODO: transparent pass bloom contribution
-                { {}, { { SubpassAttachmentType::Color, 3 }, { SubpassAttachmentType::Color, 4 } } }, // environment map
-                { {}, { { SubpassAttachmentType::Color, 3 } } }, // grid
-                { {}, { { SubpassAttachmentType::Depth, 0 }, { SubpassAttachmentType::Color, 3 }, { SubpassAttachmentType::Color, 4 }, { SubpassAttachmentType::Color, 0 } } }, // opaque
-                { {}, { { SubpassAttachmentType::Depth, 0 }, { SubpassAttachmentType::Color, 0 }, { SubpassAttachmentType::Color, 1 }, { SubpassAttachmentType::Color, 2 } } }, // transparent color
-                { { { SubpassAttachmentType::Color, 1 }, { SubpassAttachmentType::Color, 2 } }, { { SubpassAttachmentType::Depth, 0 }, { SubpassAttachmentType::Color, 3 }, { SubpassAttachmentType::Color, 4 } } }, // composite
-            },
-            m_RenderWidth, m_RenderHeight,
-            MsaaSampleCount::None,
-            true
-        };
-        m_MainFramebuffer = Framebuffer::Create(fbCreateInfo);
+        // ------------------------------------------------------------------
+        // Main framebuffer: handles majority of the rendering
+        // ------------------------------------------------------------------
+        {
+            Flourish::RenderPassCreateInfo rpCreateInfo;
+            rpCreateInfo.SampleCount = Flourish::MsaaSampleCount::None;
+            rpCreateInfo.ColorAttachments.push_back({ m_EntityIdsTexture->GetColorFormat() });    // Entity ids           [0]
+            rpCreateInfo.ColorAttachments.push_back({ Flourish::ColorFormat::RGBA16_FLOAT });     // Transparency data    [1]
+            rpCreateInfo.ColorAttachments.push_back({ Flourish::ColorFormat::R16_FLOAT });        // Transparency data    [2]
+            rpCreateInfo.ColorAttachments.push_back({ m_PreBloomTexture->GetColorFormat() });     // Pre-bloom target     [3]
+            rpCreateInfo.ColorAttachments.push_back({ m_BrightColorsTexture->GetColorFormat() }); // Bright colors target [4]
+            rpCreateInfo.Subpasses.push_back({ // Environment map
+                {},
+                { { Flourish::SubpassAttachmentType::Color, 3 }, { Flourish::SubpassAttachmentType::Color, 4 } }
+            });
+            rpCreateInfo.Subpasses.push_back({ // Grid
+                {},
+                { { Flourish::SubpassAttachmentType::Color, 3 } }
+            });
+            rpCreateInfo.Subpasses.push_back({ // Opaque
+                {},
+                { { Flourish::SubpassAttachmentType::Depth, 0 }, { Flourish::SubpassAttachmentType::Color, 3 }, { Flourish::SubpassAttachmentType::Color, 4 }, { Flourish::SubpassAttachmentType::Color, 0 } } 
+            });
+            rpCreateInfo.Subpasses.push_back({ // Transparent color
+                {},
+                { { Flourish::SubpassAttachmentType::Depth, 0 }, { Flourish::SubpassAttachmentType::Color, 0 }, { Flourish::SubpassAttachmentType::Color, 1 }, { Flourish::SubpassAttachmentType::Color, 2 } } 
+            });
+            rpCreateInfo.Subpasses.push_back({ // Composite
+                { { Flourish::SubpassAttachmentType::Color, 1 }, { Flourish::SubpassAttachmentType::Color, 2 } },
+                { { Flourish::SubpassAttachmentType::Depth, 0 }, { Flourish::SubpassAttachmentType::Color, 3 }, { Flourish::SubpassAttachmentType::Color, 4 } } 
+            });
+            m_MainRenderPass = Flourish::RenderPass::Create(rpCreateInfo);
+            
+            Flourish::FramebufferCreateInfo fbCreateInfo;
+            fbCreateInfo.RenderPass = m_MainRenderPass;
+            fbCreateInfo.Width = m_RenderWidth;
+            fbCreateInfo.Height = m_RenderHeight;
+            fbCreateInfo.ColorAttachments.push_back({ { -1.f, 0.f, 0.f, 0.f }, m_EntityIdsTexture });   // Entity ids           [0]
+            fbCreateInfo.ColorAttachments.push_back({ { 0.f, 0.f, 0.f, 0.f } });                        // Transparency data    [1]
+            fbCreateInfo.ColorAttachments.push_back({ { 1.f, 0.f, 0.f, 0.f } });                        // Transparency data    [2]
+            fbCreateInfo.ColorAttachments.push_back({ { 0.f, 0.f, 0.f, 0.f }, m_PreBloomTexture });     // Pre-bloom target     [3]
+            fbCreateInfo.ColorAttachments.push_back({ { 0.f, 0.f, 0.f, 0.f }, m_BrightColorsTexture }); // Bright colors target [4]
+            m_MainFramebuffer = Flourish::Framebuffer::Create(fbCreateInfo);
+            
+            Flourish::GraphicsPipelineCreateInfo pipelineCreateInfo;
+            pipelineCreateInfo.VertexShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/Grid.vert", true)->GetShader();
+            pipelineCreateInfo.FragmentShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/Grid.frag", true)->GetShader();
+            pipelineCreateInfo.VertexTopology = Flourish::VertexTopology::LineList;
+            pipelineCreateInfo.VertexLayout = { Flourish::BufferDataType::Float3 };
+            pipelineCreateInfo.VertexInput = true;
+            pipelineCreateInfo.BlendStates = { { false } };
+            pipelineCreateInfo.DepthTest = false;
+            pipelineCreateInfo.DepthWrite = false;
+            pipelineCreateInfo.CullMode = Flourish::CullMode::None;
+            pipelineCreateInfo.WindingOrder = Flourish::WindingOrder::Clockwise;
+            m_MainRenderPass->CreatePipeline("grid", pipelineCreateInfo);
+            pipelineCreateInfo.VertexShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/Skybox.vert", true)->GetShader();
+            pipelineCreateInfo.FragmentShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/Skybox.frag", true)->GetShader();
+            pipelineCreateInfo.VertexTopology = Flourish::VertexTopology::TriangleList;
+            pipelineCreateInfo.VertexLayout = Heart::Mesh::GetVertexLayout();
+            pipelineCreateInfo.BlendStates = { { false }, { false } };
+            pipelineCreateInfo.DepthTest = false;
+            pipelineCreateInfo.DepthWrite = false;
+            pipelineCreateInfo.CullMode = Flourish::CullMode::Frontface;
+            m_MainRenderPass->CreatePipeline("skybox", pipelineCreateInfo);
+            pipelineCreateInfo.VertexShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/PBR.vert", true)->GetShader();
+            pipelineCreateInfo.FragmentShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/PBR.frag", true)->GetShader();
+            pipelineCreateInfo.BlendStates = { { false }, { false }, { false } };
+            pipelineCreateInfo.DepthTest = true;
+            pipelineCreateInfo.DepthWrite = true;
+            pipelineCreateInfo.CullMode = Flourish::CullMode::Backface;
+            m_MainRenderPass->CreatePipeline("pbr", pipelineCreateInfo);
+            pipelineCreateInfo.FragmentShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/PBRTransparentColor.frag", true)->GetShader();
+            pipelineCreateInfo.BlendStates = {
+                { false },
+                { true, Flourish::BlendFactor::One, Flourish::BlendFactor::One, Flourish::BlendFactor::One, Flourish::BlendFactor::One },
+                { true, Flourish::BlendFactor::Zero, Flourish::BlendFactor::OneMinusSrcColor, Flourish::BlendFactor::Zero, Flourish::BlendFactor::OneMinusSrcAlpha }
+            };
+            pipelineCreateInfo.CullMode = Flourish::CullMode::None;
+            m_MainRenderPass->CreatePipeline("pbrTpColor", pipelineCreateInfo);
+            pipelineCreateInfo.VertexShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/FullscreenTriangle.vert", true)->GetShader();
+            pipelineCreateInfo.FragmentShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/TransparentComposite.frag", true)->GetShader();
+            pipelineCreateInfo.BlendStates = {
+                { true, Flourish::BlendFactor::OneMinusSrcAlpha, Flourish::BlendFactor::SrcAlpha, Flourish::BlendFactor::SrcAlpha, Flourish::BlendFactor::OneMinusSrcAlpha },
+                { false }
+            };
+            pipelineCreateInfo.DepthWrite = false;
+            m_MainRenderPass->CreatePipeline("tpComposite", pipelineCreateInfo);
+        }
 
-        // Register pipelines
-        GraphicsPipelineCreateInfo envMapPipeline = {
-            AssetManager::GetAssetUUID("engine/Skybox.vert", true),
-            AssetManager::GetAssetUUID("engine/Skybox.frag", true),
-            true,
-            VertexTopology::TriangleList,
-            Mesh::GetVertexLayout(),
-            { { false }, { false } },
-            false,
-            false,
-            CullMode::None,
-            WindingOrder::Clockwise,
-            0
-        };
-        GraphicsPipelineCreateInfo gridPipeline = {
-            AssetManager::GetAssetUUID("engine/Grid.vert", true),
-            AssetManager::GetAssetUUID("engine/Grid.frag", true),
-            true,
-            VertexTopology::LineList,
-            { BufferDataType::Float3 },
-            { { false } },
-            false,
-            false,
-            CullMode::None,
-            WindingOrder::Clockwise,
-            1
-        };
-        GraphicsPipelineCreateInfo pbrPipeline = {
-            AssetManager::GetAssetUUID("engine/PBR.vert", true),
-            AssetManager::GetAssetUUID("engine/PBR.frag", true),
-            true,
-            VertexTopology::TriangleList,
-            Mesh::GetVertexLayout(),
-            { { false }, { false }, { false } },
-            true,
-            true,
-            CullMode::Backface,
-            WindingOrder::Clockwise,
-            2
-        };
-        GraphicsPipelineCreateInfo transparencyColorPipeline = {
-            AssetManager::GetAssetUUID("engine/PBR.vert", true),
-            AssetManager::GetAssetUUID("engine/PBRTransparentColor.frag", true),
-            true,
-            VertexTopology::TriangleList,
-            Mesh::GetVertexLayout(),
-            { { false }, { true, BlendFactor::One, BlendFactor::One, BlendFactor::One, BlendFactor::One }, { true, BlendFactor::Zero, BlendFactor::OneMinusSrcColor, BlendFactor::Zero, BlendFactor::OneMinusSrcAlpha } },
-            true,
-            true,
-            CullMode::None,
-            WindingOrder::Clockwise,
-            3
-        };
-        GraphicsPipelineCreateInfo transparencyCompositePipeline = {
-            AssetManager::GetAssetUUID("engine/FullscreenTriangle.vert", true),
-            AssetManager::GetAssetUUID("engine/TransparentComposite.frag", true),
-            false,
-            VertexTopology::TriangleList,
-            Mesh::GetVertexLayout(),
-            { { true, BlendFactor::OneMinusSrcAlpha, BlendFactor::SrcAlpha, BlendFactor::SrcAlpha, BlendFactor::OneMinusSrcAlpha }, { false } },
-            true,
-            false,
-            CullMode::None,
-            WindingOrder::Clockwise,
-            4
-        };
-        
-        m_MainFramebuffer->RegisterGraphicsPipeline("skybox", envMapPipeline);
-        m_MainFramebuffer->RegisterGraphicsPipeline("grid", gridPipeline);
-        m_MainFramebuffer->RegisterGraphicsPipeline("pbr", pbrPipeline);
-        m_MainFramebuffer->RegisterGraphicsPipeline("pbrTpColor", transparencyColorPipeline);
-        m_MainFramebuffer->RegisterGraphicsPipeline("tpComposite", transparencyCompositePipeline);
-
+        /*
         // Create the bloom framebuffers
         FramebufferCreateInfo bloomFbCreateInfo = {
             {
@@ -430,6 +462,7 @@ namespace Heart
 
             m_BloomFramebuffers.Add({ horizontal, vertical });
         }
+        */
     }
 
     void SceneRenderer::CleanupFramebuffers()
@@ -438,7 +471,7 @@ namespace Heart
         m_BloomFramebuffers.Clear();
     }
 
-    void SceneRenderer::RenderScene(GraphicsContext& context, Scene* scene, const Camera& camera, glm::vec3 cameraPosition, const SceneRenderSettings& renderSettings)
+    void SceneRenderer::RenderScene(Scene* scene, const Camera& camera, glm::vec3 cameraPosition, const SceneRenderSettings& renderSettings)
     {
         HE_PROFILE_FUNCTION();
         auto timer = AggregateTimer("SceneRenderer::RenderScene");
@@ -449,6 +482,7 @@ namespace Heart
             Resize();
 
         // Reset in-flight frame data
+        m_RenderEncoder = m_MainCommandBuffer->EncodeRenderCommands(m_MainFramebuffer.get());
         m_SceneRenderSettings = renderSettings;
         m_Scene = scene;
         m_Camera = &camera;
@@ -459,13 +493,13 @@ namespace Heart
             list.Clear();
 
         // Update entity id cpu copy status
-        m_MainFramebuffer->UpdateColorAttachmentCPUVisibliity(0, m_SceneRenderSettings.CopyEntityIdsTextureToCPU);
+        // m_MainFramebuffer->UpdateColorAttachmentCPUVisibliity(0, m_SceneRenderSettings.CopyEntityIdsTextureToCPU);
 
         // Set the global data for this frame
         FrameData frameData = {
             camera.GetProjectionMatrix(), camera.GetViewMatrix(), glm::vec4(cameraPosition, 1.f),
-            m_MainFramebuffer->GetSize(),
-            Renderer::IsUsingReverseDepth(),
+            { m_RenderWidth, m_RenderHeight },
+            Flourish::Context::ReversedZBuffer(),
             m_SceneRenderSettings.BloomThreshold,
             m_SceneRenderSettings.CullEnable
         };
@@ -478,6 +512,8 @@ namespace Heart
         CalculateBatches();
 
         // Run the cull shader if enabled
+        m_SceneRenderSettings.CullEnable = false;
+        /*
         if (m_SceneRenderSettings.CullEnable)
         {
             SetupCullCompute();
@@ -485,33 +521,37 @@ namespace Heart
         }
         else
             m_MainFramebuffer->Bind();
+        */
 
         // Render the skybox if set
         if (m_EnvironmentMap)
             RenderEnvironmentMap();
 
         // Draw the grid if set
-        m_MainFramebuffer->StartNextSubpass();
+        m_RenderEncoder->StartNextSubpass();
         if (renderSettings.DrawGrid)   
             RenderGrid();
 
         // Batches pass
-        m_MainFramebuffer->StartNextSubpass();
+        m_RenderEncoder->StartNextSubpass();
         RenderBatches();
 
         // Composite pass
-        m_MainFramebuffer->StartNextSubpass();
+        m_RenderEncoder->StartNextSubpass();
         Composite();
 
         // Create the mipmaps of the bright colors output for bloom
+        m_SceneRenderSettings.BloomEnable = false;
+        /*
         if (m_SceneRenderSettings.BloomEnable)
             m_BrightColorsTexture->RegenerateMipMapsSync(m_MainFramebuffer.get());
+        */
 
         // Submit the framebuffer
-        Renderer::Api().RenderFramebuffers(context, { { m_MainFramebuffer.get() } });
+        m_RenderEncoder->EndEncoding();
 
         // Bloom
-        Bloom(context);
+        Bloom();
     }
 
     void SceneRenderer::UpdateLightingBuffer()
@@ -694,6 +734,7 @@ namespace Heart
 
     void SceneRenderer::SetupCullCompute()
     {
+        /*
         CullData cullData = {
             m_Camera->GetFrustumPlanes(),
             { m_RenderedInstanceCount, 0.f, 0.f, 0.f }
@@ -709,6 +750,7 @@ namespace Heart
         m_ComputeCullPipeline->FlushBindings();
 
         m_ComputeCullPipeline->SetDispatchCountX(m_RenderedInstanceCount / 128 + 1);
+        */
     }
 
     void SceneRenderer::RenderEnvironmentMap()
@@ -894,10 +936,11 @@ namespace Heart
         Renderer::Api().Draw(3, 0, 1);
     }
 
-    void SceneRenderer::Bloom(GraphicsContext& context)
+    void SceneRenderer::Bloom()
     {
         if (m_SceneRenderSettings.BloomEnable)
         {
+            /*
             for (u32 i = 0; i < m_BloomFramebuffers.Count(); i++)
             {
                 auto& framebuffers = m_BloomFramebuffers[i];
@@ -943,6 +986,7 @@ namespace Heart
                 // Render
                 Renderer::Api().RenderFramebuffers(context, { { framebuffers[1].get() } });
             }
+            */
         }
         else
         {

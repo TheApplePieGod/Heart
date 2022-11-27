@@ -6,6 +6,17 @@
 #include "glm/mat4x4.hpp"
 #include "Heart/Container/HVector.hpp"
 
+namespace Flourish
+{
+    class Framebuffer;
+    class ComputePipeline;
+    class Buffer;
+    class Texture;
+    class CommandBuffer;
+    class RenderPass;
+    class RenderCommandEncoder;
+}
+
 namespace Heart
 {
     struct SceneRenderSettings
@@ -21,11 +32,6 @@ namespace Heart
     };
 
     class Scene;
-    class GraphicsContext;
-    class Framebuffer;
-    class ComputePipeline;
-    class Buffer;
-    class Texture;
     class Material;
     class Mesh;
     class EnvironmentMap;
@@ -39,19 +45,19 @@ namespace Heart
         SceneRenderer();
         ~SceneRenderer();
 
-        void RenderScene(GraphicsContext& context, Scene* scene, const Camera& camera, glm::vec3 cameraPosition, const SceneRenderSettings& renderSettings);
+        void RenderScene(Scene* scene, const Camera& camera, glm::vec3 cameraPosition, const SceneRenderSettings& renderSettings);
 
         void OnEvent(Event& event) override;
 
-        inline Texture& GetFinalTexture() { return *m_FinalTexture; }
-        inline Texture& GetPreBloomTexture() { return *m_PreBloomTexture; }
-        inline Texture& GetBrightColorsTexture() { return *m_BrightColorsTexture; }
-        inline Texture& GetBloomBuffer1Texture() { return *m_BloomBufferTexture; }
-        inline Texture& GetBloomBuffer2Texture() { return *m_BloomUpsampleBufferTexture; }
-        inline Texture& GetEntityIdsTexture() { return *m_EntityIdsTexture; }
-        inline Framebuffer& GetMainFramebuffer() { return *m_MainFramebuffer; }
-        inline ComputePipeline& GetCullPipeline() { return *m_ComputeCullPipeline; }
-        inline HVector<std::array<Ref<Framebuffer>, 2>>& GetBloomFramebuffers() { return m_BloomFramebuffers; }
+        inline Flourish::Texture& GetFinalTexture() { return *m_FinalTexture; }
+        inline Flourish::Texture& GetPreBloomTexture() { return *m_PreBloomTexture; }
+        inline Flourish::Texture& GetBrightColorsTexture() { return *m_BrightColorsTexture; }
+        inline Flourish::Texture& GetBloomBuffer1Texture() { return *m_BloomBufferTexture; }
+        inline Flourish::Texture& GetBloomBuffer2Texture() { return *m_BloomUpsampleBufferTexture; }
+        inline Flourish::Texture& GetEntityIdsTexture() { return *m_EntityIdsTexture; }
+        inline Flourish::Framebuffer& GetMainFramebuffer() { return *m_MainFramebuffer; }
+        inline Flourish::ComputePipeline& GetCullPipeline() { return *m_ComputeCullPipeline; }
+        inline HVector<std::array<Ref<Flourish::Framebuffer>, 2>>& GetBloomFramebuffers() { return m_BloomFramebuffers; }
 
     private:
         struct IndirectBatch
@@ -129,7 +135,7 @@ namespace Heart
         void RenderGrid();
         void RenderBatches();
         void Composite();
-        void Bloom(GraphicsContext& context);
+        void Bloom();
 
         void InitializeGridBuffers();
 
@@ -140,35 +146,38 @@ namespace Heart
     private:
         bool m_Initialized = false;
 
-        Ref<Framebuffer> m_MainFramebuffer;
-        HVector<std::array<Ref<Framebuffer>, 2>> m_BloomFramebuffers; // one for each mip level and one for horizontal / vertical passes
+        Ref<Flourish::Framebuffer> m_MainFramebuffer;
+        Ref<Flourish::CommandBuffer> m_MainCommandBuffer;
+        Ref<Flourish::RenderPass> m_MainRenderPass;
+        HVector<std::array<Ref<Flourish::Framebuffer>, 2>> m_BloomFramebuffers; // one for each mip level and one for horizontal / vertical passes
 
-        Ref<ComputePipeline> m_ComputeCullPipeline;
-        Ref<Buffer> m_CullDataBuffer;
-        Ref<Buffer> m_InstanceDataBuffer;
-        Ref<Buffer> m_FinalInstanceBuffer;
-        Ref<Buffer> m_IndirectBuffer;
+        Ref<Flourish::ComputePipeline> m_ComputeCullPipeline;
+        Ref<Flourish::Buffer> m_CullDataBuffer;
+        Ref<Flourish::Buffer> m_InstanceDataBuffer;
+        Ref<Flourish::Buffer> m_FinalInstanceBuffer;
+        Ref<Flourish::Buffer> m_IndirectBuffer;
 
-        Ref<Texture> m_DefaultEnvironmentMap;
-        Ref<Texture> m_PreBloomTexture;
-        Ref<Texture> m_BrightColorsTexture;
-        Ref<Texture> m_BloomBufferTexture;
-        Ref<Texture> m_BloomUpsampleBufferTexture;
+        Ref<Flourish::Texture> m_DefaultEnvironmentMap;
+        Ref<Flourish::Texture> m_PreBloomTexture;
+        Ref<Flourish::Texture> m_BrightColorsTexture;
+        Ref<Flourish::Texture> m_BloomBufferTexture;
+        Ref<Flourish::Texture> m_BloomUpsampleBufferTexture;
 
-        Ref<Texture> m_FinalTexture;
-        Ref<Texture> m_EntityIdsTexture;
+        Ref<Flourish::Texture> m_FinalTexture;
+        Ref<Flourish::Texture> m_EntityIdsTexture;
 
-        Ref<Buffer> m_FrameDataBuffer;
-        Ref<Buffer> m_BloomDataBuffer;
-        Ref<Buffer> m_ObjectDataBuffer;
-        Ref<Buffer> m_MaterialDataBuffer;
-        Ref<Buffer> m_LightingDataBuffer;
+        Ref<Flourish::Buffer> m_FrameDataBuffer;
+        Ref<Flourish::Buffer> m_BloomDataBuffer;
+        Ref<Flourish::Buffer> m_ObjectDataBuffer;
+        Ref<Flourish::Buffer> m_MaterialDataBuffer;
+        Ref<Flourish::Buffer> m_LightingDataBuffer;
 
         // grid
-        Ref<Buffer> m_GridVertices;
-        Ref<Buffer> m_GridIndices;
+        Ref<Flourish::Buffer> m_GridVertices;
+        Ref<Flourish::Buffer> m_GridIndices;
 
         // in-flight frame data
+        Flourish::RenderCommandEncoder* m_RenderEncoder;
         Scene* m_Scene;
         EnvironmentMap* m_EnvironmentMap;
         const Camera* m_Camera;
