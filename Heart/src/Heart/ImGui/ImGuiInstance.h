@@ -28,5 +28,8 @@ namespace Heart
         bool m_Initialized = false;
         HString8 m_ImGuiConfigPath = "";
         Ref<Window> m_Window;
+        
+        // Used for vulkan imgui backend
+        void* m_DescriptorPool;
     };
 }

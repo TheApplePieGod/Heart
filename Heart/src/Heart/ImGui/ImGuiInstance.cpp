@@ -8,8 +8,10 @@
 #include "Heart/Core/Window.h"
 #include "GLFW/glfw3.h"
 
-#include "imgui/backends/imgui_impl_vulkan.h"
 #include "Flourish/Backends/Vulkan/Util/Context.h"
+#include "Flourish/Backends/Vulkan/RenderPass.h"
+#include "Flourish/Backends/Vulkan/RenderCommandEncoder.h"
+#include "imgui/backends/imgui_impl_vulkan.h"
 
 namespace Heart
 {
@@ -77,6 +79,24 @@ namespace Heart
             { HE_ENGINE_ASSERT(false, "Cannot initialize ImGui: selected ApiType is not supported"); } break;
             case Flourish::BackendType::Vulkan:
             {
+				// Create the descriptor pool for imgui
+				std::array<VkDescriptorPoolSize, 1> poolSizes{};
+				poolSizes[0].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+				poolSizes[0].descriptorCount = 10000;
+				VkDescriptorPoolCreateInfo poolInfo{};
+				poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+				poolInfo.poolSizeCount = static_cast<u32>(poolSizes.size());
+				poolInfo.pPoolSizes = poolSizes.data();
+				poolInfo.maxSets = 10000;
+				poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+				vkCreateDescriptorPool(
+					Flourish::Vulkan::Context::Devices().Device(),
+					&poolInfo,
+					nullptr,
+					(VkDescriptorPool*)&m_DescriptorPool
+				);
+				
+				// Initialize
 				ImGui_ImplVulkan_InitInfo info = {};
 				info.Instance = Flourish::Vulkan::Context::Instance();
 				info.PhysicalDevice = Flourish::Vulkan::Context::Devices().PhysicalDevice();
@@ -84,18 +104,24 @@ namespace Heart
 				info.QueueFamily = Flourish::Vulkan::Queues().QueueIndex(Flourish::GPUWorkloadType::Graphics);
 				info.Queue = Flourish::Vulkan::Queues().Queue(Flourish::GPUWorkloadType::Graphics);
 				info.PipelineCache = VK_NULL_HANDLE;
-				info.DescriptorPool = m_ImGuiDescriptorPool;
+				info.DescriptorPool = (VkDescriptorPool)m_DescriptorPool;
 				info.Allocator = NULL;
 				info.MinImageCount = 2;
 				info.ImageCount = Flourish::Context::FrameBufferCount();
 				info.CheckVkResultFn = NULL;
 				info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
-
-				ImGui_ImplVulkan_Init(&info, m_VulkanSwapChain.GetRenderPass());
-				VkCommandBuffer commandBuffer = VulkanCommon::BeginSingleTimeCommands(s_VulkanDevice.Device(), s_GraphicsPool);
-				ImGui_ImplVulkan_CreateFontsTexture(commandBuffer);
-				VulkanCommon::EndSingleTimeCommands(s_VulkanDevice.Device(), s_GraphicsPool, commandBuffer, s_VulkanDevice.GraphicsQueue());
+				ImGui_ImplVulkan_Init(
+					&info,
+					((Flourish::Vulkan::RenderPass*)App::Get().GetWindow().GetRenderContext()->GetRenderPass())->GetRenderPass()
+				);
+				
+				// Create fonts texture & cleanup resources
+				VkCommandBuffer cmdBuf;
+				Flourish::Vulkan::Context::Commands().AllocateBuffers(Flourish::GPUWorkloadType::Graphics, false, &cmdBuf, 1);
+				ImGui_ImplVulkan_CreateFontsTexture(cmdBuf);
+				Flourish::Vulkan::Context::Queues().ExecuteCommand(Flourish::GPUWorkloadType::Graphics, cmdBuf);
 				ImGui_ImplVulkan_DestroyFontUploadObjects();
+				Flourish::Vulkan::Context::Commands().FreeBuffer(Flourish::GPUWorkloadType::Graphics, cmdBuf);
 			} break;
         }
 
@@ -121,7 +147,20 @@ namespace Heart
     {
         if (!m_Initialized) return;
 
-        m_Window->GetContext().ShutdownImGui();
+        switch (Flourish::Context::BackendType())
+        {
+            default:
+            { HE_ENGINE_ASSERT(false, "Cannot cleanup ImGui: selected ApiType is not supported"); } break;
+            case Flourish::BackendType::Vulkan:
+            {
+				ImGui_ImplVulkan_Shutdown();
+				vkDestroyDescriptorPool(
+					Flourish::Vulkan::Context::Devices().Device(),
+					(VkDescriptorPool)m_DescriptorPool,
+					nullptr
+				);
+			} break;
+		}
 
         m_Initialized = false;
     }
@@ -130,7 +169,13 @@ namespace Heart
     {
 		HE_PROFILE_FUNCTION();
 
-        m_Window->GetContext().ImGuiBeginFrame();
+        switch (Flourish::Context::BackendType())
+        {
+            default:
+            { HE_ENGINE_ASSERT(false, "Cannot begin new ImGui frame: selected ApiType is not supported"); } break;
+            case Flourish::BackendType::Vulkan:
+            { ImGui_ImplVulkan_NewFrame(); } break;
+		}
 
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
@@ -144,7 +189,16 @@ namespace Heart
 		io.DisplaySize = ImVec2((f32)m_Window->GetWidth(), (f32)m_Window->GetHeight());
         
 		ImGui::Render();
-        m_Window->GetContext().ImGuiEndFrame();
+        switch (Flourish::Context::BackendType())
+        {
+            default:
+            { HE_ENGINE_ASSERT(false, "Cannot end ImGui frame: selected ApiType is not supported"); } break;
+            case Flourish::BackendType::Vulkan:
+            {
+				auto encoder = (Flourish::Vulkan::RenderCommandEncoder*)App::Get().GetWindow().GetRenderContext()->EncodeRenderCommands();
+				ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), encoder->GetCommandBuffer());
+			} break;
+		}
 
 		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
 		{
