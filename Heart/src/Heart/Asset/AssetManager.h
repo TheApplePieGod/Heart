@@ -194,9 +194,9 @@ namespace Heart
          * @return The pointer to the asset or nullptr if it could not be located. 
          */
         template<typename T>
-        static T* RetrieveAsset(const HStringView8& path, bool isResource = false)
+        static T* RetrieveAsset(const HStringView8& path, bool isResource = false, bool async = false)
         {
-            return static_cast<T*>(RetrieveAsset(path, isResource));
+            return static_cast<T*>(RetrieveAsset(path, isResource, async));
         }
 
         /**

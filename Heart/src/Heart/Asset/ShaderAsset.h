@@ -19,8 +19,8 @@ namespace Heart
         void Load(bool async = false) override;
         void Unload() override;
 
-        /*! @brief Get a pointer to the shader stored in this asset. */
-        inline Flourish::Shader* GetShader() { return m_Shader.get(); }
+        /*! @brief Get the shader stored in this asset. */
+        inline Ref<Flourish::Shader> GetShader() { return m_Shader; }
 
     private:
         Ref<Flourish::Shader> m_Shader;

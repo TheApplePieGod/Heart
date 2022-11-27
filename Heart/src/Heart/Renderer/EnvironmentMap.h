@@ -7,11 +7,17 @@
 #include "glm/vec4.hpp"
 #include "glm/vec3.hpp"
 
-namespace Heart
+namespace Flourish
 {
     class Texture;
     class Buffer;
     class Framebuffer;
+    class RenderPass;
+    class CommandBuffer;
+}
+
+namespace Heart
+{
     class AppGraphicsInitEvent;
     class AppGraphicsShutdownEvent;
     class EnvironmentMap : public EventListener
@@ -23,10 +29,10 @@ namespace Heart
         void Recalculate();
         inline void UpdateMapAsset(UUID asset) { m_MapAsset = asset; }
         inline UUID GetMapAsset() const { return m_MapAsset; }
-        inline Texture* GetEnvironmentCubemap() { return m_EnvironmentMap.get(); }
-        inline Texture* GetIrradianceCubemap() { return m_IrradianceMap.get(); }
-        inline Texture* GetPrefilterCubemap() { return m_PrefilterMap.get(); }
-        inline Texture* GetBRDFTexture() { return m_BRDFTexture.get(); }
+        inline Flourish::Texture* GetEnvironmentCubemap() { return m_EnvironmentMap.Texture.get(); }
+        inline Flourish::Texture* GetIrradianceCubemap() { return m_IrradianceMap.Texture.get(); }
+        inline Flourish::Texture* GetPrefilterCubemap() { return m_PrefilterMaps[0].Texture.get(); }
+        inline Flourish::Texture* GetBRDFTexture() { return m_BRDFTexture.Texture.get(); }
 
         void OnEvent(Event& event) override;
 
@@ -36,6 +42,13 @@ namespace Heart
             glm::mat4 Proj;
             glm::mat4 View;
             glm::vec4 Params; // [0]: roughness
+        };
+
+        struct RenderData
+        {
+            Ref<Flourish::Framebuffer> Framebuffer;
+            Ref<Flourish::Texture> Texture;
+            Ref<Flourish::CommandBuffer> CommandBuffer; // One for each face
         };
 
     private:
@@ -48,17 +61,14 @@ namespace Heart
         UUID m_MapAsset;
         bool m_Initialized = false;
 
-        Ref<Texture> m_EnvironmentMap;
-        Ref<Texture> m_IrradianceMap;
-        Ref<Texture> m_PrefilterMap;
-        Ref<Texture> m_BRDFTexture;
+        RenderData m_EnvironmentMap;
+        RenderData m_IrradianceMap;
+        RenderData m_BRDFTexture;
+        HVector<RenderData> m_PrefilterMaps;
 
-        HVector<Ref<Framebuffer>> m_PrefilterFramebuffers; // one for each mip level
-        Ref<Framebuffer> m_BRDFFramebuffer;
-        Ref<Framebuffer> m_CubemapFramebuffer;
-        Ref<Framebuffer> m_IrradianceMapFramebuffer;
+        Ref<Flourish::RenderPass> m_RenderPass;
 
-        Ref<Buffer> m_CubemapDataBuffer;
-        Ref<Buffer> m_FrameDataBuffer;
+        Ref<Flourish::Buffer> m_CubemapDataBuffer;
+        Ref<Flourish::Buffer> m_FrameDataBuffer;
     };
 }

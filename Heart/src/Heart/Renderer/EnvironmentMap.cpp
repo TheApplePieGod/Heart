@@ -2,19 +2,24 @@
 #include "EnvironmentMap.h"
 
 #include "Heart/Core/App.h"
-#include "Heart/Renderer/Texture.h"
-#include "Heart/Renderer/Framebuffer.h"
-#include "Heart/Renderer/Pipeline.h"
-#include "Heart/Renderer/Buffer.h"
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/TextureAsset.h"
+#include "Heart/Asset/ShaderAsset.h"
 #include "Heart/Asset/MeshAsset.h"
 #include "Heart/Renderer/Mesh.h"
-#include "Heart/Renderer/Renderer.h"
 #include "Heart/Core/Camera.h"
 #include "Heart/Core/Window.h"
 #include "Heart/Core/Timing.h"
 #include "Heart/Events/AppEvents.h"
+#include "Flourish/Api/Context.h"
+#include "Flourish/Api/Texture.h"
+#include "Flourish/Api/Framebuffer.h"
+#include "Flourish/Api/RenderPass.h"
+#include "Flourish/Api/CommandBuffer.h"
+#include "Flourish/Api/GraphicsCommandEncoder.h"
+#include "Flourish/Api/RenderCommandEncoder.h"
+#include "Flourish/Api/GraphicsPipeline.h"
+#include "Flourish/Api/Buffer.h"
 
 namespace Heart
 {
@@ -59,202 +64,180 @@ namespace Heart
         m_Initialized = true;
 
         // Create texture & cubemap targets
-        m_EnvironmentMap = Texture::Create({ 512, 512, 4, BufferDataType::HalfFloat, BufferUsageType::Static, 6, 0 });
-        m_IrradianceMap = Texture::Create({ 256, 256, 4, BufferDataType::HalfFloat, BufferUsageType::Static, 6, 1 });
-        m_PrefilterMap = Texture::Create({ 256, 256, 4, BufferDataType::HalfFloat, BufferUsageType::Static, 6, 5 });
-        m_BRDFTexture = Texture::Create({ 512, 512, 4, BufferDataType::HalfFloat, BufferUsageType::Static, 1, 1 });
+        Flourish::TextureCreateInfo texCreateInfo;
+        texCreateInfo.Width = 512;
+        texCreateInfo.Height = 512;
+        texCreateInfo.Channels = 4;
+        texCreateInfo.DataType = Flourish::BufferDataType::HalfFloat;
+        texCreateInfo.UsageType = Flourish::BufferUsageType::Static;
+        texCreateInfo.ArrayCount = 6;
+        texCreateInfo.MipCount = 0;
+        m_EnvironmentMap.Texture = Flourish::Texture::Create(texCreateInfo);
+        texCreateInfo.ArrayCount = 1;
+        texCreateInfo.MipCount = 1;
+        m_BRDFTexture.Texture = Flourish::Texture::Create(texCreateInfo);
+        texCreateInfo.ArrayCount = 6;
+        m_IrradianceMap.Texture = Flourish::Texture::Create(texCreateInfo);
+        texCreateInfo.MipCount = 5;
+        m_PrefilterMaps.Resize(texCreateInfo.MipCount);
+        m_PrefilterMaps[0].Texture = Flourish::Texture::Create(texCreateInfo);
+
+        // Create the command buffers
+        Flourish::CommandBufferCreateInfo cmdCreateInfo;
+        cmdCreateInfo.MaxEncoders = 1;
+        m_BRDFTexture.CommandBuffer = Flourish::CommandBuffer::Create(cmdCreateInfo);
+        m_EnvironmentMap.CommandBuffer = Flourish::CommandBuffer::Create(cmdCreateInfo);
+        m_IrradianceMap.CommandBuffer = Flourish::CommandBuffer::Create(cmdCreateInfo);
+        for (u32 i = 0; i < m_PrefilterMaps.Count(); i++)
+            m_PrefilterMaps[i].CommandBuffer = Flourish::CommandBuffer::Create(cmdCreateInfo);
 
         // Create the cubemap data buffer to hold data for each face render
-        BufferLayout cubemapDataLayout = {
-            { BufferDataType::Mat4 },
-            { BufferDataType::Mat4 },
-            { BufferDataType::Float4 }
+        Flourish::BufferCreateInfo bufCreateInfo;
+        bufCreateInfo.Type = Flourish::BufferType::Storage;
+        bufCreateInfo.Usage = Flourish::BufferUsageType::Dynamic;
+        bufCreateInfo.Layout = {
+            { Flourish::BufferDataType::Mat4 },
+            { Flourish::BufferDataType::Mat4 },
+            { Flourish::BufferDataType::Float4 }
         };
-        m_CubemapDataBuffer = Buffer::Create(Buffer::Type::Storage, BufferUsageType::Dynamic, cubemapDataLayout, 100, nullptr);
+        bufCreateInfo.ElementCount = 100;
+        m_CubemapDataBuffer = Flourish::Buffer::Create(bufCreateInfo);
 
-        // ------------------------------------------------------------------
-        // Cubemap framebuffer: convert loaded image into a cubemap
-        // ------------------------------------------------------------------
-        FramebufferCreateInfo cubemapFbCreateInfo = {
-            {
-                { { 0.f, 0.f, 0.f, 0.f }, false, ColorFormat::None, m_EnvironmentMap, 0 },
-                { { 0.f, 0.f, 0.f, 0.f }, false, ColorFormat::None, m_EnvironmentMap, 1 },
-                { { 0.f, 0.f, 0.f, 0.f }, false, ColorFormat::None, m_EnvironmentMap, 2 },
-                { { 0.f, 0.f, 0.f, 0.f }, false, ColorFormat::None, m_EnvironmentMap, 3 },
-                { { 0.f, 0.f, 0.f, 0.f }, false, ColorFormat::None, m_EnvironmentMap, 4 },
-                { { 0.f, 0.f, 0.f, 0.f }, false, ColorFormat::None, m_EnvironmentMap, 5 }
-            },
-            {},
-            {
-                { {}, { { SubpassAttachmentType::Color, 0 } } },
-                { {}, { { SubpassAttachmentType::Color, 1 } } },
-                { {}, { { SubpassAttachmentType::Color, 2 } } },
-                { {}, { { SubpassAttachmentType::Color, 3 } } },
-                { {}, { { SubpassAttachmentType::Color, 4 } } },
-                { {}, { { SubpassAttachmentType::Color, 5 } } }
-            },
-            m_EnvironmentMap->GetWidth(), m_EnvironmentMap->GetHeight(),
-            MsaaSampleCount::None
-        };
-        m_CubemapFramebuffer = Framebuffer::Create(cubemapFbCreateInfo);
-
-        GraphicsPipelineCreateInfo envPipeline = {
-            AssetManager::GetAssetUUID("engine/EnvironmentMap.vert", true),
-            AssetManager::GetAssetUUID("engine/CalcEnvironmentMap.frag", true),
-            true,
-            VertexTopology::TriangleList,
-            Heart::Mesh::GetVertexLayout(),
-            { { false } },
-            false,
-            false,
-            CullMode::None,
-            WindingOrder::Clockwise,
-            0
-        };
-        for (u32 i = 0; i < 6; i++) // create a pipeline for each subpass
+        // Create renderpass
+        Flourish::RenderPassCreateInfo rpCreateInfo;
+        rpCreateInfo.SampleCount = Flourish::MsaaSampleCount::None;
+        for (u32 i = 0; i < m_EnvironmentMap.Texture->GetArrayCount(); i++)
         {
-            envPipeline.SubpassIndex = i;
-            m_CubemapFramebuffer->RegisterGraphicsPipeline(std::to_string(i), envPipeline);
+            rpCreateInfo.ColorAttachments.push_back({ m_EnvironmentMap.Texture->GetColorFormat() });
+            rpCreateInfo.Subpasses.push_back({ {}, { { Flourish::SubpassAttachmentType::Color, i } } });
+        }
+        m_RenderPass = Flourish::RenderPass::Create(rpCreateInfo);
+
+        std::array<float, 4> clearColor = { 0.f, 0.f, 0.f, 0.f };
+
+        // ------------------------------------------------------------------
+        // Environment map framebuffer: convert loaded image into a cubemap
+        // ------------------------------------------------------------------
+        {
+            Flourish::FramebufferCreateInfo fbCreateInfo;
+            fbCreateInfo.RenderPass = m_RenderPass;
+            fbCreateInfo.Width = m_EnvironmentMap.Texture->GetWidth();
+            fbCreateInfo.Height = m_EnvironmentMap.Texture->GetHeight();
+            for (u32 i = 0; i < m_EnvironmentMap.Texture->GetArrayCount(); i++)
+                fbCreateInfo.ColorAttachments.push_back({ clearColor, m_EnvironmentMap.Texture, i, 0 });
+            m_EnvironmentMap.Framebuffer = Flourish::Framebuffer::Create(fbCreateInfo);
+
+            Flourish::GraphicsPipelineCreateInfo pipelineCreateInfo;
+            pipelineCreateInfo.VertexShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/EnvironmentMap.vert", true)->GetShader();
+            pipelineCreateInfo.FragmentShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/CalcEnvironmentMap.frag", true)->GetShader();
+            pipelineCreateInfo.VertexInput = true;
+            pipelineCreateInfo.VertexTopology = Flourish::VertexTopology::TriangleList;
+            pipelineCreateInfo.VertexLayout = Heart::Mesh::GetVertexLayout();
+            pipelineCreateInfo.BlendStates = { { false } };
+            pipelineCreateInfo.DepthTest = false;
+            pipelineCreateInfo.DepthWrite = false;
+            pipelineCreateInfo.CullMode = Flourish::CullMode::Frontface;
+            pipelineCreateInfo.WindingOrder = Flourish::WindingOrder::Clockwise;
+
+            m_RenderPass->CreatePipeline("cubemap", pipelineCreateInfo);
         }
 
         // -----------------------------------------------------------------------------------------
         // Irradiance framebuffer: calculate environment's irradiance and store it in a cubemap
         // ---------------------------------------------------------------------------------------
-        FramebufferCreateInfo irradianceFbCreateInfo = {
-            {
-                { { 0.f, 0.f, 0.f, 0.f }, false, ColorFormat::None, m_IrradianceMap, 0 },
-                { { 0.f, 0.f, 0.f, 0.f }, false, ColorFormat::None, m_IrradianceMap, 1 },
-                { { 0.f, 0.f, 0.f, 0.f }, false, ColorFormat::None, m_IrradianceMap, 2 },
-                { { 0.f, 0.f, 0.f, 0.f }, false, ColorFormat::None, m_IrradianceMap, 3 },
-                { { 0.f, 0.f, 0.f, 0.f }, false, ColorFormat::None, m_IrradianceMap, 4 },
-                { { 0.f, 0.f, 0.f, 0.f }, false, ColorFormat::None, m_IrradianceMap, 5 }
-            },
-            {},
-            {
-                { {}, { { SubpassAttachmentType::Color, 0 } } },
-                { {}, { { SubpassAttachmentType::Color, 1 } } },
-                { {}, { { SubpassAttachmentType::Color, 2 } } },
-                { {}, { { SubpassAttachmentType::Color, 3 } } },
-                { {}, { { SubpassAttachmentType::Color, 4 } } },
-                { {}, { { SubpassAttachmentType::Color, 5 } } }
-            },
-            m_IrradianceMap->GetWidth(), m_IrradianceMap->GetHeight(),
-            MsaaSampleCount::None
-        };
-        m_IrradianceMapFramebuffer = Framebuffer::Create(irradianceFbCreateInfo);
-
-        GraphicsPipelineCreateInfo irradiancePipeline = {
-            AssetManager::GetAssetUUID("engine/EnvironmentMap.vert", true),
-            AssetManager::GetAssetUUID("engine/CalcIrradianceMap.frag", true),
-            true,
-            VertexTopology::TriangleList,
-            Heart::Mesh::GetVertexLayout(),
-            { { false } },
-            false,
-            false,
-            CullMode::None,
-            WindingOrder::Clockwise,
-            0
-        };
-        for (u32 i = 0; i < 6; i++) // pipeline for each subpass
         {
-            irradiancePipeline.SubpassIndex = i;
-            m_IrradianceMapFramebuffer->RegisterGraphicsPipeline(std::to_string(i), irradiancePipeline);
+            Flourish::FramebufferCreateInfo fbCreateInfo;
+            fbCreateInfo.RenderPass = m_RenderPass;
+            fbCreateInfo.Width = m_IrradianceMap.Texture->GetWidth();
+            fbCreateInfo.Height = m_IrradianceMap.Texture->GetHeight();
+            for (u32 i = 0; i < m_IrradianceMap.Texture->GetArrayCount(); i++)
+                fbCreateInfo.ColorAttachments.push_back({ clearColor, m_IrradianceMap.Texture, i, 0 });
+            m_IrradianceMap.Framebuffer = Flourish::Framebuffer::Create(fbCreateInfo);
+
+            Flourish::GraphicsPipelineCreateInfo pipelineCreateInfo;
+            pipelineCreateInfo.VertexShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/EnvironmentMap.vert", true)->GetShader();
+            pipelineCreateInfo.FragmentShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/CalcIrradianceMap.frag", true)->GetShader();
+            pipelineCreateInfo.VertexInput = true;
+            pipelineCreateInfo.VertexTopology = Flourish::VertexTopology::TriangleList;
+            pipelineCreateInfo.VertexLayout = Heart::Mesh::GetVertexLayout();
+            pipelineCreateInfo.BlendStates = { { false } };
+            pipelineCreateInfo.DepthTest = false;
+            pipelineCreateInfo.DepthWrite = false;
+            pipelineCreateInfo.CullMode = Flourish::CullMode::Frontface;
+            pipelineCreateInfo.WindingOrder = Flourish::WindingOrder::Clockwise;
+
+            m_RenderPass->CreatePipeline("irradiance", pipelineCreateInfo);
         }
 
         // -----------------------------------------------------------------------------------------------------------------------
         // Prefilter framebuffers: calculate environment's light contribution based on roughness and store it in a cubemap's mips
         // ----------------------------------------------------------------------------------------------------------------------
-        FramebufferCreateInfo prefilterFbCreateInfo = {
-            {}, {},
-            {
-                { {}, { { SubpassAttachmentType::Color, 0 } } },
-                { {}, { { SubpassAttachmentType::Color, 1 } } },
-                { {}, { { SubpassAttachmentType::Color, 2 } } },
-                { {}, { { SubpassAttachmentType::Color, 3 } } },
-                { {}, { { SubpassAttachmentType::Color, 4 } } },
-                { {}, { { SubpassAttachmentType::Color, 5 } } }
-            },
-            0, 0,
-            MsaaSampleCount::None
-        };
-
-        GraphicsPipelineCreateInfo prefilterPipeline = {
-            AssetManager::GetAssetUUID("engine/EnvironmentMap.vert", true),
-            AssetManager::GetAssetUUID("engine/CalcPrefilterMap.frag", true),
-            true,
-            VertexTopology::TriangleList,
-            Heart::Mesh::GetVertexLayout(),
-            { { false } },
-            false,
-            false,
-            CullMode::None,
-            WindingOrder::Clockwise,
-            0
-        };
-        for (u32 i = 0; i < 5; i++) // each mip level
         {
-            prefilterFbCreateInfo.ColorAttachments.Clear();
-            for (u32 j = 0; j < 6; j++) // each face
-                prefilterFbCreateInfo.ColorAttachments.Add({ { 0.f, 0.f, 0.f, 0.f }, false, ColorFormat::None, m_PrefilterMap, j, i });
-            prefilterFbCreateInfo.Width = static_cast<u32>(m_PrefilterMap->GetWidth() * pow(0.5f, i));
-            prefilterFbCreateInfo.Height = static_cast<u32>(m_PrefilterMap->GetHeight() * pow(0.5f, i));
+            Flourish::FramebufferCreateInfo fbCreateInfo;
+            fbCreateInfo.RenderPass = m_RenderPass;
 
-            m_PrefilterFramebuffers.AddInPlace(Framebuffer::Create(prefilterFbCreateInfo));
-            for (u32 j = 0; j < 6; j++) // each face
+            for (u32 i = 0; i < m_PrefilterMaps[0].Texture->GetMipCount(); i++) // each mip level
             {
-                prefilterPipeline.SubpassIndex = j;
-                m_PrefilterFramebuffers.Back()->RegisterGraphicsPipeline(std::to_string(j), prefilterPipeline);
+                fbCreateInfo.ColorAttachments.clear();
+                fbCreateInfo.Width = m_PrefilterMaps[0].Texture->GetMipWidth(i);
+                fbCreateInfo.Height = m_PrefilterMaps[0].Texture->GetMipHeight(i);
+                for (u32 j = 0; j < m_PrefilterMaps[0].Texture->GetArrayCount(); j++)
+                    fbCreateInfo.ColorAttachments.push_back({ clearColor, m_PrefilterMaps[0].Texture, j, i });
+                m_PrefilterMaps[i].Framebuffer = Flourish::Framebuffer::Create(fbCreateInfo);
             }
+
+            Flourish::GraphicsPipelineCreateInfo pipelineCreateInfo;
+            pipelineCreateInfo.VertexShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/EnvironmentMap.vert", true)->GetShader();
+            pipelineCreateInfo.FragmentShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/CalcPrefilterMap.frag", true)->GetShader();
+            pipelineCreateInfo.VertexInput = true;
+            pipelineCreateInfo.VertexTopology = Flourish::VertexTopology::TriangleList;
+            pipelineCreateInfo.VertexLayout = Heart::Mesh::GetVertexLayout();
+            pipelineCreateInfo.BlendStates = { { false } };
+            pipelineCreateInfo.DepthTest = false;
+            pipelineCreateInfo.DepthWrite = false;
+            pipelineCreateInfo.CullMode = Flourish::CullMode::Frontface;
+            pipelineCreateInfo.WindingOrder = Flourish::WindingOrder::Clockwise;
+
+            m_RenderPass->CreatePipeline("prefilter", pipelineCreateInfo);
         }
 
         // -----------------------------------------------------------------------------------------------------------------------
         // BRDF framebuffer: solve the BRDF integral and store it in a texture (TODO: store this somewhere because it is constant)
         // ----------------------------------------------------------------------------------------------------------------------
-        FramebufferCreateInfo brdfFbCreateInfo = {
-            {
-                { { 0.f, 0.f, 0.f, 0.f }, false, ColorFormat::None, m_BRDFTexture }
-            },
-            {},
-            {
-                { {}, { { SubpassAttachmentType::Color, 0 } } }
-            },
-            m_BRDFTexture->GetWidth(), m_BRDFTexture->GetHeight(),
-            MsaaSampleCount::None
-        };
-        m_BRDFFramebuffer = Framebuffer::Create(brdfFbCreateInfo);
+        {
+            Flourish::FramebufferCreateInfo fbCreateInfo;
+            fbCreateInfo.RenderPass = m_RenderPass;
+            fbCreateInfo.Width = m_BRDFTexture.Texture->GetWidth();
+            fbCreateInfo.Height = m_BRDFTexture.Texture->GetHeight();
+            fbCreateInfo.ColorAttachments.push_back({ clearColor, m_BRDFTexture.Texture, 0, 0 });
+            m_BRDFTexture.Framebuffer = Flourish::Framebuffer::Create(fbCreateInfo);
 
-        GraphicsPipelineCreateInfo brdfPipeline = {
-            AssetManager::GetAssetUUID("engine/BRDFQuad.vert", true),
-            AssetManager::GetAssetUUID("engine/CalcBRDF.frag", true),
-            false,
-            VertexTopology::TriangleList,
-            Heart::Mesh::GetVertexLayout(),
-            { { false } },
-            false,
-            false,
-            CullMode::None,
-            WindingOrder::Clockwise,
-            0
-        };
-        m_BRDFFramebuffer->RegisterGraphicsPipeline("0", brdfPipeline);
+            Flourish::GraphicsPipelineCreateInfo pipelineCreateInfo;
+            pipelineCreateInfo.VertexShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/BRDFQuad.vert", true)->GetShader();
+            pipelineCreateInfo.FragmentShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/CalcBRDF.frag", true)->GetShader();
+            pipelineCreateInfo.VertexInput = false;
+            pipelineCreateInfo.BlendStates = { { false } };
+            pipelineCreateInfo.DepthTest = false;
+            pipelineCreateInfo.DepthWrite = false;
+            pipelineCreateInfo.CullMode = Flourish::CullMode::Backface;
+            pipelineCreateInfo.WindingOrder = Flourish::WindingOrder::Clockwise;
+
+            m_RenderPass->CreatePipeline("brdf", pipelineCreateInfo);
+        }
     }
 
     void EnvironmentMap::Shutdown()
     {
         m_Initialized = false;
 
-        m_EnvironmentMap.reset();
-        m_IrradianceMap.reset();
-        m_PrefilterMap.reset();
-        m_BRDFTexture.reset();
+        m_RenderPass.reset();
 
-        for (auto& buffer : m_PrefilterFramebuffers)
-            buffer.reset();
-        m_PrefilterFramebuffers.Clear();
-        m_BRDFFramebuffer.reset();
-        m_CubemapFramebuffer.reset();
-        m_IrradianceMapFramebuffer.reset();
+        m_EnvironmentMap = RenderData();
+        m_IrradianceMap = RenderData();
+        m_BRDFTexture = RenderData();
+
+        for (auto& data : m_PrefilterMaps)
+            data = RenderData();
 
         m_CubemapDataBuffer.reset();
         m_FrameDataBuffer.reset();
@@ -295,123 +278,131 @@ namespace Heart
         // ------------------------------------------------------------------
         // Render equirectangular map to cubemap
         // ------------------------------------------------------------------
-        m_CubemapFramebuffer->Bind();
-        for (u32 i = 0; i < 6; i++)
         {
-            if (i != 0)
-                m_CubemapFramebuffer->StartNextSubpass();
-
-            m_CubemapFramebuffer->BindPipeline(std::to_string(i));  
-
-            cubemapCam.UpdateViewMatrix(glm::vec3(0.f), rotations[i]);
-
-            CubemapData mapData = { cubemapCam.GetProjectionMatrix(), cubemapCam.GetViewMatrix(), glm::vec4(0.f) };
-            m_CubemapDataBuffer->SetElements(&mapData, 1, cubeDataIndex);
-            m_CubemapFramebuffer->BindShaderBufferResource(0, cubeDataIndex, 1, m_CubemapDataBuffer.get());
-
-            m_CubemapFramebuffer->BindShaderTextureResource(1, mapAsset->GetTexture());
-
-            m_CubemapFramebuffer->FlushBindings();
-
-            Renderer::Api().BindVertexBuffer(*meshData.GetVertexBuffer());
-            Renderer::Api().BindIndexBuffer(*meshData.GetIndexBuffer());
-            Renderer::Api().DrawIndexed(
-                meshData.GetIndexBuffer()->GetAllocatedCount(),
-                0, 0, 1
-            );
-
-            cubeDataIndex++;
-        }
-
-        m_EnvironmentMap->RegenerateMipMapsSync(m_CubemapFramebuffer.get());
-
-        Renderer::Api().RenderFramebuffers(Window::GetMainWindow().GetContext(), { { m_CubemapFramebuffer.get() } });
-
-        // ------------------------------------------------------------------
-        // Precalculate environment irradiance
-        // ------------------------------------------------------------------
-        m_IrradianceMapFramebuffer->Bind();
-        for (u32 i = 0; i < 6; i++)
-        {
-            if (i != 0)
-                m_IrradianceMapFramebuffer->StartNextSubpass();
-
-            m_IrradianceMapFramebuffer->BindPipeline(std::to_string(i));  
-
-            cubemapCam.UpdateViewMatrix(glm::vec3(0.f), rotations[i]);
-
-            CubemapData mapData = { cubemapCam.GetProjectionMatrix(), cubemapCam.GetViewMatrix(), glm::vec4(0.f) };
-            m_CubemapDataBuffer->SetElements(&mapData, 1, cubeDataIndex);
-            m_IrradianceMapFramebuffer->BindShaderBufferResource(0, cubeDataIndex, 1, m_CubemapDataBuffer.get());
-
-            m_IrradianceMapFramebuffer->BindShaderTextureResource(1, m_EnvironmentMap.get());
-
-            m_IrradianceMapFramebuffer->FlushBindings();
-
-            Renderer::Api().BindVertexBuffer(*meshData.GetVertexBuffer());
-            Renderer::Api().BindIndexBuffer(*meshData.GetIndexBuffer());
-            Renderer::Api().DrawIndexed(
-                meshData.GetIndexBuffer()->GetAllocatedCount(),
-                0, 0, 1
-            );
-
-            cubeDataIndex++;
-        }
-
-        Renderer::Api().RenderFramebuffers(Window::GetMainWindow().GetContext(), { { m_IrradianceMapFramebuffer.get() } });
-
-        // ------------------------------------------------------------------
-        // Prefilter the environment map based on roughness
-        // ------------------------------------------------------------------
-        for (u32 i = 0; i < m_PrefilterFramebuffers.Count(); i++)
-        {
-            m_PrefilterFramebuffers[i]->Bind();
-
-            float roughness = static_cast<float>(i) / 4;
-            for (u32 j = 0; j < 6; j++) // each face
+            auto rcEncoder = m_EnvironmentMap.CommandBuffer->EncodeRenderCommands(m_EnvironmentMap.Framebuffer.get());
+            for (u32 i = 0; i < 6; i++)
             {
-                if (j != 0)
-                    m_PrefilterFramebuffers[i]->StartNextSubpass();
+                if (i != 0)
+                    rcEncoder->StartNextSubpass();
 
-                m_PrefilterFramebuffers[i]->BindPipeline(std::to_string(j));  
+                rcEncoder->BindPipeline("cubemap");  
 
-                cubemapCam.UpdateViewMatrix(glm::vec3(0.f), rotations[j]);
+                cubemapCam.UpdateViewMatrix(glm::vec3(0.f), rotations[i]);
 
-                CubemapData mapData = { cubemapCam.GetProjectionMatrix(), cubemapCam.GetViewMatrix(), glm::vec4(roughness, m_EnvironmentMap->GetWidth(), 0.f, 0.f) };
+                CubemapData mapData = { cubemapCam.GetProjectionMatrix(), cubemapCam.GetViewMatrix(), glm::vec4(0.f) };
                 m_CubemapDataBuffer->SetElements(&mapData, 1, cubeDataIndex);
-                m_PrefilterFramebuffers[i]->BindShaderBufferResource(0, cubeDataIndex, 1, m_CubemapDataBuffer.get());
+                rcEncoder->BindPipelineBufferResource(0, m_CubemapDataBuffer.get(), 0, i, 1);
+                rcEncoder->BindPipelineTextureResource(1, mapAsset->GetTexture());
+                rcEncoder->FlushPipelineBindings();
 
-                m_PrefilterFramebuffers[i]->BindShaderTextureResource(1, m_EnvironmentMap.get());
-
-                m_PrefilterFramebuffers[i]->FlushBindings();
-
-                Renderer::Api().BindVertexBuffer(*meshData.GetVertexBuffer());
-                Renderer::Api().BindIndexBuffer(*meshData.GetIndexBuffer());
-                Renderer::Api().DrawIndexed(
+                rcEncoder->BindVertexBuffer(meshData.GetVertexBuffer());
+                rcEncoder->BindIndexBuffer(meshData.GetIndexBuffer());
+                rcEncoder->DrawIndexed(
                     meshData.GetIndexBuffer()->GetAllocatedCount(),
                     0, 0, 1
                 );
 
                 cubeDataIndex++;
             }
+            rcEncoder->EndEncoding();
 
-            Renderer::Api().RenderFramebuffers(Window::GetMainWindow().GetContext(), { { m_PrefilterFramebuffers[i].get() } });
+            auto gEncoder = m_EnvironmentMap.CommandBuffer->EncodeGraphicsCommands();
+            gEncoder->GenerateMipMaps(m_EnvironmentMap.Texture.get());
+            gEncoder->EndEncoding();
+        }
+
+        // ------------------------------------------------------------------
+        // Precalculate environment irradiance
+        // ------------------------------------------------------------------
+        {
+            auto rcEncoder = m_IrradianceMap.CommandBuffer->EncodeRenderCommands(m_IrradianceMap.Framebuffer.get());
+            for (u32 i = 0; i < 6; i++)
+            {
+                if (i != 0)
+                    rcEncoder->StartNextSubpass();
+
+                rcEncoder->BindPipeline("irradiance");  
+                rcEncoder->BindPipelineBufferResource(0, m_CubemapDataBuffer.get(), 0, i, 1);
+                rcEncoder->BindPipelineTextureResource(1, m_EnvironmentMap.Texture.get());
+                rcEncoder->FlushPipelineBindings();
+
+                rcEncoder->BindVertexBuffer(meshData.GetVertexBuffer());
+                rcEncoder->BindIndexBuffer(meshData.GetIndexBuffer());
+                rcEncoder->DrawIndexed(
+                    meshData.GetIndexBuffer()->GetAllocatedCount(),
+                    0, 0, 1
+                );
+            }
+            rcEncoder->EndEncoding();
+        }
+
+        // ------------------------------------------------------------------
+        // Prefilter the environment map based on roughness
+        // ------------------------------------------------------------------
+        for (u32 i = 0; i < m_PrefilterMaps.Count(); i++)
+        {
+            auto rcEncoder = m_PrefilterMaps[i].CommandBuffer->EncodeRenderCommands(m_PrefilterMaps[i].Framebuffer.get());
+
+            float roughness = static_cast<float>(i) / 4;
+            for (u32 j = 0; j < 6; j++) // each face
+            {
+                if (j != 0)
+                    rcEncoder->StartNextSubpass();
+
+                rcEncoder->BindPipeline("prefilter");  
+
+                cubemapCam.UpdateViewMatrix(glm::vec3(0.f), rotations[j]);
+
+                CubemapData mapData = {
+                    cubemapCam.GetProjectionMatrix(),
+                    cubemapCam.GetViewMatrix(),
+                    glm::vec4(roughness, m_EnvironmentMap.Texture->GetWidth(), 0.f, 0.f)
+                };
+                m_CubemapDataBuffer->SetElements(&mapData, 1, cubeDataIndex);
+                rcEncoder->BindPipelineBufferResource(0, m_CubemapDataBuffer.get(), 0, cubeDataIndex, 1);
+                rcEncoder->BindPipelineTextureResource(1, m_EnvironmentMap.Texture.get());
+                rcEncoder->FlushPipelineBindings();
+
+                rcEncoder->BindVertexBuffer(meshData.GetVertexBuffer());
+                rcEncoder->BindIndexBuffer(meshData.GetIndexBuffer());
+                rcEncoder->DrawIndexed(
+                    meshData.GetIndexBuffer()->GetAllocatedCount(),
+                    0, 0, 1
+                );
+
+                cubeDataIndex++;
+            }
         }
 
         // ------------------------------------------------------------------
         // Precalculate the BRDF texture
         // ------------------------------------------------------------------
-        m_BRDFFramebuffer->Bind();
-        m_BRDFFramebuffer->BindPipeline("0");  
+        {
+            auto rcEncoder = m_BRDFTexture.CommandBuffer->EncodeRenderCommands(m_BRDFTexture.Framebuffer.get());
 
-        CubemapData mapData = { cubemapCam.GetProjectionMatrix(), cubemapCam.GetViewMatrix(), glm::vec4(Renderer::IsUsingReverseDepth(), 0.f, 0.f, 0.f) };
-        m_CubemapDataBuffer->SetElements(&mapData, 1, cubeDataIndex);
-        m_BRDFFramebuffer->BindShaderBufferResource(0, cubeDataIndex, 1, m_CubemapDataBuffer.get());
-        cubeDataIndex++;
+            rcEncoder->BindPipeline("brdf");  
 
-        m_BRDFFramebuffer->FlushBindings();
+            CubemapData mapData = {
+                cubemapCam.GetProjectionMatrix(),
+                cubemapCam.GetViewMatrix(),
+                glm::vec4(Flourish::Context::ReversedZBuffer(), 0.f, 0.f, 0.f)
+            };
+            m_CubemapDataBuffer->SetElements(&mapData, 1, cubeDataIndex);
+            rcEncoder->BindPipelineBufferResource(0, m_CubemapDataBuffer.get(), 0, cubeDataIndex, 1);
+            rcEncoder->FlushPipelineBindings();
 
-        Renderer::Api().Draw(3, 0, 1);
-        Renderer::Api().RenderFramebuffers(Window::GetMainWindow().GetContext(), { { m_BRDFFramebuffer.get() } });
+            rcEncoder->Draw(3, 0, 1);
+
+            cubeDataIndex++;
+        }
+
+        std::vector<std::vector<Flourish::CommandBuffer*>> submission = {
+            { m_EnvironmentMap.CommandBuffer.get() }, { m_IrradianceMap.CommandBuffer.get() }
+        };
+        for (u32 i = 0; i < m_PrefilterMaps.Count(); i++)
+            submission[1].push_back(m_PrefilterMaps[i].CommandBuffer.get());
+
+        Flourish::Context::SubmitCommandBuffers({ { m_BRDFTexture.CommandBuffer.get() } });
+        Flourish::Context::SubmitCommandBuffers(submission);
     }
 }
