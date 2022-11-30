@@ -1,11 +1,16 @@
 #pragma once
 
 #ifdef HE_DEBUG
-	#if defined(HE_PLATFORM_WINDOWS)
+	#if defined(_MSC_VER)
 		#define HE_DEBUGBREAK() __debugbreak()
-	#elif defined(HE_PLATFORM_LINUX)
-		#include <signal.h>
-		#define HE_DEBUGBREAK() raise(SIGTRAP)
+	#elif defined(__clang__)
+		#if __has_builtin(__builtin_debugtrap)
+			#define HE_DEBUGBREAK() __builtin_debugtrap()
+		#else
+			#define HE_DEBUGBREAK() __builtin_trap()
+		#endif
+	#elif defined(__GNUC__)
+		#define HE_DEBUGBREAK() __builtin_trap()
 	#else
 		#error "Platform doesn't support debugbreak yet!"
 	#endif
@@ -29,6 +34,7 @@ using uptr = intptr_t;
 using wchar = wchar_t;
 using char8 = char;
 using char16 = char16_t;
+using byte = unsigned char;
 
 #define HE_ENUM_TO_STRING(class, value) class::TypeStrings[static_cast<u16>(value)]
 #define HE_EXPAND_ARGS(args) args

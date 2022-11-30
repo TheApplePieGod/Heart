@@ -181,6 +181,13 @@ namespace Heart
             CacheEntityTransform(child);
     }
 
+    template<typename Component>
+    void Scene::CopyComponent(entt::entity src, Entity dst)
+    {
+        if (m_Registry.any_of<Component>(src))
+            dst.AddComponent<Component>(m_Registry.get<Component>(src));
+    }
+
     void Scene::RemoveChild(UUID parentUUID, UUID childUUID)
     {
         Entity parent = GetEntityFromUUIDUnchecked(parentUUID);

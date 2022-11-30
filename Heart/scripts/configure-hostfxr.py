@@ -11,7 +11,7 @@ DOTNET_MIN_VER = "6.0"
 
 def get_platform_info():
     system = platform.system()
-    is_arm = "arm" in platform.version()
+    is_arm = "arm" in platform.version().lower()
     is_64bit = sys.maxsize > 2**32
     return (system, is_arm, is_64bit)
 
@@ -52,6 +52,16 @@ def get_dotnet_runtime_string(platform_info):
 
     return runtime_str
 
+def get_hostfxr_name(platform_info):
+    sys_map = {
+        "Windows": "hostfxr.dll",
+        "Linux": "hostfxr.so",
+        "macOS": "libhostfxr.dylib",
+        "Darwin": "libhostfxr.dylib"
+    }
+    
+    return sys_map[platform_info[0]]
+
 def configure():
     platform_info = get_platform_info()
     runtime_ver = get_dotnet_version()
@@ -69,14 +79,16 @@ def configure():
         runtime_str,
         "native"
     )
-    hostfxr_dir = os.path.join(
+    
+    hostfxr_path = os.path.join(
         SDK_PATH,
         "host",
         "fxr",
-        runtime_ver
+        runtime_ver,
+        get_hostfxr_name(platform_info)
     )
 
     sys.stdout.write(runtime_dir)
-    sys.stderr.write(hostfxr_dir)
+    sys.stderr.write(hostfxr_path)
 
 configure()

@@ -569,7 +569,8 @@ namespace Heart
             if (light.LightType == LightComponent::Type::Disabled) continue;
 
             // Update the translation part of the light struct
-            m_LightingDataBuffer->SetBytes(&entity.GetWorldPosition(), sizeof(glm::vec3), offset);
+            glm::vec3 worldPos = entity.GetWorldPosition();
+            m_LightingDataBuffer->SetBytes(&worldPos, sizeof(glm::vec3), offset);
             offset += sizeof(glm::vec4);
 
             // Update the light direction if the light is not a point light
@@ -606,7 +607,7 @@ namespace Heart
         auto group = m_Scene->GetRegistry().group<TransformComponent, MeshComponent>();
         for (auto entity : group)
         {
-            auto& [transform, mesh] = group.get<TransformComponent, MeshComponent>(entity);
+            auto [transform, mesh] = group.get<TransformComponent, MeshComponent>(entity);
 
             // Skip invalid meshes
             auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>(mesh.Mesh, async);

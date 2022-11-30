@@ -63,11 +63,7 @@ namespace Heart
 
     private:
         template<typename Component>
-        void CopyComponent(entt::entity src, Entity dst)
-        {
-            if (m_Registry.any_of<Component>(src))
-                dst.AddComponent<Component>(m_Registry.get<Component>(src));
-        }
+        void CopyComponent(entt::entity src, Entity dst);
 
         void RemoveChild(UUID parentUUID, UUID childUUID);
         void DestroyChildren(Entity parent);

@@ -1,5 +1,9 @@
 project(Engine)
 
+if(APPLE)
+  enable_language(OBJC)
+endif()
+
 # Legacy include imgui so imguizmo can build properly
 include_directories("lib/imgui")
 
@@ -25,11 +29,13 @@ set(DEPENDENCY_SOURCES
 )
 
 execute_process(
-  COMMAND python "scripts/configure-hostfxr.py"
+  COMMAND python3 "scripts/configure-hostfxr.py"
   WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
   OUTPUT_VARIABLE DOTNET_RUNTIME_DIR
-  ERROR_VARIABLE DOTNET_HOSTFXR_DIR
+  ERROR_VARIABLE DOTNET_HOSTFXR_PATH
 )
+message("Dotnet runtime dir: ${DOTNET_RUNTIME_DIR}")
+message("Dotnet hostfxr path: ${DOTNET_HOSTFXR_PATH}")
 
 # Copy engine resources
 add_custom_target(
@@ -92,7 +98,7 @@ target_link_libraries(
 # Copy required dlls
 add_custom_target(
   CopyRequiredDlls ALL
-  COMMAND ${CMAKE_COMMAND} -E copy ${DOTNET_HOSTFXR_DIR}/hostfxr.dll ${OUTPUT_DIRECTORY}
+  COMMAND ${CMAKE_COMMAND} -E copy ${DOTNET_HOSTFXR_PATH} ${OUTPUT_DIRECTORY}
   DEPENDS Engine
 )
 
