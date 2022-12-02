@@ -110,7 +110,6 @@ namespace Heart
         void operator=(const HString& other);
         HString operator+(const HStringView& other) const;
         void operator+=(const HStringView& other);
-        friend HString operator+(const HStringView& left, const HStringView& right);
     
         inline static constexpr u32 InvalidIndex = StringUtils::InvalidIndex;
 
@@ -181,6 +180,8 @@ namespace Heart
 
         friend class HStringView;
     };
+
+    HString operator+(const HStringView& left, const HStringView& right);
 
     class HStringView
     {

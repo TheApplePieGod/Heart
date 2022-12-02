@@ -18,7 +18,7 @@ namespace HeartEditor
     Heart::Ref<Project> Project::CreateAndLoad(const Heart::HStringView8& absolutePath, const Heart::HStringView8& name)
     {
         const char* extension = ".heproj";
-        Heart::HString8 filename = name + extension;
+        Heart::HString8 filename = name + Heart::HStringView8(extension);
 
         std::filesystem::path finalPath = std::filesystem::path(absolutePath.Data()).append(name.Data());
         std::filesystem::create_directory(finalPath);
@@ -56,7 +56,7 @@ namespace HeartEditor
         Heart::HString8 csprojTemplate = Heart::FilesystemUtils::ReadFileToString("templates/ProjectTemplate.csproj");
         Heart::HString8 finalCsproj = std::regex_replace(csprojTemplate.Data(), std::regex("\\$\\{SCRIPTS_ROOT_PATH\\}"), scriptsRootPath.Data());
         file = std::ofstream(
-            std::filesystem::path(finalPath).append((name + ".csproj").Data()),
+            std::filesystem::path(finalPath).append((name + Heart::HStringView8(".csproj")).Data()),
             std::ios::binary
         );
         file << finalCsproj.Data();
@@ -67,7 +67,7 @@ namespace HeartEditor
         Heart::HString8 finalSln = std::regex_replace(slnTemplate.Data(), std::regex("\\$\\{SCRIPTS_ROOT_PATH\\}"), scriptsRootPath.Data());
         finalSln = std::regex_replace(finalSln.Data(), std::regex("\\$\\{PROJECT_NAME\\}"), name.Data());
         file = std::ofstream(
-            std::filesystem::path(finalPath).append((name + ".sln").Data()),
+            std::filesystem::path(finalPath).append((name + Heart::HStringView8(".sln")).Data()),
             std::ios::binary
         );
         file << finalSln.Data();

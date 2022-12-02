@@ -56,10 +56,9 @@ namespace Heart
         inline bool operator>=(const HStringViewTyped<T>& other) const { return !(other > *this); }
         inline const T& operator[](u32 index) const { return m_Container[index]; }
         void operator=(const HStringViewTyped<T>& other);
-        void operator=(const HStringTyped& other);
-        HStringTyped operator+(const HStringViewTyped<T>& other) const;
+        void operator=(const HStringTyped<T>& other);
+        HStringTyped<T> operator+(const HStringViewTyped<T>& other) const;
         void operator+=(const HStringViewTyped<T>& other);
-        friend HStringTyped operator+(const HStringViewTyped<T>& left, const HStringViewTyped<T>& right);
 
         inline static constexpr u32 InvalidIndex = StringUtils::InvalidIndex;
     
@@ -77,6 +76,9 @@ namespace Heart
 
         friend class HString;
     };
+
+    template <typename T>
+    HStringTyped<T> operator+(const HStringViewTyped<T>& left, const HStringViewTyped<T>& right);
 
     template <typename T>
     class HStringViewTyped

@@ -8,7 +8,7 @@ namespace HeartEditor
     class Project
     {
     public:
-         Project::Project(const Heart::HStringView8& absolutePath)
+        Project(const Heart::HStringView8& absolutePath)
             : m_AbsolutePath(absolutePath)
         {}
 

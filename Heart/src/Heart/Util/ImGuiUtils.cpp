@@ -54,8 +54,8 @@ namespace Heart
     {
         ImGui::SameLine();
 
-        Heart::HString8 b1id = Heart::HStringView8("V##v") + popupName;
-        Heart::HString8 b2id = Heart::HStringView8("X##x") + popupName;
+        HString8 b1id = HStringView8("V##v") + HStringView8(popupName);
+        HString8 b2id = HStringView8("X##x") + HStringView8(popupName);
 
         bool popupOpened = ImGui::Button(b1id.Data());
         if (popupOpened)
@@ -93,7 +93,7 @@ namespace Heart
 
     void ImGuiUtils::DrawStringDropdownFilter(const char** options, u32 optionCount, u32& selected, const char* popupName)
     {
-        Heart::ImGuiUtils::DrawFilterPopup(
+        ImGuiUtils::DrawFilterPopup(
             popupName,
             false,
             [&selected, options, optionCount] ()
@@ -197,14 +197,14 @@ namespace Heart
 
         bool valid = selectedAsset && UUIDRegistry.find(selectedAsset) != UUIDRegistry.end();
 
-        HString8 buttonNullSelection = nullSelectionText + "##" + widgetId;
-        HString8 popupName = widgetId + "AP";
+        HString8 buttonNullSelection = nullSelectionText + HStringView8("##") + widgetId;
+        HString8 popupName = widgetId + HStringView8("AP");
         bool popupOpened = ImGui::Button(valid ? UUIDRegistry.at(selectedAsset).Path.Data() : buttonNullSelection.Data());
         if (popupOpened)
             ImGui::OpenPopup(popupName.Data());
         
         // right click menu
-        if (contextMenuCallback && ImGui::BeginPopupContextItem((widgetId + "ctx").Data()))
+        if (contextMenuCallback && ImGui::BeginPopupContextItem((widgetId + HStringView8("ctx")).Data()))
         {
             contextMenuCallback();
             ImGui::EndPopup();
@@ -241,14 +241,14 @@ namespace Heart
         std::function<void(u32)>&& selectCallback
     )
     {
-        HString8 buttonNullSelection = nullSelectionText + "##" + widgetId;
-        HString8 popupName = widgetId + "SP";
+        HString8 buttonNullSelection = nullSelectionText + HStringView8("##") + widgetId;
+        HString8 popupName = widgetId + HStringView8("SP");
         bool popupOpened = ImGui::Button(selected.IsEmpty() ? buttonNullSelection.Data() : selected.Data());
         if (popupOpened)
             ImGui::OpenPopup(popupName.Data());
         
         // right click menu
-        if (contextMenuCallback && ImGui::BeginPopupContextItem((widgetId + "ctx").Data()))
+        if (contextMenuCallback && ImGui::BeginPopupContextItem((widgetId + HStringView8("ctx")).Data()))
         {
             contextMenuCallback();
             ImGui::EndPopup();
