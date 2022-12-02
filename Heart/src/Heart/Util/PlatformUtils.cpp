@@ -11,7 +11,7 @@ namespace Heart
             HMODULE lib = LoadLibraryA(path.Data());
             return (void*)lib;
         #elif defined(HE_PLATFORM_LINUX) || defined(HE_PLATFORM_MACOS)
-            void* lib = dlopen(path.Data(), RTLD_LAZY, RTLD_LOCAL);
+            void* lib = dlopen(path.Data(), RTLD_LAZY | RTLD_LOCAL);
             return lib;
         #endif
 
