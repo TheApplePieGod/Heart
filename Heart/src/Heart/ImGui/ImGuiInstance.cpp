@@ -79,6 +79,11 @@ namespace Heart
             { HE_ENGINE_ASSERT(false, "Cannot initialize ImGui: selected ApiType is not supported"); } break;
             case Flourish::BackendType::Vulkan:
             {
+    			ImGui_ImplVulkan_LoadFunctions([](const char* function_name, void*)
+				{
+					return vkGetInstanceProcAddr(Flourish::Vulkan::Context::Instance(), function_name);
+				});
+
 				// Create the descriptor pool for imgui
 				std::array<VkDescriptorPoolSize, 1> poolSizes{};
 				poolSizes[0].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -95,14 +100,14 @@ namespace Heart
 					nullptr,
 					(VkDescriptorPool*)&m_DescriptorPool
 				);
-				
+
 				// Initialize
 				ImGui_ImplVulkan_InitInfo info = {};
 				info.Instance = Flourish::Vulkan::Context::Instance();
 				info.PhysicalDevice = Flourish::Vulkan::Context::Devices().PhysicalDevice();
 				info.Device = Flourish::Vulkan::Context::Devices().Device();
-				info.QueueFamily = Flourish::Vulkan::Queues().QueueIndex(Flourish::GPUWorkloadType::Graphics);
-				info.Queue = Flourish::Vulkan::Queues().Queue(Flourish::GPUWorkloadType::Graphics);
+				info.QueueFamily = Flourish::Vulkan::Context::Queues().QueueIndex(Flourish::GPUWorkloadType::Graphics);
+				info.Queue = Flourish::Vulkan::Context::Queues().Queue(Flourish::GPUWorkloadType::Graphics);
 				info.PipelineCache = VK_NULL_HANDLE;
 				info.DescriptorPool = (VkDescriptorPool)m_DescriptorPool;
 				info.Allocator = NULL;
@@ -118,7 +123,12 @@ namespace Heart
 				// Create fonts texture & cleanup resources
 				VkCommandBuffer cmdBuf;
 				Flourish::Vulkan::Context::Commands().AllocateBuffers(Flourish::GPUWorkloadType::Graphics, false, &cmdBuf, 1);
+				VkCommandBufferBeginInfo beginInfo{};
+				beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+				beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+				vkBeginCommandBuffer(cmdBuf, &beginInfo);
 				ImGui_ImplVulkan_CreateFontsTexture(cmdBuf);
+				vkEndCommandBuffer(cmdBuf);
 				Flourish::Vulkan::Context::Queues().ExecuteCommand(Flourish::GPUWorkloadType::Graphics, cmdBuf);
 				ImGui_ImplVulkan_DestroyFontUploadObjects();
 				Flourish::Vulkan::Context::Commands().FreeBuffer(Flourish::GPUWorkloadType::Graphics, cmdBuf);
