@@ -18,6 +18,8 @@ add_subdirectory("lib/optick")
 add_subdirectory("lib/entt")
 add_subdirectory("lib/imguizmo")
 add_subdirectory("lib/json")
+set(FLOURISH_GLFW_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lib/GLFW/include")
+set(FLOURISH_IMGUI_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lib/imgui")
 add_subdirectory("lib/Flourish")
 
 # Include other dependency sources that need to be built

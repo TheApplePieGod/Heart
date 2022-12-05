@@ -6,9 +6,6 @@
 #include "HeartEditor/EditorCamera.h"
 #include "Heart/Input/Input.h"
 #include "Heart/Core/Timing.h"
-#include "Heart/Renderer/Renderer.h"
-#include "Heart/Renderer/Framebuffer.h"
-#include "Heart/Renderer/Pipeline.h"
 #include "imgui/imgui.h"
 
 #include "HeartEditor/Widgets/Viewport.h"
@@ -29,7 +26,7 @@ namespace Widgets
         ImGui::Text("Basic Info:");
         ImGui::Indent();
         double stepMs = EditorApp::Get().GetLastTimestep().StepMilliseconds();
-        ImGui::Text("Render Api: %s", HE_ENUM_TO_STRING(Heart::RenderApi, Heart::Renderer::GetApiType()));
+        // ImGui::Text("Render Api: %s", HE_ENUM_TO_STRING(Heart::RenderApi, Heart::Renderer::GetApiType()));
         ImGui::Text("Frametime: %.1fms", stepMs);
         ImGui::Text("Framerate: %d FPS", static_cast<u32>(1000.0 / stepMs));
         ImGui::Unindent();
@@ -55,6 +52,7 @@ namespace Widgets
 
         ImGui::Text("GPU Timing:");
         ImGui::Indent();
+        /*
         ImGui::Text("Frustum cull: %.2fms", viewport.GetSceneRenderer().GetCullPipeline().GetPerformanceTimestamp());
         ImGui::Text("Opaque Pass: %.2fms", viewport.GetSceneRenderer().GetMainFramebuffer().GetSubpassPerformanceTimestamp(2));
         ImGui::Text("Translucent Pass: %.2fms", viewport.GetSceneRenderer().GetMainFramebuffer().GetSubpassPerformanceTimestamp(3));
@@ -65,12 +63,15 @@ namespace Widgets
             bloomTiming += bufs[1]->GetPerformanceTimestamp();
         }
         ImGui::Text("Bloom Pass: %.2fms", bloomTiming);
+        */
         ImGui::Unindent();
 
         ImGui::Text("Render Statistics:");
         ImGui::Indent();
+        /*
         for (auto& pair : Heart::Renderer::GetStatistics())
             ImGui::Text("%s: %lld", pair.first.Data(), pair.second);
+        */
         ImGui::Unindent();
 
         ImGui::End();

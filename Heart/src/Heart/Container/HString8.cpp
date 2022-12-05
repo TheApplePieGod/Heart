@@ -25,6 +25,7 @@ namespace Heart
         return HString16(ww898::utf::convz<char16>(Data()));
     }
 
+    template <>
     HStringTyped<char8> operator+(const HStringViewTyped<char8>& left, const HStringViewTyped<char8>& right)
     {
         const char8* data[2] = { left.Data(), right.Data() };

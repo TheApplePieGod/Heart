@@ -6,8 +6,8 @@
 #include "HeartEditor/EditorApp.h"
 #include "HeartEditor/Project.h"
 #include "Heart/Core/Window.h"
-#include "Heart/Renderer/Framebuffer.h"
 #include "Heart/Renderer/SceneRenderer.h"
+#include "Flourish/Api/Texture.h"
 #include "Heart/Scene/Entity.h"
 #include "Heart/Input/Input.h"
 #include "Heart/Events/KeyboardEvents.h"
@@ -128,8 +128,10 @@ namespace HeartEditor
             u32 sampleX = static_cast<u32>(mousePos.x / size.x * viewport.GetSceneRenderer().GetEntityIdsTexture().GetWidth());
             u32 sampleY = static_cast<u32>(mousePos.y / size.y * viewport.GetSceneRenderer().GetEntityIdsTexture().GetHeight());
 
+            /*
             f32 entityId = viewport.GetSceneRenderer().GetEntityIdsTexture().ReadPixel<f32>(sampleX, sampleY, 0);
             Editor::GetState().SelectedEntity = entityId == -1.f ? Heart::Entity() : Heart::Entity(&Editor::GetActiveScene(), static_cast<u32>(entityId));
+            */
         }
 
         return true;

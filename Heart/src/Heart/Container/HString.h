@@ -242,6 +242,16 @@ namespace Heart
         inline HString8 ToUTF8() const { return HString8(DataUTF8(), CountUTF8()); }
         inline HString16 ToUTF16() const { return HString16(DataUTF16(), CountUTF16()); }
 
+        template <typename T>
+        inline constexpr const T* Data() const
+        { return !reinterpret_cast<const T*>(m_Data) ? (const T*)"" : reinterpret_cast<const T*>(m_Data); }
+        template <typename T>
+        inline constexpr const T& Get(u32 index) const { return reinterpret_cast<const T*>(m_Data)[index]; }
+        template <typename T>
+        inline constexpr const T* Begin() const { return reinterpret_cast<const T*>(m_Data); }
+        template <typename T>
+        inline constexpr const T* End() const { return reinterpret_cast<const T*>(m_Data) + m_Count; }
+
         inline constexpr const void* DataRaw() const { return Data<void>(); }
         inline constexpr const char8* DataUTF8() const { return Data<char8>(); }
         inline constexpr const char16* DataUTF16() const { return Data<char16>(); }
@@ -254,15 +264,6 @@ namespace Heart
         inline constexpr u32 CountUTF8() const { return m_Count; }
         inline constexpr u32 CountUTF16() const { return m_Count; }
         
-        template <typename T>
-        inline constexpr const T* Data() const
-        { return !reinterpret_cast<const T*>(m_Data) ? (const T*)"" : reinterpret_cast<const T*>(m_Data); }
-        template <typename T>
-        inline constexpr const T& Get(u32 index) const { return reinterpret_cast<const T*>(m_Data)[index]; }
-        template <typename T>
-        inline constexpr const T* Begin() const { return reinterpret_cast<const T*>(m_Data); }
-        template <typename T>
-        inline constexpr const T* End() const { return reinterpret_cast<const T*>(m_Data) + m_Count; }
         inline constexpr HString::Encoding GetEncoding() const { return m_Encoding; }
         inline constexpr u32 Count() const { return m_Count; }
         inline constexpr bool IsEmpty() const { return m_Count == 0; }

@@ -7,14 +7,14 @@
 #include "Heart/Core/Window.h"
 #include "Heart/Core/Camera.h"
 #include "Heart/Scene/Scene.h"
-#include "Heart/Renderer/Renderer.h"
 #include "Heart/Renderer/SceneRenderer.h"
-#include "Heart/Renderer/Framebuffer.h"
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/TextureAsset.h"
 #include "Heart/Asset/SceneAsset.h"
 #include "Heart/Scripting/ScriptingEngine.h"
 #include "Heart/Util/ImGuiUtils.h"
+#include "Flourish/Api/Context.h"
+#include "Flourish/Api/Texture.h"
 #include "imgui/imgui_internal.h"
 #include "glm/vec4.hpp"
 #include "glm/gtc/type_ptr.hpp"
@@ -41,7 +41,6 @@ namespace Widgets
         ImGui::Begin(m_Name.Data(), &m_Open);
 
         m_SceneRenderer->RenderScene(
-            EditorApp::Get().GetWindow().GetContext(),
             &Editor::GetActiveScene(),
             *m_ActiveCamera,
             m_ActiveCameraPos,
@@ -62,7 +61,7 @@ namespace Widgets
         ImGui::GetWindowDrawList()->AddRectFilled({ viewportStart.x, viewportStart.y }, { viewportEnd.x, viewportEnd.y }, IM_COL32( 0, 0, 0, 255 )); // viewport background
 
         // draw the rendered texture
-        Heart::Texture* outputTex = nullptr;
+        Flourish::Texture* outputTex = nullptr;
         switch (m_SelectedOutput){
             default: outputTex = &m_SceneRenderer->GetFinalTexture(); break;
             case 1: outputTex = &m_SceneRenderer->GetPreBloomTexture(); break;
@@ -197,7 +196,7 @@ namespace Widgets
                 ImGuizmo::Manipulate(
                     glm::value_ptr(view),
                     glm::value_ptr(proj),
-                    Heart::Renderer::IsUsingReverseDepth(),
+                    Flourish::Context::ReversedZBuffer(),
                     m_GizmoOperation,
                     m_GizmoMode,
                     glm::value_ptr(transform),

@@ -10,7 +10,6 @@
 #include "Heart/Asset/MaterialAsset.h"
 #include "Heart/Util/ImGuiUtils.h"
 #include "Heart/Util/FilesystemUtils.h"
-#include "Heart/Renderer/Renderer.h"
 #include "imgui/imgui_internal.h"
 #include "glm/gtc/type_ptr.hpp"
 
@@ -157,7 +156,7 @@ namespace Widgets
                     Heart::HStringView8 baseName = "Material ";
                     for (auto& materialId : meshComp.Materials)
                     {
-                        Heart::HString8 entryName = baseName + std::to_string(index);
+                        Heart::HString8 entryName = baseName + Heart::HStringView8(std::to_string(index));
 
                         // Material picker
                         ImGui::Text(entryName.Data(), index);

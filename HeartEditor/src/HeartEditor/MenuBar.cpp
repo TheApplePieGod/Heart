@@ -7,7 +7,6 @@
 #include "HeartEditor/Widgets/Widget.h"
 #include "Heart/Core/Window.h"
 #include "Heart/Scene/Entity.h"
-#include "Heart/Renderer/Renderer.h"
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/SceneAsset.h"
 #include "Heart/Util/FilesystemUtils.h"
@@ -93,17 +92,6 @@ namespace HeartEditor
 
                     if (ImGui::MenuItem("Toggle Fullscreen", "F11"))
                         EditorApp::Get().GetWindow().ToggleFullscreen();
-
-                    if (ImGui::BeginMenu("Switch Graphics API"))
-                    {
-                        for (u32 i = 1; i < HE_ARRAY_SIZE(Heart::RenderApi::TypeStrings); i++)
-                        {
-                            if (ImGui::MenuItem(Heart::RenderApi::TypeStrings[i]))
-                                EditorApp::Get().SwitchGraphicsApi(static_cast<Heart::RenderApi::Type>(i));
-                        }
-
-                        ImGui::EndMenu();
-                    }
 
                     ImGui::Separator();
 

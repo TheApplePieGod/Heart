@@ -756,18 +756,17 @@ namespace Heart
 
     void SceneRenderer::RenderEnvironmentMap()
     {
-        m_MainFramebuffer->BindPipeline("skybox");
-        m_MainFramebuffer->BindShaderBufferResource(0, 0, 1, m_FrameDataBuffer.get());
-        m_MainFramebuffer->BindShaderTextureResource(1, m_EnvironmentMap->GetEnvironmentCubemap());
+        m_RenderEncoder->BindPipeline("skybox");
+        m_RenderEncoder->BindPipelineBufferResource(0, m_FrameDataBuffer.get(), 0, 0, 1);
+        m_RenderEncoder->BindPipelineTextureResource(1, m_EnvironmentMap->GetEnvironmentCubemap());
+        m_RenderEncoder->FlushPipelineBindings();
 
         auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>("engine/DefaultCube.gltf", true);
         auto& meshData = meshAsset->GetSubmesh(0);
 
-        m_MainFramebuffer->FlushBindings();
-
-        Renderer::Api().BindVertexBuffer(*meshData.GetVertexBuffer());
-        Renderer::Api().BindIndexBuffer(*meshData.GetIndexBuffer());
-        Renderer::Api().DrawIndexed(
+        m_RenderEncoder->BindVertexBuffer(meshData.GetVertexBuffer());
+        m_RenderEncoder->BindIndexBuffer(meshData.GetIndexBuffer());
+        m_RenderEncoder->DrawIndexed(
             meshData.GetIndexBuffer()->GetAllocatedCount(),
             0, 0, 1
         );
@@ -776,18 +775,19 @@ namespace Heart
     void SceneRenderer::RenderGrid()
     {
         // Bind grid pipeline
-        m_MainFramebuffer->BindPipeline("grid");
+        m_RenderEncoder->BindPipeline("grid");
 
         // Bind frame data
-        m_MainFramebuffer->BindShaderBufferResource(0, 0, 1, m_FrameDataBuffer.get());
+        m_RenderEncoder->BindPipelineBufferResource(0, m_FrameDataBuffer.get(), 0, 0, 1);
 
-        m_MainFramebuffer->FlushBindings();
+        m_RenderEncoder->FlushPipelineBindings();
 
         // Draw
-        Renderer::Api().SetLineWidth(2.f);
-        Renderer::Api().BindVertexBuffer(*m_GridVertices);
-        Renderer::Api().BindIndexBuffer(*m_GridIndices);
-        Renderer::Api().DrawIndexed(
+        // Renderer::Api().SetLineWidth(2.f);
+
+        m_RenderEncoder->BindVertexBuffer(m_GridVertices.get());
+        m_RenderEncoder->BindIndexBuffer(m_GridIndices.get());
+        m_RenderEncoder->DrawIndexed(
             m_GridIndices->GetAllocatedCount(),
             0, 0, 1
         );
@@ -802,68 +802,68 @@ namespace Heart
         if (materialData.HasAlbedo())
         {
             auto albedoAsset = AssetManager::RetrieveAsset<TextureAsset>(material->GetAlbedoTexture());
-            m_MainFramebuffer->BindShaderTextureResource(4, albedoAsset->GetTexture());
+            m_RenderEncoder->BindPipelineTextureResource(4, albedoAsset->GetTexture());
         }
         
         if (materialData.HasMetallicRoughness())
         {
             auto metallicRoughnessAsset = AssetManager::RetrieveAsset<TextureAsset>(material->GetMetallicRoughnessTexture());
-            m_MainFramebuffer->BindShaderTextureResource(5, metallicRoughnessAsset->GetTexture());
+            m_RenderEncoder->BindPipelineTextureResource(5, metallicRoughnessAsset->GetTexture());
         }
 
         if (materialData.HasNormal())
         {
             auto normalAsset = AssetManager::RetrieveAsset<TextureAsset>(material->GetNormalTexture());
-            m_MainFramebuffer->BindShaderTextureResource(6, normalAsset->GetTexture());
+            m_RenderEncoder->BindPipelineTextureResource(6, normalAsset->GetTexture());
         }
 
         if (materialData.HasEmissive())
         {
             auto emissiveAsset = AssetManager::RetrieveAsset<TextureAsset>(material->GetEmissiveTexture());
-            m_MainFramebuffer->BindShaderTextureResource(7, emissiveAsset->GetTexture());
+            m_RenderEncoder->BindPipelineTextureResource(7, emissiveAsset->GetTexture());
         }
 
         if (materialData.HasOcclusion())
         {
             auto occlusionAsset = AssetManager::RetrieveAsset<TextureAsset>(material->GetOcclusionTexture());
-            m_MainFramebuffer->BindShaderTextureResource(8, occlusionAsset->GetTexture());
+            m_RenderEncoder->BindPipelineTextureResource(8, occlusionAsset->GetTexture());
         }
     }
 
     void SceneRenderer::BindPBRDefaults()
     {
         // Bind frame data
-        m_MainFramebuffer->BindShaderBufferResource(0, 0, 1, m_FrameDataBuffer.get());
+        m_RenderEncoder->BindPipelineBufferResource(0, m_FrameDataBuffer.get(), 0, 0, 1);
 
         // Bind object data
-        m_MainFramebuffer->BindShaderBufferResource(1, 0, m_ObjectDataBuffer->GetAllocatedCount(), m_ObjectDataBuffer.get());
+        m_RenderEncoder->BindPipelineBufferResource(1, m_ObjectDataBuffer.get(), 0, 0, m_ObjectDataBuffer->GetAllocatedCount());
 
         // Bind culled instance map data
-        m_MainFramebuffer->BindShaderBufferResource(12, 0, m_FinalInstanceBuffer->GetAllocatedCount(), m_FinalInstanceBuffer.get());
+        m_RenderEncoder->BindPipelineBufferResource(12, m_FinalInstanceBuffer.get(), 0, 0, m_FinalInstanceBuffer->GetAllocatedCount());
 
         // Bind material data
-        m_MainFramebuffer->BindShaderBufferResource(2, 0, m_MaterialDataBuffer->GetAllocatedCount(), m_MaterialDataBuffer.get());
+        m_RenderEncoder->BindPipelineBufferResource(2, m_MaterialDataBuffer.get(), 0, 0, m_MaterialDataBuffer->GetAllocatedCount());
         
         // Bind lighting data
-        m_MainFramebuffer->BindShaderBufferResource(3, 0, m_LightingDataBuffer->GetAllocatedCount(), m_LightingDataBuffer.get());
+        m_RenderEncoder->BindPipelineBufferResource(3, m_LightingDataBuffer.get(), 0, 0, m_LightingDataBuffer->GetAllocatedCount());
 
         // Default texture binds
-        m_MainFramebuffer->BindShaderTextureResource(4, AssetManager::RetrieveAsset<TextureAsset>("engine/DefaultTexture.png", true)->GetTexture());
-        m_MainFramebuffer->BindShaderTextureResource(5, AssetManager::RetrieveAsset<TextureAsset>("engine/DefaultTexture.png", true)->GetTexture());
-        m_MainFramebuffer->BindShaderTextureResource(6, AssetManager::RetrieveAsset<TextureAsset>("engine/DefaultTexture.png", true)->GetTexture());
-        m_MainFramebuffer->BindShaderTextureResource(7, AssetManager::RetrieveAsset<TextureAsset>("engine/DefaultTexture.png", true)->GetTexture());
-        m_MainFramebuffer->BindShaderTextureResource(8, AssetManager::RetrieveAsset<TextureAsset>("engine/DefaultTexture.png", true)->GetTexture());
+        m_RenderEncoder->BindPipelineTextureResource(4, AssetManager::RetrieveAsset<TextureAsset>("engine/DefaultTexture.png", true)->GetTexture());
+        m_RenderEncoder->BindPipelineTextureResource(5, AssetManager::RetrieveAsset<TextureAsset>("engine/DefaultTexture.png", true)->GetTexture());
+        m_RenderEncoder->BindPipelineTextureResource(6, AssetManager::RetrieveAsset<TextureAsset>("engine/DefaultTexture.png", true)->GetTexture());
+        m_RenderEncoder->BindPipelineTextureResource(7, AssetManager::RetrieveAsset<TextureAsset>("engine/DefaultTexture.png", true)->GetTexture());
+        m_RenderEncoder->BindPipelineTextureResource(8, AssetManager::RetrieveAsset<TextureAsset>("engine/DefaultTexture.png", true)->GetTexture());
         if (m_EnvironmentMap)
         {
-            m_MainFramebuffer->BindShaderTextureResource(9, m_EnvironmentMap->GetIrradianceCubemap());
-            m_MainFramebuffer->BindShaderTextureResource(10, m_EnvironmentMap->GetPrefilterCubemap());
-            m_MainFramebuffer->BindShaderTextureResource(11, m_EnvironmentMap->GetBRDFTexture());
+            m_RenderEncoder->BindPipelineTextureResource(9, m_EnvironmentMap->GetIrradianceCubemap());
+            m_RenderEncoder->BindPipelineTextureResource(10, m_EnvironmentMap->GetPrefilterCubemap());
+            m_RenderEncoder->BindPipelineTextureResource(11, m_EnvironmentMap->GetBRDFTexture());
         }
         else
         {
-            m_MainFramebuffer->BindShaderTextureResource(9, m_DefaultEnvironmentMap.get());
-            m_MainFramebuffer->BindShaderTextureResource(10, m_DefaultEnvironmentMap.get());
-            m_MainFramebuffer->BindShaderTextureLayerResource(11, m_DefaultEnvironmentMap.get(), 0, 0);
+            m_RenderEncoder->BindPipelineTextureResource(9, m_DefaultEnvironmentMap.get());
+            m_RenderEncoder->BindPipelineTextureResource(10, m_DefaultEnvironmentMap.get());
+            m_RenderEncoder->BindPipelineTextureLayerResource(11, m_DefaultEnvironmentMap.get(), 0, 0);
         }
     }
 
@@ -872,7 +872,7 @@ namespace Heart
         HE_PROFILE_FUNCTION();
         
         // Bind opaque PBR pipeline
-        m_MainFramebuffer->BindPipeline("pbr");
+        m_RenderEncoder->BindPipeline("pbr");
 
         // Bind defaults
         BindPBRDefaults();
@@ -892,17 +892,19 @@ namespace Heart
                 BindMaterial(batch.Material);
             }
 
-            m_MainFramebuffer->FlushBindings();
+            m_RenderEncoder->FlushPipelineBindings();
 
             // Draw
-            Renderer::Api().BindVertexBuffer(*batch.Mesh->GetVertexBuffer());
-            Renderer::Api().BindIndexBuffer(*batch.Mesh->GetIndexBuffer());
-            Renderer::Api().DrawIndexedIndirect(m_IndirectBuffer.get(), batch.First, batch.Count);
+            m_RenderEncoder->BindVertexBuffer(batch.Mesh->GetVertexBuffer());
+            m_RenderEncoder->BindIndexBuffer(batch.Mesh->GetIndexBuffer());
+            m_RenderEncoder->DrawIndexedIndirect(
+                m_IndirectBuffer.get(), batch.First, batch.Count
+            );
         }
 
         // Secondary (translucent) batches pass
-        m_MainFramebuffer->StartNextSubpass();
-        m_MainFramebuffer->BindPipeline("pbrTpColor");
+        m_RenderEncoder->StartNextSubpass();
+        m_RenderEncoder->BindPipeline("pbrTpColor");
         BindPBRDefaults();
 
         for (auto batch : m_DeferredIndirectBatches)
@@ -910,31 +912,33 @@ namespace Heart
             if (batch->Material)
                 BindMaterial(batch->Material);
 
-            m_MainFramebuffer->FlushBindings();
+            m_RenderEncoder->FlushPipelineBindings();
 
             // Draw
-            Renderer::Api().BindVertexBuffer(*batch->Mesh->GetVertexBuffer());
-            Renderer::Api().BindIndexBuffer(*batch->Mesh->GetIndexBuffer());
-            Renderer::Api().DrawIndexedIndirect(m_IndirectBuffer.get(), batch->First, batch->Count);
+            m_RenderEncoder->BindVertexBuffer(batch->Mesh->GetVertexBuffer());
+            m_RenderEncoder->BindIndexBuffer(batch->Mesh->GetIndexBuffer());
+            m_RenderEncoder->DrawIndexedIndirect(
+                m_IndirectBuffer.get(), batch->First, batch->Count
+            );
         }
     }
 
     void SceneRenderer::Composite()
     {
         // Bind alpha compositing pipeline
-        m_MainFramebuffer->BindPipeline("tpComposite");
+        m_RenderEncoder->BindPipeline("tpComposite");
 
         // Bind frame data
-        m_MainFramebuffer->BindShaderBufferResource(0, 0, 1, m_FrameDataBuffer.get());
+        m_RenderEncoder->BindPipelineBufferResource(0, m_FrameDataBuffer.get(), 0, 0, 1);
 
         // Bind the input attachments from the transparent pass
-        m_MainFramebuffer->BindSubpassInputAttachment(1, { SubpassAttachmentType::Color, 1 });
-        m_MainFramebuffer->BindSubpassInputAttachment(2, { SubpassAttachmentType::Color, 2 });
+        m_RenderEncoder->BindPipelineSubpassInputResource(1, { Flourish::SubpassAttachmentType::Color, 1 });
+        m_RenderEncoder->BindPipelineSubpassInputResource(2, { Flourish::SubpassAttachmentType::Color, 2 });
 
-        m_MainFramebuffer->FlushBindings();
+        m_RenderEncoder->FlushPipelineBindings();
 
         // Draw the fullscreen triangle
-        Renderer::Api().Draw(3, 0, 1);
+        m_RenderEncoder->Draw(3, 0, 1);
     }
 
     void SceneRenderer::Bloom()
@@ -994,6 +998,7 @@ namespace Heart
             auto& framebuffers = m_BloomFramebuffers[m_BloomFramebuffers.Count() - 1];
 
             // Clear the horizontal blur texture so that the final composite shader only inputs from the HDR output
+            /*
             framebuffers[0]->Bind();
             framebuffers[0]->ClearOutputAttachment(0, false);
             Renderer::Api().RenderFramebuffers(context, { { framebuffers[0].get() } });
@@ -1009,6 +1014,7 @@ namespace Heart
 
             // Render
             Renderer::Api().RenderFramebuffers(context, { { framebuffers[1].get() } });
+            */
         }
     }
 
@@ -1048,7 +1054,20 @@ namespace Heart
             pos.z += 1.f;
         }
 
-        m_GridVertices = Buffer::Create(Buffer::Type::Vertex, BufferUsageType::Static, { BufferDataType::Float3 }, static_cast<u32>(vertices.Count()), (void*)vertices.Data());
-        m_GridIndices = Buffer::CreateIndexBuffer(BufferUsageType::Static, static_cast<u32>(indices.Count()), (void*)indices.Data());
+        Flourish::BufferCreateInfo bufCreateInfo;
+        bufCreateInfo.Type = Flourish::BufferType::Vertex;
+        bufCreateInfo.Usage = Flourish::BufferUsageType::Static;
+        bufCreateInfo.Layout = { Flourish::BufferDataType::Float3 };
+        bufCreateInfo.ElementCount = vertices.Count();
+        bufCreateInfo.InitialData = vertices.Data();
+        bufCreateInfo.InitialDataSize = sizeof(float) * 3 * vertices.Count();
+        m_GridVertices = Flourish::Buffer::Create(bufCreateInfo);
+
+        bufCreateInfo.Type = Flourish::BufferType::Index;
+        bufCreateInfo.Layout = { Flourish::BufferDataType::UInt };
+        bufCreateInfo.ElementCount = indices.Count();
+        bufCreateInfo.InitialData = indices.Data();
+        bufCreateInfo.InitialDataSize = sizeof(u32) * indices.Count();
+        m_GridIndices = Flourish::Buffer::Create(bufCreateInfo);
     }
 }

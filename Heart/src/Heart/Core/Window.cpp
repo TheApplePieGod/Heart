@@ -7,7 +7,6 @@
 #include "Heart/Input/Input.h"
 #include "GLFW/glfw3.h"
 
-#define FL_USE_GLFW
 #include "Flourish/Api/RenderContext.h"
 
 namespace Heart

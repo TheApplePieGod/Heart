@@ -4,7 +4,6 @@
 #include "HeartEditor/Editor.h"
 #include "HeartEditor/EditorApp.h"
 #include "Heart/Container/HString.h"
-#include "Heart/Renderer/Renderer.h"
 #include "Heart/Scene/Components.h"
 #include "Heart/Scene/Entity.h"
 #include "imgui/imgui.h"
@@ -96,7 +95,7 @@ namespace Widgets
         }
 
         // right click menu
-        if (ImGui::BeginPopupContextItem((nameString + std::to_string(static_cast<u32>(entity))).Data()))
+        if (ImGui::BeginPopupContextItem((nameString + Heart::HStringView8(std::to_string(static_cast<u32>(entity)))).Data()))
         {
             if (ImGui::MenuItem("Create Child Entity"))
             {
