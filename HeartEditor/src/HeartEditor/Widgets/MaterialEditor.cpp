@@ -99,6 +99,7 @@ namespace Widgets
                 m_SceneCameraPosition,
                 renderSettings
             );
+            EditorApp::Get().GetWindow().PushDependencyBuffer(m_SceneRenderer->GetMainCommandBuffer());
         }
 
         Heart::ImGuiUtils::ResizableWindowSplitter(

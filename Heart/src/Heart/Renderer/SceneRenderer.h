@@ -49,6 +49,7 @@ namespace Heart
 
         void OnEvent(Event& event) override;
 
+        inline Flourish::CommandBuffer* GetMainCommandBuffer() { return m_MainCommandBuffer.get(); }
         inline Flourish::Texture& GetFinalTexture() { return *m_FinalTexture; }
         inline Flourish::Texture& GetPreBloomTexture() { return *m_PreBloomTexture; }
         inline Flourish::Texture& GetBrightColorsTexture() { return *m_BrightColorsTexture; }

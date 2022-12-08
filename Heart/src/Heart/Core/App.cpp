@@ -98,9 +98,9 @@ namespace Heart
         AppGraphicsShutdownEvent event;
         Emit(event);
 
-        m_ImGuiInstance.reset();
-
         Flourish::Context::Shutdown();
+
+        m_ImGuiInstance.reset();
 
         Window::SetMainWindow(nullptr);
         m_Window.reset();
