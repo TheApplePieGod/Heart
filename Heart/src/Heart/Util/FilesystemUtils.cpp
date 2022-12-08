@@ -117,7 +117,7 @@ namespace Heart
             {
                 HString16 wideExtension = extension.ToUTF16();
                 HString16 filterFirst = wideExtension + u" (*." + wideExtension + u")";
-                HString16 filterSecond = u"*." + wideExtension;
+                HString16 filterSecond = HString16(u"*.") + wideExtension;
                 COMDLG_FILTERSPEC rgSpec[] = 
                 {
                     { L"All Files (*.*)", L"*.*" },

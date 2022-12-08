@@ -30,14 +30,19 @@ set(DEPENDENCY_SOURCES
   "lib/stb_image/stb_image.cpp"
 )
 
-execute_process(
-  COMMAND python3 "scripts/configure-hostfxr.py"
-  WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
-  OUTPUT_VARIABLE DOTNET_RUNTIME_DIR
-  ERROR_VARIABLE DOTNET_HOSTFXR_PATH
-)
-message("Dotnet runtime dir: ${DOTNET_RUNTIME_DIR}")
-message("Dotnet hostfxr path: ${DOTNET_HOSTFXR_PATH}")
+find_package(Python3 COMPONENTS Interpreter)
+if(Python3_FOUND)
+  execute_process(
+    COMMAND ${Python3_EXECUTABLE} "scripts/configure-hostfxr.py"
+    WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
+    OUTPUT_VARIABLE DOTNET_RUNTIME_DIR
+    ERROR_VARIABLE DOTNET_HOSTFXR_PATH
+  )
+  message("Dotnet runtime dir: ${DOTNET_RUNTIME_DIR}")
+  message("Dotnet hostfxr path: ${DOTNET_HOSTFXR_PATH}")
+else()
+  message(FATAL_ERROR "Python must be installed to configure Heart") 
+endif()
 
 # Copy engine resources
 add_custom_target(
