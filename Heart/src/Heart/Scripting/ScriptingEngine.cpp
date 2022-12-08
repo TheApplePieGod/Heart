@@ -77,7 +77,7 @@ namespace Heart
     void InitHostFXRForCmdline(const char_t* assemblyPath, load_assembly_and_get_function_pointer_fn& outLoadAssemblyFunc)
     {
         // See below
-        hostfxr_initialize_parameters params;
+        hostfxr_initialize_parameters params{};
         #ifdef HE_PLATFORM_MACOS
         params.dotnet_root = "/usr/local/share/dotnet";
         #endif
@@ -102,7 +102,7 @@ namespace Heart
     {
         // TODO: this is mid, but we don't need to mess around with this on windows and allegedly
         // the macos dotnet is always installed in the same location
-        hostfxr_initialize_parameters params;
+        hostfxr_initialize_parameters params{};
         #ifdef HE_PLATFORM_MACOS
         params.dotnet_root = "/usr/local/share/dotnet";
         #endif
