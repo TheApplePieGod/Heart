@@ -33,7 +33,7 @@ namespace Heart
         return HStringTyped<char8>(data, lens, 2);
     }
 
-    void to_json(nlohmann::json& j, const HString8& str)
+    void to_json(nlohmann::json& j, HStringView8 str)
     {
         if (str.IsEmpty())
         {
@@ -42,6 +42,13 @@ namespace Heart
         }
         
         j = nlohmann::json(str.Data());
+    }
+
+    void from_json(const nlohmann::json& j, HStringView8& str)
+    {
+        if (!j.is_string()) return;
+        
+        str = HStringView8(j.get<const nlohmann::json::string_t*>()->c_str());
     }
 
     void from_json(const nlohmann::json& j, HString8& str)

@@ -43,11 +43,4 @@ namespace Heart
         
         j = nlohmann::json(str.ToUTF8().Data());
     }
-
-    void from_json(const nlohmann::json& j, HString16& str)
-    {
-        if (!j.is_string()) return;
-        
-        str = HString8(j.get<const nlohmann::json::string_t*>()->c_str()).ToUTF16();
-    }
 }
