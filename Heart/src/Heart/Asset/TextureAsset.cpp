@@ -42,6 +42,7 @@ namespace Heart
             static_cast<u32>(m_DesiredChannelCount),
             floatComponents ? Flourish::BufferDataType::Float : Flourish::BufferDataType::UInt8,
             Flourish::BufferUsageType::Static,
+            false,
             1, 0,
             Flourish::TextureSamplerState(),
             pixels,
@@ -61,6 +62,7 @@ namespace Heart
                 m_Valid = true;
             }
         };
+        m_Texture = Flourish::Texture::Create(createInfo);
     }
 
     void TextureAsset::Unload()

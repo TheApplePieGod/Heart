@@ -70,6 +70,7 @@ namespace Heart
         texCreateInfo.Channels = 4;
         texCreateInfo.DataType = Flourish::BufferDataType::HalfFloat;
         texCreateInfo.UsageType = Flourish::BufferUsageType::Static;
+        texCreateInfo.RenderTarget = true;
         texCreateInfo.ArrayCount = 6;
         texCreateInfo.MipCount = 0;
         m_EnvironmentMap.Texture = Flourish::Texture::Create(texCreateInfo);
@@ -84,7 +85,7 @@ namespace Heart
 
         // Create the command buffers
         Flourish::CommandBufferCreateInfo cmdCreateInfo;
-        cmdCreateInfo.MaxEncoders = 1;
+        cmdCreateInfo.MaxEncoders = 2;
         m_BRDFTexture.CommandBuffer = Flourish::CommandBuffer::Create(cmdCreateInfo);
         m_EnvironmentMap.CommandBuffer = Flourish::CommandBuffer::Create(cmdCreateInfo);
         m_IrradianceMap.CommandBuffer = Flourish::CommandBuffer::Create(cmdCreateInfo);
@@ -112,6 +113,11 @@ namespace Heart
             rpCreateInfo.Subpasses.push_back({ {}, { { Flourish::SubpassAttachmentType::Color, i } } });
         }
         m_RenderPass = Flourish::RenderPass::Create(rpCreateInfo);
+
+        // Create BRDF renderpass
+        rpCreateInfo.ColorAttachments = { { m_BRDFTexture.Texture->GetColorFormat() } };
+        rpCreateInfo.Subpasses = { { {}, { { Flourish::SubpassAttachmentType::Color, 0 } } } };
+        m_BRDFRenderPass = Flourish::RenderPass::Create(rpCreateInfo);
 
         std::array<float, 4> clearColor = { 0.f, 0.f, 0.f, 0.f };
 
@@ -206,7 +212,7 @@ namespace Heart
         // ----------------------------------------------------------------------------------------------------------------------
         {
             Flourish::FramebufferCreateInfo fbCreateInfo;
-            fbCreateInfo.RenderPass = m_RenderPass;
+            fbCreateInfo.RenderPass = m_BRDFRenderPass;
             fbCreateInfo.Width = m_BRDFTexture.Texture->GetWidth();
             fbCreateInfo.Height = m_BRDFTexture.Texture->GetHeight();
             fbCreateInfo.ColorAttachments.push_back({ clearColor, m_BRDFTexture.Texture, 0, 0 });
@@ -222,7 +228,7 @@ namespace Heart
             pipelineCreateInfo.CullMode = Flourish::CullMode::Backface;
             pipelineCreateInfo.WindingOrder = Flourish::WindingOrder::Clockwise;
 
-            m_RenderPass->CreatePipeline("brdf", pipelineCreateInfo);
+            m_BRDFRenderPass->CreatePipeline("brdf", pipelineCreateInfo);
         }
     }
 
@@ -231,6 +237,7 @@ namespace Heart
         m_Initialized = false;
 
         m_RenderPass.reset();
+        m_BRDFRenderPass.reset();
 
         m_EnvironmentMap = RenderData();
         m_IrradianceMap = RenderData();

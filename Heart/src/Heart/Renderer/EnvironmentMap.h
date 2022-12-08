@@ -67,6 +67,7 @@ namespace Heart
         HVector<RenderData> m_PrefilterMaps;
 
         Ref<Flourish::RenderPass> m_RenderPass;
+        Ref<Flourish::RenderPass> m_BRDFRenderPass;
 
         Ref<Flourish::Buffer> m_CubemapDataBuffer;
         Ref<Flourish::Buffer> m_FrameDataBuffer;

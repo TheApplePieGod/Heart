@@ -11,6 +11,7 @@
 #include "Heart/Scripting/ScriptingEngine.h"
 #include "Heart/Util/PlatformUtils.h"
 #include "Flourish/Api/Context.h"
+#include "Flourish/Core/Log.h"
 
 namespace Heart
 {
@@ -64,11 +65,17 @@ namespace Heart
 
     void App::InitializeGraphicsApi(const WindowCreateInfo& windowCreateInfo)
     {
+        Flourish::Logger::SetLogFunction([](Flourish::LogLevel level, const char* message)
+        {
+            Logger::GetEngineLogger().log((spdlog::level::level_enum)level, message);
+        });
+
         Flourish::ContextInitializeInfo initInfo;
         initInfo.ApplicationName = "Heart";
         initInfo.Backend = Flourish::BackendType::Vulkan;
         initInfo.FrameBufferCount = 2;
         initInfo.UseReversedZBuffer = true;
+        initInfo.RequestedFeatures.IndependentBlend = true;
         Flourish::Context::Initialize(initInfo);
 
         m_Window = Window::Create(windowCreateInfo);
@@ -167,6 +174,7 @@ namespace Heart
             if (m_Minimized)
                 continue;
 
+            Flourish::Context::BeginFrame();
             AssetManager::OnUpdate();
 
             m_Window->BeginFrame();
@@ -183,6 +191,8 @@ namespace Heart
 
             m_Window->EndFrame();
             m_FrameCount++;
+
+            Flourish::Context::EndFrame();
 
             CheckForAssetsDirectorySwitch();
             AggregateTimer::EndFrame();

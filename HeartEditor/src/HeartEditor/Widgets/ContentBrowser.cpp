@@ -110,9 +110,10 @@ namespace Widgets
         Heart::HVector<std::filesystem::directory_entry> directories;
         try
         {
-            for (const auto& entry : std::filesystem::directory_iterator(absolutePath))
-                if (entry.is_directory())
-                    directories.Add(entry);
+            if (!absolutePath.empty())
+                for (const auto& entry : std::filesystem::directory_iterator(absolutePath))
+                    if (entry.is_directory())
+                        directories.Add(entry);
         }
         catch (std::exception e) // likely invalid path so cut off this node
         { return; }

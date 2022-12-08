@@ -195,6 +195,11 @@ namespace Heart
         CreateTextures();
         CreateFramebuffers();
 
+        // Create command buffer
+        Flourish::CommandBufferCreateInfo cbCreateInfo;
+        cbCreateInfo.MaxEncoders = 20; // TODO: look at this
+        m_MainCommandBuffer = Flourish::CommandBuffer::Create(cbCreateInfo);
+
         // Create compute pipelines
         Flourish::ComputePipelineCreateInfo compCreateInfo;
         compCreateInfo.ComputeShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/IndirectCull.comp", true)->GetShader();
@@ -224,6 +229,8 @@ namespace Heart
 
         m_GridVertices.reset();
         m_GridIndices.reset();
+        
+        m_MainCommandBuffer.reset();
     }
 
     void SceneRenderer::Resize()
@@ -246,6 +253,7 @@ namespace Heart
         texCreateInfo.Channels = 4;
         texCreateInfo.DataType = Flourish::BufferDataType::HalfFloat;
         texCreateInfo.UsageType = Flourish::BufferUsageType::Dynamic;
+        texCreateInfo.RenderTarget = true;
         texCreateInfo.ArrayCount = 1;
         texCreateInfo.MipCount = 1;
         texCreateInfo.SamplerState.UVWWrap = { Flourish::SamplerWrapMode::ClampToBorder, Flourish::SamplerWrapMode::ClampToBorder, Flourish::SamplerWrapMode::ClampToBorder };
@@ -287,6 +295,7 @@ namespace Heart
             rpCreateInfo.ColorAttachments.push_back({ Flourish::ColorFormat::R16_FLOAT });        // Transparency data    [2]
             rpCreateInfo.ColorAttachments.push_back({ m_PreBloomTexture->GetColorFormat() });     // Pre-bloom target     [3]
             rpCreateInfo.ColorAttachments.push_back({ m_BrightColorsTexture->GetColorFormat() }); // Bright colors target [4]
+            rpCreateInfo.DepthAttachments.push_back({});
             rpCreateInfo.Subpasses.push_back({ // Environment map
                 {},
                 { { Flourish::SubpassAttachmentType::Color, 3 }, { Flourish::SubpassAttachmentType::Color, 4 } }
@@ -318,6 +327,7 @@ namespace Heart
             fbCreateInfo.ColorAttachments.push_back({ { 1.f, 0.f, 0.f, 0.f } });                        // Transparency data    [2]
             fbCreateInfo.ColorAttachments.push_back({ { 0.f, 0.f, 0.f, 0.f }, m_PreBloomTexture });     // Pre-bloom target     [3]
             fbCreateInfo.ColorAttachments.push_back({ { 0.f, 0.f, 0.f, 0.f }, m_BrightColorsTexture }); // Bright colors target [4]
+            fbCreateInfo.DepthAttachments.push_back({});
             m_MainFramebuffer = Flourish::Framebuffer::Create(fbCreateInfo);
             
             Flourish::GraphicsPipelineCreateInfo pipelineCreateInfo;
@@ -331,6 +341,7 @@ namespace Heart
             pipelineCreateInfo.DepthWrite = false;
             pipelineCreateInfo.CullMode = Flourish::CullMode::None;
             pipelineCreateInfo.WindingOrder = Flourish::WindingOrder::Clockwise;
+            pipelineCreateInfo.CompatibleSubpasses = { 1 };
             m_MainRenderPass->CreatePipeline("grid", pipelineCreateInfo);
             pipelineCreateInfo.VertexShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/Skybox.vert", true)->GetShader();
             pipelineCreateInfo.FragmentShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/Skybox.frag", true)->GetShader();
@@ -340,6 +351,7 @@ namespace Heart
             pipelineCreateInfo.DepthTest = false;
             pipelineCreateInfo.DepthWrite = false;
             pipelineCreateInfo.CullMode = Flourish::CullMode::Frontface;
+            pipelineCreateInfo.CompatibleSubpasses = { 0 };
             m_MainRenderPass->CreatePipeline("skybox", pipelineCreateInfo);
             pipelineCreateInfo.VertexShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/PBR.vert", true)->GetShader();
             pipelineCreateInfo.FragmentShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/PBR.frag", true)->GetShader();
@@ -347,6 +359,7 @@ namespace Heart
             pipelineCreateInfo.DepthTest = true;
             pipelineCreateInfo.DepthWrite = true;
             pipelineCreateInfo.CullMode = Flourish::CullMode::Backface;
+            pipelineCreateInfo.CompatibleSubpasses = { 2 };
             m_MainRenderPass->CreatePipeline("pbr", pipelineCreateInfo);
             pipelineCreateInfo.FragmentShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/PBRTransparentColor.frag", true)->GetShader();
             pipelineCreateInfo.BlendStates = {
@@ -355,14 +368,17 @@ namespace Heart
                 { true, Flourish::BlendFactor::Zero, Flourish::BlendFactor::OneMinusSrcColor, Flourish::BlendFactor::Zero, Flourish::BlendFactor::OneMinusSrcAlpha }
             };
             pipelineCreateInfo.CullMode = Flourish::CullMode::None;
+            pipelineCreateInfo.CompatibleSubpasses = { 3 };
             m_MainRenderPass->CreatePipeline("pbrTpColor", pipelineCreateInfo);
             pipelineCreateInfo.VertexShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/FullscreenTriangle.vert", true)->GetShader();
             pipelineCreateInfo.FragmentShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/TransparentComposite.frag", true)->GetShader();
+            pipelineCreateInfo.VertexInput = false;
             pipelineCreateInfo.BlendStates = {
                 { true, Flourish::BlendFactor::OneMinusSrcAlpha, Flourish::BlendFactor::SrcAlpha, Flourish::BlendFactor::SrcAlpha, Flourish::BlendFactor::OneMinusSrcAlpha },
                 { false }
             };
             pipelineCreateInfo.DepthWrite = false;
+            pipelineCreateInfo.CompatibleSubpasses = { 4 };
             m_MainRenderPass->CreatePipeline("tpComposite", pipelineCreateInfo);
         }
 
@@ -528,8 +544,9 @@ namespace Heart
             RenderEnvironmentMap();
 
         // Draw the grid if set
+        m_SceneRenderSettings.DrawGrid = false;
         m_RenderEncoder->StartNextSubpass();
-        if (renderSettings.DrawGrid)   
+        if (m_SceneRenderSettings.DrawGrid)   
             RenderGrid();
 
         // Batches pass
@@ -995,7 +1012,7 @@ namespace Heart
         }
         else
         {
-            auto& framebuffers = m_BloomFramebuffers[m_BloomFramebuffers.Count() - 1];
+            // auto& framebuffers = m_BloomFramebuffers[m_BloomFramebuffers.Count() - 1];
 
             // Clear the horizontal blur texture so that the final composite shader only inputs from the HDR output
             /*
