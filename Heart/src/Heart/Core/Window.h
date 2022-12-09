@@ -73,7 +73,7 @@ namespace Heart
         /*! @brief Get the window's graphics context. */
         inline Flourish::RenderContext* GetRenderContext() const { return m_RenderContext.get(); }
         
-        inline void PushDependencyBuffer(Flourish::CommandBuffer* buffer) { m_DependencyBuffers.push_back(buffer); }
+        inline void PushDependencyBuffers(const std::vector<std::vector<Flourish::CommandBuffer*>>& buffers) { m_DependencyBuffers.push_back(buffers); }
 
         /*! @brief Get the window's underlying GLFW handle. */
         inline GLFWwindow* GetWindowHandle() const { return m_Window; }
@@ -128,7 +128,7 @@ namespace Heart
 
     private:
         Ref<Flourish::RenderContext> m_RenderContext;
-        std::vector<Flourish::CommandBuffer*> m_DependencyBuffers;
+        std::vector<std::vector<std::vector<Flourish::CommandBuffer*>>> m_DependencyBuffers;
         int m_SavedWindowSizeAndPosition[4]; // used when toggling fullscreen
         WindowData m_WindowData;
         GLFWwindow* m_Window;

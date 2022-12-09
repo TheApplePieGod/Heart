@@ -91,8 +91,7 @@ namespace Heart
         Flourish::TextureCreateInfo envTexCreateInfo;
         envTexCreateInfo.Width = 512;
         envTexCreateInfo.Height = 512;
-        envTexCreateInfo.Channels = 4;
-        envTexCreateInfo.DataType = Flourish::BufferDataType::UInt8;
+        envTexCreateInfo.Format = Flourish::ColorFormat::RGBA8_UNORM;
         envTexCreateInfo.UsageType = Flourish::BufferUsageType::Static;
         envTexCreateInfo.ArrayCount = 6;
         envTexCreateInfo.MipCount = 5;
@@ -250,8 +249,7 @@ namespace Heart
         Flourish::TextureCreateInfo texCreateInfo;
         texCreateInfo.Width = m_RenderWidth;
         texCreateInfo.Height = m_RenderHeight;
-        texCreateInfo.Channels = 4;
-        texCreateInfo.DataType = Flourish::BufferDataType::HalfFloat;
+        texCreateInfo.Format = Flourish::ColorFormat::RGBA16_FLOAT;
         texCreateInfo.UsageType = Flourish::BufferUsageType::Dynamic;
         texCreateInfo.RenderTarget = true;
         texCreateInfo.ArrayCount = 1;
@@ -263,11 +261,10 @@ namespace Heart
         m_BloomBufferTexture = Flourish::Texture::Create(texCreateInfo);
         texCreateInfo.MipCount = m_BloomMipCount - 1;
         m_BloomUpsampleBufferTexture = Flourish::Texture::Create(texCreateInfo);
-        texCreateInfo.DataType = Flourish::BufferDataType::UInt8;
+        texCreateInfo.Format = Flourish::ColorFormat::RGBA8_UNORM;
         texCreateInfo.MipCount = 1;
         m_FinalTexture = Flourish::Texture::Create(texCreateInfo);
-        texCreateInfo.DataType = Flourish::BufferDataType::Float;
-        texCreateInfo.Channels = 1;
+        texCreateInfo.Format = Flourish::ColorFormat::R32_FLOAT;
         m_EntityIdsTexture = Flourish::Texture::Create(texCreateInfo);
     }
 
@@ -382,103 +379,119 @@ namespace Heart
             m_MainRenderPass->CreatePipeline("tpComposite", pipelineCreateInfo);
         }
 
-        /*
         // Create the bloom framebuffers
-        FramebufferCreateInfo bloomFbCreateInfo = {
-            {
-                { { 0.f, 0.f, 0.f, 0.f }, false, ColorFormat::None, m_BloomBufferTexture, 0, 0 },
-            },
-            {
-                {}
-            },
-            {
-                { {}, { { SubpassAttachmentType::Color, 0 } } }
-            },
-            m_RenderWidth, m_RenderHeight,
-            MsaaSampleCount::None,
-            true
-        };
-
-        GraphicsPipelineCreateInfo bloomHorizontal = {
-            AssetManager::GetAssetUUID("engine/Bloom.vert", true),
-            AssetManager::GetAssetUUID("engine/BloomHorizontal.frag", true),
-            false,
-            VertexTopology::TriangleList,
-            Mesh::GetVertexLayout(),
-            { { false } },
-            false,
-            false,
-            CullMode::None,
-            WindingOrder::Clockwise,
-            0
-        };
-        
-        GraphicsPipelineCreateInfo bloomHorizontalUpscale = bloomHorizontal;
-        bloomHorizontalUpscale.FragmentShaderAsset = AssetManager::GetAssetUUID("engine/BloomHorizontalUpscale.frag", true);
-        bloomHorizontalUpscale.BlendStates.Add({ false });
-
-        GraphicsPipelineCreateInfo bloomHorizontalDoubleUpscale = bloomHorizontal;
-        bloomHorizontalDoubleUpscale.FragmentShaderAsset = AssetManager::GetAssetUUID("engine/BloomHorizontalDoubleUpscale.frag", true);
-        bloomHorizontalDoubleUpscale.BlendStates.Add({ false });
-
-        GraphicsPipelineCreateInfo bloomVertical = bloomHorizontal;
-        bloomVertical.FragmentShaderAsset = AssetManager::GetAssetUUID("engine/BloomVertical.frag", true);
-
-        GraphicsPipelineCreateInfo bloomVerticalComposite = bloomHorizontal;
-        bloomVerticalComposite.FragmentShaderAsset = AssetManager::GetAssetUUID("engine/BloomVerticalComposite.frag", true);
-
-        // Start at the lowest mip level
-        for (int i = m_BloomMipCount - 1; i >= 0; i--)
         {
-            // Output will be same size as mip level
-            bloomFbCreateInfo.Width = static_cast<u32>(m_BrightColorsTexture->GetWidth() * pow(0.5f, i));
-            bloomFbCreateInfo.Height = static_cast<u32>(m_BrightColorsTexture->GetHeight() * pow(0.5f, i));
+            Flourish::RenderPassCreateInfo rpCreateInfo;
+            rpCreateInfo.SampleCount = Flourish::MsaaSampleCount::None;
+            rpCreateInfo.ColorAttachments.push_back({ m_BloomBufferTexture->GetColorFormat() });
+            rpCreateInfo.Subpasses.push_back({ // Environment map
+                {},
+                { { Flourish::SubpassAttachmentType::Color, 0 } }
+            });
 
-            // Write to the same mip level in the bloom buffer but read from one level below
-            bloomFbCreateInfo.ColorAttachments[0].MipLevel = i; 
+            Flourish::FramebufferCreateInfo fbCreateInfo;
+            fbCreateInfo.Width = m_RenderWidth;
+            fbCreateInfo.Height = m_RenderHeight;
+            fbCreateInfo.ColorAttachments.push_back({ { 0.f, 0.f, 0.f, 0.f }, m_BloomBufferTexture });
 
-            // Output to the buffer texture
-            bloomFbCreateInfo.ColorAttachments[0].Texture = m_BloomBufferTexture;
-            if (i < m_BloomMipCount - 1)
+            Flourish::GraphicsPipelineCreateInfo bloomHorizontal;
+            bloomHorizontal.VertexShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/Bloom.vert", true)->GetShader();
+            bloomHorizontal.FragmentShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/BloomHorizontal.frag", true)->GetShader();
+            bloomHorizontal.VertexInput = false;
+            bloomHorizontal.BlendStates = { { false } };
+            bloomHorizontal.DepthTest = false;
+            bloomHorizontal.DepthWrite = false;
+            bloomHorizontal.CullMode = Flourish::CullMode::None;
+            bloomHorizontal.WindingOrder = Flourish::WindingOrder::Clockwise;
+
+            Flourish::GraphicsPipelineCreateInfo bloomHorizontalUpscale = bloomHorizontal;
+            bloomHorizontalUpscale.FragmentShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/BloomHorizontalUpscale.frag", true)->GetShader();
+            bloomHorizontalUpscale.BlendStates.push_back({ false });
+
+            Flourish::GraphicsPipelineCreateInfo bloomHorizontalDoubleUpscale = bloomHorizontal;
+            bloomHorizontalDoubleUpscale.FragmentShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/BloomHorizontalDoubleUpscale.frag", true)->GetShader();
+            bloomHorizontalDoubleUpscale.BlendStates.push_back({ false });
+
+            Flourish::GraphicsPipelineCreateInfo bloomVertical = bloomHorizontal;
+            bloomVertical.FragmentShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/BloomVertical.frag", true)->GetShader();
+
+            Flourish::GraphicsPipelineCreateInfo bloomVerticalComposite = bloomHorizontal;
+            bloomVerticalComposite.FragmentShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/BloomVerticalComposite.frag", true)->GetShader();
+
+            // Start at the lowest mip level
+            for (int i = m_BloomMipCount - 1; i >= 0; i--)
             {
-                // Starting after the bottom mip level, push back the second color attachment which will be the upsample buffer
-                bloomFbCreateInfo.ColorAttachments.Add(
-                    { { 0.f, 0.f, 0.f, 0.f }, false, ColorFormat::None, m_BloomUpsampleBufferTexture, 0, static_cast<u32>(i) }
-                );
-                bloomFbCreateInfo.Subpasses[0].OutputAttachments.Add(
-                    { SubpassAttachmentType::Color, 1 }
-                );
+                BloomCommandData data;
+
+                // Output will be same size as mip level
+                fbCreateInfo.Width = static_cast<u32>(m_BrightColorsTexture->GetWidth() * pow(0.5f, i));
+                fbCreateInfo.Height = static_cast<u32>(m_BrightColorsTexture->GetHeight() * pow(0.5f, i));
+
+                // Write to the same mip level in the bloom buffer but read from one level below
+                fbCreateInfo.ColorAttachments[0].MipLevel = i; 
+
+                // Output to the buffer texture
+                fbCreateInfo.ColorAttachments[0].Texture = m_BloomBufferTexture;
+                if (i < m_BloomMipCount - 1)
+                {
+                    // Starting after the bottom mip level, push back the second color attachment which will be the upsample buffer
+                    rpCreateInfo.ColorAttachments.push_back(
+                        { m_BloomUpsampleBufferTexture->GetColorFormat() }
+                    );
+                    rpCreateInfo.Subpasses[0].OutputAttachments.push_back(
+                        { Flourish::SubpassAttachmentType::Color, 1 }
+                    );
+                    fbCreateInfo.ColorAttachments.push_back(
+                        { { 0.f, 0.f, 0.f, 0.f }, m_BloomUpsampleBufferTexture, 0, (u32)i }
+                    );
+                }
+
+                auto horizRP = Flourish::RenderPass::Create(rpCreateInfo);
+                fbCreateInfo.RenderPass = horizRP;
+
+                auto horizontal = Flourish::Framebuffer::Create(fbCreateInfo);
+                if (i == m_BloomMipCount - 1) // If we are on the first iteration, we want to run the basic horizontal shader
+                    horizRP->CreatePipeline("bloomHorizontal", bloomHorizontal);
+                else if (i == m_BloomMipCount - 2) // If we are on the second iteration, we want to run the bright color upscale shader
+                    horizRP->CreatePipeline("bloomHorizontal", bloomHorizontalUpscale);
+                else // Otherwise we want to run the shader that upscales both the bright color and the upsample buffer
+                    horizRP->CreatePipeline("bloomHorizontal", bloomHorizontalDoubleUpscale);
+
+                // Get rid of the second color attachment for the vertical pass
+                fbCreateInfo.ColorAttachments.resize(1);
+                rpCreateInfo.ColorAttachments.resize(1);
+                rpCreateInfo.Subpasses[0].OutputAttachments.resize(1);
+
+                if (i == 0) // If we are on the last iteration, output directly to the output texture
+                {
+                    fbCreateInfo.ColorAttachments[0].Texture = m_FinalTexture;
+                    rpCreateInfo.SampleCount = Flourish::MsaaSampleCount::None;
+                    rpCreateInfo.ColorAttachments[0].Format = m_FinalTexture->GetColorFormat();
+                }
+                else // Otherwise we are outputting to the bright color texture
+                    fbCreateInfo.ColorAttachments[0].Texture = m_BrightColorsTexture;
+
+                auto vertRP = Flourish::RenderPass::Create(rpCreateInfo);
+                fbCreateInfo.RenderPass = vertRP;
+
+                auto vertical = Flourish::Framebuffer::Create(fbCreateInfo);
+                if (i == 0) // If we are on the last iteration, we want to run the composite version of the blur shader
+                    vertRP->CreatePipeline("bloomVertical", bloomVerticalComposite);
+                else
+                    vertRP->CreatePipeline("bloomVertical", bloomVertical);
+
+                Flourish::CommandBufferCreateInfo cbCreateInfo;
+                cbCreateInfo.MaxEncoders = 1;
+
+                data.RenderPass[0] = horizRP;
+                data.RenderPass[1] = vertRP;
+                data.Framebuffer[0] = horizontal;
+                data.Framebuffer[1] = vertical;
+                data.CommandBuffer[0] = Flourish::CommandBuffer::Create(cbCreateInfo);
+                data.CommandBuffer[1] = Flourish::CommandBuffer::Create(cbCreateInfo);
+                m_BloomFramebuffers.Add(data);
             }
-
-            auto horizontal = Framebuffer::Create(bloomFbCreateInfo);
-            if (i == m_BloomMipCount - 1) // If we are on the first iteration, we want to run the basic horizontal shader
-                horizontal->RegisterGraphicsPipeline("bloomHorizontal", bloomHorizontal);
-            else if (i == m_BloomMipCount - 2) // If we are on the second iteration, we want to run the bright color upscale shader
-                horizontal->RegisterGraphicsPipeline("bloomHorizontal", bloomHorizontalUpscale);
-            else // Otherwise we want to run the shader that upscales both the bright color and the upsample buffer
-                horizontal->RegisterGraphicsPipeline("bloomHorizontal", bloomHorizontalDoubleUpscale);
-
-            // Get rid of the second color attachment for the vertical pass
-            bloomFbCreateInfo.ColorAttachments.Resize(1);
-            bloomFbCreateInfo.Subpasses[0].OutputAttachments.Resize(1);
-
-            if (i == 0) // If we are on the last iteration, output directly to the output texture
-            {
-                bloomFbCreateInfo.ColorAttachments[0].Texture = m_FinalTexture;
-                bloomFbCreateInfo.SampleCount = MsaaSampleCount::None;
-            }
-            else // Otherwise we are outputting to the bright color texture
-                bloomFbCreateInfo.ColorAttachments[0].Texture = m_BrightColorsTexture;
-
-            auto vertical = Framebuffer::Create(bloomFbCreateInfo);
-            if (i == 0) // If we are on the last iteration, we want to run the composite version of the blur shader
-                vertical->RegisterGraphicsPipeline("bloomVertical", bloomVerticalComposite);
-            else
-                vertical->RegisterGraphicsPipeline("bloomVertical", bloomVertical);
-
-            m_BloomFramebuffers.Add({ horizontal, vertical });
         }
-        */
     }
 
     void SceneRenderer::CleanupFramebuffers()
@@ -505,6 +518,7 @@ namespace Heart
         m_EnvironmentMap = scene->GetEnvironmentMap();
         m_IndirectBatches.clear();
         m_DeferredIndirectBatches.Clear();
+        m_RenderBuffers.clear();
         for (auto& list : m_EntityListPool)
             list.Clear();
 
@@ -525,10 +539,10 @@ namespace Heart
         UpdateLightingBuffer();
 
         // Recalculate the indirect render batches
+        m_SceneRenderSettings.CullEnable = false;
         CalculateBatches();
 
         // Run the cull shader if enabled
-        m_SceneRenderSettings.CullEnable = false;
         /*
         if (m_SceneRenderSettings.CullEnable)
         {
@@ -566,6 +580,7 @@ namespace Heart
 
         // Submit the framebuffer
         m_RenderEncoder->EndEncoding();
+        m_RenderBuffers.push_back({ m_MainCommandBuffer.get() });
 
         // Bloom
         Bloom();
@@ -1012,26 +1027,28 @@ namespace Heart
         }
         else
         {
-            // auto& framebuffers = m_BloomFramebuffers[m_BloomFramebuffers.Count() - 1];
+            auto& data = m_BloomFramebuffers.Back();
 
             // Clear the horizontal blur texture so that the final composite shader only inputs from the HDR output
-            /*
-            framebuffers[0]->Bind();
-            framebuffers[0]->ClearOutputAttachment(0, false);
-            Renderer::Api().RenderFramebuffers(context, { { framebuffers[0].get() } });
+            {
+                auto encoder = data.CommandBuffer[0]->EncodeRenderCommands(data.Framebuffer[0].get());
+                encoder->ClearColorAttachment(0);
+                encoder->EndEncoding();
+                m_RenderBuffers.push_back({ data.CommandBuffer[0].get() });
+            }
 
-            framebuffers[1]->Bind();
-            framebuffers[1]->BindPipeline("bloomVertical");
-            framebuffers[1]->BindShaderBufferResource(0, m_BloomFramebuffers.Count() - 1, 1, m_BloomDataBuffer.get());
-            framebuffers[1]->BindShaderTextureResource(1, m_BloomBufferTexture.get());
-            framebuffers[1]->BindShaderTextureResource(2, m_PreBloomTexture.get());
-            framebuffers[1]->BindShaderTextureResource(3, m_BloomUpsampleBufferTexture.get());
-            framebuffers[1]->FlushBindings();
-            Renderer::Api().Draw(3, 0, 1);
-
-            // Render
-            Renderer::Api().RenderFramebuffers(context, { { framebuffers[1].get() } });
-            */
+            {
+                auto encoder = data.CommandBuffer[1]->EncodeRenderCommands(data.Framebuffer[1].get());
+                encoder->BindPipeline("bloomVertical");
+                encoder->BindPipelineBufferResource(0, m_BloomDataBuffer.get(), 0, m_BloomFramebuffers.Count() - 1, 1);
+                encoder->BindPipelineTextureResource(1, m_BloomBufferTexture.get());
+                encoder->BindPipelineTextureResource(2, m_PreBloomTexture.get());
+                encoder->BindPipelineTextureResource(3, m_BloomUpsampleBufferTexture.get());
+                encoder->FlushPipelineBindings();
+                encoder->Draw(3, 0, 1);
+                encoder->EndEncoding();
+                m_RenderBuffers.push_back({ data.CommandBuffer[1].get() });
+            }
         }
     }
 

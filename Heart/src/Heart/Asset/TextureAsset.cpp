@@ -36,11 +36,32 @@ namespace Heart
             return;
         }
         
+        Flourish::ColorFormat format = Flourish::ColorFormat::RGBA8_UNORM;
+        if (floatComponents)
+        {
+            switch (m_DesiredChannelCount)
+            {
+                default:
+                { HE_ENGINE_ASSERT(false, "Unsupported desired channel count for texture"); } break;
+                case 1: { format = Flourish::ColorFormat::R32_FLOAT; } break;
+                case 4: { format = Flourish::ColorFormat::RGBA32_FLOAT; } break;
+            }
+        }
+        else
+        {
+            switch (m_DesiredChannelCount)
+            {
+                default:
+                { HE_ENGINE_ASSERT(false, "Unsupported desired channel count for texture"); } break;
+                case 3: { format = Flourish::ColorFormat::RGB8_UNORM; } break;
+                case 4: { format = Flourish::ColorFormat::RGBA8_UNORM; } break;
+            }
+        }
+        
         Flourish::TextureCreateInfo createInfo = {
             static_cast<u32>(width),
             static_cast<u32>(height),
-            static_cast<u32>(m_DesiredChannelCount),
-            floatComponents ? Flourish::BufferDataType::Float : Flourish::BufferDataType::UInt8,
+            format,
             Flourish::BufferUsageType::Static,
             false,
             1, 0,
@@ -50,7 +71,6 @@ namespace Heart
             async,
             [this, pixels, floatComponents]()
             {
-                // TODO: ???
                 if (!AssetManager::IsInitialized()) return;
                 if (floatComponents)
                     delete[] (float*)pixels;

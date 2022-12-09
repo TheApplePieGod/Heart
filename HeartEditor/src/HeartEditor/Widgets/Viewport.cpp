@@ -46,7 +46,7 @@ namespace Widgets
             m_ActiveCameraPos,
             Editor::GetState().RenderSettings
         );
-        EditorApp::Get().GetWindow().PushDependencyBuffer(m_SceneRenderer->GetMainCommandBuffer());
+        EditorApp::Get().GetWindow().PushDependencyBuffers(m_SceneRenderer->GetRenderBuffers());
         
         // calculate viewport bounds & aspect ratio
         ImVec2 viewportMin = ImGui::GetWindowContentRegionMin();

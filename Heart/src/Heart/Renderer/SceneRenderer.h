@@ -49,7 +49,7 @@ namespace Heart
 
         void OnEvent(Event& event) override;
 
-        inline Flourish::CommandBuffer* GetMainCommandBuffer() { return m_MainCommandBuffer.get(); }
+        inline const auto& GetRenderBuffers() { return m_RenderBuffers; }
         inline Flourish::Texture& GetFinalTexture() { return *m_FinalTexture; }
         inline Flourish::Texture& GetPreBloomTexture() { return *m_PreBloomTexture; }
         inline Flourish::Texture& GetBrightColorsTexture() { return *m_BrightColorsTexture; }
@@ -58,7 +58,7 @@ namespace Heart
         inline Flourish::Texture& GetEntityIdsTexture() { return *m_EntityIdsTexture; }
         inline Flourish::Framebuffer& GetMainFramebuffer() { return *m_MainFramebuffer; }
         inline Flourish::ComputePipeline& GetCullPipeline() { return *m_ComputeCullPipeline; }
-        inline HVector<std::array<Ref<Flourish::Framebuffer>, 2>>& GetBloomFramebuffers() { return m_BloomFramebuffers; }
+        //inline HVector<std::array<Ref<Flourish::Framebuffer>, 2>>& GetBloomFramebuffers() { return m_BloomFramebuffers; }
 
     private:
         struct IndirectBatch
@@ -116,6 +116,13 @@ namespace Heart
             std::array<glm::vec4, 6> FrustumPlanes;
             glm::vec4 Data;
         };
+        struct BloomCommandData
+        {
+            // One per horizontal & vertical passes
+            std::array<Ref<Flourish::RenderPass>, 2> RenderPass;
+            std::array<Ref<Flourish::Framebuffer>, 2> Framebuffer;
+            std::array<Ref<Flourish::CommandBuffer>, 2> CommandBuffer;
+        };
 
     private:
         void Initialize();
@@ -150,7 +157,7 @@ namespace Heart
         Ref<Flourish::Framebuffer> m_MainFramebuffer;
         Ref<Flourish::CommandBuffer> m_MainCommandBuffer;
         Ref<Flourish::RenderPass> m_MainRenderPass;
-        HVector<std::array<Ref<Flourish::Framebuffer>, 2>> m_BloomFramebuffers; // one for each mip level and one for horizontal / vertical passes
+        HVector<BloomCommandData> m_BloomFramebuffers; // One for each mip level
 
         Ref<Flourish::ComputePipeline> m_ComputeCullPipeline;
         Ref<Flourish::Buffer> m_CullDataBuffer;
@@ -187,6 +194,7 @@ namespace Heart
         HVector<HVector<u32>> m_EntityListPool;
         SceneRenderSettings m_SceneRenderSettings;
         u32 m_RenderedInstanceCount;
+        std::vector<std::vector<Flourish::CommandBuffer*>> m_RenderBuffers;
 
         const u32 m_BloomMipCount = 5;
         bool m_ShouldResize = false;

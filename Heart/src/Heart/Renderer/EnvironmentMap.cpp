@@ -67,8 +67,7 @@ namespace Heart
         Flourish::TextureCreateInfo texCreateInfo;
         texCreateInfo.Width = 512;
         texCreateInfo.Height = 512;
-        texCreateInfo.Channels = 4;
-        texCreateInfo.DataType = Flourish::BufferDataType::HalfFloat;
+        texCreateInfo.Format = Flourish::ColorFormat::RGBA16_FLOAT;
         texCreateInfo.UsageType = Flourish::BufferUsageType::Static;
         texCreateInfo.RenderTarget = true;
         texCreateInfo.ArrayCount = 6;

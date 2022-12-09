@@ -159,7 +159,7 @@ namespace Heart
     void Window::EndFrame()
     {
         Input::ClearDeltas();
-        m_RenderContext->Present({ m_DependencyBuffers });
+        m_RenderContext->Present(m_DependencyBuffers);
         m_DependencyBuffers.clear();
     }
 
