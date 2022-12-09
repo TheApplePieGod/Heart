@@ -224,7 +224,7 @@ namespace Heart
             pipelineCreateInfo.BlendStates = { { false } };
             pipelineCreateInfo.DepthTest = false;
             pipelineCreateInfo.DepthWrite = false;
-            pipelineCreateInfo.CullMode = Flourish::CullMode::Backface;
+            pipelineCreateInfo.CullMode = Flourish::CullMode::None;
             pipelineCreateInfo.WindingOrder = Flourish::WindingOrder::Clockwise;
 
             m_BRDFRenderPass->CreatePipeline("brdf", pipelineCreateInfo);
@@ -378,6 +378,8 @@ namespace Heart
 
                 cubeDataIndex++;
             }
+
+            rcEncoder->EndEncoding();
         }
 
         // ------------------------------------------------------------------
@@ -398,6 +400,8 @@ namespace Heart
             rcEncoder->FlushPipelineBindings();
 
             rcEncoder->Draw(3, 0, 1);
+
+            rcEncoder->EndEncoding();
 
             cubeDataIndex++;
         }
