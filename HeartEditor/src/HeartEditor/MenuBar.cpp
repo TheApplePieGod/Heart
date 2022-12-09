@@ -54,7 +54,7 @@ namespace HeartEditor
 
                     if (ImGui::MenuItem("Open Project"))
                     {
-                        Heart::HString8 path = Heart::FilesystemUtils::OpenFileDialog(Heart::AssetManager::GetAssetsDirectory(), "Open Project", "heproj");
+                        Heart::HString8 path = Heart::FilesystemUtils::OpenFileDialog(Heart::AssetManager::GetAssetsDirectory(), "Open Project", "*.heproj");
                         if (!path.IsEmpty())
                             Project::LoadFromPath(path);
                     }
@@ -80,7 +80,7 @@ namespace HeartEditor
 
                     if (ImGui::MenuItem("Load Scene"))
                     {
-                        Heart::HString8 path = Heart::FilesystemUtils::OpenFileDialog(Heart::AssetManager::GetAssetsDirectory(), "Load Scene", "hescn");
+                        Heart::HString8 path = Heart::FilesystemUtils::OpenFileDialog(Heart::AssetManager::GetAssetsDirectory(), "Load Scene", "*.hescn");
                         if (!path.IsEmpty())
                         {
                             Heart::UUID assetId = Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Scene, path);

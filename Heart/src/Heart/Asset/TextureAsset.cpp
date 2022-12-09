@@ -67,7 +67,7 @@ namespace Heart
             1, 0,
             Flourish::TextureSamplerState(),
             pixels,
-            static_cast<u32>(width * height * m_DesiredChannelCount),
+            static_cast<u32>(width * height * m_DesiredChannelCount) * (floatComponents ? 4 : 1),
             async,
             [this, pixels, floatComponents]()
             {

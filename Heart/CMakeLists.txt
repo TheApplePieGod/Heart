@@ -28,6 +28,7 @@ set(DEPENDENCY_SOURCES
   "lib/imgui/backends/imgui_impl_vulkan.cpp"
   "lib/imgui/backends/imgui_impl_opengl3.cpp"
   "lib/stb_image/stb_image.cpp"
+  "lib/tinyfd/tinyfiledialogs.cpp"
 )
 
 find_package(Python3 COMPONENTS Interpreter)
