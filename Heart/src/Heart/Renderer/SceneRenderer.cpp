@@ -526,6 +526,9 @@ namespace Heart
         // m_MainFramebuffer->UpdateColorAttachmentCPUVisibliity(0, m_SceneRenderSettings.CopyEntityIdsTextureToCPU);
 
         // Set the global data for this frame
+        m_SceneRenderSettings.CullEnable = false;
+        m_SceneRenderSettings.DrawGrid = false;
+        m_SceneRenderSettings.BloomEnable = false;
         FrameData frameData = {
             camera.GetProjectionMatrix(), camera.GetViewMatrix(), glm::vec4(cameraPosition, 1.f),
             { m_RenderWidth, m_RenderHeight },
@@ -539,7 +542,6 @@ namespace Heart
         UpdateLightingBuffer();
 
         // Recalculate the indirect render batches
-        m_SceneRenderSettings.CullEnable = false;
         CalculateBatches();
 
         // Run the cull shader if enabled
@@ -558,7 +560,6 @@ namespace Heart
             RenderEnvironmentMap();
 
         // Draw the grid if set
-        m_SceneRenderSettings.DrawGrid = false;
         m_RenderEncoder->StartNextSubpass();
         if (m_SceneRenderSettings.DrawGrid)   
             RenderGrid();
@@ -572,7 +573,6 @@ namespace Heart
         Composite();
 
         // Create the mipmaps of the bright colors output for bloom
-        m_SceneRenderSettings.BloomEnable = false;
         /*
         if (m_SceneRenderSettings.BloomEnable)
             m_BrightColorsTexture->RegenerateMipMapsSync(m_MainFramebuffer.get());
