@@ -76,6 +76,7 @@ namespace Heart
         initInfo.FrameBufferCount = 2;
         initInfo.UseReversedZBuffer = true;
         initInfo.RequestedFeatures.IndependentBlend = true;
+        initInfo.RequestedFeatures.WideLines = true;
         Flourish::Context::Initialize(initInfo);
 
         m_Window = Window::Create(windowCreateInfo);

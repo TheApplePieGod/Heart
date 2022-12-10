@@ -527,7 +527,6 @@ namespace Heart
 
         // Set the global data for this frame
         m_SceneRenderSettings.CullEnable = false;
-        m_SceneRenderSettings.DrawGrid = false;
         m_SceneRenderSettings.BloomEnable = false;
         FrameData frameData = {
             camera.GetProjectionMatrix(), camera.GetViewMatrix(), glm::vec4(cameraPosition, 1.f),
