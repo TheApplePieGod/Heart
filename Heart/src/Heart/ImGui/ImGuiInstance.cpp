@@ -122,7 +122,7 @@ namespace Heart
 				
 				// Create fonts texture & cleanup resources
 				VkCommandBuffer cmdBuf;
-				auto allocInfo = Flourish::Vulkan::Context::Commands().AllocateBuffers(Flourish::GPUWorkloadType::Graphics, false, &cmdBuf, 1);
+				auto allocInfo = Flourish::Vulkan::Context::Commands().AllocateBuffers(Flourish::GPUWorkloadType::Graphics, false, &cmdBuf, 1, true);
 				VkCommandBufferBeginInfo beginInfo{};
 				beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 				beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
