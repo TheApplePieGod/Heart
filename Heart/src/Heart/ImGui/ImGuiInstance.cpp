@@ -8,7 +8,7 @@
 #include "Heart/Core/Window.h"
 #include "GLFW/glfw3.h"
 
-#include "Flourish/Backends/Vulkan/Util/Context.h"
+#include "Flourish/Backends/Vulkan/Context.h"
 #include "Flourish/Backends/Vulkan/RenderPass.h"
 #include "Flourish/Backends/Vulkan/RenderCommandEncoder.h"
 #include "imgui/backends/imgui_impl_vulkan.h"

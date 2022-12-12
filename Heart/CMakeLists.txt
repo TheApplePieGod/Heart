@@ -9,6 +9,8 @@ include_directories("lib/imgui")
 
 # Build dependencies
 set(GLFW_BUILD_DOCS OFF)
+set(GLFW_BUILD_TESTS OFF)
+set(GLFW_BUILD_EXAMPLES OFF)
 add_subdirectory("lib/GLFW")
 add_subdirectory("lib/glm")
 add_subdirectory("lib/imgui")

@@ -85,6 +85,7 @@ namespace Heart
         // Create the command buffers
         Flourish::CommandBufferCreateInfo cmdCreateInfo;
         cmdCreateInfo.MaxEncoders = 2;
+        cmdCreateInfo.FrameRestricted = false;
         m_BRDFTexture.CommandBuffer = Flourish::CommandBuffer::Create(cmdCreateInfo);
         m_EnvironmentMap.CommandBuffer = Flourish::CommandBuffer::Create(cmdCreateInfo);
         m_IrradianceMap.CommandBuffer = Flourish::CommandBuffer::Create(cmdCreateInfo);
@@ -412,7 +413,7 @@ namespace Heart
         for (u32 i = 0; i < m_PrefilterMaps.Count(); i++)
             submission[1].push_back(m_PrefilterMaps[i].CommandBuffer.get());
 
-        Flourish::Context::SubmitCommandBuffers({ { m_BRDFTexture.CommandBuffer.get() } });
-        Flourish::Context::SubmitCommandBuffers(submission);
+        Flourish::Context::PushCommandBuffers({ { m_BRDFTexture.CommandBuffer.get() } });
+        Flourish::Context::PushCommandBuffers(submission);
     }
 }
