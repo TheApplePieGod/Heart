@@ -79,7 +79,7 @@ namespace Heart
         // See below
         hostfxr_initialize_parameters params{};
         #ifdef HE_PLATFORM_MACOS
-        params.dotnet_root = "/usr/local/share/dotnet";
+        //params.dotnet_root = "/usr/local/share/dotnet";
         #endif
 
         hostfxr_handle ctx = nullptr;

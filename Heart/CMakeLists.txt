@@ -2,6 +2,7 @@ project(Engine)
 
 if(APPLE)
   enable_language(OBJC)
+  enable_language(OBJCXX)
 endif()
 
 # Legacy include imgui so imguizmo can build properly
@@ -16,13 +17,16 @@ add_subdirectory("lib/glm")
 add_subdirectory("lib/imgui")
 add_subdirectory("lib/spdlog")
 add_subdirectory("lib/Glad")
-add_subdirectory("lib/optick")
 add_subdirectory("lib/entt")
 add_subdirectory("lib/imguizmo")
 add_subdirectory("lib/json")
 set(FLOURISH_GLFW_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lib/GLFW/include")
 set(FLOURISH_IMGUI_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lib/imgui")
 add_subdirectory("lib/Flourish")
+
+if(${CMAKE_BUILD_TYPE} MATCHES Debug)
+  add_subdirectory("lib/optick")
+endif()
 
 # Include other dependency sources that need to be built
 set(DEPENDENCY_SOURCES
@@ -58,7 +62,11 @@ add_custom_target(
 include(GNUInstallDirs)
 
 # Build main
-file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp" "src/*.h" "src/hepch.h")
+if(APPLE)
+  file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp" "src/*.h" "src/*.mm" "src/hepch.h")
+else()
+  file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp" "src/*.h" "src/hepch.h")
+endif()
 add_library(Engine STATIC "${SOURCES}" "${DEPENDENCY_SOURCES}")
 add_library(Heart::Engine ALIAS Engine)
 
@@ -102,8 +110,16 @@ target_include_directories(
 target_link_libraries(
   Engine
   PUBLIC
-  glfw glm imgui spdlog glad OptickCore imguizmo nlohmann_json FlourishCore
+  glfw glm imgui spdlog glad imguizmo nlohmann_json FlourishCore
 )
+
+if(${CMAKE_BUILD_TYPE} MATCHES Debug)
+  target_link_libraries(
+    Engine
+    PUBLIC
+    OptickCore
+  )
+endif()
 
 # Copy required dlls
 add_custom_target(
@@ -124,7 +140,7 @@ include(CMakePackageConfigHelpers)
 
 set(JSON_Install ON) # Make sure the json lib installs the proper files
 install(
-  TARGETS Engine glm imgui spdlog glad imguizmo nlohmann_json glfw OptickCore FlourishCore
+  TARGETS Engine glm imgui spdlog glad imguizmo nlohmann_json glfw FlourishCore
   EXPORT EngineTargets
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}

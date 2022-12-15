@@ -5,8 +5,6 @@
 
 int Main(int argc, char** argv)
 {
-    Heart::Logger::Initialize();
-
     HeartEditor::EditorApp* app = new HeartEditor::EditorApp();
     app->Run();
     delete app;

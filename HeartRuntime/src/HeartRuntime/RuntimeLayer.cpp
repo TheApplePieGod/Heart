@@ -99,7 +99,7 @@ namespace HeartRuntime
             .append("ClientScripts.dll");
         if (!std::filesystem::exists(assemblyPath))
         {
-            HE_LOG_WARN("Project assembly not found");
+            HE_LOG_ERROR("Project assembly not found");
             throw std::exception();
         }
         

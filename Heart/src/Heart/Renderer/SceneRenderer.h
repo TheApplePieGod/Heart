@@ -92,16 +92,16 @@ namespace Heart
             glm::mat4 View;
             glm::vec4 CameraPos;
             glm::vec2 ScreenSize;
-            bool ReverseDepth;
+            u32 ReverseDepth;
             float BloomThreshold;
-            bool CullEnable;
-            bool padding1;
+            u32 CullEnable;
+            u32 padding1;
             glm::vec2 padding2;
         };
         struct BloomData
         {
             u32 MipLevel;
-            bool ReverseDepth;
+            u32 ReverseDepth;
             float BlurScale;
             float BlurStrength;
         };

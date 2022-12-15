@@ -17,10 +17,12 @@ namespace Heart
 {
     App::App(const HStringView8& windowName)
     {
-        HE_ENGINE_ASSERT(!s_Instance, "App instance already exists");
+        if (s_Instance) return;
         s_Instance = this;
 
         PlatformUtils::InitializePlatform();
+
+        Heart::Logger::Initialize();
 
         Timer timer = Timer("App initialization");
         #ifdef HE_DEBUG
