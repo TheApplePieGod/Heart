@@ -10,6 +10,7 @@ namespace Flourish
 {
     class Framebuffer;
     class ComputePipeline;
+    class ComputeTarget;
     class Buffer;
     class Texture;
     class CommandBuffer;
@@ -23,9 +24,9 @@ namespace Heart
     {
         bool DrawGrid = true;
         bool BloomEnable = true;
-        float BloomBlurStrength = 0.2f;
-        float BloomBlurScale = 1.f;
         float BloomThreshold = 1.f;
+        float BloomKnee = 0.1f;
+        float BloomSampleScale = 1.f;
         bool CullEnable = true;
         bool AsyncAssetLoading = true;
         bool CopyEntityIdsTextureToCPU = false;
@@ -93,9 +94,9 @@ namespace Heart
             glm::vec4 CameraPos;
             glm::vec2 ScreenSize;
             u32 ReverseDepth;
-            float BloomThreshold;
             u32 CullEnable;
-            u32 padding1;
+            u32 BloomEnable;
+            float padding;
             glm::vec2 padding2;
         };
         struct BloomData
@@ -116,12 +117,16 @@ namespace Heart
             std::array<glm::vec4, 6> FrustumPlanes;
             glm::vec4 Data;
         };
-        struct BloomCommandData
+        struct TestData
         {
-            // One per horizontal & vertical passes
-            std::array<Ref<Flourish::RenderPass>, 2> RenderPass;
-            std::array<Ref<Flourish::Framebuffer>, 2> Framebuffer;
-            std::array<Ref<Flourish::CommandBuffer>, 2> CommandBuffer;
+            glm::vec2 SrcResolution;
+            glm::vec2 DstResolution;
+            float Threshold;
+            float Knee;
+            float SampleScale;
+            u32 Prefilter;
+            glm::vec4 Padding1;
+            glm::vec4 Padding2;
         };
 
     private:
@@ -144,6 +149,7 @@ namespace Heart
         void RenderBatches();
         void Composite();
         void Bloom();
+        void FinalComposite();
 
         void InitializeGridBuffers();
 
@@ -157,13 +163,13 @@ namespace Heart
         Ref<Flourish::Framebuffer> m_MainFramebuffer;
         Ref<Flourish::CommandBuffer> m_MainCommandBuffer;
         Ref<Flourish::RenderPass> m_MainRenderPass;
-        HVector<BloomCommandData> m_BloomFramebuffers; // One for each mip level
 
         Ref<Flourish::ComputePipeline> m_ComputeCullPipeline;
         Ref<Flourish::Buffer> m_CullDataBuffer;
         Ref<Flourish::Buffer> m_InstanceDataBuffer;
         Ref<Flourish::Buffer> m_FinalInstanceBuffer;
         Ref<Flourish::Buffer> m_IndirectBuffer;
+        Ref<Flourish::Buffer> m_TestBuffer;
 
         Ref<Flourish::Texture> m_DefaultEnvironmentMap;
         Ref<Flourish::Texture> m_PreBloomTexture;
@@ -179,6 +185,16 @@ namespace Heart
         Ref<Flourish::Buffer> m_ObjectDataBuffer;
         Ref<Flourish::Buffer> m_MaterialDataBuffer;
         Ref<Flourish::Buffer> m_LightingDataBuffer;
+
+        Ref<Flourish::ComputePipeline> m_FinalComputePipeline;
+        Ref<Flourish::ComputeTarget> m_FinalComputeTarget;
+        Ref<Flourish::CommandBuffer> m_FinalCommandBuffer;
+
+        Ref<Flourish::ComputePipeline> m_TestDownsampleComputePipeline;
+        Ref<Flourish::ComputePipeline> m_TestUpsampleComputePipeline;
+        Ref<Flourish::ComputeTarget> m_TestComputeTarget;
+        Ref<Flourish::Texture> m_TestTexture;
+        Ref<Flourish::CommandBuffer> m_TestCommandBuffer;
 
         // grid
         Ref<Flourish::Buffer> m_GridVertices;
@@ -196,7 +212,7 @@ namespace Heart
         u32 m_RenderedInstanceCount;
         std::vector<std::vector<Flourish::CommandBuffer*>> m_RenderBuffers;
 
-        const u32 m_BloomMipCount = 5;
+        const u32 m_BloomMipCount = 7;
         bool m_ShouldResize = false;
         u32 m_RenderWidth = 0;
         u32 m_RenderHeight = 0;

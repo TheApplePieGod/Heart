@@ -4,9 +4,9 @@ struct FrameData {
     vec4 cameraPos;
     vec2 screenSize;
     bool reverseDepth;
-    float bloomThreshold;
     bool cullEnable;
-    bool padding1;
+    bool bloomEnable;
+    float padding;
     vec2 padding2;
 };
 

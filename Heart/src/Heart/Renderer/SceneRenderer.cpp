@@ -7,6 +7,7 @@
 #include "Flourish/Api/Context.h"
 #include "Flourish/Api/GraphicsPipeline.h"
 #include "Flourish/Api/ComputePipeline.h"
+#include "Flourish/Api/ComputeTarget.h"
 #include "Flourish/Api/RenderContext.h"
 #include "Flourish/Api/RenderPass.h"
 #include "Flourish/Api/Framebuffer.h"
@@ -15,6 +16,7 @@
 #include "Flourish/Api/CommandBuffer.h"
 #include "Flourish/Api/RenderCommandEncoder.h"
 #include "Flourish/Api/ComputeCommandEncoder.h"
+#include "Flourish/Api/GraphicsCommandEncoder.h"
 #include "Heart/Renderer/Material.h"
 #include "Heart/Renderer/Mesh.h"
 #include "Heart/Renderer/EnvironmentMap.h"
@@ -92,7 +94,7 @@ namespace Heart
         envTexCreateInfo.Width = 512;
         envTexCreateInfo.Height = 512;
         envTexCreateInfo.Format = Flourish::ColorFormat::RGBA8_UNORM;
-        envTexCreateInfo.UsageType = Flourish::BufferUsageType::Static;
+        envTexCreateInfo.Usage = Flourish::TextureUsageType::Readonly;
         envTexCreateInfo.ArrayCount = 6;
         envTexCreateInfo.MipCount = 5;
         m_DefaultEnvironmentMap = Flourish::Texture::Create(envTexCreateInfo);
@@ -104,9 +106,9 @@ namespace Heart
             { Flourish::BufferDataType::Float4 }, // camera pos
             { Flourish::BufferDataType::Float2 }, // screen size
             { Flourish::BufferDataType::Bool }, // reverse depth
-            { Flourish::BufferDataType::Float }, // bloom threshold
+            { Flourish::BufferDataType::Bool }, // bloom enable
             { Flourish::BufferDataType::Bool }, // cull enable
-            { Flourish::BufferDataType::Bool }, // padding
+            { Flourish::BufferDataType::Float }, // padding
             { Flourish::BufferDataType::Float2 } // padding
         };
         Flourish::BufferLayout bloomDataLayout = {
@@ -160,6 +162,15 @@ namespace Heart
             { Flourish::BufferDataType::Float4 }, // frustum planes [5]
             { Flourish::BufferDataType::Float4 } // [0]: drawCount
         };
+        Flourish::BufferLayout testDataLayout = {
+            { Flourish::BufferDataType::Float2 }, // src res
+            { Flourish::BufferDataType::Float2 }, // dst res
+            { Flourish::BufferDataType::Float }, // threshold
+            { Flourish::BufferDataType::Float }, // filter radius
+            { Flourish::BufferDataType::Float2 }, // padding
+            { Flourish::BufferDataType::Float4 }, 
+            { Flourish::BufferDataType::Float4 } 
+        };
 
         u32 maxObjects = 10000;
         Flourish::BufferCreateInfo bufCreateInfo;
@@ -170,6 +181,9 @@ namespace Heart
         m_FrameDataBuffer = Flourish::Buffer::Create(bufCreateInfo);
         bufCreateInfo.Layout = cullDataLayout;
         m_CullDataBuffer = Flourish::Buffer::Create(bufCreateInfo);
+        bufCreateInfo.Layout = testDataLayout;
+        bufCreateInfo.ElementCount = 20;
+        m_TestBuffer = Flourish::Buffer::Create(bufCreateInfo);
         bufCreateInfo.Type = Flourish::BufferType::Storage;
         bufCreateInfo.Layout = bloomDataLayout;
         bufCreateInfo.ElementCount = 50;
@@ -198,11 +212,24 @@ namespace Heart
         Flourish::CommandBufferCreateInfo cbCreateInfo;
         cbCreateInfo.MaxEncoders = 20; // TODO: look at this
         m_MainCommandBuffer = Flourish::CommandBuffer::Create(cbCreateInfo);
+        cbCreateInfo.MaxEncoders = 30; 
+        m_TestCommandBuffer = Flourish::CommandBuffer::Create(cbCreateInfo);
+        cbCreateInfo.MaxEncoders = 2; 
+        m_FinalCommandBuffer = Flourish::CommandBuffer::Create(cbCreateInfo);
 
         // Create compute pipelines
         Flourish::ComputePipelineCreateInfo compCreateInfo;
         compCreateInfo.ComputeShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/IndirectCull.comp", true)->GetShader();
         m_ComputeCullPipeline = Flourish::ComputePipeline::Create(compCreateInfo);
+        compCreateInfo.ComputeShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/ComputeBloomDownsample.comp", true)->GetShader();
+        m_TestDownsampleComputePipeline = Flourish::ComputePipeline::Create(compCreateInfo);
+        compCreateInfo.ComputeShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/ComputeBloomUpsample.comp", true)->GetShader();
+        m_TestUpsampleComputePipeline = Flourish::ComputePipeline::Create(compCreateInfo);
+        compCreateInfo.ComputeShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/FinalComposite.comp", true)->GetShader();
+        m_FinalComputePipeline = Flourish::ComputePipeline::Create(compCreateInfo);
+        
+        m_TestComputeTarget = Flourish::ComputeTarget::Create();
+        m_FinalComputeTarget = Flourish::ComputeTarget::Create();
     }
 
     void SceneRenderer::Shutdown()
@@ -250,22 +277,30 @@ namespace Heart
         texCreateInfo.Width = m_RenderWidth;
         texCreateInfo.Height = m_RenderHeight;
         texCreateInfo.Format = Flourish::ColorFormat::RGBA16_FLOAT;
-        texCreateInfo.UsageType = Flourish::BufferUsageType::Dynamic;
-        texCreateInfo.RenderTarget = true;
+        texCreateInfo.Usage = Flourish::TextureUsageType::RenderTarget;
+        texCreateInfo.Writability = Flourish::TextureWritability::PerFrame;
         texCreateInfo.ArrayCount = 1;
         texCreateInfo.MipCount = 1;
         texCreateInfo.SamplerState.UVWWrap = { Flourish::SamplerWrapMode::ClampToBorder, Flourish::SamplerWrapMode::ClampToBorder, Flourish::SamplerWrapMode::ClampToBorder };
         m_PreBloomTexture = Flourish::Texture::Create(texCreateInfo);
         texCreateInfo.MipCount = m_BloomMipCount;
         m_BrightColorsTexture = Flourish::Texture::Create(texCreateInfo);
-        m_BloomBufferTexture = Flourish::Texture::Create(texCreateInfo);
         texCreateInfo.MipCount = m_BloomMipCount - 1;
         m_BloomUpsampleBufferTexture = Flourish::Texture::Create(texCreateInfo);
         texCreateInfo.Format = Flourish::ColorFormat::RGBA8_UNORM;
         texCreateInfo.MipCount = 1;
+        texCreateInfo.Usage = Flourish::TextureUsageType::ComputeTarget;
         m_FinalTexture = Flourish::Texture::Create(texCreateInfo);
+        texCreateInfo.Usage = Flourish::TextureUsageType::RenderTarget;
         texCreateInfo.Format = Flourish::ColorFormat::R32_FLOAT;
         m_EntityIdsTexture = Flourish::Texture::Create(texCreateInfo);
+
+        texCreateInfo.Usage = Flourish::TextureUsageType::ComputeTarget;
+        texCreateInfo.MipCount = m_BloomMipCount;
+        texCreateInfo.Format = Flourish::ColorFormat::RGBA16_FLOAT;
+        texCreateInfo.SamplerState.UVWWrap = { Flourish::SamplerWrapMode::ClampToEdge, Flourish::SamplerWrapMode::ClampToEdge, Flourish::SamplerWrapMode::ClampToEdge };
+        m_BloomBufferTexture = Flourish::Texture::Create(texCreateInfo);
+        m_TestTexture = Flourish::Texture::Create(texCreateInfo);
     }
 
     void SceneRenderer::CleanupTextures()
@@ -378,126 +413,11 @@ namespace Heart
             pipelineCreateInfo.CompatibleSubpasses = { 4 };
             m_MainRenderPass->CreatePipeline("tpComposite", pipelineCreateInfo);
         }
-
-        // Create the bloom framebuffers
-        {
-            Flourish::RenderPassCreateInfo rpCreateInfo;
-            rpCreateInfo.SampleCount = Flourish::MsaaSampleCount::None;
-            rpCreateInfo.ColorAttachments.push_back({ m_BloomBufferTexture->GetColorFormat() });
-            rpCreateInfo.Subpasses.push_back({ // Environment map
-                {},
-                { { Flourish::SubpassAttachmentType::Color, 0 } }
-            });
-
-            Flourish::FramebufferCreateInfo fbCreateInfo;
-            fbCreateInfo.Width = m_RenderWidth;
-            fbCreateInfo.Height = m_RenderHeight;
-            fbCreateInfo.ColorAttachments.push_back({ { 0.f, 0.f, 0.f, 0.f }, m_BloomBufferTexture });
-
-            Flourish::GraphicsPipelineCreateInfo bloomHorizontal;
-            bloomHorizontal.VertexShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/Bloom.vert", true)->GetShader();
-            bloomHorizontal.FragmentShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/BloomHorizontal.frag", true)->GetShader();
-            bloomHorizontal.VertexInput = false;
-            bloomHorizontal.BlendStates = { { false } };
-            bloomHorizontal.DepthTest = false;
-            bloomHorizontal.DepthWrite = false;
-            bloomHorizontal.CullMode = Flourish::CullMode::None;
-            bloomHorizontal.WindingOrder = Flourish::WindingOrder::Clockwise;
-
-            Flourish::GraphicsPipelineCreateInfo bloomHorizontalUpscale = bloomHorizontal;
-            bloomHorizontalUpscale.FragmentShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/BloomHorizontalUpscale.frag", true)->GetShader();
-            bloomHorizontalUpscale.BlendStates.push_back({ false });
-
-            Flourish::GraphicsPipelineCreateInfo bloomHorizontalDoubleUpscale = bloomHorizontal;
-            bloomHorizontalDoubleUpscale.FragmentShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/BloomHorizontalDoubleUpscale.frag", true)->GetShader();
-            bloomHorizontalDoubleUpscale.BlendStates.push_back({ false });
-
-            Flourish::GraphicsPipelineCreateInfo bloomVertical = bloomHorizontal;
-            bloomVertical.FragmentShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/BloomVertical.frag", true)->GetShader();
-
-            Flourish::GraphicsPipelineCreateInfo bloomVerticalComposite = bloomHorizontal;
-            bloomVerticalComposite.FragmentShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/BloomVerticalComposite.frag", true)->GetShader();
-
-            // Start at the lowest mip level
-            for (int i = m_BloomMipCount - 1; i >= 0; i--)
-            {
-                BloomCommandData data;
-
-                // Output will be same size as mip level
-                fbCreateInfo.Width = static_cast<u32>(m_BrightColorsTexture->GetWidth() * pow(0.5f, i));
-                fbCreateInfo.Height = static_cast<u32>(m_BrightColorsTexture->GetHeight() * pow(0.5f, i));
-
-                // Write to the same mip level in the bloom buffer but read from one level below
-                fbCreateInfo.ColorAttachments[0].MipLevel = i; 
-
-                // Output to the buffer texture
-                fbCreateInfo.ColorAttachments[0].Texture = m_BloomBufferTexture;
-                if (i < m_BloomMipCount - 1)
-                {
-                    // Starting after the bottom mip level, push back the second color attachment which will be the upsample buffer
-                    rpCreateInfo.ColorAttachments.push_back(
-                        { m_BloomUpsampleBufferTexture->GetColorFormat() }
-                    );
-                    rpCreateInfo.Subpasses[0].OutputAttachments.push_back(
-                        { Flourish::SubpassAttachmentType::Color, 1 }
-                    );
-                    fbCreateInfo.ColorAttachments.push_back(
-                        { { 0.f, 0.f, 0.f, 0.f }, m_BloomUpsampleBufferTexture, 0, (u32)i }
-                    );
-                }
-
-                auto horizRP = Flourish::RenderPass::Create(rpCreateInfo);
-                fbCreateInfo.RenderPass = horizRP;
-
-                auto horizontal = Flourish::Framebuffer::Create(fbCreateInfo);
-                if (i == m_BloomMipCount - 1) // If we are on the first iteration, we want to run the basic horizontal shader
-                    horizRP->CreatePipeline("bloomHorizontal", bloomHorizontal);
-                else if (i == m_BloomMipCount - 2) // If we are on the second iteration, we want to run the bright color upscale shader
-                    horizRP->CreatePipeline("bloomHorizontal", bloomHorizontalUpscale);
-                else // Otherwise we want to run the shader that upscales both the bright color and the upsample buffer
-                    horizRP->CreatePipeline("bloomHorizontal", bloomHorizontalDoubleUpscale);
-
-                // Get rid of the second color attachment for the vertical pass
-                fbCreateInfo.ColorAttachments.resize(1);
-                rpCreateInfo.ColorAttachments.resize(1);
-                rpCreateInfo.Subpasses[0].OutputAttachments.resize(1);
-
-                if (i == 0) // If we are on the last iteration, output directly to the output texture
-                {
-                    fbCreateInfo.ColorAttachments[0].Texture = m_FinalTexture;
-                    rpCreateInfo.SampleCount = Flourish::MsaaSampleCount::None;
-                    rpCreateInfo.ColorAttachments[0].Format = m_FinalTexture->GetColorFormat();
-                }
-                else // Otherwise we are outputting to the bright color texture
-                    fbCreateInfo.ColorAttachments[0].Texture = m_BrightColorsTexture;
-
-                auto vertRP = Flourish::RenderPass::Create(rpCreateInfo);
-                fbCreateInfo.RenderPass = vertRP;
-
-                auto vertical = Flourish::Framebuffer::Create(fbCreateInfo);
-                if (i == 0) // If we are on the last iteration, we want to run the composite version of the blur shader
-                    vertRP->CreatePipeline("bloomVertical", bloomVerticalComposite);
-                else
-                    vertRP->CreatePipeline("bloomVertical", bloomVertical);
-
-                Flourish::CommandBufferCreateInfo cbCreateInfo;
-                cbCreateInfo.MaxEncoders = 1;
-
-                data.RenderPass[0] = horizRP;
-                data.RenderPass[1] = vertRP;
-                data.Framebuffer[0] = horizontal;
-                data.Framebuffer[1] = vertical;
-                data.CommandBuffer[0] = Flourish::CommandBuffer::Create(cbCreateInfo);
-                data.CommandBuffer[1] = Flourish::CommandBuffer::Create(cbCreateInfo);
-                m_BloomFramebuffers.Add(data);
-            }
-        }
     }
 
     void SceneRenderer::CleanupFramebuffers()
     {
         m_MainFramebuffer.reset();
-        m_BloomFramebuffers.Clear();
     }
 
     void SceneRenderer::RenderScene(Scene* scene, const Camera& camera, glm::vec3 cameraPosition, const SceneRenderSettings& renderSettings)
@@ -527,13 +447,12 @@ namespace Heart
 
         // Set the global data for this frame
         m_SceneRenderSettings.CullEnable = false;
-        m_SceneRenderSettings.BloomEnable = false;
         FrameData frameData = {
             camera.GetProjectionMatrix(), camera.GetViewMatrix(), glm::vec4(cameraPosition, 1.f),
             { m_RenderWidth, m_RenderHeight },
             Flourish::Context::ReversedZBuffer(),
-            m_SceneRenderSettings.BloomThreshold,
-            m_SceneRenderSettings.CullEnable
+            m_SceneRenderSettings.CullEnable,
+            m_SceneRenderSettings.BloomEnable
         };
         m_FrameDataBuffer->SetElements(&frameData, 1, 0);
 
@@ -571,18 +490,15 @@ namespace Heart
         m_RenderEncoder->StartNextSubpass();
         Composite();
 
-        // Create the mipmaps of the bright colors output for bloom
-        /*
-        if (m_SceneRenderSettings.BloomEnable)
-            m_BrightColorsTexture->RegenerateMipMapsSync(m_MainFramebuffer.get());
-        */
-
         // Submit the framebuffer
         m_RenderEncoder->EndEncoding();
         m_RenderBuffers.push_back({ m_MainCommandBuffer.get() });
 
         // Bloom
-        Bloom();
+        if (m_SceneRenderSettings.BloomEnable)
+            Bloom();
+        
+        FinalComposite();
     }
 
     void SceneRenderer::UpdateLightingBuffer()
@@ -814,8 +730,7 @@ namespace Heart
         m_RenderEncoder->FlushPipelineBindings();
 
         // Draw
-        // Renderer::Api().SetLineWidth(2.f);
-
+        m_RenderEncoder->SetLineWidth(2.f);
         m_RenderEncoder->BindVertexBuffer(m_GridVertices.get());
         m_RenderEncoder->BindIndexBuffer(m_GridIndices.get());
         m_RenderEncoder->DrawIndexed(
@@ -959,7 +874,6 @@ namespace Heart
         // Bind alpha compositing pipeline
         m_RenderEncoder->BindPipeline("tpComposite");
 
-        // Bind frame data
         m_RenderEncoder->BindPipelineBufferResource(0, m_FrameDataBuffer.get(), 0, 0, 1);
 
         // Bind the input attachments from the transparent pass
@@ -974,81 +888,77 @@ namespace Heart
 
     void SceneRenderer::Bloom()
     {
-        if (m_SceneRenderSettings.BloomEnable)
+        // Downsample
+        u32 downMipCount = m_BloomBufferTexture->GetMipCount();
+        for (u32 i = 1; i < downMipCount; i++)
         {
-            /*
-            for (u32 i = 0; i < m_BloomFramebuffers.Count(); i++)
-            {
-                auto& framebuffers = m_BloomFramebuffers[i];
-
-                // Use the bloomData buffer to push the lower mip level that we are sampling from 
-                BloomData bloomData{};
-                bloomData.ReverseDepth = Renderer::IsUsingReverseDepth();
-                bloomData.BlurScale = m_SceneRenderSettings.BloomBlurScale;
-                bloomData.BlurStrength = m_SceneRenderSettings.BloomBlurStrength;
-                bloomData.MipLevel = static_cast<u32>(m_BloomFramebuffers.Count() - 1 - i); // Reverse the index because we start rendering the lowest mip first
-                m_BloomDataBuffer->SetElements(&bloomData, 1, i);
-
-                // Horizontal framebuffer
-                framebuffers[0]->Bind();
-                framebuffers[0]->BindPipeline("bloomHorizontal");
-                framebuffers[0]->BindShaderBufferResource(0, i, 1, m_BloomDataBuffer.get());
-                framebuffers[0]->BindShaderTextureResource(1, m_BrightColorsTexture.get()); // Read from bright color target
-                if (i > 1)
+            TestData testData = {
                 {
-                    // Bind the upsample texture if this is at least the third iteration so we can upsample
-                    framebuffers[0]->BindShaderTextureLayerResource(2, m_BloomUpsampleBufferTexture.get(), 0, bloomData.MipLevel + 1);
-                }
-                framebuffers[0]->FlushBindings();
-                Renderer::Api().Draw(3, 0, 1);
+                    i == 1 ? m_PreBloomTexture->GetWidth() : m_BloomBufferTexture->GetMipWidth(i - 1),
+                    i == 1 ? m_PreBloomTexture->GetHeight() : m_BloomBufferTexture->GetMipHeight(i - 1),
+                },
+                { m_BloomBufferTexture->GetMipWidth(i), m_BloomBufferTexture->GetMipHeight(i) },
+                m_SceneRenderSettings.BloomThreshold,
+                m_SceneRenderSettings.BloomKnee,
+                m_SceneRenderSettings.BloomSampleScale,
+                i == 1
+            };
+            m_TestBuffer->SetElements(&testData, 1, i - 1);
 
-                // Render
-                Renderer::Api().RenderFramebuffers(context, { { framebuffers[0].get() } });
-
-                // Vertical framebuffer
-                framebuffers[1]->Bind();
-                framebuffers[1]->BindPipeline("bloomVertical");
-                framebuffers[1]->BindShaderBufferResource(0, i, 1, m_BloomDataBuffer.get());
-                framebuffers[1]->BindShaderTextureResource(1, m_BloomBufferTexture.get());
-                if (i == m_BloomFramebuffers.Count() - 1)
-                {
-                    // Bind the pre bloom & upsample texture if this is the last iteration
-                    framebuffers[1]->BindShaderTextureResource(2, m_PreBloomTexture.get());
-                    framebuffers[1]->BindShaderTextureResource(3, m_BloomUpsampleBufferTexture.get());
-                }
-                framebuffers[1]->FlushBindings();
-                Renderer::Api().Draw(3, 0, 1);
-
-                // Render
-                Renderer::Api().RenderFramebuffers(context, { { framebuffers[1].get() } });
-            }
-            */
+            auto encoder = m_TestCommandBuffer->EncodeComputeCommands(m_TestComputeTarget.get());
+            encoder->BindPipeline(m_TestDownsampleComputePipeline.get());
+            encoder->BindPipelineBufferResource(0, m_TestBuffer.get(), 0, i - 1, 1);
+            if (i == 1)
+                encoder->BindPipelineTextureResource(1, m_PreBloomTexture.get());
+            else
+                encoder->BindPipelineTextureLayerResource(1, m_BloomBufferTexture.get(), 0, i - 1);
+            encoder->BindPipelineTextureLayerResource(2, m_BloomBufferTexture.get(), 0, i);
+            encoder->FlushPipelineBindings();
+            encoder->Dispatch((testData.DstResolution.x / 16) + 1, (testData.DstResolution.y / 16) + 1, 1);
+            encoder->EndEncoding();
         }
-        else
+        
+        // Upsample
+        u32 upMipCount = m_TestTexture->GetMipCount();
+        for (u32 i = upMipCount - 2; i > 0; i--)
         {
-            auto& data = m_BloomFramebuffers.Back();
+            TestData testData = {
+                { m_BloomBufferTexture->GetMipWidth(i + 1), m_BloomBufferTexture->GetMipHeight(i + 1) },
+                { m_TestTexture->GetMipWidth(i), m_TestTexture->GetMipHeight(i) },
+                m_SceneRenderSettings.BloomThreshold,
+                m_SceneRenderSettings.BloomKnee,
+                m_SceneRenderSettings.BloomSampleScale,
+                false
+            };
+            m_TestBuffer->SetElements(&testData, 1, i + upMipCount);
 
-            // Clear the horizontal blur texture so that the final composite shader only inputs from the HDR output
-            {
-                auto encoder = data.CommandBuffer[0]->EncodeRenderCommands(data.Framebuffer[0].get());
-                encoder->ClearColorAttachment(0);
-                encoder->EndEncoding();
-                m_RenderBuffers.push_back({ data.CommandBuffer[0].get() });
-            }
-
-            {
-                auto encoder = data.CommandBuffer[1]->EncodeRenderCommands(data.Framebuffer[1].get());
-                encoder->BindPipeline("bloomVertical");
-                encoder->BindPipelineBufferResource(0, m_BloomDataBuffer.get(), 0, m_BloomFramebuffers.Count() - 1, 1);
-                encoder->BindPipelineTextureResource(1, m_BloomBufferTexture.get());
-                encoder->BindPipelineTextureResource(2, m_PreBloomTexture.get());
-                encoder->BindPipelineTextureResource(3, m_BloomUpsampleBufferTexture.get());
-                encoder->FlushPipelineBindings();
-                encoder->Draw(3, 0, 1);
-                encoder->EndEncoding();
-                m_RenderBuffers.push_back({ data.CommandBuffer[1].get() });
-            }
+            auto encoder = m_TestCommandBuffer->EncodeComputeCommands(m_TestComputeTarget.get());
+            encoder->BindPipeline(m_TestUpsampleComputePipeline.get());
+            encoder->BindPipelineBufferResource(0, m_TestBuffer.get(), 0, i + upMipCount, 1);
+            encoder->BindPipelineTextureLayerResource(1, m_TestTexture.get(), 0, i + 1);
+            encoder->BindPipelineTextureLayerResource(2, m_BloomBufferTexture.get(), 0, i);
+            encoder->BindPipelineTextureLayerResource(3, m_TestTexture.get(), 0, i);
+            encoder->FlushPipelineBindings();
+            encoder->Dispatch((testData.DstResolution.x / 16) + 1, (testData.DstResolution.y / 16) + 1, 1);
+            encoder->EndEncoding();
         }
+
+        m_RenderBuffers.push_back({ m_TestCommandBuffer.get() });
+    }
+
+    void SceneRenderer::FinalComposite()
+    {
+        auto encoder = m_FinalCommandBuffer->EncodeComputeCommands(m_FinalComputeTarget.get());
+        encoder->BindPipeline(m_FinalComputePipeline.get());
+        encoder->BindPipelineBufferResource(0, m_FrameDataBuffer.get(), 0, 0, 1);
+        encoder->BindPipelineTextureResource(1, m_FinalTexture.get());
+        encoder->BindPipelineTextureResource(2, m_PreBloomTexture.get());
+        encoder->BindPipelineTextureResource(3, m_TestTexture.get());
+        encoder->FlushPipelineBindings();
+        encoder->Dispatch((m_FinalTexture->GetWidth() / 16) + 1, (m_FinalTexture->GetHeight() / 16) + 1, 1);
+        encoder->EndEncoding();
+
+        m_RenderBuffers.push_back({ m_FinalCommandBuffer.get() });
     }
 
     void SceneRenderer::InitializeGridBuffers()

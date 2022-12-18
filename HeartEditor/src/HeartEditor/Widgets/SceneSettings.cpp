@@ -62,13 +62,13 @@ namespace Widgets
         ImGui::SameLine();
         ImGui::DragFloat("##BloomThresh", &Editor::GetState().RenderSettings.BloomThreshold, 0.1f, 0.f, 5.f);
 
-        ImGui::Text("Bloom Blur Scale");
+        ImGui::Text("Bloom Knee");
         ImGui::SameLine();
-        ImGui::DragFloat("##BBScale", &Editor::GetState().RenderSettings.BloomBlurScale, 0.1f, 0.f, 50.f);
+        ImGui::DragFloat("##BBKne", &Editor::GetState().RenderSettings.BloomKnee, 0.01f, 0.f, 1.f);
 
-        ImGui::Text("Bloom Blur Strength");
+        ImGui::Text("Bloom Sample Scale");
         ImGui::SameLine();
-        ImGui::DragFloat("##BBStren", &Editor::GetState().RenderSettings.BloomBlurStrength, 0.1f, 0.f, 50.f);
+        ImGui::DragFloat("##BBSS", &Editor::GetState().RenderSettings.BloomSampleScale, 0.1f, 0.f, 10.f);
 
         ImGui::Text("Cull Enable");
         ImGui::SameLine();

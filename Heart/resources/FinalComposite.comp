@@ -1,0 +1,42 @@
+#version 450
+
+#include "FrameBuffer.glsl"
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout(binding = 1, rgba8) writeonly uniform image2D finalTex;
+layout(binding = 2) uniform sampler2D preBloomTex;
+layout(binding = 3) uniform sampler2D bloomTex;
+
+// https://knarkowicz.wordpress.com/2016/01/06/aces-filmic-tone-mapping-curve/
+vec3 ACESFilm(vec3 x)
+{
+    float a = 2.51f;
+    float b = 0.03f;
+    float c = 2.43f;
+    float d = 0.59f;
+    float e = 0.14f;
+    return clamp((x*(a*x+b))/(x*(c*x+d)+e), vec3(0.f), vec3(1.f));
+}
+
+// https://learnopengl.com/Guest-Articles/2022/Phys.-Based-Bloom
+void main()
+{
+    ivec2 coord = ivec2(gl_GlobalInvocationID.xy);
+    
+    if (coord.x >= frameBuffer.data.screenSize.x || coord.y >= frameBuffer.data.screenSize.y) return;
+    
+    vec2 texCoord = coord / frameBuffer.data.screenSize;
+
+    vec3 outColor = textureLod(preBloomTex, texCoord, 0).rgb;
+    if (frameBuffer.data.bloomEnable)
+        outColor += textureLod(bloomTex, texCoord, 1).rgb; // Additive
+
+    // tone mapping
+    outColor = ACESFilm(outColor);
+
+    // gamma correction     
+    outColor = pow(outColor, vec3(0.4545));
+
+    imageStore(finalTex, coord, vec4(outColor, 1.f));
+}

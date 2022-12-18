@@ -113,7 +113,12 @@ namespace Heart
 				info.Allocator = NULL;
 				info.MinImageCount = 2;
 				info.ImageCount = Flourish::Context::FrameBufferCount();
-				info.CheckVkResultFn = NULL;
+				#ifdef HE_DEBUG
+					info.CheckVkResultFn = [](VkResult err)
+					{
+						HE_ENGINE_ASSERT(err == VK_SUCCESS, "Vulkan function failed");
+					};
+				#endif
 				info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 				ImGui_ImplVulkan_Init(
 					&info,
