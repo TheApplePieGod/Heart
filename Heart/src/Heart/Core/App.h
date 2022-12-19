@@ -85,7 +85,7 @@ namespace Heart
         Ref<Window> m_Window;
         bool m_Running = true;
         bool m_Minimized = false;
-        u64 m_FrameCount = 0;
+        u64 m_FrameCount = 1;
         double m_LastFrameTime = 0.0;
         Timestep m_LastTimestep;
 

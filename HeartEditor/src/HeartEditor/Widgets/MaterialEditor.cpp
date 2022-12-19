@@ -360,7 +360,7 @@ namespace Widgets
         // Draw the rendered texture
         ImGui::Image(
             //m_SceneRenderer->GetFinalFramebuffer().GetColorAttachmentImGuiHandle(0),
-            m_SceneRenderer->GetFinalTexture().GetImGuiHandle(),
+            m_SceneRenderer->GetFinalTexture()->GetImGuiHandle(),
             { viewportSize.x, viewportSize.y }
         );
 

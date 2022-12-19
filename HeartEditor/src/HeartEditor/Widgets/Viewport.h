@@ -60,6 +60,7 @@ namespace Widgets
         ImGuizmo::MODE m_GizmoMode = ImGuizmo::MODE::LOCAL;
         ImGuizmo::OPERATION m_GizmoOperation = ImGuizmo::OPERATION::TRANSLATE;
         int m_SelectedOutput = 0;
+        int m_SelectedOutputMip = 0;
     };
 }
 }

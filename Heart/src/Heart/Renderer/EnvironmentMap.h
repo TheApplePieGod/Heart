@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Heart/Core/UUID.h"
-#include "Heart/Events/EventEmitter.h"
 #include "Heart/Container/HVector.hpp"
 #include "glm/mat4x4.hpp"
 #include "glm/vec4.hpp"
@@ -20,7 +19,7 @@ namespace Heart
 {
     class AppGraphicsInitEvent;
     class AppGraphicsShutdownEvent;
-    class EnvironmentMap : public EventListener
+    class EnvironmentMap
     {
     public:
         EnvironmentMap(UUID mapAsset);
@@ -33,8 +32,6 @@ namespace Heart
         inline Flourish::Texture* GetIrradianceCubemap() { return m_IrradianceMap.Texture.get(); }
         inline Flourish::Texture* GetPrefilterCubemap() { return m_PrefilterMaps[0].Texture.get(); }
         inline Flourish::Texture* GetBRDFTexture() { return m_BRDFTexture.Texture.get(); }
-
-        void OnEvent(Event& event) override;
 
     private:
         struct CubemapData
@@ -53,13 +50,9 @@ namespace Heart
 
     private:
         void Initialize();
-        void Shutdown();
-        bool OnAppGraphicsInit(AppGraphicsInitEvent& event);
-        bool OnAppGraphicsShutdown(AppGraphicsShutdownEvent& event);
 
     private:
         UUID m_MapAsset;
-        bool m_Initialized = false;
 
         RenderData m_EnvironmentMap;
         RenderData m_IrradianceMap;

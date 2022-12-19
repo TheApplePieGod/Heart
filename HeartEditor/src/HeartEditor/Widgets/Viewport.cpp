@@ -64,14 +64,14 @@ namespace Widgets
         // draw the rendered texture
         Flourish::Texture* outputTex = nullptr;
         switch (m_SelectedOutput){
-            default: outputTex = &m_SceneRenderer->GetFinalTexture(); break;
-            case 1: outputTex = &m_SceneRenderer->GetPreBloomTexture(); break;
-            case 2: outputTex = &m_SceneRenderer->GetBrightColorsTexture(); break;
-            case 3: outputTex = &m_SceneRenderer->GetBloomBuffer1Texture(); break;
-            case 4: outputTex = &m_SceneRenderer->GetBloomBuffer2Texture(); break;
+            default: outputTex = m_SceneRenderer->GetFinalTexture(); break;
+            case 1: outputTex = m_SceneRenderer->GetRenderOutputTexture(); break;
+            case 2: outputTex = m_SceneRenderer->GetEntityIdsTexture(); break;
+            case 3: outputTex = m_SceneRenderer->GetBloomDownsampleTexture(); break;
+            case 4: outputTex = m_SceneRenderer->GetBloomUpsampleTexture(); break;
         }
         ImGui::Image(
-            outputTex->GetImGuiHandle(),
+            outputTex->GetImGuiHandle(0, m_SelectedOutputMip),
             { m_ViewportSize.x, m_ViewportSize.y }
         );
 
@@ -165,18 +165,50 @@ namespace Widgets
 
                 ImGui::EndTable();
             }
+            ImGui::PopStyleVar();
 
-            // output select
-            std::array<const char*, 5> outputs = {
-                "Final output", "Pre-bloom", "Bright colors", "Bloom buffer 1", "Bloom buffer 2"
-            };
-            ImGui::SameLine(ImGui::GetContentRegionMax().x - 200.f);
-            ImGui::PushItemWidth(200.f);
-            ImGui::Combo("##OutputSelect", &m_SelectedOutput, outputs.data(), outputs.size());
-            ImGui::PopItemWidth();
+            // Output select
+            ImGui::SameLine(ImGui::GetContentRegionMax().x - 100.f);
+            if (ImGui::Button("Output Select"))
+                ImGui::OpenPopup("OutSel");
             if (ImGui::IsItemHovered())
                 m_ViewportHover = false;
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.f, 5.f));
+            if (ImGui::BeginPopup("OutSel"))
+            {
+                if (ImGui::MenuItem("Final output", nullptr, m_SelectedOutput == 0))
+                {
+                    m_SelectedOutput = 0;
+                    m_SelectedOutputMip = 0;
+                }
+                if (ImGui::MenuItem("Render output", nullptr, m_SelectedOutput == 1))
+                {
+                    m_SelectedOutput = 1;
+                    m_SelectedOutputMip = 0;
+                }
+                if (ImGui::MenuItem("Entity ids", nullptr, m_SelectedOutput == 2))
+                {
+                    m_SelectedOutput = 2;
+                    m_SelectedOutputMip = 0;
+                }
 
+                if (ImGui::BeginMenu("Bloom downsample"))
+                {
+                    if (ImGui::DragInt("Mip", &m_SelectedOutputMip, 1.0, 0, m_SceneRenderer->GetBloomMipCount() - 1))
+                        m_SelectedOutput = 3;
+                    ImGui::EndMenu();
+                }
+                if (ImGui::BeginMenu("Bloom upsample"))
+                {
+                    if (ImGui::DragInt("Mip", &m_SelectedOutputMip, 1.0, 0, m_SceneRenderer->GetBloomMipCount() - 1))
+                        m_SelectedOutput = 4;
+                    ImGui::EndMenu();
+                }
+
+                ImGui::EndPopup();
+            }
+            if (ImGui::IsItemHovered())
+                m_ViewportHover = false;
             ImGui::PopStyleVar();
 
             Heart::ImGuiUtils::AssetDropTarget(

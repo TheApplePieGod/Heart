@@ -10,7 +10,6 @@
 #include "Heart/Core/Camera.h"
 #include "Heart/Core/Window.h"
 #include "Heart/Core/Timing.h"
-#include "Heart/Events/AppEvents.h"
 #include "Flourish/Api/Context.h"
 #include "Flourish/Api/Texture.h"
 #include "Flourish/Api/Framebuffer.h"
@@ -26,43 +25,16 @@ namespace Heart
     EnvironmentMap::EnvironmentMap(UUID mapAsset)
         : m_MapAsset(mapAsset)
     {
-        SubscribeToEmitter(&App::Get());
         Initialize();
     }
 
     EnvironmentMap::~EnvironmentMap()
     {
-        UnsubscribeFromEmitter(&App::Get());
-        Shutdown();
+
     }
 
-    void EnvironmentMap::OnEvent(Event& event)
-    {
-        event.Map<AppGraphicsInitEvent>(HE_BIND_EVENT_FN(EnvironmentMap::OnAppGraphicsInit));
-        event.Map<AppGraphicsShutdownEvent>(HE_BIND_EVENT_FN(EnvironmentMap::OnAppGraphicsShutdown));
-    }
-
-    bool EnvironmentMap::OnAppGraphicsInit(AppGraphicsInitEvent& event)
-    {
-        if (!m_Initialized)
-        {
-            Initialize();
-            if (m_MapAsset)
-                Recalculate();
-        }
-        return false;
-    }
-
-    bool EnvironmentMap::OnAppGraphicsShutdown(AppGraphicsShutdownEvent& event)
-    {
-        Shutdown();
-        return false;
-    }
-    
     void EnvironmentMap::Initialize()
     {
-        m_Initialized = true;
-
         // Create texture & cubemap targets
         Flourish::TextureCreateInfo texCreateInfo;
         texCreateInfo.Width = 512;
@@ -230,24 +202,6 @@ namespace Heart
 
             m_BRDFRenderPass->CreatePipeline("brdf", pipelineCreateInfo);
         }
-    }
-
-    void EnvironmentMap::Shutdown()
-    {
-        m_Initialized = false;
-
-        m_RenderPass.reset();
-        m_BRDFRenderPass.reset();
-
-        m_EnvironmentMap = RenderData();
-        m_IrradianceMap = RenderData();
-        m_BRDFTexture = RenderData();
-
-        for (auto& data : m_PrefilterMaps)
-            data = RenderData();
-
-        m_CubemapDataBuffer.reset();
-        m_FrameDataBuffer.reset();
     }
 
     void EnvironmentMap::Recalculate()

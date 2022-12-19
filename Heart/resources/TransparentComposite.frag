@@ -3,7 +3,6 @@
 layout(location = 0) in vec2 texCoord;
 
 layout(location = 0) out vec4 outHDRColor;
-layout(location = 1) out vec4 outBrightColor;
 
 layout (input_attachment_index = 0, binding = 1) uniform subpassInput texColor;
 layout (input_attachment_index = 1, binding = 2) uniform subpassInput texWeights;

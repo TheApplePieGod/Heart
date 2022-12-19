@@ -6,7 +6,6 @@
 #include "Heart/Core/Timing.h"
 #include "Heart/ImGui/ImGuiInstance.h"
 #include "Heart/Events/WindowEvents.h"
-#include "Heart/Events/AppEvents.h"
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Scripting/ScriptingEngine.h"
 #include "Heart/Util/PlatformUtils.h"
@@ -47,6 +46,9 @@ namespace Heart
         ScriptingEngine::Shutdown();
         AssetManager::Shutdown();
 
+        for (auto layer : m_Layers)
+            layer->OnDetach();
+
         ShutdownGraphicsApi();
 
         PlatformUtils::ShutdownPlatform();
@@ -79,6 +81,7 @@ namespace Heart
         initInfo.UseReversedZBuffer = true;
         initInfo.RequestedFeatures.IndependentBlend = true;
         initInfo.RequestedFeatures.WideLines = true;
+        initInfo.RequestedFeatures.SamplerAnisotropy = true;
         Flourish::Context::Initialize(initInfo);
 
         m_Window = Window::Create(windowCreateInfo);
@@ -86,28 +89,19 @@ namespace Heart
         Window::SetMainWindow(m_Window);
 
         m_ImGuiInstance = CreateRef<ImGuiInstance>(m_Window);
-
-        AppGraphicsInitEvent event;
-        Emit(event);
     }
 
     void App::ShutdownGraphicsApi()
     {
-        for (auto layer : m_Layers)
-            layer->OnDetach();
-
         UnsubscribeFromEmitter(&GetWindow());
-
-        AppGraphicsShutdownEvent event;
-        Emit(event);
 
         Flourish::Context::Shutdown([this]()
         {
             m_ImGuiInstance.reset();
-        });
 
-        Window::SetMainWindow(nullptr);
-        m_Window.reset();
+            Window::SetMainWindow(nullptr);
+            m_Window.reset();
+        });
     }
 
     void App::OnEvent(Event& event)
