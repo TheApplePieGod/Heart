@@ -116,11 +116,6 @@ namespace Heart
         m_FrameDataBuffer = Flourish::Buffer::Create(bufCreateInfo);
 
         bufCreateInfo.Type = Flourish::BufferType::Uniform;
-        bufCreateInfo.Stride = sizeof(CullData);
-        bufCreateInfo.ElementCount = 1;
-        m_CullDataBuffer = Flourish::Buffer::Create(bufCreateInfo);
-
-        bufCreateInfo.Type = Flourish::BufferType::Uniform;
         bufCreateInfo.Stride = sizeof(BloomData);
         bufCreateInfo.ElementCount = m_BloomMipCount * 2;
         m_BloomDataBuffer = Flourish::Buffer::Create(bufCreateInfo);
@@ -139,16 +134,6 @@ namespace Heart
         bufCreateInfo.Stride = sizeof(MaterialData);
         bufCreateInfo.ElementCount = maxObjects;
         m_MaterialDataBuffer = Flourish::Buffer::Create(bufCreateInfo);
-
-        bufCreateInfo.Type = Flourish::BufferType::Storage;
-        bufCreateInfo.Stride = sizeof(InstanceData);
-        bufCreateInfo.ElementCount = maxObjects;
-        m_InstanceDataBuffer = Flourish::Buffer::Create(bufCreateInfo);
-
-        bufCreateInfo.Type = Flourish::BufferType::Storage;
-        bufCreateInfo.Stride = sizeof(float) * 4;
-        bufCreateInfo.ElementCount = maxObjects;
-        m_FinalInstanceBuffer = Flourish::Buffer::Create(bufCreateInfo);
 
         bufCreateInfo.Type = Flourish::BufferType::Indirect;
         bufCreateInfo.Stride = sizeof(IndexedIndirectCommand);
@@ -290,9 +275,6 @@ namespace Heart
     void SceneRenderer::CreateComputeObjects()
     {
         Flourish::ComputePipelineCreateInfo compCreateInfo;
-        compCreateInfo.ComputeShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/IndirectCull.comp", true)->GetShader();
-        m_ComputeCullPipeline = Flourish::ComputePipeline::Create(compCreateInfo);
-
         compCreateInfo.ComputeShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/ComputeBloomDownsample.comp", true)->GetShader();
         m_BloomDownsampleComputePipeline = Flourish::ComputePipeline::Create(compCreateInfo);
 
@@ -303,7 +285,6 @@ namespace Heart
         m_FinalCompositeComputePipeline = Flourish::ComputePipeline::Create(compCreateInfo);
         
         m_BloomComputeTarget = Flourish::ComputeTarget::Create();
-        m_CullComputeTarget = Flourish::ComputeTarget::Create();
         m_FinalComputeTarget = Flourish::ComputeTarget::Create();
     }
 
@@ -346,10 +327,6 @@ namespace Heart
 
         // Recalculate the indirect render batches
         CalculateBatches();
-
-        // Run the cull shader if enabled
-        if (m_SceneRenderSettings.CullEnable)
-            SetupCullCompute();
 
         m_RenderEncoder = m_MainCommandBuffer->EncodeRenderCommands(m_MainFramebuffer.get());
 
@@ -436,6 +413,10 @@ namespace Heart
         {
             auto [transform, mesh] = group.get<TransformComponent, MeshComponent>(entity);
 
+            // Compute max scale for calculating the bounding sphere
+            glm::vec3 scale = transform.Scale;
+            float maxScale = std::max(std::max(scale.x, scale.y), scale.z);
+
             // Skip invalid meshes
             auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>(mesh.Mesh, async);
             if (!meshAsset || !meshAsset->IsValid()) continue;
@@ -443,6 +424,12 @@ namespace Heart
             for (u32 i = 0; i < meshAsset->GetSubmeshCount(); i++)
             {
                 auto& meshData = meshAsset->GetSubmesh(i);
+                
+                glm::vec4 boundingSphere = meshData.GetBoundingSphere();
+                boundingSphere.w *= maxScale; // Extend the bounding sphere to fit the largest scale 
+                if (m_SceneRenderSettings.CullEnable && 
+                    !FrustumCull(boundingSphere, m_Scene->GetEntityCachedTransform({ m_Scene, entity })))
+                    continue;
 
                 // Create a hash based on the submesh and its material if applicable
                 u64 hash = mesh.Mesh ^ (i * 45787893);
@@ -494,7 +481,7 @@ namespace Heart
             // Popupate the indirect buffer
             IndexedIndirectCommand command = {
                 pair.second.Mesh->GetIndexBuffer()->GetAllocatedCount(),
-                m_SceneRenderSettings.CullEnable ? 0 : pair.second.Count, // If we are culling, we set instance count to zero because the shader will populate it
+                pair.second.Count,
                 0, 0, objectId
             };
             m_IndirectBuffer->SetElements(&command, 1, commandIndex);
@@ -506,24 +493,11 @@ namespace Heart
                 Entity entity = { m_Scene, _entity };
 
                 // Object data
-                glm::vec3 scale = entity.GetScale();
-                glm::vec4 boundingSphere = pair.second.Mesh->GetBoundingSphere();
-                boundingSphere.w *= std::max(std::max(scale.x, scale.y), scale.z); // Extend the bounding sphere to fit the largest scale 
                 ObjectData objectData = {
                     m_Scene->GetEntityCachedTransform(entity),
-                    { _entity, 0.f, 0.f, 0.f },
-                    boundingSphere
+                    { _entity, 0.f, 0.f, 0.f }
                 };
                 m_ObjectDataBuffer->SetElements(&objectData, 1, objectId);
-
-                // Populate the instance data buffer if we are culling
-                if (m_SceneRenderSettings.CullEnable)
-                {
-                    InstanceData instanceData = {
-                        objectId, commandIndex
-                    };
-                    m_InstanceDataBuffer->SetElements(&instanceData, 1, objectId);
-                }
 
                 // Material data
                 if (pair.second.Material)
@@ -558,26 +532,6 @@ namespace Heart
 
             commandIndex++;
         }
-    }
-
-    void SceneRenderer::SetupCullCompute()
-    {
-        CullData cullData = {
-            m_Camera->GetFrustumPlanes(),
-            { m_RenderedInstanceCount, 0.f, 0.f, 0.f }
-        };
-        m_CullDataBuffer->SetElements(&cullData, 1, 0);
-
-        auto encoder = m_MainCommandBuffer->EncodeComputeCommands(m_CullComputeTarget.get());
-        encoder->BindPipeline(m_ComputeCullPipeline.get());
-        encoder->BindPipelineBufferResource(0, m_CullDataBuffer.get(), 0, 0, 1);
-        encoder->BindPipelineBufferResource(1, m_ObjectDataBuffer.get(), 0, 0, m_ObjectDataBuffer->GetAllocatedCount());
-        encoder->BindPipelineBufferResource(2, m_IndirectBuffer.get(), 0, 0, m_IndirectBuffer->GetAllocatedCount());
-        encoder->BindPipelineBufferResource(3, m_InstanceDataBuffer.get(), 0, 0, m_InstanceDataBuffer->GetAllocatedCount());
-        encoder->BindPipelineBufferResource(4, m_FinalInstanceBuffer.get(), 0, 0, m_FinalInstanceBuffer->GetAllocatedCount());
-        encoder->FlushPipelineBindings();
-        encoder->Dispatch(m_RenderedInstanceCount / 128 + 1, 1, 1);
-        encoder->EndEncoding();
     }
 
     void SceneRenderer::RenderEnvironmentMap()
@@ -663,9 +617,6 @@ namespace Heart
         // Bind object data
         m_RenderEncoder->BindPipelineBufferResource(1, m_ObjectDataBuffer.get(), 0, 0, m_ObjectDataBuffer->GetAllocatedCount());
 
-        // Bind culled instance map data
-        m_RenderEncoder->BindPipelineBufferResource(12, m_FinalInstanceBuffer.get(), 0, 0, m_FinalInstanceBuffer->GetAllocatedCount());
-
         // Bind material data
         m_RenderEncoder->BindPipelineBufferResource(2, m_MaterialDataBuffer.get(), 0, 0, m_MaterialDataBuffer->GetAllocatedCount());
         
@@ -690,6 +641,21 @@ namespace Heart
             m_RenderEncoder->BindPipelineTextureResource(10, m_DefaultEnvironmentMap.get());
             m_RenderEncoder->BindPipelineTextureLayerResource(11, m_DefaultEnvironmentMap.get(), 0, 0);
         }
+    }
+
+    bool SceneRenderer::FrustumCull(glm::vec4 boundingSphere, const glm::mat4& transform)
+    {
+        float radius = boundingSphere.w;
+        boundingSphere.w = 1.f;
+        glm::vec3 center = transform * boundingSphere;
+        for (int i = 0; i < 6; i++)
+        {
+            auto& plane = m_Camera->GetFrustumPlanes()[i];
+            if (plane.x * center.x + plane.y * center.y + plane.z * center.z + plane.w <= -radius)
+                return false;
+        }
+        
+        return true;
     }
 
     void SceneRenderer::RenderBatches()

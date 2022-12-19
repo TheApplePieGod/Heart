@@ -81,13 +81,6 @@ namespace Heart
             glm::vec2 padding2;
         };
 
-        struct InstanceData
-        {
-            u32 ObjectId;
-            u32 BatchId;
-            glm::vec2 padding;  
-        };
-
         struct FrameData
         {
             glm::mat4 Proj;
@@ -105,7 +98,6 @@ namespace Heart
         {
             glm::mat4 Model;
             glm::vec4 Data;
-            glm::vec4 BoundingSphere;
         };
 
         struct LightData
@@ -141,6 +133,7 @@ namespace Heart
         void Initialize();
         void Resize();
         
+        void InitializeGridBuffers();
         void CreateBuffers();
         void CreateTextures();
         void CreateRenderPasses();
@@ -151,8 +144,8 @@ namespace Heart
         void CalculateBatches();
         void BindMaterial(Material* material);
         void BindPBRDefaults();
+        bool FrustumCull(glm::vec4 boundingSphere, const glm::mat4& transform); // True if visible
 
-        void SetupCullCompute();
         void RenderEnvironmentMap();
         void RenderGrid();
         void RenderBatches();
@@ -160,13 +153,10 @@ namespace Heart
         void Bloom();
         void FinalComposite();
 
-        void InitializeGridBuffers();
-
-        bool OnAppGraphicsInit(AppGraphicsInitEvent& event);
-        bool OnAppGraphicsShutdown(AppGraphicsShutdownEvent& event);
         bool OnWindowResize(WindowResizeEvent& event);
 
     private:
+        Ref<Flourish::Buffer> m_IndirectBuffer;
         Ref<Flourish::Buffer> m_FrameDataBuffer;
         Ref<Flourish::Buffer> m_ObjectDataBuffer;
         Ref<Flourish::Buffer> m_MaterialDataBuffer;
@@ -177,13 +167,6 @@ namespace Heart
         Ref<Flourish::Framebuffer> m_MainFramebuffer;
         Ref<Flourish::CommandBuffer> m_MainCommandBuffer;
         Ref<Flourish::RenderPass> m_MainRenderPass;
-
-        Ref<Flourish::ComputePipeline> m_ComputeCullPipeline;
-        Ref<Flourish::ComputeTarget> m_CullComputeTarget;
-        Ref<Flourish::Buffer> m_CullDataBuffer;
-        Ref<Flourish::Buffer> m_InstanceDataBuffer;
-        Ref<Flourish::Buffer> m_FinalInstanceBuffer;
-        Ref<Flourish::Buffer> m_IndirectBuffer;
 
         Ref<Flourish::ComputePipeline> m_BloomDownsampleComputePipeline;
         Ref<Flourish::ComputePipeline> m_BloomUpsampleComputePipeline;
