@@ -16,7 +16,7 @@
 #include "Flourish/Api/CommandBuffer.h"
 #include "Flourish/Api/RenderCommandEncoder.h"
 #include "Flourish/Api/ComputeCommandEncoder.h"
-#include "Flourish/Api/GraphicsCommandEncoder.h"
+#include "Flourish/Api/TransferCommandEncoder.h"
 #include "Heart/Renderer/Material.h"
 #include "Heart/Renderer/Mesh.h"
 #include "Heart/Renderer/EnvironmentMap.h"
@@ -270,6 +270,13 @@ namespace Heart
         fbCreateInfo.ColorAttachments.push_back({ { 0.f, 0.f, 0.f, 0.f }, m_RenderOutputTexture }); // Output target        [3]
         fbCreateInfo.DepthAttachments.push_back({});
         m_MainFramebuffer = Flourish::Framebuffer::Create(fbCreateInfo);
+
+        Flourish::BufferCreateInfo bufCreateInfo;
+        bufCreateInfo.Usage = Flourish::BufferUsageType::Dynamic;
+        bufCreateInfo.Type = Flourish::BufferType::Pixel;
+        bufCreateInfo.Stride = sizeof(float);
+        bufCreateInfo.ElementCount = m_RenderWidth * m_RenderHeight;
+        m_EntityIdsPixelBuffer = Flourish::Buffer::Create(bufCreateInfo);
     }
 
     void SceneRenderer::CreateComputeObjects()
@@ -309,9 +316,6 @@ namespace Heart
         for (auto& list : m_EntityListPool)
             list.Clear();
 
-        // Update entity id cpu copy status
-        // m_MainFramebuffer->UpdateColorAttachmentCPUVisibliity(0, m_SceneRenderSettings.CopyEntityIdsTextureToCPU);
-
         // Set the global data for this frame
         FrameData frameData = {
             camera.GetProjectionMatrix(), camera.GetViewMatrix(), glm::vec4(cameraPosition, 1.f),
@@ -347,8 +351,13 @@ namespace Heart
         m_RenderEncoder->StartNextSubpass();
         Composite();
 
-        // Submit the framebuffer
         m_RenderEncoder->EndEncoding();
+
+        // Copy ids texture
+        if (m_SceneRenderSettings.CopyEntityIdsTextureToCPU)
+            CopyEntityIdsTexture();
+
+        // Submit
         m_RenderBuffers.push_back({ m_MainCommandBuffer.get() });
 
         // Bloom
@@ -624,11 +633,12 @@ namespace Heart
         m_RenderEncoder->BindPipelineBufferResource(3, m_LightingDataBuffer.get(), 0, 0, m_LightingDataBuffer->GetAllocatedCount());
 
         // Default texture binds
-        m_RenderEncoder->BindPipelineTextureResource(4, AssetManager::RetrieveAsset<TextureAsset>("engine/DefaultTexture.png", true)->GetTexture());
-        m_RenderEncoder->BindPipelineTextureResource(5, AssetManager::RetrieveAsset<TextureAsset>("engine/DefaultTexture.png", true)->GetTexture());
-        m_RenderEncoder->BindPipelineTextureResource(6, AssetManager::RetrieveAsset<TextureAsset>("engine/DefaultTexture.png", true)->GetTexture());
-        m_RenderEncoder->BindPipelineTextureResource(7, AssetManager::RetrieveAsset<TextureAsset>("engine/DefaultTexture.png", true)->GetTexture());
-        m_RenderEncoder->BindPipelineTextureResource(8, AssetManager::RetrieveAsset<TextureAsset>("engine/DefaultTexture.png", true)->GetTexture());
+        Flourish::Texture* defaultTexture = AssetManager::RetrieveAsset<TextureAsset>("engine/DefaultTexture.png", true)->GetTexture();
+        m_RenderEncoder->BindPipelineTextureResource(4, defaultTexture);
+        m_RenderEncoder->BindPipelineTextureResource(5, defaultTexture);
+        m_RenderEncoder->BindPipelineTextureResource(6, defaultTexture);
+        m_RenderEncoder->BindPipelineTextureResource(7, defaultTexture);
+        m_RenderEncoder->BindPipelineTextureResource(8, defaultTexture);
         if (m_EnvironmentMap)
         {
             m_RenderEncoder->BindPipelineTextureResource(9, m_EnvironmentMap->GetIrradianceCubemap());
@@ -729,6 +739,16 @@ namespace Heart
 
         // Draw the fullscreen triangle
         m_RenderEncoder->Draw(3, 0, 1);
+    }
+
+    void SceneRenderer::CopyEntityIdsTexture()
+    {
+        auto encoder = m_MainCommandBuffer->EncodeTransferCommands();
+        encoder->CopyTextureToBuffer(m_EntityIdsTexture.get(), m_EntityIdsPixelBuffer.get());
+        encoder->EndEncoding();
+
+        // Async flushing because we don't need the results immediately
+        m_EntityIdsPixelBuffer->Flush();
     }
 
     void SceneRenderer::Bloom()

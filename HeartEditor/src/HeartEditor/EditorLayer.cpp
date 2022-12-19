@@ -117,13 +117,14 @@ namespace HeartEditor
             glm::vec2 size = viewport.GetSize();
 
             // the image is scaled down in the viewport, so we need to adjust what pixel we are sampling from
-            u32 sampleX = static_cast<u32>(mousePos.x / size.x * viewport.GetSceneRenderer().GetEntityIdsTexture()->GetWidth());
-            u32 sampleY = static_cast<u32>(mousePos.y / size.y * viewport.GetSceneRenderer().GetEntityIdsTexture()->GetHeight());
+            u32 width = viewport.GetSceneRenderer().GetEntityIdsTexture()->GetWidth();
+            u32 height = viewport.GetSceneRenderer().GetEntityIdsTexture()->GetHeight();
+            u32 sampleX = static_cast<u32>(mousePos.x / size.x * width);
+            u32 sampleY = static_cast<u32>(mousePos.y / size.y * height);
 
-            /*
-            f32 entityId = viewport.GetSceneRenderer().GetEntityIdsTexture().ReadPixel<f32>(sampleX, sampleY, 0);
+            float entityId;
+            viewport.GetSceneRenderer().GetEntityIdsPixelBuffer()->ReadBytes(&entityId, 4, (sampleX + sampleY * width) * 4);
             Editor::GetState().SelectedEntity = entityId == -1.f ? Heart::Entity() : Heart::Entity(&Editor::GetActiveScene(), static_cast<u32>(entityId));
-            */
         }
 
         return true;

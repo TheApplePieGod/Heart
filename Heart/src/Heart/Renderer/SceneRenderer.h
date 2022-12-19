@@ -56,7 +56,7 @@ namespace Heart
         inline Flourish::Texture* GetEntityIdsTexture() { return m_EntityIdsTexture.get(); }
         inline Flourish::Texture* GetBloomUpsampleTexture() { return m_BloomUpsampleBufferTexture.get(); }
         inline Flourish::Texture* GetBloomDownsampleTexture() { return m_BloomDownsampleBufferTexture.get(); }
-
+        inline Flourish::Buffer* GetEntityIdsPixelBuffer() { return m_EntityIdsPixelBuffer.get(); }
         inline u32 GetBloomMipCount() const { return m_BloomMipCount; }
 
     private:
@@ -150,12 +150,14 @@ namespace Heart
         void RenderGrid();
         void RenderBatches();
         void Composite();
+        void CopyEntityIdsTexture();
         void Bloom();
         void FinalComposite();
 
         bool OnWindowResize(WindowResizeEvent& event);
 
     private:
+        Ref<Flourish::Buffer> m_EntityIdsPixelBuffer;
         Ref<Flourish::Buffer> m_IndirectBuffer;
         Ref<Flourish::Buffer> m_FrameDataBuffer;
         Ref<Flourish::Buffer> m_ObjectDataBuffer;
