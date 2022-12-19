@@ -26,6 +26,7 @@ namespace Heart
     };
 
     // TODO: describe method lifecycles
+    class WindowResizeEvent;
     class Window : public EventEmitter
     {
     public:
@@ -122,6 +123,10 @@ namespace Heart
 
             EventCallbackFunction EmitEvent;
         };
+
+    private:
+        void EmitEvent(Event& event);
+        bool OnWindowResize(WindowResizeEvent& event);
 
     private:
         inline static int s_WindowCount = 0;

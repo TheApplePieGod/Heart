@@ -27,7 +27,7 @@ namespace Heart
         m_WindowData.Title = createInfo.Title;
         m_WindowData.Width = createInfo.Width;
         m_WindowData.Height = createInfo.Height;
-        m_WindowData.EmitEvent = HE_BIND_EVENT_FN(Window::Emit);
+        m_WindowData.EmitEvent = HE_BIND_EVENT_FN(Window::EmitEvent);
 
         if (s_WindowCount == 0)
         {
@@ -145,7 +145,6 @@ namespace Heart
 
     void Window::BeginFrame()
     {
-        HE_PROFILE_FUNCTION();
 
     }
 
@@ -216,5 +215,19 @@ namespace Heart
     double Window::GetWindowTime()
     {
         return glfwGetTime() * 1000.0;
+    }
+
+    void Window::EmitEvent(Event& event)
+    {
+        event.Map<WindowResizeEvent>(HE_BIND_EVENT_FN(Window::OnWindowResize));
+
+        Emit(event);
+    }
+
+    bool Window::OnWindowResize(WindowResizeEvent& event)
+    {
+        m_RenderContext->UpdateDimensions(event.GetWidth(), event.GetHeight());
+        
+        return false;
     }
 }
