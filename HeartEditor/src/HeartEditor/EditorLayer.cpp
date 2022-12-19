@@ -26,6 +26,8 @@ namespace HeartEditor
         // Crappy default project solution until we get some sort of settings file
         if (std::filesystem::exists("D:/Projects/Heart/HeartProjects/DemoGame/DemoGame.heproj"))
             Project::LoadFromPath("D:/Projects/Heart/HeartProjects/DemoGame/DemoGame.heproj");
+        else if (std::filesystem::exists("../../../HeartProjects/TestProject/TestProject.heproj"))
+            Project::LoadFromPath("../../../HeartProjects/TestProject/TestProject.heproj");
         else
             Editor::CreateWindows();
 
