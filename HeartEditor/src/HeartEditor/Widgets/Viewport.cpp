@@ -67,8 +67,10 @@ namespace Widgets
             default: outputTex = m_SceneRenderer->GetFinalTexture(); break;
             case 1: outputTex = m_SceneRenderer->GetRenderOutputTexture(); break;
             case 2: outputTex = m_SceneRenderer->GetEntityIdsTexture(); break;
-            case 3: outputTex = m_SceneRenderer->GetBloomDownsampleTexture(); break;
-            case 4: outputTex = m_SceneRenderer->GetBloomUpsampleTexture(); break;
+            case 3: outputTex = m_SceneRenderer->GetDepthTexture(); break;
+            case 4: outputTex = m_SceneRenderer->GetSSAOTexture(); break;
+            case 5: outputTex = m_SceneRenderer->GetBloomDownsampleTexture(); break;
+            case 6: outputTex = m_SceneRenderer->GetBloomUpsampleTexture(); break;
         }
         ImGui::Image(
             outputTex->GetImGuiHandle(0, m_SelectedOutputMip),
@@ -191,17 +193,27 @@ namespace Widgets
                     m_SelectedOutput = 2;
                     m_SelectedOutputMip = 0;
                 }
+                if (ImGui::MenuItem("Depth", nullptr, m_SelectedOutput == 3))
+                {
+                    m_SelectedOutput = 3;
+                    m_SelectedOutputMip = 0;
+                }
+                if (ImGui::MenuItem("SSAO", nullptr, m_SelectedOutput == 4))
+                {
+                    m_SelectedOutput = 4;
+                    m_SelectedOutputMip = 0;
+                }
 
                 if (ImGui::BeginMenu("Bloom downsample"))
                 {
                     if (ImGui::DragInt("Mip", &m_SelectedOutputMip, 1.0, 0, m_SceneRenderer->GetBloomMipCount() - 1))
-                        m_SelectedOutput = 3;
+                        m_SelectedOutput = 5;
                     ImGui::EndMenu();
                 }
                 if (ImGui::BeginMenu("Bloom upsample"))
                 {
                     if (ImGui::DragInt("Mip", &m_SelectedOutputMip, 1.0, 0, m_SceneRenderer->GetBloomMipCount() - 1))
-                        m_SelectedOutput = 4;
+                        m_SelectedOutput = 6;
                     ImGui::EndMenu();
                 }
 

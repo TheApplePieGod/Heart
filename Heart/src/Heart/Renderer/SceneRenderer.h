@@ -24,6 +24,7 @@ namespace Heart
     {
         bool DrawGrid = true;
         bool BloomEnable = true;
+        bool SSAOEnable = true;
         float BloomThreshold = 1.f;
         float BloomKnee = 0.1f;
         float BloomSampleScale = 1.f;
@@ -54,6 +55,8 @@ namespace Heart
         inline Flourish::Texture* GetFinalTexture() { return m_FinalTexture.get(); }
         inline Flourish::Texture* GetRenderOutputTexture() { return m_RenderOutputTexture.get(); }
         inline Flourish::Texture* GetEntityIdsTexture() { return m_EntityIdsTexture.get(); }
+        inline Flourish::Texture* GetDepthTexture() { return m_DepthTexture.get(); }
+        inline Flourish::Texture* GetSSAOTexture() { return m_SSAOTexture.get(); }
         inline Flourish::Texture* GetBloomUpsampleTexture() { return m_BloomUpsampleBufferTexture.get(); }
         inline Flourish::Texture* GetBloomDownsampleTexture() { return m_BloomDownsampleBufferTexture.get(); }
         inline Flourish::Buffer* GetEntityIdsPixelBuffer() { return m_EntityIdsPixelBuffer.get(); }
@@ -85,6 +88,7 @@ namespace Heart
         {
             glm::mat4 Proj;
             glm::mat4 View;
+            glm::mat4 InvViewProj;
             glm::vec4 CameraPos;
             glm::vec2 ScreenSize;
             u32 ReverseDepth;
@@ -151,6 +155,7 @@ namespace Heart
         void RenderBatches();
         void Composite();
         void CopyEntityIdsTexture();
+        void SSAO();
         void Bloom();
         void FinalComposite();
 
@@ -165,6 +170,7 @@ namespace Heart
         Ref<Flourish::Buffer> m_ObjectDataBuffer;
         Ref<Flourish::Buffer> m_MaterialDataBuffer;
         Ref<Flourish::Buffer> m_LightingDataBuffer;
+        Ref<Flourish::Texture> m_DepthTexture;
         Ref<Flourish::Texture> m_DefaultEnvironmentMap;
         Ref<Flourish::Texture> m_RenderOutputTexture;
         Ref<Flourish::Texture> m_EntityIdsTexture;
@@ -179,6 +185,11 @@ namespace Heart
         Ref<Flourish::Texture> m_BloomDownsampleBufferTexture;
         Ref<Flourish::Texture> m_BloomUpsampleBufferTexture;
         Ref<Flourish::Buffer> m_BloomDataBuffer;
+
+        Ref<Flourish::ComputePipeline> m_SSAOComputePipeline;
+        Ref<Flourish::ComputeTarget> m_SSAOComputeTarget;
+        Ref<Flourish::CommandBuffer> m_SSAOCommandBuffer;
+        Ref<Flourish::Texture> m_SSAOTexture;
 
         Ref<Flourish::ComputePipeline> m_FinalCompositeComputePipeline;
         Ref<Flourish::ComputeTarget> m_FinalComputeTarget;

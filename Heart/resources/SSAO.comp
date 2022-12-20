@@ -1,0 +1,58 @@
+#version 450
+
+#include "FrameBuffer.glsl"
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+struct Data {
+    mat4 invViewProj;
+    vec4 samples[64];
+    uint kernelSize;
+    float radius;
+    float bias;
+    float padding;
+};
+
+layout(binding = 1) readonly uniform Data {
+    Data data;
+} dataBuffer;
+
+layout(binding = 2) uniform sampler2D depthTex;
+layout(binding = 3, r16f) writeonly uniform image2D ssaoTex;
+
+vec3 ComputePosition(vec2 uv, float depth)
+{
+    float x = uv.x * 2.0f - 1.0f;
+    float y = (1.0 - uv.y) * 2.0f - 1.0f;
+    vec4 positionS = vec4(x, y, depth, 1.0f);
+    vec4 positionV = dataBuffer.data.invViewProj * positionS;
+    return positionV.xyz / positionV.w;
+}
+
+void main()
+{
+    ivec2 coord = ivec2(gl_GlobalInvocationID.xy);
+    
+    if (coord.x >= frameBuffer.data.screenSize.x || coord.y >= frameBuffer.data.screenSize.y) return;
+    
+    vec2 texCoord = coord / frameBuffer.data.screenSize;
+    float dx = 1.0 / frameBuffer.data.screenSize.x;
+    float dy = 1.0 / frameBuffer.data.screenSize.y;
+    
+    // Offset texcoord to match texel offsets
+    texCoord += vec2(dx, dy);
+
+    vec2 uv1 = texCoord + vec2(dx, 0);
+    vec2 uv2 = texCoord + vec2(0, -dy);
+    float depth0 = texture(depthTex, texCoord).r; // Center
+    float depth1 = texture(depthTex, uv1).r; // Right
+    float depth2 = texture(depthTex, uv2).r; // Top
+
+    vec3 P0 = ComputePosition(texCoord, depth0);
+    vec3 P1 = ComputePosition(uv1, depth1);
+    vec3 P2 = ComputePosition(uv2, depth2);
+
+    vec3 normal = normalize(cross(P2 - P0, P1 - P0));
+
+    imageStore(ssaoTex, coord, vec4(normal, 1.f));
+}

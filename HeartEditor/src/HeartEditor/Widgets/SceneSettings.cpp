@@ -54,6 +54,10 @@ namespace Widgets
         ImGui::SameLine();
         ImGui::Checkbox("##DrawGrid", &Editor::GetState().RenderSettings.DrawGrid);
 
+        ImGui::Text("SSAO Enable");
+        ImGui::SameLine();
+        ImGui::Checkbox("##SSAOEnable", &Editor::GetState().RenderSettings.SSAOEnable);
+
         ImGui::Text("Bloom Enable");
         ImGui::SameLine();
         ImGui::Checkbox("##BloomEnable", &Editor::GetState().RenderSettings.BloomEnable);

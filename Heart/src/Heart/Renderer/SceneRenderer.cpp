@@ -95,6 +95,9 @@ namespace Heart
 
         cbCreateInfo.MaxEncoders = 1; 
         m_FinalCommandBuffer = Flourish::CommandBuffer::Create(cbCreateInfo);
+
+        cbCreateInfo.MaxEncoders = 1; 
+        m_SSAOCommandBuffer = Flourish::CommandBuffer::Create(cbCreateInfo);
     }
 
     void SceneRenderer::Resize()
@@ -164,6 +167,16 @@ namespace Heart
         texCreateInfo.MipCount = 1;
         m_EntityIdsTexture = Flourish::Texture::Create(texCreateInfo);
 
+        texCreateInfo.Format = Flourish::ColorFormat::Depth;
+        texCreateInfo.Usage = Flourish::TextureUsageType::RenderTarget;
+        texCreateInfo.MipCount = 1;
+        m_DepthTexture = Flourish::Texture::Create(texCreateInfo);
+
+        texCreateInfo.Format = Flourish::ColorFormat::R16_FLOAT;
+        texCreateInfo.Usage = Flourish::TextureUsageType::ComputeTarget;
+        texCreateInfo.MipCount = 1;
+        m_SSAOTexture = Flourish::Texture::Create(texCreateInfo);
+
         texCreateInfo.Format = Flourish::ColorFormat::RGBA16_FLOAT;
         texCreateInfo.Usage = Flourish::TextureUsageType::ComputeTarget;
         texCreateInfo.MipCount = 7;
@@ -182,7 +195,7 @@ namespace Heart
         rpCreateInfo.ColorAttachments.push_back({ Flourish::ColorFormat::RGBA16_FLOAT });     // Transparency data    [1]
         rpCreateInfo.ColorAttachments.push_back({ Flourish::ColorFormat::R16_FLOAT });        // Transparency data    [2]
         rpCreateInfo.ColorAttachments.push_back({ m_RenderOutputTexture->GetColorFormat() }); // Output target        [3]
-        rpCreateInfo.DepthAttachments.push_back({});
+        rpCreateInfo.DepthAttachments.push_back({ Flourish::ColorFormat::Depth });
         rpCreateInfo.Subpasses.push_back({ // Environment map
             {},
             { { Flourish::SubpassAttachmentType::Color, 3 } }
@@ -270,7 +283,7 @@ namespace Heart
         fbCreateInfo.ColorAttachments.push_back({ { 0.f, 0.f, 0.f, 0.f } });                        // Transparency data    [1]
         fbCreateInfo.ColorAttachments.push_back({ { 1.f, 0.f, 0.f, 0.f } });                        // Transparency data    [2]
         fbCreateInfo.ColorAttachments.push_back({ { 0.f, 0.f, 0.f, 0.f }, m_RenderOutputTexture }); // Output target        [3]
-        fbCreateInfo.DepthAttachments.push_back({});
+        fbCreateInfo.DepthAttachments.push_back({ m_DepthTexture });
         m_MainFramebuffer = Flourish::Framebuffer::Create(fbCreateInfo);
 
         Flourish::BufferCreateInfo bufCreateInfo;
@@ -292,9 +305,13 @@ namespace Heart
 
         compCreateInfo.ComputeShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/FinalComposite.comp", true)->GetShader();
         m_FinalCompositeComputePipeline = Flourish::ComputePipeline::Create(compCreateInfo);
+
+        compCreateInfo.ComputeShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/SSAO.comp", true)->GetShader();
+        m_SSAOComputePipeline = Flourish::ComputePipeline::Create(compCreateInfo);
         
         m_BloomComputeTarget = Flourish::ComputeTarget::Create();
         m_FinalComputeTarget = Flourish::ComputeTarget::Create();
+        m_SSAOComputeTarget = Flourish::ComputeTarget::Create();
     }
 
     void SceneRenderer::RenderScene(Scene* scene, const Camera& camera, glm::vec3 cameraPosition, const SceneRenderSettings& renderSettings)
@@ -320,7 +337,10 @@ namespace Heart
 
         // Set the global data for this frame
         FrameData frameData = {
-            camera.GetProjectionMatrix(), camera.GetViewMatrix(), glm::vec4(cameraPosition, 1.f),
+            camera.GetProjectionMatrix(),
+            camera.GetViewMatrix(),
+            glm::inverse(camera.GetProjectionMatrix() * camera.GetViewMatrix()),
+            glm::vec4(cameraPosition, 1.f),
             { m_RenderWidth, m_RenderHeight },
             Flourish::Context::ReversedZBuffer(),
             m_SceneRenderSettings.CullEnable,
@@ -361,6 +381,10 @@ namespace Heart
 
         // Submit
         m_RenderBuffers.push_back({ m_MainCommandBuffer.get() });
+
+        // SSAO
+        if (m_SceneRenderSettings.SSAOEnable)
+            SSAO();
 
         // Bloom
         if (m_SceneRenderSettings.BloomEnable)
@@ -752,6 +776,20 @@ namespace Heart
 
         // Async flushing because we don't need the results immediately
         m_EntityIdsPixelBuffer->Flush();
+    }
+
+    void SceneRenderer::SSAO()
+    {
+        auto encoder = m_SSAOCommandBuffer->EncodeComputeCommands(m_SSAOComputeTarget.get());
+        encoder->BindPipeline(m_SSAOComputePipeline.get());
+        encoder->BindPipelineBufferResource(0, m_FrameDataBuffer.get(), 0, 0, 1);
+        encoder->BindPipelineTextureResource(1, m_DepthTexture.get());
+        encoder->BindPipelineTextureResource(2, m_SSAOTexture.get());
+        encoder->FlushPipelineBindings();
+        encoder->Dispatch((m_RenderWidth / 16) + 1, (m_RenderHeight / 16) + 1, 1);
+        encoder->EndEncoding();
+
+        m_RenderBuffers.push_back({ m_SSAOCommandBuffer.get() });
     }
 
     void SceneRenderer::Bloom()
