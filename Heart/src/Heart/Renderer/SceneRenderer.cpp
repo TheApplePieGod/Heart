@@ -90,7 +90,7 @@ namespace Heart
         cbCreateInfo.MaxEncoders = 5;
         m_MainCommandBuffer = Flourish::CommandBuffer::Create(cbCreateInfo);
 
-        cbCreateInfo.MaxEncoders = m_BloomMipCount * 2; 
+        cbCreateInfo.MaxEncoders = m_MaxBloomMipCount * 2; 
         m_BloomCommandBuffer = Flourish::CommandBuffer::Create(cbCreateInfo);
 
         cbCreateInfo.MaxEncoders = 1; 
@@ -117,7 +117,7 @@ namespace Heart
 
         bufCreateInfo.Type = Flourish::BufferType::Uniform;
         bufCreateInfo.Stride = sizeof(BloomData);
-        bufCreateInfo.ElementCount = m_BloomMipCount * 2;
+        bufCreateInfo.ElementCount = m_MaxBloomMipCount * 2;
         m_BloomDataBuffer = Flourish::Buffer::Create(bufCreateInfo);
 
         bufCreateInfo.Type = Flourish::BufferType::Storage;
@@ -166,16 +166,18 @@ namespace Heart
 
         texCreateInfo.Format = Flourish::ColorFormat::RGBA16_FLOAT;
         texCreateInfo.Usage = Flourish::TextureUsageType::ComputeTarget;
-        texCreateInfo.MipCount = m_BloomMipCount;
+        texCreateInfo.MipCount = 7;
         texCreateInfo.SamplerState.UVWWrap = { Flourish::SamplerWrapMode::ClampToEdge, Flourish::SamplerWrapMode::ClampToEdge, Flourish::SamplerWrapMode::ClampToEdge };
         m_BloomDownsampleBufferTexture = Flourish::Texture::Create(texCreateInfo);
         m_BloomUpsampleBufferTexture = Flourish::Texture::Create(texCreateInfo);
+        
+        m_BloomMipCount = m_BloomDownsampleBufferTexture->GetMipCount();
     }
 
     void SceneRenderer::CreateRenderPasses()
     {
         Flourish::RenderPassCreateInfo rpCreateInfo;
-        rpCreateInfo.SampleCount = Flourish::MsaaSampleCount::None;
+        rpCreateInfo.SampleCount = Flourish::MsaaSampleCount::Four;
         rpCreateInfo.ColorAttachments.push_back({ m_EntityIdsTexture->GetColorFormat() });    // Entity ids           [0]
         rpCreateInfo.ColorAttachments.push_back({ Flourish::ColorFormat::RGBA16_FLOAT });     // Transparency data    [1]
         rpCreateInfo.ColorAttachments.push_back({ Flourish::ColorFormat::R16_FLOAT });        // Transparency data    [2]
@@ -743,6 +745,7 @@ namespace Heart
 
     void SceneRenderer::CopyEntityIdsTexture()
     {
+        return;
         auto encoder = m_MainCommandBuffer->EncodeTransferCommands();
         encoder->CopyTextureToBuffer(m_EntityIdsTexture.get(), m_EntityIdsPixelBuffer.get());
         encoder->EndEncoding();
@@ -798,7 +801,10 @@ namespace Heart
             auto encoder = m_BloomCommandBuffer->EncodeComputeCommands(m_BloomComputeTarget.get());
             encoder->BindPipeline(m_BloomUpsampleComputePipeline.get());
             encoder->BindPipelineBufferResource(0, m_BloomDataBuffer.get(), 0, i + m_BloomMipCount, 1);
-            encoder->BindPipelineTextureLayerResource(1, m_BloomUpsampleBufferTexture.get(), 0, i + 1);
+            if (i == m_BloomMipCount - 2)
+                encoder->BindPipelineTextureLayerResource(1, m_BloomDownsampleBufferTexture.get(), 0, i + 1);
+            else
+                encoder->BindPipelineTextureLayerResource(1, m_BloomUpsampleBufferTexture.get(), 0, i + 1);
             encoder->BindPipelineTextureLayerResource(2, m_BloomDownsampleBufferTexture.get(), 0, i);
             encoder->BindPipelineTextureLayerResource(3, m_BloomUpsampleBufferTexture.get(), 0, i);
             encoder->FlushPipelineBindings();

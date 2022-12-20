@@ -157,6 +157,8 @@ namespace Heart
         bool OnWindowResize(WindowResizeEvent& event);
 
     private:
+        const u32 m_MaxBloomMipCount = 7;
+
         Ref<Flourish::Buffer> m_EntityIdsPixelBuffer;
         Ref<Flourish::Buffer> m_IndirectBuffer;
         Ref<Flourish::Buffer> m_FrameDataBuffer;
@@ -198,7 +200,7 @@ namespace Heart
         u32 m_RenderedInstanceCount;
         std::vector<std::vector<Flourish::CommandBuffer*>> m_RenderBuffers;
 
-        const u32 m_BloomMipCount = 7;
+        u32 m_BloomMipCount = 0;
         bool m_ShouldResize = false;
         u32 m_RenderWidth = 0;
         u32 m_RenderHeight = 0;

@@ -58,6 +58,9 @@ namespace Heart
             }
         }
         
+        Flourish::TextureSamplerState samp;
+        samp.AnisotropyEnable = true;
+
         Flourish::TextureCreateInfo createInfo = {
             static_cast<u32>(width),
             static_cast<u32>(height),
@@ -65,7 +68,7 @@ namespace Heart
             Flourish::TextureUsageType::Readonly,
             Flourish::TextureWritability::Once,
             1, 0,
-            Flourish::TextureSamplerState(),
+            samp,
             pixels,
             static_cast<u32>(width * height * m_DesiredChannelCount) * (floatComponents ? 4 : 1),
             async,
