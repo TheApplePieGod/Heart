@@ -769,7 +769,6 @@ namespace Heart
 
     void SceneRenderer::CopyEntityIdsTexture()
     {
-        return;
         auto encoder = m_MainCommandBuffer->EncodeTransferCommands();
         encoder->CopyTextureToBuffer(m_EntityIdsTexture.get(), m_EntityIdsPixelBuffer.get());
         encoder->EndEncoding();
@@ -783,8 +782,9 @@ namespace Heart
         auto encoder = m_SSAOCommandBuffer->EncodeComputeCommands(m_SSAOComputeTarget.get());
         encoder->BindPipeline(m_SSAOComputePipeline.get());
         encoder->BindPipelineBufferResource(0, m_FrameDataBuffer.get(), 0, 0, 1);
-        encoder->BindPipelineTextureResource(1, m_DepthTexture.get());
-        encoder->BindPipelineTextureResource(2, m_SSAOTexture.get());
+        encoder->BindPipelineBufferResource(1, m_FrameDataBuffer.get(), 0, 0, 1);
+        encoder->BindPipelineTextureResource(2, m_DepthTexture.get());
+        encoder->BindPipelineTextureResource(3, m_SSAOTexture.get());
         encoder->FlushPipelineBindings();
         encoder->Dispatch((m_RenderWidth / 16) + 1, (m_RenderHeight / 16) + 1, 1);
         encoder->EndEncoding();

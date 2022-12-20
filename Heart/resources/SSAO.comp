@@ -5,7 +5,6 @@
 layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
 struct Data {
-    mat4 invViewProj;
     vec4 samples[64];
     uint kernelSize;
     float radius;
@@ -13,7 +12,7 @@ struct Data {
     float padding;
 };
 
-layout(binding = 1) readonly uniform Data {
+layout(binding = 1) readonly uniform DataBuffer {
     Data data;
 } dataBuffer;
 
@@ -25,7 +24,7 @@ vec3 ComputePosition(vec2 uv, float depth)
     float x = uv.x * 2.0f - 1.0f;
     float y = (1.0 - uv.y) * 2.0f - 1.0f;
     vec4 positionS = vec4(x, y, depth, 1.0f);
-    vec4 positionV = dataBuffer.data.invViewProj * positionS;
+    vec4 positionV = frameBuffer.data.invViewProj * positionS;
     return positionV.xyz / positionV.w;
 }
 

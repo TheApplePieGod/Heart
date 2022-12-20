@@ -29,12 +29,17 @@ namespace Heart
 		return { (f32)xPos, (f32)yPos };
     }
 
+    void Input::SetMousePosition(double newX, double newY)
+    {
+        s_LastMousePosX = newX;
+        s_LastMousePosY = newY;
+    }
+
     void Input::UpdateMousePosition(double newX, double newY)
     {
         s_MouseDeltaX += newX - s_LastMousePosX;
         s_MouseDeltaY += newY - s_LastMousePosY;
-        s_LastMousePosX = newX;
-        s_LastMousePosY = newY;
+        SetMousePosition(newX, newY);
     }
 
     void Input::UpdateScrollOffset(double newX, double newY)

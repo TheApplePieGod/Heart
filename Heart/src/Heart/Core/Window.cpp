@@ -170,6 +170,10 @@ namespace Heart
     void Window::EnableCursor()
     {
         glfwSetInputMode(m_Window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        
+        double xpos, ypos;
+        glfwGetCursorPos(m_Window, &xpos, &ypos);
+        Input::SetMousePosition(xpos, ypos);
     }
 
     void Window::SetWindowTitle(const char* newTitle)
