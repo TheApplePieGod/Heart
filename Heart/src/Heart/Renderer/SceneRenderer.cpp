@@ -78,12 +78,13 @@ namespace Heart
         envTexCreateInfo.MipCount = 5;
         m_DefaultEnvironmentMap = Flourish::Texture::Create(envTexCreateInfo);
 
-        InitializeGridBuffers();
         CreateBuffers();
         CreateTextures();
         CreateRenderPasses();
         CreateFramebuffers();
         CreateComputeObjects();
+        InitializeGridBuffers();
+        InitializeSSAOData();
 
         // Create command buffers
         Flourish::CommandBufferCreateInfo cbCreateInfo;
@@ -122,6 +123,11 @@ namespace Heart
         bufCreateInfo.Stride = sizeof(BloomData);
         bufCreateInfo.ElementCount = m_MaxBloomMipCount * 2;
         m_BloomDataBuffer = Flourish::Buffer::Create(bufCreateInfo);
+
+        bufCreateInfo.Type = Flourish::BufferType::Uniform;
+        bufCreateInfo.Stride = sizeof(SSAOData);
+        bufCreateInfo.ElementCount = 1;
+        m_SSAODataBuffer = Flourish::Buffer::Create(bufCreateInfo);
 
         bufCreateInfo.Type = Flourish::BufferType::Storage;
         bufCreateInfo.Stride = sizeof(LightData);
@@ -779,12 +785,18 @@ namespace Heart
 
     void SceneRenderer::SSAO()
     {
+        m_SSAOData.KernelSize = 64;
+        m_SSAOData.Radius = 0.5f;
+        m_SSAOData.Bias = 0.025f;
+        m_SSAODataBuffer->SetElements(&m_SSAOData, 1, 0);
+
         auto encoder = m_SSAOCommandBuffer->EncodeComputeCommands(m_SSAOComputeTarget.get());
         encoder->BindPipeline(m_SSAOComputePipeline.get());
         encoder->BindPipelineBufferResource(0, m_FrameDataBuffer.get(), 0, 0, 1);
-        encoder->BindPipelineBufferResource(1, m_FrameDataBuffer.get(), 0, 0, 1);
+        encoder->BindPipelineBufferResource(1, m_SSAODataBuffer.get(), 0, 0, 1);
         encoder->BindPipelineTextureResource(2, m_DepthTexture.get());
-        encoder->BindPipelineTextureResource(3, m_SSAOTexture.get());
+        encoder->BindPipelineTextureResource(3, m_SSAONoiseTexture.get());
+        encoder->BindPipelineTextureResource(4, m_SSAOTexture.get());
         encoder->FlushPipelineBindings();
         encoder->Dispatch((m_RenderWidth / 16) + 1, (m_RenderHeight / 16) + 1, 1);
         encoder->EndEncoding();
@@ -919,5 +931,52 @@ namespace Heart
         bufCreateInfo.InitialData = indices.Data();
         bufCreateInfo.InitialDataSize = sizeof(u32) * indices.Count();
         m_GridIndices = Flourish::Buffer::Create(bufCreateInfo);
+    }
+
+    // https://learnopengl.com/Advanced-Lighting/SSAO
+    void SceneRenderer::InitializeSSAOData()
+    {
+        // Generate random hemispherical perturbation vectors
+        std::uniform_real_distribution<float> floats(0.f, 1.f);
+        std::default_random_engine generator;
+        for (u32 i = 0; i < 64; i++)
+        {
+            m_SSAOData.Samples[i].x = floats(generator) * 2.f - 1.f;
+            m_SSAOData.Samples[i].y = floats(generator) * 2.f - 1.f;
+            m_SSAOData.Samples[i].z = floats(generator);
+            m_SSAOData.Samples[i].w = 0.f;
+
+            m_SSAOData.Samples[i] = glm::normalize(m_SSAOData.Samples[i]);
+            m_SSAOData.Samples[i] *= floats(generator);
+
+            // Scale sample to distribute more towards the origin
+            float scale = (float)i / 64.f; 
+            scale = 0.1f + (scale * scale * 0.9f); // lerp(0.1, 1.0, scale * scale)
+            m_SSAOData.Samples[i] *= scale;
+        }
+
+        // Generate random noise for the sample kernels
+        std::vector<glm::vec4> noise;
+        for (u32 i = 0; i < 16; i++)
+        {
+            noise.emplace_back(
+                floats(generator) * 2.f - 1.f, 
+                floats(generator) * 2.f - 1.f, 
+                0.f,
+                0.f
+            );
+        }
+
+        // Create a texture from the random noise for later sampling
+        Flourish::TextureCreateInfo texCreateInfo;
+        texCreateInfo.Width = 4;
+        texCreateInfo.Height = 4;
+        texCreateInfo.Format = Flourish::ColorFormat::RGBA32_FLOAT;
+        texCreateInfo.Usage = Flourish::TextureUsageType::Readonly;
+        texCreateInfo.ArrayCount = 1;
+        texCreateInfo.MipCount = 1;
+        texCreateInfo.InitialData = noise.data();
+        texCreateInfo.InitialDataSize = noise.size() * sizeof(glm::vec4);
+        m_SSAONoiseTexture = Flourish::Texture::Create(texCreateInfo);
     }
 }

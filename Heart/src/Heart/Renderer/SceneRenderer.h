@@ -133,16 +133,26 @@ namespace Heart
             glm::vec4 Padding2;
         };
 
+        struct SSAOData
+        {
+            glm::vec4 Samples[64];
+            u32 KernelSize;
+            float Radius;
+            float Bias;
+            float Padding;
+        };
+
     private:
         void Initialize();
         void Resize();
         
-        void InitializeGridBuffers();
         void CreateBuffers();
         void CreateTextures();
         void CreateRenderPasses();
         void CreateFramebuffers();
         void CreateComputeObjects();
+        void InitializeGridBuffers();
+        void InitializeSSAOData();
 
         void UpdateLightingBuffer();
         void CalculateBatches();
@@ -190,6 +200,9 @@ namespace Heart
         Ref<Flourish::ComputeTarget> m_SSAOComputeTarget;
         Ref<Flourish::CommandBuffer> m_SSAOCommandBuffer;
         Ref<Flourish::Texture> m_SSAOTexture;
+        Ref<Flourish::Texture> m_SSAONoiseTexture;
+        Ref<Flourish::Buffer> m_SSAODataBuffer;
+        SSAOData m_SSAOData;
 
         Ref<Flourish::ComputePipeline> m_FinalCompositeComputePipeline;
         Ref<Flourish::ComputeTarget> m_FinalComputeTarget;
