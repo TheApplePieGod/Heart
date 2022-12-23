@@ -6,7 +6,7 @@
 
 layout(location = 0) out vec2 texCoord;
 layout(location = 1) out int entityId;
-layout(location = 2) out float depth;
+layout(location = 2) out vec4 viewPos;
 layout(location = 3) out vec3 worldPos;
 layout(location = 4) out vec3 normal;
 layout(location = 5) out vec3 tangent;
@@ -23,8 +23,7 @@ void main() {
     int objectId = instanceIndex;
 
     worldPos = (objectBuffer.objects[objectId].model * vec4(inPosition, 1.0)).xyz;
-    vec4 viewPos = (frameBuffer.data.view * vec4(worldPos, 1.0));
-    depth = viewPos.z;
+    viewPos = (frameBuffer.data.view * vec4(worldPos, 1.0));
     gl_Position = frameBuffer.data.proj * viewPos;
     
     texCoord = inTexCoord;

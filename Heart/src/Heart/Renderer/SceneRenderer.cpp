@@ -345,7 +345,7 @@ namespace Heart
         FrameData frameData = {
             camera.GetProjectionMatrix(),
             camera.GetViewMatrix(),
-            glm::inverse(camera.GetProjectionMatrix() * camera.GetViewMatrix()),
+            glm::inverse(camera.GetProjectionMatrix()/* * camera.GetViewMatrix()*/),
             glm::vec4(cameraPosition, 1.f),
             { m_RenderWidth, m_RenderHeight },
             Flourish::Context::ReversedZBuffer(),
@@ -683,6 +683,9 @@ namespace Heart
             m_RenderEncoder->BindPipelineTextureResource(10, m_DefaultEnvironmentMap.get());
             m_RenderEncoder->BindPipelineTextureLayerResource(11, m_DefaultEnvironmentMap.get(), 0, 0);
         }
+        
+        // Bind SSAO texture
+        m_RenderEncoder->BindPipelineTextureResource(12, m_SSAOTexture.get());
     }
 
     bool SceneRenderer::FrustumCull(glm::vec4 boundingSphere, const glm::mat4& transform)
@@ -785,9 +788,9 @@ namespace Heart
 
     void SceneRenderer::SSAO()
     {
-        m_SSAOData.KernelSize = 64;
-        m_SSAOData.Radius = 0.5f;
-        m_SSAOData.Bias = 0.025f;
+        m_SSAOData.KernelSize = m_SceneRenderSettings.SSAOKernelSize;
+        m_SSAOData.Radius = m_SceneRenderSettings.SSAORadius;
+        m_SSAOData.Bias = m_SceneRenderSettings.SSAOBias;
         m_SSAODataBuffer->SetElements(&m_SSAOData, 1, 0);
 
         auto encoder = m_SSAOCommandBuffer->EncodeComputeCommands(m_SSAOComputeTarget.get());
@@ -977,6 +980,9 @@ namespace Heart
         texCreateInfo.MipCount = 1;
         texCreateInfo.InitialData = noise.data();
         texCreateInfo.InitialDataSize = noise.size() * sizeof(glm::vec4);
+        texCreateInfo.SamplerState.UVWWrap = {
+            Flourish::SamplerWrapMode::Repeat, Flourish::SamplerWrapMode::Repeat, Flourish::SamplerWrapMode::Repeat
+        };
         m_SSAONoiseTexture = Flourish::Texture::Create(texCreateInfo);
     }
 }

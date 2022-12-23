@@ -57,7 +57,19 @@ namespace Widgets
         ImGui::Text("SSAO Enable");
         ImGui::SameLine();
         ImGui::Checkbox("##SSAOEnable", &Editor::GetState().RenderSettings.SSAOEnable);
-
+        
+        ImGui::Text("SSAO Radius");
+        ImGui::SameLine();
+        ImGui::DragFloat("##SSAORad", &Editor::GetState().RenderSettings.SSAORadius, 0.05f, 0.f, 5.f);
+        
+        ImGui::Text("SSAO Bias");
+        ImGui::SameLine();
+        ImGui::DragFloat("##SSAOBias", &Editor::GetState().RenderSettings.SSAOBias, 0.005f, 0.f, 1.f);
+        
+        ImGui::Text("SSAO Kernel Size");
+        ImGui::SameLine();
+        ImGui::DragInt("##SSAOKern", &Editor::GetState().RenderSettings.SSAOKernelSize, 1.f, 0, 64);
+         
         ImGui::Text("Bloom Enable");
         ImGui::SameLine();
         ImGui::Checkbox("##BloomEnable", &Editor::GetState().RenderSettings.BloomEnable);

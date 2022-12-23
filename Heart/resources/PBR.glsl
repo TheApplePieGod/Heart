@@ -21,7 +21,7 @@ struct Light {
 
 layout(location = 0) in vec2 texCoord;
 layout(location = 1) in flat int entityId;
-layout(location = 2) in float depth;
+layout(location = 2) in vec4 viewPos;
 layout(location = 3) in vec3 worldPos;
 layout(location = 4) in vec3 normal;
 layout(location = 5) in vec3 tangent;
@@ -43,6 +43,7 @@ layout(binding = 8) uniform sampler2D occlusionTex;
 layout(binding = 9) uniform samplerCube irradianceMap;
 layout(binding = 10) uniform samplerCube prefilterMap;
 layout(binding = 11) uniform sampler2D brdfLUT;
+layout(binding = 12) uniform sampler2D ssaoTex;
 
 #define PI 3.1415926
 #define DIRECTIONAL 1
@@ -219,6 +220,11 @@ vec4 GetFinalColor()
 
     vec3 irradiance = texture(irradianceMap, N).rgb;
     vec3 diffuse = irradiance * baseColor.rgb;
+    
+    vec4 fragPos = frameBuffer.data.proj * viewPos;
+    fragPos.xyz /= fragPos.w;
+    fragPos.xyz = fragPos.xyz * 0.5 + 0.5;
+    occlusion *= texture(ssaoTex, fragPos.xy).r; 
     
     vec3 prefilteredColor = textureLod(prefilterMap, R,  filteredRoughness * MAX_REFLECTION_LOD).rgb;   
     vec2 envBRDF = texture(brdfLUT, vec2(max(dot(N, V), 0.0), filteredRoughness)).rg;
