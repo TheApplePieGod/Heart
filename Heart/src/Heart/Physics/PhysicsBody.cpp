@@ -20,7 +20,9 @@ namespace Heart
             { other.m_Shape = CreateRef<btSphereShape>(*static_cast<btSphereShape*>(m_Shape.get())); } break;
         }
 
-        other.Initialize(m_Mass);
+        btTransform transform;
+        m_MotionState->getWorldTransform(transform);
+        other.Initialize(m_Mass, transform);
         
         return other;
     }
@@ -49,6 +51,68 @@ namespace Heart
         return rot;
     }
 
+    void PhysicsBody::SetPosition(glm::vec3 pos, bool resetVel)
+    {
+        HE_ENGINE_ASSERT(m_Initialized);
+        
+        btTransform transform;
+        m_MotionState->getWorldTransform(transform);
+        transform.setOrigin({
+            pos.x,
+            pos.y,
+            pos.z
+        });
+        m_MotionState->setWorldTransform(transform);
+        m_Body->setWorldTransform(transform);
+        if (resetVel)
+            m_Body->setLinearVelocity({ 0.f, 0.f, 0.f });
+        m_Body->activate(); // Will sleep if vel is zero for too long
+    }
+
+    void PhysicsBody::SetRotation(glm::vec3 rot, bool resetVel)
+    {
+        HE_ENGINE_ASSERT(m_Initialized);
+        
+        btTransform transform;
+        m_MotionState->getWorldTransform(transform);
+        transform.setRotation({
+            rot.z,
+            rot.y,
+            rot.x
+        });
+        m_MotionState->setWorldTransform(transform);
+        m_Body->setWorldTransform(transform);
+        if (resetVel)
+            m_Body->setAngularVelocity({ 0.f, 0.f, 0.f });
+        m_Body->activate();
+    }
+
+    void PhysicsBody::SetTransform(glm::vec3 pos, glm::vec3 rot, bool resetVel)
+    {
+        HE_ENGINE_ASSERT(m_Initialized);
+        
+        btTransform transform;
+        m_MotionState->getWorldTransform(transform);
+        transform.setOrigin({
+            pos.x,
+            pos.y,
+            pos.z
+        });
+        transform.setRotation({
+            rot.z,
+            rot.y,
+            rot.x
+        });
+        m_MotionState->setWorldTransform(transform);
+        m_Body->setWorldTransform(transform);
+        if (resetVel)
+        {
+            m_Body->setLinearVelocity({ 0.f, 0.f, 0.f });
+            m_Body->setAngularVelocity({ 0.f, 0.f, 0.f });
+        }
+        m_Body->activate();
+    }
+
     glm::vec3 PhysicsBody::GetExtent()
     {
         HE_ENGINE_ASSERT(m_BodyType == PhysicsBodyType::Box, "Incompatible body type");
@@ -74,7 +138,9 @@ namespace Heart
             halfExtent.z
         ));
         
-        body.Initialize(mass);
+        btTransform transform;
+        transform.setIdentity();
+        body.Initialize(mass, transform);
         
         return body;
     }
@@ -85,15 +151,15 @@ namespace Heart
         body.m_BodyType = PhysicsBodyType::Sphere;
         body.m_Shape = CreateRef<btSphereShape>(radius);
         
-        body.Initialize(mass);
+        btTransform transform;
+        transform.setIdentity();
+        body.Initialize(mass, transform);
         
         return body;
     }
     
-    void PhysicsBody::Initialize(float mass)
+    void PhysicsBody::Initialize(float mass, const btTransform& transform)
     {
-        btTransform transform;
-        transform.setIdentity();
         btVector3 localInertia(0, 0, 0);
         if (mass != 0)
             m_Shape->calculateLocalInertia(mass, localInertia);

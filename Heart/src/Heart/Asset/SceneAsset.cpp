@@ -73,12 +73,6 @@ namespace Heart
                 HString8 name = loaded["nameComponent"]["name"];
                 auto entity = scene->CreateEntityWithUUID(name, id);
 
-                // REQUIRED: Transform component
-                glm::vec3 translation = { loaded["transformComponent"]["translation"][0], loaded["transformComponent"]["translation"][1], loaded["transformComponent"]["translation"][2] };
-                glm::vec3 rotation = { loaded["transformComponent"]["rotation"][0], loaded["transformComponent"]["rotation"][1], loaded["transformComponent"]["rotation"][2] };
-                glm::vec3 scale = { loaded["transformComponent"]["scale"][0], loaded["transformComponent"]["scale"][1], loaded["transformComponent"]["scale"][2] };
-                entity.SetTransform(translation, rotation, scale);
-
                 // Parent component
                 if (loaded.contains("parentComponent"))
                     entity.AddComponent<ParentComponent>(static_cast<UUID>(loaded["parentComponent"]["id"]));
@@ -186,6 +180,14 @@ namespace Heart
 
                     entity.AddComponent<RigidBodyComponent>(comp);
                 }
+
+                // REQUIRED: Transform component
+                // add after rigid body to ensure correct positioning
+                glm::vec3 translation = { loaded["transformComponent"]["translation"][0], loaded["transformComponent"]["translation"][1], loaded["transformComponent"]["translation"][2] };
+                glm::vec3 rotation = { loaded["transformComponent"]["rotation"][0], loaded["transformComponent"]["rotation"][1], loaded["transformComponent"]["rotation"][2] };
+                glm::vec3 scale = { loaded["transformComponent"]["scale"][0], loaded["transformComponent"]["scale"][1], loaded["transformComponent"]["scale"][2] };
+                entity.SetTransform(translation, rotation, scale);
+
             }
 
             // make sure all the transforms get cached

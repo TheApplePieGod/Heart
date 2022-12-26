@@ -337,20 +337,20 @@ namespace Heart
         auto timer = AggregateTimer("Scene::OnUpdateRuntime");
         
         // Update physics
-        m_PhysicsWorld.Step(1.f / 60.f);
+        m_PhysicsWorld.Step(ts.StepSeconds());
 
         // Update positions of physics entities to reflect physics body position
-        auto physView = m_Registry.view<RigidBodyComponent>();
+        auto physView = m_Registry.view<RigidBodyComponent, TransformComponent>();
         for (auto entity : physView)
         {
+            // Don't use Entity::SetTransform() here because it would unnecessarily
+            // try and update the physics body
             auto& bodyComp = physView.get<RigidBodyComponent>(entity);
-            Entity ent = { this, entity };
+            auto& transformComp = physView.get<TransformComponent>(entity);
             PhysicsBody* body = m_PhysicsWorld.GetBody(bodyComp.BodyId);
-            ent.SetTransform(
-                body->GetPosition(),
-                body->GetRotation(),
-                ent.GetScale()
-            );
+            transformComp.Translation = body->GetPosition();
+            transformComp.Rotation = body->GetRotation();
+            CacheEntityTransform({ this, entity });
         }
 
         // Call OnUpdate lifecycle method

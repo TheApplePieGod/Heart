@@ -80,16 +80,18 @@ namespace Widgets
             bool headerOpen = ImGui::CollapsingHeader("Transform");
             if (!RenderComponentPopup<Heart::TransformComponent>("TransformPopup", false) && headerOpen)
             {
+                bool modified = false;
                 glm::vec3 translation = selectedEntity.GetPosition();
                 glm::vec3 rotation = selectedEntity.GetRotation();
                 glm::vec3 scale = selectedEntity.GetScale();
                 ImGui::Indent();
-                RenderXYZSlider("Translation  ", &translation.x, &translation.y, &translation.z, -999999.f, 999999.f, 0.1f);
-                RenderXYZSlider("Rotation     ", &rotation.x, &rotation.y, &rotation.z, 0.f, 360.f, 1.f);
-                RenderXYZSlider("Scale        ", &scale.x, &scale.y, &scale.z, 0.f, 999999.f, 0.1f);
+                modified |= RenderXYZSlider("Translation  ", &translation.x, &translation.y, &translation.z, -999999.f, 999999.f, 0.1f);
+                modified |= RenderXYZSlider("Rotation     ", &rotation.x, &rotation.y, &rotation.z, 0.f, 360.f, 1.f);
+                modified |= RenderXYZSlider("Scale        ", &scale.x, &scale.y, &scale.z, 0.f, 999999.f, 0.1f);
                 ImGui::Unindent();
 
-                selectedEntity.SetTransform(translation, rotation, scale);
+                if (modified)
+                    selectedEntity.SetTransform(translation, rotation, scale);
             }
         }
     }
@@ -407,8 +409,9 @@ namespace Widgets
         }
     }
 
-    void PropertiesPanel::RenderXYZSlider(const Heart::HStringView8& name, f32* x, f32* y, f32* z, f32 min, f32 max, f32 step)
+    bool PropertiesPanel::RenderXYZSlider(const Heart::HStringView8& name, f32* x, f32* y, f32* z, f32 min, f32 max, f32 step)
     {
+        bool modified = false;
         f32 width = ImGui::GetContentRegionAvail().x;
         ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(0.f, 0.5f));
         if (ImGui::BeginTable(name.Data(), 7, ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingFixedFit))
@@ -430,7 +433,7 @@ namespace Widgets
             ImGui::TableSetColumnIndex(2);
             ImGui::PushItemWidth(width * 0.15f);
             ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, textColor);
-            ImGui::DragFloat("##x", x, step, min, max, "%.2f");
+            modified |= ImGui::DragFloat("##x", x, step, min, max, "%.2f");
 
             ImGui::TableSetColumnIndex(3);
             ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, yColor);
@@ -439,7 +442,7 @@ namespace Widgets
             ImGui::TableSetColumnIndex(4);
             ImGui::PushItemWidth(width * 0.15f);
             ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, textColor);
-            ImGui::DragFloat("##y", y, step, min, max, "%.2f");
+            modified |= ImGui::DragFloat("##y", y, step, min, max, "%.2f");
 
             ImGui::TableSetColumnIndex(5);
             ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, zColor);
@@ -448,11 +451,13 @@ namespace Widgets
             ImGui::TableSetColumnIndex(6);
             ImGui::PushItemWidth(width * 0.15f);
             ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, textColor);
-            ImGui::DragFloat("##z", z, step, min, max, "%.2f");
+            modified |= ImGui::DragFloat("##z", z, step, min, max, "%.2f");
 
             ImGui::EndTable();
         }
         ImGui::PopStyleVar();
+        
+        return modified;
     }
 
     void PropertiesPanel::RenderScriptField(const Heart::HStringView& fieldName, Heart::ScriptComponent& scriptComp)

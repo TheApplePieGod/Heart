@@ -5,6 +5,7 @@
 class btCollisionShape;
 class btDefaultMotionState;
 class btRigidBody;
+class btTransform;
 namespace Heart
 {
     enum PhysicsBodyType
@@ -21,6 +22,9 @@ namespace Heart
         PhysicsBody Clone();
         glm::vec3 GetPosition();
         glm::vec3 GetRotation();
+        void SetPosition(glm::vec3 pos, bool resetVel = true);
+        void SetRotation(glm::vec3 rot, bool resetVel = true);
+        void SetTransform(glm::vec3 pos, glm::vec3 rot, bool resetVel = true);
         
         inline bool IsInitialized() const { return m_Initialized; }
         inline btRigidBody* GetBody() const { return m_Body.get(); }
@@ -38,7 +42,7 @@ namespace Heart
         static PhysicsBody CreateSphereShape(float mass, float radius);
         
     private:
-        void Initialize(float mass);
+        void Initialize(float mass, const btTransform& transform);
         
     private:
         Ref<btCollisionShape> m_Shape;
