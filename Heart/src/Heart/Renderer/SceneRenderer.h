@@ -97,7 +97,7 @@ namespace Heart
             u32 ReverseDepth;
             u32 CullEnable;
             u32 BloomEnable;
-            float padding;
+            u32 SSAOEnable;
             glm::vec2 padding2;
         };
 

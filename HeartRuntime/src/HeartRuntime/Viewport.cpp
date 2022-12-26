@@ -92,7 +92,7 @@ namespace HeartRuntime
         );
 
         ImGui::Image(
-            m_SceneRenderer->GetFinalTexture().GetImGuiHandle(),
+            m_SceneRenderer->GetFinalTexture()->GetImGuiHandle(),
             viewportSize
         );
 

@@ -9,3 +9,4 @@ HeartProjects/**
 docs/html/*
 *.vs
 *.user
+**/.DS_Store

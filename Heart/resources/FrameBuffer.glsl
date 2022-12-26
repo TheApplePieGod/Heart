@@ -7,7 +7,7 @@ struct FrameData {
     bool reverseDepth;
     bool cullEnable;
     bool bloomEnable;
-    float padding;
+    bool ssaoEnable;
     vec2 padding2;
 };
 

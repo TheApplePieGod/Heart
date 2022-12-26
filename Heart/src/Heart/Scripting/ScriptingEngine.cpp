@@ -40,11 +40,11 @@ namespace Heart
     bool LoadHostFXR()
     {
         #ifdef HE_PLATFORM_WINDOWS
-        const char* hostfxrName = "hostfxr.dll";
+        const char* hostfxrName = "scripting/hostfxr.dll";
         #elif defined(HE_PLATFORM_MACOS)
-        const char* hostfxrName = "libhostfxr.dylib";
+        const char* hostfxrName = "scripting/libhostfxr.dylib";
         #else
-        const char* hostfxrName = "hostfxr.so";
+        const char* hostfxrName = "scripting/hostfxr.so";
         #endif
 
         s_HostFXRHandle = PlatformUtils::LoadDynamicLibrary(hostfxrName);
@@ -76,14 +76,8 @@ namespace Heart
 
     void InitHostFXRForCmdline(const char_t* assemblyPath, load_assembly_and_get_function_pointer_fn& outLoadAssemblyFunc)
     {
-        // See below
-        hostfxr_initialize_parameters params{};
-        #ifdef HE_PLATFORM_MACOS
-        //params.dotnet_root = "/usr/local/share/dotnet";
-        #endif
-
         hostfxr_handle ctx = nullptr;
-        int rc = s_CmdInitFunc(1, &assemblyPath, &params, &ctx);
+        int rc = s_CmdInitFunc(1, &assemblyPath, nullptr, &ctx);
         if (rc != 0 || !ctx)
         {
             s_CloseFunc(ctx);

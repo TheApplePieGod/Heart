@@ -350,7 +350,8 @@ namespace Heart
             { m_RenderWidth, m_RenderHeight },
             Flourish::Context::ReversedZBuffer(),
             m_SceneRenderSettings.CullEnable,
-            m_SceneRenderSettings.BloomEnable
+            m_SceneRenderSettings.BloomEnable,
+            m_SceneRenderSettings.SSAOEnable
         };
         m_FrameDataBuffer->SetElements(&frameData, 1, 0);
 

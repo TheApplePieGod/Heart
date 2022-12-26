@@ -48,6 +48,22 @@ if (HEART_BUILD_RUNTIME)
     add_compile_definitions(HE_DIST)
 endif()
 
+# Configure & locate dotnet hostfxr
+find_package(Python3 COMPONENTS Interpreter)
+if(Python3_FOUND)
+  execute_process(
+    COMMAND ${Python3_EXECUTABLE} "scripts/configure-hostfxr.py"
+    WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
+    OUTPUT_VARIABLE DOTNET_RUNTIME_DIR
+    ERROR_VARIABLE DOTNET_HOSTFXR_PATH
+  )
+  
+  message("Dotnet runtime dir: ${DOTNET_RUNTIME_DIR}")
+  message("Dotnet hostfxr path: ${DOTNET_HOSTFXR_PATH}")
+else()
+  message(FATAL_ERROR "Python must be installed to configure Heart") 
+endif()
+
 add_subdirectory("Heart")
 add_subdirectory("HeartScripting")
 if (HEART_BUILD_EDITOR)

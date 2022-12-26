@@ -45,18 +45,18 @@ namespace Heart
     void Logger::Initialize()
     {
         HVector<spdlog::sink_ptr> logSinks = {
-            //#if !defined(HE_PLATFORM_MACOS) || !defined(HE_DIST)
+            #if !defined(HE_PLATFORM_MACOS) || !defined(HE_DIST)
             CreateRef<spdlog::sinks::basic_file_sink_mt>("Heart.log", true),
-            //#endif
+            #endif
         };
 
         #ifndef HE_DIST
         logSinks.Add(CreateRef<LogListSink<std::mutex>>());
         #endif
 
-        //#if !defined(HE_PLATFORM_MACOS) || !defined(HE_DIST)
+        #if !defined(HE_PLATFORM_MACOS) || !defined(HE_DIST)
         logSinks[0]->set_pattern("[%T] [%l] %n: %v");
-        //#endif
+        #endif
 
         s_EngineLogger = CreateRef<spdlog::logger>("ENGINE", logSinks.Begin(), logSinks.End());
         spdlog::register_logger(s_EngineLogger);
