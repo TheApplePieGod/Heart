@@ -48,7 +48,7 @@ namespace Heart
         btTransform transform;
         m_MotionState->getWorldTransform(transform);
         glm::vec3 rot;
-        transform.getRotation().getEulerZYX(rot.y, rot.x, rot.z);
+        transform.getRotation().getEulerZYX(rot.z, rot.y, rot.x);
         rot = glm::degrees(rot);
         return rot;
     }
@@ -78,9 +78,9 @@ namespace Heart
         btTransform transform;
         m_MotionState->getWorldTransform(transform);
         transform.setRotation({
+            glm::radians(rot.z),
             glm::radians(rot.y),
-            glm::radians(rot.x),
-            glm::radians(rot.z)
+            glm::radians(rot.x)
         });
         m_MotionState->setWorldTransform(transform);
         m_Body->setWorldTransform(transform);
@@ -101,9 +101,9 @@ namespace Heart
             pos.z
         });
         transform.setRotation({
+            glm::radians(rot.z),
             glm::radians(rot.y),
-            glm::radians(rot.x),
-            glm::radians(rot.z)
+            glm::radians(rot.x)
         });
         m_MotionState->setWorldTransform(transform);
         m_Body->setWorldTransform(transform);

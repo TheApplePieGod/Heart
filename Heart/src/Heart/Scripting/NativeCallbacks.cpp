@@ -213,10 +213,32 @@ HE_INTEROP_EXPORT void Native_NameComponent_SetName(u32 entityHandle, Heart::Sce
 // Transform component (always exists)
 EXPORT_COMPONENT_GET_FN(TransformComponent);
 
-HE_INTEROP_EXPORT void Native_TransformComponent_CacheTransform(u32 entityHandle, Heart::Scene* sceneHandle)
+HE_INTEROP_EXPORT void Native_TransformComponent_SetPosition(u32 entityHandle, Heart::Scene* sceneHandle, glm::vec3 pos)
 {
     ASSERT_ENTITY_IS_VALID();
-    sceneHandle->CacheEntityTransform({ sceneHandle, entityHandle });
+    Heart::Entity entity(sceneHandle, entityHandle);
+    entity.SetPosition(pos);
+}
+
+HE_INTEROP_EXPORT void Native_TransformComponent_SetRotation(u32 entityHandle, Heart::Scene* sceneHandle, glm::vec3 rot)
+{
+    ASSERT_ENTITY_IS_VALID();
+    Heart::Entity entity(sceneHandle, entityHandle);
+    entity.SetRotation(rot);
+}
+
+HE_INTEROP_EXPORT void Native_TransformComponent_SetScale(u32 entityHandle, Heart::Scene* sceneHandle, glm::vec3 scale)
+{
+    ASSERT_ENTITY_IS_VALID();
+    Heart::Entity entity(sceneHandle, entityHandle);
+    entity.SetScale(scale);
+}
+
+HE_INTEROP_EXPORT void Native_TransformComponent_SetTransform(u32 entityHandle, Heart::Scene* sceneHandle, glm::vec3 pos, glm::vec3 rot, glm::vec3 scale)
+{
+    ASSERT_ENTITY_IS_VALID();
+    Heart::Entity entity(sceneHandle, entityHandle);
+    entity.SetTransform(pos, rot, scale);
 }
 
 // TODO: we eventually want to move this logic to c# (probably) (or something)
@@ -335,6 +357,9 @@ HE_INTEROP_EXPORT void Native_CameraComponent_SetPrimary(u32 entityHandle, Heart
     Heart::Entity entity(sceneHandle, entityHandle);
     entity.SetIsPrimaryCameraEntity(primary);
 }
+
+// Rigid body component
+EXPORT_COMPONENT_BASIC_FNS(RigidBodyComponent);
 
 // We need this in order to ensure that the dllexports inside the engine static lib
 // do not get removed

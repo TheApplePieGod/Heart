@@ -13,7 +13,7 @@ namespace Heart.Scene
         Directional, Point
     }
 
-    [StructLayout(LayoutKind.Explicit, Size = 16)]
+    [StructLayout(LayoutKind.Explicit, Size = 32)]
     internal unsafe struct LightComponentInternal
     {
         [FieldOffset(0)] public Vec4Internal Color;
