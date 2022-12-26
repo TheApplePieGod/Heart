@@ -25,6 +25,7 @@ namespace Widgets
         void RenderLightComponent();
         void RenderScriptComponent();
         void RenderCameraComponent();
+        void RenderRigidBodyComponent();
 
         void RenderXYZSlider(const Heart::HStringView8& name, f32* x, f32* y, f32* z, f32 min, f32 max, f32 step);
         void RenderScriptField(const Heart::HStringView& fieldName, Heart::ScriptComponent& scriptComp);

@@ -152,6 +152,40 @@ namespace Heart
                     if (loaded["cameraComponent"]["primary"])
                         entity.AddComponent<PrimaryCameraComponent>();
                 }
+                
+                // Rigid body component
+                if (loaded.contains("rigidBodyComponent"))
+                {
+                    RigidBodyComponent comp;
+                    PhysicsBody body;
+                    PhysicsBodyType bodyType = loaded["rigidBodyComponent"]["type"];
+                    float mass = loaded["rigidBodyComponent"]["mass"];
+                    switch (bodyType)
+                    {
+                        default:
+                        { HE_ENGINE_ASSERT(false, "Unsupported body type"); }
+
+                        case PhysicsBodyType::Box:
+                        {
+                            glm::vec3 extent = {
+                                loaded["rigidBodyComponent"]["extent"][0],
+                                loaded["rigidBodyComponent"]["extent"][1],
+                                loaded["rigidBodyComponent"]["extent"][2]
+                            };
+                            body = PhysicsBody::CreateBoxShape(mass, extent);
+                        } break;
+
+                        case PhysicsBodyType::Sphere:
+                        {
+                            float radius = loaded["rigidBodyComponent"]["radius"];
+                            body = PhysicsBody::CreateSphereShape(mass, radius);
+                        } break;
+                    }
+                    
+                    comp.BodyId = scene->GetPhysicsWorld().AddBody(body);
+
+                    entity.AddComponent<RigidBodyComponent>(comp);
+                }
             }
 
             // make sure all the transforms get cached
@@ -249,6 +283,31 @@ namespace Heart
                     entry["cameraComponent"]["fov"] = camComp.FOV;
                     entry["cameraComponent"]["nearClip"] = camComp.NearClipPlane;
                     entry["cameraComponent"]["farClip"] = camComp.FarClipPlane;
+                }
+                
+                // Rigid body component
+                if (entity.HasComponent<RigidBodyComponent>())
+                {
+                    auto& bodyComp = entity.GetComponent<RigidBodyComponent>();
+                    PhysicsBody* body = scene->GetPhysicsWorld().GetBody(bodyComp.BodyId);
+                    entry["rigidBodyComponent"]["type"] = body->GetBodyType();
+                    entry["rigidBodyComponent"]["mass"] = body->GetMass();
+                    switch (body->GetBodyType())
+                    {
+                        default:
+                        { HE_ENGINE_ASSERT(false, "Unsupported body type"); }
+
+                        case PhysicsBodyType::Box:
+                        {
+                            auto extent = body->GetExtent();
+                            entry["rigidBodyComponent"]["extent"] = nlohmann::json::array({ extent.x, extent.y, extent.z });
+                        } break;
+
+                        case PhysicsBodyType::Sphere:
+                        {
+                            entry["rigidBodyComponent"]["radius"] = body->GetRadius();
+                        } break;
+                    }
                 }
 
                 field[index++] = entry;

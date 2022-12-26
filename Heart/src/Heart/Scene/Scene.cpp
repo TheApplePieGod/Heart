@@ -38,7 +38,28 @@ namespace Heart
             dst.AddComponent<PrimaryCameraComponent>();
     }
 
+    template <>
+    void Scene::CopyComponent<RigidBodyComponent>(entt::entity src, Entity dst)
+    {
+        if (m_Registry.any_of<RigidBodyComponent>(src))
+        {
+            auto& oldComp = m_Registry.get<RigidBodyComponent>(src);
+            RigidBodyComponent newComp;
+            newComp.BodyId = dst.GetScene()->GetPhysicsWorld().AddBody(m_PhysicsWorld.GetBody(oldComp.BodyId)->Clone());
+
+            dst.AddComponent<RigidBodyComponent>(newComp);
+        }
+    }
+
+    template<typename Component>
+    void Scene::CopyComponent(entt::entity src, Entity dst)
+    {
+        if (m_Registry.any_of<Component>(src))
+            dst.AddComponent<Component>(m_Registry.get<Component>(src));
+    }
+
     Scene::Scene()
+        : m_PhysicsWorld({ 0.f, -9.8f, 0.f })
     {
         
     }
@@ -103,6 +124,7 @@ namespace Heart
         CopyComponent<ScriptComponent>(source.GetHandle(), newEntity);
         // Do not copy primary camera component when duplicating entity
         CopyComponent<CameraComponent>(source.GetHandle(), newEntity);
+        CopyComponent<RigidBodyComponent>(source.GetHandle(), newEntity);
 
         CacheEntityTransform(newEntity);
 
@@ -179,13 +201,6 @@ namespace Heart
 
         if (recache)
             CacheEntityTransform(child);
-    }
-
-    template<typename Component>
-    void Scene::CopyComponent(entt::entity src, Entity dst)
-    {
-        if (m_Registry.any_of<Component>(src))
-            dst.AddComponent<Component>(m_Registry.get<Component>(src));
     }
 
     void Scene::RemoveChild(UUID parentUUID, UUID childUUID)
@@ -267,17 +282,13 @@ namespace Heart
             CopyComponent<ScriptComponent>(src.GetHandle(), dst);
             CopyComponent<PrimaryCameraComponent>(src.GetHandle(), dst);
             CopyComponent<CameraComponent>(src.GetHandle(), dst);
+            CopyComponent<RigidBodyComponent>(src.GetHandle(), dst);
         });
 
         // Copy the environment map
         newScene->m_EnvironmentMap = m_EnvironmentMap;
 
         return newScene;
-    }
-
-    void Scene::ClearScene()
-    {
-        m_Registry.clear();
     }
 
     void Scene::SetEnvironmentMap(UUID mapAsset)
@@ -324,12 +335,29 @@ namespace Heart
     {
         HE_PROFILE_FUNCTION();
         auto timer = AggregateTimer("Scene::OnUpdateRuntime");
+        
+        // Update physics
+        m_PhysicsWorld.Step(1.f / 60.f);
+
+        // Update positions of physics entities to reflect physics body position
+        auto physView = m_Registry.view<RigidBodyComponent>();
+        for (auto entity : physView)
+        {
+            auto& bodyComp = physView.get<RigidBodyComponent>(entity);
+            Entity ent = { this, entity };
+            PhysicsBody* body = m_PhysicsWorld.GetBody(bodyComp.BodyId);
+            ent.SetTransform(
+                body->GetPosition(),
+                body->GetRotation(),
+                ent.GetScale()
+            );
+        }
 
         // Call OnUpdate lifecycle method
-        auto view = m_Registry.view<ScriptComponent>();
-        for (auto entity : view)
+        auto scriptView = m_Registry.view<ScriptComponent>();
+        for (auto entity : scriptView)
         {
-            auto& scriptComp = view.get<ScriptComponent>(entity);
+            auto& scriptComp = scriptView.get<ScriptComponent>(entity);
             scriptComp.Instance.OnUpdate(ts);
         }
     }

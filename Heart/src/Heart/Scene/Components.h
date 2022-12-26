@@ -100,4 +100,9 @@ namespace Heart
         f32 NearClipPlane = 0.1f;
         f32 FarClipPlane = 500.f;
     };
+
+    struct RigidBodyComponent
+    {
+        u32 BodyId = 0;
+    };
 }

@@ -6,6 +6,15 @@
 
 namespace Heart
 {
+    template<>
+    void Entity::AddComponent<RigidBodyComponent>(PhysicsBody& body)
+    {
+        if (HasComponent<RigidBodyComponent>())
+            m_Scene->GetPhysicsWorld().RemoveBody(GetComponent<RigidBodyComponent>().BodyId);
+        u32 id = m_Scene->GetPhysicsWorld().AddBody(body);
+        m_Scene->GetRegistry().emplace_or_replace<RigidBodyComponent>(m_EntityHandle, id);
+    }
+
     Entity::Entity(Scene* scene, entt::entity handle)
         : m_Scene(scene), m_EntityHandle(handle)
     {}
@@ -79,10 +88,7 @@ namespace Heart
     const HVector<UUID>& Entity::GetChildren()
     {
         if (!HasComponent<ChildrenComponent>())
-        {
-            auto& comp = AddComponent<ChildrenComponent>();
-            return comp.Children;
-        }
+            AddComponent<ChildrenComponent>();
         return GetComponent<ChildrenComponent>().Children;
     }
 
@@ -137,5 +143,11 @@ namespace Heart
         }
         else if (HasComponent<PrimaryCameraComponent>())
             RemoveComponent<PrimaryCameraComponent>();
+    }
+
+    PhysicsBody* Entity::GetPhysicsBody()
+    {
+        auto& comp = GetComponent<RigidBodyComponent>();
+        return m_Scene->GetPhysicsWorld().GetBody(comp.BodyId);
     }
 }

@@ -50,7 +50,12 @@ namespace Widgets
                     selectedEntity.AddComponent<Heart::ScriptComponent>();
                 if (ImGui::MenuItem("Camera Component"))
                     selectedEntity.AddComponent<Heart::CameraComponent>();
-
+                if (ImGui::MenuItem("Rigid Body Component"))
+                {
+                    auto defaultBody = Heart::PhysicsBody::CreateBoxShape(1.f, { 0.5f, 0.5f, 0.5f });
+                    selectedEntity.AddComponent<Heart::RigidBodyComponent>(defaultBody);
+                }
+                    
                 ImGui::EndPopup();
             }
 
@@ -59,6 +64,7 @@ namespace Widgets
             RenderLightComponent();
             RenderScriptComponent();
             RenderCameraComponent();
+            RenderRigidBodyComponent();
         }
 
         ImGui::End();
@@ -358,6 +364,44 @@ namespace Widgets
                 ImGui::SameLine();
                 ImGui::DragFloat("##farclip", &camComp.FarClipPlane, 0.005f, 0.f, 1000.f);
 
+                ImGui::Unindent();
+            }
+        }
+    }
+
+    void PropertiesPanel::RenderRigidBodyComponent()
+    {
+        auto selectedEntity = Editor::GetState().SelectedEntity;
+        if (selectedEntity.HasComponent<Heart::RigidBodyComponent>())
+        {
+            bool headerOpen = ImGui::CollapsingHeader("Rigid Body");
+            if (!RenderComponentPopup<Heart::RigidBodyComponent>("RBPopup", true) && headerOpen)
+            {
+                auto& bodyComp = selectedEntity.GetComponent<Heart::RigidBodyComponent>();
+                Heart::PhysicsBody* body = selectedEntity.GetPhysicsBody();
+                
+                ImGui::Indent();
+
+                /*
+                ImGui::Text("Primary:");
+                ImGui::SameLine();
+                bool primary = selectedEntity.HasComponent<Heart::PrimaryCameraComponent>();
+                if (ImGui::Checkbox("##primary", &primary))
+                    selectedEntity.SetIsPrimaryCameraEntity(primary);
+
+                ImGui::Text("FOV");
+                ImGui::SameLine();
+                ImGui::DragFloat("##fov", &camComp.FOV, 0.5f, 0.f, 259.f);
+
+                ImGui::Text("Near Clip");
+                ImGui::SameLine();
+                ImGui::DragFloat("##nearclip", &camComp.NearClipPlane, 0.005f, 0.f, 1000.f);
+
+                ImGui::Text("Far Clip");
+                ImGui::SameLine();
+                ImGui::DragFloat("##farclip", &camComp.FarClipPlane, 0.005f, 0.f, 1000.f);
+                */
+                 
                 ImGui::Unindent();
             }
         }
