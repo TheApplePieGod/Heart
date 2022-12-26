@@ -152,14 +152,14 @@ namespace Heart
                 {
                     RigidBodyComponent comp;
                     PhysicsBody body;
-                    PhysicsBodyType bodyType = loaded["rigidBodyComponent"]["type"];
+                    PhysicsBody::Type bodyType = loaded["rigidBodyComponent"]["type"];
                     float mass = loaded["rigidBodyComponent"]["mass"];
                     switch (bodyType)
                     {
                         default:
                         { HE_ENGINE_ASSERT(false, "Unsupported body type"); }
 
-                        case PhysicsBodyType::Box:
+                        case PhysicsBody::Type::Box:
                         {
                             glm::vec3 extent = {
                                 loaded["rigidBodyComponent"]["extent"][0],
@@ -169,7 +169,7 @@ namespace Heart
                             body = PhysicsBody::CreateBoxShape(mass, extent);
                         } break;
 
-                        case PhysicsBodyType::Sphere:
+                        case PhysicsBody::Type::Sphere:
                         {
                             float radius = loaded["rigidBodyComponent"]["radius"];
                             body = PhysicsBody::CreateSphereShape(mass, radius);
@@ -299,13 +299,13 @@ namespace Heart
                         default:
                         { HE_ENGINE_ASSERT(false, "Unsupported body type"); }
 
-                        case PhysicsBodyType::Box:
+                        case PhysicsBody::Type::Box:
                         {
                             auto extent = body->GetExtent();
                             entry["rigidBodyComponent"]["extent"] = nlohmann::json::array({ extent.x, extent.y, extent.z });
                         } break;
 
-                        case PhysicsBodyType::Sphere:
+                        case PhysicsBody::Type::Sphere:
                         {
                             entry["rigidBodyComponent"]["radius"] = body->GetRadius();
                         } break;

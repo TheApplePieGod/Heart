@@ -60,7 +60,31 @@ namespace Heart
 
 		m_Bodies.erase(id);
 	}
-    
+
+    void PhysicsWorld::ReplaceBody(u32 id, const PhysicsBody& newBody, bool keepVel)
+    {
+        HE_ENGINE_ASSERT(
+            m_Bodies.find(id) != m_Bodies.end(),
+            "ReplaceBody invalid id"
+        );
+        
+        auto& body = m_Bodies[id];
+        auto pos = body.GetPosition();
+        auto rot = body.GetRotation();
+        auto linVel = body.GetLinearVelocity();
+        auto angVel = body.GetAngularVelocity();
+        m_World->removeRigidBody(body.GetBody());
+        
+        body = newBody;
+        body.SetTransform(pos, rot);
+        if (keepVel)
+        {
+            body.SetLinearVelocity(linVel);
+            body.SetAngularVelocity(angVel);
+        }
+        m_World->addRigidBody(newBody.GetBody());
+    }
+ 
     void PhysicsWorld::SetGravity(glm::vec3 gravity)
     {
         m_World->setGravity(btVector3(gravity.x, gravity.y, gravity.z));

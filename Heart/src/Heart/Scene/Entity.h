@@ -82,6 +82,7 @@ namespace Heart
         void SetIsPrimaryCameraEntity(bool primary);
 
         PhysicsBody* GetPhysicsBody();
+        void ReplacePhysicsBody(const PhysicsBody& body, bool keepVel = false);
 
     private:
         entt::entity m_EntityHandle = entt::null;

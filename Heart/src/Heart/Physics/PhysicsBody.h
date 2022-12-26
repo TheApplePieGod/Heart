@@ -8,14 +8,18 @@ class btRigidBody;
 class btTransform;
 namespace Heart
 {
-    enum PhysicsBodyType
-    {
-        None = 0,
-        Box, Sphere
-    };
-
     class PhysicsBody
     {
+    public:
+        enum class Type : u32
+        {
+            None = 0,
+            Box, Sphere
+        };
+        inline static const char* TypeStrings[] = {
+            "None", "Box", "Sphere"
+        };
+
     public:
         PhysicsBody() = default;
         
@@ -25,10 +29,14 @@ namespace Heart
         void SetPosition(glm::vec3 pos, bool resetVel = true);
         void SetRotation(glm::vec3 rot, bool resetVel = true);
         void SetTransform(glm::vec3 pos, glm::vec3 rot, bool resetVel = true);
+        glm::vec3 GetLinearVelocity();
+        glm::vec3 GetAngularVelocity();
+        void SetLinearVelocity(glm::vec3 vel);
+        void SetAngularVelocity(glm::vec3 vel);
         
         inline bool IsInitialized() const { return m_Initialized; }
         inline btRigidBody* GetBody() const { return m_Body.get(); }
-        inline PhysicsBodyType GetBodyType() const { return m_BodyType; }
+        inline Type GetBodyType() const { return m_BodyType; }
         inline float GetMass() const { return m_Mass; }
         
         // Box shape
@@ -50,7 +58,7 @@ namespace Heart
         Ref<btRigidBody> m_Body;
         
         bool m_Initialized = false;
-        PhysicsBodyType m_BodyType;
+        Type m_BodyType;
         float m_Mass;
     };
 }

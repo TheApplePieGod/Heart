@@ -384,25 +384,59 @@ namespace Widgets
                 
                 ImGui::Indent();
 
-                /*
-                ImGui::Text("Primary:");
+                float mass = body->GetMass();
+                ImGui::Text("Mass:");
                 ImGui::SameLine();
-                bool primary = selectedEntity.HasComponent<Heart::PrimaryCameraComponent>();
-                if (ImGui::Checkbox("##primary", &primary))
-                    selectedEntity.SetIsPrimaryCameraEntity(primary);
+                bool recreate = ImGui::DragFloat("##mass", &mass, 0.25f, 0.f, 1000.f);
 
-                ImGui::Text("FOV");
+                Heart::PhysicsBody::Type bodyType = body->GetBodyType();
+                ImGui::Text("Body Type:");
                 ImGui::SameLine();
-                ImGui::DragFloat("##fov", &camComp.FOV, 0.5f, 0.f, 259.f);
+                bool popupOpened = ImGui::Button(HE_ENUM_TO_STRING(Heart::PhysicsBody, bodyType));
+                if (popupOpened)
+                    ImGui::OpenPopup("BodyTypeSelect");
+            
+                if (ImGui::BeginPopup("BodyTypeSelect"))
+                {
+                    if (ImGui::MenuItem("Box") && bodyType != Heart::PhysicsBody::Type::Box)
+                        selectedEntity.ReplacePhysicsBody(Heart::PhysicsBody::CreateBoxShape(mass, { 0.5f, 0.5f, 0.5f }));
+                    if (ImGui::MenuItem("Sphere") && bodyType != Heart::PhysicsBody::Type::Sphere)
+                        selectedEntity.ReplacePhysicsBody(Heart::PhysicsBody::CreateSphereShape(mass, 0.5f));
+                    ImGui::EndPopup();
+                }
 
-                ImGui::Text("Near Clip");
-                ImGui::SameLine();
-                ImGui::DragFloat("##nearclip", &camComp.NearClipPlane, 0.005f, 0.f, 1000.f);
+                ImGui::Dummy({ 0.f, 5.f });
+                ImGui::Text("Shape Properties");
+                ImGui::Separator();
 
-                ImGui::Text("Far Clip");
-                ImGui::SameLine();
-                ImGui::DragFloat("##farclip", &camComp.FarClipPlane, 0.005f, 0.f, 1000.f);
-                */
+                switch (body->GetBodyType())
+                {
+                    default: break;
+                    
+                    case Heart::PhysicsBody::Type::Box:
+                    {
+                        auto extent = body->GetExtent();
+                        if (recreate || RenderXYZSlider(
+                            "Half Extent  ",
+                            &extent.x,
+                            &extent.y,
+                            &extent.z,
+                            0.f,
+                            1000.f,
+                            0.25f)
+                        )
+                            selectedEntity.ReplacePhysicsBody(Heart::PhysicsBody::CreateBoxShape(mass, extent));
+                    } break;
+
+                    case Heart::PhysicsBody::Type::Sphere:
+                    {
+                        float radius = body->GetRadius();
+                        ImGui::Text("Radius");
+                        ImGui::SameLine();
+                        if (recreate || ImGui::DragFloat("##radius", &radius, 0.25f, 0.f, 1000.f))
+                            selectedEntity.ReplacePhysicsBody(Heart::PhysicsBody::CreateSphereShape(mass, radius));
+                    } break;
+                }
                  
                 ImGui::Unindent();
             }

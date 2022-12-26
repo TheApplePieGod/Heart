@@ -20,7 +20,8 @@ namespace Heart
         u32 AddBody(const PhysicsBody& body);
         PhysicsBody* GetBody(u32 id);
         void RemoveBody(u32 id);
-
+        void ReplaceBody(u32 id, const PhysicsBody& newBody, bool keepVel = false);
+        
         void SetGravity(glm::vec3 gravity);
         
     private:

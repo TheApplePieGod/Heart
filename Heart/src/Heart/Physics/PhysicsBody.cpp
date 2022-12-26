@@ -2,6 +2,7 @@
 #include "PhysicsBody.h"
 
 #include "btBulletDynamicsCommon.h"
+#include "glm/gtx/matrix_decompose.hpp"
 
 namespace Heart
 {
@@ -14,9 +15,9 @@ namespace Heart
         {
             default:
             { HE_ENGINE_ASSERT(false, "Unsupported body type"); }
-            case PhysicsBodyType::Box:
+            case Type::Box:
             { other.m_Shape = CreateRef<btBoxShape>(*static_cast<btBoxShape*>(m_Shape.get())); } break;
-            case PhysicsBodyType::Sphere:
+            case Type::Sphere:
             { other.m_Shape = CreateRef<btSphereShape>(*static_cast<btSphereShape*>(m_Shape.get())); } break;
         }
 
@@ -47,7 +48,8 @@ namespace Heart
         btTransform transform;
         m_MotionState->getWorldTransform(transform);
         glm::vec3 rot;
-        transform.getRotation().getEulerZYX(rot.z, rot.y, rot.x);
+        transform.getRotation().getEulerZYX(rot.y, rot.x, rot.z);
+        rot = glm::degrees(rot);
         return rot;
     }
 
@@ -76,9 +78,9 @@ namespace Heart
         btTransform transform;
         m_MotionState->getWorldTransform(transform);
         transform.setRotation({
-            rot.z,
-            rot.y,
-            rot.x
+            glm::radians(rot.y),
+            glm::radians(rot.x),
+            glm::radians(rot.z)
         });
         m_MotionState->setWorldTransform(transform);
         m_Body->setWorldTransform(transform);
@@ -99,9 +101,9 @@ namespace Heart
             pos.z
         });
         transform.setRotation({
-            rot.z,
-            rot.y,
-            rot.x
+            glm::radians(rot.y),
+            glm::radians(rot.x),
+            glm::radians(rot.z)
         });
         m_MotionState->setWorldTransform(transform);
         m_Body->setWorldTransform(transform);
@@ -113,17 +115,46 @@ namespace Heart
         m_Body->activate();
     }
 
+    glm::vec3 PhysicsBody::GetLinearVelocity()
+    {
+        HE_ENGINE_ASSERT(m_Initialized);
+
+        auto vel = m_Body->getLinearVelocity();
+        return { vel.x(), vel.y(), vel.z() };
+    }
+    glm::vec3 PhysicsBody::GetAngularVelocity()
+    {
+        HE_ENGINE_ASSERT(m_Initialized);
+
+        auto vel = m_Body->getAngularVelocity();
+        return { vel.x(), vel.y(), vel.z() };
+    }
+
+    void PhysicsBody::SetLinearVelocity(glm::vec3 vel)
+    {
+        HE_ENGINE_ASSERT(m_Initialized);
+        
+        m_Body->setLinearVelocity({ vel.x, vel.y, vel.z });
+    }
+
+    void PhysicsBody::SetAngularVelocity(glm::vec3 vel)
+    {
+        HE_ENGINE_ASSERT(m_Initialized);
+        
+        m_Body->setAngularVelocity({ vel.x, vel.y, vel.z });
+    }
+
     glm::vec3 PhysicsBody::GetExtent()
     {
-        HE_ENGINE_ASSERT(m_BodyType == PhysicsBodyType::Box, "Incompatible body type");
+        HE_ENGINE_ASSERT(m_BodyType == Type::Box, "Incompatible body type");
         
-        auto extent = static_cast<btBoxShape*>(m_Shape.get())->getHalfExtentsWithoutMargin();
+        auto extent = static_cast<btBoxShape*>(m_Shape.get())->getHalfExtentsWithMargin();
         return { extent.x(), extent.y(), extent.z() };
     }
 
     float PhysicsBody::GetRadius()
     {
-        HE_ENGINE_ASSERT(m_BodyType == PhysicsBodyType::Sphere, "Incompatible body type");
+        HE_ENGINE_ASSERT(m_BodyType == Type::Sphere, "Incompatible body type");
         
         return static_cast<btSphereShape*>(m_Shape.get())->getRadius();
     }
@@ -131,7 +162,7 @@ namespace Heart
     PhysicsBody PhysicsBody::CreateBoxShape(float mass, glm::vec3 halfExtent)
     {
         PhysicsBody body;
-        body.m_BodyType = PhysicsBodyType::Box;
+        body.m_BodyType = Type::Box;
         body.m_Shape = CreateRef<btBoxShape>(btVector3(
             halfExtent.x,
             halfExtent.y,
@@ -148,7 +179,7 @@ namespace Heart
     PhysicsBody PhysicsBody::CreateSphereShape(float mass, float radius)
     {
         PhysicsBody body;
-        body.m_BodyType = PhysicsBodyType::Sphere;
+        body.m_BodyType = Type::Sphere;
         body.m_Shape = CreateRef<btSphereShape>(radius);
         
         btTransform transform;

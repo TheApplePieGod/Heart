@@ -156,4 +156,10 @@ namespace Heart
         auto& comp = GetComponent<RigidBodyComponent>();
         return m_Scene->GetPhysicsWorld().GetBody(comp.BodyId);
     }
+
+    void Entity::ReplacePhysicsBody(const PhysicsBody& body, bool keepVel)
+    {
+        auto& comp = GetComponent<RigidBodyComponent>();
+        m_Scene->GetPhysicsWorld().ReplaceBody(comp.BodyId, body, keepVel);        
+    }
 }

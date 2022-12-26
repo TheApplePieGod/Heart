@@ -29,6 +29,7 @@ set(BUILD_BULLET2_DEMOS OFF)
 set(BUILD_EXTRAS OFF)
 set(BUILD_UNIT_TESTS OFF)
 set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
+add_compile_definitions(BT_EULER_DEFAULT_ZYX)
 add_subdirectory("lib/bullet3")
 
 if(${CMAKE_BUILD_TYPE} MATCHES Debug)
