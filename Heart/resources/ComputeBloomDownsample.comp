@@ -1,0 +1,88 @@
+#version 450
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+struct Data
+{
+    vec2 SrcResolution;
+    vec2 DstResolution;
+    float Threshold;
+    float Knee;
+    float SampleScale;
+    uint Prefilter;
+    vec4 Padding1;
+    vec4 Padding2;
+};
+
+layout(binding = 0) readonly uniform DataBuffer {
+    Data data;
+} dataBuffer;
+
+layout(binding = 1) uniform sampler2D srcTex;
+layout(binding = 2, rgba16f) writeonly uniform image2D dstTex;
+
+// Quadratic color thresholding
+// curve = (threshold - knee, knee * 2, 0.25 / knee)
+// https://github.com/Unity-Technologies/Graphics/blob/master/com.unity.postprocessing/PostProcessing/Shaders/Colors.hlsl
+vec3 QuadraticThreshold(vec3 color, float threshold, vec3 curve)
+{
+    // Pixel brightness
+    float br = max(color.r, max(color.g, color.b));
+
+    // Under-threshold part: quadratic curve
+    float rq = clamp(br - curve.x, 0.0, curve.y);
+    rq = curve.z * rq * rq;
+
+    // Combine and apply the brightness response curve.
+    color *= max(rq, br - threshold) / max(br, 1.0e-4);
+
+    return color;
+}
+
+// https://learnopengl.com/Guest-Articles/2022/Phys.-Based-Bloom
+void main()
+{
+    ivec2 coord = ivec2(gl_GlobalInvocationID.xy);
+    
+    if (coord.x >= dataBuffer.data.DstResolution.x || coord.y >= dataBuffer.data.DstResolution.y) return;
+    
+    vec2 texCoord = coord / dataBuffer.data.DstResolution;
+    float dx = 1.0 / dataBuffer.data.SrcResolution.x;
+    float dy = 1.0 / dataBuffer.data.SrcResolution.y;
+    
+    // Offset texCoord to match central texel position in src texture
+    texCoord += vec2(dx, dy);
+
+    vec3 a = texture(srcTex, vec2(texCoord.x - 2*dx, texCoord.y + 2*dy)).rgb;
+    vec3 b = texture(srcTex, vec2(texCoord.x,        texCoord.y + 2*dy)).rgb;
+    vec3 c = texture(srcTex, vec2(texCoord.x + 2*dx, texCoord.y + 2*dy)).rgb;
+
+    vec3 d = texture(srcTex, vec2(texCoord.x - 2*dx, texCoord.y)).rgb;
+    vec3 e = texture(srcTex, vec2(texCoord.x,        texCoord.y)).rgb;
+    vec3 f = texture(srcTex, vec2(texCoord.x + 2*dx, texCoord.y)).rgb;
+
+    vec3 g = texture(srcTex, vec2(texCoord.x - 2*dx, texCoord.y - 2*dy)).rgb;
+    vec3 h = texture(srcTex, vec2(texCoord.x,        texCoord.y - 2*dy)).rgb;
+    vec3 i = texture(srcTex, vec2(texCoord.x + 2*dx, texCoord.y - 2*dy)).rgb;
+
+    vec3 j = texture(srcTex, vec2(texCoord.x - dx, texCoord.y + dy)).rgb;
+    vec3 k = texture(srcTex, vec2(texCoord.x + dx, texCoord.y + dy)).rgb;
+    vec3 l = texture(srcTex, vec2(texCoord.x - dx, texCoord.y - dy)).rgb;
+    vec3 m = texture(srcTex, vec2(texCoord.x + dx, texCoord.y - dy)).rgb;
+
+    vec3 downsample = e * 0.125;
+    downsample += (a + c + g + i) * 0.03125;
+    downsample += (b + d + f + h) * 0.0625;
+    downsample += (j + k + l + m) * 0.125;
+
+    if (dataBuffer.data.Prefilter == 1)
+    {
+        downsample = QuadraticThreshold(
+            downsample,
+            dataBuffer.data.Threshold,
+            vec3(dataBuffer.data.Threshold - dataBuffer.data.Knee, dataBuffer.data.Knee * 2.0, 0.25 / dataBuffer.data.Knee)
+        );
+    }
+    
+    imageStore(dstTex, coord, vec4(downsample, 1.f));
+}

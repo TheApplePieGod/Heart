@@ -3,7 +3,6 @@
 
 #include "HeartEditor/Editor.h"
 #include "HeartEditor/EditorApp.h"
-#include "Heart/Renderer/Texture.h"
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/TextureAsset.h"
 #include "Heart/Asset/MaterialAsset.h"
@@ -111,9 +110,10 @@ namespace Widgets
         Heart::HVector<std::filesystem::directory_entry> directories;
         try
         {
-            for (const auto& entry : std::filesystem::directory_iterator(absolutePath))
-                if (entry.is_directory())
-                    directories.Add(entry);
+            if (!absolutePath.empty())
+                for (const auto& entry : std::filesystem::directory_iterator(absolutePath))
+                    if (entry.is_directory())
+                        directories.Add(entry);
         }
         catch (std::exception e) // likely invalid path so cut off this node
         { return; }
@@ -313,7 +313,7 @@ namespace Widgets
             ImGui::EndPopup();
         }
 
-        auto deletePopupId = Heart::HStringView8("Delete##") + entryName;
+        auto deletePopupId = Heart::HStringView8("Delete##") + Heart::HStringView8(entryName);
         if (deleteDialogOpen)
             ImGui::OpenPopup(deletePopupId.Data());
         ImVec2 center = ImGui::GetMainViewport()->GetCenter();
@@ -350,7 +350,7 @@ namespace Widgets
 
             // Render the input box
             Heart::HStringView8 id = "##Rename";
-            Heart::ImGuiUtils::InputText((id + entryName).Data(), m_Rename);
+            Heart::ImGuiUtils::InputText((id + Heart::HStringView8(entryName)).Data(), m_Rename);
             if (m_ShouldRename)
                 ImGui::SetKeyboardFocusHere(-1);
 

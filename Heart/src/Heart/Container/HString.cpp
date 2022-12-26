@@ -248,11 +248,6 @@ namespace Heart
         m_Container.Copy(other.m_Container, true);
     }
 
-    HString HString::operator+(const HStringView& other) const
-    {
-        return HStringView(*this) + other;
-    }
-
     void HString::operator+=(const HStringView& other)
     {
         *this = *this + other;
@@ -285,6 +280,11 @@ namespace Heart
 
         HE_ENGINE_ASSERT(false, "HStringView operator+ not fully implemented");
         return HString();
+    }
+
+    HString HString::operator+(const HStringView& other) const
+    {
+        return HStringView(*this) + other;
     }
 
     void to_json(nlohmann::json& j, const HString& str)

@@ -2,7 +2,6 @@
 #include "Toolbar.h"
 
 #include "HeartEditor/Editor.h"
-#include "Heart/Renderer/Texture.h"
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/TextureAsset.h"
 #include "Heart/Util/ImGuiUtils.h"

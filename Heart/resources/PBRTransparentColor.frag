@@ -10,7 +10,7 @@ void main() {
     vec4 color = GetFinalColor();
     color.rgb *= color.a;
 
-    const float depthZ = -depth * 10.0f;
+    const float depthZ = -viewPos.z * 10.0f;
 
     const float distWeight = clamp(0.03 / (1e-5 + pow(depthZ / 200, 4.0)), 1e-2, 3e3);
     float alphaWeight = min(1.0, max(max(color.r, color.g), max(color.b, color.a)) * 40.0 + 0.01);

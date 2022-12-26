@@ -6,8 +6,8 @@
 #include "HeartEditor/EditorApp.h"
 #include "HeartEditor/Project.h"
 #include "Heart/Core/Window.h"
-#include "Heart/Renderer/Framebuffer.h"
 #include "Heart/Renderer/SceneRenderer.h"
+#include "Flourish/Api/Texture.h"
 #include "Heart/Scene/Entity.h"
 #include "Heart/Input/Input.h"
 #include "Heart/Events/KeyboardEvents.h"
@@ -15,28 +15,19 @@
 #include "Heart/Scripting/ScriptingEngine.h"
 #include "imgui/imgui_internal.h"
 
-
 namespace HeartEditor
 {
-    EditorLayer::EditorLayer()
-    {
-        Editor::Initialize();
-    }
-
-    EditorLayer::~EditorLayer()
-    {
-        Editor::Shutdown();
-    }
-
     void EditorLayer::OnAttach()
     {
-        HE_PROFILE_FUNCTION();
-
         SubscribeToEmitter(&EditorApp::Get().GetWindow());
+
+        Editor::Initialize();
 
         // Crappy default project solution until we get some sort of settings file
         if (std::filesystem::exists("D:/Projects/Heart/HeartProjects/DemoGame/DemoGame.heproj"))
             Project::LoadFromPath("D:/Projects/Heart/HeartProjects/DemoGame/DemoGame.heproj");
+        else if (std::filesystem::exists("../../../HeartProjects/TestProject/TestProject.heproj"))
+            Project::LoadFromPath("../../../HeartProjects/TestProject/TestProject.heproj");
         else
             Editor::CreateWindows();
 
@@ -50,6 +41,7 @@ namespace HeartEditor
         UnsubscribeFromEmitter(&EditorApp::Get().GetWindow());
 
         Editor::DestroyWindows();
+        Editor::Shutdown();
 
         HE_LOG_INFO("Editor detached");
     }
@@ -125,10 +117,13 @@ namespace HeartEditor
             glm::vec2 size = viewport.GetSize();
 
             // the image is scaled down in the viewport, so we need to adjust what pixel we are sampling from
-            u32 sampleX = static_cast<u32>(mousePos.x / size.x * viewport.GetSceneRenderer().GetEntityIdsTexture().GetWidth());
-            u32 sampleY = static_cast<u32>(mousePos.y / size.y * viewport.GetSceneRenderer().GetEntityIdsTexture().GetHeight());
+            u32 width = viewport.GetSceneRenderer().GetEntityIdsTexture()->GetWidth();
+            u32 height = viewport.GetSceneRenderer().GetEntityIdsTexture()->GetHeight();
+            u32 sampleX = static_cast<u32>(mousePos.x / size.x * width);
+            u32 sampleY = static_cast<u32>(mousePos.y / size.y * height);
 
-            f32 entityId = viewport.GetSceneRenderer().GetEntityIdsTexture().ReadPixel<f32>(sampleX, sampleY, 0);
+            float entityId;
+            viewport.GetSceneRenderer().GetEntityIdsPixelBuffer()->ReadBytes(&entityId, 4, (sampleX + sampleY * width) * 4);
             Editor::GetState().SelectedEntity = entityId == -1.f ? Heart::Entity() : Heart::Entity(&Editor::GetActiveScene(), static_cast<u32>(entityId));
         }
 

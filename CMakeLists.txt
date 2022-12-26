@@ -21,8 +21,13 @@ endif()
 
 add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/${CMAKE_BUILD_TYPE})
-set(OUTPUT_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}) 
+if (${CMAKE_GENERATOR} STREQUAL "Xcode")
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+    set(OUTPUT_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${CMAKE_BUILD_TYPE}) 
+else()
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/${CMAKE_BUILD_TYPE})
+    set(OUTPUT_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}) 
+endif()
 set(CMAKE_CXX_STANDARD 17)
 
 if(${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
@@ -41,6 +46,22 @@ else()
 endif()
 if (HEART_BUILD_RUNTIME)
     add_compile_definitions(HE_DIST)
+endif()
+
+# Configure & locate dotnet hostfxr
+find_package(Python3 COMPONENTS Interpreter)
+if(Python3_FOUND)
+  execute_process(
+    COMMAND ${Python3_EXECUTABLE} "scripts/configure-hostfxr.py"
+    WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
+    OUTPUT_VARIABLE DOTNET_RUNTIME_DIR
+    ERROR_VARIABLE DOTNET_HOSTFXR_PATH
+  )
+  
+  message("Dotnet runtime dir: ${DOTNET_RUNTIME_DIR}")
+  message("Dotnet hostfxr path: ${DOTNET_HOSTFXR_PATH}")
+else()
+  message(FATAL_ERROR "Python must be installed to configure Heart") 
 endif()
 
 add_subdirectory("Heart")

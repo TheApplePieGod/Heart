@@ -3,8 +3,7 @@
 
 #include "HeartEditor/EditorApp.h"
 #include "Heart/Core/Window.h"
-#include "Heart/Renderer/Renderer.h"
-#include "Heart/Renderer/Framebuffer.h"
+#include "Flourish/Api/Context.h"
 #include "Heart/Renderer/SceneRenderer.h"
 #include "Heart/Scene/Components.h"
 #include "Heart/Asset/AssetManager.h"
@@ -65,7 +64,7 @@ namespace Widgets
         bool shouldRenderViewport = materialAsset && materialAsset->IsValid();
         bool materialChanged = m_SelectedMaterial != m_LastMaterial; 
         bool shouldRerender = (shouldRenderViewport && ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows))
-            || materialChanged || m_RenderedFrames < Heart::Renderer::FrameBufferCount;
+            || materialChanged || m_RenderedFrames < Flourish::Context::FrameBufferCount();
 
         // Only render the window when:
         //  - Valid material & window is focused
@@ -95,12 +94,12 @@ namespace Widgets
             m_DemoEntity.GetComponent<Heart::MeshComponent>().Materials[0] = m_EditingMaterialAsset;
             m_SceneCamera.UpdateAspectRatio(m_WindowSizes.y / ImGui::GetContentRegionMax().y); // update aspect using estimated size
             m_SceneRenderer->RenderScene(
-                EditorApp::Get().GetWindow().GetContext(),
                 m_Scene.get(),
                 m_SceneCamera,
                 m_SceneCameraPosition,
                 renderSettings
             );
+            EditorApp::Get().GetWindow().PushDependencyBuffers(m_SceneRenderer->GetRenderBuffers());
         }
 
         Heart::ImGuiUtils::ResizableWindowSplitter(
@@ -361,7 +360,7 @@ namespace Widgets
         // Draw the rendered texture
         ImGui::Image(
             //m_SceneRenderer->GetFinalFramebuffer().GetColorAttachmentImGuiHandle(0),
-            m_SceneRenderer->GetFinalTexture().GetImGuiHandle(),
+            m_SceneRenderer->GetFinalTexture()->GetImGuiHandle(),
             { viewportSize.x, viewportSize.y }
         );
 

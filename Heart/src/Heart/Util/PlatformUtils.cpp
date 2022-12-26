@@ -3,6 +3,10 @@
 
 #include "Heart/Container/HString8.h"
 
+#ifdef HE_PLATFORM_MACOS
+#include "Heart/Platform/MacOS/Utils.h"
+#endif
+
 namespace Heart
 {
     void* PlatformUtils::LoadDynamicLibrary(const HStringView8& path)
@@ -11,7 +15,7 @@ namespace Heart
             HMODULE lib = LoadLibraryA(path.Data());
             return (void*)lib;
         #elif defined(HE_PLATFORM_LINUX) || defined(HE_PLATFORM_MACOS)
-            void* lib = dlopen(path.Data(), RTLD_LAZY, RTLD_LOCAL);
+            void* lib = dlopen(path.Data(), RTLD_LAZY | RTLD_LOCAL);
             return lib;
         #endif
 
@@ -68,6 +72,8 @@ namespace Heart
     {
         #ifdef HE_PLATFORM_WINDOWS
             CoInitialize(NULL);
+        #elif defined(HE_PLATFORM_MACOS)
+            MacOS::Utils::SetCorrectWorkingDirectory();
         #endif
     }
 

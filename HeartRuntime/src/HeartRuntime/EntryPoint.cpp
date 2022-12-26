@@ -5,8 +5,6 @@
 
 int Main(int argc, char** argv)
 {
-    Heart::Logger::Initialize();
-
     HeartRuntime::RuntimeApp* app = new HeartRuntime::RuntimeApp();
     app->Run();
     delete app;

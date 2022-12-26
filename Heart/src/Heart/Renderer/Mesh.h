@@ -3,7 +3,8 @@
 #include "glm/vec4.hpp"
 #include "glm/vec3.hpp"
 #include "glm/vec2.hpp"
-#include "Heart/Renderer/Buffer.h"
+#include "Heart/Container/HVector.hpp"
+#include "Flourish/Api/Buffer.h"
 
 namespace Heart
 {
@@ -29,21 +30,24 @@ namespace Heart
         Mesh() = default;
 
         const HVector<Vertex>& GetVertices() const { return m_Vertices; }
-        Buffer* GetVertexBuffer() { return m_VertexBuffer.get(); }
-        Buffer* GetIndexBuffer() { return m_IndexBuffer.get(); }
+        Flourish::Buffer* GetVertexBuffer() { return m_VertexBuffer.get(); }
+        Flourish::Buffer* GetIndexBuffer() { return m_IndexBuffer.get(); }
         u32 GetMaterialIndex() const { return m_MaterialIndex; }
         const AABB& GetBoundingBox() const { return m_BoundingBox; }
         glm::vec4 GetBoundingSphere() const { return m_BoundingSphere; }
 
     public:
-        static const BufferLayout& GetVertexLayout() { return s_VertexLayout; }
+        static const Flourish::BufferLayout& GetVertexLayout() { return s_VertexLayout; }
 
     private:
-        inline static const BufferLayout s_VertexLayout = {
-            { BufferDataType::Float3 },
-            { BufferDataType::Float2 },
-            { BufferDataType::Float3 },
-            { BufferDataType::Float4 }
+        inline static const Flourish::BufferLayout s_VertexLayout = {
+            { Flourish::BufferDataType::Float3 },
+            { Flourish::BufferDataType::Float2 },
+            { Flourish::BufferDataType::Float3 },
+            { Flourish::BufferDataType::Float4 }
+        };
+        inline static const Flourish::BufferLayout s_IndexLayout = {
+            { Flourish::BufferDataType::UInt }
         };
 
     private:
@@ -53,8 +57,8 @@ namespace Heart
         HVector<Vertex> m_Vertices;
         HVector<u32> m_Indices;
         u32 m_MaterialIndex;
-        Ref<Buffer> m_VertexBuffer;
-        Ref<Buffer> m_IndexBuffer;
+        Ref<Flourish::Buffer> m_VertexBuffer;
+        Ref<Flourish::Buffer> m_IndexBuffer;
         AABB m_BoundingBox;
         glm::vec4 m_BoundingSphere; // xyz: center, w: radius
     };

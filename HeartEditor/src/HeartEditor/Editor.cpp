@@ -28,6 +28,7 @@ namespace HeartEditor
         s_ActiveScene = s_EditorScene;
 
         GetState().RenderSettings.CopyEntityIdsTextureToCPU = true;
+        GetState().RenderSettings.AsyncAssetLoading = true;
     }
 
     void Editor::Shutdown()

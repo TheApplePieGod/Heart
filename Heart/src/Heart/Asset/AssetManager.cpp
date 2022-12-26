@@ -45,7 +45,6 @@ namespace Heart
     void AssetManager::OnUpdate()
     {
         // Check to see if assets should be unloaded
-        u64 loadLimit = 1000;
         for (auto& pair : s_UUIDs)
         {
             auto& uuidEntry = pair.second;
@@ -53,7 +52,7 @@ namespace Heart
 
             if (entry.Persistent) continue;
 
-            if (App::Get().GetFrameCount() > entry.LoadedFrame + loadLimit)
+            if (App::Get().GetFrameCount() > entry.LoadedFrame + s_AssetFrameLimit)
             {
                 HE_ENGINE_LOG_TRACE(
                     "Unloading {0} @ {1}",
@@ -114,14 +113,14 @@ namespace Heart
 
     void AssetManager::LoadAsset(AssetEntry& entry, bool async)
     {
-        entry.Asset->Load(async);
         entry.LoadedFrame = App::Get().GetFrameCount();
+        entry.Asset->Load(async);
     }
     
     void AssetManager::UnloadAsset(AssetEntry& entry, bool async)
     {
-        entry.Asset->Unload();
         entry.LoadedFrame = std::numeric_limits<u64>::max() - s_AssetFrameLimit; // prevent extraneous unloading
+        entry.Asset->Unload();
     }
 
     UUID AssetManager::RegisterAsset(Asset::Type type, const HStringView8& path, bool persistent, bool isResource)
@@ -308,7 +307,7 @@ namespace Heart
         return s_UUIDs[uuid].IsResource;
     }
 
-    Asset* AssetManager::RetrieveAsset(const HStringView8& path, bool isResource)
+    Asset* AssetManager::RetrieveAsset(const HStringView8& path, bool isResource, bool async)
     {
         if (path.IsEmpty()) return nullptr;
         if (isResource)
@@ -317,7 +316,7 @@ namespace Heart
         { if (s_Registry.find(path) == s_Registry.end()) return nullptr; }
 
         auto& entry = isResource ? s_Resources[path] : s_Registry[path];
-        LoadAsset(entry);
+        LoadAsset(entry, async);
         return entry.Asset.get();
     }
 
@@ -334,10 +333,15 @@ namespace Heart
         if (!entry.Asset->IsLoading())
         {
             if (async)
+            {
+                entry.LoadedFrame = App::Get().GetFrameCount();
                 PushOperation({ true, uuid });
+            }
             else
                 LoadAsset(entry);
         }
+        else
+            entry.LoadedFrame = App::Get().GetFrameCount();
 
         return entry.Asset.get();
     }

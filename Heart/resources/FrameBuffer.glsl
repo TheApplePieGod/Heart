@@ -1,12 +1,13 @@
 struct FrameData {
     mat4 proj;
     mat4 view;
+    mat4 invViewProj;
     vec4 cameraPos;
     vec2 screenSize;
     bool reverseDepth;
-    float bloomThreshold;
     bool cullEnable;
-    bool padding1;
+    bool bloomEnable;
+    bool ssaoEnable;
     vec2 padding2;
 };
 

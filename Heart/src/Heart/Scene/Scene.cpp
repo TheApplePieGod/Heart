@@ -65,7 +65,7 @@ namespace Heart
         m_UUIDMap[uuid] = entity.GetHandle();
 
         entity.AddComponent<IdComponent>(uuid);
-        entity.AddComponent<NameComponent>(name.IsEmpty() ? "New Entity" : name);
+        entity.AddComponent<NameComponent>(name.IsEmpty() ? "New Entity" : HStringView(name));
         entity.AddComponent<TransformComponent>();
 
         CacheEntityTransform(entity);
@@ -179,6 +179,13 @@ namespace Heart
 
         if (recache)
             CacheEntityTransform(child);
+    }
+
+    template<typename Component>
+    void Scene::CopyComponent(entt::entity src, Entity dst)
+    {
+        if (m_Registry.any_of<Component>(src))
+            dst.AddComponent<Component>(m_Registry.get<Component>(src));
     }
 
     void Scene::RemoveChild(UUID parentUUID, UUID childUUID)

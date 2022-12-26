@@ -180,7 +180,7 @@ namespace Heart
          * @param isResource Whether or not this path references a resource asset.
          * @return The pointer to the asset or nullptr if it could not be located. 
          */
-        static Asset* RetrieveAsset(const HStringView8& path, bool isResource = false);
+        static Asset* RetrieveAsset(const HStringView8& path, bool isResource = false, bool async = false);
 
         /**
          * @brief Retrieve an asset from a path.
@@ -194,9 +194,9 @@ namespace Heart
          * @return The pointer to the asset or nullptr if it could not be located. 
          */
         template<typename T>
-        static T* RetrieveAsset(const HStringView8& path, bool isResource = false)
+        static T* RetrieveAsset(const HStringView8& path, bool isResource = false, bool async = false)
         {
-            return static_cast<T*>(RetrieveAsset(path, isResource));
+            return static_cast<T*>(RetrieveAsset(path, isResource, async));
         }
 
         /**

@@ -7,7 +7,7 @@
 #include "Heart/Input/Input.h"
 #include "Heart/Scene/Components.h"
 #include "Heart/Scene/Entity.h"
-#include "Heart/Renderer/Texture.h"
+#include "Flourish/Api/Texture.h"
 
 namespace HeartRuntime
 {
@@ -77,12 +77,12 @@ namespace HeartRuntime
         }
 
         m_SceneRenderer->RenderScene(
-            RuntimeApp::Get().GetWindow().GetContext(),
             sceneContext,
             m_Camera,
             cameraPosition,
             m_RenderSettings
         );
+        RuntimeApp::Get().GetWindow().PushDependencyBuffers(m_SceneRenderer->GetRenderBuffers());
 
         // draw the viewport background
         ImGui::GetWindowDrawList()->AddRectFilled(
@@ -92,7 +92,7 @@ namespace HeartRuntime
         );
 
         ImGui::Image(
-            m_SceneRenderer->GetFinalTexture().GetImGuiHandle(),
+            m_SceneRenderer->GetFinalTexture()->GetImGuiHandle(),
             viewportSize
         );
 

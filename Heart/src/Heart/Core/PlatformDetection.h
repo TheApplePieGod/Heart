@@ -25,7 +25,6 @@
 	#elif TARGET_OS_MAC == 1
 		#define HE_PLATFORM_MACOS
 		#define GLFW_EXPOSE_NATIVE_COCOA
-		#error "MacOS is not supported!"
 	#else
 		#error "Unknown Apple platform!"
 	#endif

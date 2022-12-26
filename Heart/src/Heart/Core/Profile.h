@@ -1,8 +1,8 @@
 #pragma once
 
-#include "optick.h"
-
 #ifdef HE_DEBUG
+
+#include "optick.h"
 
 #define HE_PROFILE_FUNCTION() OPTICK_EVENT()
 #define HE_PROFILE_FRAME() OPTICK_FRAME("Main Thread")

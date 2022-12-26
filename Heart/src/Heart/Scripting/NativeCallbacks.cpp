@@ -141,7 +141,7 @@ HE_INTEROP_EXPORT void Native_Entity_Destroy(u32 entityHandle, Heart::Scene* sce
         { \
             Heart::Entity entity(sceneHandle, entityHandle); \
             HE_ENGINE_ASSERT( \
-                entity.HasComponent<Heart::##compName>(), \
+                entity.HasComponent<Heart::compName>(), \
                 "Entity HasComponent check failed for " #compName \
             ); \
         }
@@ -159,12 +159,12 @@ HE_INTEROP_EXPORT void Native_Entity_Destroy(u32 entityHandle, Heart::Scene* sce
 #endif
 
 #define EXPORT_COMPONENT_GET_FN(compName) \
-    HE_INTEROP_EXPORT void Native_##compName##_Get(u32 entityHandle, Heart::Scene* sceneHandle, Heart::##compName** outComp) \
+    HE_INTEROP_EXPORT void Native_##compName##_Get(u32 entityHandle, Heart::Scene* sceneHandle, Heart::compName** outComp) \
     { \
         ASSERT_ENTITY_IS_VALID(); \
         ASSERT_ENTITY_HAS_COMPONENT(compName); \
         Heart::Entity entity(sceneHandle, entityHandle); \
-        *outComp = &entity.GetComponent<Heart::##compName>(); \
+        *outComp = &entity.GetComponent<Heart::compName>(); \
     }
 
 #define EXPORT_COMPONENT_EXISTS_FN(compName) \
@@ -172,7 +172,7 @@ HE_INTEROP_EXPORT void Native_Entity_Destroy(u32 entityHandle, Heart::Scene* sce
     { \
         ASSERT_ENTITY_IS_VALID(); \
         Heart::Entity entity(sceneHandle, entityHandle); \
-        return entity.HasComponent<Heart::##compName>(); \
+        return entity.HasComponent<Heart::compName>(); \
     } \
 
 #define EXPORT_COMPONENT_ADD_FN(compName) \
@@ -180,7 +180,7 @@ HE_INTEROP_EXPORT void Native_Entity_Destroy(u32 entityHandle, Heart::Scene* sce
     { \
         ASSERT_ENTITY_IS_VALID(); \
         Heart::Entity entity(sceneHandle, entityHandle); \
-        entity.AddComponent<Heart::##compName>(); \
+        entity.AddComponent<Heart::compName>(); \
     } \
 
 #define EXPORT_COMPONENT_REMOVE_FN(compName) \
@@ -188,7 +188,7 @@ HE_INTEROP_EXPORT void Native_Entity_Destroy(u32 entityHandle, Heart::Scene* sce
     { \
         ASSERT_ENTITY_IS_VALID(); \
         Heart::Entity entity(sceneHandle, entityHandle); \
-        entity.RemoveComponent<Heart::##compName>(); \
+        entity.RemoveComponent<Heart::compName>(); \
     } \
 
 #define EXPORT_COMPONENT_BASIC_FNS(compName) \
@@ -228,11 +228,11 @@ HE_INTEROP_EXPORT void Native_TransformComponent_GetForwardVector(u32 entityHand
 }
 
 // Parent component
-HE_INTEROP_EXPORT void Native_ParentComponent_Get(u32 entityHandle, Heart::Scene* sceneHandle, Heart::UUID** outComp)
+HE_INTEROP_EXPORT void Native_ParentComponent_Get(u32 entityHandle, Heart::Scene* sceneHandle, Heart::UUID* outComp)
 { 
     ASSERT_ENTITY_IS_VALID();
     Heart::Entity entity(sceneHandle, entityHandle);
-    *outComp = &entity.GetParent();
+    *outComp = entity.GetParent();
 }
 
 HE_INTEROP_EXPORT void Native_ParentComponent_SetParent(u32 entityHandle, Heart::Scene* sceneHandle, Heart::UUID parent)

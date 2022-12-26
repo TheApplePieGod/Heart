@@ -6,26 +6,37 @@
 #include "glm/mat4x4.hpp"
 #include "Heart/Container/HVector.hpp"
 
+namespace Flourish
+{
+    class Framebuffer;
+    class ComputePipeline;
+    class ComputeTarget;
+    class Buffer;
+    class Texture;
+    class CommandBuffer;
+    class RenderPass;
+    class RenderCommandEncoder;
+}
+
 namespace Heart
 {
     struct SceneRenderSettings
     {
         bool DrawGrid = true;
         bool BloomEnable = true;
-        float BloomBlurStrength = 0.2f;
-        float BloomBlurScale = 1.f;
+        bool SSAOEnable = true;
+        float SSAORadius = 0.5f;
+        float SSAOBias = 0.025f;
+        int SSAOKernelSize = 64;
         float BloomThreshold = 1.f;
+        float BloomKnee = 0.1f;
+        float BloomSampleScale = 1.f;
         bool CullEnable = true;
         bool AsyncAssetLoading = true;
         bool CopyEntityIdsTextureToCPU = false;
     };
 
     class Scene;
-    class GraphicsContext;
-    class Framebuffer;
-    class ComputePipeline;
-    class Buffer;
-    class Texture;
     class Material;
     class Mesh;
     class EnvironmentMap;
@@ -39,19 +50,20 @@ namespace Heart
         SceneRenderer();
         ~SceneRenderer();
 
-        void RenderScene(GraphicsContext& context, Scene* scene, const Camera& camera, glm::vec3 cameraPosition, const SceneRenderSettings& renderSettings);
+        void RenderScene(Scene* scene, const Camera& camera, glm::vec3 cameraPosition, const SceneRenderSettings& renderSettings);
 
         void OnEvent(Event& event) override;
 
-        inline Texture& GetFinalTexture() { return *m_FinalTexture; }
-        inline Texture& GetPreBloomTexture() { return *m_PreBloomTexture; }
-        inline Texture& GetBrightColorsTexture() { return *m_BrightColorsTexture; }
-        inline Texture& GetBloomBuffer1Texture() { return *m_BloomBufferTexture; }
-        inline Texture& GetBloomBuffer2Texture() { return *m_BloomUpsampleBufferTexture; }
-        inline Texture& GetEntityIdsTexture() { return *m_EntityIdsTexture; }
-        inline Framebuffer& GetMainFramebuffer() { return *m_MainFramebuffer; }
-        inline ComputePipeline& GetCullPipeline() { return *m_ComputeCullPipeline; }
-        inline HVector<std::array<Ref<Framebuffer>, 2>>& GetBloomFramebuffers() { return m_BloomFramebuffers; }
+        inline const auto& GetRenderBuffers() { return m_RenderBuffers; }
+        inline Flourish::Texture* GetFinalTexture() { return m_FinalTexture.get(); }
+        inline Flourish::Texture* GetRenderOutputTexture() { return m_RenderOutputTexture.get(); }
+        inline Flourish::Texture* GetEntityIdsTexture() { return m_EntityIdsTexture.get(); }
+        inline Flourish::Texture* GetDepthTexture() { return m_DepthTexture.get(); }
+        inline Flourish::Texture* GetSSAOTexture() { return m_SSAOTexture.get(); }
+        inline Flourish::Texture* GetBloomUpsampleTexture() { return m_BloomUpsampleBufferTexture.get(); }
+        inline Flourish::Texture* GetBloomDownsampleTexture() { return m_BloomDownsampleBufferTexture.get(); }
+        inline Flourish::Buffer* GetEntityIdsPixelBuffer() { return m_EntityIdsPixelBuffer.get(); }
+        inline u32 GetBloomMipCount() const { return m_BloomMipCount; }
 
     private:
         struct IndirectBatch
@@ -62,6 +74,7 @@ namespace Heart
             u32 Count = 0;
             u32 EntityListIndex = 0;
         };
+
         struct IndexedIndirectCommand
         {
             u32 IndexCount;
@@ -73,102 +86,137 @@ namespace Heart
             u32 padding1;
             glm::vec2 padding2;
         };
-        struct InstanceData
-        {
-            u32 ObjectId;
-            u32 BatchId;
-            glm::vec2 padding;  
-        };
+
         struct FrameData
         {
             glm::mat4 Proj;
             glm::mat4 View;
+            glm::mat4 InvViewProj;
             glm::vec4 CameraPos;
             glm::vec2 ScreenSize;
-            bool ReverseDepth;
-            float BloomThreshold;
-            bool CullEnable;
-            bool padding1;
+            u32 ReverseDepth;
+            u32 CullEnable;
+            u32 BloomEnable;
+            u32 SSAOEnable;
             glm::vec2 padding2;
         };
-        struct BloomData
-        {
-            u32 MipLevel;
-            bool ReverseDepth;
-            float BlurScale;
-            float BlurStrength;
-        };
+
         struct ObjectData
         {
             glm::mat4 Model;
             glm::vec4 Data;
-            glm::vec4 BoundingSphere;
         };
+
+        struct LightData
+        {
+            glm::vec4 Position;
+            glm::vec4 Direction;
+            glm::vec4 Color;
+            u32 LightType;
+            float ConstantAttenuation;
+            float LinearAttenuation;
+            float QuadraticAttenuation;
+        };
+
         struct CullData
         {
             std::array<glm::vec4, 6> FrustumPlanes;
             glm::vec4 Data;
         };
 
+        struct BloomData
+        {
+            glm::vec2 SrcResolution;
+            glm::vec2 DstResolution;
+            float Threshold;
+            float Knee;
+            float SampleScale;
+            u32 Prefilter;
+            glm::vec4 Padding1;
+            glm::vec4 Padding2;
+        };
+
+        struct SSAOData
+        {
+            glm::vec4 Samples[64];
+            u32 KernelSize;
+            float Radius;
+            float Bias;
+            float Padding;
+        };
+
     private:
         void Initialize();
-        void Shutdown();
         void Resize();
+        
+        void CreateBuffers();
         void CreateTextures();
-        void CleanupTextures();
+        void CreateRenderPasses();
         void CreateFramebuffers();
-        void CleanupFramebuffers();
+        void CreateComputeObjects();
+        void InitializeGridBuffers();
+        void InitializeSSAOData();
 
         void UpdateLightingBuffer();
         void CalculateBatches();
         void BindMaterial(Material* material);
         void BindPBRDefaults();
+        bool FrustumCull(glm::vec4 boundingSphere, const glm::mat4& transform); // True if visible
 
-        void SetupCullCompute();
         void RenderEnvironmentMap();
         void RenderGrid();
         void RenderBatches();
         void Composite();
-        void Bloom(GraphicsContext& context);
+        void CopyEntityIdsTexture();
+        void SSAO();
+        void Bloom();
+        void FinalComposite();
 
-        void InitializeGridBuffers();
-
-        bool OnAppGraphicsInit(AppGraphicsInitEvent& event);
-        bool OnAppGraphicsShutdown(AppGraphicsShutdownEvent& event);
         bool OnWindowResize(WindowResizeEvent& event);
 
     private:
-        bool m_Initialized = false;
+        const u32 m_MaxBloomMipCount = 7;
 
-        Ref<Framebuffer> m_MainFramebuffer;
-        HVector<std::array<Ref<Framebuffer>, 2>> m_BloomFramebuffers; // one for each mip level and one for horizontal / vertical passes
+        Ref<Flourish::Buffer> m_EntityIdsPixelBuffer;
+        Ref<Flourish::Buffer> m_IndirectBuffer;
+        Ref<Flourish::Buffer> m_FrameDataBuffer;
+        Ref<Flourish::Buffer> m_ObjectDataBuffer;
+        Ref<Flourish::Buffer> m_MaterialDataBuffer;
+        Ref<Flourish::Buffer> m_LightingDataBuffer;
+        Ref<Flourish::Texture> m_DepthTexture;
+        Ref<Flourish::Texture> m_DefaultEnvironmentMap;
+        Ref<Flourish::Texture> m_RenderOutputTexture;
+        Ref<Flourish::Texture> m_EntityIdsTexture;
+        Ref<Flourish::Framebuffer> m_MainFramebuffer;
+        Ref<Flourish::CommandBuffer> m_MainCommandBuffer;
+        Ref<Flourish::RenderPass> m_MainRenderPass;
 
-        Ref<ComputePipeline> m_ComputeCullPipeline;
-        Ref<Buffer> m_CullDataBuffer;
-        Ref<Buffer> m_InstanceDataBuffer;
-        Ref<Buffer> m_FinalInstanceBuffer;
-        Ref<Buffer> m_IndirectBuffer;
+        Ref<Flourish::ComputePipeline> m_BloomDownsampleComputePipeline;
+        Ref<Flourish::ComputePipeline> m_BloomUpsampleComputePipeline;
+        Ref<Flourish::ComputeTarget> m_BloomComputeTarget;
+        Ref<Flourish::CommandBuffer> m_BloomCommandBuffer;
+        Ref<Flourish::Texture> m_BloomDownsampleBufferTexture;
+        Ref<Flourish::Texture> m_BloomUpsampleBufferTexture;
+        Ref<Flourish::Buffer> m_BloomDataBuffer;
 
-        Ref<Texture> m_DefaultEnvironmentMap;
-        Ref<Texture> m_PreBloomTexture;
-        Ref<Texture> m_BrightColorsTexture;
-        Ref<Texture> m_BloomBufferTexture;
-        Ref<Texture> m_BloomUpsampleBufferTexture;
+        Ref<Flourish::ComputePipeline> m_SSAOComputePipeline;
+        Ref<Flourish::ComputeTarget> m_SSAOComputeTarget;
+        Ref<Flourish::CommandBuffer> m_SSAOCommandBuffer;
+        Ref<Flourish::Texture> m_SSAOTexture;
+        Ref<Flourish::Texture> m_SSAONoiseTexture;
+        Ref<Flourish::Buffer> m_SSAODataBuffer;
+        SSAOData m_SSAOData;
 
-        Ref<Texture> m_FinalTexture;
-        Ref<Texture> m_EntityIdsTexture;
+        Ref<Flourish::ComputePipeline> m_FinalCompositeComputePipeline;
+        Ref<Flourish::ComputeTarget> m_FinalComputeTarget;
+        Ref<Flourish::CommandBuffer> m_FinalCommandBuffer;
+        Ref<Flourish::Texture> m_FinalTexture;
 
-        Ref<Buffer> m_FrameDataBuffer;
-        Ref<Buffer> m_BloomDataBuffer;
-        Ref<Buffer> m_ObjectDataBuffer;
-        Ref<Buffer> m_MaterialDataBuffer;
-        Ref<Buffer> m_LightingDataBuffer;
+        Ref<Flourish::Buffer> m_GridVertices;
+        Ref<Flourish::Buffer> m_GridIndices;
 
-        // grid
-        Ref<Buffer> m_GridVertices;
-        Ref<Buffer> m_GridIndices;
-
-        // in-flight frame data
+        // In-flight frame data
+        Flourish::RenderCommandEncoder* m_RenderEncoder;
         Scene* m_Scene;
         EnvironmentMap* m_EnvironmentMap;
         const Camera* m_Camera;
@@ -177,8 +225,9 @@ namespace Heart
         HVector<HVector<u32>> m_EntityListPool;
         SceneRenderSettings m_SceneRenderSettings;
         u32 m_RenderedInstanceCount;
+        std::vector<std::vector<Flourish::CommandBuffer*>> m_RenderBuffers;
 
-        const u32 m_BloomMipCount = 5;
+        u32 m_BloomMipCount = 0;
         bool m_ShouldResize = false;
         u32 m_RenderWidth = 0;
         u32 m_RenderHeight = 0;

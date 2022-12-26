@@ -3,6 +3,12 @@
 #include "Heart/Events/EventEmitter.h"
 #include "Heart/Container/HString8.h"
 
+namespace Flourish
+{
+    class RenderContext;
+    class CommandBuffer;
+}
+
 class GLFWwindow;
 namespace Heart
 {
@@ -20,7 +26,7 @@ namespace Heart
     };
 
     // TODO: describe method lifecycles
-    class GraphicsContext;
+    class WindowResizeEvent;
     class Window : public EventEmitter
     {
     public:
@@ -66,7 +72,10 @@ namespace Heart
         bool IsFullscreen();
 
         /*! @brief Get the window's graphics context. */
-        inline GraphicsContext& GetContext() const { return *m_GraphicsContext; }
+        inline Flourish::RenderContext* GetRenderContext() const { return m_RenderContext.get(); }
+        
+        inline void PushDependencyBuffers(const std::vector<std::vector<Flourish::CommandBuffer*>>& buffers)
+        { m_DependencyBuffers.insert(m_DependencyBuffers.end(), buffers.begin(), buffers.end()); }
 
         /*! @brief Get the window's underlying GLFW handle. */
         inline GLFWwindow* GetWindowHandle() const { return m_Window; }
@@ -116,11 +125,16 @@ namespace Heart
         };
 
     private:
+        void EmitEvent(Event& event);
+        bool OnWindowResize(WindowResizeEvent& event);
+
+    private:
         inline static int s_WindowCount = 0;
         inline static Ref<Window> s_MainWindow = nullptr;
 
     private:
-        Ref<GraphicsContext> m_GraphicsContext;
+        Ref<Flourish::RenderContext> m_RenderContext;
+        std::vector<std::vector<Flourish::CommandBuffer*>> m_DependencyBuffers;
         int m_SavedWindowSizeAndPosition[4]; // used when toggling fullscreen
         WindowData m_WindowData;
         GLFWwindow* m_Window;

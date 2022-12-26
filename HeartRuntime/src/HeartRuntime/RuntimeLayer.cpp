@@ -3,6 +3,7 @@
 
 #include "HeartRuntime/RuntimeApp.h"
 #include "Heart/Core/Window.h"
+#include "Heart/ImGui/ImGuiInstance.h"
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/SceneAsset.h"
 #include "Heart/Scripting/ScriptingEngine.h"
@@ -99,12 +100,15 @@ namespace HeartRuntime
             .append("ClientScripts.dll");
         if (!std::filesystem::exists(assemblyPath))
         {
-            HE_LOG_WARN("Project assembly not found");
+            HE_LOG_ERROR("Project assembly not found");
             throw std::exception();
         }
         
         Heart::AssetManager::UpdateAssetsDirectory("project");
         Heart::ScriptingEngine::LoadClientPlugin(assemblyPath.u8string());
+
+        RuntimeApp::Get().GetImGuiInstance().OverrideImGuiConfig(Heart::AssetManager::GetAssetsDirectory());
+        RuntimeApp::Get().GetImGuiInstance().ReloadImGuiConfig();
 
         // TODO: eventually switch from loadedScene to default scene or something like that
         auto j = nlohmann::json::parse(data);

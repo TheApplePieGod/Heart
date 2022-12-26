@@ -39,8 +39,13 @@ namespace Heart
 
     bool LoadHostFXR()
     {
-        char hostfxrName[100];
-        sprintf(hostfxrName, "hostfxr%s", PlatformUtils::GetDynamicLibraryExtension());
+        #ifdef HE_PLATFORM_WINDOWS
+        const char* hostfxrName = "scripting/hostfxr.dll";
+        #elif defined(HE_PLATFORM_MACOS)
+        const char* hostfxrName = "scripting/libhostfxr.dylib";
+        #else
+        const char* hostfxrName = "scripting/hostfxr.so";
+        #endif
 
         s_HostFXRHandle = PlatformUtils::LoadDynamicLibrary(hostfxrName);
         if (!s_HostFXRHandle) return false; 
@@ -89,8 +94,15 @@ namespace Heart
 
     void InitHostFXRWithConfig(const char_t* configPath, load_assembly_and_get_function_pointer_fn& outLoadAssemblyFunc)
     {
+        // TODO: this is mid, but we don't need to mess around with this on windows and allegedly
+        // the macos dotnet is always installed in the same location
+        hostfxr_initialize_parameters params{};
+        #ifdef HE_PLATFORM_MACOS
+        params.dotnet_root = "/usr/local/share/dotnet";
+        #endif
+
         hostfxr_handle ctx = nullptr;
-        int rc = s_ConfigInitFunc(configPath, nullptr, &ctx);
+        int rc = s_ConfigInitFunc(configPath, &params, &ctx);
         if (rc != 0 || !ctx)
         {
             s_CloseFunc(ctx);

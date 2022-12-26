@@ -54,6 +54,22 @@ namespace Widgets
         ImGui::SameLine();
         ImGui::Checkbox("##DrawGrid", &Editor::GetState().RenderSettings.DrawGrid);
 
+        ImGui::Text("SSAO Enable");
+        ImGui::SameLine();
+        ImGui::Checkbox("##SSAOEnable", &Editor::GetState().RenderSettings.SSAOEnable);
+        
+        ImGui::Text("SSAO Radius");
+        ImGui::SameLine();
+        ImGui::DragFloat("##SSAORad", &Editor::GetState().RenderSettings.SSAORadius, 0.05f, 0.f, 5.f);
+        
+        ImGui::Text("SSAO Bias");
+        ImGui::SameLine();
+        ImGui::DragFloat("##SSAOBias", &Editor::GetState().RenderSettings.SSAOBias, 0.005f, 0.f, 1.f);
+        
+        ImGui::Text("SSAO Kernel Size");
+        ImGui::SameLine();
+        ImGui::DragInt("##SSAOKern", &Editor::GetState().RenderSettings.SSAOKernelSize, 1.f, 0, 64);
+         
         ImGui::Text("Bloom Enable");
         ImGui::SameLine();
         ImGui::Checkbox("##BloomEnable", &Editor::GetState().RenderSettings.BloomEnable);
@@ -62,13 +78,13 @@ namespace Widgets
         ImGui::SameLine();
         ImGui::DragFloat("##BloomThresh", &Editor::GetState().RenderSettings.BloomThreshold, 0.1f, 0.f, 5.f);
 
-        ImGui::Text("Bloom Blur Scale");
+        ImGui::Text("Bloom Knee");
         ImGui::SameLine();
-        ImGui::DragFloat("##BBScale", &Editor::GetState().RenderSettings.BloomBlurScale, 0.1f, 0.f, 50.f);
+        ImGui::DragFloat("##BBKne", &Editor::GetState().RenderSettings.BloomKnee, 0.01f, 0.f, 1.f);
 
-        ImGui::Text("Bloom Blur Strength");
+        ImGui::Text("Bloom Sample Scale");
         ImGui::SameLine();
-        ImGui::DragFloat("##BBStren", &Editor::GetState().RenderSettings.BloomBlurStrength, 0.1f, 0.f, 50.f);
+        ImGui::DragFloat("##BBSS", &Editor::GetState().RenderSettings.BloomSampleScale, 0.1f, 0.f, 10.f);
 
         ImGui::Text("Cull Enable");
         ImGui::SameLine();

@@ -5,9 +5,9 @@
 #include "Heart/Events/KeyboardEvents.h"
 #include "Heart/Events/MouseEvents.h"
 #include "Heart/Input/Input.h"
-#include "Heart/Renderer/Renderer.h"
-#include "Heart/Renderer/GraphicsContext.h"
 #include "GLFW/glfw3.h"
+
+#include "Flourish/Api/RenderContext.h"
 
 namespace Heart
 {
@@ -27,7 +27,7 @@ namespace Heart
         m_WindowData.Title = createInfo.Title;
         m_WindowData.Width = createInfo.Width;
         m_WindowData.Height = createInfo.Height;
-        m_WindowData.EmitEvent = HE_BIND_EVENT_FN(Window::Emit);
+        m_WindowData.EmitEvent = HE_BIND_EVENT_FN(Window::EmitEvent);
 
         if (s_WindowCount == 0)
         {
@@ -36,37 +36,27 @@ namespace Heart
             glfwSetErrorCallback(GLFWErrorCallback);
         }
 
-        if (Renderer::GetApiType() == RenderApi::Type::Vulkan)
+        if (Flourish::Context::BackendType() == Flourish::BackendType::Vulkan)
         {
             glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
             HE_ENGINE_ASSERT(glfwVulkanSupported(), "Device does not support vulkan rendering");
         }
 
-        #ifdef HE_DEBUG
-        if (Renderer::GetApiType() == RenderApi::Type::OpenGL)
-            glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
-        #endif
-
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
-        HString8 fullTitle = createInfo.Title;
-        fullTitle += " (";
-        fullTitle += HE_ENUM_TO_STRING(RenderApi, Renderer::GetApiType());
-        fullTitle += ")";
-
-        m_Window = glfwCreateWindow(createInfo.Width, createInfo.Height, fullTitle.Data(), nullptr, nullptr);
+        m_Window = glfwCreateWindow(createInfo.Width, createInfo.Height, createInfo.Title.Data(), nullptr, nullptr);
         s_WindowCount++;
 
-        m_GraphicsContext = GraphicsContext::Create(m_Window);
+        Flourish::RenderContextCreateInfo ctxCreateInfo;
+        ctxCreateInfo.Window = m_Window;
+        ctxCreateInfo.Width = createInfo.Width;
+        ctxCreateInfo.Height = createInfo.Height;
+        m_RenderContext = Flourish::RenderContext::Create(ctxCreateInfo);
 
         glfwSetWindowUserPointer(m_Window, &m_WindowData);
         
         if (glfwRawMouseMotionSupported())
             glfwSetInputMode(m_Window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
-
-        // disable vsync permanently (for now)
-        if (Renderer::GetApiType() == RenderApi::Type::OpenGL)
-            glfwSwapInterval(0);
 
         glfwSetWindowSizeCallback(m_Window, [](GLFWwindow* window, int width, int height)
 		{
@@ -155,9 +145,7 @@ namespace Heart
 
     void Window::BeginFrame()
     {
-        HE_PROFILE_FUNCTION();
 
-        m_GraphicsContext->BeginFrame();
     }
 
     void Window::PollEvents()
@@ -169,8 +157,9 @@ namespace Heart
 
     void Window::EndFrame()
     {
-        m_GraphicsContext->EndFrame();
         Input::ClearDeltas();
+        m_RenderContext->Present(m_DependencyBuffers);
+        m_DependencyBuffers.clear();
     }
 
     void Window::DisableCursor()
@@ -181,6 +170,10 @@ namespace Heart
     void Window::EnableCursor()
     {
         glfwSetInputMode(m_Window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        
+        double xpos, ypos;
+        glfwGetCursorPos(m_Window, &xpos, &ypos);
+        Input::SetMousePosition(xpos, ypos);
     }
 
     void Window::SetWindowTitle(const char* newTitle)
@@ -226,5 +219,19 @@ namespace Heart
     double Window::GetWindowTime()
     {
         return glfwGetTime() * 1000.0;
+    }
+
+    void Window::EmitEvent(Event& event)
+    {
+        event.Map<WindowResizeEvent>(HE_BIND_EVENT_FN(Window::OnWindowResize));
+
+        Emit(event);
+    }
+
+    bool Window::OnWindowResize(WindowResizeEvent& event)
+    {
+        m_RenderContext->UpdateDimensions(event.GetWidth(), event.GetHeight());
+        
+        return false;
     }
 }

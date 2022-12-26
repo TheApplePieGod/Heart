@@ -2,8 +2,6 @@
 #include "TextureAsset.h"
 
 #include "Heart/Asset/AssetManager.h"
-#include "Heart/Renderer/Renderer.h"
-#include "Heart/Renderer/Texture.h"
 #include "stb_image/stb_image.h"
 
 namespace Heart
@@ -37,32 +35,57 @@ namespace Heart
             m_Loading = false;
             return;
         }
-
-        TextureCreateInfo createInfo = {
-            static_cast<u32>(width), static_cast<u32>(height), static_cast<u32>(m_DesiredChannelCount),
-            floatComponents ? BufferDataType::Float : BufferDataType::UInt8,
-            BufferUsageType::Static,
-            1, 0
-        };
-
-        auto finalizeFn = [this, createInfo, pixels, floatComponents]()
+        
+        Flourish::ColorFormat format = Flourish::ColorFormat::RGBA8_UNORM;
+        if (floatComponents)
         {
-            if (!AssetManager::IsInitialized()) return;
-            m_Texture = Texture::Create(createInfo, pixels);
-            if (floatComponents)
-                delete[] (float*)pixels;
-            else
-                delete[] (unsigned char*)pixels;
-
-            m_Loaded = true;
-            m_Loading = false;
-            m_Valid = true;
-        };
-
-        if (async)
-            Renderer::PushJobQueue(finalizeFn);
+            switch (m_DesiredChannelCount)
+            {
+                default:
+                { HE_ENGINE_ASSERT(false, "Unsupported desired channel count for texture"); } break;
+                case 1: { format = Flourish::ColorFormat::R32_FLOAT; } break;
+                case 4: { format = Flourish::ColorFormat::RGBA32_FLOAT; } break;
+            }
+        }
         else
-            finalizeFn();
+        {
+            switch (m_DesiredChannelCount)
+            {
+                default:
+                { HE_ENGINE_ASSERT(false, "Unsupported desired channel count for texture"); } break;
+                case 3: { format = Flourish::ColorFormat::RGB8_UNORM; } break;
+                case 4: { format = Flourish::ColorFormat::RGBA8_UNORM; } break;
+            }
+        }
+        
+        Flourish::TextureSamplerState samp;
+        samp.AnisotropyEnable = true;
+
+        Flourish::TextureCreateInfo createInfo = {
+            static_cast<u32>(width),
+            static_cast<u32>(height),
+            format,
+            Flourish::TextureUsageType::Readonly,
+            Flourish::TextureWritability::Once,
+            1, 0,
+            samp,
+            pixels,
+            static_cast<u32>(width * height * m_DesiredChannelCount) * (floatComponents ? 4 : 1),
+            async,
+            [this, pixels, floatComponents]()
+            {
+                if (!AssetManager::IsInitialized()) return;
+                if (floatComponents)
+                    delete[] (float*)pixels;
+                else
+                    delete[] (unsigned char*)pixels;
+
+                m_Loaded = true;
+                m_Loading = false;
+                m_Valid = true;
+            }
+        };
+        m_Texture = Flourish::Texture::Create(createInfo);
     }
 
     void TextureAsset::Unload()

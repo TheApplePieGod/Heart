@@ -2,7 +2,12 @@ project(Runtime)
 
 # Build main
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp" "src/*.h")
-add_executable(Runtime "${SOURCES}")
+
+if(APPLE AND ${CMAKE_BUILD_TYPE} MATCHES Release)
+  add_executable(Runtime MACOSX_BUNDLE "${SOURCES}")
+else()
+  add_executable(Runtime "${SOURCES}")
+endif()
 
 target_compile_features(Runtime PUBLIC cxx_std_17)
 
@@ -15,7 +20,17 @@ target_include_directories(
 
 target_link_libraries(Runtime Engine)
 
-set_target_properties(Runtime PROPERTIES WIN32_EXECUTABLE true)
+if (WIN32)
+  set_target_properties(Runtime PROPERTIES WIN32_EXECUTABLE true)
+elseif(APPLE AND ${CMAKE_BUILD_TYPE} MATCHES Release)
+  set_target_properties(Runtime PROPERTIES
+    BUNDLE True
+    MACOSX_BUNDLE_GUI_IDENTIFIER heart.runtime
+    MACOSX_BUNDLE_BUNDLE_NAME Runtime
+    MACOSX_BUNDLE_BUNDLE_VERSION "0.1"
+    MACOSX_BUNDLE_SHORT_VERSION_STRING "0.1"
+  )
+endif()
 
 # PCH
 target_precompile_headers(Runtime REUSE_FROM Engine)

@@ -34,7 +34,7 @@ namespace Heart
          */
         static glm::vec2 GetScreenMousePos();
 
-        // friend class window?
+        static void SetMousePosition(double newX, double newY);
         static void UpdateMousePosition(double newX, double newY);
         static void UpdateScrollOffset(double newX, double newY);
 

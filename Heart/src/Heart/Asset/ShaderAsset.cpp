@@ -10,11 +10,11 @@ namespace Heart
         
         // infer the shader type based on the file extension
         if (m_Extension == ".vert")
-            m_ShaderType = Shader::Type::Vertex;
+            m_ShaderType = Flourish::ShaderType::Vertex;
         else if (m_Extension == ".frag")
-            m_ShaderType = Shader::Type::Fragment;
+            m_ShaderType = Flourish::ShaderType::Fragment;
         else if (m_Extension == ".comp")
-            m_ShaderType = Shader::Type::Compute;
+            m_ShaderType = Flourish::ShaderType::Compute;
     }
 
     void ShaderAsset::Load(bool async)
@@ -22,7 +22,10 @@ namespace Heart
         if (m_Loaded || m_Loading) return;
         m_Loading = true;
 
-        m_Shader = Shader::Create(m_AbsolutePath, m_ShaderType);
+        Flourish::ShaderCreateInfo createInfo;
+        createInfo.Type = m_ShaderType;
+        createInfo.Path = std::string_view(m_AbsolutePath.Data(), m_AbsolutePath.Count());
+        m_Shader = Flourish::Shader::Create(createInfo);
 
         m_Data = nullptr;
         m_Loaded = true;
