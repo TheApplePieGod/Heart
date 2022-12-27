@@ -11,7 +11,8 @@ namespace Heart
         if (!IsInitialized()) return PhysicsBody();
         
         PhysicsBody other;
-        switch (GetBodyType())
+        /*
+        switch (m_BodyType)
         {
             default:
             { HE_ENGINE_ASSERT(false, "Unsupported body type"); }
@@ -20,7 +21,11 @@ namespace Heart
             case Type::Sphere:
             { other.m_Shape = CreateRef<btSphereShape>(*static_cast<btSphereShape*>(m_Shape.get())); } break;
         }
-
+         */
+        // Should be fine to reuse shape because we never modify it directly
+        other.m_Shape = m_Shape;
+        other.m_BodyType = m_BodyType;
+        
         btTransform transform;
         m_MotionState->getWorldTransform(transform);
         other.Initialize(m_Mass, transform);
