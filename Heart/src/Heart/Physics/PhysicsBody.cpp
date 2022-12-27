@@ -149,7 +149,7 @@ namespace Heart
         m_Body->setAngularVelocity({ vel.x, vel.y, vel.z });
     }
 
-    glm::vec3 PhysicsBody::GetExtent()
+    glm::vec3 PhysicsBody::GetBoxExtent()
     {
         HE_ENGINE_ASSERT(m_BodyType == Type::Box, "Incompatible body type");
         
@@ -157,11 +157,25 @@ namespace Heart
         return { extent.x(), extent.y(), extent.z() };
     }
 
-    float PhysicsBody::GetRadius()
+    float PhysicsBody::GetSphereRadius()
     {
         HE_ENGINE_ASSERT(m_BodyType == Type::Sphere, "Incompatible body type");
         
         return static_cast<btSphereShape*>(m_Shape.get())->getRadius();
+    }
+
+    float PhysicsBody::GetCapsuleRadius()
+    {
+        HE_ENGINE_ASSERT(m_BodyType == Type::Capsule, "Incompatible body type");
+        
+        return static_cast<btCapsuleShape*>(m_Shape.get())->getRadius();
+    }
+
+    float PhysicsBody::GetCapsuleHeight()
+    {
+        HE_ENGINE_ASSERT(m_BodyType == Type::Capsule, "Incompatible body type");
+        
+        return static_cast<btCapsuleShape*>(m_Shape.get())->getHalfHeight();
     }
 
     PhysicsBody PhysicsBody::CreateBoxShape(float mass, glm::vec3 halfExtent)
@@ -186,6 +200,19 @@ namespace Heart
         PhysicsBody body;
         body.m_BodyType = Type::Sphere;
         body.m_Shape = CreateRef<btSphereShape>(radius);
+        
+        btTransform transform;
+        transform.setIdentity();
+        body.Initialize(mass, transform);
+        
+        return body;
+    }
+
+    PhysicsBody PhysicsBody::CreateCapsuleShape(float mass, float radius, float halfHeight)
+    {
+        PhysicsBody body;
+        body.m_BodyType = Type::Capsule;
+        body.m_Shape = CreateRef<btCapsuleShape>(radius, halfHeight * 2.f);
         
         btTransform transform;
         transform.setIdentity();

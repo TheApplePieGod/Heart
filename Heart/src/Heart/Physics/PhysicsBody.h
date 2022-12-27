@@ -14,10 +14,10 @@ namespace Heart
         enum class Type : u32
         {
             None = 0,
-            Box, Sphere
+            Box, Sphere, Capsule
         };
         inline static const char* TypeStrings[] = {
-            "None", "Box", "Sphere"
+            "None", "Box", "Sphere", "Capsule"
         };
 
     public:
@@ -40,14 +40,19 @@ namespace Heart
         inline float GetMass() const { return m_Mass; }
         
         // Box shape
-        glm::vec3 GetExtent();
+        glm::vec3 GetBoxExtent();
         
         // Sphere shape
-        float GetRadius();
+        float GetSphereRadius();
+        
+        // Capsule shape
+        float GetCapsuleRadius();
+        float GetCapsuleHeight();
         
     public:
         static PhysicsBody CreateBoxShape(float mass, glm::vec3 halfExtent);
         static PhysicsBody CreateSphereShape(float mass, float radius);
+        static PhysicsBody CreateCapsuleShape(float mass, float radius, float halfHeight);
         
     private:
         void Initialize(float mass, const btTransform& transform);

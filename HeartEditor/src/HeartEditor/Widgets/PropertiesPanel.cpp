@@ -402,6 +402,8 @@ namespace Widgets
                         selectedEntity.ReplacePhysicsBody(Heart::PhysicsBody::CreateBoxShape(mass, { 0.5f, 0.5f, 0.5f }));
                     if (ImGui::MenuItem("Sphere") && bodyType != Heart::PhysicsBody::Type::Sphere)
                         selectedEntity.ReplacePhysicsBody(Heart::PhysicsBody::CreateSphereShape(mass, 0.5f));
+                    if (ImGui::MenuItem("Capsule") && bodyType != Heart::PhysicsBody::Type::Capsule)
+                        selectedEntity.ReplacePhysicsBody(Heart::PhysicsBody::CreateCapsuleShape(mass, 0.5f, 1.f));
                     ImGui::EndPopup();
                 }
 
@@ -415,7 +417,7 @@ namespace Widgets
                     
                     case Heart::PhysicsBody::Type::Box:
                     {
-                        auto extent = body->GetExtent();
+                        auto extent = body->GetBoxExtent();
                         if (recreate || RenderXYZSlider(
                             "Half Extent  ",
                             &extent.x,
@@ -430,11 +432,27 @@ namespace Widgets
 
                     case Heart::PhysicsBody::Type::Sphere:
                     {
-                        float radius = body->GetRadius();
+                        float radius = body->GetSphereRadius();
                         ImGui::Text("Radius");
                         ImGui::SameLine();
                         if (recreate || ImGui::DragFloat("##radius", &radius, 0.25f, 0.f, 1000.f))
                             selectedEntity.ReplacePhysicsBody(Heart::PhysicsBody::CreateSphereShape(mass, radius));
+                    } break;
+                        
+                    case Heart::PhysicsBody::Type::Capsule:
+                    {
+                        float radius = body->GetCapsuleRadius();
+                        float height = body->GetCapsuleHeight();
+                        ImGui::Text("Radius");
+                        ImGui::SameLine();
+                        recreate |= ImGui::DragFloat("##radius", &radius, 0.25f, 0.f, 1000.f);
+                        
+                        ImGui::Text("Height");
+                        ImGui::SameLine();
+                        recreate |= ImGui::DragFloat("##height", &height, 0.25f, 0.f, 1000.f);
+                        
+                        if (recreate)
+                            selectedEntity.ReplacePhysicsBody(Heart::PhysicsBody::CreateCapsuleShape(mass, radius, height));
                     } break;
                 }
                  

@@ -174,6 +174,13 @@ namespace Heart
                             float radius = loaded["rigidBodyComponent"]["radius"];
                             body = PhysicsBody::CreateSphereShape(mass, radius);
                         } break;
+                            
+                        case PhysicsBody::Type::Capsule:
+                        {
+                            float radius = loaded["rigidBodyComponent"]["radius"];
+                            float height = loaded["rigidBodyComponent"]["height"];
+                            body = PhysicsBody::CreateCapsuleShape(mass, radius, height);
+                        } break;
                     }
                     
                     comp.BodyId = scene->GetPhysicsWorld().AddBody(body);
@@ -301,13 +308,19 @@ namespace Heart
 
                         case PhysicsBody::Type::Box:
                         {
-                            auto extent = body->GetExtent();
+                            auto extent = body->GetBoxExtent();
                             entry["rigidBodyComponent"]["extent"] = nlohmann::json::array({ extent.x, extent.y, extent.z });
                         } break;
 
                         case PhysicsBody::Type::Sphere:
                         {
-                            entry["rigidBodyComponent"]["radius"] = body->GetRadius();
+                            entry["rigidBodyComponent"]["radius"] = body->GetSphereRadius();
+                        } break;
+                            
+                        case PhysicsBody::Type::Capsule:
+                        {
+                            entry["rigidBodyComponent"]["radius"] = body->GetCapsuleRadius();
+                            entry["rigidBodyComponent"]["height"] = body->GetCapsuleHeight();
                         } break;
                     }
                 }
