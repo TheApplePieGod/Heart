@@ -63,6 +63,8 @@ namespace Heart
 
     void PhysicsDebugRenderer::Draw(Scene* scene, const Camera& camera)
     {
+        HE_PROFILE_FUNCTION();
+        
         m_VertexCount = 0;
         setDebugMode(DBG_DrawWireframe);
         scene->GetPhysicsWorld().GetWorld()->setDebugDrawer(this);
@@ -78,6 +80,7 @@ namespace Heart
         encoder->BindPipeline("main");
         encoder->BindPipelineBufferResource(0, m_CameraDataBuffer.get(), 0, 0, 1);
         encoder->FlushPipelineBindings();
+        encoder->SetLineWidth(3.f);
         encoder->BindVertexBuffer(m_VertexBuffer.get());
         encoder->Draw(m_VertexCount, 0, 1);
         encoder->EndEncoding();
