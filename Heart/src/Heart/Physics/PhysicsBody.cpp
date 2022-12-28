@@ -6,29 +6,20 @@
 
 namespace Heart
 {
-    PhysicsBody PhysicsBody::Clone()
+    PhysicsBody PhysicsBody::Clone(const PhysicsBodyCreateInfo* updatedInfo)
     {
         if (!IsInitialized()) return PhysicsBody();
         
-        PhysicsBody other;
-        /*
-        switch (m_BodyType)
-        {
-            default:
-            { HE_ENGINE_ASSERT(false, "Unsupported body type"); }
-            case Type::Box:
-            { other.m_Shape = CreateRef<btBoxShape>(*static_cast<btBoxShape*>(m_Shape.get())); } break;
-            case Type::Sphere:
-            { other.m_Shape = CreateRef<btSphereShape>(*static_cast<btSphereShape*>(m_Shape.get())); } break;
-        }
-         */
+        if (!updatedInfo) updatedInfo = &m_Info;
+        
         // Should be fine to reuse shape because we never modify it directly
+        PhysicsBody other;
         other.m_Shape = m_Shape;
         other.m_BodyType = m_BodyType;
         
         btTransform transform;
         m_MotionState->getWorldTransform(transform);
-        other.Initialize(m_Info, transform);
+        other.Initialize(*updatedInfo, transform);
         
         return other;
     }
@@ -176,6 +167,13 @@ namespace Heart
         HE_ENGINE_ASSERT(m_BodyType == Type::Capsule, "Incompatible body type");
         
         return static_cast<btCapsuleShape*>(m_Shape.get())->getHalfHeight();
+    }
+
+    PhysicsBody PhysicsBody::CreateDefaultBody(void* extraData)
+    {
+        PhysicsBodyCreateInfo info;
+        info.ExtraData = extraData;
+        return CreateBoxShape(info, { 0.5f, 0.5f, 0.5f });
     }
 
     PhysicsBody PhysicsBody::CreateBoxShape(const PhysicsBodyCreateInfo& createInfo, glm::vec3 halfExtent)

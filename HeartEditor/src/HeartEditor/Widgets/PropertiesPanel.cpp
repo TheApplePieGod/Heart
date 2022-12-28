@@ -52,10 +52,8 @@ namespace Widgets
                     selectedEntity.AddComponent<Heart::CameraComponent>();
                 if (ImGui::MenuItem("Rigid Body Component"))
                 {
-                    Heart::PhysicsBodyCreateInfo bodyInfo;
-                    bodyInfo.ExtraData = (void*)(intptr_t)selectedEntity.GetUUID();
-                    auto defaultBody = Heart::PhysicsBody::CreateBoxShape(Heart::PhysicsBodyCreateInfo(), { 0.5f, 0.5f, 0.5f });
-                    selectedEntity.AddComponent<Heart::RigidBodyComponent>(defaultBody);
+                    auto body = Heart::PhysicsBody::CreateDefaultBody((void*)(intptr_t)selectedEntity.GetUUID());
+                    selectedEntity.AddComponent<Heart::RigidBodyComponent>(body);
                 }
                     
                 ImGui::EndPopup();
@@ -590,7 +588,7 @@ namespace Widgets
         }
     }
 
-    bool PropertiesPanel::RenderCollisionChannels(Heart::HStringView8 id, u32& mask)
+    bool PropertiesPanel::RenderCollisionChannels(Heart::HStringView8 id, u64& mask)
     {
         constexpr std::array<const char*, 3> names = {
             "Default",

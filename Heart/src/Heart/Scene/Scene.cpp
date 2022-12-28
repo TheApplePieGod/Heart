@@ -360,17 +360,6 @@ namespace Heart
             auto& scriptComp = scriptView.get<ScriptComponent>(entity);
             scriptComp.Instance.OnUpdate(ts);
         }
-        
-        RaycastInfo castInfo;
-        castInfo.Start = { 0.f, 0.5f, 0.f };
-        castInfo.End = { 10.f, 0.5f, 0.f };
-        castInfo.DrawDebugLine = true;
-        castInfo.TraceChannels = (u32)DefaultCollisionChannel::Dynamic;
-        castInfo.TraceMask = (u32)DefaultCollisionChannel::Static;
-        
-        RaycastResult outRes;
-        if (m_PhysicsWorld.RaycastSingle(castInfo, outRes))
-            HE_ENGINE_LOG_WARN("HIT {0}", outRes.HitEntityId);
     }
 
     Entity Scene::GetEntityFromUUID(UUID uuid)
