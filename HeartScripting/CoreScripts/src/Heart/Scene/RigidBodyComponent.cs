@@ -28,7 +28,7 @@ namespace Heart.Scene
             return new PhysicsBodyInfo(info);
         }
 
-        public PhysicsBodyType GetType()
+        public PhysicsBodyType GetBodyType()
         {
             Native_RigidBodyComponent_GetType(_entityHandle, _sceneHandle, out var type);            
             return (PhysicsBodyType)type;
@@ -86,12 +86,12 @@ namespace Heart.Scene
         internal static extern void Native_RigidBodyComponent_UpdateCollisionMask(uint entityHandle, IntPtr sceneHandle, ulong mask);
 
         [DllImport("__Internal")]
-        internal static extern void Native_RigidBodyComponent_UseBoxShape(uint entityHandle, IntPtr sceneHandle, PhysicsBodyInfoInternal info, Vec3Internal extent);
+        internal static extern void Native_RigidBodyComponent_UseBoxShape(uint entityHandle, IntPtr sceneHandle, in PhysicsBodyInfoInternal info, Vec3Internal extent);
 
         [DllImport("__Internal")]
-        internal static extern void Native_RigidBodyComponent_UseSphereShape(uint entityHandle, IntPtr sceneHandle, PhysicsBodyInfoInternal info, float radius);
+        internal static extern void Native_RigidBodyComponent_UseSphereShape(uint entityHandle, IntPtr sceneHandle, in PhysicsBodyInfoInternal info, float radius);
 
         [DllImport("__Internal")]
-        internal static extern void Native_RigidBodyComponent_UseCapsuleShape(uint entityHandle, IntPtr sceneHandle, PhysicsBodyInfoInternal info, float radius, float halfHeight);
+        internal static extern void Native_RigidBodyComponent_UseCapsuleShape(uint entityHandle, IntPtr sceneHandle, in PhysicsBodyInfoInternal info, float radius, float halfHeight);
     }
 }

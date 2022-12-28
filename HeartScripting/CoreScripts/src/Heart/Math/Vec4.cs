@@ -16,6 +16,8 @@ namespace Heart.Math
     {
         private float _x, _y, _z, _w = 0.0F;
 
+        public Vec4() {}
+
         public Vec4(float x, float y, float z, float w)
         {
             _x = x;

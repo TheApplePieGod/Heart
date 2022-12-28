@@ -22,6 +22,14 @@
             "program": "${command:cmake.launchTargetPath}",
             "args": [],
             "cwd": "${command:cmake.launchTargetPath}/.."
+        },
+        {
+            "name": "Launch Exe Debug",
+            "type": "lldb",
+            "request": "launch",
+            "program": "build/bin/Debug/Editor",
+            "args": [],
+            "cwd": "build/bin/Debug"
         }
     ]
 }

@@ -68,8 +68,7 @@ namespace Heart.Scene
             set
             {
                 RefreshPtr();
-                using HString hstr = new HString(value);
-                Native_ScriptComponent_SetScriptClass(_entityHandle, _sceneHandle, hstr._internalVal);
+                Native_ScriptComponent_SetScriptClass(_entityHandle, _sceneHandle, value);
             }
         }
 
@@ -102,7 +101,7 @@ namespace Heart.Scene
         internal static extern void Native_ScriptComponent_Remove(uint entityHandle, IntPtr sceneHandle);
 
         [DllImport("__Internal")]
-        internal static extern void Native_ScriptComponent_SetScriptClass(uint entityHandle, IntPtr sceneHandle, HStringInternal value);
+        internal static extern void Native_ScriptComponent_SetScriptClass(uint entityHandle, IntPtr sceneHandle, [MarshalAs(UnmanagedType.LPStr)] string value);
 
         [DllImport("__Internal")]
         internal static extern void Native_ScriptComponent_InstantiateScript(uint entityHandle, IntPtr sceneHandle);

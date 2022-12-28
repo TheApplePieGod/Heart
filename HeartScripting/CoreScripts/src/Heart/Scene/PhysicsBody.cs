@@ -10,13 +10,14 @@ namespace Heart.Scene
         Box, Sphere, Capsule
     }
 
-    [StructLayout(LayoutKind.Explicit, Size = 28)]
+    [StructLayout(LayoutKind.Explicit, Size = 32)]
     internal struct PhysicsBodyInfoInternal
     {
         [FieldOffset(0)] public float Mass;
-        [FieldOffset(4)] public ulong CollisionChannels;
-        [FieldOffset(12)] public ulong CollisionMask;
-        [FieldOffset(20)] public IntPtr ExtraData;
+        // Offset by an extra 4 because cpp pads this struct
+        [FieldOffset(8)] public ulong CollisionChannels;
+        [FieldOffset(16)] public ulong CollisionMask;
+        [FieldOffset(24)] public IntPtr ExtraData;
     }
     
     public enum DefaultCollisionChannel : ulong
@@ -32,6 +33,8 @@ namespace Heart.Scene
         private float _mass = 1.0F;
         private ulong _collisionChannels = (ulong)DefaultCollisionChannel.Default;
         private ulong _collisionMask = (ulong)DefaultCollisionChannel.All;
+
+        public PhysicsBodyInfo() {}
 
         public PhysicsBodyInfo(float mass, ulong colChannels, ulong colMask) 
         {
