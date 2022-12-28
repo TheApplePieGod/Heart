@@ -33,7 +33,7 @@ namespace Heart
         pipelineCreateInfo.VertexShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/DebugLine.vert", true)->GetShader();
         pipelineCreateInfo.FragmentShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/DebugLine.frag", true)->GetShader();
         pipelineCreateInfo.VertexTopology = Flourish::VertexTopology::LineList;
-        pipelineCreateInfo.VertexLayout = { Flourish::BufferDataType::Float3 };
+        pipelineCreateInfo.VertexLayout = { Flourish::BufferDataType::Float3, Flourish::BufferDataType::Float3 };
         pipelineCreateInfo.VertexInput = true;
         pipelineCreateInfo.BlendStates = { { false } };
         pipelineCreateInfo.DepthTest = false;
@@ -45,7 +45,7 @@ namespace Heart
         Flourish::BufferCreateInfo bufCreateInfo;
         bufCreateInfo.Usage = Flourish::BufferUsageType::Dynamic;
         bufCreateInfo.Type = Flourish::BufferType::Vertex;
-        bufCreateInfo.Stride = sizeof(glm::vec3);
+        bufCreateInfo.Stride = sizeof(VertexPoint);
         bufCreateInfo.ElementCount = 5000;
         m_VertexBuffer = Flourish::Buffer::Create(bufCreateInfo);
         
@@ -65,7 +65,6 @@ namespace Heart
     {
         HE_PROFILE_FUNCTION();
         
-        m_VertexCount = 0;
         setDebugMode(DBG_DrawWireframe);
         scene->GetPhysicsWorld().GetWorld()->setDebugDrawer(this);
         scene->GetPhysicsWorld().GetWorld()->debugDrawWorld();
@@ -84,6 +83,8 @@ namespace Heart
         encoder->BindVertexBuffer(m_VertexBuffer.get());
         encoder->Draw(m_VertexCount, 0, 1);
         encoder->EndEncoding();
+        
+        m_VertexCount = 0;
     }
 
     void PhysicsDebugRenderer::Resize(u32 width, u32 height)
@@ -97,10 +98,13 @@ namespace Heart
 
     void PhysicsDebugRenderer::drawLine(const btVector3 &from, const btVector3 &to, const btVector3 &color)
     {
-        m_VertexBuffer->SetElements(&from, 1, m_VertexCount);
-        m_VertexBuffer->SetElements(&to, 1, m_VertexCount + 1);
+        m_VertexBuffer->SetBytes(&from, sizeof(glm::vec3), m_VertexCount * sizeof(VertexPoint));
+        m_VertexBuffer->SetBytes(&color, sizeof(glm::vec3), m_VertexCount * sizeof(VertexPoint) + sizeof(glm::vec3));
+        m_VertexCount++;
         
-        m_VertexCount += 2;
+        m_VertexBuffer->SetBytes(&to, sizeof(glm::vec3), m_VertexCount * sizeof(VertexPoint));
+        m_VertexBuffer->SetBytes(&color, sizeof(glm::vec3), m_VertexCount * sizeof(VertexPoint) + sizeof(glm::vec3));
+        m_VertexCount++;
     }
 
     void PhysicsDebugRenderer::drawContactPoint(const btVector3 &PointOnB, const btVector3 &normalOnB, btScalar distance, int lifeTime, const btVector3 &color)

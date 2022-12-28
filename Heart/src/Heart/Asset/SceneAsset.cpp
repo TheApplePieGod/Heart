@@ -153,7 +153,13 @@ namespace Heart
                     RigidBodyComponent comp;
                     PhysicsBody body;
                     PhysicsBody::Type bodyType = loaded["rigidBodyComponent"]["type"];
-                    float mass = loaded["rigidBodyComponent"]["mass"];
+                    PhysicsBodyCreateInfo bodyInfo;
+                    bodyInfo.ExtraData = (void*)(intptr_t)id;
+                    bodyInfo.Mass = loaded["rigidBodyComponent"]["mass"];
+                    if (loaded["rigidBodyComponent"].contains("collisionChannels"))
+                        bodyInfo.CollisionChannels = loaded["rigidBodyComponent"]["collisionChannels"];
+                    if (loaded["rigidBodyComponent"].contains("collisionMask"))
+                        bodyInfo.CollisionMask = loaded["rigidBodyComponent"]["collisionMask"];
                     switch (bodyType)
                     {
                         default:
@@ -166,20 +172,20 @@ namespace Heart
                                 loaded["rigidBodyComponent"]["extent"][1],
                                 loaded["rigidBodyComponent"]["extent"][2]
                             };
-                            body = PhysicsBody::CreateBoxShape(mass, extent);
+                            body = PhysicsBody::CreateBoxShape(bodyInfo, extent);
                         } break;
 
                         case PhysicsBody::Type::Sphere:
                         {
                             float radius = loaded["rigidBodyComponent"]["radius"];
-                            body = PhysicsBody::CreateSphereShape(mass, radius);
+                            body = PhysicsBody::CreateSphereShape(bodyInfo, radius);
                         } break;
                             
                         case PhysicsBody::Type::Capsule:
                         {
                             float radius = loaded["rigidBodyComponent"]["radius"];
                             float height = loaded["rigidBodyComponent"]["height"];
-                            body = PhysicsBody::CreateCapsuleShape(mass, radius, height);
+                            body = PhysicsBody::CreateCapsuleShape(bodyInfo, radius, height);
                         } break;
                     }
                     
@@ -301,6 +307,8 @@ namespace Heart
                     PhysicsBody* body = scene->GetPhysicsWorld().GetBody(bodyComp.BodyId);
                     entry["rigidBodyComponent"]["type"] = body->GetBodyType();
                     entry["rigidBodyComponent"]["mass"] = body->GetMass();
+                    entry["rigidBodyComponent"]["collisionChannels"] = body->GetCollisionChannels();
+                    entry["rigidBodyComponent"]["collisionMask"] = body->GetCollisionMask();
                     switch (body->GetBodyType())
                     {
                         default:

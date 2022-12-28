@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Heart/Container/HString8.h"
 #include "glm/vec3.hpp"
 
 class btCollisionShape;
@@ -8,6 +9,22 @@ class btRigidBody;
 class btTransform;
 namespace Heart
 {
+    enum class DefaultCollisionChannel : u32
+    {
+        All = (u32)-1,
+        Default = HE_BIT(0),
+        Static = HE_BIT(1),
+        Dynamic = HE_BIT(2)
+    };
+
+    struct PhysicsBodyCreateInfo
+    {
+        float Mass = 1.f;
+        u32 CollisionChannels = (u32)DefaultCollisionChannel::Default;
+        u32 CollisionMask = (u32)DefaultCollisionChannel::All;
+        void* ExtraData = nullptr;
+    };
+
     class PhysicsBody
     {
     public:
@@ -37,7 +54,10 @@ namespace Heart
         inline bool IsInitialized() const { return m_Initialized; }
         inline btRigidBody* GetBody() const { return m_Body.get(); }
         inline Type GetBodyType() const { return m_BodyType; }
-        inline float GetMass() const { return m_Mass; }
+        inline float GetMass() const { return m_Info.Mass; }
+        inline u32 GetCollisionChannels() const { return m_Info.CollisionChannels; }
+        inline u32 GetCollisionMask() const { return m_Info.CollisionMask; }
+        inline const PhysicsBodyCreateInfo& GetInfo() const { return m_Info; }
         
         // Box shape
         glm::vec3 GetBoxExtent();
@@ -50,12 +70,16 @@ namespace Heart
         float GetCapsuleHeight();
         
     public:
-        static PhysicsBody CreateBoxShape(float mass, glm::vec3 halfExtent);
-        static PhysicsBody CreateSphereShape(float mass, float radius);
-        static PhysicsBody CreateCapsuleShape(float mass, float radius, float halfHeight);
+        static PhysicsBody CreateBoxShape(const PhysicsBodyCreateInfo& createInfo, glm::vec3 halfExtent);
+        static PhysicsBody CreateSphereShape(const PhysicsBodyCreateInfo& createInfo, float radius);
+        static PhysicsBody CreateCapsuleShape(const PhysicsBodyCreateInfo& createInfo, float radius, float halfHeight);
+        
+        static void ClearCustomCollisionChannels() { s_CustomCollisionChannels.clear(); }
+        static const auto& GetCustomCollisionChannels() { return s_CustomCollisionChannels; }
+        static void AddCustomCollisionChannel(u32 mask, HStringView8 name) { s_CustomCollisionChannels[name] = mask; }
         
     private:
-        void Initialize(float mass, const btTransform& transform);
+        void Initialize(const PhysicsBodyCreateInfo& createInfo, const btTransform& transform);
         
     private:
         Ref<btCollisionShape> m_Shape;
@@ -64,6 +88,9 @@ namespace Heart
         
         bool m_Initialized = false;
         Type m_BodyType;
-        float m_Mass;
+        PhysicsBodyCreateInfo m_Info;
+        
+    private:
+        inline static std::unordered_map<HString8, u32> s_CustomCollisionChannels;
     };
 }

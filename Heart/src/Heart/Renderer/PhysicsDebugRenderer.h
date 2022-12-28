@@ -41,6 +41,12 @@ namespace Heart
             glm::mat4 View;
         };
         
+        struct VertexPoint
+        {
+            glm::vec3 Pos;
+            glm::vec3 Color;
+        };
+        
     private:
         void CreateTextures();
         void CreateFramebuffers();

@@ -28,7 +28,7 @@ namespace Heart
         
         btTransform transform;
         m_MotionState->getWorldTransform(transform);
-        other.Initialize(m_Mass, transform);
+        other.Initialize(m_Info, transform);
         
         return other;
     }
@@ -178,7 +178,7 @@ namespace Heart
         return static_cast<btCapsuleShape*>(m_Shape.get())->getHalfHeight();
     }
 
-    PhysicsBody PhysicsBody::CreateBoxShape(float mass, glm::vec3 halfExtent)
+    PhysicsBody PhysicsBody::CreateBoxShape(const PhysicsBodyCreateInfo& createInfo, glm::vec3 halfExtent)
     {
         PhysicsBody body;
         body.m_BodyType = Type::Box;
@@ -190,12 +190,12 @@ namespace Heart
         
         btTransform transform;
         transform.setIdentity();
-        body.Initialize(mass, transform);
+        body.Initialize(createInfo, transform);
         
         return body;
     }
 
-    PhysicsBody PhysicsBody::CreateSphereShape(float mass, float radius)
+    PhysicsBody PhysicsBody::CreateSphereShape(const PhysicsBodyCreateInfo& createInfo, float radius)
     {
         PhysicsBody body;
         body.m_BodyType = Type::Sphere;
@@ -203,12 +203,12 @@ namespace Heart
         
         btTransform transform;
         transform.setIdentity();
-        body.Initialize(mass, transform);
+        body.Initialize(createInfo, transform);
         
         return body;
     }
 
-    PhysicsBody PhysicsBody::CreateCapsuleShape(float mass, float radius, float halfHeight)
+    PhysicsBody PhysicsBody::CreateCapsuleShape(const PhysicsBodyCreateInfo& createInfo, float radius, float halfHeight)
     {
         PhysicsBody body;
         body.m_BodyType = Type::Capsule;
@@ -216,28 +216,29 @@ namespace Heart
         
         btTransform transform;
         transform.setIdentity();
-        body.Initialize(mass, transform);
+        body.Initialize(createInfo, transform);
         
         return body;
     }
     
-    void PhysicsBody::Initialize(float mass, const btTransform& transform)
+    void PhysicsBody::Initialize(const PhysicsBodyCreateInfo& createInfo, const btTransform& transform)
     {
         btVector3 localInertia(0, 0, 0);
-        if (mass != 0)
-            m_Shape->calculateLocalInertia(mass, localInertia);
+        if (createInfo.Mass != 0)
+            m_Shape->calculateLocalInertia(createInfo.Mass, localInertia);
         
         m_MotionState = CreateRef<btDefaultMotionState>(transform);
 
         btRigidBody::btRigidBodyConstructionInfo rbInfo(
-            mass,
+            createInfo.Mass,
             m_MotionState.get(),
             m_Shape.get(),
             localInertia
         );
         m_Body = CreateRef<btRigidBody>(rbInfo);
+        m_Body->setUserPointer(createInfo.ExtraData);
         
         m_Initialized = true;
-        m_Mass = mass;
+        m_Info = createInfo;
     }
 }

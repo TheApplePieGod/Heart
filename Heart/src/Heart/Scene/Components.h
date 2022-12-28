@@ -19,7 +19,6 @@ namespace Heart
     // When adding new components, make sure to update:
     // Scene::DuplicateEntity, Scene::Clone, SceneAsset::Serialize & Deserialize
     // -----------------------
-    
 
     struct IdComponent
     {

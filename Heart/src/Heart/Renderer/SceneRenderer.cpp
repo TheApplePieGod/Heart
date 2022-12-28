@@ -107,6 +107,9 @@ namespace Heart
 
         CreateTextures();
         CreateFramebuffers();
+        
+        if (m_PhysicsDebugRenderer)
+            m_PhysicsDebugRenderer->Resize(m_RenderWidth, m_RenderHeight);
     }
 
     void SceneRenderer::CreateBuffers()
