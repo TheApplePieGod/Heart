@@ -24,6 +24,8 @@ namespace Heart
         
         void SetGravity(glm::vec3 gravity);
         
+        inline btDiscreteDynamicsWorld* GetWorld() const { return m_World.get(); }
+        
     private:
         Ref<btSequentialImpulseConstraintSolver> m_Solver;
         Ref<btDefaultCollisionConfiguration> m_CollisionConfig;

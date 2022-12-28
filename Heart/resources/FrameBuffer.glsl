@@ -8,7 +8,8 @@ struct FrameData {
     bool cullEnable;
     bool bloomEnable;
     bool ssaoEnable;
-    vec2 padding2;
+    bool physicsDebugEnable;
+    float padding;
 };
 
 layout(binding = 0) readonly uniform FrameBuffer {

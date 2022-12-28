@@ -7,6 +7,7 @@ layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 layout(binding = 1, rgba8) writeonly uniform image2D finalTex;
 layout(binding = 2) uniform sampler2D preBloomTex;
 layout(binding = 3) uniform sampler2D bloomTex;
+layout(binding = 4) uniform sampler2D physicsDebugTex;
 
 // https://knarkowicz.wordpress.com/2016/01/06/aces-filmic-tone-mapping-curve/
 vec3 ACESFilm(vec3 x)
@@ -37,6 +38,9 @@ void main()
 
     // gamma correction     
     outColor = pow(outColor, vec3(0.4545));
+
+    if (frameBuffer.data.physicsDebugEnable)
+        outColor += texture(physicsDebugTex, texCoord).rgb;
 
     imageStore(finalTex, coord, vec4(outColor, 1.f));
 }

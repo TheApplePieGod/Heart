@@ -97,6 +97,10 @@ namespace Widgets
         ImGui::Text("Update Entity Ids Texture");
         ImGui::SameLine();
         ImGui::Checkbox("##EntityIds", &Editor::GetState().RenderSettings.CopyEntityIdsTextureToCPU);
+        
+        ImGui::Text("Render Physics Volumes");
+        ImGui::SameLine();
+        ImGui::Checkbox("##RenderPhys", &Editor::GetState().RenderSettings.RenderPhysicsVolumes);
 
         ImGui::End();
         ImGui::PopStyleVar();

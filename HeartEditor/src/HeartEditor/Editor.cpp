@@ -29,6 +29,7 @@ namespace HeartEditor
 
         GetState().RenderSettings.CopyEntityIdsTextureToCPU = true;
         GetState().RenderSettings.AsyncAssetLoading = true;
+        GetState().RenderSettings.RenderPhysicsVolumes = true;
     }
 
     void Editor::Shutdown()
