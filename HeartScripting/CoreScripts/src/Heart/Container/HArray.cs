@@ -38,7 +38,7 @@ namespace Heart.Container
                 Add(elem);
         }
 
-        public HArray(HArrayInternal internalVal)
+        internal HArray(HArrayInternal internalVal)
         {
             Native_HArray_Copy(out _internalVal, internalVal);
         }

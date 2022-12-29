@@ -111,30 +111,6 @@ namespace Heart
                     entity.AddComponent<LightComponent>(comp);
                 }
 
-                // Script component
-                if (loaded.contains("scriptComponent"))
-                {
-                    ScriptComponent comp;
-                    HString8 scriptClass = loaded["scriptComponent"]["type"];
-                    comp.Instance = ScriptInstance(scriptClass.ToHString());
-                    if (comp.Instance.IsInstantiable())
-                    {
-                        if (!comp.Instance.ValidateClass())
-                        {
-                            HE_ENGINE_LOG_WARN(
-                                "Class '{0}' referenced in scene is no longer instantiable",
-                                scriptClass.Data()
-                            );
-                        }
-                        else
-                        {
-                            comp.Instance.Instantiate(entity);
-                            comp.Instance.LoadFieldsFromJson(loaded["scriptComponent"]["fields"]);
-                        }
-                    }
-                    entity.AddComponent<ScriptComponent>(comp);
-                }
-
                 // Camera component
                 if (loaded.contains("cameraComponent"))
                 {
@@ -196,17 +172,43 @@ namespace Heart
 
             }
 
-            // Load transform components once all entities have been parsed so that
-            // parent transform calculations will occur after all entities are guaranteed to exist
+            // Load transform & script components once all entities have been parsed since their
+            // initialization may depend on other entities
             for (auto& loaded : field)
             {
                 UUID id = static_cast<UUID>(loaded["idComponent"]["id"]);
                 Entity entity = scene->GetEntityFromUUID(id);
-
+                
+                if (!entity.IsValid()) continue;
+                
                 glm::vec3 translation = { loaded["transformComponent"]["translation"][0], loaded["transformComponent"]["translation"][1], loaded["transformComponent"]["translation"][2] };
                 glm::vec3 rotation = { loaded["transformComponent"]["rotation"][0], loaded["transformComponent"]["rotation"][1], loaded["transformComponent"]["rotation"][2] };
                 glm::vec3 scale = { loaded["transformComponent"]["scale"][0], loaded["transformComponent"]["scale"][1], loaded["transformComponent"]["scale"][2] };
                 entity.SetTransform(translation, rotation, scale);
+                
+                // Script component
+                if (loaded.contains("scriptComponent"))
+                {
+                    ScriptComponent comp;
+                    HString8 scriptClass = loaded["scriptComponent"]["type"];
+                    comp.Instance = ScriptInstance(scriptClass.ToHString());
+                    if (comp.Instance.IsInstantiable())
+                    {
+                        if (!comp.Instance.ValidateClass())
+                        {
+                            HE_ENGINE_LOG_WARN(
+                                "Class '{0}' referenced in scene is no longer instantiable",
+                                scriptClass.Data()
+                            );
+                        }
+                        else
+                        {
+                            comp.Instance.Instantiate(entity);
+                            comp.Instance.LoadFieldsFromJson(loaded["scriptComponent"]["fields"]);
+                        }
+                    }
+                    entity.AddComponent<ScriptComponent>(comp);
+                }
             }
         }
 

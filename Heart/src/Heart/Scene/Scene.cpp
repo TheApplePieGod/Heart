@@ -143,6 +143,12 @@ namespace Heart
                 instance.OnPlayEnd();
             instance.Destroy();
         }
+        
+        if (entity.HasComponent<RigidBodyComponent>())
+        {
+            u32 bodyId = entity.GetComponent<RigidBodyComponent>().BodyId;
+            m_PhysicsWorld.RemoveBody(bodyId);
+        }
 
         m_CachedTransforms.erase(entity.GetHandle());
         m_Registry.destroy(entity.GetHandle());
@@ -210,8 +216,9 @@ namespace Heart
         if (parent.HasComponent<ChildrenComponent>())
         {
             auto& childComp = parent.GetComponent<ChildrenComponent>();
-            for (UUID& elem : childComp.Children)
+            for (u32 i = 0; i < childComp.Children.Count(); i++)
             {
+                UUID& elem = childComp.Children[i];
                 if (elem == childUUID)
                 {
                     elem = childComp.Children.Back();
@@ -274,12 +281,20 @@ namespace Heart
             CopyComponent<TransformComponent>(src.GetHandle(), dst);
             CopyComponent<MeshComponent>(src.GetHandle(), dst);
             CopyComponent<LightComponent>(src.GetHandle(), dst);
-            CopyComponent<ScriptComponent>(src.GetHandle(), dst);
             CopyComponent<PrimaryCameraComponent>(src.GetHandle(), dst);
             CopyComponent<CameraComponent>(src.GetHandle(), dst);
             CopyComponent<RigidBodyComponent>(src.GetHandle(), dst);
         });
-
+        
+        // Copy script component after all entities have been created
+        m_Registry.each([&](auto srcHandle)
+        {
+            Entity src = { this, srcHandle };
+            Entity dst = newScene->GetEntityFromUUID(src.GetUUID());
+            
+            CopyComponent<ScriptComponent>(src.GetHandle(), dst);
+        });
+            
         // Copy the environment map
         newScene->m_EnvironmentMap = m_EnvironmentMap;
 

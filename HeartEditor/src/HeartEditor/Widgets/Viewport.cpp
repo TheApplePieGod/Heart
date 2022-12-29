@@ -79,9 +79,9 @@ namespace Widgets
 
         // Viewport input state handling
         m_ViewportHover = ImGui::IsItemHovered();
-        if (ImGui::IsItemHovered() && (ImGui::IsMouseDown(1) || ImGui::IsKeyDown(ImGuiKey_LeftCtrl)))
+        if (ImGui::IsItemHovered() && (ImGui::IsMouseDown(1) || ImGui::IsKeyDown(ImGuiKey_LeftShift)))
             SetFocused(true);
-        else if ((ImGui::IsMouseReleased(1) || ImGui::IsKeyReleased(ImGuiKey_LeftCtrl)) && (Editor::GetSceneState() != SceneState::Playing || !m_AttachCamera))
+        else if ((ImGui::IsMouseReleased(1) || ImGui::IsKeyReleased(ImGuiKey_LeftShift)) && (Editor::GetSceneState() != SceneState::Playing || !m_AttachCamera))
             SetFocused(false);
         else if (Editor::GetSceneState() == SceneState::Playing && ImGui::IsKeyPressed(ImGuiKey_Escape))
             SetFocused(false);

@@ -209,7 +209,11 @@ namespace Heart
     {
         HE_PROFILE_FUNCTION();
 
-        return (uptr)s_CoreCallbacks.ManagedObject_InstantiateClientScriptEntity(&type, entityHandle, sceneHandle);
+        uptr result = (uptr)s_CoreCallbacks.ManagedObject_InstantiateClientScriptEntity(&type, entityHandle, sceneHandle);
+        if (result == 0)
+            HE_ENGINE_LOG_ERROR("Failed to instantiate class '{0}'", type.ToUTF8().Data());
+        
+        return result;
     }
 
     void ScriptingEngine::DestroyObject(uptr handle)

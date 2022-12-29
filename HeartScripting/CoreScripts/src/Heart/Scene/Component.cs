@@ -21,6 +21,10 @@ namespace Heart.Scene
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static implicit operator UUID(ulong value)
             => new UUID(value);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static implicit operator ulong(UUID value)
+            => value.Value;
     }
 
     public abstract class Component
@@ -75,18 +79,22 @@ namespace Heart.Scene
         public static unsafe UUID GetChildId(uint entityHandle, IntPtr sceneHandle, uint index)
         {
             ChildrenComponent.Native_ChildrenComponent_Get(entityHandle, sceneHandle, out var arr);
+            if (arr == null) return 0;
             return arr[index];
         }
 
         public static unsafe Entity GetChild(uint entityHandle, IntPtr sceneHandle, uint index)
         {
-            Scene.Native_Scene_GetEntityFromUUID(sceneHandle, GetChildId(entityHandle, sceneHandle, index), out var childHandle);
+            UUID childId = GetChildId(entityHandle, sceneHandle, index);
+            if (childId == 0) return new Entity();
+            Scene.Native_Scene_GetEntityFromUUID(sceneHandle, childId, out var childHandle);
             return new Entity(childHandle, sceneHandle);
         }
 
         public static unsafe UUID[] GetChildrenIds(uint entityHandle, IntPtr sceneHandle)
         {
             ChildrenComponent.Native_ChildrenComponent_Get(entityHandle, sceneHandle, out var arr);
+            if (arr == null) return new UUID[0];
             return NativeMarshal.PtrToArray(arr, GetInfoFromPtr(arr)->ElemCount);
         }
 
@@ -99,6 +107,7 @@ namespace Heart.Scene
         public static unsafe uint GetChildrenCount(uint entityHandle, IntPtr sceneHandle)
         {
             ChildrenComponent.Native_ChildrenComponent_Get(entityHandle, sceneHandle, out var arr);
+            if (arr == null) return 0;
             return GetInfoFromPtr(arr)->ElemCount;
         }
 
