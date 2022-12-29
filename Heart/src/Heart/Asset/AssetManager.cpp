@@ -307,7 +307,7 @@ namespace Heart
         return s_UUIDs[uuid].IsResource;
     }
 
-    Asset* AssetManager::RetrieveAsset(const HStringView8& path, bool isResource, bool async)
+    Asset* AssetManager::RetrieveAsset(const HStringView8& path, bool isResource, bool load, bool async)
     {
         if (path.IsEmpty()) return nullptr;
         if (isResource)
@@ -316,11 +316,12 @@ namespace Heart
         { if (s_Registry.find(path) == s_Registry.end()) return nullptr; }
 
         auto& entry = isResource ? s_Resources[path] : s_Registry[path];
-        LoadAsset(entry, async);
+        if (load)
+            LoadAsset(entry, async);
         return entry.Asset.get();
     }
 
-    Asset* AssetManager::RetrieveAsset(UUID uuid, bool async)
+    Asset* AssetManager::RetrieveAsset(UUID uuid, bool load, bool async)
     {
         HE_PROFILE_FUNCTION();
 
@@ -330,19 +331,22 @@ namespace Heart
         auto& uuidEntry = s_UUIDs[uuid];
         auto& entry = uuidEntry.IsResource ? s_Resources[uuidEntry.Path] : s_Registry[uuidEntry.Path];
 
-        if (!entry.Asset->IsLoading())
+        if (load)
         {
-            if (async)
+            if (!entry.Asset->IsLoading())
             {
-                entry.LoadedFrame = App::Get().GetFrameCount();
-                PushOperation({ true, uuid });
+                if (async)
+                {
+                    entry.LoadedFrame = App::Get().GetFrameCount();
+                    PushOperation({ true, uuid });
+                }
+                else
+                    LoadAsset(entry);
             }
             else
-                LoadAsset(entry);
+                entry.LoadedFrame = App::Get().GetFrameCount();
         }
-        else
-            entry.LoadedFrame = App::Get().GetFrameCount();
-
+            
         return entry.Asset.get();
     }
 }

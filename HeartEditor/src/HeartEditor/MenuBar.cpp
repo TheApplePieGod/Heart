@@ -63,9 +63,11 @@ namespace HeartEditor
 
                     if (Editor::GetEditorSceneAsset() && ImGui::MenuItem("Save Scene"))
                     {
-                        auto asset = Heart::AssetManager::RetrieveAsset<Heart::SceneAsset>(Editor::GetEditorSceneAsset());
-                        if (asset && asset->IsValid())
+                        auto asset = Heart::AssetManager::RetrieveAsset<Heart::SceneAsset>(Editor::GetEditorSceneAsset(), false);
+                        if (asset)
                             asset->Save(&Editor::GetEditorScene());
+                        else
+                            HE_ENGINE_LOG_ERROR("Failed to save scene");
                     }
 
                     if (ImGui::MenuItem("New Scene"))

@@ -194,19 +194,20 @@ namespace Heart
                     entity.AddComponent<RigidBodyComponent>(comp);
                 }
 
-                // REQUIRED: Transform component
-                // add after rigid body to ensure correct positioning
+            }
+
+            // Load transform components once all entities have been parsed so that
+            // parent transform calculations will occur after all entities are guaranteed to exist
+            for (auto& loaded : field)
+            {
+                UUID id = static_cast<UUID>(loaded["idComponent"]["id"]);
+                Entity entity = scene->GetEntityFromUUID(id);
+
                 glm::vec3 translation = { loaded["transformComponent"]["translation"][0], loaded["transformComponent"]["translation"][1], loaded["transformComponent"]["translation"][2] };
                 glm::vec3 rotation = { loaded["transformComponent"]["rotation"][0], loaded["transformComponent"]["rotation"][1], loaded["transformComponent"]["rotation"][2] };
                 glm::vec3 scale = { loaded["transformComponent"]["scale"][0], loaded["transformComponent"]["scale"][1], loaded["transformComponent"]["scale"][2] };
                 entity.SetTransform(translation, rotation, scale);
-
             }
-
-            // make sure all the transforms get cached
-            scene->GetRegistry().each([scene](auto handle) {
-                scene->CacheEntityTransform({ scene.get(), handle });
-            });
         }
 
         // parse settings

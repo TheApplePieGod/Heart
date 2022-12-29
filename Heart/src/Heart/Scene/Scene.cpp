@@ -239,11 +239,6 @@ namespace Heart
 
     glm::mat4 Scene::CalculateEntityTransform(Entity target, glm::mat4* outParentTransform)
     {
-        if (outParentTransform)
-            *outParentTransform = glm::mat4(1.f);
-        if (!target.HasComponent<TransformComponent>())
-            return glm::mat4(1.f);
-
         glm::mat4 parentTransform = GetEntityParentTransform(target);
         if (outParentTransform)
             *outParentTransform = parentTransform;
