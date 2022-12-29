@@ -588,7 +588,7 @@ namespace Widgets
         }
     }
 
-    bool PropertiesPanel::RenderCollisionChannels(Heart::HStringView8 id, u64& mask)
+    bool PropertiesPanel::RenderCollisionChannels(Heart::HStringView8 id, u32& mask)
     {
         constexpr std::array<const char*, 3> names = {
             "Default",

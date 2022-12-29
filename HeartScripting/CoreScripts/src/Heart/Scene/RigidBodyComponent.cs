@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Heart.Math;
 using Heart.NativeInterop;
+using Heart.Physics;
 
 namespace Heart.Scene
 {
@@ -48,15 +49,15 @@ namespace Heart.Scene
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void UseBoxShape(PhysicsBodyInfo info, Vec3 halfExtent)
-            => Native_RigidBodyComponent_UseBoxShape(_entityHandle, _sceneHandle, info.ToInternal(), halfExtent.ToVec3Internal());
+            => Native_RigidBodyComponent_UseBoxShape(_entityHandle, _sceneHandle, info._internal, halfExtent._internal);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void UseSphereShape(PhysicsBodyInfo info, float radius)
-            => Native_RigidBodyComponent_UseSphereShape(_entityHandle, _sceneHandle, info.ToInternal(), radius);
+            => Native_RigidBodyComponent_UseSphereShape(_entityHandle, _sceneHandle, info._internal, radius);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void UseCapsuleShape(PhysicsBodyInfo info, float radius, float halfHeight)
-            => Native_RigidBodyComponent_UseCapsuleShape(_entityHandle, _sceneHandle, info.ToInternal(), radius, halfHeight);
+            => Native_RigidBodyComponent_UseCapsuleShape(_entityHandle, _sceneHandle, info._internal, radius, halfHeight);
 
         [DllImport("__Internal")]
         internal static extern unsafe void Native_RigidBodyComponent_Get(uint entityHandle, IntPtr sceneHandle, out RigidBodyComponentInternal* comp);

@@ -9,9 +9,9 @@ class btRigidBody;
 class btTransform;
 namespace Heart
 {
-    enum class DefaultCollisionChannel : u64
+    enum class DefaultCollisionChannel : u32
     {
-        All = (u64)-1,
+        All = (u32)-1,
         Default = HE_BIT(0),
         Static = HE_BIT(1),
         Dynamic = HE_BIT(2)
@@ -20,8 +20,8 @@ namespace Heart
     struct PhysicsBodyCreateInfo
     {
         float Mass = 1.f;
-        u64 CollisionChannels = (u64)DefaultCollisionChannel::Default;
-        u64 CollisionMask = (u64)DefaultCollisionChannel::All;
+        u32 CollisionChannels = (u32)DefaultCollisionChannel::Default;
+        u32 CollisionMask = (u32)DefaultCollisionChannel::All;
         void* ExtraData = nullptr;
     };
 
@@ -55,8 +55,8 @@ namespace Heart
         inline btRigidBody* GetBody() const { return m_Body.get(); }
         inline Type GetBodyType() const { return m_BodyType; }
         inline float GetMass() const { return m_Info.Mass; }
-        inline u64 GetCollisionChannels() const { return m_Info.CollisionChannels; }
-        inline u64 GetCollisionMask() const { return m_Info.CollisionMask; }
+        inline u32 GetCollisionChannels() const { return m_Info.CollisionChannels; }
+        inline u32 GetCollisionMask() const { return m_Info.CollisionMask; }
         inline const PhysicsBodyCreateInfo& GetInfo() const { return m_Info; }
         
         // Box shape
@@ -92,6 +92,6 @@ namespace Heart
         PhysicsBodyCreateInfo m_Info;
         
     private:
-        inline static std::unordered_map<HString8, u64> s_CustomCollisionChannels;
+        inline static std::unordered_map<HString8, u32> s_CustomCollisionChannels;
     };
 }

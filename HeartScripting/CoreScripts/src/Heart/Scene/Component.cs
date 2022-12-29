@@ -146,7 +146,7 @@ namespace Heart.Scene
             TransformComponent.Native_TransformComponent_SetPosition(
                 entityHandle,
                 sceneHandle,
-                position.ToVec3Internal()
+                position._internal
             );
         }
 
@@ -156,7 +156,7 @@ namespace Heart.Scene
             TransformComponent.Native_TransformComponent_SetRotation(
                 entityHandle,
                 sceneHandle,
-                rotation.ToVec3Internal()
+                rotation._internal
             );
         }
 
@@ -166,7 +166,7 @@ namespace Heart.Scene
             TransformComponent.Native_TransformComponent_SetScale(
                 entityHandle,
                 sceneHandle,
-                scale.ToVec3Internal()
+                scale._internal
             );
         }
 
@@ -176,9 +176,9 @@ namespace Heart.Scene
             TransformComponent.Native_TransformComponent_SetTransform(
                 entityHandle,
                 sceneHandle,
-                pos.ToVec3Internal(),
-                rot.ToVec3Internal(),
-                scale.ToVec3Internal()
+                pos._internal,
+                rot._internal,
+                scale._internal
             );
         }
 

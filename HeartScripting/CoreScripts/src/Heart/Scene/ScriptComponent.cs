@@ -48,16 +48,6 @@ namespace Heart.Scene
         public void DestroyScript()
             => Native_ScriptComponent_DestroyScript(_entityHandle, _sceneHandle);
 
-        public unsafe ScriptEntity ScriptObject
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get
-            {
-                if (!IsAlive) return null;
-                return (ScriptEntity)ManagedGCHandle.FromIntPtr(_internalValue->ScriptInstance.ObjectHandle).Target;
-            }
-        }
-
         public unsafe string ScriptClass
         {
             get
@@ -74,7 +64,6 @@ namespace Heart.Scene
 
         public unsafe bool IsAlive
         {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
                 RefreshPtr();
