@@ -31,7 +31,7 @@ namespace Widgets
         auto selectedEntity = Editor::GetState().SelectedEntity;
         if (selectedEntity.IsValid())
         {
-            // All entities should have a name component
+            // All entities should have a name & id component
             auto& nameComponent = selectedEntity.GetComponent<Heart::NameComponent>();
             Heart::ImGuiUtils::InputText("##Name", nameComponent.Name);
 
@@ -50,15 +50,24 @@ namespace Widgets
                     selectedEntity.AddComponent<Heart::ScriptComponent>();
                 if (ImGui::MenuItem("Camera Component"))
                     selectedEntity.AddComponent<Heart::CameraComponent>();
-
+                if (ImGui::MenuItem("Rigid Body Component"))
+                {
+                    auto body = Heart::PhysicsBody::CreateDefaultBody((void*)(intptr_t)selectedEntity.GetUUID());
+                    selectedEntity.AddComponent<Heart::RigidBodyComponent>(body);
+                }
+                    
                 ImGui::EndPopup();
             }
-
+            
+            auto id = selectedEntity.GetUUID();
+            ImGui::Text("Id: %llu", (u64)id);
+            
             RenderTransformComponent();
             RenderMeshComponent();
             RenderLightComponent();
             RenderScriptComponent();
             RenderCameraComponent();
+            RenderRigidBodyComponent();
         }
 
         ImGui::End();
@@ -74,16 +83,18 @@ namespace Widgets
             bool headerOpen = ImGui::CollapsingHeader("Transform");
             if (!RenderComponentPopup<Heart::TransformComponent>("TransformPopup", false) && headerOpen)
             {
+                bool modified = false;
                 glm::vec3 translation = selectedEntity.GetPosition();
                 glm::vec3 rotation = selectedEntity.GetRotation();
                 glm::vec3 scale = selectedEntity.GetScale();
                 ImGui::Indent();
-                RenderXYZSlider("Translation  ", &translation.x, &translation.y, &translation.z, -999999.f, 999999.f, 0.1f);
-                RenderXYZSlider("Rotation     ", &rotation.x, &rotation.y, &rotation.z, 0.f, 360.f, 1.f);
-                RenderXYZSlider("Scale        ", &scale.x, &scale.y, &scale.z, 0.f, 999999.f, 0.1f);
+                modified |= RenderXYZSlider("Translation  ", &translation.x, &translation.y, &translation.z, -999999.f, 999999.f, 0.1f);
+                modified |= RenderXYZSlider("Rotation     ", &rotation.x, &rotation.y, &rotation.z, 0.f, 360.f, 1.f);
+                modified |= RenderXYZSlider("Scale        ", &scale.x, &scale.y, &scale.z, 0.f, 999999.f, 0.1f);
                 ImGui::Unindent();
 
-                selectedEntity.SetTransform(translation, rotation, scale);
+                if (modified)
+                    selectedEntity.SetTransform(translation, rotation, scale);
             }
         }
     }
@@ -363,8 +374,105 @@ namespace Widgets
         }
     }
 
-    void PropertiesPanel::RenderXYZSlider(const Heart::HStringView8& name, f32* x, f32* y, f32* z, f32 min, f32 max, f32 step)
+    void PropertiesPanel::RenderRigidBodyComponent()
     {
+        auto selectedEntity = Editor::GetState().SelectedEntity;
+        if (selectedEntity.HasComponent<Heart::RigidBodyComponent>())
+        {
+            bool headerOpen = ImGui::CollapsingHeader("Rigid Body");
+            if (!RenderComponentPopup<Heart::RigidBodyComponent>("RBPopup", true) && headerOpen)
+            {
+                auto& bodyComp = selectedEntity.GetComponent<Heart::RigidBodyComponent>();
+                Heart::PhysicsBody* body = selectedEntity.GetPhysicsBody();
+                
+                ImGui::Indent();
+
+                Heart::PhysicsBodyCreateInfo bodyInfo = body->GetInfo();
+                ImGui::Text("Mass:");
+                ImGui::SameLine();
+                bool recreate = ImGui::DragFloat("##mass", &bodyInfo.Mass, 0.25f, 0.f, 1000.f);
+
+                Heart::PhysicsBody::Type bodyType = body->GetBodyType();
+                ImGui::Text("Body Type:");
+                ImGui::SameLine();
+                bool popupOpened = ImGui::Button(HE_ENUM_TO_STRING(Heart::PhysicsBody, bodyType));
+                if (popupOpened)
+                    ImGui::OpenPopup("BodyTypeSelect");
+            
+                if (ImGui::BeginPopup("BodyTypeSelect"))
+                {
+                    if (ImGui::MenuItem("Box") && bodyType != Heart::PhysicsBody::Type::Box)
+                        selectedEntity.ReplacePhysicsBody(Heart::PhysicsBody::CreateBoxShape(bodyInfo, { 0.5f, 0.5f, 0.5f }));
+                    if (ImGui::MenuItem("Sphere") && bodyType != Heart::PhysicsBody::Type::Sphere)
+                        selectedEntity.ReplacePhysicsBody(Heart::PhysicsBody::CreateSphereShape(bodyInfo, 0.5f));
+                    if (ImGui::MenuItem("Capsule") && bodyType != Heart::PhysicsBody::Type::Capsule)
+                        selectedEntity.ReplacePhysicsBody(Heart::PhysicsBody::CreateCapsuleShape(bodyInfo, 0.5f, 1.f));
+                    ImGui::EndPopup();
+                }
+                
+                if (ImGui::CollapsingHeader("Collision Channels"))
+                    recreate |= RenderCollisionChannels("CH", bodyInfo.CollisionChannels);
+                
+                if (ImGui::CollapsingHeader("Collision Mask"))
+                    recreate |= RenderCollisionChannels("MSK", bodyInfo.CollisionMask);
+                    
+                ImGui::Dummy({ 0.f, 5.f });
+                ImGui::Text("Shape Properties");
+                ImGui::Separator();
+
+                switch (body->GetBodyType())
+                {
+                    default: break;
+                    
+                    case Heart::PhysicsBody::Type::Box:
+                    {
+                        auto extent = body->GetBoxExtent();
+                        if (recreate || RenderXYZSlider(
+                            "Half Extent  ",
+                            &extent.x,
+                            &extent.y,
+                            &extent.z,
+                            0.f,
+                            1000.f,
+                            0.25f)
+                        )
+                            selectedEntity.ReplacePhysicsBody(Heart::PhysicsBody::CreateBoxShape(bodyInfo, extent));
+                    } break;
+
+                    case Heart::PhysicsBody::Type::Sphere:
+                    {
+                        float radius = body->GetSphereRadius();
+                        ImGui::Text("Radius");
+                        ImGui::SameLine();
+                        if (recreate || ImGui::DragFloat("##radius", &radius, 0.25f, 0.f, 1000.f))
+                            selectedEntity.ReplacePhysicsBody(Heart::PhysicsBody::CreateSphereShape(bodyInfo, radius));
+                    } break;
+                        
+                    case Heart::PhysicsBody::Type::Capsule:
+                    {
+                        float radius = body->GetCapsuleRadius();
+                        float height = body->GetCapsuleHeight();
+                        ImGui::Text("Radius");
+                        ImGui::SameLine();
+                        recreate |= ImGui::DragFloat("##radius", &radius, 0.25f, 0.f, 1000.f);
+                        
+                        ImGui::Text("Height");
+                        ImGui::SameLine();
+                        recreate |= ImGui::DragFloat("##height", &height, 0.25f, 0.f, 1000.f);
+                        
+                        if (recreate)
+                            selectedEntity.ReplacePhysicsBody(Heart::PhysicsBody::CreateCapsuleShape(bodyInfo, radius, height));
+                    } break;
+                }
+                 
+                ImGui::Unindent();
+            }
+        }
+    }
+
+    bool PropertiesPanel::RenderXYZSlider(Heart::HStringView8 name, f32* x, f32* y, f32* z, f32 min, f32 max, f32 step)
+    {
+        bool modified = false;
         f32 width = ImGui::GetContentRegionAvail().x;
         ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(0.f, 0.5f));
         if (ImGui::BeginTable(name.Data(), 7, ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingFixedFit))
@@ -386,7 +494,7 @@ namespace Widgets
             ImGui::TableSetColumnIndex(2);
             ImGui::PushItemWidth(width * 0.15f);
             ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, textColor);
-            ImGui::DragFloat("##x", x, step, min, max, "%.2f");
+            modified |= ImGui::DragFloat("##x", x, step, min, max, "%.2f");
 
             ImGui::TableSetColumnIndex(3);
             ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, yColor);
@@ -395,7 +503,7 @@ namespace Widgets
             ImGui::TableSetColumnIndex(4);
             ImGui::PushItemWidth(width * 0.15f);
             ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, textColor);
-            ImGui::DragFloat("##y", y, step, min, max, "%.2f");
+            modified |= ImGui::DragFloat("##y", y, step, min, max, "%.2f");
 
             ImGui::TableSetColumnIndex(5);
             ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, zColor);
@@ -404,14 +512,16 @@ namespace Widgets
             ImGui::TableSetColumnIndex(6);
             ImGui::PushItemWidth(width * 0.15f);
             ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, textColor);
-            ImGui::DragFloat("##z", z, step, min, max, "%.2f");
+            modified |= ImGui::DragFloat("##z", z, step, min, max, "%.2f");
 
             ImGui::EndTable();
         }
         ImGui::PopStyleVar();
+        
+        return modified;
     }
 
-    void PropertiesPanel::RenderScriptField(const Heart::HStringView& fieldName, Heart::ScriptComponent& scriptComp)
+    void PropertiesPanel::RenderScriptField(Heart::HStringView fieldName, Heart::ScriptComponent& scriptComp)
     {
         ImGui::Text(fieldName.DataUTF8());
         ImGui::SameLine();
@@ -476,6 +586,42 @@ namespace Widgets
                     scriptComp.Instance.SetFieldValue(fieldName, intermediate.Convert(Heart::HString::Encoding::UTF16));
             } break;
         }
+    }
+
+    bool PropertiesPanel::RenderCollisionChannels(Heart::HStringView8 id, u32& mask)
+    {
+        constexpr std::array<const char*, 3> names = {
+            "Default",
+            "Static",
+            "Dynamic"
+        };
+        auto idStart = Heart::HString8("##") + id;
+        bool modified = false;
+        for (u32 i = 0; i < 3; i++)
+        {
+            bool set = mask & HE_BIT(i);
+            ImGui::Text(names[i]);
+            ImGui::SameLine();
+            modified |= ImGui::Checkbox((idStart + std::to_string(i)).Data(), &set);
+            if (set)
+                mask |= HE_BIT(i);
+            else
+                mask &= ~HE_BIT(i);
+        }
+        
+        for (auto& pair : Heart::PhysicsBody::GetCustomCollisionChannels())
+        {
+            bool set = mask & pair.second;
+            ImGui::Text(pair.first.Data());
+            ImGui::SameLine();
+            modified |= ImGui::Checkbox((idStart + pair.first).Data(), &set);
+            if (set)
+                mask |= pair.second;
+            else
+                mask &= ~pair.second;
+        }
+        
+        return modified;
     }
 }
 }

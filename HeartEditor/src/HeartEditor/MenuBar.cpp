@@ -41,12 +41,17 @@ namespace HeartEditor
                             ImGui::BeginDisabled();
                         if (ImGui::MenuItem("Reload Client Scripts"))
                             Project::GetActiveProject()->LoadScriptsPlugin();
+                        if (ImGui::MenuItem("Build & Load Client Scripts", "Ctrl+B"))
+                        {
+                            Project::GetActiveProject()->BuildScripts();
+                            Project::GetActiveProject()->LoadScriptsPlugin();
+                        }
                         if (disabled)
                             ImGui::EndDisabled();
                         ImGui::Separator();
                     }
 
-                    if (Project::GetActiveProject() && ImGui::MenuItem("Save Project"))
+                    if (Project::GetActiveProject() && ImGui::MenuItem("Save Project", "Ctrl+S"))
                         Project::GetActiveProject()->SaveToDisk();
 
                     if (ImGui::MenuItem("New Project"))
@@ -61,13 +66,9 @@ namespace HeartEditor
 
                     ImGui::Separator();
 
-                    if (Editor::GetEditorSceneAsset() && ImGui::MenuItem("Save Scene"))
-                    {
-                        auto asset = Heart::AssetManager::RetrieveAsset<Heart::SceneAsset>(Editor::GetEditorSceneAsset());
-                        if (asset && asset->IsValid())
-                            asset->Save(&Editor::GetEditorScene());
-                    }
-
+                    if (Editor::GetEditorSceneAsset() && ImGui::MenuItem("Save Scene", "Ctrl+S"))
+                        Editor::SaveScene();
+                        
                     if (ImGui::MenuItem("New Scene"))
                         Editor::ClearScene();
 
@@ -75,7 +76,12 @@ namespace HeartEditor
                     {
                         Heart::HString8 path = Heart::FilesystemUtils::SaveAsDialog(Heart::AssetManager::GetAssetsDirectory(), "Save Scene As", "Scene", "hescn");
                         if (!path.IsEmpty())
+                        {
                             Heart::SceneAsset::SerializeScene(path, &Editor::GetEditorScene());
+                            Editor::SetEditorSceneAsset(
+                                Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Scene, path)
+                            );
+                        }
                     }
 
                     if (ImGui::MenuItem("Load Scene"))

@@ -38,7 +38,28 @@ namespace Heart
             dst.AddComponent<PrimaryCameraComponent>();
     }
 
+    template <>
+    void Scene::CopyComponent<RigidBodyComponent>(entt::entity src, Entity dst)
+    {
+        if (m_Registry.any_of<RigidBodyComponent>(src))
+        {
+            auto& oldComp = m_Registry.get<RigidBodyComponent>(src);
+            RigidBodyComponent newComp;
+            newComp.BodyId = dst.GetScene()->GetPhysicsWorld().AddBody(m_PhysicsWorld.GetBody(oldComp.BodyId)->Clone());
+
+            dst.AddComponent<RigidBodyComponent>(newComp);
+        }
+    }
+
+    template<typename Component>
+    void Scene::CopyComponent(entt::entity src, Entity dst)
+    {
+        if (m_Registry.any_of<Component>(src))
+            dst.AddComponent<Component>(m_Registry.get<Component>(src));
+    }
+
     Scene::Scene()
+        : m_PhysicsWorld({ 0.f, -9.8f, 0.f })
     {
         
     }
@@ -103,6 +124,7 @@ namespace Heart
         CopyComponent<ScriptComponent>(source.GetHandle(), newEntity);
         // Do not copy primary camera component when duplicating entity
         CopyComponent<CameraComponent>(source.GetHandle(), newEntity);
+        CopyComponent<RigidBodyComponent>(source.GetHandle(), newEntity);
 
         CacheEntityTransform(newEntity);
 
@@ -181,13 +203,6 @@ namespace Heart
             CacheEntityTransform(child);
     }
 
-    template<typename Component>
-    void Scene::CopyComponent(entt::entity src, Entity dst)
-    {
-        if (m_Registry.any_of<Component>(src))
-            dst.AddComponent<Component>(m_Registry.get<Component>(src));
-    }
-
     void Scene::RemoveChild(UUID parentUUID, UUID childUUID)
     {
         Entity parent = GetEntityFromUUIDUnchecked(parentUUID);
@@ -224,11 +239,6 @@ namespace Heart
 
     glm::mat4 Scene::CalculateEntityTransform(Entity target, glm::mat4* outParentTransform)
     {
-        if (outParentTransform)
-            *outParentTransform = glm::mat4(1.f);
-        if (!target.HasComponent<TransformComponent>())
-            return glm::mat4(1.f);
-
         glm::mat4 parentTransform = GetEntityParentTransform(target);
         if (outParentTransform)
             *outParentTransform = parentTransform;
@@ -267,17 +277,13 @@ namespace Heart
             CopyComponent<ScriptComponent>(src.GetHandle(), dst);
             CopyComponent<PrimaryCameraComponent>(src.GetHandle(), dst);
             CopyComponent<CameraComponent>(src.GetHandle(), dst);
+            CopyComponent<RigidBodyComponent>(src.GetHandle(), dst);
         });
 
         // Copy the environment map
         newScene->m_EnvironmentMap = m_EnvironmentMap;
 
         return newScene;
-    }
-
-    void Scene::ClearScene()
-    {
-        m_Registry.clear();
     }
 
     void Scene::SetEnvironmentMap(UUID mapAsset)
@@ -324,12 +330,29 @@ namespace Heart
     {
         HE_PROFILE_FUNCTION();
         auto timer = AggregateTimer("Scene::OnUpdateRuntime");
+        
+        // Update physics
+        m_PhysicsWorld.Step(ts.StepSeconds());
+
+        // Update positions of physics entities to reflect physics body position
+        auto physView = m_Registry.view<RigidBodyComponent, TransformComponent>();
+        for (auto entity : physView)
+        {
+            // Don't use Entity::SetTransform() here because it would unnecessarily
+            // try and update the physics body
+            auto& bodyComp = physView.get<RigidBodyComponent>(entity);
+            auto& transformComp = physView.get<TransformComponent>(entity);
+            PhysicsBody* body = m_PhysicsWorld.GetBody(bodyComp.BodyId);
+            transformComp.Translation = body->GetPosition();
+            transformComp.Rotation = body->GetRotation();
+            CacheEntityTransform({ this, entity });
+        }
 
         // Call OnUpdate lifecycle method
-        auto view = m_Registry.view<ScriptComponent>();
-        for (auto entity : view)
+        auto scriptView = m_Registry.view<ScriptComponent>();
+        for (auto entity : scriptView)
         {
-            auto& scriptComp = view.get<ScriptComponent>(entity);
+            auto& scriptComp = scriptView.get<ScriptComponent>(entity);
             scriptComp.Instance.OnUpdate(ts);
         }
     }

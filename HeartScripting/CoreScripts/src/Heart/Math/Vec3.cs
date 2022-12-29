@@ -13,45 +13,37 @@ namespace Heart.Math
 
     public class Vec3
     {
-        private float _x, _y, _z = 0.0F;
+        internal Vec3Internal _internal;
+
+        public Vec3()
+        {
+            _internal.X = 0.0f;
+            _internal.Y = 0.0f;
+            _internal.Z = 0.0f;
+        }
 
         public Vec3(float x, float y, float z)
         {
-            _x = x;
-            _y = y;
-            _z = z;
+            _internal.X = x;
+            _internal.Y = y;
+            _internal.Z = z;
         }
 
         public Vec3(Vec3 other)
         {
-            _x = other._x;
-            _y = other._y;
-            _z = other._z;
+            _internal = other._internal;
         }
 
         internal Vec3(Vec3Internal other)
         {
-            _x = other.X;
-            _y = other.Y;
-            _z = other.Z;
+            _internal = other;
         }
 
         internal Vec3(Vec4Internal other)
         {
-            _x = other.X;
-            _y = other.Y;
-            _z = other.Z;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal Vec3Internal ToVec3Internal()
-        {
-            return new Vec3Internal
-            {
-                X = _x,
-                Y = _y,
-                Z = _z
-            };
+            _internal.X = other.X;
+            _internal.Y = other.Y;
+            _internal.Z = other.Z;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -59,9 +51,9 @@ namespace Heart.Math
         {
             return new Vec4Internal
             {
-                X = _x,
-                Y = _y,
-                Z = _z,
+                X = _internal.X,
+                Y = _internal.Y,
+                Z = _internal.Z,
                 W = w
             };
         }
@@ -69,25 +61,25 @@ namespace Heart.Math
         public float X
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => _x;
+            get => _internal.X;
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            set => _x = value;
+            set => _internal.X = value;
         }
 
         public float Y
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => _y;
+            get => _internal.Y;
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            set => _y = value;
+            set => _internal.Y = value;
         }
 
         public float Z
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => _z;
+            get => _internal.Z;
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            set => _z = value;
+            set => _internal.Z = value;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

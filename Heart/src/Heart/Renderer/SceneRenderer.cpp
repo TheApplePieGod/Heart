@@ -107,6 +107,9 @@ namespace Heart
 
         CreateTextures();
         CreateFramebuffers();
+        
+        if (m_PhysicsDebugRenderer)
+            m_PhysicsDebugRenderer->Resize(m_RenderWidth, m_RenderHeight);
     }
 
     void SceneRenderer::CreateBuffers()
@@ -128,16 +131,16 @@ namespace Heart
         bufCreateInfo.Stride = sizeof(SSAOData);
         bufCreateInfo.ElementCount = 1;
         m_SSAODataBuffer = Flourish::Buffer::Create(bufCreateInfo);
+        
+        bufCreateInfo.Type = Flourish::BufferType::Storage;
+        bufCreateInfo.Stride = sizeof(ObjectData);
+        bufCreateInfo.ElementCount = maxObjects;
+        m_ObjectDataBuffer = Flourish::Buffer::Create(bufCreateInfo);
 
         bufCreateInfo.Type = Flourish::BufferType::Storage;
         bufCreateInfo.Stride = sizeof(LightData);
         bufCreateInfo.ElementCount = 500;
         m_LightingDataBuffer = Flourish::Buffer::Create(bufCreateInfo);
-
-        bufCreateInfo.Type = Flourish::BufferType::Storage;
-        bufCreateInfo.Stride = sizeof(ObjectData);
-        bufCreateInfo.ElementCount = maxObjects;
-        m_ObjectDataBuffer = Flourish::Buffer::Create(bufCreateInfo);
 
         bufCreateInfo.Type = Flourish::BufferType::Storage;
         bufCreateInfo.Stride = sizeof(MaterialData);
@@ -162,7 +165,7 @@ namespace Heart
         texCreateInfo.MipCount = 1;
         texCreateInfo.SamplerState.UVWWrap = { Flourish::SamplerWrapMode::ClampToBorder, Flourish::SamplerWrapMode::ClampToBorder, Flourish::SamplerWrapMode::ClampToBorder };
         m_RenderOutputTexture = Flourish::Texture::Create(texCreateInfo);
-
+        
         texCreateInfo.Format = Flourish::ColorFormat::RGBA8_UNORM;
         texCreateInfo.Usage = Flourish::TextureUsageType::ComputeTarget;
         texCreateInfo.MipCount = 1;
@@ -351,7 +354,8 @@ namespace Heart
             Flourish::Context::ReversedZBuffer(),
             m_SceneRenderSettings.CullEnable,
             m_SceneRenderSettings.BloomEnable,
-            m_SceneRenderSettings.SSAOEnable
+            m_SceneRenderSettings.SSAOEnable,
+            m_SceneRenderSettings.RenderPhysicsVolumes
         };
         m_FrameDataBuffer->SetElements(&frameData, 1, 0);
 
@@ -385,10 +389,21 @@ namespace Heart
         // Copy ids texture
         if (m_SceneRenderSettings.CopyEntityIdsTextureToCPU)
             CopyEntityIdsTexture();
+        
+        // Debug physics rendering
+        if (m_SceneRenderSettings.RenderPhysicsVolumes)
+        {
+            if (!m_PhysicsDebugRenderer)
+                m_PhysicsDebugRenderer = CreateRef<PhysicsDebugRenderer>(m_RenderWidth, m_RenderHeight);
+            m_PhysicsDebugRenderer->Draw(m_Scene, *m_Camera);
+        }
 
         // Submit
-        m_RenderBuffers.push_back({ m_MainCommandBuffer.get() });
-
+        if (m_SceneRenderSettings.RenderPhysicsVolumes)
+            m_RenderBuffers.push_back({ m_MainCommandBuffer.get(), m_PhysicsDebugRenderer->GetCommandBuffer() });
+        else
+            m_RenderBuffers.push_back({ m_MainCommandBuffer.get() });
+        
         // SSAO
         if (m_SceneRenderSettings.SSAOEnable)
             SSAO();
@@ -396,7 +411,7 @@ namespace Heart
         // Bloom
         if (m_SceneRenderSettings.BloomEnable)
             Bloom();
-        
+            
         FinalComposite();
     }
 
@@ -460,7 +475,7 @@ namespace Heart
             float maxScale = std::max(std::max(scale.x, scale.y), scale.z);
 
             // Skip invalid meshes
-            auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>(mesh.Mesh, async);
+            auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>(mesh.Mesh, true, async);
             if (!meshAsset || !meshAsset->IsValid()) continue;
 
             for (u32 i = 0; i < meshAsset->GetSubmeshCount(); i++)
@@ -546,19 +561,19 @@ namespace Heart
                 {
                     auto& materialData = pair.second.Material->GetMaterialData();
 
-                    auto albedoAsset = AssetManager::RetrieveAsset<TextureAsset>(pair.second.Material->GetAlbedoTexture(), async);
+                    auto albedoAsset = AssetManager::RetrieveAsset<TextureAsset>(pair.second.Material->GetAlbedoTexture(), true, async);
                     materialData.SetHasAlbedo(albedoAsset && albedoAsset->IsValid());
 
-                    auto metallicRoughnessAsset = AssetManager::RetrieveAsset<TextureAsset>(pair.second.Material->GetMetallicRoughnessTexture(), async);
+                    auto metallicRoughnessAsset = AssetManager::RetrieveAsset<TextureAsset>(pair.second.Material->GetMetallicRoughnessTexture(), true, async);
                     materialData.SetHasMetallicRoughness(metallicRoughnessAsset && metallicRoughnessAsset->IsValid());
 
-                    auto normalAsset = AssetManager::RetrieveAsset<TextureAsset>(pair.second.Material->GetNormalTexture(), async);
+                    auto normalAsset = AssetManager::RetrieveAsset<TextureAsset>(pair.second.Material->GetNormalTexture(), true, async);
                     materialData.SetHasNormal(normalAsset && normalAsset->IsValid());
 
-                    auto emissiveAsset = AssetManager::RetrieveAsset<TextureAsset>(pair.second.Material->GetEmissiveTexture(), async);
+                    auto emissiveAsset = AssetManager::RetrieveAsset<TextureAsset>(pair.second.Material->GetEmissiveTexture(), true, async);
                     materialData.SetHasEmissive(emissiveAsset && emissiveAsset->IsValid());
 
-                    auto occlusionAsset = AssetManager::RetrieveAsset<TextureAsset>(pair.second.Material->GetOcclusionTexture(), async);
+                    auto occlusionAsset = AssetManager::RetrieveAsset<TextureAsset>(pair.second.Material->GetOcclusionTexture(), true, async);
                     materialData.SetHasOcclusion(occlusionAsset && occlusionAsset->IsValid());
 
                     m_MaterialDataBuffer->SetElements(&materialData, 1, objectId);
@@ -868,7 +883,7 @@ namespace Heart
 
         m_RenderBuffers.push_back({ m_BloomCommandBuffer.get() });
     }
-
+    
     void SceneRenderer::FinalComposite()
     {
         auto encoder = m_FinalCommandBuffer->EncodeComputeCommands(m_FinalComputeTarget.get());
@@ -877,6 +892,10 @@ namespace Heart
         encoder->BindPipelineTextureResource(1, m_FinalTexture.get());
         encoder->BindPipelineTextureResource(2, m_RenderOutputTexture.get());
         encoder->BindPipelineTextureResource(3, m_BloomUpsampleBufferTexture.get());
+        if (m_SceneRenderSettings.RenderPhysicsVolumes)
+            encoder->BindPipelineTextureResource(4, m_PhysicsDebugRenderer->GetFinalTexture());
+        else
+            encoder->BindPipelineTextureResource(4, m_RenderOutputTexture.get()); // Dummy texture
         encoder->FlushPipelineBindings();
         encoder->Dispatch((m_FinalTexture->GetWidth() / 16) + 1, (m_FinalTexture->GetHeight() / 16) + 1, 1);
         encoder->EndEncoding();

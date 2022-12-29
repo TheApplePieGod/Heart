@@ -1,8 +1,9 @@
-﻿using Heart.Container;
-using Heart.NativeInterop;
-using System;
+﻿using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Heart.Container;
+using Heart.NativeInterop;
+using Heart.Physics;
 
 namespace Heart.Scene
 {
@@ -26,8 +27,7 @@ namespace Heart.Scene
 
         internal static Entity CreateEntity(IntPtr sceneHandle, string name = "New Entity")
         {
-            using HString hstr = new HString(name);
-            Native_Scene_CreateEntity(sceneHandle, hstr._internalVal, out var entityHandle);
+            Native_Scene_CreateEntity(sceneHandle, name, out var entityHandle);
             return new Entity(entityHandle, sceneHandle);
         }
 
@@ -41,11 +41,21 @@ namespace Heart.Scene
             if (entityHandle == Entity.InvalidEntityHandle) return null;
             return new Entity(entityHandle, sceneHandle);
         }
-
+        
+        public bool RaycastSingle(RaycastInfo castInfo, out RaycastResult outResult)
+        {
+            var success = Native_Scene_RaycastSingle(_internalValue, castInfo._internal, out var res);
+            outResult = new RaycastResult(res);
+            return NativeMarshal.InteropBoolToBool(success);
+        }
+        
         [DllImport("__Internal")]
-        internal static extern void Native_Scene_CreateEntity(IntPtr sceneHandle, HStringInternal name, out uint entityHandle);
+        internal static extern void Native_Scene_CreateEntity(IntPtr sceneHandle, [MarshalAs(UnmanagedType.LPStr)] string name, out uint entityHandle);
 
         [DllImport("__Internal")]
         internal static extern void Native_Scene_GetEntityFromUUID(IntPtr sceneHandle, UUID uuid, out uint entityHandle);
+
+        [DllImport("__Internal")]
+        internal static extern InteropBool Native_Scene_RaycastSingle(IntPtr sceneHandle, in RaycastInfoInternal info, out RaycastResultInternal outResult);
     }
 }

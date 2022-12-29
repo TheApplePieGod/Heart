@@ -29,5 +29,13 @@ target_link_libraries(Editor Engine)
 
 set_target_properties(Editor PROPERTIES WIN32_EXECUTABLE true)
 
+if (APPLE)
+  set_target_properties(Editor PROPERTIES
+    XCODE_GENERATE_SCHEME TRUE
+    XCODE_SCHEME_ENVIRONMENT PATH=$ENV{PATH}:$ENV{DOTNET_SDK}
+    XCODE_SCHEME_ENABLE_GPU_FRAME_CAPTURE_MODE Metal
+  )
+endif()
+
 # PCH
 target_precompile_headers(Editor REUSE_FROM Engine)

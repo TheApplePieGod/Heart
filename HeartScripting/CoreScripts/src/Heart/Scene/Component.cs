@@ -122,7 +122,7 @@ namespace Heart.Scene
             ChildrenComponent.Native_ChildrenComponent_RemoveChild(entityHandle, sceneHandle, uuid);
         }
 
-        public static unsafe Vec3 GetTranslation(uint entityHandle, IntPtr sceneHandle)
+        public static unsafe Vec3 GetPosition(uint entityHandle, IntPtr sceneHandle)
         {
             TransformComponent.Native_TransformComponent_Get(entityHandle, sceneHandle, out var comp);
             return new Vec3(comp->Translation);
@@ -140,25 +140,46 @@ namespace Heart.Scene
             return new Vec3(comp->Scale);
         }
 
-        public static unsafe void SetTranslation(uint entityHandle, IntPtr sceneHandle, Vec3 translation)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static unsafe void SetPosition(uint entityHandle, IntPtr sceneHandle, Vec3 position)
         {
-            TransformComponent.Native_TransformComponent_Get(entityHandle, sceneHandle, out var comp);
-            comp->Translation = translation.ToVec3Internal();
-            TransformComponent.Native_TransformComponent_CacheTransform(entityHandle, sceneHandle);
+            TransformComponent.Native_TransformComponent_SetPosition(
+                entityHandle,
+                sceneHandle,
+                position._internal
+            );
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static unsafe void SetRotation(uint entityHandle, IntPtr sceneHandle, Vec3 rotation)
         {
-            TransformComponent.Native_TransformComponent_Get(entityHandle, sceneHandle, out var comp);
-            comp->Rotation = rotation.ToVec3Internal();
-            TransformComponent.Native_TransformComponent_CacheTransform(entityHandle, sceneHandle);
+            TransformComponent.Native_TransformComponent_SetRotation(
+                entityHandle,
+                sceneHandle,
+                rotation._internal
+            );
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static unsafe void SetScale(uint entityHandle, IntPtr sceneHandle, Vec3 scale)
         {
-            TransformComponent.Native_TransformComponent_Get(entityHandle, sceneHandle, out var comp);
-            comp->Scale = scale.ToVec3Internal();
-            TransformComponent.Native_TransformComponent_CacheTransform(entityHandle, sceneHandle);
+            TransformComponent.Native_TransformComponent_SetScale(
+                entityHandle,
+                sceneHandle,
+                scale._internal
+            );
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static unsafe void SetTransform(uint entityHandle, IntPtr sceneHandle, Vec3 pos, Vec3 rot, Vec3 scale)
+        {
+            TransformComponent.Native_TransformComponent_SetTransform(
+                entityHandle,
+                sceneHandle,
+                pos._internal,
+                rot._internal,
+                scale._internal
+            );
         }
 
         public static Vec3 GetForwardVector(uint entityHandle, IntPtr sceneHandle)
@@ -196,6 +217,8 @@ namespace Heart.Scene
                     { return NativeMarshal.InteropBoolToBool(ScriptComponent.Native_ScriptComponent_Exists(entityHandle, sceneHandle)); }
                 case var t when t == typeof(CameraComponent):
                     { return NativeMarshal.InteropBoolToBool(CameraComponent.Native_CameraComponent_Exists(entityHandle, sceneHandle)); }
+                case var t when t == typeof(RigidBodyComponent):
+                    { return NativeMarshal.InteropBoolToBool(RigidBodyComponent.Native_RigidBodyComponent_Exists(entityHandle, sceneHandle)); }
             }
 
             throw new NotImplementedException("HasComponent does not support " + typeof(T).FullName);
@@ -230,6 +253,9 @@ namespace Heart.Scene
                 case var t when t == typeof(CameraComponent):
                     { CameraComponent.Native_CameraComponent_Add(entityHandle, sceneHandle); }
                     break;
+                case var t when t == typeof(RigidBodyComponent):
+                    { RigidBodyComponent.Native_RigidBodyComponent_Add(entityHandle, sceneHandle); }
+                    break;
             }
 
             return new T { _entityHandle = entityHandle, _sceneHandle = sceneHandle };
@@ -261,6 +287,9 @@ namespace Heart.Scene
                     return;
                 case var t when t == typeof(CameraComponent):
                     { CameraComponent.Native_CameraComponent_Remove(entityHandle, sceneHandle); }
+                    return;
+                case var t when t == typeof(RigidBodyComponent):
+                    { RigidBodyComponent.Native_RigidBodyComponent_Remove(entityHandle, sceneHandle); }
                     return;
             }
 

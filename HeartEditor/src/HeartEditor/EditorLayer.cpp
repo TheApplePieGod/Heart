@@ -98,9 +98,19 @@ namespace HeartEditor
             if (!viewport.IsFocused())
                 Editor::StopScene();
         }
-        if (event.GetKeyCode() == Heart::KeyCode::F11)
+        else if (event.GetKeyCode() == Heart::KeyCode::F11)
             EditorApp::Get().GetWindow().ToggleFullscreen();
-        
+        else if (event.GetKeyCode() == Heart::KeyCode::S && Heart::Input::IsKeyPressed(Heart::KeyCode::LeftCtrl))
+        {
+            Project::GetActiveProject()->SaveToDisk();
+            Editor::SaveScene();
+        }
+        else if (event.GetKeyCode() == Heart::KeyCode::B && Heart::Input::IsKeyPressed(Heart::KeyCode::LeftCtrl))
+        {
+            Project::GetActiveProject()->BuildScripts();
+            Project::GetActiveProject()->LoadScriptsPlugin();
+        }
+            
         return true;
     }
 

@@ -3,6 +3,7 @@
 #include "Heart/Renderer/EnvironmentMap.h"
 #include "Heart/Core/Timestep.h"
 #include "Heart/Core/UUID.h"
+#include "Heart/Physics/PhysicsWorld.h"
 #include "entt/entt.hpp"
 #include "glm/mat4x4.hpp"
 #include "glm/vec3.hpp"
@@ -44,6 +45,7 @@ namespace Heart
         void OnUpdateRuntime(Timestep ts);
 
         inline entt::registry& GetRegistry() { return m_Registry; }
+        inline PhysicsWorld& GetPhysicsWorld() { return m_PhysicsWorld; }
         inline EnvironmentMap* GetEnvironmentMap() { return m_EnvironmentMap.get(); }
         
         template<typename Component>
@@ -73,6 +75,7 @@ namespace Heart
         entt::registry m_Registry;
         std::unordered_map<UUID, entt::entity> m_UUIDMap;
         std::unordered_map<entt::entity, CachedTransform> m_CachedTransforms;
+        PhysicsWorld m_PhysicsWorld;
         Ref<EnvironmentMap> m_EnvironmentMap; // TODO: move this out of scene
         bool m_IsRuntime = false;
 

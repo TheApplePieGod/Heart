@@ -24,10 +24,13 @@ namespace Heart
 
         // Will replace existing component of same type
         template<typename Component, typename ... Args>
-        decltype(auto) AddComponent(Args&& ... args)
+        void AddComponent(Args&& ... args)
         {
-            return m_Scene->GetRegistry().emplace_or_replace<Component>(m_EntityHandle, std::forward<Args>(args)...);
+            m_Scene->GetRegistry().emplace_or_replace<Component>(m_EntityHandle, std::forward<Args>(args)...);
         }
+        
+        template<>
+        void AddComponent<RigidBodyComponent>(PhysicsBody& body);
 
         // Safe to call when entity does not have component
         template<typename Component>
@@ -77,6 +80,9 @@ namespace Heart
         void SetScriptProperty(const HStringView8& name, const Variant& value);
 
         void SetIsPrimaryCameraEntity(bool primary);
+
+        PhysicsBody* GetPhysicsBody();
+        void ReplacePhysicsBody(const PhysicsBody& body, bool keepVel = false);
 
     private:
         entt::entity m_EntityHandle = entt::null;

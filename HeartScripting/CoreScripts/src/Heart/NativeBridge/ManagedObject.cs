@@ -39,6 +39,9 @@ namespace Heart.NativeBridge
             // Set associated entity fields
             ((ScriptEntity)instance)._entityHandle = entityHandle;
             ((ScriptEntity)instance)._sceneHandle = sceneHandle;
+            
+            // Call custom constructor
+            ((ScriptEntity)instance).OnConstruct();
 
             var handle = ManagedGCHandle.AllocStrong(instance);
             return handle.ToIntPtr();

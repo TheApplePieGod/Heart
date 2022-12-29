@@ -11,9 +11,10 @@ namespace Heart.Scene
     public abstract class ScriptEntity : Entity
     {
         // Client overridable methods
-        protected virtual void OnPlayStart() {}
-        protected virtual void OnPlayEnd() {}
-        protected virtual void OnUpdate(Timestep timestep) {}
+        protected internal virtual void OnConstruct() {}
+        protected internal virtual void OnPlayStart() {}
+        protected internal virtual void OnPlayEnd() {}
+        protected internal virtual void OnUpdate(Timestep timestep) {}
 
         // Generated methods
         public virtual bool GENERATED_SetField(string fieldName, Variant value) { return false; }

@@ -88,8 +88,8 @@ namespace Heart.Scene
             => ComponentUtils.RemoveChild(_entityHandle, _sceneHandle, entity.GetId());
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Vec3 GetTranslation()
-            => ComponentUtils.GetTranslation(_entityHandle, _sceneHandle);
+        public Vec3 GetPosition()
+            => ComponentUtils.GetPosition(_entityHandle, _sceneHandle);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vec3 GetRotation()
@@ -100,8 +100,8 @@ namespace Heart.Scene
             => ComponentUtils.GetScale(_entityHandle, _sceneHandle);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void SetTranslation(Vec3 translation)
-            => ComponentUtils.SetTranslation(_entityHandle, _sceneHandle, translation);
+        public void SetPosition(Vec3 position)
+            => ComponentUtils.SetPosition(_entityHandle, _sceneHandle, position);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void SetRotation(Vec3 rotation)

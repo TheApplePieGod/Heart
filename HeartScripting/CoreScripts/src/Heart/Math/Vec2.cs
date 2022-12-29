@@ -12,50 +12,44 @@ namespace Heart.Math
 
     public class Vec2
     {
-        private float _x, _y = 0.0F;
+        internal Vec2Internal _internal;
+
+        public Vec2()
+        {
+            _internal.X = 0.0f;
+            _internal.Y = 0.0f;
+        }
 
         public Vec2(float x, float y)
         {
-            _x = x;
-            _y = y;
+            _internal.X = x;
+            _internal.Y = y;
         }
 
         public Vec2(Vec2 other)
         {
-            _x = other._x;
-            _y = other._y;
+            _internal = other._internal;
         }
 
         internal Vec2(Vec2Internal other)
         {
-            _x = other.X;
-            _y = other.Y;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal Vec2Internal ToVec2Internal()
-        {
-            return new Vec2Internal
-            {
-                X = _x,
-                Y = _y,
-            };
+            _internal = other;
         }
 
         public float X
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => _x;
+            get => _internal.X;
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            set => _x = value;
+            set => _internal.X = value;
         }
 
         public float Y
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => _y;
+            get => _internal.Y;
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            set => _y = value;
+            set => _internal.Y = value;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

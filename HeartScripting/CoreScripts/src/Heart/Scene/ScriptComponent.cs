@@ -48,16 +48,6 @@ namespace Heart.Scene
         public void DestroyScript()
             => Native_ScriptComponent_DestroyScript(_entityHandle, _sceneHandle);
 
-        public unsafe ScriptEntity ScriptObject
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get
-            {
-                if (!IsAlive) return null;
-                return (ScriptEntity)ManagedGCHandle.FromIntPtr(_internalValue->ScriptInstance.ObjectHandle).Target;
-            }
-        }
-
         public unsafe string ScriptClass
         {
             get
@@ -68,14 +58,12 @@ namespace Heart.Scene
             set
             {
                 RefreshPtr();
-                using HString hstr = new HString(value);
-                Native_ScriptComponent_SetScriptClass(_entityHandle, _sceneHandle, hstr._internalVal);
+                Native_ScriptComponent_SetScriptClass(_entityHandle, _sceneHandle, value);
             }
         }
 
         public unsafe bool IsAlive
         {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
                 RefreshPtr();
@@ -102,7 +90,7 @@ namespace Heart.Scene
         internal static extern void Native_ScriptComponent_Remove(uint entityHandle, IntPtr sceneHandle);
 
         [DllImport("__Internal")]
-        internal static extern void Native_ScriptComponent_SetScriptClass(uint entityHandle, IntPtr sceneHandle, HStringInternal value);
+        internal static extern void Native_ScriptComponent_SetScriptClass(uint entityHandle, IntPtr sceneHandle, [MarshalAs(UnmanagedType.LPStr)] string value);
 
         [DllImport("__Internal")]
         internal static extern void Native_ScriptComponent_InstantiateScript(uint entityHandle, IntPtr sceneHandle);

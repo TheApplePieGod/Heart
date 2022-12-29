@@ -29,6 +29,7 @@ namespace HeartEditor
 
         GetState().RenderSettings.CopyEntityIdsTextureToCPU = true;
         GetState().RenderSettings.AsyncAssetLoading = true;
+        GetState().RenderSettings.RenderPhysicsVolumes = true;
     }
 
     void Editor::Shutdown()
@@ -97,6 +98,17 @@ namespace HeartEditor
 
         if (s_ImGuiDemoOpen)
             ImGui::ShowDemoWindow(&s_ImGuiDemoOpen);
+    }
+
+    void Editor::SaveScene()
+    {
+        if (!s_EditorSceneAsset) return;
+        
+        auto asset = Heart::AssetManager::RetrieveAsset<Heart::SceneAsset>(s_EditorSceneAsset, false);
+        if (asset)
+            asset->Save(s_EditorScene.get());
+        else
+            HE_ENGINE_LOG_ERROR("Failed to save scene");
     }
 
     void Editor::OpenScene(const Heart::Ref<Heart::Scene>& scene)

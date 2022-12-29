@@ -15,7 +15,8 @@ namespace HeartEditor
         void SetActive();
         void SaveToDisk();
         void LoadScriptsPlugin();
-
+        void BuildScripts();
+        
     public:
         static Heart::Ref<Project> CreateAndLoad(const Heart::HStringView8& absolutePath, const Heart::HStringView8& name);
         static Heart::Ref<Project> LoadFromPath(const Heart::HStringView8& absolutePath);

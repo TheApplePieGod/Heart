@@ -73,12 +73,6 @@ namespace Heart
                 HString8 name = loaded["nameComponent"]["name"];
                 auto entity = scene->CreateEntityWithUUID(name, id);
 
-                // REQUIRED: Transform component
-                glm::vec3 translation = { loaded["transformComponent"]["translation"][0], loaded["transformComponent"]["translation"][1], loaded["transformComponent"]["translation"][2] };
-                glm::vec3 rotation = { loaded["transformComponent"]["rotation"][0], loaded["transformComponent"]["rotation"][1], loaded["transformComponent"]["rotation"][2] };
-                glm::vec3 scale = { loaded["transformComponent"]["scale"][0], loaded["transformComponent"]["scale"][1], loaded["transformComponent"]["scale"][2] };
-                entity.SetTransform(translation, rotation, scale);
-
                 // Parent component
                 if (loaded.contains("parentComponent"))
                     entity.AddComponent<ParentComponent>(static_cast<UUID>(loaded["parentComponent"]["id"]));
@@ -152,12 +146,68 @@ namespace Heart
                     if (loaded["cameraComponent"]["primary"])
                         entity.AddComponent<PrimaryCameraComponent>();
                 }
+                
+                // Rigid body component
+                if (loaded.contains("rigidBodyComponent"))
+                {
+                    RigidBodyComponent comp;
+                    PhysicsBody body;
+                    PhysicsBody::Type bodyType = loaded["rigidBodyComponent"]["type"];
+                    PhysicsBodyCreateInfo bodyInfo;
+                    bodyInfo.ExtraData = (void*)(intptr_t)id;
+                    bodyInfo.Mass = loaded["rigidBodyComponent"]["mass"];
+                    if (loaded["rigidBodyComponent"].contains("collisionChannels"))
+                        bodyInfo.CollisionChannels = loaded["rigidBodyComponent"]["collisionChannels"];
+                    if (loaded["rigidBodyComponent"].contains("collisionMask"))
+                        bodyInfo.CollisionMask = loaded["rigidBodyComponent"]["collisionMask"];
+                    switch (bodyType)
+                    {
+                        default:
+                        { HE_ENGINE_ASSERT(false, "Unsupported body type"); }
+
+                        case PhysicsBody::Type::Box:
+                        {
+                            glm::vec3 extent = {
+                                loaded["rigidBodyComponent"]["extent"][0],
+                                loaded["rigidBodyComponent"]["extent"][1],
+                                loaded["rigidBodyComponent"]["extent"][2]
+                            };
+                            body = PhysicsBody::CreateBoxShape(bodyInfo, extent);
+                        } break;
+
+                        case PhysicsBody::Type::Sphere:
+                        {
+                            float radius = loaded["rigidBodyComponent"]["radius"];
+                            body = PhysicsBody::CreateSphereShape(bodyInfo, radius);
+                        } break;
+                            
+                        case PhysicsBody::Type::Capsule:
+                        {
+                            float radius = loaded["rigidBodyComponent"]["radius"];
+                            float height = loaded["rigidBodyComponent"]["height"];
+                            body = PhysicsBody::CreateCapsuleShape(bodyInfo, radius, height);
+                        } break;
+                    }
+                    
+                    comp.BodyId = scene->GetPhysicsWorld().AddBody(body);
+
+                    entity.AddComponent<RigidBodyComponent>(comp);
+                }
+
             }
 
-            // make sure all the transforms get cached
-            scene->GetRegistry().each([scene](auto handle) {
-                scene->CacheEntityTransform({ scene.get(), handle });
-            });
+            // Load transform components once all entities have been parsed so that
+            // parent transform calculations will occur after all entities are guaranteed to exist
+            for (auto& loaded : field)
+            {
+                UUID id = static_cast<UUID>(loaded["idComponent"]["id"]);
+                Entity entity = scene->GetEntityFromUUID(id);
+
+                glm::vec3 translation = { loaded["transformComponent"]["translation"][0], loaded["transformComponent"]["translation"][1], loaded["transformComponent"]["translation"][2] };
+                glm::vec3 rotation = { loaded["transformComponent"]["rotation"][0], loaded["transformComponent"]["rotation"][1], loaded["transformComponent"]["rotation"][2] };
+                glm::vec3 scale = { loaded["transformComponent"]["scale"][0], loaded["transformComponent"]["scale"][1], loaded["transformComponent"]["scale"][2] };
+                entity.SetTransform(translation, rotation, scale);
+            }
         }
 
         // parse settings
@@ -249,6 +299,39 @@ namespace Heart
                     entry["cameraComponent"]["fov"] = camComp.FOV;
                     entry["cameraComponent"]["nearClip"] = camComp.NearClipPlane;
                     entry["cameraComponent"]["farClip"] = camComp.FarClipPlane;
+                }
+                
+                // Rigid body component
+                if (entity.HasComponent<RigidBodyComponent>())
+                {
+                    auto& bodyComp = entity.GetComponent<RigidBodyComponent>();
+                    PhysicsBody* body = scene->GetPhysicsWorld().GetBody(bodyComp.BodyId);
+                    entry["rigidBodyComponent"]["type"] = body->GetBodyType();
+                    entry["rigidBodyComponent"]["mass"] = body->GetMass();
+                    entry["rigidBodyComponent"]["collisionChannels"] = body->GetCollisionChannels();
+                    entry["rigidBodyComponent"]["collisionMask"] = body->GetCollisionMask();
+                    switch (body->GetBodyType())
+                    {
+                        default:
+                        { HE_ENGINE_ASSERT(false, "Unsupported body type"); }
+
+                        case PhysicsBody::Type::Box:
+                        {
+                            auto extent = body->GetBoxExtent();
+                            entry["rigidBodyComponent"]["extent"] = nlohmann::json::array({ extent.x, extent.y, extent.z });
+                        } break;
+
+                        case PhysicsBody::Type::Sphere:
+                        {
+                            entry["rigidBodyComponent"]["radius"] = body->GetSphereRadius();
+                        } break;
+                            
+                        case PhysicsBody::Type::Capsule:
+                        {
+                            entry["rigidBodyComponent"]["radius"] = body->GetCapsuleRadius();
+                            entry["rigidBodyComponent"]["height"] = body->GetCapsuleHeight();
+                        } break;
+                    }
                 }
 
                 field[index++] = entry;

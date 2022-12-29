@@ -17,19 +17,19 @@ namespace Heart.Scene
     {
         public TransformComponent()
             : base(Entity.InvalidEntityHandle, IntPtr.Zero)
-        { }
+        {}
 
         internal TransformComponent(uint entityHandle, IntPtr sceneHandle)
             : base(entityHandle, sceneHandle)
         {}
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Vec3 GetTranslation()
-            => ComponentUtils.GetTranslation(_entityHandle, _sceneHandle);
+        public Vec3 GetPosition()
+            => ComponentUtils.GetPosition(_entityHandle, _sceneHandle);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void SetTranslation(Vec3 translation)
-            => ComponentUtils.SetTranslation(_entityHandle, _sceneHandle, translation);
+        public void SetPosition(Vec3 position)
+            => ComponentUtils.SetPosition(_entityHandle, _sceneHandle, position);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vec3 GetRotation()
@@ -48,6 +48,10 @@ namespace Heart.Scene
             => ComponentUtils.SetScale(_entityHandle, _sceneHandle, scale);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void SetTransform(Vec3 pos, Vec3 rot, Vec3 scale)
+            => ComponentUtils.SetTransform(_entityHandle, _sceneHandle, pos, rot, scale);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vec3 GetForwardVector()
             => ComponentUtils.GetForwardVector(_entityHandle, _sceneHandle);
 
@@ -55,7 +59,16 @@ namespace Heart.Scene
         internal static extern unsafe void Native_TransformComponent_Get(uint entityHandle, IntPtr sceneHandle, out TransformComponentInternal* comp);
 
         [DllImport("__Internal")]
-        internal static extern void Native_TransformComponent_CacheTransform(uint entityHandle, IntPtr sceneHandle);
+        internal static extern void Native_TransformComponent_SetPosition(uint entityHandle, IntPtr sceneHandle, Vec3Internal value);
+
+        [DllImport("__Internal")]
+        internal static extern void Native_TransformComponent_SetRotation(uint entityHandle, IntPtr sceneHandle, Vec3Internal value);
+
+        [DllImport("__Internal")]
+        internal static extern void Native_TransformComponent_SetScale(uint entityHandle, IntPtr sceneHandle, Vec3Internal value);
+
+        [DllImport("__Internal")]
+        internal static extern void Native_TransformComponent_SetTransform(uint entityHandle, IntPtr sceneHandle, Vec3Internal pos, Vec3Internal rot, Vec3Internal scale);
 
         [DllImport("__Internal")]
         internal static extern void Native_TransformComponent_GetForwardVector(uint entityHandle, IntPtr sceneHandle, out Vec3Internal value);

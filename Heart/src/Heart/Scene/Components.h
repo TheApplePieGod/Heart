@@ -19,7 +19,6 @@ namespace Heart
     // When adding new components, make sure to update:
     // Scene::DuplicateEntity, Scene::Clone, SceneAsset::Serialize & Deserialize
     // -----------------------
-    
 
     struct IdComponent
     {
@@ -99,5 +98,10 @@ namespace Heart
         f32 FOV = 70.f;
         f32 NearClipPlane = 0.1f;
         f32 FarClipPlane = 500.f;
+    };
+
+    struct RigidBodyComponent
+    {
+        u32 BodyId = 0;
     };
 }

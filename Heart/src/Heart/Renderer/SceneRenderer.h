@@ -5,6 +5,7 @@
 #include "glm/vec3.hpp"
 #include "glm/mat4x4.hpp"
 #include "Heart/Container/HVector.hpp"
+#include "Heart/Renderer/PhysicsDebugRenderer.h"
 
 namespace Flourish
 {
@@ -34,6 +35,7 @@ namespace Heart
         bool CullEnable = true;
         bool AsyncAssetLoading = true;
         bool CopyEntityIdsTextureToCPU = false;
+        bool RenderPhysicsVolumes = false;
     };
 
     class Scene;
@@ -74,7 +76,7 @@ namespace Heart
             u32 Count = 0;
             u32 EntityListIndex = 0;
         };
-
+        
         struct IndexedIndirectCommand
         {
             u32 IndexCount;
@@ -98,7 +100,8 @@ namespace Heart
             u32 CullEnable;
             u32 BloomEnable;
             u32 SSAOEnable;
-            glm::vec2 padding2;
+            u32 PhysicsDebugEnable;
+            float Padding;
         };
 
         struct ObjectData
@@ -206,7 +209,7 @@ namespace Heart
         Ref<Flourish::Texture> m_SSAONoiseTexture;
         Ref<Flourish::Buffer> m_SSAODataBuffer;
         SSAOData m_SSAOData;
-
+        
         Ref<Flourish::ComputePipeline> m_FinalCompositeComputePipeline;
         Ref<Flourish::ComputeTarget> m_FinalComputeTarget;
         Ref<Flourish::CommandBuffer> m_FinalCommandBuffer;
@@ -214,7 +217,9 @@ namespace Heart
 
         Ref<Flourish::Buffer> m_GridVertices;
         Ref<Flourish::Buffer> m_GridIndices;
-
+        
+        Ref<PhysicsDebugRenderer> m_PhysicsDebugRenderer;
+        
         // In-flight frame data
         Flourish::RenderCommandEncoder* m_RenderEncoder;
         Scene* m_Scene;
