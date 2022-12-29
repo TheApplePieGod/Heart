@@ -44,6 +44,9 @@ namespace Heart
         texCreateInfo.Writability = Flourish::TextureWritability::Once;
         texCreateInfo.ArrayCount = 6;
         texCreateInfo.MipCount = 0;
+        texCreateInfo.SamplerState.UVWWrap = {
+            Flourish::SamplerWrapMode::ClampToEdge, Flourish::SamplerWrapMode::ClampToEdge, Flourish::SamplerWrapMode::ClampToEdge
+        };
         m_EnvironmentMap.Texture = Flourish::Texture::Create(texCreateInfo);
         texCreateInfo.ArrayCount = 1;
         texCreateInfo.MipCount = 1;

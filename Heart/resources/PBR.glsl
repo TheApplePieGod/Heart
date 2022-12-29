@@ -229,7 +229,7 @@ vec4 GetFinalColor()
         occlusion *= texture(ssaoTex, fragPos.xy).r; 
     }
     
-    vec3 prefilteredColor = textureLod(prefilterMap, R,  filteredRoughness * MAX_REFLECTION_LOD).rgb;   
+    vec3 prefilteredColor = textureLod(prefilterMap, R, filteredRoughness * MAX_REFLECTION_LOD).rgb;   
     vec2 envBRDF = texture(brdfLUT, vec2(max(dot(N, V), 0.0), filteredRoughness)).rg;
     vec3 specular = min(vec3(1.f), prefilteredColor * (F * envBRDF.x + envBRDF.y)); // limit specular intensity for bloom
     vec3 ambient = (kD * diffuse + specular) * occlusion;
