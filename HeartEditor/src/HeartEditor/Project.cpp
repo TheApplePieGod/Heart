@@ -7,6 +7,7 @@
 #include "HeartEditor/Widgets/ContentBrowser.h"
 #include "HeartEditor/Widgets/Viewport.h"
 #include "Heart/ImGui/ImGuiInstance.h"
+#include "Heart/Core/Timing.h"
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/SceneAsset.h"
 #include "Heart/Scripting/ScriptingEngine.h"
@@ -35,54 +36,38 @@ namespace HeartEditor
         file.close();
 
         /*
-         * Copy default imgui config
-         */
-        std::filesystem::copy_file("templates/imgui.ini", std::filesystem::path(finalPath).append("imgui.ini"));
-        
-        /*
          * Create default directories
          */
         std::filesystem::create_directory(std::filesystem::path(finalPath).append("Assets"));
         std::filesystem::create_directory(std::filesystem::path(finalPath).append("Scripts"));
-
-        /*
-         * Load templates and create visual studio project files
-         */
+        
         Heart::HString8 scriptsRootPath = std::filesystem::current_path()
             .append("scripting")
             .generic_u8string();
-
-        // Csproj
-        Heart::HString8 csprojTemplate = Heart::FilesystemUtils::ReadFileToString("templates/ProjectTemplate.csproj");
-        Heart::HString8 finalCsproj = std::regex_replace(csprojTemplate.Data(), std::regex("\\$\\{SCRIPTS_ROOT_PATH\\}"), scriptsRootPath.Data());
-        file = std::ofstream(
-            std::filesystem::path(finalPath).append((name + Heart::HStringView8(".csproj")).Data()),
-            std::ios::binary
-        );
-        file << finalCsproj.Data();
-        file.close();
-
-        // Sln
-        Heart::HString8 slnTemplate = Heart::FilesystemUtils::ReadFileToString("templates/ProjectTemplate.sln");
-        Heart::HString8 finalSln = std::regex_replace(slnTemplate.Data(), std::regex("\\$\\{SCRIPTS_ROOT_PATH\\}"), scriptsRootPath.Data());
-        finalSln = std::regex_replace(finalSln.Data(), std::regex("\\$\\{PROJECT_NAME\\}"), name.Data());
-        file = std::ofstream(
-            std::filesystem::path(finalPath).append((name + Heart::HStringView8(".sln")).Data()),
-            std::ios::binary
-        );
-        file << finalSln.Data();
-        file.close();
-
-        // Empty entity
-        Heart::HString8 entityTemplate = Heart::FilesystemUtils::ReadFileToString("templates/EmptyEntity.csfile");
-        Heart::HString8 finalEntity = std::regex_replace(entityTemplate.Data(), std::regex("\\$\\{PROJECT_NAME\\}"), name.Data());
-        file = std::ofstream(
-            std::filesystem::path(finalPath).append("Scripts").append("EmptyEntity.cs"),
-            std::ios::binary
-        );
-        file << finalEntity.Data();
-        file.close();
         
+        /*
+         * Iterate templates directory and perform preprocessing before copying to project dir
+         */
+        for (const auto& entry : std::filesystem::directory_iterator("templates"))
+        {
+            Heart::HString8 text = Heart::FilesystemUtils::ReadFileToString(entry.path().generic_u8string());
+            text = std::regex_replace(text.Data(), std::regex("\\$\\{SCRIPTS_ROOT_PATH\\}"), scriptsRootPath.Data());
+            text = std::regex_replace(text.Data(), std::regex("\\$\\{PROJECT_NAME\\}"), name.Data());
+            
+            Heart::HString8 filename = entry.path().filename().generic_u8string();
+            filename = std::regex_replace(filename.Data(), std::regex("\\$\\{PROJECT_NAME\\}"), name.Data());
+            
+            auto path = std::filesystem::path(finalPath);
+            if (filename == "EmptyEntity.cs")
+                path.append("Scripts");
+            
+            auto file = std::ofstream(
+                path.append(filename.Data()),
+                std::ios::binary
+            );
+            file << text.Data();
+        }
+            
         return LoadFromPath(mainProjectFilePath.generic_u8string());
     }
 
@@ -211,5 +196,24 @@ namespace HeartEditor
             scriptComp.Instance.Instantiate({ &Editor::GetActiveScene(), (u32)entity });
             scriptComp.Instance.LoadFieldsFromJson(serializedObjects[entity]);
         }
+    }
+
+    void Project::BuildScripts()
+    {
+        auto timer = Heart::Timer("Client plugin build");
+        
+        Heart::HString8 command = "cd ";
+        command += Heart::AssetManager::GetAssetsDirectory();
+        #ifdef HE_PLATFORM_WINDOWS
+            command += ";BuildScripts.bat";
+        #else
+            command += ";sh BuildScripts.sh";
+        #endif
+        
+        int res = system(command.Data());
+        if (res == 0)
+            HE_ENGINE_LOG_INFO("Client plugin built successfully");
+        else
+            HE_ENGINE_LOG_ERROR("Client plugin failed to build with code {0}", res);
     }
 }

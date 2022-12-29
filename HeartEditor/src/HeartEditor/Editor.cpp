@@ -100,6 +100,17 @@ namespace HeartEditor
             ImGui::ShowDemoWindow(&s_ImGuiDemoOpen);
     }
 
+    void Editor::SaveScene()
+    {
+        if (!s_EditorSceneAsset) return;
+        
+        auto asset = Heart::AssetManager::RetrieveAsset<Heart::SceneAsset>(s_EditorSceneAsset, false);
+        if (asset)
+            asset->Save(s_EditorScene.get());
+        else
+            HE_ENGINE_LOG_ERROR("Failed to save scene");
+    }
+
     void Editor::OpenScene(const Heart::Ref<Heart::Scene>& scene)
     {
         if (s_SceneState != SceneState::Editing)
