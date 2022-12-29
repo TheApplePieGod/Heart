@@ -44,6 +44,7 @@ namespace HeartEditor
         inline static Heart::Scene& GetActiveScene() { return *s_ActiveScene; }
         inline static Heart::Scene& GetEditorScene() { return *s_EditorScene; }
         inline static Heart::UUID GetEditorSceneAsset() { return s_EditorSceneAsset; }
+        inline static void SetEditorSceneAsset(Heart::UUID asset) { s_EditorSceneAsset = asset; }
         inline static auto& GetWindows() { return s_Windows; }
         inline static Widget& GetWindow(const Heart::HStringView8& name) { return *s_Windows[name]; }
 
