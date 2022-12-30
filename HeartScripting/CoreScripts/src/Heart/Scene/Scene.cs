@@ -41,6 +41,13 @@ namespace Heart.Scene
             if (entityHandle == Entity.InvalidEntityHandle) return null;
             return new Entity(entityHandle, sceneHandle);
         }
+
+        public Entity GetEntityFromName(string name)
+        {
+            Native_Scene_GetEntityFromName(_internalValue, name, out var entityHandle);
+            if (entityHandle == Entity.InvalidEntityHandle) return null;
+            return new Entity(entityHandle, _internalValue);
+        }
         
         public bool RaycastSingle(RaycastInfo castInfo, out RaycastResult outResult)
         {
@@ -54,6 +61,9 @@ namespace Heart.Scene
 
         [DllImport("__Internal")]
         internal static extern void Native_Scene_GetEntityFromUUID(IntPtr sceneHandle, UUID uuid, out uint entityHandle);
+
+        [DllImport("__Internal")]
+        internal static extern void Native_Scene_GetEntityFromName(IntPtr sceneHandle, [MarshalAs(UnmanagedType.LPStr)] string name, out uint entityHandle);
 
         [DllImport("__Internal")]
         internal static extern InteropBool Native_Scene_RaycastSingle(IntPtr sceneHandle, in RaycastInfoInternal info, out RaycastResultInternal outResult);

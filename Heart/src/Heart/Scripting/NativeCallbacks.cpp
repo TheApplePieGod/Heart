@@ -124,6 +124,11 @@ HE_INTEROP_EXPORT void Native_Scene_GetEntityFromUUID(Heart::Scene* sceneHandle,
     *entityHandle = (u32)sceneHandle->GetEntityFromUUID(uuid).GetHandle();
 }
 
+HE_INTEROP_EXPORT void Native_Scene_GetEntityFromName(Heart::Scene* sceneHandle, const char* name, u32* entityHandle)
+{
+    *entityHandle = (u32)sceneHandle->GetEntityFromName(name).GetHandle();
+}
+
 HE_INTEROP_EXPORT bool Native_Scene_RaycastSingle(Heart::Scene* sceneHandle, const Heart::RaycastInfo* info, Heart::RaycastResult* result)
 {
     return sceneHandle->GetPhysicsWorld().RaycastSingle(*info, *result);

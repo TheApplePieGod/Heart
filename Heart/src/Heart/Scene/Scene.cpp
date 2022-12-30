@@ -377,6 +377,14 @@ namespace Heart
         if (m_UUIDMap.find(uuid) == m_UUIDMap.end()) return Entity();
         return GetEntityFromUUIDUnchecked(uuid);
     }
+    Entity Scene::GetEntityFromName(const HStringView8& name)
+    {
+        auto view = m_Registry.view<NameComponent>();
+        for (auto entity : view)
+            if (view.get<NameComponent>(entity).Name == name)
+                return { this, entity };
+        return Entity();
+    }
 
     Entity Scene::GetPrimaryCameraEntity()
     {

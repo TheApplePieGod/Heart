@@ -27,6 +27,7 @@ namespace Heart
         void AssignRelationship(Entity parent, Entity child);
         void UnparentEntity(Entity child, bool recache = true);
         Entity GetEntityFromUUID(UUID uuid);
+        Entity GetEntityFromName(const HStringView8& name);
         Entity GetPrimaryCameraEntity();
 
         glm::mat4 CalculateEntityTransform(Entity target, glm::mat4* outParentTransform = nullptr);
