@@ -15,6 +15,7 @@ namespace Heart.Scene
         protected internal virtual void OnPlayStart() {}
         protected internal virtual void OnPlayEnd() {}
         protected internal virtual void OnUpdate(Timestep timestep) {}
+        protected internal virtual void OnScriptFieldChanged(string field, Variant value) {}
 
         // Generated methods
         public virtual bool GENERATED_SetField(string fieldName, Variant value) { return false; }

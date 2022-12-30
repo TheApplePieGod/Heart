@@ -34,6 +34,13 @@ namespace Heart
         m_ScriptClass.Clear();
     }
 
+    void ScriptInstance::OnConstruct()
+    {
+        if (!IsAlive()) return;
+        HArray args;
+        ScriptingEngine::InvokeFunction(m_ObjectHandle, "OnConstruct", args);
+    }
+
     void ScriptInstance::OnPlayStart()
     {
         if (!IsAlive()) return;
@@ -91,7 +98,7 @@ namespace Heart
         for (auto it = j.begin(); it != j.end(); it++)
         {
             Variant d = it.value();
-            SetFieldValueUnchecked(it.key(), it.value());
+            SetFieldValueUnchecked(it.key(), it.value(), false);
         }
     }
 
@@ -113,10 +120,10 @@ namespace Heart
         return GetFieldValueUnchecked(fieldName);
     }
 
-    bool ScriptInstance::SetFieldValue(const HStringView& fieldName, const Variant& value)
+    bool ScriptInstance::SetFieldValue(const HStringView& fieldName, const Variant& value, bool invokeCallback)
     {
         if (!IsAlive()) return false;
-        return SetFieldValueUnchecked(fieldName, value);
+        return SetFieldValueUnchecked(fieldName, value, invokeCallback);
     }
     
     Variant ScriptInstance::GetFieldValueUnchecked(const HStringView& fieldName) const
@@ -124,8 +131,8 @@ namespace Heart
         return ScriptingEngine::GetFieldValue(m_ObjectHandle, fieldName);
     }
 
-    bool ScriptInstance::SetFieldValueUnchecked(const HStringView& fieldName, const Variant& value)
+    bool ScriptInstance::SetFieldValueUnchecked(const HStringView& fieldName, const Variant& value, bool invokeCallback)
     {
-        return ScriptingEngine::SetFieldValue(m_ObjectHandle, fieldName, value);
+        return ScriptingEngine::SetFieldValue(m_ObjectHandle, fieldName, value, invokeCallback);
     }
 }

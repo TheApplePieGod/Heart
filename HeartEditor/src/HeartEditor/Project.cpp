@@ -195,6 +195,7 @@ namespace HeartEditor
             // Reinstantiate
             scriptComp.Instance.Instantiate({ &Editor::GetActiveScene(), (u32)entity });
             scriptComp.Instance.LoadFieldsFromJson(serializedObjects[entity]);
+            scriptComp.Instance.OnConstruct();
         }
     }
 

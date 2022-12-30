@@ -348,6 +348,7 @@ HE_INTEROP_EXPORT void Native_ScriptComponent_InstantiateScript(u32 entityHandle
     if (instance.IsAlive())
         instance.OnPlayEnd();
     instance.Instantiate({ sceneHandle, entityHandle });
+    instance.OnConstruct();
     instance.OnPlayStart();
 }
 

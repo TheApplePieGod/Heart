@@ -24,6 +24,7 @@ namespace Heart
             newComp.Instance.ClearObjectHandle();
             newComp.Instance.Instantiate(dst);
             newComp.Instance.LoadFieldsFromJson(oldComp.Instance.SerializeFieldsToJson());
+            newComp.Instance.OnConstruct();
             if (m_IsRuntime)
                 newComp.Instance.OnPlayStart();
 

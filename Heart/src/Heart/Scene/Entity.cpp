@@ -135,7 +135,7 @@ namespace Heart
     void Entity::SetScriptProperty(const HStringView8& name, const Variant& value)
     {
         auto& comp = GetComponent<ScriptComponent>();
-        comp.Instance.SetFieldValue(name, value);
+        comp.Instance.SetFieldValue(name, value, true);
     }
 
     void Entity::SetIsPrimaryCameraEntity(bool primary)

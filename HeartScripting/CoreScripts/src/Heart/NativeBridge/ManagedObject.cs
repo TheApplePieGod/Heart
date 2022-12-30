@@ -39,9 +39,6 @@ namespace Heart.NativeBridge
             // Set associated entity fields
             ((ScriptEntity)instance)._entityHandle = entityHandle;
             ((ScriptEntity)instance)._sceneHandle = sceneHandle;
-            
-            // Call custom constructor
-            ((ScriptEntity)instance).OnConstruct();
 
             var handle = ManagedGCHandle.AllocStrong(instance);
             return handle.ToIntPtr();
@@ -108,15 +105,17 @@ namespace Heart.NativeBridge
         }
 
         [UnmanagedCallersOnly]
-        internal static unsafe InteropBool SetFieldValue(IntPtr objectHandle, HStringInternal* fieldNameStr, Variant value)
+        internal static unsafe InteropBool SetFieldValue(IntPtr objectHandle, HStringInternal* fieldNameStr, Variant value, InteropBool invokeCallback)
         {
             var gcHandle = ManagedGCHandle.FromIntPtr(objectHandle);
             if (gcHandle != null && !gcHandle.IsAlive) return InteropBool.False;
 
             string fieldName = NativeMarshal.HStringInternalToString(*fieldNameStr);
-            return NativeMarshal.BoolToInteropBool(
-                ((ScriptEntity)gcHandle.Target).GENERATED_SetField(fieldName, value)
-            );
+            bool result = ((ScriptEntity)gcHandle.Target).GENERATED_SetField(fieldName, value);
+            if (invokeCallback == InteropBool.True && result)
+                ((ScriptEntity)gcHandle.Target).OnScriptFieldChanged(fieldName, value);
+        
+            return NativeMarshal.BoolToInteropBool(result);
         }
     }
 }

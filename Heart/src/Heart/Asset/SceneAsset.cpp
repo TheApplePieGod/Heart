@@ -205,6 +205,7 @@ namespace Heart
                         {
                             comp.Instance.Instantiate(entity);
                             comp.Instance.LoadFieldsFromJson(loaded["scriptComponent"]["fields"]);
+                            comp.Instance.OnConstruct();
                         }
                     }
                     entity.AddComponent<ScriptComponent>(comp);

@@ -321,6 +321,7 @@ namespace Widgets
                         scriptComp.Instance.Destroy();
                         scriptComp.Instance = Heart::ScriptInstance(classes[index].ToHString());
                         scriptComp.Instance.Instantiate(selectedEntity);
+                        scriptComp.Instance.OnConstruct();
                     }
                 );
 
@@ -538,7 +539,7 @@ namespace Widgets
             {
                 bool intermediate = value.Bool();
                 if (ImGui::Checkbox(widgetId.DataUTF8(), &intermediate))
-                    scriptComp.Instance.SetFieldValue(fieldName, intermediate);
+                    scriptComp.Instance.SetFieldValue(fieldName, intermediate, true);
             } break;
             case Heart::Variant::Type::Int:
             {
@@ -551,7 +552,7 @@ namespace Widgets
                     &intermediate,
                     1.f, &min, &max
                 ))
-                    scriptComp.Instance.SetFieldValue(fieldName, intermediate);
+                    scriptComp.Instance.SetFieldValue(fieldName, intermediate, true);
             } break;
             case Heart::Variant::Type::UInt:
             {
@@ -564,7 +565,7 @@ namespace Widgets
                     &intermediate,
                     1.f, &min, &max
                 ))
-                    scriptComp.Instance.SetFieldValue(fieldName, intermediate);
+                    scriptComp.Instance.SetFieldValue(fieldName, intermediate, true);
             } break;
             case Heart::Variant::Type::Float:
             {
@@ -577,13 +578,13 @@ namespace Widgets
                     0.1f, min, max,
                     "%.2f"
                 ))
-                    scriptComp.Instance.SetFieldValue(fieldName, intermediate);
+                    scriptComp.Instance.SetFieldValue(fieldName, intermediate, true);
             } break;
             case Heart::Variant::Type::String:
             {
                 Heart::HString intermediate = value.String().Convert(Heart::HString::Encoding::UTF8);
                 if (Heart::ImGuiUtils::InputText(widgetId.DataUTF8(), intermediate))
-                    scriptComp.Instance.SetFieldValue(fieldName, intermediate.Convert(Heart::HString::Encoding::UTF16));
+                    scriptComp.Instance.SetFieldValue(fieldName, intermediate.Convert(Heart::HString::Encoding::UTF16), true);
             } break;
         }
     }

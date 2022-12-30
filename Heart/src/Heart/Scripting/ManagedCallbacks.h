@@ -15,7 +15,7 @@ namespace Heart
         using ManagedObject_DestroyObjectFn = void (*)(uptr);
         using ManagedObject_InvokeFunctionFn = bool (*)(uptr, const HString*, const HArray*);
         using ManagedObject_GetFieldValueFn = void (*)(uptr, const HString*, Variant*);
-        using ManagedObject_SetFieldValueFn = bool (*)(uptr, const HString*, Variant);
+        using ManagedObject_SetFieldValueFn = bool (*)(uptr, const HString*, Variant, bool);
         using ScriptEntity_CallOnUpdateFn = void (*)(uptr, double);
 
         EntryPoint_LoadClientPluginFn EntryPoint_LoadClientPlugin;

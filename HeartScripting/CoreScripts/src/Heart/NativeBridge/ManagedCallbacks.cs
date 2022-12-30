@@ -15,7 +15,7 @@ namespace Heart.NativeBridge
         public delegate* unmanaged<IntPtr, void> ManagedObject_DestroyObject;
         public delegate* unmanaged<IntPtr, HStringInternal*, HArrayInternal*, InteropBool> ManagedObject_InvokeFunction;
         public delegate* unmanaged<IntPtr, HStringInternal*, Variant*, void> ManagedObject_GetFieldValue;
-        public delegate* unmanaged<IntPtr, HStringInternal*, Variant, InteropBool> ManagedObject_SetFieldValue;
+        public delegate* unmanaged<IntPtr, HStringInternal*, Variant, InteropBool, InteropBool> ManagedObject_SetFieldValue;
         public delegate* unmanaged<IntPtr, double, void> ScriptEntity_CallOnUpdate;
 
         public static ManagedCallbacks Get()

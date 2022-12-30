@@ -24,7 +24,7 @@ namespace Heart
         static bool InvokeFunction(uptr object, const HString& funcName, const HArray& args);
         static void InvokeEntityOnUpdate(uptr entity, Timestep timestep);
         static Variant GetFieldValue(uptr entity, const HString& fieldName);
-        static bool SetFieldValue(uptr entity, const HString& fieldName, const Variant& value);
+        static bool SetFieldValue(uptr entity, const HString& fieldName, const Variant& value, bool invokeCallback);
 
         inline static bool IsClassInstantiable(const HStringView& name) { return s_InstantiableClasses.find(name) != s_InstantiableClasses.end(); }
         inline static ScriptClass& GetInstantiableClass(const HStringView& name) { return s_InstantiableClasses[name]; }

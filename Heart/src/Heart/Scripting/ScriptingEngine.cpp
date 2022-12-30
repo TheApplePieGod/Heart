@@ -246,10 +246,10 @@ namespace Heart
         return variant;
     }
 
-    bool ScriptingEngine::SetFieldValue(uptr entity, const HString& fieldName, const Variant& value)
+    bool ScriptingEngine::SetFieldValue(uptr entity, const HString& fieldName, const Variant& value, bool invokeCallback)
     {
         HE_PROFILE_FUNCTION();
 
-        return s_CoreCallbacks.ManagedObject_SetFieldValue(entity, &fieldName, value);
+        return s_CoreCallbacks.ManagedObject_SetFieldValue(entity, &fieldName, value, invokeCallback);
     }
 }
