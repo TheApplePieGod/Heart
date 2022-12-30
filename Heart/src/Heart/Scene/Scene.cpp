@@ -245,6 +245,44 @@ namespace Heart
         }
     }
 
+    void Scene::CacheEntityTransform(Entity entity, bool propagateToChildren, bool updatePhysics)
+    {
+        glm::mat4 transform = CalculateEntityTransform(entity);
+
+        glm::vec3 skew, translation, scale;
+        glm::vec4 perspective;
+        glm::quat rotation;
+    
+        // Decompose the transform so we can cache the world space values of each component
+        glm::decompose(transform, scale, rotation, translation, skew, perspective);
+
+        glm::vec3 eulerRot = glm::eulerAngles(rotation);
+        m_CachedTransforms[entity.GetHandle()] = {
+            transform,
+            translation,
+            glm::degrees(eulerRot),
+            scale
+        };
+        
+        if (updatePhysics && entity.HasComponent<RigidBodyComponent>())
+            entity.GetPhysicsBody()->SetTransform(translation, eulerRot);
+            
+        if (propagateToChildren && entity.HasComponent<ChildrenComponent>())
+        {
+            auto& childComp = entity.GetComponent<ChildrenComponent>();
+
+            for (auto& child : childComp.Children)
+            {
+                // Don't propagate parent position to children with rigid bodies during runtime
+                // because they are meant to become disconnected
+                auto childEntity = GetEntityFromUUIDUnchecked(child);
+                if (m_IsRuntime && childEntity.HasComponent<RigidBodyComponent>()) continue;
+                
+                CacheEntityTransform(childEntity);
+            }
+        }
+    }
+
     glm::mat4 Scene::CalculateEntityTransform(Entity target, glm::mat4* outParentTransform)
     {
         glm::mat4 parentTransform = GetEntityParentTransform(target);
@@ -255,9 +293,8 @@ namespace Heart
 
     glm::mat4 Scene::GetEntityParentTransform(Entity target)
     {
-        if (target.HasComponent<ParentComponent>())
+        if (target.HasComponent<ParentComponent>() && (!m_IsRuntime || !target.HasComponent<RigidBodyComponent>()))
             return CalculateEntityTransform(GetEntityFromUUIDUnchecked(target.GetComponent<ParentComponent>().ParentUUID));
-
         return glm::mat4(1.f);
     }
 
@@ -361,7 +398,7 @@ namespace Heart
             PhysicsBody* body = m_PhysicsWorld.GetBody(bodyComp.BodyId);
             transformComp.Translation = body->GetPosition();
             transformComp.Rotation = body->GetRotation();
-            CacheEntityTransform({ this, entity });
+            CacheEntityTransform({ this, entity }, true, false);
         }
 
         // Call OnUpdate lifecycle method
@@ -419,32 +456,5 @@ namespace Heart
     glm::vec3 Scene::GetEntityCachedScale(Entity entity)
     {
         return m_CachedTransforms[entity.GetHandle()].Scale;
-    }
-
-    void Scene::CacheEntityTransform(Entity entity, bool propagateToChildren)
-    {
-        glm::mat4 transform = CalculateEntityTransform(entity);
-
-        glm::vec3 skew, translation, scale;
-        glm::vec4 perspective;
-        glm::quat rotation;
-    
-        // Decompose the transform so we can cache the world space values of each component
-        glm::decompose(transform, scale, rotation, translation, skew, perspective);
-
-        m_CachedTransforms[entity.GetHandle()] = {
-            transform,
-            translation,
-            glm::degrees(glm::eulerAngles(rotation)),
-            scale
-        };
-
-        if (propagateToChildren && entity.HasComponent<ChildrenComponent>())
-        {
-            auto& childComp = entity.GetComponent<ChildrenComponent>();
-
-            for (auto& child : childComp.Children)
-                CacheEntityTransform(GetEntityFromUUIDUnchecked(child));
-        }
     }
 }

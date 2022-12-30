@@ -62,16 +62,12 @@ namespace Heart
     {
         GetComponent<TransformComponent>().Translation = pos;
         m_Scene->CacheEntityTransform(*this);
-        if (HasComponent<RigidBodyComponent>())
-            GetPhysicsBody()->SetPosition(pos);
     }
 
     void Entity::SetRotation(glm::vec3 rot)
     {
         GetComponent<TransformComponent>().Rotation = rot;
         m_Scene->CacheEntityTransform(*this);
-        if (HasComponent<RigidBodyComponent>())
-            GetPhysicsBody()->SetRotation(rot);
     }
 
     void Entity::SetScale(glm::vec3 scale)
@@ -87,8 +83,6 @@ namespace Heart
         comp.Rotation = rot;
         comp.Scale = scale;
         m_Scene->CacheEntityTransform(*this);
-        if (HasComponent<RigidBodyComponent>())
-            GetPhysicsBody()->SetTransform(pos, rot);
     }
 
     const HVector<UUID>& Entity::GetChildren()

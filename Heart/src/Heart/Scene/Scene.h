@@ -30,13 +30,13 @@ namespace Heart
         Entity GetEntityFromName(const HStringView8& name);
         Entity GetPrimaryCameraEntity();
 
+        void CacheEntityTransform(Entity entity, bool propagateToChildren = true, bool updatePhysics = true);
         glm::mat4 CalculateEntityTransform(Entity target, glm::mat4* outParentTransform = nullptr);
         glm::mat4 GetEntityParentTransform(Entity target);
         const glm::mat4& GetEntityCachedTransform(Entity entity);
         glm::vec3 GetEntityCachedPosition(Entity entity);
         glm::vec3 GetEntityCachedRotation(Entity entity);
         glm::vec3 GetEntityCachedScale(Entity entity);
-        void CacheEntityTransform(Entity entity, bool propagateToChildren = true);
 
         Ref<Scene> Clone();
         void ClearScene();
