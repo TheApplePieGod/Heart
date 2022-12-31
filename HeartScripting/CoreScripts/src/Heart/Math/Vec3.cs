@@ -57,6 +57,18 @@ namespace Heart.Math
                 W = w
             };
         }
+        
+        public float Dot(Vec3 other)
+            => _internal.X * other.X + _internal.Y * other.Y + _internal.Z * other.Z;
+        
+        public float GetMagnitude()
+            => System.MathF.Sqrt(_internal.X * _internal.X + _internal.Y * _internal.Y + _internal.Z * _internal.Z);
+        
+        public Vec3 Normalize()
+        {
+            float mag = GetMagnitude();
+            return new Vec3(_internal.X / mag, _internal.Y / mag, _internal.Z / mag);
+        }
 
         public float X
         {
@@ -81,7 +93,7 @@ namespace Heart.Math
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set => _internal.Z = value;
         }
-
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vec3 operator -(Vec3 a)
             => new Vec3(-a.X, -a.Y, -a.Z);

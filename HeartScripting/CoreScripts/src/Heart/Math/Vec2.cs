@@ -36,6 +36,18 @@ namespace Heart.Math
             _internal = other;
         }
 
+        public float Dot(Vec2 other)
+            => _internal.X * other.X + _internal.Y * other.Y;
+
+        public float GetMagnitude()
+            => System.MathF.Sqrt(_internal.X * _internal.X + _internal.Y * _internal.Y);
+        
+        public Vec2 Normalize()
+        {
+            float mag = GetMagnitude();
+            return new Vec2(_internal.X / mag, _internal.Y / mag);
+        }
+
         public float X
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
