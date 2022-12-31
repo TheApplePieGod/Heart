@@ -247,25 +247,26 @@ namespace Heart
 
     void Scene::CacheEntityTransform(Entity entity, bool propagateToChildren, bool updatePhysics)
     {
-        glm::mat4 transform = CalculateEntityTransform(entity);
+        glm::mat4 transform;
+        glm::vec3 rot;
+        CalculateEntityTransform(entity, transform, rot);
 
         glm::vec3 skew, translation, scale;
         glm::vec4 perspective;
-        glm::quat rotation;
+        glm::quat quat;
     
         // Decompose the transform so we can cache the world space values of each component
-        glm::decompose(transform, scale, rotation, translation, skew, perspective);
+        glm::decompose(transform, scale, quat, translation, skew, perspective);
 
-        glm::vec3 eulerRot = glm::degrees(glm::eulerAngles(rotation));
         m_CachedTransforms[entity.GetHandle()] = {
             transform,
             translation,
-            eulerRot,
+            rot,
             scale
         };
         
         if (updatePhysics && entity.HasComponent<RigidBodyComponent>())
-            entity.GetPhysicsBody()->SetTransform(translation, eulerRot);
+            entity.GetPhysicsBody()->SetTransform(translation, rot);
             
         if (propagateToChildren && entity.HasComponent<ChildrenComponent>())
         {
@@ -283,24 +284,30 @@ namespace Heart
         }
     }
 
-    glm::mat4 Scene::CalculateEntityTransform(Entity target)
+    void Scene::CalculateEntityTransform(Entity target, glm::mat4& outTransform, glm::vec3& outRotation)
+    {
+        auto& transformComp = target.GetComponent<TransformComponent>();
+        if (target.HasComponent<ParentComponent>() && (!m_IsRuntime || !target.HasComponent<RigidBodyComponent>()))
+        {
+            auto parent = GetEntityFromUUIDUnchecked(target.GetComponent<ParentComponent>().ParentUUID);
+            outTransform = GetEntityCachedTransform(parent) * transformComp.GetTransformMatrix();
+            outRotation = GetEntityCachedRotation(parent) + transformComp.Rotation;
+            return;
+        }
+            
+        outTransform = transformComp.GetTransformMatrix();
+        outRotation = transformComp.Rotation;
+    }
+
+    void Scene::GetEntityParentTransform(Entity target, glm::mat4& outTransform)
     {
         if (target.HasComponent<ParentComponent>() && (!m_IsRuntime || !target.HasComponent<RigidBodyComponent>()))
         {
-            return (
-                GetEntityCachedTransform(GetEntityFromUUIDUnchecked(target.GetComponent<ParentComponent>().ParentUUID)) *
-                target.GetComponent<TransformComponent>().GetTransformMatrix()
-            );
+            glm::vec3 rot;
+            CalculateEntityTransform(GetEntityFromUUIDUnchecked(target.GetComponent<ParentComponent>().ParentUUID), outTransform, rot);
+            return;
         }
-            
-        return target.GetComponent<TransformComponent>().GetTransformMatrix();
-    }
-
-    glm::mat4 Scene::GetEntityParentTransform(Entity target)
-    {
-        if (target.HasComponent<ParentComponent>() && (!m_IsRuntime || !target.HasComponent<RigidBodyComponent>()))
-            return CalculateEntityTransform(GetEntityFromUUIDUnchecked(target.GetComponent<ParentComponent>().ParentUUID));
-        return glm::mat4(1.f);
+        outTransform = glm::mat4(1.f);
     }
 
     Ref<Scene> Scene::Clone()
