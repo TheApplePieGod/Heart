@@ -256,11 +256,11 @@ namespace Heart
         // Decompose the transform so we can cache the world space values of each component
         glm::decompose(transform, scale, rotation, translation, skew, perspective);
 
-        glm::vec3 eulerRot = glm::eulerAngles(rotation);
+        glm::vec3 eulerRot = glm::degrees(glm::eulerAngles(rotation));
         m_CachedTransforms[entity.GetHandle()] = {
             transform,
             translation,
-            glm::degrees(eulerRot),
+            eulerRot,
             scale
         };
         
@@ -283,12 +283,17 @@ namespace Heart
         }
     }
 
-    glm::mat4 Scene::CalculateEntityTransform(Entity target, glm::mat4* outParentTransform)
+    glm::mat4 Scene::CalculateEntityTransform(Entity target)
     {
-        glm::mat4 parentTransform = GetEntityParentTransform(target);
-        if (outParentTransform)
-            *outParentTransform = parentTransform;
-        return parentTransform * target.GetComponent<TransformComponent>().GetTransformMatrix();
+        if (target.HasComponent<ParentComponent>() && (!m_IsRuntime || !target.HasComponent<RigidBodyComponent>()))
+        {
+            return (
+                GetEntityCachedTransform(GetEntityFromUUIDUnchecked(target.GetComponent<ParentComponent>().ParentUUID)) *
+                target.GetComponent<TransformComponent>().GetTransformMatrix()
+            );
+        }
+            
+        return target.GetComponent<TransformComponent>().GetTransformMatrix();
     }
 
     glm::mat4 Scene::GetEntityParentTransform(Entity target)

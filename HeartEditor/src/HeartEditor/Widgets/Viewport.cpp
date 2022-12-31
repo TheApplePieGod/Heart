@@ -235,8 +235,11 @@ namespace Widgets
             auto selectedEntity = Editor::GetState().SelectedEntity;
             if (selectedEntity.IsValid())
             {
-                glm::mat4 parentTransform;
-                glm::mat4 transform = Editor::GetActiveScene().CalculateEntityTransform(selectedEntity, &parentTransform);
+                glm::mat4 parentTransform = glm::mat4(1.0f);
+                Heart::UUID parentId = selectedEntity.GetParent();
+                if (parentId)
+                    parentTransform = Editor::GetActiveScene().GetEntityCachedTransform(Editor::GetActiveScene().GetEntityFromUUID(parentId));
+                glm::mat4 transform = Editor::GetActiveScene().CalculateEntityTransform(selectedEntity);
 
                 ImGuizmo::Manipulate(
                     glm::value_ptr(view),
