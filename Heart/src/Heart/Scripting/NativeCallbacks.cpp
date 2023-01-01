@@ -261,6 +261,13 @@ HE_INTEROP_EXPORT void Native_TransformComponent_SetTransform(u32 entityHandle, 
     entity.SetTransform(pos, rot, scale);
 }
 
+HE_INTEROP_EXPORT void Native_TransformComponent_ApplyRotation(u32 entityHandle, Heart::Scene* sceneHandle, glm::vec3 rot)
+{
+    ASSERT_ENTITY_IS_VALID();
+    Heart::Entity entity(sceneHandle, entityHandle);
+    entity.ApplyRotation(rot);
+}
+
 // TODO: we eventually want to move this logic to c# (probably) (or something)
 HE_INTEROP_EXPORT void Native_TransformComponent_GetForwardVector(u32 entityHandle, Heart::Scene* sceneHandle, glm::vec3* outValue)
 {

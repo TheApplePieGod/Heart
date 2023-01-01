@@ -2,6 +2,7 @@
 
 #include "Heart/Container/HString8.h"
 #include "glm/vec3.hpp"
+#include "glm/gtx/quaternion.hpp"
 
 class btCollisionShape;
 class btDefaultMotionState;
@@ -42,10 +43,10 @@ namespace Heart
         
         PhysicsBody Clone(const PhysicsBodyCreateInfo* updatedInfo = nullptr);
         glm::vec3 GetPosition();
-        glm::vec3 GetRotation();
+        glm::quat GetRotation();
         void SetPosition(glm::vec3 pos, bool resetVel = true);
-        void SetRotation(glm::vec3 rot, bool resetVel = true);
-        void SetTransform(glm::vec3 pos, glm::vec3 rot, bool resetVel = true);
+        void SetRotation(glm::quat rot, bool resetVel = true);
+        void SetTransform(glm::vec3 pos, glm::quat rot, bool resetVel = true);
         glm::vec3 GetLinearVelocity();
         glm::vec3 GetAngularVelocity();
         void SetLinearVelocity(glm::vec3 vel);

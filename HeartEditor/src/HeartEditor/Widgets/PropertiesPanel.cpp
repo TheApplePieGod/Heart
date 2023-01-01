@@ -89,12 +89,17 @@ namespace Widgets
                 glm::vec3 scale = selectedEntity.GetScale();
                 ImGui::Indent();
                 modified |= RenderXYZSlider("Translation  ", &translation.x, &translation.y, &translation.z, -999999.f, 999999.f, 0.1f);
-                modified |= RenderXYZSlider("Rotation     ", &rotation.x, &rotation.y, &rotation.z, 0.f, 360.f, 1.f);
+                modified |= RenderXYZSlider("Rotation     ", &rotation.x, &rotation.y, &rotation.z, -360.f, 360.f, 1.f);
                 modified |= RenderXYZSlider("Scale        ", &scale.x, &scale.y, &scale.z, 0.f, 999999.f, 0.1f);
                 ImGui::Unindent();
-
+                
+                // Treat rot as a delta so we can apply it rather than set it
+                glm::vec3 oldRot = selectedEntity.GetRotation();
+                if (rotation != oldRot)
+                    selectedEntity.ApplyRotation(rotation - oldRot);
+                    
                 if (modified)
-                    selectedEntity.SetTransform(translation, rotation, scale);
+                    selectedEntity.SetTransform(translation, selectedEntity.GetRotation(), scale);
             }
         }
     }

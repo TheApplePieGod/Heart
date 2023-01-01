@@ -36,6 +36,7 @@ namespace Heart
         const glm::mat4& GetEntityCachedTransform(Entity entity);
         glm::vec3 GetEntityCachedPosition(Entity entity);
         glm::vec3 GetEntityCachedRotation(Entity entity);
+        glm::quat GetEntityCachedQuat(Entity entity);
         glm::vec3 GetEntityCachedScale(Entity entity);
 
         Ref<Scene> Clone();
@@ -59,6 +60,7 @@ namespace Heart
         struct CachedTransform
         {
             glm::mat4 Transform;
+            glm::quat Quat;
             glm::vec3 Position;
             glm::vec3 Rotation;
             glm::vec3 Scale;

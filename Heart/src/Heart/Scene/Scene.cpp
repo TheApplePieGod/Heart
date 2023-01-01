@@ -260,13 +260,14 @@ namespace Heart
 
         m_CachedTransforms[entity.GetHandle()] = {
             transform,
+            quat,
             translation,
             rot,
             scale
         };
         
         if (updatePhysics && entity.HasComponent<RigidBodyComponent>())
-            entity.GetPhysicsBody()->SetTransform(translation, rot);
+            entity.GetPhysicsBody()->SetTransform(translation, quat);
             
         if (propagateToChildren && entity.HasComponent<ChildrenComponent>())
         {
@@ -408,9 +409,25 @@ namespace Heart
             auto& bodyComp = physView.get<RigidBodyComponent>(entity);
             auto& transformComp = physView.get<TransformComponent>(entity);
             PhysicsBody* body = m_PhysicsWorld.GetBody(bodyComp.BodyId);
-            transformComp.Translation = body->GetPosition();
-            transformComp.Rotation = body->GetRotation();
-            CacheEntityTransform({ this, entity }, true, false);
+            bool dirty = false;
+            
+            auto newPos = body->GetPosition();
+            if (transformComp.Translation != newPos)
+            {
+                transformComp.Translation = newPos;
+                dirty = true;
+            }
+            
+            auto bodyRot = body->GetRotation();
+            auto eq = glm::equal(m_CachedTransforms[entity].Quat, bodyRot, 0.0001f);
+            if (!eq.x || !eq.y || !eq.z || !eq.w)
+            {
+                transformComp.Rotation = glm::degrees(glm::eulerAngles(bodyRot));
+                dirty = true;
+            }
+                
+            if (dirty)
+                CacheEntityTransform({ this, entity }, true, false);
         }
 
         // Call OnUpdate lifecycle method
@@ -463,6 +480,11 @@ namespace Heart
     glm::vec3 Scene::GetEntityCachedRotation(Entity entity)
     {
         return m_CachedTransforms[entity.GetHandle()].Rotation;
+    }
+
+    glm::quat Scene::GetEntityCachedQuat(Entity entity)
+    {
+        return m_CachedTransforms[entity.GetHandle()].Quat;
     }
 
     glm::vec3 Scene::GetEntityCachedScale(Entity entity)

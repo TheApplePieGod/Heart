@@ -37,16 +37,14 @@ namespace Heart
         };
     }
 
-    glm::vec3 PhysicsBody::GetRotation()
+    glm::quat PhysicsBody::GetRotation()
     {
         HE_ENGINE_ASSERT(m_Initialized);
 
         btTransform transform;
         m_MotionState->getWorldTransform(transform);
-        glm::vec3 rot;
-        transform.getRotation().getEulerZYX(rot.z, rot.y, rot.x);
-        rot = glm::degrees(rot);
-        return rot;
+        auto rot = transform.getRotation();
+        return { rot.w(), rot.x(), rot.y(), rot.z() };
     }
 
     void PhysicsBody::SetPosition(glm::vec3 pos, bool resetVel)
@@ -67,16 +65,17 @@ namespace Heart
         m_Body->activate(); // Will sleep if vel is zero for too long
     }
 
-    void PhysicsBody::SetRotation(glm::vec3 rot, bool resetVel)
+    void PhysicsBody::SetRotation(glm::quat rot, bool resetVel)
     {
         HE_ENGINE_ASSERT(m_Initialized);
         
         btTransform transform;
         m_MotionState->getWorldTransform(transform);
         transform.setRotation({
-            glm::radians(rot.z),
-            glm::radians(rot.y),
-            glm::radians(rot.x)
+            rot.x,
+            rot.y,
+            rot.z,
+            rot.w
         });
         m_MotionState->setWorldTransform(transform);
         m_Body->setWorldTransform(transform);
@@ -85,7 +84,7 @@ namespace Heart
         m_Body->activate();
     }
 
-    void PhysicsBody::SetTransform(glm::vec3 pos, glm::vec3 rot, bool resetVel)
+    void PhysicsBody::SetTransform(glm::vec3 pos, glm::quat rot, bool resetVel)
     {
         HE_ENGINE_ASSERT(m_Initialized);
         
@@ -97,9 +96,10 @@ namespace Heart
             pos.z
         });
         transform.setRotation({
-            glm::radians(rot.z),
-            glm::radians(rot.y),
-            glm::radians(rot.x)
+            rot.x,
+            rot.y,
+            rot.z,
+            rot.w
         });
         m_MotionState->setWorldTransform(transform);
         m_Body->setWorldTransform(transform);
