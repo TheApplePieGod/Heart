@@ -68,6 +68,33 @@ namespace Heart
         return nullptr;
     }
 
+    int PlatformUtils::ExecuteCommand(HStringView8 command)
+    {
+        return system(command.Data());
+    }
+
+    // https://stackoverflow.com/questions/478898/how-do-i-execute-a-command-and-get-the-output-of-the-command-within-c-using-po
+    // https://learn.microsoft.com/en-us/windows/win32/procthread/creating-a-child-process-with-redirected-input-and-output?redirectedfrom=MSDN
+    int PlatformUtils::ExecuteCommandWithOutput(HStringView8 command, HString8& output)
+    {
+        #ifdef HE_PLATFORM_WINDOWS
+            HE_ENGINE_ASSERT(false, "Not implemented");
+            return 1;
+        #else
+            std::array<char, 128> buffer;
+            std::string result;
+            FILE* pipe = popen(command.Data(), "r");
+            if (!pipe) {
+                throw std::runtime_error("popen() failed!");
+            }
+            while (fgets(buffer.data(), buffer.size(), pipe) != nullptr) {
+                result += buffer.data();
+            }
+            output = result;
+            return pclose(pipe);
+        #endif
+    }
+
     void PlatformUtils::InitializePlatform()
     {
         #ifdef HE_PLATFORM_WINDOWS

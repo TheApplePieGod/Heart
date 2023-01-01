@@ -12,6 +12,7 @@
 #include "Heart/Asset/SceneAsset.h"
 #include "Heart/Scripting/ScriptingEngine.h"
 #include "Heart/Util/FilesystemUtils.h"
+#include "Heart/Util/PlatformUtils.h"
 #include "nlohmann/json.hpp"
 
 namespace HeartEditor
@@ -211,10 +212,17 @@ namespace HeartEditor
             command += ";sh BuildScripts.sh";
         #endif
         
-        int res = system(command.Data());
+        Heart::HString8 output;
+        int res = Heart::PlatformUtils::ExecuteCommandWithOutput(command, output);
         if (res == 0)
+        {
             HE_ENGINE_LOG_INFO("Client plugin built successfully");
+            HE_ENGINE_LOG_INFO("Build output: {0}", output.Data());
+        }
         else
+        {
             HE_ENGINE_LOG_ERROR("Client plugin failed to build with code {0}", res);
+            HE_ENGINE_LOG_ERROR("Build output: {0}", output.Data());
+        }
     }
 }

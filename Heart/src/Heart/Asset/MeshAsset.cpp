@@ -65,7 +65,7 @@ namespace Heart
             HString8 uri = buffer["uri"];
             if (uri.Find("base64") != HString8::InvalidIndex)
             {
-                HString8 base64 = uri.Substr(uri.Find(',') + 1);
+                HStringView8 base64 = uri.Substr(uri.Find(',') + 1);
                 buffers.AddInPlace(Base64Decode(base64));
             }
             else if (uri.Find(".bin") != HString8::InvalidIndex)

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Heart/Container/HVector.hpp"
+
 namespace Heart
 {
     enum class StringComparison : byte
@@ -155,6 +157,40 @@ namespace Heart
         inline static constexpr bool IsAsciiUppercase(T value)
         {
             return value >= 65 && value <= 90;
+        }
+
+        template <typename T>
+        inline static HVector<u32> Split(const T* str, u32 len1, const T* delim, u32 len2)
+        {
+            HVector<u32> indices;
+            if (!str || len1 == 0) return indices;
+
+            u32 index = len2;
+            indices.Add(0);
+
+            bool skipEnd = false;
+            if (delim && len2 > 0)
+            {
+                while (index < len1)
+                {
+                    if (CompareEq(str + index - len2 + 1, len2, delim, len2))
+                    {
+                        indices.Add(index - len2 + 1 - indices.Back()); // Size
+                        if (index == len1 - 1)
+                            skipEnd = true;
+                        else
+                            indices.Add(index + 1); // Next start index
+                        index += len2 - 1;
+                    }
+                    
+                    index++;
+                }
+            }
+            
+            if (!skipEnd)
+                indices.Add(len1 - indices.Back());
+            
+            return indices;
         }
     };
 }

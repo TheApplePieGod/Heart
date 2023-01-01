@@ -15,7 +15,14 @@ namespace Widgets
         {}
 
         void OnImGuiRender() override;
-
+        
+    private:
+        struct ListEntry
+        {
+            Heart::LogListEntry Entry;
+            bool Partial;
+        };
+        
     private:
         bool PassLevelFilter(u32 level);
 
