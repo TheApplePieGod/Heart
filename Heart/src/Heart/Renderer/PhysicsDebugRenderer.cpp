@@ -42,6 +42,8 @@ namespace Heart
         pipelineCreateInfo.WindingOrder = Flourish::WindingOrder::Clockwise;
         m_MainRenderPass->CreatePipeline("main", pipelineCreateInfo);
         
+        // TODO: increase the size of this buffer but we need to look at flourish to make sure that it
+        // allocates a staging buffer (have a needs flush flag on the buffer?)
         Flourish::BufferCreateInfo bufCreateInfo;
         bufCreateInfo.Usage = Flourish::BufferUsageType::Dynamic;
         bufCreateInfo.Type = Flourish::BufferType::Vertex;

@@ -118,7 +118,8 @@ namespace Widgets
 
         if (justDestroyed)
         {
-            ImGui::TreePop();
+            if (open)
+                ImGui::TreePop();
             return true;
         }
 

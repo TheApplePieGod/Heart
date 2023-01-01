@@ -32,7 +32,7 @@ namespace Widgets
         ImGui::Unindent();
 
         auto& viewport = (Widgets::Viewport&)Editor::GetWindow("Viewport");
-        ImGui::Text("Viewport 1 Info:");
+        ImGui::Text("Viewport Info:");
         ImGui::Indent();
         glm::vec3 cameraPos =  viewport.GetActiveCameraPosition();
         glm::vec3 cameraFor = viewport.GetActiveCamera().GetForwardVector();
@@ -73,7 +73,15 @@ namespace Widgets
             ImGui::Text("%s: %lld", pair.first.Data(), pair.second);
         */
         ImGui::Unindent();
-
+        
+        auto& activeScene = Editor::GetActiveScene();
+        ImGui::Text("Scene info:");
+        ImGui::Indent();
+        ImGui::Text("Entity count: %d", (int)activeScene.GetRegistry().alive());
+        ImGui::Text("Rendered count: %d", viewport.GetSceneRenderer().GetRenderedInstanceCount());
+        ImGui::Text("Render batches: %d", viewport.GetSceneRenderer().GetBatchCount());
+        ImGui::Unindent();
+        
         ImGui::End();
         ImGui::PopStyleVar();
     }

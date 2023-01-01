@@ -66,7 +66,10 @@ namespace Heart
         inline Flourish::Texture* GetBloomDownsampleTexture() { return m_BloomDownsampleBufferTexture.get(); }
         inline Flourish::Buffer* GetEntityIdsPixelBuffer() { return m_EntityIdsPixelBuffer.get(); }
         inline u32 GetBloomMipCount() const { return m_BloomMipCount; }
-
+        
+        inline u32 GetRenderedInstanceCount() const { return m_RenderedInstanceCount; }
+        inline u32 GetBatchCount() const { return m_IndirectBatches.size(); }
+        
     private:
         struct IndirectBatch
         {
