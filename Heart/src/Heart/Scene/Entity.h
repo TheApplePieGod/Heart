@@ -69,6 +69,7 @@ namespace Heart
         void SetRotation(glm::vec3 rot);
         void SetScale(glm::vec3 scale);
         void SetTransform(glm::vec3 pos, glm::vec3 rot, glm::vec3 scale);
+        void ApplyRotation(glm::vec3 rot);
 
         const HVector<UUID>& GetChildren();
         void AddChild(UUID uuid);

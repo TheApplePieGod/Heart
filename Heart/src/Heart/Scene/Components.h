@@ -45,17 +45,22 @@ namespace Heart
         glm::vec3 Translation = { 0.f, 0.f, 0.f };
         glm::vec3 Rotation = { 0.f, 0.f, 0.f };
         glm::vec3 Scale = { 1.f, 1.f, 1.f };
-
+        
+        inline glm::quat GetRotationQuat() const
+        {
+            return glm::quat(glm::radians(Rotation));
+        }
+        
         inline glm::mat4 GetTransformMatrix() const
         {
 			return glm::translate(glm::mat4(1.0f), Translation)
-				* glm::toMat4(glm::quat(glm::radians(Rotation)))
+				* glm::toMat4(GetRotationQuat())
 				* glm::scale(glm::mat4(1.0f), Scale);
         }
 
         inline glm::vec3 GetForwardVector() const
         {
-            return glm::normalize(glm::vec3(glm::toMat4(glm::quat(glm::radians(Rotation))) * glm::vec4(0.f, 0.f, 1.f, 1.f)));
+            return glm::normalize(glm::vec3(glm::toMat4(GetRotationQuat()) * glm::vec4(0.f, 0.f, 1.f, 1.f)));
         }
     };
 

@@ -239,7 +239,9 @@ namespace Widgets
                 Heart::UUID parentId = selectedEntity.GetParent();
                 if (parentId)
                     parentTransform = Editor::GetActiveScene().GetEntityCachedTransform(Editor::GetActiveScene().GetEntityFromUUID(parentId));
-                glm::mat4 transform = Editor::GetActiveScene().CalculateEntityTransform(selectedEntity);
+                glm::mat4 transform;
+                glm::vec3 rot;
+                Editor::GetActiveScene().CalculateEntityTransform(selectedEntity, transform, rot);
 
                 ImGuizmo::Manipulate(
                     glm::value_ptr(view),

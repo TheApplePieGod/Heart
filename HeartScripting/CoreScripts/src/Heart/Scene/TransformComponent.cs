@@ -40,6 +40,10 @@ namespace Heart.Scene
             => ComponentUtils.SetRotation(_entityHandle, _sceneHandle, rotation);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void ApplyRotation(Vec3 rotation)
+            => ComponentUtils.ApplyRotation(_entityHandle, _sceneHandle, rotation);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vec3 GetScale()
             => ComponentUtils.GetScale(_entityHandle, _sceneHandle);
 
@@ -69,6 +73,9 @@ namespace Heart.Scene
 
         [DllImport("__Internal")]
         internal static extern void Native_TransformComponent_SetTransform(uint entityHandle, IntPtr sceneHandle, Vec3Internal pos, Vec3Internal rot, Vec3Internal scale);
+
+        [DllImport("__Internal")]
+        internal static extern void Native_TransformComponent_ApplyRotation(uint entityHandle, IntPtr sceneHandle, Vec3Internal value);
 
         [DllImport("__Internal")]
         internal static extern void Native_TransformComponent_GetForwardVector(uint entityHandle, IntPtr sceneHandle, out Vec3Internal value);

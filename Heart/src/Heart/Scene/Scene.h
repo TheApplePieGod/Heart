@@ -31,11 +31,12 @@ namespace Heart
         Entity GetPrimaryCameraEntity();
 
         void CacheEntityTransform(Entity entity, bool propagateToChildren = true, bool updatePhysics = true);
-        glm::mat4 CalculateEntityTransform(Entity target);
-        glm::mat4 GetEntityParentTransform(Entity target);
+        void CalculateEntityTransform(Entity target, glm::mat4& outTransform, glm::vec3& outRotation);
+        void GetEntityParentTransform(Entity target, glm::mat4& outTransform);
         const glm::mat4& GetEntityCachedTransform(Entity entity);
         glm::vec3 GetEntityCachedPosition(Entity entity);
         glm::vec3 GetEntityCachedRotation(Entity entity);
+        glm::quat GetEntityCachedQuat(Entity entity);
         glm::vec3 GetEntityCachedScale(Entity entity);
 
         Ref<Scene> Clone();
@@ -59,11 +60,12 @@ namespace Heart
         struct CachedTransform
         {
             glm::mat4 Transform;
+            glm::quat Quat;
             glm::vec3 Position;
             glm::vec3 Rotation;
             glm::vec3 Scale;
         };
-
+        
     private:
         template<typename Component>
         void CopyComponent(entt::entity src, Entity dst);

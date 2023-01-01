@@ -112,6 +112,14 @@ namespace Heart.Scene
             => ComponentUtils.SetScale(_entityHandle, _sceneHandle, scale);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void SetTransform(Vec3 position, Vec3 rotation, Vec3 scale)
+            => ComponentUtils.SetTransform(_entityHandle, _sceneHandle, position, rotation, scale);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void ApplyRotation(Vec3 rotation)
+            => ComponentUtils.ApplyRotation(_entityHandle, _sceneHandle, rotation);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vec3 GetForwardVector()
             => ComponentUtils.GetForwardVector(_entityHandle, _sceneHandle);
 

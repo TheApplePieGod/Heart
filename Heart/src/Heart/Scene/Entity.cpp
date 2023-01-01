@@ -85,6 +85,14 @@ namespace Heart
         m_Scene->CacheEntityTransform(*this);
     }
 
+    void Entity::ApplyRotation(glm::vec3 rot)
+    {
+        auto& comp = GetComponent<TransformComponent>();
+        auto newRot = glm::quat(glm::radians(rot)) * comp.GetRotationQuat();
+        comp.Rotation = glm::degrees(glm::eulerAngles(newRot));
+        m_Scene->CacheEntityTransform(*this);
+    }
+
     const HVector<UUID>& Entity::GetChildren()
     {
         if (!HasComponent<ChildrenComponent>())

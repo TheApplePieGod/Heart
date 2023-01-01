@@ -170,6 +170,16 @@ namespace Heart.Scene
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static unsafe void ApplyRotation(uint entityHandle, IntPtr sceneHandle, Vec3 rotation)
+        {
+            TransformComponent.Native_TransformComponent_ApplyRotation(
+                entityHandle,
+                sceneHandle,
+                rotation._internal
+            );
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static unsafe void SetScale(uint entityHandle, IntPtr sceneHandle, Vec3 scale)
         {
             TransformComponent.Native_TransformComponent_SetScale(
