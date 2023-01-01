@@ -17,6 +17,7 @@
 #include "HeartEditor/Widgets/DebugInfo.h"
 #include "HeartEditor/Widgets/ProjectSettings.h"
 #include "HeartEditor/Widgets/SceneSettings.h"
+#include "HeartEditor/Widgets/RenderSettings.h"
 #include "HeartEditor/Widgets/AssetRegistry.h"
 #include "HeartEditor/Widgets/LogList.h"
 
@@ -72,6 +73,10 @@ namespace HeartEditor
         PushWindow(
             "Scene Settings",
             Heart::CreateRef<Widgets::SceneSettings>("Scene Settings", true)
+        );
+        PushWindow(
+            "Render Settings",
+            Heart::CreateRef<Widgets::RenderSettings>("Render Settings", true)
         );
         PushWindow(
             "Asset Registry",

@@ -129,6 +129,57 @@ namespace Heart
         }
     }
 
+    bool ImGuiUtils::XYZSlider(HStringView8 name, f32* x, f32* y, f32* z, f32 min, f32 max, f32 step)
+    {
+        bool modified = false;
+        f32 width = ImGui::GetContentRegionAvail().x;
+        ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(0.f, 0.5f));
+        if (ImGui::BeginTable(name.Data(), 7, ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingFixedFit))
+        {
+            ImGui::TableNextRow();
+
+            ImU32 xColor = ImGui::GetColorU32(ImVec4(1.f, 0.0f, 0.0f, 1.f));
+            ImU32 yColor = ImGui::GetColorU32(ImVec4(0.f, 1.0f, 0.0f, 1.f));
+            ImU32 zColor = ImGui::GetColorU32(ImVec4(0.f, 0.0f, 1.0f, 1.f));
+            ImU32 textColor = ImGui::GetColorU32(ImVec4(0.f, 0.0f, 0.0f, 1.f));
+
+            ImGui::TableSetColumnIndex(0);
+            ImGui::Text(name.Data());
+
+            ImGui::TableSetColumnIndex(1);
+            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, xColor);
+            ImGui::Text(" X ");
+            
+            ImGui::TableSetColumnIndex(2);
+            ImGui::PushItemWidth(width * 0.15f);
+            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, textColor);
+            modified |= ImGui::DragFloat("##x", x, step, min, max, "%.2f");
+
+            ImGui::TableSetColumnIndex(3);
+            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, yColor);
+            ImGui::Text(" Y ");
+            
+            ImGui::TableSetColumnIndex(4);
+            ImGui::PushItemWidth(width * 0.15f);
+            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, textColor);
+            modified |= ImGui::DragFloat("##y", y, step, min, max, "%.2f");
+
+            ImGui::TableSetColumnIndex(5);
+            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, zColor);
+            ImGui::Text(" Z ");
+            
+            ImGui::TableSetColumnIndex(6);
+            ImGui::PushItemWidth(width * 0.15f);
+            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, textColor);
+            modified |= ImGui::DragFloat("##z", z, step, min, max, "%.2f");
+
+            ImGui::EndTable();
+        }
+        ImGui::PopStyleVar();
+        
+        return modified;
+    }
+
     void ImGuiUtils::ResizableWindowSplitter(glm::vec2& storedWindowSizes, glm::vec2 minWindowSize, bool isHorizontal, float splitterThickness, float windowSpacing, bool splitterDisable, std::function<void()>&& window1Contents, std::function<void()>&& window2Contents)
     {
         f32 availableWidth = ImGui::GetWindowContentRegionMax().x - ImGui::GetWindowContentRegionMin().x;

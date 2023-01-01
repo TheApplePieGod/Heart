@@ -88,18 +88,23 @@ namespace Widgets
                 glm::vec3 rotation = selectedEntity.GetRotation();
                 glm::vec3 scale = selectedEntity.GetScale();
                 ImGui::Indent();
-                modified |= RenderXYZSlider("Translation  ", &translation.x, &translation.y, &translation.z, -999999.f, 999999.f, 0.1f);
-                modified |= RenderXYZSlider("Rotation     ", &rotation.x, &rotation.y, &rotation.z, -360.f, 360.f, 1.f);
-                modified |= RenderXYZSlider("Scale        ", &scale.x, &scale.y, &scale.z, 0.f, 999999.f, 0.1f);
+                modified |= Heart::ImGuiUtils::XYZSlider("Translation  ", &translation.x, &translation.y, &translation.z, -999999.f, 999999.f, 0.1f);
+                modified |= Heart::ImGuiUtils::XYZSlider("Rotation     ", &rotation.x, &rotation.y, &rotation.z, -360.f, 360.f, 1.f);
+                modified |= Heart::ImGuiUtils::XYZSlider("Scale        ", &scale.x, &scale.y, &scale.z, 0.f, 999999.f, 0.1f);
                 ImGui::Unindent();
                 
-                // Treat rot as a delta so we can apply it rather than set it
-                glm::vec3 oldRot = selectedEntity.GetRotation();
-                if (rotation != oldRot)
-                    selectedEntity.ApplyRotation(rotation - oldRot);
-                    
                 if (modified)
-                    selectedEntity.SetTransform(translation, selectedEntity.GetRotation(), scale);
+                {
+                    // Apply a rot delta rather than setting when we are dealing with physics entities
+                    // because of quat weirdness
+                    if (selectedEntity.HasComponent<Heart::RigidBodyComponent>())
+                    {
+                        selectedEntity.ApplyRotation(rotation - selectedEntity.GetRotation());
+                        selectedEntity.SetTransform(translation, selectedEntity.GetRotation(), scale);
+                    }
+                    else
+                        selectedEntity.SetTransform(translation, rotation, scale);
+                }
             }
         }
     }
@@ -417,11 +422,19 @@ namespace Widgets
                 }
                 
                 if (ImGui::CollapsingHeader("Collision Channels"))
+                {
+                    ImGui::Indent();
                     recreate |= RenderCollisionChannels("CH", bodyInfo.CollisionChannels);
-                
-                if (ImGui::CollapsingHeader("Collision Mask"))
-                    recreate |= RenderCollisionChannels("MSK", bodyInfo.CollisionMask);
+                    ImGui::Unindent();
+                }
                     
+                if (ImGui::CollapsingHeader("Collision Mask"))
+                {
+                    ImGui::Indent();
+                    recreate |= RenderCollisionChannels("MSK", bodyInfo.CollisionMask);
+                    ImGui::Unindent();
+                }
+    
                 ImGui::Dummy({ 0.f, 5.f });
                 ImGui::Text("Shape Properties");
                 ImGui::Separator();
@@ -433,7 +446,7 @@ namespace Widgets
                     case Heart::PhysicsBody::Type::Box:
                     {
                         auto extent = body->GetBoxExtent();
-                        if (recreate || RenderXYZSlider(
+                        if (recreate || Heart::ImGuiUtils::XYZSlider(
                             "Half Extent  ",
                             &extent.x,
                             &extent.y,
@@ -474,57 +487,6 @@ namespace Widgets
                 ImGui::Unindent();
             }
         }
-    }
-
-    bool PropertiesPanel::RenderXYZSlider(Heart::HStringView8 name, f32* x, f32* y, f32* z, f32 min, f32 max, f32 step)
-    {
-        bool modified = false;
-        f32 width = ImGui::GetContentRegionAvail().x;
-        ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(0.f, 0.5f));
-        if (ImGui::BeginTable(name.Data(), 7, ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingFixedFit))
-        {
-            ImGui::TableNextRow();
-
-            ImU32 xColor = ImGui::GetColorU32(ImVec4(1.f, 0.0f, 0.0f, 1.f));
-            ImU32 yColor = ImGui::GetColorU32(ImVec4(0.f, 1.0f, 0.0f, 1.f));
-            ImU32 zColor = ImGui::GetColorU32(ImVec4(0.f, 0.0f, 1.0f, 1.f));
-            ImU32 textColor = ImGui::GetColorU32(ImVec4(0.f, 0.0f, 0.0f, 1.f));
-
-            ImGui::TableSetColumnIndex(0);
-            ImGui::Text(name.Data());
-
-            ImGui::TableSetColumnIndex(1);
-            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, xColor);
-            ImGui::Text(" X ");
-            
-            ImGui::TableSetColumnIndex(2);
-            ImGui::PushItemWidth(width * 0.15f);
-            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, textColor);
-            modified |= ImGui::DragFloat("##x", x, step, min, max, "%.2f");
-
-            ImGui::TableSetColumnIndex(3);
-            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, yColor);
-            ImGui::Text(" Y ");
-            
-            ImGui::TableSetColumnIndex(4);
-            ImGui::PushItemWidth(width * 0.15f);
-            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, textColor);
-            modified |= ImGui::DragFloat("##y", y, step, min, max, "%.2f");
-
-            ImGui::TableSetColumnIndex(5);
-            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, zColor);
-            ImGui::Text(" Z ");
-            
-            ImGui::TableSetColumnIndex(6);
-            ImGui::PushItemWidth(width * 0.15f);
-            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, textColor);
-            modified |= ImGui::DragFloat("##z", z, step, min, max, "%.2f");
-
-            ImGui::EndTable();
-        }
-        ImGui::PopStyleVar();
-        
-        return modified;
     }
 
     void PropertiesPanel::RenderScriptField(Heart::HStringView fieldName, Heart::ScriptComponent& scriptComp)

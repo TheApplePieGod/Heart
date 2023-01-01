@@ -348,7 +348,10 @@ namespace Heart
             
         // Copy the environment map
         newScene->m_EnvironmentMap = m_EnvironmentMap;
-
+        
+        // Copy physics settings
+        newScene->GetPhysicsWorld().SetGravity(m_PhysicsWorld.GetGravity());
+        
         return newScene;
     }
 
@@ -404,11 +407,12 @@ namespace Heart
         auto physView = m_Registry.view<RigidBodyComponent, TransformComponent>();
         for (auto entity : physView)
         {
-            // Don't use Entity::SetTransform() here because it would unnecessarily
-            // try and update the physics body
             auto& bodyComp = physView.get<RigidBodyComponent>(entity);
-            auto& transformComp = physView.get<TransformComponent>(entity);
             PhysicsBody* body = m_PhysicsWorld.GetBody(bodyComp.BodyId);
+            
+            if (body->GetMass() == 0.f) continue; // Static objects will never have an updated position so skip
+            
+            auto& transformComp = physView.get<TransformComponent>(entity);
             bool dirty = false;
             
             auto newPos = body->GetPosition();

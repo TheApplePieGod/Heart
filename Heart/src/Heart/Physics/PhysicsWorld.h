@@ -43,6 +43,7 @@ namespace Heart
         void ReplaceBody(u32 id, const PhysicsBody& newBody, bool keepVel = false);
         
         void SetGravity(glm::vec3 gravity);
+        glm::vec3 GetGravity();
         
         inline btDiscreteDynamicsWorld* GetWorld() const { return m_World.get(); }
         

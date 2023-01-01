@@ -132,7 +132,13 @@ namespace Widgets
         if (open)
         {
             for (auto& entry : directories)
-                RenderDirectoryNode(entry.path().generic_u8string(), depth + 1);
+            {
+                // Pass in relative path
+                RenderDirectoryNode(
+                    entry.path().lexically_relative(Heart::AssetManager::GetAssetsDirectory().Data()).generic_u8string(),
+                    depth + 1
+                );
+            }
             ImGui::TreePop();
         }
     }

@@ -115,4 +115,10 @@ namespace Heart
     {
         m_World->setGravity(btVector3(gravity.x, gravity.y, gravity.z));
     }
+
+    glm::vec3 PhysicsWorld::GetGravity()
+    {
+        auto grav = m_World->getGravity();
+        return { grav.x(), grav.y(), grav.z() };
+    }
 }

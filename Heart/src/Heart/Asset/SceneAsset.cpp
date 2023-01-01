@@ -218,6 +218,14 @@ namespace Heart
             auto& field = j["settings"];
             if (field.contains("environmentMap"))
                 scene->SetEnvironmentMap(AssetManager::RegisterAsset(Asset::Type::Texture, field["environmentMap"]["path"], false, field["environmentMap"]["engineResource"]));
+            if (field.contains("physics"))
+            {
+                scene->GetPhysicsWorld().SetGravity({
+                    field["physics"]["gravity"][0],
+                    field["physics"]["gravity"][1],
+                    field["physics"]["gravity"][2]
+                });
+            }
         }
 
         delete[] data;
@@ -344,8 +352,18 @@ namespace Heart
         // settings
         {
             auto& field = j["settings"];
-            field["environmentMap"]["path"] = scene->GetEnvironmentMap() ? AssetManager::GetPathFromUUID(scene->GetEnvironmentMap()->GetMapAsset()) : "";
-            field["environmentMap"]["engineResource"] = scene->GetEnvironmentMap() ? AssetManager::IsAssetAResource(scene->GetEnvironmentMap()->GetMapAsset()) : false;
+            
+            // env map
+            {
+                field["environmentMap"]["path"] = scene->GetEnvironmentMap() ? AssetManager::GetPathFromUUID(scene->GetEnvironmentMap()->GetMapAsset()) : "";
+                field["environmentMap"]["engineResource"] = scene->GetEnvironmentMap() ? AssetManager::IsAssetAResource(scene->GetEnvironmentMap()->GetMapAsset()) : false;
+            }
+            
+            // physics
+            {
+                auto grav = scene->GetPhysicsWorld().GetGravity();
+                field["physics"]["gravity"] = nlohmann::json::array({ grav.x, grav.y, grav.z });
+            }
         }
 
         std::ofstream file(path.Data());

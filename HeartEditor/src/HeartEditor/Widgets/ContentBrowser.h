@@ -28,7 +28,7 @@ namespace Widgets
     private:
         const glm::vec2 m_CardSize = { 75.f, 75.f };
         const f32 m_CardSpacing = 5.f;
-        glm::vec2 m_WindowSizes = { 0.f, 0.f };
+        glm::vec2 m_WindowSizes = { 150.f, 850.f };
         Heart::HVector<Heart::HString8> m_DirectoryStack = { "" };
         int m_DirectoryStackIndex = 0;
         Heart::HVector<std::filesystem::directory_entry> m_DirectoryList;

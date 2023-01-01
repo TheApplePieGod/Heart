@@ -27,7 +27,6 @@ namespace Widgets
         void RenderCameraComponent();
         void RenderRigidBodyComponent();
 
-        bool RenderXYZSlider(Heart::HStringView8 name, f32* x, f32* y, f32* z, f32 min, f32 max, f32 step);
         void RenderScriptField(Heart::HStringView fieldName, Heart::ScriptComponent& scriptComp);
         bool RenderCollisionChannels(Heart::HStringView8 id, u32& mask);
         
