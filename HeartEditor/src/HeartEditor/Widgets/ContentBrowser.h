@@ -14,9 +14,11 @@ namespace Widgets
         ContentBrowser(const Heart::HStringView8& name, bool initialOpen);
 
         void OnImGuiRender() override;
-
+        
+        void Reset();
+        
         inline void RefreshList() { m_ShouldRescan = true; }
-
+        
     private:
         void ScanDirectory();
         void RenderFileCard(const std::filesystem::directory_entry& entry);

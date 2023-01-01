@@ -77,6 +77,15 @@ namespace Heart.Scene
             get => ScriptClass.Length != 0;
         }
 
+        public unsafe ScriptEntity ScriptObject
+        {
+            get
+            {
+                if (!IsAlive) return null;
+                return (ScriptEntity)ManagedGCHandle.FromIntPtr(_internalValue->ScriptInstance.ObjectHandle).Target;
+            }
+        }
+
         [DllImport("__Internal")]
         internal static extern unsafe void Native_ScriptComponent_Get(uint entityHandle, IntPtr sceneHandle, out ScriptComponentInternal* comp);
 

@@ -50,6 +50,14 @@ namespace Widgets
         ImGui::PopStyleVar();
     }
 
+    void ContentBrowser::Reset()
+    {
+        m_DirectoryStack = { "" };
+        m_DirectoryStackIndex = 0;
+        
+        ScanDirectory();
+    }
+
     void ContentBrowser::ScanDirectory()
     {
         if (Heart::AssetManager::GetAssetsDirectory().IsEmpty())

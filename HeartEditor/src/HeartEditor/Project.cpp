@@ -83,16 +83,15 @@ namespace HeartEditor
 
         // Cleanup editor state
         Editor::ClearScene();
-        Editor::DestroyWindows();
-
+        
         // Finally update the assets directory to the project root
         Heart::AssetManager::UpdateAssetsDirectory(
             Heart::FilesystemUtils::GetParentDirectory(absolutePath)
         );
 
-        // Recreate editor windows
-        Editor::CreateWindows();
-
+        // Update content browser
+        ((Widgets::ContentBrowser&)Editor::GetWindow("Content Browser")).Reset();
+        
         // Update the imgui project config
         EditorApp::Get().GetImGuiInstance().OverrideImGuiConfig(Heart::AssetManager::GetAssetsDirectory());
         EditorApp::Get().GetImGuiInstance().ReloadImGuiConfig();
