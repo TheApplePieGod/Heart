@@ -109,5 +109,40 @@ namespace Heart.Math
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vec4 operator /(Vec4 a, float b)
             => new Vec4(a.X / b, a.Y / b, a.Z / b, a.W / b);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public override bool Equals(object other)
+            => Equals(other as Vec4);
+
+        public bool Equals(Vec4 other)
+        {
+            if (other == null) return false;
+            if (object.ReferenceEquals(this, other)) return true;
+            return (
+                _internal.X == other.X &&
+                _internal.Y == other.Y &&
+                _internal.Z == other.Z &&
+                _internal.W == other.W
+            );
+        }
+
+        public override int GetHashCode()
+            => base.GetHashCode();
+
+        public static bool operator ==(Vec4 a, Vec4 b)
+        {
+            if (object.ReferenceEquals(a, b)) return true;
+            if ((object)a == null || (object)b == null) return false;
+            return (
+                a.X == b.X &&
+                a.Y == b.Y &&
+                a.Z == b.Z &&
+                a.W == b.W
+            );
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool operator !=(Vec4 a, Vec4 b)
+            => !(a == b);
     }
 }

@@ -129,5 +129,38 @@ namespace Heart.Math
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vec3 operator /(Vec3 a, float b)
             => new Vec3(a.X / b, a.Y / b, a.Z / b);
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public override bool Equals(object other)
+            => Equals(other as Vec3);
+
+        public bool Equals(Vec3 other)
+        {
+            if (other == null) return false;
+            if (object.ReferenceEquals(this, other)) return true;
+            return (
+                _internal.X == other.X &&
+                _internal.Y == other.Y &&
+                _internal.Z == other.Z
+            );
+        }
+        
+        public override int GetHashCode()
+            => base.GetHashCode();
+
+        public static bool operator ==(Vec3 a, Vec3 b)
+        {
+            if (object.ReferenceEquals(a, b)) return true;
+            if ((object)a == null || (object)b == null) return false;
+            return (
+                a.X == b.X &&
+                a.Y == b.Y &&
+                a.Z == b.Z
+            );
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool operator !=(Vec3 a, Vec3 b)
+            => !(a == b);
     }
 }
