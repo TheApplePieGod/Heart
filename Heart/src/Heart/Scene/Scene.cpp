@@ -135,7 +135,7 @@ namespace Heart
         return newEntity;
     }
 
-    void Scene::DestroyEntity(Entity entity)
+    void Scene::DestroyEntity(Entity entity, bool forceCleanup)
     {
         UnparentEntity(entity, false);
         DestroyChildren(entity);
@@ -147,15 +147,17 @@ namespace Heart
                 instance.OnPlayEnd();
             instance.Destroy();
         }
-        
-        if (entity.HasComponent<RigidBodyComponent>())
-        {
-            u32 bodyId = entity.GetComponent<RigidBodyComponent>().BodyId;
-            m_PhysicsWorld.RemoveBody(bodyId);
-        }
-
+            
         m_CachedTransforms.erase(entity.GetHandle());
-        m_Registry.destroy(entity.GetHandle());
+        m_UUIDMap.erase(entity.GetUUID());
+        
+        if (m_IsRuntime && !forceCleanup)
+        {
+            entity.AddComponent<DestroyedComponent>();
+            entity.RemoveComponent<NameComponent>(); // To prevent entity from coming up in name search
+        }
+        else
+            CleanupEntity(entity);
     }
 
     void Scene::AssignRelationship(Entity parent, Entity child)
@@ -211,6 +213,17 @@ namespace Heart
 
         if (recache)
             CacheEntityTransform(child);
+    }
+
+    void Scene::CleanupEntity(Entity entity)
+    {
+        if (entity.HasComponent<CollisionComponent>())
+        {
+            u32 bodyId = entity.GetComponent<CollisionComponent>().BodyId;
+            m_PhysicsWorld.RemoveBody(bodyId);
+        }
+        
+        m_Registry.destroy(entity.GetHandle());
     }
 
     void Scene::RemoveChild(UUID parentUUID, UUID childUUID)
@@ -444,6 +457,10 @@ namespace Heart
             auto& scriptComp = scriptView.get<ScriptComponent>(entity);
             scriptComp.Instance.OnUpdate(ts);
         }
+        // Cleanup destroyed entities
+        auto destroyedView = m_Registry.view<DestroyedComponent>();
+        for (auto entity : destroyedView)
+            CleanupEntity({ this, entity });
     }
 
     Entity Scene::GetEntityFromUUID(UUID uuid)

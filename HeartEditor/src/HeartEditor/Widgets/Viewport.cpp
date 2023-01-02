@@ -170,7 +170,7 @@ namespace Widgets
             ImGui::PopStyleVar();
 
             // Output select
-            ImGui::SameLine(ImGui::GetContentRegionMax().x - 100.f);
+            ImGui::SameLine(ImGui::GetContentRegionMax().x - 85.f);
             if (ImGui::Button("Output Select"))
                 ImGui::OpenPopup("OutSel");
             if (ImGui::IsItemHovered())

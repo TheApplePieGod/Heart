@@ -85,10 +85,18 @@ namespace Heart
         /*! @brief Default destructor. */
         ~AggregateTimer()
         {
+            Finish();
+        }
+        
+        void Finish()
+        {
+            if (m_Finished) return;
+            m_Finished = true;
             std::unique_lock lock(s_CurrentMutex);
             s_AggregateTimes[m_Name] += ElapsedMilliseconds();
         }
-
+        
+    public:
         /**
          * @brief Get the globally accumulated time for a specific timer id in milliseconds.
          *
@@ -144,5 +152,8 @@ namespace Heart
         inline static std::map<HString8, double> s_AggregateTimes; // stored in millis
         inline static std::map<HString8, double> s_AggregateTimesLastFrame;
         inline static std::shared_mutex s_CurrentMutex;
+        
+    private:
+        bool m_Finished = false;
     };
 }

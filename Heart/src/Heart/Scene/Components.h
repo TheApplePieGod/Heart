@@ -109,4 +109,7 @@ namespace Heart
     {
         u32 BodyId = 0;
     };
+
+    struct DestroyedComponent
+    {};
 }

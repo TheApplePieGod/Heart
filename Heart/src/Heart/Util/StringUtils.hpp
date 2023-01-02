@@ -138,6 +138,9 @@ namespace Heart
                     ptr++;
                 }
             }
+            
+            if (len1 < len2) return -1;
+            if (len2 < len1) return 1;
             return 0;
         }
 

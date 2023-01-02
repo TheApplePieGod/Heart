@@ -25,7 +25,7 @@ namespace Heart
 
     bool Entity::IsValid()
     {
-        return m_Scene && m_Scene->m_Registry.valid(m_EntityHandle);
+        return m_Scene && m_Scene->m_Registry.valid(m_EntityHandle) && !HasComponent<DestroyedComponent>();
     }
 
     void Entity::Destroy()

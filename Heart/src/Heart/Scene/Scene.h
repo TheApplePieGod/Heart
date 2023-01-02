@@ -23,7 +23,7 @@ namespace Heart
         Entity CreateEntity(const HStringView8& name);
         Entity CreateEntityWithUUID(const HStringView8& name, UUID uuid);
         Entity DuplicateEntity(Entity source, bool keepParent, bool keepChildren);
-        void DestroyEntity(Entity entity);
+        void DestroyEntity(Entity entity, bool forceCleanup = false);
         void AssignRelationship(Entity parent, Entity child);
         void UnparentEntity(Entity child, bool recache = true);
         Entity GetEntityFromUUID(UUID uuid);
@@ -70,6 +70,7 @@ namespace Heart
         template<typename Component>
         void CopyComponent(entt::entity src, Entity dst);
 
+        void CleanupEntity(Entity entity);
         void RemoveChild(UUID parentUUID, UUID childUUID);
         void DestroyChildren(Entity parent);
         Entity GetEntityFromUUIDUnchecked(UUID uuid);

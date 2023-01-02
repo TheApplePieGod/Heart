@@ -104,7 +104,7 @@ namespace Widgets
             }
             if (ImGui::MenuItem("Remove Entity"))
             {
-                activeScene.DestroyEntity({ &activeScene, entity });
+                activeScene.DestroyEntity({ &activeScene, entity }, true);
                 Editor::GetState().SelectedEntity = Heart::Entity();
                 justDestroyed = true;
             }

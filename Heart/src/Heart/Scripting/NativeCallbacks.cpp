@@ -143,6 +143,12 @@ HE_INTEROP_EXPORT void Native_Entity_Destroy(u32 entityHandle, Heart::Scene* sce
     sceneHandle->DestroyEntity({ sceneHandle, entityHandle });
 }
 
+HE_INTEROP_EXPORT bool Native_Entity_IsValid(u32 entityHandle, Heart::Scene* sceneHandle)
+{
+    Heart::Entity entity(sceneHandle, entityHandle);
+    return entity.IsValid();
+}
+
 /*
  * Asset manager functions
  */
