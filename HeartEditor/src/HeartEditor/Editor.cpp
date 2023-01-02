@@ -180,6 +180,9 @@ namespace HeartEditor
         s_ActiveScene = s_EditorScene;
 
         s_EditorState.SelectedEntity = Heart::Entity();
+        
+        auto& viewport = (Widgets::Viewport&)GetWindow("Viewport");
+        viewport.ResetEditorCamera();
     }
 
     bool Editor::IsDirty()

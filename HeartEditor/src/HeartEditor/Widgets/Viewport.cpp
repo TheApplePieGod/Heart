@@ -27,9 +27,9 @@ namespace Widgets
     Viewport::Viewport(const Heart::HStringView8& name, bool initialOpen)
         : Widget(name, initialOpen)
     {
-        m_SceneRenderer = Heart::CreateScope<Heart::SceneRenderer>();
-        m_ActiveCamera = Heart::CreateScope<Heart::Camera>(70.f, 0.1f, 500.f, 1.f);
-        m_EditorCamera = Heart::CreateScope<EditorCamera>(70.f, 0.1f, 500.f, 1.f, glm::vec3(0.f, 1.f, 0.f));
+        m_SceneRenderer = Heart::CreateRef<Heart::SceneRenderer>();
+        m_ActiveCamera = Heart::CreateRef<Heart::Camera>(70.f, 0.1f, 500.f, 1.f);
+        m_EditorCamera = Heart::CreateRef<EditorCamera>(70.f, 0.1f, 500.f, 1.f, glm::vec3(0.f, 1.f, 0.f));
     }
 
     void Viewport::OnImGuiRender()
@@ -85,9 +85,9 @@ namespace Widgets
             SetFocused(false);
         else if (Editor::GetSceneState() == SceneState::Playing && ImGui::IsKeyPressed(ImGuiKey_Escape))
             SetFocused(false);
-
-        // Only render overlays if the editor cam is active
-        if (m_EditorCameraActive)
+            
+        // Only render overlays if the viewport is not focused
+        if (!m_ViewportInput)
         {
             // initialize imguizmo
             glm::mat4 view = m_EditorCamera->GetViewMatrixInvertedY();
@@ -308,7 +308,7 @@ namespace Widgets
 
         if (!m_Open) return;
 
-        if (m_AttachCamera && Editor::GetSceneState() == SceneState::Playing && m_ViewportInput)
+        if (m_AttachCamera && Editor::GetSceneState() == SceneState::Playing)
         {
             auto& activeScene = Editor::GetActiveScene();
             auto primaryCamEnt = activeScene.GetPrimaryCameraEntity();
@@ -324,8 +324,9 @@ namespace Widgets
                 m_ActiveCameraPos = primaryCamEnt.GetWorldPosition();
                 m_ActiveCameraRot = primaryCamEnt.GetWorldRotation();
                 m_ActiveCamera->UpdateViewMatrix(m_ActiveCameraPos, m_ActiveCameraRot);
-                m_EditorCameraActive = false;
-
+                m_EditorCamera->SetPosition(m_ActiveCameraPos);
+                m_EditorCamera->SetRotation(m_ActiveCameraRot);
+                    
                 return;
             }
         }
@@ -334,8 +335,12 @@ namespace Widgets
         m_EditorCamera->UpdateAspectRatio(m_AspectRatio);
         m_ActiveCameraPos = m_EditorCamera->GetPosition();
         m_ActiveCameraRot = { m_EditorCamera->GetRotation().x, m_EditorCamera->GetRotation().y, 0.f };
+        if (Editor::GetSceneState() != SceneState::Playing)
+        {
+            m_StoredCameraPos = m_ActiveCameraPos;
+            m_StoredCameraRot = m_ActiveCameraRot;
+        }
         *m_ActiveCamera = *m_EditorCamera;
-        m_EditorCameraActive = true;
     }
 
     void Viewport::SetFocused(bool focused)
@@ -353,6 +358,12 @@ namespace Widgets
         EditorApp::Get().GetWindow().EnableCursor();
         ImGui::GetIO().ConfigFlags &= ~ImGuiConfigFlags_NoMouse;
         Heart::ScriptingEngine::SetScriptInputEnabled(false);
+    }
+
+    void Viewport::ResetEditorCamera()
+    {
+        m_EditorCamera->SetPosition(m_StoredCameraPos);
+        m_EditorCamera->SetRotation(m_StoredCameraRot);
     }
 }
 }

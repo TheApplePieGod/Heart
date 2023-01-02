@@ -480,9 +480,9 @@ namespace Heart
         auto ent0 = GetEntityFromUUIDUnchecked(id0);
         auto ent1 = GetEntityFromUUIDUnchecked(id1);
         
-        if (ent0.HasComponent<ScriptComponent>())
+        if (ent0.IsValid() && ent0.HasComponent<ScriptComponent>())
             ent0.GetComponent<ScriptComponent>().Instance.OnCollisionStarted(ent1);
-        if (ent1.HasComponent<ScriptComponent>())
+        if (ent1.IsValid() && ent1.HasComponent<ScriptComponent>())
             ent1.GetComponent<ScriptComponent>().Instance.OnCollisionStarted(ent0);
     }
 
@@ -491,9 +491,9 @@ namespace Heart
         auto ent0 = GetEntityFromUUIDUnchecked(id0);
         auto ent1 = GetEntityFromUUIDUnchecked(id1);
         
-        if (ent0.HasComponent<ScriptComponent>())
+        if (ent0.IsValid() && ent0.HasComponent<ScriptComponent>())
             ent0.GetComponent<ScriptComponent>().Instance.OnCollisionEnded(ent1);
-        if (ent1.HasComponent<ScriptComponent>())
+        if (ent1.IsValid() && ent1.HasComponent<ScriptComponent>())
             ent1.GetComponent<ScriptComponent>().Instance.OnCollisionEnded(ent0);
     }
 

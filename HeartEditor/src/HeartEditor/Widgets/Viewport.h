@@ -32,7 +32,8 @@ namespace Widgets
 
         void UpdateCamera();
         void SetFocused(bool focus);
-
+        void ResetEditorCamera();
+        
         inline bool IsFocused() const { return m_ViewportInput; }
         inline bool IsHovered() const { return m_ViewportHover; }
         inline bool ShouldCameraAttach() const { return m_AttachCamera; }
@@ -50,7 +51,8 @@ namespace Widgets
         Heart::Ref<EditorCamera> m_EditorCamera;
         glm::vec3 m_ActiveCameraPos;
         glm::vec3 m_ActiveCameraRot;
-        bool m_EditorCameraActive;
+        glm::vec3 m_StoredCameraPos;
+        glm::vec3 m_StoredCameraRot;
         bool m_AttachCamera = true;
         glm::vec2 m_ViewportMousePos; // mouse position relative to the viewport window
         glm::vec2 m_ViewportSize;
