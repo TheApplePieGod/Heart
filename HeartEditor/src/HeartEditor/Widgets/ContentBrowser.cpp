@@ -77,10 +77,12 @@ namespace Widgets
             {
                 // Root (exclude unnecessary folders)
                 Heart::HString filename = entry.path().filename().generic_u8string();
-                if (isRoot && (
+                if ((isRoot && (
                     filename == ".vs" ||
                     filename == "bin" ||
                     filename == "obj"
+                )) || (
+                    filename == ".DS_Store"
                 ))
                     continue;
                 m_DirectoryList.Add(entry);

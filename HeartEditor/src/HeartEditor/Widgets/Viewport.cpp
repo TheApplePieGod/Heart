@@ -280,8 +280,8 @@ namespace Widgets
         {
             auto& camField = j["editorCamera"];
 
-            glm::vec3 camPos = m_EditorCamera->GetPosition();
-            glm::vec2 camRot = m_EditorCamera->GetRotation();
+            glm::vec3 camPos = m_StoredCameraPos;
+            glm::vec2 camRot = m_StoredCameraRot;
             camField["pos"] = nlohmann::json::array({ camPos.x, camPos.y, camPos.z });
             camField["rot"] = nlohmann::json::array({ camRot.x, camRot.y });
         }

@@ -105,7 +105,10 @@ namespace HeartEditor
             Project::GetActiveProject()->SaveToDisk();
             Editor::SaveScene();
         }
-        else if (event.GetKeyCode() == Heart::KeyCode::B && Heart::Input::IsKeyPressed(Heart::KeyCode::LeftCtrl))
+        else if (
+            event.GetKeyCode() == Heart::KeyCode::B &&
+            Heart::Input::IsKeyPressed(Heart::KeyCode::LeftCtrl) &&
+            Editor::GetSceneState() != SceneState::Playing)
         {
             Project::GetActiveProject()->BuildScripts();
             Project::GetActiveProject()->LoadScriptsPlugin();
