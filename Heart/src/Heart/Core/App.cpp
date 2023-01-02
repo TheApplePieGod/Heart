@@ -5,6 +5,7 @@
 #include "Heart/Core/Window.h"
 #include "Heart/Core/Timing.h"
 #include "Heart/ImGui/ImGuiInstance.h"
+#include "Heart/Physics/PhysicsWorld.h"
 #include "Heart/Events/WindowEvents.h"
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Scripting/ScriptingEngine.h"
@@ -34,6 +35,7 @@ namespace Heart
         InitializeGraphicsApi(windowCreateInfo);
 
         // Init services
+        PhysicsWorld::Initialize();
         AssetManager::Initialize();
         ScriptingEngine::Initialize();
 

@@ -73,7 +73,10 @@ namespace Heart
         void RemoveChild(UUID parentUUID, UUID childUUID);
         void DestroyChildren(Entity parent);
         Entity GetEntityFromUUIDUnchecked(UUID uuid);
-
+        
+        void CollisionStartCallback(UUID id0, UUID id1);
+        void CollisionEndCallback(UUID id0, UUID id1);
+        
     private:
         entt::registry m_Registry;
         std::unordered_map<UUID, entt::entity> m_UUIDMap;

@@ -33,6 +33,11 @@ namespace Heart
         m_Scene->DestroyEntity(*this);
     }
 
+    void Entity::SetName(HStringView8 name)
+    {
+        GetComponent<NameComponent>().Name = name;
+    }
+
     const glm::mat4x4& Entity::GetWorldTransformMatrix()
     {
         return m_Scene->m_CachedTransforms[m_EntityHandle].Transform;

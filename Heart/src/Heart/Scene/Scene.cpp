@@ -60,9 +60,12 @@ namespace Heart
     }
 
     Scene::Scene()
-        : m_PhysicsWorld({ 0.f, -9.8f, 0.f })
     {
-        
+        m_PhysicsWorld = PhysicsWorld(
+            { 0.f, -9.8f, 0.f },
+            std::bind(&Scene::CollisionStartCallback, this, std::placeholders::_1, std::placeholders::_2),
+            std::bind(&Scene::CollisionEndCallback, this, std::placeholders::_1, std::placeholders::_2)
+        );
     }
 
     Scene::~Scene()
@@ -104,6 +107,7 @@ namespace Heart
 
         m_Registry.emplace<IdComponent>(newEntityHandle, newUUID);
         m_Registry.emplace<NameComponent>(newEntityHandle, m_Registry.get<NameComponent>(source.GetHandle()).Name + " Copy");
+        CopyComponent<TransformComponent>(source.GetHandle(), newEntity);
 
         if (keepParent && source.HasComponent<ParentComponent>())
             AssignRelationship(GetEntityFromUUIDUnchecked(source.GetComponent<ParentComponent>().ParentUUID), newEntity);
@@ -119,7 +123,6 @@ namespace Heart
             }
         }
 
-        CopyComponent<TransformComponent>(source.GetHandle(), newEntity);
         CopyComponent<MeshComponent>(source.GetHandle(), newEntity);
         CopyComponent<LightComponent>(source.GetHandle(), newEntity);
         CopyComponent<ScriptComponent>(source.GetHandle(), newEntity);
@@ -469,6 +472,29 @@ namespace Heart
     Entity Scene::GetEntityFromUUIDUnchecked(UUID uuid)
     {
         return { this, m_UUIDMap[uuid] };
+    }
+
+
+    void Scene::CollisionStartCallback(UUID id0, UUID id1)
+    {
+        auto ent0 = GetEntityFromUUIDUnchecked(id0);
+        auto ent1 = GetEntityFromUUIDUnchecked(id1);
+        
+        if (ent0.HasComponent<ScriptComponent>())
+            ent0.GetComponent<ScriptComponent>().Instance.OnCollisionStarted(ent1);
+        if (ent1.HasComponent<ScriptComponent>())
+            ent1.GetComponent<ScriptComponent>().Instance.OnCollisionStarted(ent0);
+    }
+
+    void Scene::CollisionEndCallback(UUID id0, UUID id1)
+    {
+        auto ent0 = GetEntityFromUUIDUnchecked(id0);
+        auto ent1 = GetEntityFromUUIDUnchecked(id1);
+        
+        if (ent0.HasComponent<ScriptComponent>())
+            ent0.GetComponent<ScriptComponent>().Instance.OnCollisionEnded(ent1);
+        if (ent1.HasComponent<ScriptComponent>())
+            ent1.GetComponent<ScriptComponent>().Instance.OnCollisionEnded(ent0);
     }
 
     const glm::mat4& Scene::GetEntityCachedTransform(Entity entity)

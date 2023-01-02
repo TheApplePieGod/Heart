@@ -28,6 +28,8 @@ namespace Heart
         void OnPlayStart();
         void OnPlayEnd();
         void OnUpdate(Timestep ts);
+        void OnCollisionStarted(Entity other);
+        void OnCollisionEnded(Entity other);
 
         Variant GetFieldValue(const HStringView& fieldName) const;
         bool SetFieldValue(const HStringView& fieldName, const Variant& value, bool invokeCallback);

@@ -60,6 +60,18 @@ namespace Heart
         if (!IsAlive()) return;
         ScriptingEngine::InvokeEntityOnUpdate(m_ObjectHandle, ts);
     }
+
+    void ScriptInstance::OnCollisionStarted(Entity other)
+    {
+        if (!IsAlive()) return;
+        ScriptingEngine::InvokeEntityOnCollisionStarted(m_ObjectHandle, other);
+    }
+
+    void ScriptInstance::OnCollisionEnded(Entity other)
+    {
+        if (!IsAlive()) return;
+        ScriptingEngine::InvokeEntityOnCollisionEnded(m_ObjectHandle, other);
+    }
     
     nlohmann::json ScriptInstance::SerializeFieldsToJson()
     {

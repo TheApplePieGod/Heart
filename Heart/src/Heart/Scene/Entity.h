@@ -49,6 +49,8 @@ namespace Heart
         bool IsValid();
         void Destroy();
         
+        void SetName(HStringView8 name);
+        
         inline Scene* GetScene() const { return m_Scene; }
         inline entt::entity GetHandle() const { return m_EntityHandle; }
         inline glm::vec3 GetPosition() const { return GetComponent<TransformComponent>().Translation; }

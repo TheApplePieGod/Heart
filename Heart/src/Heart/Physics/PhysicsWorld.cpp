@@ -5,9 +5,14 @@
 
 namespace Heart
 {
-    PhysicsWorld::PhysicsWorld(glm::vec3 gravity)
+    PhysicsWorld::PhysicsWorld(
+        glm::vec3 gravity,
+        std::function<void(UUID, UUID)> collisionStartCallback,
+        std::function<void(UUID, UUID)> collisionEndCallback
+    )
+        : m_CollisionStartCallback(collisionStartCallback), m_CollisionEndCallback(collisionEndCallback)
     {
-		m_CollisionConfig = CreateRef<btDefaultCollisionConfiguration>();
+        m_CollisionConfig = CreateRef<btDefaultCollisionConfiguration>();
 		m_Dispatcher = CreateRef<btCollisionDispatcher>(m_CollisionConfig.get());
 		m_BroadInterface = CreateRef<btDbvtBroadphase>();
 		m_Solver = CreateRef<btSequentialImpulseConstraintSolver>();
@@ -23,6 +28,7 @@ namespace Heart
 
 	void PhysicsWorld::Step(float stepSeconds)
 	{
+        s_ProcessingWorld = this;
         m_World->stepSimulation(stepSeconds, 10);
 	}
 
@@ -99,10 +105,12 @@ namespace Heart
         auto rot = body.GetRotation();
         auto linVel = body.GetLinearVelocity();
         auto angVel = body.GetAngularVelocity();
+        auto usrPtr = body.GetBody()->getUserPointer();
         m_World->removeRigidBody(body.GetBody());
         
         body = newBody;
         body.SetTransform(pos, rot);
+        body.GetBody()->setUserPointer(usrPtr);
         if (keepVel)
         {
             body.SetLinearVelocity(linVel);
@@ -120,5 +128,27 @@ namespace Heart
     {
         auto grav = m_World->getGravity();
         return { grav.x(), grav.y(), grav.z() };
+    }
+
+    void ContactStartedCallback(btPersistentManifold* const& manifold)
+    {
+        UUID id0 = (UUID)(intptr_t)manifold->getBody0()->getUserPointer();
+        UUID id1 = (UUID)(intptr_t)manifold->getBody1()->getUserPointer();
+        
+        PhysicsWorld::GetProcessingWorld()->GetCollisionStartCallback()(id0, id1);
+    }
+
+    void ContactEndedCallback(btPersistentManifold* const& manifold)
+    {
+        UUID id0 = (UUID)(intptr_t)manifold->getBody0()->getUserPointer();
+        UUID id1 = (UUID)(intptr_t)manifold->getBody1()->getUserPointer();
+        
+        PhysicsWorld::GetProcessingWorld()->GetCollisionEndCallback()(id0, id1);
+    }
+
+    void PhysicsWorld::Initialize()
+    {
+        gContactStartedCallback = ContactStartedCallback;
+        gContactEndedCallback = ContactEndedCallback;
     }
 }

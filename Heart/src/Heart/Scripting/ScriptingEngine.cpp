@@ -4,6 +4,7 @@
 #include "Heart/Core/Timing.h"
 #include "Heart/Core/Timestep.h"
 #include "Heart/Scene/Scene.h"
+#include "Heart/Scene/Entity.h"
 #include "Heart/Container/HArray.h"
 #include "Heart/Util/FilesystemUtils.h"
 #include "Heart/Util/PlatformUtils.h"
@@ -235,6 +236,20 @@ namespace Heart
         HE_PROFILE_FUNCTION();
 
         s_CoreCallbacks.ScriptEntity_CallOnUpdate(entity, timestep.StepMilliseconds());
+    }
+
+    void ScriptingEngine::InvokeEntityOnCollisionStarted(uptr entity, Entity other)
+    {
+        HE_PROFILE_FUNCTION();
+
+        s_CoreCallbacks.ScriptEntity_CallOnCollisionStarted(entity, (u32)other.GetHandle(), other.GetScene());
+    }
+
+    void ScriptingEngine::InvokeEntityOnCollisionEnded(uptr entity, Entity other)
+    {
+        HE_PROFILE_FUNCTION();
+
+        s_CoreCallbacks.ScriptEntity_CallOnCollisionEnded(entity, (u32)other.GetHandle(), other.GetScene());
     }
 
     Variant ScriptingEngine::GetFieldValue(uptr entity, const HString& fieldName)

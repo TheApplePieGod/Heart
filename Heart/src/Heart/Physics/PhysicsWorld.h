@@ -28,10 +28,16 @@ namespace Heart
         bool DrawDebugLine = false;
     };
 
+    class Entity;
     class PhysicsWorld
     {
     public:
-        PhysicsWorld(glm::vec3 gravity);
+        PhysicsWorld() = default;
+        PhysicsWorld(
+            glm::vec3 gravity,
+            std::function<void(UUID, UUID)> collisionStartCallback,
+            std::function<void(UUID, UUID)> collisionEndCallback
+        );
         
         void Step(float stepSeconds);
         bool RaycastSingle(const RaycastInfo& info, RaycastResult& outResult);
@@ -46,6 +52,13 @@ namespace Heart
         glm::vec3 GetGravity();
         
         inline btDiscreteDynamicsWorld* GetWorld() const { return m_World.get(); }
+        inline const auto& GetCollisionStartCallback() const { return m_CollisionStartCallback; }
+        inline const auto& GetCollisionEndCallback() const { return m_CollisionEndCallback; }
+        
+    public:
+        static void Initialize();
+        
+        static PhysicsWorld* GetProcessingWorld() { return s_ProcessingWorld; }
         
     private:
         Ref<btSequentialImpulseConstraintSolver> m_Solver;
@@ -56,5 +69,10 @@ namespace Heart
 
         u32 m_BodyIdCounter = 0;
         std::unordered_map<u32, PhysicsBody> m_Bodies;
+        std::function<void(UUID, UUID)> m_CollisionStartCallback;
+        std::function<void(UUID, UUID)> m_CollisionEndCallback;
+        
+    private:
+        inline static PhysicsWorld* s_ProcessingWorld = nullptr;
     };
 }

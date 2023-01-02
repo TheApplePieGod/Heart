@@ -17,6 +17,8 @@ namespace Heart
         using ManagedObject_GetFieldValueFn = void (*)(uptr, const HString*, Variant*);
         using ManagedObject_SetFieldValueFn = bool (*)(uptr, const HString*, Variant, bool);
         using ScriptEntity_CallOnUpdateFn = void (*)(uptr, double);
+        using ScriptEntity_CallOnCollisionStartedFn = void (*)(uptr, u32, Scene*);
+        using ScriptEntity_CallOnCollisionEndedFn = void (*)(uptr, u32, Scene*);
 
         EntryPoint_LoadClientPluginFn EntryPoint_LoadClientPlugin;
         EntryPoint_UnloadClientPluginFn EntryPoint_UnloadClientPlugin;
@@ -27,5 +29,7 @@ namespace Heart
         ManagedObject_GetFieldValueFn ManagedObject_GetFieldValue;
         ManagedObject_SetFieldValueFn ManagedObject_SetFieldValue;
         ScriptEntity_CallOnUpdateFn ScriptEntity_CallOnUpdate;
+        ScriptEntity_CallOnCollisionStartedFn ScriptEntity_CallOnCollisionStarted;
+        ScriptEntity_CallOnCollisionEndedFn ScriptEntity_CallOnCollisionEnded;
     };
 }

@@ -10,6 +10,7 @@ namespace Heart
     class Variant;
     class Timestep;
     class Scene;
+    class Entity;
     class ScriptingEngine
     {
     public:
@@ -23,6 +24,8 @@ namespace Heart
         static void DestroyObject(uptr handle);
         static bool InvokeFunction(uptr object, const HString& funcName, const HArray& args);
         static void InvokeEntityOnUpdate(uptr entity, Timestep timestep);
+        static void InvokeEntityOnCollisionStarted(uptr entity, Entity other);
+        static void InvokeEntityOnCollisionEnded(uptr entity, Entity other);
         static Variant GetFieldValue(uptr entity, const HString& fieldName);
         static bool SetFieldValue(uptr entity, const HString& fieldName, const Variant& value, bool invokeCallback);
 

@@ -17,6 +17,8 @@ namespace Heart.NativeBridge
         public delegate* unmanaged<IntPtr, HStringInternal*, Variant*, void> ManagedObject_GetFieldValue;
         public delegate* unmanaged<IntPtr, HStringInternal*, Variant, InteropBool, InteropBool> ManagedObject_SetFieldValue;
         public delegate* unmanaged<IntPtr, double, void> ScriptEntity_CallOnUpdate;
+        public delegate* unmanaged<IntPtr, uint, IntPtr, void> ScriptEntity_CallOnCollisionStarted;
+        public delegate* unmanaged<IntPtr, uint, IntPtr, void> ScriptEntity_CallOnCollisionEnded;
 
         public static ManagedCallbacks Get()
         {
@@ -31,6 +33,8 @@ namespace Heart.NativeBridge
                 ManagedObject_GetFieldValue = &ManagedObject.GetFieldValue,
                 ManagedObject_SetFieldValue = &ManagedObject.SetFieldValue,
                 ScriptEntity_CallOnUpdate = &ScriptEntity.CallOnUpdate,
+                ScriptEntity_CallOnCollisionStarted = &ScriptEntity.CallOnCollisionStarted,
+                ScriptEntity_CallOnCollisionEnded = &ScriptEntity.CallOnCollisionEnded
             };
         }
     }
