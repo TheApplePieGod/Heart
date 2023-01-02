@@ -105,7 +105,7 @@ namespace Heart
         f32 FarClipPlane = 500.f;
     };
 
-    struct RigidBodyComponent
+    struct CollisionComponent
     {
         u32 BodyId = 0;
     };

@@ -236,8 +236,8 @@ namespace Heart.Scene
                     { return NativeMarshal.InteropBoolToBool(ScriptComponent.Native_ScriptComponent_Exists(entityHandle, sceneHandle)); }
                 case var t when t == typeof(CameraComponent):
                     { return NativeMarshal.InteropBoolToBool(CameraComponent.Native_CameraComponent_Exists(entityHandle, sceneHandle)); }
-                case var t when t == typeof(RigidBodyComponent):
-                    { return NativeMarshal.InteropBoolToBool(RigidBodyComponent.Native_RigidBodyComponent_Exists(entityHandle, sceneHandle)); }
+                case var t when t == typeof(CollisionComponent):
+                    { return NativeMarshal.InteropBoolToBool(CollisionComponent.Native_CollisionComponent_Exists(entityHandle, sceneHandle)); }
             }
 
             throw new NotImplementedException("HasComponent does not support " + typeof(T).FullName);
@@ -272,8 +272,8 @@ namespace Heart.Scene
                 case var t when t == typeof(CameraComponent):
                     { CameraComponent.Native_CameraComponent_Add(entityHandle, sceneHandle); }
                     break;
-                case var t when t == typeof(RigidBodyComponent):
-                    { RigidBodyComponent.Native_RigidBodyComponent_Add(entityHandle, sceneHandle); }
+                case var t when t == typeof(CollisionComponent):
+                    { CollisionComponent.Native_CollisionComponent_Add(entityHandle, sceneHandle); }
                     break;
             }
 
@@ -307,8 +307,8 @@ namespace Heart.Scene
                 case var t when t == typeof(CameraComponent):
                     { CameraComponent.Native_CameraComponent_Remove(entityHandle, sceneHandle); }
                     return;
-                case var t when t == typeof(RigidBodyComponent):
-                    { RigidBodyComponent.Native_RigidBodyComponent_Remove(entityHandle, sceneHandle); }
+                case var t when t == typeof(CollisionComponent):
+                    { CollisionComponent.Native_CollisionComponent_Remove(entityHandle, sceneHandle); }
                     return;
             }
 

@@ -2,6 +2,7 @@
 #include "PhysicsWorld.h"
 
 #include "btBulletDynamicsCommon.h"
+#include "BulletCollision/CollisionDispatch/btGhostObject.h"
 
 namespace Heart
 {
@@ -65,7 +66,10 @@ namespace Heart
 		m_BodyIdCounter++;
 		m_Bodies[m_BodyIdCounter] = body;
         
-        m_World->addRigidBody(body.GetBody(), body.GetCollisionChannels(), body.GetCollisionMask());
+        if (body.GetBodyType() == PhysicsBodyType::Rigid)
+            m_World->addRigidBody((btRigidBody*)body.GetBody(), body.GetCollisionChannels(), body.GetCollisionMask());
+        else
+            m_World->addCollisionObject(body.GetBody(), body.GetCollisionChannels(), body.GetCollisionMask());
 
 		return m_BodyIdCounter;
 	}
@@ -88,11 +92,12 @@ namespace Heart
 		);
 		
 		auto& body = m_Bodies[id];
-        m_World->removeRigidBody(body.GetBody());
+        m_World->removeCollisionObject(body.GetBody());
 
 		m_Bodies.erase(id);
 	}
 
+    // TODO: check setCollisionShape?
     void PhysicsWorld::ReplaceBody(u32 id, const PhysicsBody& newBody, bool keepVel)
     {
         HE_ENGINE_ASSERT(
@@ -103,20 +108,30 @@ namespace Heart
         auto& body = m_Bodies[id];
         auto pos = body.GetPosition();
         auto rot = body.GetRotation();
-        auto linVel = body.GetLinearVelocity();
-        auto angVel = body.GetAngularVelocity();
+        glm::vec3 linVel;
+        glm::vec3 angVel;
+        if (body.GetBodyType() == PhysicsBodyType::Rigid)
+        {
+            linVel = body.GetLinearVelocity();
+            angVel = body.GetAngularVelocity();
+        }
         auto usrPtr = body.GetBody()->getUserPointer();
-        m_World->removeRigidBody(body.GetBody());
+        m_World->removeCollisionObject(body.GetBody());
         
         body = newBody;
         body.SetTransform(pos, rot);
         body.GetBody()->setUserPointer(usrPtr);
-        if (keepVel)
+        if (body.GetBodyType() == PhysicsBodyType::Rigid)
         {
-            body.SetLinearVelocity(linVel);
-            body.SetAngularVelocity(angVel);
+            if (keepVel)
+            {
+                body.SetLinearVelocity(linVel);
+                body.SetAngularVelocity(angVel);
+            }
+            m_World->addRigidBody((btRigidBody*)body.GetBody(), body.GetCollisionChannels(), body.GetCollisionMask());
         }
-        m_World->addRigidBody(body.GetBody(), body.GetCollisionChannels(), body.GetCollisionMask());
+        else
+            m_World->addCollisionObject(body.GetBody(), body.GetCollisionChannels(), body.GetCollisionMask());
     }
  
     void PhysicsWorld::SetGravity(glm::vec3 gravity)

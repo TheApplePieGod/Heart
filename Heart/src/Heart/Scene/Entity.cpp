@@ -7,12 +7,13 @@
 namespace Heart
 {
     template<>
-    void Entity::AddComponent<RigidBodyComponent>(PhysicsBody& body)
+    void Entity::AddComponent<CollisionComponent>(PhysicsBody& body)
     {
-        if (HasComponent<RigidBodyComponent>())
-            m_Scene->GetPhysicsWorld().RemoveBody(GetComponent<RigidBodyComponent>().BodyId);
+        if (HasComponent<CollisionComponent>())
+            m_Scene->GetPhysicsWorld().RemoveBody(GetComponent<CollisionComponent>().BodyId);
+        body.SetTransform(GetWorldPosition(), m_Scene->GetEntityCachedQuat(*this));
         u32 id = m_Scene->GetPhysicsWorld().AddBody(body);
-        m_Scene->GetRegistry().emplace_or_replace<RigidBodyComponent>(m_EntityHandle, id);
+        m_Scene->GetRegistry().emplace_or_replace<CollisionComponent>(m_EntityHandle, id);
     }
 
     Entity::Entity(Scene* scene, entt::entity handle)
@@ -160,13 +161,13 @@ namespace Heart
 
     PhysicsBody* Entity::GetPhysicsBody()
     {
-        auto& comp = GetComponent<RigidBodyComponent>();
+        auto& comp = GetComponent<CollisionComponent>();
         return m_Scene->GetPhysicsWorld().GetBody(comp.BodyId);
     }
 
     void Entity::ReplacePhysicsBody(const PhysicsBody& body, bool keepVel)
     {
-        auto& comp = GetComponent<RigidBodyComponent>();
+        auto& comp = GetComponent<CollisionComponent>();
         m_Scene->GetPhysicsWorld().ReplaceBody(comp.BodyId, body, keepVel);        
     }
 }

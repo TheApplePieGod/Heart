@@ -124,50 +124,52 @@ namespace Heart
                 }
                 
                 // Rigid body component
-                if (loaded.contains("rigidBodyComponent"))
+                if (loaded.contains("collisionComponent"))
                 {
-                    RigidBodyComponent comp;
+                    CollisionComponent comp;
                     PhysicsBody body;
-                    PhysicsBody::Type bodyType = loaded["rigidBodyComponent"]["type"];
+                    PhysicsBodyType bodyType = loaded["collisionComponent"]["type"];
+                    PhysicsBodyShape shapeType = loaded["collisionComponent"]["shape"];
                     PhysicsBodyCreateInfo bodyInfo;
+                    bodyInfo.Type = bodyType;
                     bodyInfo.ExtraData = (void*)(intptr_t)id;
-                    bodyInfo.Mass = loaded["rigidBodyComponent"]["mass"];
-                    if (loaded["rigidBodyComponent"].contains("collisionChannels"))
-                        bodyInfo.CollisionChannels = loaded["rigidBodyComponent"]["collisionChannels"];
-                    if (loaded["rigidBodyComponent"].contains("collisionMask"))
-                        bodyInfo.CollisionMask = loaded["rigidBodyComponent"]["collisionMask"];
-                    switch (bodyType)
+                    bodyInfo.Mass = loaded["collisionComponent"]["mass"];
+                    if (loaded["collisionComponent"].contains("collisionChannels"))
+                        bodyInfo.CollisionChannels = loaded["collisionComponent"]["collisionChannels"];
+                    if (loaded["collisionComponent"].contains("collisionMask"))
+                        bodyInfo.CollisionMask = loaded["collisionComponent"]["collisionMask"];
+                    switch (shapeType)
                     {
                         default:
-                        { HE_ENGINE_ASSERT(false, "Unsupported body type"); }
+                        { HE_ENGINE_ASSERT(false, "Unsupported shape type"); }
 
-                        case PhysicsBody::Type::Box:
+                        case PhysicsBodyShape::Box:
                         {
                             glm::vec3 extent = {
-                                loaded["rigidBodyComponent"]["extent"][0],
-                                loaded["rigidBodyComponent"]["extent"][1],
-                                loaded["rigidBodyComponent"]["extent"][2]
+                                loaded["collisionComponent"]["extent"][0],
+                                loaded["collisionComponent"]["extent"][1],
+                                loaded["collisionComponent"]["extent"][2]
                             };
                             body = PhysicsBody::CreateBoxShape(bodyInfo, extent);
                         } break;
 
-                        case PhysicsBody::Type::Sphere:
+                        case PhysicsBodyShape::Sphere:
                         {
-                            float radius = loaded["rigidBodyComponent"]["radius"];
+                            float radius = loaded["collisionComponent"]["radius"];
                             body = PhysicsBody::CreateSphereShape(bodyInfo, radius);
                         } break;
                             
-                        case PhysicsBody::Type::Capsule:
+                        case PhysicsBodyShape::Capsule:
                         {
-                            float radius = loaded["rigidBodyComponent"]["radius"];
-                            float height = loaded["rigidBodyComponent"]["height"];
+                            float radius = loaded["collisionComponent"]["radius"];
+                            float height = loaded["collisionComponent"]["height"];
                             body = PhysicsBody::CreateCapsuleShape(bodyInfo, radius, height);
                         } break;
                     }
                     
                     comp.BodyId = scene->GetPhysicsWorld().AddBody(body);
 
-                    entity.AddComponent<RigidBodyComponent>(comp);
+                    entity.AddComponent<CollisionComponent>(comp);
                 }
 
             }
@@ -313,34 +315,35 @@ namespace Heart
                 }
                 
                 // Rigid body component
-                if (entity.HasComponent<RigidBodyComponent>())
+                if (entity.HasComponent<CollisionComponent>())
                 {
-                    auto& bodyComp = entity.GetComponent<RigidBodyComponent>();
+                    auto& bodyComp = entity.GetComponent<CollisionComponent>();
                     PhysicsBody* body = scene->GetPhysicsWorld().GetBody(bodyComp.BodyId);
-                    entry["rigidBodyComponent"]["type"] = body->GetBodyType();
-                    entry["rigidBodyComponent"]["mass"] = body->GetMass();
-                    entry["rigidBodyComponent"]["collisionChannels"] = body->GetCollisionChannels();
-                    entry["rigidBodyComponent"]["collisionMask"] = body->GetCollisionMask();
-                    switch (body->GetBodyType())
+                    entry["collisionComponent"]["type"] = body->GetBodyType();
+                    entry["collisionComponent"]["shape"] = body->GetShapeType();
+                    entry["collisionComponent"]["mass"] = body->GetMass();
+                    entry["collisionComponent"]["collisionChannels"] = body->GetCollisionChannels();
+                    entry["collisionComponent"]["collisionMask"] = body->GetCollisionMask();
+                    switch (body->GetShapeType())
                     {
                         default:
                         { HE_ENGINE_ASSERT(false, "Unsupported body type"); }
 
-                        case PhysicsBody::Type::Box:
+                        case PhysicsBodyShape::Box:
                         {
                             auto extent = body->GetBoxExtent();
-                            entry["rigidBodyComponent"]["extent"] = nlohmann::json::array({ extent.x, extent.y, extent.z });
+                            entry["collisionComponent"]["extent"] = nlohmann::json::array({ extent.x, extent.y, extent.z });
                         } break;
 
-                        case PhysicsBody::Type::Sphere:
+                        case PhysicsBodyShape::Sphere:
                         {
-                            entry["rigidBodyComponent"]["radius"] = body->GetSphereRadius();
+                            entry["collisionComponent"]["radius"] = body->GetSphereRadius();
                         } break;
                             
-                        case PhysicsBody::Type::Capsule:
+                        case PhysicsBodyShape::Capsule:
                         {
-                            entry["rigidBodyComponent"]["radius"] = body->GetCapsuleRadius();
-                            entry["rigidBodyComponent"]["height"] = body->GetCapsuleHeight();
+                            entry["collisionComponent"]["radius"] = body->GetCapsuleRadius();
+                            entry["collisionComponent"]["height"] = body->GetCapsuleHeight();
                         } break;
                     }
                 }

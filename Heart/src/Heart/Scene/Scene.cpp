@@ -40,15 +40,15 @@ namespace Heart
     }
 
     template <>
-    void Scene::CopyComponent<RigidBodyComponent>(entt::entity src, Entity dst)
+    void Scene::CopyComponent<CollisionComponent>(entt::entity src, Entity dst)
     {
-        if (m_Registry.any_of<RigidBodyComponent>(src))
+        if (m_Registry.any_of<CollisionComponent>(src))
         {
-            auto& oldComp = m_Registry.get<RigidBodyComponent>(src);
-            RigidBodyComponent newComp;
+            auto& oldComp = m_Registry.get<CollisionComponent>(src);
+            CollisionComponent newComp;
             newComp.BodyId = dst.GetScene()->GetPhysicsWorld().AddBody(m_PhysicsWorld.GetBody(oldComp.BodyId)->Clone());
 
-            dst.AddComponent<RigidBodyComponent>(newComp);
+            dst.AddComponent<CollisionComponent>(newComp);
         }
     }
 
@@ -128,7 +128,7 @@ namespace Heart
         CopyComponent<ScriptComponent>(source.GetHandle(), newEntity);
         // Do not copy primary camera component when duplicating entity
         CopyComponent<CameraComponent>(source.GetHandle(), newEntity);
-        CopyComponent<RigidBodyComponent>(source.GetHandle(), newEntity);
+        CopyComponent<CollisionComponent>(source.GetHandle(), newEntity);
 
         CacheEntityTransform(newEntity);
 
@@ -282,7 +282,7 @@ namespace Heart
             scale
         };
         
-        if (updatePhysics && entity.HasComponent<RigidBodyComponent>())
+        if (updatePhysics && entity.HasComponent<CollisionComponent>())
             entity.GetPhysicsBody()->SetTransform(translation, quat);
             
         if (propagateToChildren && entity.HasComponent<ChildrenComponent>())
@@ -294,7 +294,7 @@ namespace Heart
                 // Don't propagate parent position to children with rigid bodies during runtime
                 // because they are meant to become disconnected
                 auto childEntity = GetEntityFromUUIDUnchecked(child);
-                if (m_IsRuntime && childEntity.HasComponent<RigidBodyComponent>()) continue;
+                if (m_IsRuntime && childEntity.HasComponent<CollisionComponent>()) continue;
                 
                 CacheEntityTransform(childEntity);
             }
@@ -304,7 +304,7 @@ namespace Heart
     void Scene::CalculateEntityTransform(Entity target, glm::mat4& outTransform, glm::vec3& outRotation)
     {
         auto& transformComp = target.GetComponent<TransformComponent>();
-        if (target.HasComponent<ParentComponent>() && (!m_IsRuntime || !target.HasComponent<RigidBodyComponent>()))
+        if (target.HasComponent<ParentComponent>() && (!m_IsRuntime || !target.HasComponent<CollisionComponent>()))
         {
             auto parent = GetEntityFromUUIDUnchecked(target.GetComponent<ParentComponent>().ParentUUID);
             outTransform = GetEntityCachedTransform(parent) * transformComp.GetTransformMatrix();
@@ -318,7 +318,7 @@ namespace Heart
 
     void Scene::GetEntityParentTransform(Entity target, glm::mat4& outTransform)
     {
-        if (target.HasComponent<ParentComponent>() && (!m_IsRuntime || !target.HasComponent<RigidBodyComponent>()))
+        if (target.HasComponent<ParentComponent>() && (!m_IsRuntime || !target.HasComponent<CollisionComponent>()))
         {
             glm::vec3 rot;
             CalculateEntityTransform(GetEntityFromUUIDUnchecked(target.GetComponent<ParentComponent>().ParentUUID), outTransform, rot);
@@ -350,7 +350,7 @@ namespace Heart
             CopyComponent<LightComponent>(src.GetHandle(), dst);
             CopyComponent<PrimaryCameraComponent>(src.GetHandle(), dst);
             CopyComponent<CameraComponent>(src.GetHandle(), dst);
-            CopyComponent<RigidBodyComponent>(src.GetHandle(), dst);
+            CopyComponent<CollisionComponent>(src.GetHandle(), dst);
         });
         
         // Copy script component after all entities have been created
@@ -417,20 +417,25 @@ namespace Heart
         auto timer = AggregateTimer("Scene::OnUpdateRuntime");
         
         // Update physics
+        auto runTimer = AggregateTimer("Scene::OnUpdateRuntime - Physics Step");
         m_PhysicsWorld.Step(ts.StepSeconds());
-
+        runTimer.Finish();
+        
         // Update positions of physics entities to reflect physics body position
-        auto physView = m_Registry.view<RigidBodyComponent, TransformComponent>();
+        runTimer = AggregateTimer("Scene::OnUpdateRuntime - Post Physics");
+        auto physView = m_Registry.view<CollisionComponent, TransformComponent>();
         for (auto entity : physView)
         {
-            auto& bodyComp = physView.get<RigidBodyComponent>(entity);
+            auto& bodyComp = physView.get<CollisionComponent>(entity);
             PhysicsBody* body = m_PhysicsWorld.GetBody(bodyComp.BodyId);
             
-            if (body->GetMass() == 0.f) continue; // Static objects will never have an updated position so skip
+            // Static & ghost objects will never have an updated position so skip
+            if (body->GetBodyType() != PhysicsBodyType::Rigid || body->GetMass() == 0.f) continue;
             
             auto& transformComp = physView.get<TransformComponent>(entity);
             bool dirty = false;
             
+            // TODO: store body's position and check that rather than the entity's
             auto newPos = body->GetPosition();
             if (transformComp.Translation != newPos)
             {
@@ -449,18 +454,24 @@ namespace Heart
             if (dirty)
                 CacheEntityTransform({ this, entity }, true, false);
         }
-
+        runTimer.Finish();
+        
         // Call OnUpdate lifecycle method
+        runTimer = AggregateTimer("Scene::OnUpdateRuntime - Scripts");
         auto scriptView = m_Registry.view<ScriptComponent>();
         for (auto entity : scriptView)
         {
             auto& scriptComp = scriptView.get<ScriptComponent>(entity);
             scriptComp.Instance.OnUpdate(ts);
         }
+        runTimer.Finish();
+        
         // Cleanup destroyed entities
+        runTimer = AggregateTimer("Scene::OnUpdateRuntime - Cleanup");
         auto destroyedView = m_Registry.view<DestroyedComponent>();
         for (auto entity : destroyedView)
             CleanupEntity({ this, entity });
+        runTimer.Finish();
     }
 
     Entity Scene::GetEntityFromUUID(UUID uuid)

@@ -7,16 +7,23 @@ namespace Heart.Physics
     public enum PhysicsBodyType : uint
     {
         None = 0,
+        Rigid, Ghost
+    }
+
+    public enum PhysicsBodyShape : uint
+    {
+        None = 0,
         Box, Sphere, Capsule
     }
 
     [StructLayout(LayoutKind.Explicit, Size = 20)]
     internal struct PhysicsBodyInfoInternal
     {
-        [FieldOffset(0)] public float Mass;
-        [FieldOffset(4)] public uint CollisionChannels;
-        [FieldOffset(8)] public uint CollisionMask;
-        [FieldOffset(12)] public IntPtr ExtraData;
+        [FieldOffset(0)] public uint Type;
+        [FieldOffset(4)] public float Mass;
+        [FieldOffset(8)] public uint CollisionChannels;
+        [FieldOffset(12)] public uint CollisionMask;
+        [FieldOffset(16)] public IntPtr ExtraData;
     }
     
     public enum DefaultCollisionChannel : uint
@@ -33,13 +40,15 @@ namespace Heart.Physics
 
         public PhysicsBodyInfo()
         {
+            _internal.Type = (uint)PhysicsBodyType.Rigid;
             _internal.Mass = 1.0f;
             _internal.CollisionChannels = (uint)DefaultCollisionChannel.Default;
             _internal.CollisionMask = (uint)DefaultCollisionChannel.All;
         }
 
-        public PhysicsBodyInfo(float mass, uint colChannels, uint colMask) 
+        public PhysicsBodyInfo(PhysicsBodyType type, float mass, uint colChannels, uint colMask) 
         {
+            _internal.Type = (uint)type;
             _internal.Mass = mass;
             _internal.CollisionChannels = colChannels;
             _internal.CollisionMask = colMask;
@@ -47,16 +56,20 @@ namespace Heart.Physics
 
         public PhysicsBodyInfo(PhysicsBodyInfo other)
         {
-            _internal.Mass = other.Mass;
-            _internal.CollisionChannels = other.CollisionChannels;
-            _internal.CollisionMask = other.CollisionMask;
+            _internal = other._internal;
         }
 
         internal PhysicsBodyInfo(PhysicsBodyInfoInternal other)
         {
-            _internal.Mass = other.Mass;
-            _internal.CollisionChannels = other.CollisionChannels;
-            _internal.CollisionMask = other.CollisionMask;
+            _internal = other;
+        }
+
+        public PhysicsBodyType Type
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => (PhysicsBodyType)_internal.Type;
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            set => _internal.Type = (uint)value;
         }
 
         public float Mass

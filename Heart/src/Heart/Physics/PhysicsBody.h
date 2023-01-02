@@ -6,7 +6,7 @@
 
 class btCollisionShape;
 class btDefaultMotionState;
-class btRigidBody;
+class btCollisionObject;
 class btTransform;
 namespace Heart
 {
@@ -18,8 +18,21 @@ namespace Heart
         Dynamic = HE_BIT(2)
     };
 
+    enum class PhysicsBodyType : u32
+    {
+        None = 0,
+        Rigid, Ghost
+    };
+
+    enum class PhysicsBodyShape : u32
+    {
+        None = 0,
+        Box, Sphere, Capsule
+    };
+
     struct PhysicsBodyCreateInfo
     {
+        PhysicsBodyType Type = PhysicsBodyType::Rigid;
         float Mass = 1.f;
         u32 CollisionChannels = (u32)DefaultCollisionChannel::Default;
         u32 CollisionMask = (u32)DefaultCollisionChannel::All;
@@ -28,16 +41,6 @@ namespace Heart
 
     class PhysicsBody
     {
-    public:
-        enum class Type : u32
-        {
-            None = 0,
-            Box, Sphere, Capsule
-        };
-        inline static const char* TypeStrings[] = {
-            "None", "Box", "Sphere", "Capsule"
-        };
-
     public:
         PhysicsBody() = default;
         
@@ -53,8 +56,9 @@ namespace Heart
         void SetAngularVelocity(glm::vec3 vel);
         
         inline bool IsInitialized() const { return m_Initialized; }
-        inline btRigidBody* GetBody() const { return m_Body.get(); }
-        inline Type GetBodyType() const { return m_BodyType; }
+        inline btCollisionObject* GetBody() const { return m_Body.get(); }
+        inline PhysicsBodyShape GetShapeType() const { return m_ShapeType; }
+        inline PhysicsBodyType GetBodyType() const { return m_Info.Type; }
         inline float GetMass() const { return m_Info.Mass; }
         inline u32 GetCollisionChannels() const { return m_Info.CollisionChannels; }
         inline u32 GetCollisionMask() const { return m_Info.CollisionMask; }
@@ -86,10 +90,11 @@ namespace Heart
     private:
         Ref<btCollisionShape> m_Shape;
         Ref<btDefaultMotionState> m_MotionState;
-        Ref<btRigidBody> m_Body;
+        Ref<btCollisionObject> m_Body;
         
         bool m_Initialized = false;
-        Type m_BodyType;
+        bool m_HasMotionState = false;
+        PhysicsBodyShape m_ShapeType;
         PhysicsBodyCreateInfo m_Info;
         
     private:

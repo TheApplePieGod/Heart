@@ -30,7 +30,7 @@ namespace Heart
         }
         
         template<>
-        void AddComponent<RigidBodyComponent>(PhysicsBody& body);
+        void AddComponent<CollisionComponent>(PhysicsBody& body);
 
         // Safe to call when entity does not have component
         template<typename Component>

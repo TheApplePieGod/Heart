@@ -2,6 +2,7 @@
 using Heart.Core;
 using Heart.Math;
 using Heart.NativeBridge;
+using Heart.NativeInterop;
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -19,13 +20,17 @@ namespace Heart.Scene
             _sceneHandle = sceneHandle;
         }
 
+        public bool IsAlive()
+        {
+            if (_entityHandle == InvalidEntityHandle) return false;
+            return NativeMarshal.InteropBoolToBool(
+                Native_Entity_IsValid(_entityHandle, _sceneHandle)
+            );
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Scene GetScene()
             => new Scene(_sceneHandle);
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool IsAlive()
-            => _entityHandle != InvalidEntityHandle;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public UUID GetId()
@@ -152,5 +157,8 @@ namespace Heart.Scene
 
         [DllImport("__Internal")]
         internal static extern void Native_Entity_Destroy(uint entityHandle, IntPtr sceneHandle);
+
+        [DllImport("__Internal")]
+        internal static extern InteropBool Native_Entity_IsValid(uint entityHandle, IntPtr sceneHandle);
     }
 }

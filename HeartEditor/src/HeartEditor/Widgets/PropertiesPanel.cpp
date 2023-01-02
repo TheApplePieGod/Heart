@@ -50,10 +50,10 @@ namespace Widgets
                     selectedEntity.AddComponent<Heart::ScriptComponent>();
                 if (ImGui::MenuItem("Camera Component"))
                     selectedEntity.AddComponent<Heart::CameraComponent>();
-                if (ImGui::MenuItem("Rigid Body Component"))
+                if (ImGui::MenuItem("Collision Component"))
                 {
                     auto body = Heart::PhysicsBody::CreateDefaultBody((void*)(intptr_t)selectedEntity.GetUUID());
-                    selectedEntity.AddComponent<Heart::RigidBodyComponent>(body);
+                    selectedEntity.AddComponent<Heart::CollisionComponent>(body);
                 }
                     
                 ImGui::EndPopup();
@@ -67,7 +67,7 @@ namespace Widgets
             RenderLightComponent();
             RenderScriptComponent();
             RenderCameraComponent();
-            RenderRigidBodyComponent();
+            RenderCollisionComponent();
         }
 
         ImGui::End();
@@ -89,15 +89,15 @@ namespace Widgets
                 glm::vec3 scale = selectedEntity.GetScale();
                 ImGui::Indent();
                 modified |= Heart::ImGuiUtils::XYZSlider("Translation  ", &translation.x, &translation.y, &translation.z, -999999.f, 999999.f, 0.1f);
-                modified |= Heart::ImGuiUtils::XYZSlider("Rotation     ", &rotation.x, &rotation.y, &rotation.z, -360.f, 360.f, 1.f);
-                modified |= Heart::ImGuiUtils::XYZSlider("Scale        ", &scale.x, &scale.y, &scale.z, 0.f, 999999.f, 0.1f);
+                modified |= Heart::ImGuiUtils::XYZSlider("Rotation      ", &rotation.x, &rotation.y, &rotation.z, -360.f, 360.f, 1.f);
+                modified |= Heart::ImGuiUtils::XYZSlider("Scale           ", &scale.x, &scale.y, &scale.z, 0.f, 999999.f, 0.1f);
                 ImGui::Unindent();
                 
                 if (modified)
                 {
                     // Apply a rot delta rather than setting when we are dealing with physics entities
                     // because of quat weirdness
-                    if (selectedEntity.HasComponent<Heart::RigidBodyComponent>())
+                    if (selectedEntity.HasComponent<Heart::CollisionComponent>())
                     {
                         selectedEntity.ApplyRotation(rotation - selectedEntity.GetRotation());
                         selectedEntity.SetTransform(translation, selectedEntity.GetRotation(), scale);
@@ -385,15 +385,15 @@ namespace Widgets
         }
     }
 
-    void PropertiesPanel::RenderRigidBodyComponent()
+    void PropertiesPanel::RenderCollisionComponent()
     {
         auto selectedEntity = Editor::GetState().SelectedEntity;
-        if (selectedEntity.HasComponent<Heart::RigidBodyComponent>())
+        if (selectedEntity.HasComponent<Heart::CollisionComponent>())
         {
-            bool headerOpen = ImGui::CollapsingHeader("Rigid Body");
-            if (!RenderComponentPopup<Heart::RigidBodyComponent>("RBPopup", true) && headerOpen)
+            bool headerOpen = ImGui::CollapsingHeader("Collision");
+            if (!RenderComponentPopup<Heart::CollisionComponent>("RBPopup", true) && headerOpen)
             {
-                auto& bodyComp = selectedEntity.GetComponent<Heart::RigidBodyComponent>();
+                auto& bodyComp = selectedEntity.GetComponent<Heart::CollisionComponent>();
                 Heart::PhysicsBody* body = selectedEntity.GetPhysicsBody();
                 
                 ImGui::Indent();
@@ -402,21 +402,46 @@ namespace Widgets
                 ImGui::Text("Mass:");
                 ImGui::SameLine();
                 bool recreate = ImGui::DragFloat("##mass", &bodyInfo.Mass, 0.25f, 0.f, 1000.f);
-
-                Heart::PhysicsBody::Type bodyType = body->GetBodyType();
+                
                 ImGui::Text("Body Type:");
                 ImGui::SameLine();
-                bool popupOpened = ImGui::Button(HE_ENUM_TO_STRING(Heart::PhysicsBody, bodyType));
+                constexpr std::array<const char*, 3> bodyStrings = {
+                    "None", "Rigid", "Ghost"
+                };
+                bool popupOpened = ImGui::Button(bodyStrings[(u32)bodyInfo.Type]);
                 if (popupOpened)
                     ImGui::OpenPopup("BodyTypeSelect");
-            
                 if (ImGui::BeginPopup("BodyTypeSelect"))
                 {
-                    if (ImGui::MenuItem("Box") && bodyType != Heart::PhysicsBody::Type::Box)
+                    if (ImGui::MenuItem("Rigid") && bodyInfo.Type != Heart::PhysicsBodyType::Rigid)
+                    {
+                        recreate = true;
+                        bodyInfo.Type = Heart::PhysicsBodyType::Rigid;
+                    }
+                    if (ImGui::MenuItem("Ghost") && bodyInfo.Type != Heart::PhysicsBodyType::Ghost)
+                    {
+                        recreate = true;
+                        bodyInfo.Type = Heart::PhysicsBodyType::Ghost;
+                    }
+                    ImGui::EndPopup();
+                }
+
+                Heart::PhysicsBodyShape shapeType = body->GetShapeType();
+                ImGui::Text("Shape Type:");
+                ImGui::SameLine();
+                constexpr std::array<const char*, 4> shapeStrings = {
+                    "None", "Box", "Sphere", "Capsule"
+                };
+                popupOpened = ImGui::Button(shapeStrings[(u32)shapeType]);
+                if (popupOpened)
+                    ImGui::OpenPopup("ShapeSelect");
+                if (ImGui::BeginPopup("ShapeSelect"))
+                {
+                    if (ImGui::MenuItem("Box") && shapeType != Heart::PhysicsBodyShape::Box)
                         selectedEntity.ReplacePhysicsBody(Heart::PhysicsBody::CreateBoxShape(bodyInfo, { 0.5f, 0.5f, 0.5f }));
-                    if (ImGui::MenuItem("Sphere") && bodyType != Heart::PhysicsBody::Type::Sphere)
+                    if (ImGui::MenuItem("Sphere") && shapeType != Heart::PhysicsBodyShape::Sphere)
                         selectedEntity.ReplacePhysicsBody(Heart::PhysicsBody::CreateSphereShape(bodyInfo, 0.5f));
-                    if (ImGui::MenuItem("Capsule") && bodyType != Heart::PhysicsBody::Type::Capsule)
+                    if (ImGui::MenuItem("Capsule") && shapeType != Heart::PhysicsBodyShape::Capsule)
                         selectedEntity.ReplacePhysicsBody(Heart::PhysicsBody::CreateCapsuleShape(bodyInfo, 0.5f, 1.f));
                     ImGui::EndPopup();
                 }
@@ -439,11 +464,11 @@ namespace Widgets
                 ImGui::Text("Shape Properties");
                 ImGui::Separator();
 
-                switch (body->GetBodyType())
+                switch (body->GetShapeType())
                 {
                     default: break;
                     
-                    case Heart::PhysicsBody::Type::Box:
+                    case Heart::PhysicsBodyShape::Box:
                     {
                         auto extent = body->GetBoxExtent();
                         if (recreate || Heart::ImGuiUtils::XYZSlider(
@@ -458,7 +483,7 @@ namespace Widgets
                             selectedEntity.ReplacePhysicsBody(Heart::PhysicsBody::CreateBoxShape(bodyInfo, extent));
                     } break;
 
-                    case Heart::PhysicsBody::Type::Sphere:
+                    case Heart::PhysicsBodyShape::Sphere:
                     {
                         float radius = body->GetSphereRadius();
                         ImGui::Text("Radius");
@@ -467,7 +492,7 @@ namespace Widgets
                             selectedEntity.ReplacePhysicsBody(Heart::PhysicsBody::CreateSphereShape(bodyInfo, radius));
                     } break;
                         
-                    case Heart::PhysicsBody::Type::Capsule:
+                    case Heart::PhysicsBodyShape::Capsule:
                     {
                         float radius = body->GetCapsuleRadius();
                         float height = body->GetCapsuleHeight();

@@ -390,84 +390,94 @@ HE_INTEROP_EXPORT void Native_CameraComponent_SetPrimary(u32 entityHandle, Heart
 }
 
 // Rigid body component
-EXPORT_COMPONENT_GET_FN(RigidBodyComponent);
-EXPORT_COMPONENT_EXISTS_FN(RigidBodyComponent);
-EXPORT_COMPONENT_REMOVE_FN(RigidBodyComponent);
+EXPORT_COMPONENT_GET_FN(CollisionComponent);
+EXPORT_COMPONENT_EXISTS_FN(CollisionComponent);
+EXPORT_COMPONENT_REMOVE_FN(CollisionComponent);
 
-HE_INTEROP_EXPORT void Native_RigidBodyComponent_Add(u32 entityHandle, Heart::Scene* sceneHandle)
+HE_INTEROP_EXPORT void Native_CollisionComponent_Add(u32 entityHandle, Heart::Scene* sceneHandle)
 {
     ASSERT_ENTITY_IS_VALID();
     Heart::Entity entity(sceneHandle, entityHandle);
     auto body = Heart::PhysicsBody::CreateDefaultBody((void*)(intptr_t)entity.GetUUID());
-    entity.AddComponent<Heart::RigidBodyComponent>(body);
+    entity.AddComponent<Heart::CollisionComponent>(body);
 }
 
-HE_INTEROP_EXPORT void Native_RigidBodyComponent_GetInfo(u32 entityHandle, Heart::Scene* sceneHandle, Heart::PhysicsBodyCreateInfo* outValue)
+HE_INTEROP_EXPORT void Native_CollisionComponent_GetInfo(u32 entityHandle, Heart::Scene* sceneHandle, Heart::PhysicsBodyCreateInfo* outValue)
 {
     ASSERT_ENTITY_IS_VALID();
-    ASSERT_ENTITY_HAS_COMPONENT(RigidBodyComponent);
+    ASSERT_ENTITY_HAS_COMPONENT(CollisionComponent);
     Heart::Entity entity(sceneHandle, entityHandle);
     *outValue = entity.GetPhysicsBody()->GetInfo();
 }
 
-HE_INTEROP_EXPORT void Native_RigidBodyComponent_GetType(u32 entityHandle, Heart::Scene* sceneHandle, u32* outValue)
+HE_INTEROP_EXPORT void Native_CollisionComponent_GetShapeType(u32 entityHandle, Heart::Scene* sceneHandle, u32* outValue)
 {
     ASSERT_ENTITY_IS_VALID();
-    ASSERT_ENTITY_HAS_COMPONENT(RigidBodyComponent);
+    ASSERT_ENTITY_HAS_COMPONENT(CollisionComponent);
     Heart::Entity entity(sceneHandle, entityHandle);
-    *outValue = (u32)entity.GetPhysicsBody()->GetBodyType();
+    *outValue = (u32)entity.GetPhysicsBody()->GetShapeType();
 }
 
-HE_INTEROP_EXPORT void Native_RigidBodyComponent_UpdateMass(u32 entityHandle, Heart::Scene* sceneHandle, float mass)
+HE_INTEROP_EXPORT void Native_CollisionComponent_UpdateType(u32 entityHandle, Heart::Scene* sceneHandle, Heart::PhysicsBodyType type)
 {
     ASSERT_ENTITY_IS_VALID();
-    ASSERT_ENTITY_HAS_COMPONENT(RigidBodyComponent);
+    ASSERT_ENTITY_HAS_COMPONENT(CollisionComponent);
+    Heart::Entity entity(sceneHandle, entityHandle);
+    auto info = entity.GetPhysicsBody()->GetInfo();
+    info.Type = type;
+    entity.ReplacePhysicsBody(entity.GetPhysicsBody()->Clone(&info));
+}
+
+HE_INTEROP_EXPORT void Native_CollisionComponent_UpdateMass(u32 entityHandle, Heart::Scene* sceneHandle, float mass)
+{
+    ASSERT_ENTITY_IS_VALID();
+    ASSERT_ENTITY_HAS_COMPONENT(CollisionComponent);
     Heart::Entity entity(sceneHandle, entityHandle);
     auto info = entity.GetPhysicsBody()->GetInfo();
     info.Mass = mass;
     entity.ReplacePhysicsBody(entity.GetPhysicsBody()->Clone(&info));
 }
 
-HE_INTEROP_EXPORT void Native_RigidBodyComponent_UpdateCollisionChannels(u32 entityHandle, Heart::Scene* sceneHandle, u64 channels)
+HE_INTEROP_EXPORT void Native_CollisionComponent_UpdateCollisionChannels(u32 entityHandle, Heart::Scene* sceneHandle, u64 channels)
 {
     ASSERT_ENTITY_IS_VALID();
-    ASSERT_ENTITY_HAS_COMPONENT(RigidBodyComponent);
+    ASSERT_ENTITY_HAS_COMPONENT(CollisionComponent);
     Heart::Entity entity(sceneHandle, entityHandle);
     auto info = entity.GetPhysicsBody()->GetInfo();
     info.CollisionChannels = channels;
     entity.ReplacePhysicsBody(entity.GetPhysicsBody()->Clone(&info));
 }
 
-HE_INTEROP_EXPORT void Native_RigidBodyComponent_UpdateCollisionMask(u32 entityHandle, Heart::Scene* sceneHandle, u64 mask)
+HE_INTEROP_EXPORT void Native_CollisionComponent_UpdateCollisionMask(u32 entityHandle, Heart::Scene* sceneHandle, u64 mask)
 {
     ASSERT_ENTITY_IS_VALID();
-    ASSERT_ENTITY_HAS_COMPONENT(RigidBodyComponent);
+    ASSERT_ENTITY_HAS_COMPONENT(CollisionComponent);
     Heart::Entity entity(sceneHandle, entityHandle);
     auto info = entity.GetPhysicsBody()->GetInfo();
     info.CollisionMask = mask;
     entity.ReplacePhysicsBody(entity.GetPhysicsBody()->Clone(&info));
 }
 
-HE_INTEROP_EXPORT void Native_RigidBodyComponent_UseBoxShape(u32 entityHandle, Heart::Scene* sceneHandle, const Heart::PhysicsBodyCreateInfo* info, glm::vec3 extent)
+HE_INTEROP_EXPORT void Native_CollisionComponent_UseBoxShape(u32 entityHandle, Heart::Scene* sceneHandle, const Heart::PhysicsBodyCreateInfo* info, glm::vec3 extent)
 {
     ASSERT_ENTITY_IS_VALID();
-    ASSERT_ENTITY_HAS_COMPONENT(RigidBodyComponent);
+    ASSERT_ENTITY_HAS_COMPONENT(CollisionComponent);
     Heart::Entity entity(sceneHandle, entityHandle);
     entity.ReplacePhysicsBody(Heart::PhysicsBody::CreateBoxShape(*info, extent));
 }
 
-HE_INTEROP_EXPORT void Native_RigidBodyComponent_UseSphereShape(u32 entityHandle, Heart::Scene* sceneHandle, const Heart::PhysicsBodyCreateInfo* info, float radius)
+HE_INTEROP_EXPORT void Native_CollisionComponent_UseSphereShape(u32 entityHandle, Heart::Scene* sceneHandle, const Heart::PhysicsBodyCreateInfo* info, float radius)
 {
     ASSERT_ENTITY_IS_VALID();
-    ASSERT_ENTITY_HAS_COMPONENT(RigidBodyComponent);
+    ASSERT_ENTITY_HAS_COMPONENT(CollisionComponent);
     Heart::Entity entity(sceneHandle, entityHandle);
     entity.ReplacePhysicsBody(Heart::PhysicsBody::CreateSphereShape(*info, radius));
 }
 
-HE_INTEROP_EXPORT void Native_RigidBodyComponent_UseCapsuleShape(u32 entityHandle, Heart::Scene* sceneHandle, const Heart::PhysicsBodyCreateInfo* info, float radius, float halfHeight)
+HE_INTEROP_EXPORT void Native_CollisionComponent_UseCapsuleShape(u32 entityHandle, Heart::Scene* sceneHandle, const Heart::PhysicsBodyCreateInfo* info, float radius, float halfHeight)
 {
     ASSERT_ENTITY_IS_VALID();
-    ASSERT_ENTITY_HAS_COMPONENT(RigidBodyComponent);
+    ASSERT_ENTITY_HAS_COMPONENT(CollisionComponent);
     Heart::Entity entity(sceneHandle, entityHandle);
     entity.ReplacePhysicsBody(Heart::PhysicsBody::CreateCapsuleShape(*info, radius, halfHeight));
 }

@@ -25,7 +25,7 @@ namespace Widgets
         void RenderLightComponent();
         void RenderScriptComponent();
         void RenderCameraComponent();
-        void RenderRigidBodyComponent();
+        void RenderCollisionComponent();
 
         void RenderScriptField(Heart::HStringView fieldName, Heart::ScriptComponent& scriptComp);
         bool RenderCollisionChannels(Heart::HStringView8 id, u32& mask);
