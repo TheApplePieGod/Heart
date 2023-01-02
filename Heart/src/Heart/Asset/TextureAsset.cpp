@@ -91,11 +91,11 @@ namespace Heart
     void TextureAsset::Unload()
     {
         if (!m_Loaded) return;
+        m_Loaded = false;
 
         m_Texture.reset();
         //delete[] m_Data;
         m_Data = nullptr;
         m_Valid = false;
-        m_Loaded = false;
     }
 }

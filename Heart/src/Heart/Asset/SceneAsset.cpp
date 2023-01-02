@@ -37,11 +37,11 @@ namespace Heart
     void SceneAsset::Unload()
     {
         if (!m_Loaded) return;
+        m_Loaded = false;
 
         m_Scene.reset();
 
         m_Data = nullptr;
-        m_Loaded = false;
         m_Valid = false;
     }
 

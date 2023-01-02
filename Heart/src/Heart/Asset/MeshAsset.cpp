@@ -47,10 +47,10 @@ namespace Heart
     void MeshAsset::Unload()
     {
         if (!m_Loaded) return;
+        m_Loaded = false;
 
         m_Submeshes.Clear();
         m_DefaultMaterials.Clear();
-        m_Loaded = false;
         m_Valid = false;
     }
 

@@ -261,7 +261,7 @@ namespace Widgets
                     glm::vec3 invscale, invtranslation, invskew;
                     glm::vec4 invperspective;
                     glm::quat invrotation;
-                
+                    
                     // convert the word space transform to local space by multiplying it by the inverse of the parent transform
                     glm::decompose(glm::inverse(parentTransform) * transform, invscale, invrotation, invtranslation, invskew, invperspective);
                     selectedEntity.SetTransform(invtranslation, glm::degrees(glm::eulerAngles(invrotation)), invscale);

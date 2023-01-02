@@ -273,7 +273,7 @@ namespace Heart
     
         // Decompose the transform so we can cache the world space values of each component
         glm::decompose(transform, scale, quat, translation, skew, perspective);
-
+                    
         m_CachedTransforms[entity.GetHandle()] = {
             transform,
             quat,

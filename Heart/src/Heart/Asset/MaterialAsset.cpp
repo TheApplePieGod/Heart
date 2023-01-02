@@ -33,11 +33,11 @@ namespace Heart
     void MaterialAsset::Unload()
     {
         if (!m_Loaded) return;
+        m_Loaded = false;
 
         m_Material = Material();
 
         m_Data = nullptr;
-        m_Loaded = false;
         m_Valid = false;
     }
 
