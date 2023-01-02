@@ -6,6 +6,7 @@ build/*
 !.vscode/c_cpp_properties.json
 emsdk/*
 HeartProjects/**
+HeartEditor/templates/obj/**
 docs/html/*
 *.vs
 *.user
