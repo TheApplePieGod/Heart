@@ -5,7 +5,6 @@
 
 namespace Heart
 {
-    class Texture;
     class TextureAsset : public Asset
     {
     public:

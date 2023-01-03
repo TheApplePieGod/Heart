@@ -49,8 +49,8 @@ namespace Heart
         if (!m_Loaded) return;
         m_Loaded = false;
 
-        m_Submeshes.Clear();
-        m_DefaultMaterials.Clear();
+        m_Submeshes.Clear(true);
+        m_DefaultMaterials.Clear(true);
         m_Valid = false;
     }
 

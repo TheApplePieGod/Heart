@@ -50,7 +50,7 @@ namespace Heart
         inline const T* End() const { return m_Container.End(); }
         inline HStringTyped Clone() const { return HStringTyped(m_Container.Clone()); }
         inline bool IsEmpty() const { return m_Container.IsEmpty(); }
-        inline void Clear() { m_Container.Clear(true); }
+        inline void Clear() { m_Container = Container<T>(); }
 
         inline bool operator==(const HStringViewTyped<T>& other) const
         { return StringUtils::CompareEq(Data(), Count(), other.Data(), other.Count()); }

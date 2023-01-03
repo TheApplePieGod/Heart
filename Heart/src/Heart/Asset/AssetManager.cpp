@@ -282,6 +282,8 @@ namespace Heart
             type = Asset::Type::Material;
         else if (extension == ".hescn")
             type = Asset::Type::Scene;
+        else if (extension == ".ttf")
+            type = Asset::Type::Font;
 
         return type;
     }

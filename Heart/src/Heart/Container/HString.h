@@ -96,7 +96,7 @@ namespace Heart
         inline Encoding GetEncoding() const { return m_Encoding; }
         inline HString Clone() const { return HString(m_Container.Clone()); }
         inline bool IsEmpty() const { return m_Container.IsEmpty(); }
-        inline void Clear() { m_Container.Clear(true); }
+        inline void Clear() { m_Container = Container<u8>(); }
 
         bool operator==(const HStringView& other) const;
         bool operator<(const HStringView& other) const;

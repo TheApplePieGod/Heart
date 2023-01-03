@@ -172,6 +172,15 @@ namespace Heart
                     entity.AddComponent<CollisionComponent>(comp);
                 }
 
+                // Text component
+                if (loaded.contains("textComponent"))
+                {
+                    TextComponent comp;
+                    comp.Font = AssetManager::RegisterAsset(Asset::Type::Mesh, loaded["textComponent"]["font"]["path"], false, loaded["textComponent"]["font"]["engineResource"]);
+                    comp.Text = loaded["textComponent"]["text"];
+                    
+                    entity.AddComponent<TextComponent>(comp);
+                }
             }
 
             // Load transform & script components once all entities have been parsed since their
@@ -346,6 +355,15 @@ namespace Heart
                             entry["collisionComponent"]["height"] = body->GetCapsuleHeight();
                         } break;
                     }
+                }
+                
+                // Text component
+                if (entity.HasComponent<TextComponent>())
+                {
+                    auto& textComp = entity.GetComponent<TextComponent>();
+                    entry["textComponent"]["font"]["path"] = AssetManager::GetPathFromUUID(textComp.Font);
+                    entry["textComponent"]["font"]["engineResource"] = AssetManager::IsAssetAResource(textComp.Font);
+                    entry["textComponent"]["text"] = textComp.Text;
                 }
 
                 field[index++] = entry;

@@ -112,4 +112,10 @@ namespace Heart
 
     struct DestroyedComponent
     {};
+
+    struct TextComponent
+    {
+        UUID Font = 0;
+        HString Text = "Text";
+    };
 }

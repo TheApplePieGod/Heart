@@ -26,6 +26,7 @@ namespace Widgets
         void RenderScriptComponent();
         void RenderCameraComponent();
         void RenderCollisionComponent();
+        void RenderTextComponent();
 
         void RenderScriptField(Heart::HStringView fieldName, Heart::ScriptComponent& scriptComp);
         bool RenderCollisionChannels(Heart::HStringView8 id, u32& mask);
@@ -57,6 +58,7 @@ namespace Widgets
         ImGuiTextFilter m_MeshTextFilter;
         ImGuiTextFilter m_MaterialTextFilter;
         ImGuiTextFilter m_ScriptTextFilter;
+        ImGuiTextFilter m_FontTextFilter;
     };
 }
 }
