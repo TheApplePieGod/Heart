@@ -238,6 +238,8 @@ namespace Heart.Scene
                     { return NativeMarshal.InteropBoolToBool(CameraComponent.Native_CameraComponent_Exists(entityHandle, sceneHandle)); }
                 case var t when t == typeof(CollisionComponent):
                     { return NativeMarshal.InteropBoolToBool(CollisionComponent.Native_CollisionComponent_Exists(entityHandle, sceneHandle)); }
+                case var t when t == typeof(TextComponent):
+                    { return NativeMarshal.InteropBoolToBool(TextComponent.Native_TextComponent_Exists(entityHandle, sceneHandle)); }
             }
 
             throw new NotImplementedException("HasComponent does not support " + typeof(T).FullName);
@@ -275,6 +277,9 @@ namespace Heart.Scene
                 case var t when t == typeof(CollisionComponent):
                     { CollisionComponent.Native_CollisionComponent_Add(entityHandle, sceneHandle); }
                     break;
+                case var t when t == typeof(TextComponent):
+                    { TextComponent.Native_TextComponent_Add(entityHandle, sceneHandle); }
+                    break;
             }
 
             return new T { _entityHandle = entityHandle, _sceneHandle = sceneHandle };
@@ -309,6 +314,9 @@ namespace Heart.Scene
                     return;
                 case var t when t == typeof(CollisionComponent):
                     { CollisionComponent.Native_CollisionComponent_Remove(entityHandle, sceneHandle); }
+                    return;
+                case var t when t == typeof(TextComponent):
+                    { TextComponent.Native_TextComponent_Remove(entityHandle, sceneHandle); }
                     return;
             }
 

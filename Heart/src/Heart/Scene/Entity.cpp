@@ -170,4 +170,11 @@ namespace Heart
         auto& comp = GetComponent<CollisionComponent>();
         m_Scene->GetPhysicsWorld().ReplaceBody(comp.BodyId, body, keepVel);        
     }
+
+    void Entity::SetText(HStringView8 text)
+    {
+        auto& comp = GetComponent<TextComponent>();
+        comp.Text = text;
+        comp.ClearRenderData();
+    }
 }

@@ -86,7 +86,9 @@ namespace Heart
 
         PhysicsBody* GetPhysicsBody();
         void ReplacePhysicsBody(const PhysicsBody& body, bool keepVel = false);
-
+        
+        void SetText(HStringView8 text);
+        
     private:
         entt::entity m_EntityHandle = entt::null;
         Scene* m_Scene = nullptr;
