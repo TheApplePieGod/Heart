@@ -34,6 +34,14 @@
 	path = Heart/lib/bullet3
 	url = https://github.com/bulletphysics/bullet3.git
 	branch = master
+[submodule "Heart/lib/msdf"]
+	path = Heart/lib/msdf
+	url = https://github.com/Chlumsky/msdf-atlas-gen.git
+	branch = master
+[submodule "Heart/lib/FreeType"]
+	path = Heart/lib/FreeType
+	url = https://gitlab.freedesktop.org/freetype/freetype.git
+	branch = master
 [submodule "HeartTesting/lib/doctest"]
 	path = HeartTesting/lib/doctest
 	url = https://github.com/doctest/doctest.git

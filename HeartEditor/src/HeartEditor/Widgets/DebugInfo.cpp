@@ -78,7 +78,8 @@ namespace Widgets
         ImGui::Text("Scene info:");
         ImGui::Indent();
         ImGui::Text("Entity count: %d", (int)activeScene.GetRegistry().alive());
-        ImGui::Text("Rendered count: %d", viewport.GetSceneRenderer().GetRenderedInstanceCount());
+        ImGui::Text("Rendered instance count: %d", viewport.GetSceneRenderer().GetRenderedInstanceCount());
+        ImGui::Text("Rendered object count: %d", viewport.GetSceneRenderer().GetRenderedObjectCount());
         ImGui::Text("Render batches: %d", viewport.GetSceneRenderer().GetBatchCount());
         ImGui::Unindent();
         

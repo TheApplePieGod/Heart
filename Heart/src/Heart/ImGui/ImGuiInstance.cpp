@@ -31,7 +31,7 @@ namespace Heart
         //io.ConfigFlags |= ImGuiConfigFlags_ViewportsNoTaskBarIcons;
 		//io.ConfigFlags |= ImGuiConfigFlags_ViewportsNoMerge;
 
-		io.FontDefault = io.Fonts->AddFontFromFileTTF("resources/engine/Inter-Regular.ttf", 14.0f);
+		io.FontDefault = io.Fonts->AddFontFromFileTTF("resources/engine/Inter-Regular.otf", 14.0f);
 
 		// Setup Dear ImGui style
 		ImGui::StyleColorsDark();

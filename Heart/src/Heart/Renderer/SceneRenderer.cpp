@@ -29,6 +29,7 @@
 #include "Heart/Asset/MaterialAsset.h"
 #include "Heart/Asset/ShaderAsset.h"
 #include "Heart/Asset/MeshAsset.h"
+#include "Heart/Asset/FontAsset.h"
 #include "glm/gtc/matrix_transform.hpp"
 
 namespace Heart
@@ -261,6 +262,15 @@ namespace Heart
         pipelineCreateInfo.CompatibleSubpasses = { 2 };
         m_MainRenderPass->CreatePipeline("pbr", pipelineCreateInfo);
 
+        pipelineCreateInfo.VertexShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/PBR.vert", true)->GetShader();
+        pipelineCreateInfo.FragmentShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/TextPBR.frag", true)->GetShader();
+        pipelineCreateInfo.BlendStates = { { false }, { false } };
+        pipelineCreateInfo.DepthTest = true;
+        pipelineCreateInfo.DepthWrite = true;
+        pipelineCreateInfo.CullMode = Flourish::CullMode::None;
+        pipelineCreateInfo.CompatibleSubpasses = { 2 };
+        m_MainRenderPass->CreatePipeline("pbrText", pipelineCreateInfo);
+
         pipelineCreateInfo.FragmentShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/PBRTransparentColor.frag", true)->GetShader();
         pipelineCreateInfo.BlendStates = {
             { false },
@@ -379,7 +389,7 @@ namespace Heart
         // Batches pass
         m_RenderEncoder->StartNextSubpass();
         RenderBatches();
-
+        
         // Composite pass
         m_RenderEncoder->StartNextSubpass();
         Composite();
@@ -459,6 +469,7 @@ namespace Heart
         HE_PROFILE_FUNCTION();
 
         m_RenderedInstanceCount = 0;
+        m_RenderedObjectCount = 0;
         bool async = m_SceneRenderSettings.AsyncAssetLoading;
         
         // Loop over each mesh component / submesh, hash the mesh & material, and place the entity in a batch
@@ -481,13 +492,13 @@ namespace Heart
             for (u32 i = 0; i < meshAsset->GetSubmeshCount(); i++)
             {
                 auto& meshData = meshAsset->GetSubmesh(i);
-                
+               
                 glm::vec4 boundingSphere = meshData.GetBoundingSphere();
                 boundingSphere.w *= maxScale; // Extend the bounding sphere to fit the largest scale 
                 if (m_SceneRenderSettings.CullEnable && 
                     !FrustumCull(boundingSphere, m_Scene->GetEntityCachedTransform({ m_Scene, entity })))
                     continue;
-
+                
                 // Create a hash based on the submesh and its material if applicable
                 u64 hash = mesh.Mesh ^ (i * 45787893);
                 if (meshData.GetMaterialIndex() < mesh.Materials.Count())
@@ -589,6 +600,8 @@ namespace Heart
 
             commandIndex++;
         }
+        
+        m_RenderedObjectCount = objectId;
     }
 
     void SceneRenderer::RenderEnvironmentMap()
@@ -605,7 +618,7 @@ namespace Heart
         m_RenderEncoder->BindIndexBuffer(meshData.GetIndexBuffer());
         m_RenderEncoder->DrawIndexed(
             meshData.GetIndexBuffer()->GetAllocatedCount(),
-            0, 0, 1
+            0, 0, 1, 0
         );
     }
 
@@ -625,7 +638,7 @@ namespace Heart
         m_RenderEncoder->BindIndexBuffer(m_GridIndices.get());
         m_RenderEncoder->DrawIndexed(
             m_GridIndices->GetAllocatedCount(),
-            0, 0, 1
+            0, 0, 1, 0
         );
     }
     
@@ -753,7 +766,9 @@ namespace Heart
                 m_IndirectBuffer.get(), batch.First, batch.Count
             );
         }
-
+        
+        RenderText();
+        
         // Secondary (translucent) batches pass
         m_RenderEncoder->StartNextSubpass();
         m_RenderEncoder->BindPipeline("pbrTpColor");
@@ -774,6 +789,61 @@ namespace Heart
             );
         }
     }
+    
+    void SceneRenderer::RenderText()
+    {
+        HE_PROFILE_FUNCTION();
+        
+        // Bind text PBR pipeline
+        m_RenderEncoder->BindPipeline("pbrText");
+
+        // Bind defaults
+        BindPBRDefaults();
+
+        // TODO: batch by font?
+        MaterialData material;
+        auto view = m_Scene->GetRegistry().view<TransformComponent, TextComponent>();
+        for (auto entityHandle : view)
+        {
+            Entity entity = { m_Scene, entityHandle };
+            auto [transform, text] = view.get<TransformComponent, TextComponent>(entityHandle);
+            
+            if (text.Text.Count() == 0) continue;
+            
+            auto fontAsset = AssetManager::RetrieveAsset<FontAsset>(text.Font, true, m_SceneRenderSettings.AsyncAssetLoading);
+            if (!fontAsset || !fontAsset->IsValid()) continue;
+            
+            if (!text.ComputedVertices || !text.ComputedIndices)
+                text.RecomputeRenderData();
+                
+            // Object data
+            ObjectData objectData = {
+                m_Scene->GetEntityCachedTransform(entity),
+                { entityHandle, 0.f, 0.f, 0.f }
+            };
+            m_ObjectDataBuffer->SetElements(&objectData, 1, m_RenderedObjectCount);
+            
+            // Material data
+            material.BaseColor = glm::vec4(text.BaseColor, 1.f);
+            material.EmissiveFactor = glm::vec4(text.EmissiveFactor, 1.f);
+            material.Scalars.x = text.Metalness;
+            material.Scalars.y = text.Roughness;
+            m_MaterialDataBuffer->SetElements(&material, 1, m_RenderedObjectCount);
+            
+            m_RenderEncoder->BindPipelineTextureResource(16, fontAsset->GetAtlasTexture());
+            m_RenderEncoder->FlushPipelineBindings();
+            
+            // Draw
+            m_RenderEncoder->BindVertexBuffer(text.ComputedVertices.get());
+            m_RenderEncoder->BindIndexBuffer(text.ComputedIndices.get());
+            m_RenderEncoder->DrawIndexed(
+                text.ComputedIndices->GetAllocatedCount(),
+                0, 0, 1, m_RenderedObjectCount
+            );
+             
+            m_RenderedObjectCount++;
+        }
+    }
 
     void SceneRenderer::Composite()
     {
@@ -788,8 +858,8 @@ namespace Heart
 
         m_RenderEncoder->FlushPipelineBindings();
 
-        // Draw the fullscreen triangle
-        m_RenderEncoder->Draw(3, 0, 1);
+        // Draw the fullscreen triangle (TODO: make this compute)
+        m_RenderEncoder->Draw(3, 0, 1, 0);
     }
 
     void SceneRenderer::CopyEntityIdsTexture()

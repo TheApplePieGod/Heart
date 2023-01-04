@@ -14,13 +14,7 @@ layout(location = 6) out vec3 bitangent;
 layout(location = 7) out int instance;
 
 void main() {
-    #ifdef VULKAN
-        int instanceIndex = gl_InstanceIndex;
-    #else
-        int instanceIndex = gl_BaseInstance + gl_InstanceID;
-    #endif
-
-    int objectId = instanceIndex;
+    int objectId = gl_InstanceIndex;
 
     worldPos = (objectBuffer.objects[objectId].model * vec4(inPosition, 1.0)).xyz;
     viewPos = (frameBuffer.data.view * vec4(worldPos, 1.0));

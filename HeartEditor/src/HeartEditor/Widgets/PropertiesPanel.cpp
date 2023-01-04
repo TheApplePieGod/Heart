@@ -55,6 +55,8 @@ namespace Widgets
                     auto body = Heart::PhysicsBody::CreateDefaultBody((void*)(intptr_t)selectedEntity.GetUUID());
                     selectedEntity.AddComponent<Heart::CollisionComponent>(body);
                 }
+                if (ImGui::MenuItem("Text Component"))
+                    selectedEntity.AddComponent<Heart::TextComponent>();
                     
                 ImGui::EndPopup();
             }
@@ -68,6 +70,7 @@ namespace Widgets
             RenderScriptComponent();
             RenderCameraComponent();
             RenderCollisionComponent();
+            RenderTextComponent();
         }
 
         ImGui::End();
@@ -509,6 +512,86 @@ namespace Widgets
                     } break;
                 }
                  
+                ImGui::Unindent();
+            }
+        }
+    }
+
+    void PropertiesPanel::RenderTextComponent()
+    {
+        auto selectedEntity = Editor::GetState().SelectedEntity;
+        if (selectedEntity.HasComponent<Heart::TextComponent>())
+        {
+            bool headerOpen = ImGui::CollapsingHeader("Text");
+            if (!RenderComponentPopup<Heart::TextComponent>("TextPopup", true) && headerOpen)
+            {
+                auto& textComp = selectedEntity.GetComponent<Heart::TextComponent>();
+
+                ImGui::Indent();
+                
+                // Font picker
+                ImGui::Text("Font Asset:");
+                ImGui::SameLine();
+                Heart::ImGuiUtils::AssetPicker(
+                    Heart::Asset::Type::Font,
+                    textComp.Font,
+                    "NULL",
+                    "FontSelect",
+                    m_FontTextFilter,
+                    [&textComp]()
+                    {
+                        if (!textComp.Font)
+                            return;
+
+                        if (ImGui::MenuItem("Clear"))
+                            textComp.Font = 0;
+                    },
+                    [&textComp](Heart::UUID selected)
+                    {
+                        textComp.Font = selected;
+                    }
+                );
+
+                // Assign font on drop
+                Heart::ImGuiUtils::AssetDropTarget(
+                    Heart::Asset::Type::Font,
+                    [&textComp](const Heart::HStringView8& path)
+                    {
+                        textComp.Font = Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Font, path);
+                    }
+                );
+
+                ImGui::Text("Text:");
+                ImGui::SameLine();
+                if (Heart::ImGuiUtils::InputText("##Text", textComp.Text, true))
+                    textComp.ClearRenderData();
+                
+                ImGui::Text("Font Size");
+                ImGui::SameLine();
+                if (ImGui::DragFloat("##fontsize", &textComp.FontSize, 0.1f, 0.f, 100.f))
+                    textComp.ClearRenderData();
+                
+                ImGui::Text("Line Height");
+                ImGui::SameLine();
+                if (ImGui::DragFloat("##linheig", &textComp.LineHeight, 0.1f, 0.f, 100.f))
+                    textComp.ClearRenderData();
+                
+                ImGui::Text("Base Color");
+                ImGui::SameLine();
+                ImGui::ColorEdit3("##textcol", (float*)&textComp.BaseColor);
+                
+                ImGui::Text("Emissive Factor");
+                ImGui::SameLine();
+                ImGui::ColorEdit3("##textemis", (float*)&textComp.EmissiveFactor);
+                
+                ImGui::Text("Metalness");
+                ImGui::SameLine();
+                ImGui::DragFloat("##textmet", &textComp.Metalness, 0.05f, 0.f, 1.f);
+                    
+                ImGui::Text("Roughness");
+                ImGui::SameLine();
+                ImGui::DragFloat("##textrough", &textComp.Roughness, 0.05f, 0.f, 1.f);
+                        
                 ImGui::Unindent();
             }
         }

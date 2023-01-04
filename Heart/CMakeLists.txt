@@ -29,8 +29,11 @@ set(BUILD_BULLET2_DEMOS OFF)
 set(BUILD_EXTRAS OFF)
 set(BUILD_UNIT_TESTS OFF)
 set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
-add_compile_definitions(BT_EULER_DEFAULT_ZYX)
 add_subdirectory("lib/bullet3")
+add_subdirectory("lib/FreeType")
+add_library(Freetype::Freetype ALIAS freetype-interface) # Add alias so msdf can find
+set (MSDF_ATLAS_GEN_BUILD_STANDALONE OFF)
+add_subdirectory("lib/msdf")
 
 if(${CMAKE_BUILD_TYPE} MATCHES Debug)
   add_subdirectory("lib/optick")
@@ -84,6 +87,7 @@ target_include_directories(
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/utf-cpp/include>"
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/Flourish/Flourish/src>"
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/bullet3/src>"
+  "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/msdf>"
   "$<BUILD_INTERFACE:${DOTNET_RUNTIME_DIR}>"
 
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
@@ -98,6 +102,7 @@ target_include_directories(
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/json/include>"
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/utf-cpp/include>"
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/lib/bullet3/src>"
+  "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/lib/msdf>"
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/Flourish/Flourish/src>"
   "$<INSTALL_INTERFACE:${DOTNET_RUNTIME_DIR}>"
 )
@@ -108,6 +113,7 @@ target_link_libraries(
   PUBLIC
   glfw glm imgui spdlog glad imguizmo nlohmann_json FlourishCore
   BulletDynamics BulletCollision LinearMath
+  freetype msdf-atlas-gen
 )
 
 if(${CMAKE_BUILD_TYPE} MATCHES Debug)
@@ -133,6 +139,7 @@ install(
   TARGETS
     Engine glm imgui spdlog glad imguizmo nlohmann_json glfw FlourishCore
     BulletDynamics BulletCollision LinearMath
+    freetype msdf-atlas-gen msdfgen-all msdfgen-core msdfgen-ext
   EXPORT EngineTargets
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}

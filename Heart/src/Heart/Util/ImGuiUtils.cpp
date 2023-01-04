@@ -24,9 +24,10 @@ namespace Heart
 
     bool ImGuiUtils::InputText(const char* id, HString8& text)
     {
-        char buffer[128];
-        memset(buffer, 0, sizeof(buffer));
-        std::strncpy(buffer, text.Data(), sizeof(buffer));
+        static char buffer[1000];
+        u32 size = std::min((u32)sizeof(buffer) - 1, text.Count());
+        std::strncpy(buffer, text.Data(), size);
+        buffer[size] = 0;
         if (ImGui::InputText(id, buffer, sizeof(buffer)))
         {
             ImGui::SetKeyboardFocusHere(-1);
@@ -36,12 +37,15 @@ namespace Heart
         return false;
     }
 
-    bool ImGuiUtils::InputText(const char* id, HString& text)
+    bool ImGuiUtils::InputText(const char* id, HString& text, bool multiline)
     {
-        char buffer[128];
-        memset(buffer, 0, sizeof(buffer));
-        std::strncpy(buffer, text.DataUTF8(), sizeof(buffer));
-        if (ImGui::InputText(id, buffer, sizeof(buffer)))
+        static char buffer[1000];
+        u32 size = std::min((u32)sizeof(buffer) - 1, text.Count());
+        std::strncpy(buffer, text.DataUTF8(), size);
+        buffer[size] = 0;
+        if (multiline
+                ? ImGui::InputTextMultiline(id, buffer, sizeof(buffer))
+                : ImGui::InputText(id, buffer, sizeof(buffer)))
         {
             ImGui::SetKeyboardFocusHere(-1);
             text = buffer;

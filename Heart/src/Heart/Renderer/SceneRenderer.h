@@ -68,6 +68,7 @@ namespace Heart
         inline u32 GetBloomMipCount() const { return m_BloomMipCount; }
         
         inline u32 GetRenderedInstanceCount() const { return m_RenderedInstanceCount; }
+        inline u32 GetRenderedObjectCount() const { return m_RenderedObjectCount; }
         inline u32 GetBatchCount() const { return m_IndirectBatches.size(); }
         
     private:
@@ -150,7 +151,7 @@ namespace Heart
             float Bias;
             float Padding;
         };
-
+        
     private:
         void Initialize();
         void Resize();
@@ -172,6 +173,7 @@ namespace Heart
         void RenderEnvironmentMap();
         void RenderGrid();
         void RenderBatches();
+        void RenderText();
         void Composite();
         void CopyEntityIdsTexture();
         void SSAO();
@@ -233,6 +235,7 @@ namespace Heart
         HVector<HVector<u32>> m_EntityListPool;
         SceneRenderSettings m_SceneRenderSettings;
         u32 m_RenderedInstanceCount;
+        u32 m_RenderedObjectCount;
         std::vector<std::vector<Flourish::CommandBuffer*>> m_RenderBuffers;
 
         u32 m_BloomMipCount = 0;
