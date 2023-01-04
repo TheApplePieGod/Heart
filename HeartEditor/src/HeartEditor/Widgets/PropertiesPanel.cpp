@@ -591,7 +591,7 @@ namespace Widgets
                 ImGui::Text("Roughness");
                 ImGui::SameLine();
                 ImGui::DragFloat("##textrough", &textComp.Roughness, 0.05f, 0.f, 1.f);
-                        
+                
                 ImGui::Unindent();
             }
         }

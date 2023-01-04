@@ -482,6 +482,25 @@ HE_INTEROP_EXPORT void Native_CollisionComponent_UseCapsuleShape(u32 entityHandl
     entity.ReplacePhysicsBody(Heart::PhysicsBody::CreateCapsuleShape(*info, radius, halfHeight));
 }
 
+// Text component
+EXPORT_COMPONENT_BASIC_FNS(TextComponent);
+
+HE_INTEROP_EXPORT void Native_TextComponent_SetText(u32 entityHandle, Heart::Scene* sceneHandle, const char* text)
+{
+    ASSERT_ENTITY_IS_VALID();
+    ASSERT_ENTITY_HAS_COMPONENT(TextComponent);
+    Heart::Entity entity(sceneHandle, entityHandle);
+    entity.SetText(text);
+}
+
+HE_INTEROP_EXPORT void Native_TextComponent_ClearRenderData(u32 entityHandle, Heart::Scene* sceneHandle)
+{
+    ASSERT_ENTITY_IS_VALID();
+    ASSERT_ENTITY_HAS_COMPONENT(TextComponent);
+    Heart::Entity entity(sceneHandle, entityHandle);
+    entity.GetComponent<Heart::TextComponent>().ClearRenderData();
+}
+
 // We need this in order to ensure that the dllexports inside the engine static lib
 // do not get removed
 void* exportVariable = nullptr;
