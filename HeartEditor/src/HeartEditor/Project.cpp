@@ -224,4 +224,73 @@ namespace HeartEditor
             HE_ENGINE_LOG_ERROR("Build output: {0}", output.Data());
         }
     }
+    
+    void Project::Export(Heart::HStringView8 absolutePath)
+    {
+        std::filesystem::path finalPath = std::filesystem::path(absolutePath.Data()).append(m_Name.Data());
+        std::filesystem::create_directory(finalPath);
+        
+        #ifdef HE_PLATFORM_MACOS
+            Heart::HStringView8 runtimeExt = ".app";
+        #else
+            Heart::HStringView8 runtimeExt = ".exe";
+        #endif
+        
+        Heart::HString8 runtimeName = Heart::HStringView8("Runtime") + runtimeExt;
+        std::filesystem::copy(
+            runtimeName.Data(),
+            std::filesystem::path(finalPath).append(runtimeName.Data()),
+            std::filesystem::copy_options::recursive
+        );
+        
+        std::filesystem::path copyPath;
+        std::filesystem::path engineResources = std::filesystem::path("resources").append("engine");
+        #ifdef HE_PLATFORM_MACOS
+            // Copy files to bundle resources directory
+            copyPath = std::filesystem::path(finalPath).append(runtimeName.Data());
+            copyPath.append("Contents");
+            std::filesystem::create_directory(copyPath);
+            copyPath.append("Resources");
+            std::filesystem::create_directory(copyPath);
+        #else
+            copyPath = std::filesystem::path(finalPath);
+        #endif
+
+        copyPath.append("resources");
+        std::filesystem::create_directory(copyPath);
+        copyPath.append("engine");
+        std::filesystem::create_directory(copyPath);
+        std::filesystem::copy(engineResources, copyPath, std::filesystem::copy_options::recursive);
+            
+        copyPath = copyPath.parent_path().parent_path().append("scripting");
+        std::filesystem::create_directory(copyPath);
+        std::filesystem::copy("dotnet", copyPath, std::filesystem::copy_options::recursive);
+        
+        copyPath = copyPath.parent_path().append("project");
+        std::filesystem::create_directory(copyPath);
+        std::filesystem::copy(std::filesystem::path(m_AbsolutePath.Data()).parent_path(), copyPath, std::filesystem::copy_options::recursive);
+        
+        // Copy extra files
+        #ifdef HE_PLATFORM_MACOS
+            std::filesystem::path dst = std::filesystem::path(copyPath).parent_path().parent_path();
+            dst.append("Lib");
+            std::filesystem::create_directory(dst);
+            std::filesystem::copy(
+              "libMoltenVK.dylib",
+              std::filesystem::path(dst).append("libMoltenVK.dylib")
+            );
+            std::filesystem::copy(
+              std::filesystem::path(dst).append("libMoltenVK.dylib"),
+              std::filesystem::path(dst).append("libvulkan.1.dylib"),
+              std::filesystem::copy_options::create_symlinks
+            );
+        #else
+            std::filesystem::copy(
+              "vulkan-1.dll",
+              std::filesystem::path(finalPath).append("vulkan-1.dll")
+            );
+        #endif
+        
+        HE_ENGINE_LOG_INFO("Project exported successfully to {0}", finalPath.generic_u8string());
+    }
 }

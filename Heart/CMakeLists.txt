@@ -108,8 +108,7 @@ target_include_directories(
 )
 
 # Link dependencies
-target_link_libraries(
-  Engine
+target_link_libraries(Engine
   PUBLIC
   glfw glm imgui spdlog glad imguizmo nlohmann_json FlourishCore
   BulletDynamics BulletCollision LinearMath
@@ -117,8 +116,7 @@ target_link_libraries(
 )
 
 if(${CMAKE_BUILD_TYPE} MATCHES Debug)
-  target_link_libraries(
-    Engine
+  target_link_libraries(Engine
     PUBLIC
     OptickCore
   )
@@ -130,6 +128,22 @@ target_precompile_headers(
   PRIVATE
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/hepch.h>"
 )
+
+# Shared dist library
+if (HEART_BUILD_RUNTIME)
+  add_library(EngineRuntime STATIC "${SOURCES}" "${DEPENDENCY_SOURCES}")
+  target_compile_definitions(EngineRuntime PUBLIC HE_DIST)
+  target_compile_features(EngineRuntime PUBLIC cxx_std_17)
+  target_include_directories(EngineRuntime
+    PUBLIC
+    "$<TARGET_PROPERTY:Engine,INTERFACE_INCLUDE_DIRECTORIES>"
+  )
+  target_link_libraries(EngineRuntime
+    PUBLIC
+    "$<TARGET_PROPERTY:Engine,LINK_LIBRARIES>"
+  )
+  target_precompile_headers(EngineRuntime REUSE_FROM Engine)
+endif()
 
 # Installation
 include(CMakePackageConfigHelpers)

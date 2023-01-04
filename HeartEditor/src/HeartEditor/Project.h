@@ -16,6 +16,9 @@ namespace HeartEditor
         void SaveToDisk();
         void LoadScriptsPlugin();
         void BuildScripts();
+        void Export(Heart::HStringView8 absolutePath);
+        
+        inline Heart::HStringView8 GetPath() const { return m_AbsolutePath; }
         
     public:
         static Heart::Ref<Project> CreateAndLoad(const Heart::HStringView8& absolutePath, const Heart::HStringView8& name);

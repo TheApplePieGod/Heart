@@ -53,6 +53,13 @@ namespace HeartEditor
 
                     if (Project::GetActiveProject() && ImGui::MenuItem("Save Project", "Ctrl+S"))
                         Project::GetActiveProject()->SaveToDisk();
+                    
+                    if (ImGui::MenuItem("Export Project"))
+                    {
+                        Heart::HString8 path = Heart::FilesystemUtils::OpenFolderDialog(Project::GetActiveProject()->GetPath(), "Export Parent Directory");
+                        if (!path.IsEmpty())
+                            Project::GetActiveProject()->Export(path);
+                    }
 
                     if (ImGui::MenuItem("New Project"))
                         newProjectModalOpened = true;

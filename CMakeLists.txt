@@ -44,9 +44,6 @@ if(${CMAKE_BUILD_TYPE} MATCHES Debug)
 else()
     message("Building HeartEngine in Release mode")
 endif()
-if (HEART_BUILD_RUNTIME)
-    add_compile_definitions(HE_DIST)
-endif()
 
 # Configure & locate dotnet hostfxr
 find_package(Python3 COMPONENTS Interpreter)
