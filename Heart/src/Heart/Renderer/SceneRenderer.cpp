@@ -29,6 +29,7 @@
 #include "Heart/Asset/MaterialAsset.h"
 #include "Heart/Asset/ShaderAsset.h"
 #include "Heart/Asset/MeshAsset.h"
+#include "Heart/Asset/FontAsset.h"
 #include "glm/gtc/matrix_transform.hpp"
 
 namespace Heart
@@ -151,6 +152,11 @@ namespace Heart
         bufCreateInfo.Stride = sizeof(IndexedIndirectCommand);
         bufCreateInfo.ElementCount = maxObjects;
         m_IndirectBuffer = Flourish::Buffer::Create(bufCreateInfo);
+        
+        bufCreateInfo.Type = Flourish::BufferType::Vertex;
+        bufCreateInfo.Stride = sizeof(Mesh::Vertex);
+        bufCreateInfo.ElementCount = 5000;
+        m_TextVertexBuffer = Flourish::Buffer::Create(bufCreateInfo);
     }
 
     void SceneRenderer::CreateTextures()
@@ -260,6 +266,15 @@ namespace Heart
         pipelineCreateInfo.CullMode = Flourish::CullMode::Backface;
         pipelineCreateInfo.CompatibleSubpasses = { 2 };
         m_MainRenderPass->CreatePipeline("pbr", pipelineCreateInfo);
+
+        pipelineCreateInfo.VertexShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/PBR.vert", true)->GetShader();
+        pipelineCreateInfo.FragmentShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/TextPBR.frag", true)->GetShader();
+        pipelineCreateInfo.BlendStates = { { false }, { false } };
+        pipelineCreateInfo.DepthTest = true;
+        pipelineCreateInfo.DepthWrite = true;
+        pipelineCreateInfo.CullMode = Flourish::CullMode::None;
+        pipelineCreateInfo.CompatibleSubpasses = { 2 };
+        m_MainRenderPass->CreatePipeline("pbrText", pipelineCreateInfo);
 
         pipelineCreateInfo.FragmentShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/PBRTransparentColor.frag", true)->GetShader();
         pipelineCreateInfo.BlendStates = {
@@ -379,7 +394,7 @@ namespace Heart
         // Batches pass
         m_RenderEncoder->StartNextSubpass();
         RenderBatches();
-
+        
         // Composite pass
         m_RenderEncoder->StartNextSubpass();
         Composite();
@@ -459,6 +474,7 @@ namespace Heart
         HE_PROFILE_FUNCTION();
 
         m_RenderedInstanceCount = 0;
+        m_RenderedObjectCount = 0;
         bool async = m_SceneRenderSettings.AsyncAssetLoading;
         
         // Loop over each mesh component / submesh, hash the mesh & material, and place the entity in a batch
@@ -481,13 +497,13 @@ namespace Heart
             for (u32 i = 0; i < meshAsset->GetSubmeshCount(); i++)
             {
                 auto& meshData = meshAsset->GetSubmesh(i);
-                
+               
                 glm::vec4 boundingSphere = meshData.GetBoundingSphere();
                 boundingSphere.w *= maxScale; // Extend the bounding sphere to fit the largest scale 
                 if (m_SceneRenderSettings.CullEnable && 
                     !FrustumCull(boundingSphere, m_Scene->GetEntityCachedTransform({ m_Scene, entity })))
                     continue;
-
+                
                 // Create a hash based on the submesh and its material if applicable
                 u64 hash = mesh.Mesh ^ (i * 45787893);
                 if (meshData.GetMaterialIndex() < mesh.Materials.Count())
@@ -589,6 +605,8 @@ namespace Heart
 
             commandIndex++;
         }
+        
+        m_RenderedObjectCount = objectId;
     }
 
     void SceneRenderer::RenderEnvironmentMap()
@@ -605,7 +623,7 @@ namespace Heart
         m_RenderEncoder->BindIndexBuffer(meshData.GetIndexBuffer());
         m_RenderEncoder->DrawIndexed(
             meshData.GetIndexBuffer()->GetAllocatedCount(),
-            0, 0, 1
+            0, 0, 1, 0
         );
     }
 
@@ -625,7 +643,7 @@ namespace Heart
         m_RenderEncoder->BindIndexBuffer(m_GridIndices.get());
         m_RenderEncoder->DrawIndexed(
             m_GridIndices->GetAllocatedCount(),
-            0, 0, 1
+            0, 0, 1, 0
         );
     }
     
@@ -753,7 +771,9 @@ namespace Heart
                 m_IndirectBuffer.get(), batch.First, batch.Count
             );
         }
-
+        
+        RenderText();
+        
         // Secondary (translucent) batches pass
         m_RenderEncoder->StartNextSubpass();
         m_RenderEncoder->BindPipeline("pbrTpColor");
@@ -774,6 +794,109 @@ namespace Heart
             );
         }
     }
+    
+    void SceneRenderer::RenderText()
+    {
+        HE_PROFILE_FUNCTION();
+        
+        // Bind text PBR pipeline
+        m_RenderEncoder->BindPipeline("pbrText");
+
+        // Bind defaults
+        BindPBRDefaults();
+        m_RenderEncoder->BindVertexBuffer(m_TextVertexBuffer.get());
+
+        // TODO: batch by font
+        u32 vertexOffset = 0;
+        auto view = m_Scene->GetRegistry().view<TransformComponent, TextComponent>();
+        for (auto entityHandle : view)
+        {
+            Entity entity = { m_Scene, entityHandle };
+            auto [transform, text] = view.get<TransformComponent, TextComponent>(entityHandle);
+            
+            auto fontAsset = AssetManager::RetrieveAsset<FontAsset>(text.Font, true, m_SceneRenderSettings.AsyncAssetLoading);
+            if (!fontAsset || !fontAsset->IsValid()) continue;
+            
+            // Object data
+            ObjectData objectData = {
+                m_Scene->GetEntityCachedTransform(entity),
+                { entityHandle, 0.f, 0.f, 0.f }
+            };
+            m_ObjectDataBuffer->SetElements(&objectData, 1, m_RenderedObjectCount);
+            
+            // Material data
+            m_MaterialDataBuffer->SetElements(&AssetManager::RetrieveAsset<MaterialAsset>("engine/DefaultMaterial.hemat", true)->GetMaterial().GetMaterialData(), 1, m_RenderedObjectCount);
+            
+            // Will face forward +z direction
+            Mesh::Vertex vertex;
+            vertex.Normal = { 0.f, 0.f, 1.f };
+            vertex.Tangent = { -1.f, 0.f, 0.f, 1.0f };
+            glm::vec3 localPos = { 0.f, 0.f, 0.f };
+            u32 vertexCount = 0;
+            float lineHeight = (float)fontAsset->GetFontGeometry().getMetrics().lineHeight;
+            for (u32 i = 0; i < text.Text.Count(); i++)
+            {
+                char c = text.Text.GetUTF8(i);
+                auto glyph = fontAsset->GetFontGeometry().getGlyph((u32)c);
+                if (!glyph) continue;;
+                
+                // Advance glyph
+                float scale = 1.f;
+                if (c == '\n')
+                {
+                    localPos.x = 0.f;
+                    localPos.y -= lineHeight;
+                    
+                    continue;
+                }
+                else if (i != 0 && text.Text.GetUTF8(i - 1) != '\n')
+                {
+                    double advance = 0.0;
+                    fontAsset->GetFontGeometry().getAdvance(advance, (u32)text.Text.GetUTF8(i - 1), (u32)c);
+                    localPos.x += (float)advance * scale;
+                }
+                double ql, qb, qr, qt;
+                double pl, pb, pr, pt;
+                glyph->getQuadAtlasBounds(ql, qb, qr, qt);
+                glyph->getQuadPlaneBounds(pl, pb, pr, pt);
+                glm::vec2 atlasDim = { fontAsset->GetAtlasTexture()->GetWidth(), fontAsset->GetAtlasTexture()->GetHeight() };
+                glm::vec2 uvMin = { (float)ql / atlasDim.x, 1.0f - ((float)qt / atlasDim.y) };
+                glm::vec2 uvMax = { (float)qr / atlasDim.x, 1.0f - ((float)qb / atlasDim.y) };
+                glm::vec2 posMin = { (float)pl * scale, (float)pt * scale };
+                glm::vec2 posMax = { (float)pr * scale, (float)pb * scale };
+                
+                vertex.Position = localPos + glm::vec3(posMin.x, posMin.y, 0.f);
+                vertex.UV = uvMin;
+                m_TextVertexBuffer->SetElements(&vertex, 1, vertexOffset++); // TL
+                vertex.Position = localPos + glm::vec3(posMin.x, posMax.y, 0.f);
+                vertex.UV = { uvMin.x, uvMax.y };
+                m_TextVertexBuffer->SetElements(&vertex, 1, vertexOffset++); // BL
+                vertex.Position = localPos + glm::vec3(posMax.x, posMin.y, 0.f);
+                vertex.UV = { uvMax.x, uvMin.y };
+                m_TextVertexBuffer->SetElements(&vertex, 1, vertexOffset++); // TR
+                
+                vertex.Position = localPos + glm::vec3(posMax.x, posMin.y, 0.f);
+                vertex.UV = { uvMax.x, uvMin.y };
+                m_TextVertexBuffer->SetElements(&vertex, 1, vertexOffset++); // TR
+                vertex.Position = localPos + glm::vec3(posMin.x, posMax.y, 0.f);
+                vertex.UV = { uvMin.x, uvMax.y };
+                m_TextVertexBuffer->SetElements(&vertex, 1, vertexOffset++); // BL
+                vertex.Position = localPos + glm::vec3(posMax.x, posMax.y, 0.f);
+                vertex.UV = uvMax;
+                m_TextVertexBuffer->SetElements(&vertex, 1, vertexOffset++); // BR
+                
+                vertexCount += 6;
+            }
+                
+            m_RenderEncoder->BindPipelineTextureResource(16, fontAsset->GetAtlasTexture());
+            m_RenderEncoder->FlushPipelineBindings();
+            
+            // Draw
+            m_RenderEncoder->Draw(vertexCount, vertexOffset - vertexCount, 1, m_RenderedObjectCount);
+             
+            m_RenderedObjectCount++;
+        }
+    }
 
     void SceneRenderer::Composite()
     {
@@ -788,8 +911,8 @@ namespace Heart
 
         m_RenderEncoder->FlushPipelineBindings();
 
-        // Draw the fullscreen triangle
-        m_RenderEncoder->Draw(3, 0, 1);
+        // Draw the fullscreen triangle (TODO: make this compute)
+        m_RenderEncoder->Draw(3, 0, 1, 0);
     }
 
     void SceneRenderer::CopyEntityIdsTexture()

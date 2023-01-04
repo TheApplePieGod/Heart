@@ -129,6 +129,7 @@ namespace Heart
         // Do not copy primary camera component when duplicating entity
         CopyComponent<CameraComponent>(source.GetHandle(), newEntity);
         CopyComponent<CollisionComponent>(source.GetHandle(), newEntity);
+        CopyComponent<TextComponent>(source.GetHandle(), newEntity);
 
         CacheEntityTransform(newEntity);
 
@@ -351,6 +352,7 @@ namespace Heart
             CopyComponent<PrimaryCameraComponent>(src.GetHandle(), dst);
             CopyComponent<CameraComponent>(src.GetHandle(), dst);
             CopyComponent<CollisionComponent>(src.GetHandle(), dst);
+            CopyComponent<TextComponent>(src.GetHandle(), dst);
         });
         
         // Copy script component after all entities have been created

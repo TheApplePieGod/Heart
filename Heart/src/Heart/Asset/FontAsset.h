@@ -23,13 +23,16 @@ namespace Heart
         void Load(bool async = false) override;
         void Unload() override;
 
-        /*! @brief Get a pointer to the font atlas texture stored in this asset. */
         inline Flourish::Texture* GetAtlasTexture() { return m_AtlasTexture.get(); }
+        inline const auto& GetFontGeometry() const { return m_FontGeometry; }
+        inline float GetPixelRange() const { return m_PixelRange; }
+        inline float GetGlyphScale() const { return m_GlyphScale; }
         
-        inline const auto& GetGlyphs() const { return m_Glyphs; }
-
     private:
         Ref<Flourish::Texture> m_AtlasTexture;
-        std::unordered_map<u32, msdf_atlas::GlyphGeometry> m_Glyphs;
+        msdf_atlas::FontGeometry m_FontGeometry;
+        std::vector<msdf_atlas::GlyphGeometry> m_Glyphs;
+        float m_PixelRange;
+        float m_GlyphScale;
     };
 }

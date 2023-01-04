@@ -83,7 +83,7 @@ namespace Heart
         encoder->FlushPipelineBindings();
         encoder->SetLineWidth(3.f);
         encoder->BindVertexBuffer(m_VertexBuffer.get());
-        encoder->Draw(m_VertexCount, 0, 1);
+        encoder->Draw(m_VertexCount, 0, 1, 0);
         encoder->EndEncoding();
         
         m_VertexCount = 0;

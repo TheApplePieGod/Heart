@@ -150,7 +150,7 @@ namespace Heart
             float Bias;
             float Padding;
         };
-
+        
     private:
         void Initialize();
         void Resize();
@@ -172,6 +172,7 @@ namespace Heart
         void RenderEnvironmentMap();
         void RenderGrid();
         void RenderBatches();
+        void RenderText();
         void Composite();
         void CopyEntityIdsTexture();
         void SSAO();
@@ -189,6 +190,7 @@ namespace Heart
         Ref<Flourish::Buffer> m_ObjectDataBuffer;
         Ref<Flourish::Buffer> m_MaterialDataBuffer;
         Ref<Flourish::Buffer> m_LightingDataBuffer;
+        Ref<Flourish::Buffer> m_TextVertexBuffer;
         Ref<Flourish::Texture> m_DepthTexture;
         Ref<Flourish::Texture> m_DefaultEnvironmentMap;
         Ref<Flourish::Texture> m_RenderOutputTexture;
@@ -233,6 +235,7 @@ namespace Heart
         HVector<HVector<u32>> m_EntityListPool;
         SceneRenderSettings m_SceneRenderSettings;
         u32 m_RenderedInstanceCount;
+        u32 m_RenderedObjectCount;
         std::vector<std::vector<Flourish::CommandBuffer*>> m_RenderBuffers;
 
         u32 m_BloomMipCount = 0;

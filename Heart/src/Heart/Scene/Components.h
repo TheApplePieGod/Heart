@@ -117,5 +117,10 @@ namespace Heart
     {
         UUID Font = 0;
         HString Text = "Text";
+        float FontSize = 1.f;
+        glm::vec3 BaseColor = { 1.f, 1.f, 1.f };
+        glm::vec3 EmissiveFactor = { 0.f, 0.f, 0.f };
+        float Metalness = 0.f;
+        float Roughness = 1.f;
     };
 }

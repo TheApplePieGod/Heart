@@ -263,7 +263,7 @@ namespace Heart
                 rcEncoder->BindIndexBuffer(meshData.GetIndexBuffer());
                 rcEncoder->DrawIndexed(
                     meshData.GetIndexBuffer()->GetAllocatedCount(),
-                    0, 0, 1
+                    0, 0, 1, 0
                 );
 
                 cubeDataIndex++;
@@ -294,7 +294,7 @@ namespace Heart
                 rcEncoder->BindIndexBuffer(meshData.GetIndexBuffer());
                 rcEncoder->DrawIndexed(
                     meshData.GetIndexBuffer()->GetAllocatedCount(),
-                    0, 0, 1
+                    0, 0, 1, 0
                 );
             }
             rcEncoder->EndEncoding();
@@ -331,7 +331,7 @@ namespace Heart
                 rcEncoder->BindIndexBuffer(meshData.GetIndexBuffer());
                 rcEncoder->DrawIndexed(
                     meshData.GetIndexBuffer()->GetAllocatedCount(),
-                    0, 0, 1
+                    0, 0, 1, 0
                 );
 
                 cubeDataIndex++;
@@ -357,7 +357,7 @@ namespace Heart
             rcEncoder->BindPipelineBufferResource(0, m_CubemapDataBuffer.get(), 0, cubeDataIndex, 1);
             rcEncoder->FlushPipelineBindings();
 
-            rcEncoder->Draw(3, 0, 1);
+            rcEncoder->Draw(3, 0, 1, 0);
 
             rcEncoder->EndEncoding();
 

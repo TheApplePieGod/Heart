@@ -35,15 +35,14 @@ namespace Heart
             return;
         }
         
-        std::vector<msdf_atlas::GlyphGeometry> glyphs;
-        msdf_atlas::FontGeometry fontGeometry(&glyphs);
+        m_FontGeometry = msdf_atlas::FontGeometry(&m_Glyphs);
         
         // Load ASCII glyph set
-        fontGeometry.loadCharset(font, 1.0, msdf_atlas::Charset::ASCII);
+        m_FontGeometry.loadCharset(font, 1.0, msdf_atlas::Charset::ASCII);
         
         // Apply MSDF edge coloring
         const double maxCornerAngle = 3.0;
-        for (auto& glyph : glyphs)
+        for (auto& glyph : m_Glyphs)
             glyph.edgeColoring(&msdfgen::edgeColoringInkTrap, maxCornerAngle, 0);
         
         // Compute atlas layout
@@ -52,33 +51,35 @@ namespace Heart
         packer.setMinimumScale(24.0);
         packer.setPixelRange(2.0);
         packer.setMiterLimit(1.0);
-        packer.pack(glyphs.data(), glyphs.size());
+        packer.pack(m_Glyphs.data(), m_Glyphs.size());
         
         // Get final atlas dimensions
         int width = 0, height = 0;
         packer.getDimensions(width, height);
+        m_GlyphScale = (float)packer.getScale();
+        m_PixelRange = (float)packer.getPixelRange();
         
         // Generate output atlas
         msdf_atlas::ImmediateAtlasGenerator<
             float,
-            3,
-            &msdf_atlas::msdfGenerator,
-            msdf_atlas::BitmapAtlasStorage<byte, 3>
+            4,
+            &msdf_atlas::mtsdfGenerator,
+            msdf_atlas::BitmapAtlasStorage<byte, 4>
         > generator(width, height);
         msdf_atlas::GeneratorAttributes attributes;
         generator.setAttributes(attributes);
         generator.setThreadCount(4);
-        generator.generate(glyphs.data(), glyphs.size());
+        generator.generate(m_Glyphs.data(), m_Glyphs.size());
         
         // Parse pixel data
-        std::vector<byte> pixels(3 * width * height);
-        msdfgen::BitmapConstRef<msdfgen::byte, 3> bitmapRef = generator.atlasStorage();
+        std::vector<byte> pixels(4 * width * height);
+        msdfgen::BitmapConstRef<msdfgen::byte, 4> bitmapRef = generator.atlasStorage();
         for (int y = 0; y < height; y++)
         {
             memcpy(
-               &pixels[3 * width * y],
+               &pixels[4 * width * y],
                bitmapRef(0, height - y - 1),
-               3 * width
+               4 * width
             );
         }
             
@@ -86,13 +87,13 @@ namespace Heart
         Flourish::TextureCreateInfo createInfo = {
             static_cast<u32>(width),
             static_cast<u32>(height),
-            Flourish::ColorFormat::RGB8_UNORM,
+            Flourish::ColorFormat::RGBA8_UNORM,
             Flourish::TextureUsageType::Readonly,
             Flourish::TextureWritability::Once,
             1, 1,
             Flourish::TextureSamplerState(),
             pixels.data(),
-            static_cast<u32>(width * height * 3),
+            static_cast<u32>(width * height * 4),
             async,
             [this]()
             {
@@ -109,10 +110,6 @@ namespace Heart
         msdfgen::destroyFont(font);
         msdfgen::deinitializeFreetype(ft);
         
-        // Map glyphs
-        for (auto& glyph : glyphs)
-            m_Glyphs[glyph.getCodepoint()] = glyph;
-        
         m_Loaded = true;
         m_Loading = false;
         m_Valid = true;
@@ -125,6 +122,7 @@ namespace Heart
 
         m_AtlasTexture.reset();
         m_Glyphs.clear();
+        m_FontGeometry = msdf_atlas::FontGeometry();
         m_Data = nullptr;
         m_Valid = false;
     }
