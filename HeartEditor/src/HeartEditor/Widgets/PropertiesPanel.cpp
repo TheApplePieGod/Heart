@@ -563,8 +563,35 @@ namespace Widgets
 
                 ImGui::Text("Text:");
                 ImGui::SameLine();
-                Heart::ImGuiUtils::InputText("##Text", textComp.Text);
-
+                if (Heart::ImGuiUtils::InputText("##Text", textComp.Text, true))
+                    textComp.ClearRenderData();
+                
+                ImGui::Text("Font Size");
+                ImGui::SameLine();
+                if (ImGui::DragFloat("##fontsize", &textComp.FontSize, 0.1f, 0.f, 100.f))
+                    textComp.ClearRenderData();
+                
+                ImGui::Text("Line Height");
+                ImGui::SameLine();
+                if (ImGui::DragFloat("##linheig", &textComp.LineHeight, 0.1f, 0.f, 100.f))
+                    textComp.ClearRenderData();
+                
+                ImGui::Text("Base Color");
+                ImGui::SameLine();
+                ImGui::ColorEdit3("##textcol", (float*)&textComp.BaseColor);
+                
+                ImGui::Text("Emissive Factor");
+                ImGui::SameLine();
+                ImGui::ColorEdit3("##textemis", (float*)&textComp.EmissiveFactor);
+                
+                ImGui::Text("Metalness");
+                ImGui::SameLine();
+                ImGui::DragFloat("##textmet", &textComp.Metalness, 0.05f, 0.f, 1.f);
+                    
+                ImGui::Text("Roughness");
+                ImGui::SameLine();
+                ImGui::DragFloat("##textrough", &textComp.Roughness, 0.05f, 0.f, 1.f);
+                        
                 ImGui::Unindent();
             }
         }

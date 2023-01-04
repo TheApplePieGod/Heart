@@ -68,6 +68,7 @@ namespace Heart
         inline u32 GetBloomMipCount() const { return m_BloomMipCount; }
         
         inline u32 GetRenderedInstanceCount() const { return m_RenderedInstanceCount; }
+        inline u32 GetRenderedObjectCount() const { return m_RenderedObjectCount; }
         inline u32 GetBatchCount() const { return m_IndirectBatches.size(); }
         
     private:
@@ -190,7 +191,6 @@ namespace Heart
         Ref<Flourish::Buffer> m_ObjectDataBuffer;
         Ref<Flourish::Buffer> m_MaterialDataBuffer;
         Ref<Flourish::Buffer> m_LightingDataBuffer;
-        Ref<Flourish::Buffer> m_TextVertexBuffer;
         Ref<Flourish::Texture> m_DepthTexture;
         Ref<Flourish::Texture> m_DefaultEnvironmentMap;
         Ref<Flourish::Texture> m_RenderOutputTexture;

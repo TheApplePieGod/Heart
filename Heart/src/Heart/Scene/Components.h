@@ -10,6 +10,11 @@
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtx/quaternion.hpp"
 
+namespace Flourish
+{
+    class Buffer;
+}
+
 namespace Heart
 {
     // -----------------------
@@ -118,9 +123,17 @@ namespace Heart
         UUID Font = 0;
         HString Text = "Text";
         float FontSize = 1.f;
+        float LineHeight = 0.f;
         glm::vec3 BaseColor = { 1.f, 1.f, 1.f };
         glm::vec3 EmissiveFactor = { 0.f, 0.f, 0.f };
         float Metalness = 0.f;
         float Roughness = 1.f;
+        
+        Ref<Flourish::Buffer> ComputedVertices;
+        Ref<Flourish::Buffer> ComputedIndices;
+        bool Recomputing = false;
+        
+        void ClearRenderData();
+        void RecomputeRenderData();
     };
 }

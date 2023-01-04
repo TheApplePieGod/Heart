@@ -38,6 +38,7 @@ namespace Heart
 
     public:
         static const Flourish::BufferLayout& GetVertexLayout() { return s_VertexLayout; }
+        static const Flourish::BufferLayout& GetIndexLayout() { return s_IndexLayout; }
 
     private:
         inline static const Flourish::BufferLayout s_VertexLayout = {

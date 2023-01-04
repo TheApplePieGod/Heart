@@ -152,11 +152,6 @@ namespace Heart
         bufCreateInfo.Stride = sizeof(IndexedIndirectCommand);
         bufCreateInfo.ElementCount = maxObjects;
         m_IndirectBuffer = Flourish::Buffer::Create(bufCreateInfo);
-        
-        bufCreateInfo.Type = Flourish::BufferType::Vertex;
-        bufCreateInfo.Stride = sizeof(Mesh::Vertex);
-        bufCreateInfo.ElementCount = 5000;
-        m_TextVertexBuffer = Flourish::Buffer::Create(bufCreateInfo);
     }
 
     void SceneRenderer::CreateTextures()
@@ -804,19 +799,23 @@ namespace Heart
 
         // Bind defaults
         BindPBRDefaults();
-        m_RenderEncoder->BindVertexBuffer(m_TextVertexBuffer.get());
 
-        // TODO: batch by font
-        u32 vertexOffset = 0;
+        // TODO: batch by font?
+        MaterialData material;
         auto view = m_Scene->GetRegistry().view<TransformComponent, TextComponent>();
         for (auto entityHandle : view)
         {
             Entity entity = { m_Scene, entityHandle };
             auto [transform, text] = view.get<TransformComponent, TextComponent>(entityHandle);
             
+            if (text.Text.Count() == 0) continue;
+            
             auto fontAsset = AssetManager::RetrieveAsset<FontAsset>(text.Font, true, m_SceneRenderSettings.AsyncAssetLoading);
             if (!fontAsset || !fontAsset->IsValid()) continue;
             
+            if (!text.ComputedVertices || !text.ComputedIndices)
+                text.RecomputeRenderData();
+                
             // Object data
             ObjectData objectData = {
                 m_Scene->GetEntityCachedTransform(entity),
@@ -825,74 +824,22 @@ namespace Heart
             m_ObjectDataBuffer->SetElements(&objectData, 1, m_RenderedObjectCount);
             
             // Material data
-            m_MaterialDataBuffer->SetElements(&AssetManager::RetrieveAsset<MaterialAsset>("engine/DefaultMaterial.hemat", true)->GetMaterial().GetMaterialData(), 1, m_RenderedObjectCount);
+            material.BaseColor = glm::vec4(text.BaseColor, 1.f);
+            material.EmissiveFactor = glm::vec4(text.EmissiveFactor, 1.f);
+            material.Scalars.x = text.Metalness;
+            material.Scalars.y = text.Roughness;
+            m_MaterialDataBuffer->SetElements(&material, 1, m_RenderedObjectCount);
             
-            // Will face forward +z direction
-            Mesh::Vertex vertex;
-            vertex.Normal = { 0.f, 0.f, 1.f };
-            vertex.Tangent = { -1.f, 0.f, 0.f, 1.0f };
-            glm::vec3 localPos = { 0.f, 0.f, 0.f };
-            u32 vertexCount = 0;
-            float lineHeight = (float)fontAsset->GetFontGeometry().getMetrics().lineHeight;
-            for (u32 i = 0; i < text.Text.Count(); i++)
-            {
-                char c = text.Text.GetUTF8(i);
-                auto glyph = fontAsset->GetFontGeometry().getGlyph((u32)c);
-                if (!glyph) continue;;
-                
-                // Advance glyph
-                float scale = 1.f;
-                if (c == '\n')
-                {
-                    localPos.x = 0.f;
-                    localPos.y -= lineHeight;
-                    
-                    continue;
-                }
-                else if (i != 0 && text.Text.GetUTF8(i - 1) != '\n')
-                {
-                    double advance = 0.0;
-                    fontAsset->GetFontGeometry().getAdvance(advance, (u32)text.Text.GetUTF8(i - 1), (u32)c);
-                    localPos.x += (float)advance * scale;
-                }
-                double ql, qb, qr, qt;
-                double pl, pb, pr, pt;
-                glyph->getQuadAtlasBounds(ql, qb, qr, qt);
-                glyph->getQuadPlaneBounds(pl, pb, pr, pt);
-                glm::vec2 atlasDim = { fontAsset->GetAtlasTexture()->GetWidth(), fontAsset->GetAtlasTexture()->GetHeight() };
-                glm::vec2 uvMin = { (float)ql / atlasDim.x, 1.0f - ((float)qt / atlasDim.y) };
-                glm::vec2 uvMax = { (float)qr / atlasDim.x, 1.0f - ((float)qb / atlasDim.y) };
-                glm::vec2 posMin = { (float)pl * scale, (float)pt * scale };
-                glm::vec2 posMax = { (float)pr * scale, (float)pb * scale };
-                
-                vertex.Position = localPos + glm::vec3(posMin.x, posMin.y, 0.f);
-                vertex.UV = uvMin;
-                m_TextVertexBuffer->SetElements(&vertex, 1, vertexOffset++); // TL
-                vertex.Position = localPos + glm::vec3(posMin.x, posMax.y, 0.f);
-                vertex.UV = { uvMin.x, uvMax.y };
-                m_TextVertexBuffer->SetElements(&vertex, 1, vertexOffset++); // BL
-                vertex.Position = localPos + glm::vec3(posMax.x, posMin.y, 0.f);
-                vertex.UV = { uvMax.x, uvMin.y };
-                m_TextVertexBuffer->SetElements(&vertex, 1, vertexOffset++); // TR
-                
-                vertex.Position = localPos + glm::vec3(posMax.x, posMin.y, 0.f);
-                vertex.UV = { uvMax.x, uvMin.y };
-                m_TextVertexBuffer->SetElements(&vertex, 1, vertexOffset++); // TR
-                vertex.Position = localPos + glm::vec3(posMin.x, posMax.y, 0.f);
-                vertex.UV = { uvMin.x, uvMax.y };
-                m_TextVertexBuffer->SetElements(&vertex, 1, vertexOffset++); // BL
-                vertex.Position = localPos + glm::vec3(posMax.x, posMax.y, 0.f);
-                vertex.UV = uvMax;
-                m_TextVertexBuffer->SetElements(&vertex, 1, vertexOffset++); // BR
-                
-                vertexCount += 6;
-            }
-                
             m_RenderEncoder->BindPipelineTextureResource(16, fontAsset->GetAtlasTexture());
             m_RenderEncoder->FlushPipelineBindings();
             
             // Draw
-            m_RenderEncoder->Draw(vertexCount, vertexOffset - vertexCount, 1, m_RenderedObjectCount);
+            m_RenderEncoder->BindVertexBuffer(text.ComputedVertices.get());
+            m_RenderEncoder->BindIndexBuffer(text.ComputedIndices.get());
+            m_RenderEncoder->DrawIndexed(
+                text.ComputedIndices->GetAllocatedCount(),
+                0, 0, 1, m_RenderedObjectCount
+            );
              
             m_RenderedObjectCount++;
         }
