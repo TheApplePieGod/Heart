@@ -38,6 +38,7 @@ namespace Heart
             std::function<void(UUID, UUID)> collisionStartCallback,
             std::function<void(UUID, UUID)> collisionEndCallback
         );
+        ~PhysicsWorld();
         
         void Step(float stepSeconds);
         bool RaycastSingle(const RaycastInfo& info, RaycastResult& outResult);

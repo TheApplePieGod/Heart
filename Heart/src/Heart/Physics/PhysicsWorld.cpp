@@ -27,6 +27,16 @@ namespace Heart
         SetGravity(gravity);
     }
 
+    PhysicsWorld::~PhysicsWorld()
+    {
+        // Ensure objects destruct in proper order and before bodies destruct
+        m_World.reset();
+        m_Dispatcher.reset();
+        m_BroadInterface.reset();
+        m_Solver.reset();
+        m_CollisionConfig.reset();
+    }
+
 	void PhysicsWorld::Step(float stepSeconds)
 	{
         s_ProcessingWorld = this;
