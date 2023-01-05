@@ -284,11 +284,6 @@ namespace HeartEditor
               std::filesystem::path(dst).append("libvulkan.1.dylib"),
               std::filesystem::copy_options::create_symlinks
             );
-        #else
-            std::filesystem::copy(
-              "vulkan-1.dll",
-              std::filesystem::path(finalPath).append("vulkan-1.dll")
-            );
         #endif
         
         HE_ENGINE_LOG_INFO("Project exported successfully to {0}", finalPath.generic_u8string());

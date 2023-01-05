@@ -6,16 +6,6 @@
 
 namespace Heart
 {
-    template<>
-    void Entity::AddComponent<CollisionComponent>(PhysicsBody& body)
-    {
-        if (HasComponent<CollisionComponent>())
-            m_Scene->GetPhysicsWorld().RemoveBody(GetComponent<CollisionComponent>().BodyId);
-        body.SetTransform(GetWorldPosition(), m_Scene->GetEntityCachedQuat(*this));
-        u32 id = m_Scene->GetPhysicsWorld().AddBody(body);
-        m_Scene->GetRegistry().emplace_or_replace<CollisionComponent>(m_EntityHandle, id);
-    }
-
     Entity::Entity(Scene* scene, entt::entity handle)
         : m_Scene(scene), m_EntityHandle(handle)
     {}

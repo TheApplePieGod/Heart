@@ -30,7 +30,14 @@ namespace Heart
         }
         
         template<>
-        void AddComponent<CollisionComponent>(PhysicsBody& body);
+        void AddComponent<CollisionComponent>(PhysicsBody& body)
+        {
+            if (HasComponent<CollisionComponent>())
+                m_Scene->GetPhysicsWorld().RemoveBody(GetComponent<CollisionComponent>().BodyId);
+            body.SetTransform(GetWorldPosition(), m_Scene->GetEntityCachedQuat(*this));
+            u32 id = m_Scene->GetPhysicsWorld().AddBody(body);
+            m_Scene->GetRegistry().emplace_or_replace<CollisionComponent>(m_EntityHandle, id);
+        }
 
         // Safe to call when entity does not have component
         template<typename Component>

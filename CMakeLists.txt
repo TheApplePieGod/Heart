@@ -36,6 +36,7 @@ if(${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
 elseif(MSVC)
     message("Detected MSVC compiler")
     add_compile_options(/MP /INCREMENTAL)
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
 endif()
 
 if(${CMAKE_BUILD_TYPE} MATCHES Debug)
@@ -57,6 +58,10 @@ if(Python3_FOUND)
   
   message("Dotnet runtime dir: ${DOTNET_RUNTIME_DIR}")
   message("Dotnet hostfxr path: ${DOTNET_HOSTFXR_PATH}")
+
+  if (DOTNET_RUNTIME_DIR STREQUAL "")
+    message(FATAL_ERROR "Dotnet SDK not found")
+  endif()
 else()
   message(FATAL_ERROR "Python must be installed to configure Heart") 
 endif()
