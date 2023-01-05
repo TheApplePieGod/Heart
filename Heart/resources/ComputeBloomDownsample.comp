@@ -14,7 +14,7 @@ struct Data
     vec4 Padding2;
 };
 
-layout(binding = 0) readonly uniform DataBuffer {
+layout(binding = 0) readonly buffer DataBuffer {
     Data data;
 } dataBuffer;
 
