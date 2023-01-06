@@ -52,15 +52,19 @@ if(Python3_FOUND)
   execute_process(
     COMMAND ${Python3_EXECUTABLE} "scripts/configure-hostfxr.py"
     WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
-    OUTPUT_VARIABLE DOTNET_RUNTIME_DIR
-    ERROR_VARIABLE DOTNET_HOSTFXR_PATH
+    OUTPUT_VARIABLE DOTNET_CONFIGURE_OUTPUT
   )
+  
+  list(GET DOTNET_CONFIGURE_OUTPUT 0 DOTNET_RUNTIME_DIR)
+  list(GET DOTNET_CONFIGURE_OUTPUT 1 DOTNET_HOSTFXR_PATH)
+  list(GET DOTNET_CONFIGURE_OUTPUT 2 DOTNET_RUNTIME_STR)
   
   message("Dotnet runtime dir: ${DOTNET_RUNTIME_DIR}")
   message("Dotnet hostfxr path: ${DOTNET_HOSTFXR_PATH}")
+  message("Dotnet runtime str: ${DOTNET_RUNTIME_STR}")
 
   if (DOTNET_RUNTIME_DIR STREQUAL "")
-    message(FATAL_ERROR "Dotnet SDK not found")
+    message(FATAL_ERROR "Dotnet SDK not found (ensure DOTNET_SDK is set)")
   endif()
 else()
   message(FATAL_ERROR "Python must be installed to configure Heart") 

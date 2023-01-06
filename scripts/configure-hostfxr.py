@@ -88,7 +88,6 @@ def configure():
         get_hostfxr_name(platform_info)
     )
 
-    sys.stdout.write(runtime_dir)
-    sys.stderr.write(hostfxr_path)
+    sys.stdout.write(runtime_dir + ";" + hostfxr_path + ";" + runtime_str)
 
 configure()
