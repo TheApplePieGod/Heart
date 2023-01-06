@@ -203,10 +203,16 @@ namespace HeartEditor
     {
         auto timer = Heart::Timer("Client plugin build");
         
-        Heart::HString8 command = "cd ";
-        command += Heart::AssetManager::GetAssetsDirectory();
         #ifdef HE_PLATFORM_WINDOWS
-            command += ";BuildScripts.bat ";
+            Heart::HString8 command = "/k cd ";
+        #else
+            Heart::HString8 command = "cd ";
+        #endif
+
+        command += Heart::AssetManager::GetAssetsDirectory();
+        
+        #ifdef HE_PLATFORM_WINDOWS
+            command += " && BuildScripts.bat ";
         #else
             command += ";sh BuildScripts.sh ";
         #endif

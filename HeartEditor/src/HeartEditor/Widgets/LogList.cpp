@@ -61,6 +61,7 @@ namespace Widgets
                     for (auto line : lines)
                     {
                         float textWidth = ImGui::CalcTextSize(line.Data(), line.Data() + line.Count()).x;
+                        if (textWidth == 0.f) continue;
                         int lineCount = (int)pow(2.f, ceil(textWidth / messageContentSize)) - 1;
                         int charCount = (int)line.Count() / lineCount;
                         

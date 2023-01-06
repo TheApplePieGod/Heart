@@ -78,8 +78,73 @@ namespace Heart
     int PlatformUtils::ExecuteCommandWithOutput(HStringView8 command, HString8& output)
     {
         #ifdef HE_PLATFORM_WINDOWS
-            HE_ENGINE_ASSERT(false, "Not implemented");
-            return 1;
+            SECURITY_ATTRIBUTES saAttr; 
+            saAttr.nLength = sizeof(SECURITY_ATTRIBUTES); 
+            saAttr.bInheritHandle = TRUE; 
+            saAttr.lpSecurityDescriptor = NULL; 
+
+            // Create stdout pipe
+            HANDLE hChildStd_OUT_Rd = NULL;
+            HANDLE hChildStd_OUT_Wr = NULL;
+            if (!CreatePipe(&hChildStd_OUT_Rd, &hChildStd_OUT_Wr, &saAttr, 0)) 
+                return 1;
+            if (!SetHandleInformation(hChildStd_OUT_Rd, HANDLE_FLAG_INHERIT, 0))
+                return 1;
+
+            // Create child process 
+            PROCESS_INFORMATION piProcInfo; 
+            STARTUPINFO siStartInfo;
+            BOOL bSuccess = FALSE; 
+            
+            ZeroMemory( &piProcInfo, sizeof(PROCESS_INFORMATION) );
+            ZeroMemory( &siStartInfo, sizeof(STARTUPINFO) );
+            siStartInfo.cb = sizeof(STARTUPINFO); 
+            siStartInfo.hStdError = hChildStd_OUT_Wr;
+            siStartInfo.hStdOutput = hChildStd_OUT_Wr;
+            siStartInfo.dwFlags |= STARTF_USESTDHANDLES;
+            
+            bSuccess = CreateProcess("C:/Windows/System32/cmd.exe",
+                (LPSTR)command.Data(), // command line 
+                NULL,                  // process security attributes 
+                NULL,                  // primary thread security attributes 
+                TRUE,                  // handles are inherited 
+                CREATE_NO_WINDOW,      // creation flags 
+                NULL,                  // use parent's environment 
+                NULL,                  // use parent's current directory 
+                &siStartInfo,          // STARTUPINFO pointer 
+                &piProcInfo            // receives PROCESS_INFORMATION
+            ); 
+            
+            if (!bSuccess) 
+                return 1;
+            else 
+            {
+                CloseHandle(piProcInfo.hThread);
+                CloseHandle(hChildStd_OUT_Wr);
+            }
+        
+            // Read output from pipe
+            DWORD dwRead; 
+            CHAR* chBuf = new char[4096]; 
+            bSuccess = FALSE;
+            HANDLE hParentStdOut = GetStdHandle(STD_OUTPUT_HANDLE);
+            while (true) 
+            { 
+                bSuccess = ReadFile(hChildStd_OUT_Rd, chBuf, 4096, &dwRead, NULL);
+                if(!bSuccess || dwRead == 0) break; 
+
+                output += HStringView8(chBuf, dwRead);
+            }
+
+            DWORD result;
+            GetExitCodeProcess(piProcInfo.hProcess, &result);
+
+            // Cleanup
+            CloseHandle(piProcInfo.hProcess);
+            CloseHandle(hChildStd_OUT_Rd);
+            delete[] chBuf;
+
+            return (int)result;
         #else
             std::array<char, 128> buffer;
             std::string result;
