@@ -12,4 +12,11 @@ namespace MacOS
         NSFileManager* fileManager = [NSFileManager defaultManager];
         [fileManager changeCurrentDirectoryPath: resourcePath];
     }
+
+    std::string Utils::GetApplicationSupportDirectory()
+    {
+        NSArray* paths = NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask, YES);
+        NSString* dir = [paths firstObject];
+        return std::string([dir UTF8String]);
+    }
 }

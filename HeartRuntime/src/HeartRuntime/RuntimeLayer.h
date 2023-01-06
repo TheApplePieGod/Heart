@@ -10,7 +10,7 @@ namespace HeartRuntime
     class RuntimeLayer : public Heart::Layer
     {
     public:
-        RuntimeLayer();
+        RuntimeLayer(const std::filesystem::path& projectPath);
         ~RuntimeLayer() override;
 
         void OnAttach() override;
@@ -25,6 +25,7 @@ namespace HeartRuntime
         bool KeyPressedEvent(Heart::KeyPressedEvent& event);
 
     private:
+        std::filesystem::path m_ProjectPath;
         Heart::Ref<Heart::Scene> m_RuntimeScene;
         Viewport m_Viewport;
     };

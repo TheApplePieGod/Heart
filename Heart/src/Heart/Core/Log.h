@@ -40,7 +40,7 @@ namespace Heart
     class Logger
     {
     public:
-        static void Initialize();
+        static void Initialize(const char* appName);
 
         inline static spdlog::logger& GetEngineLogger() { return *s_EngineLogger; }
         inline static spdlog::logger& GetClientLogger() { return *s_ClientLogger; }

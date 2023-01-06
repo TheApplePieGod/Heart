@@ -20,9 +20,7 @@ namespace Heart
         if (s_Instance) return;
         s_Instance = this;
 
-        PlatformUtils::InitializePlatform();
-
-        Heart::Logger::Initialize();
+        Heart::Logger::Initialize(windowName.Data());
 
         Timer timer = Timer("App initialization");
         #ifdef HE_DEBUG

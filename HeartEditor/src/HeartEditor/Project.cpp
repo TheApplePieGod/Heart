@@ -237,9 +237,10 @@ namespace HeartEditor
         #endif
         
         Heart::HString8 runtimeName = Heart::HStringView8("Runtime") + runtimeExt;
+        Heart::HString8 finalName = m_Name + runtimeExt;
         std::filesystem::copy(
             runtimeName.Data(),
-            std::filesystem::path(finalPath).append((m_Name + runtimeExt).Data()),
+            std::filesystem::path(finalPath).append(finalName.Data()),
             std::filesystem::copy_options::recursive
         );
         
@@ -247,7 +248,7 @@ namespace HeartEditor
         std::filesystem::path engineResources = std::filesystem::path("resources").append("engine");
         #ifdef HE_PLATFORM_MACOS
             // Copy files to bundle resources directory
-            copyPath = std::filesystem::path(finalPath).append(runtimeName.Data());
+            copyPath = std::filesystem::path(finalPath).append(finalName.Data());
             copyPath.append("Contents");
             std::filesystem::create_directory(copyPath);
             copyPath.append("Resources");

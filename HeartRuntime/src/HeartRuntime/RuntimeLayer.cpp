@@ -12,7 +12,8 @@
 
 namespace HeartRuntime
 {
-    RuntimeLayer::RuntimeLayer()
+    RuntimeLayer::RuntimeLayer(const std::filesystem::path& projectPath)
+        : m_ProjectPath(projectPath)
     {
 
     }
@@ -66,32 +67,8 @@ namespace HeartRuntime
 
     void RuntimeLayer::LoadProject()
     {
-        // Locate the project file to run
-        auto projectFolderPath = std::filesystem::path("project");
-        if (!std::filesystem::exists(projectFolderPath))
-        {
-            HE_LOG_ERROR("Unable to locate project folder");
-            throw std::exception();
-        }
-
-        auto projectPath = std::filesystem::path();
-        for (const auto& entry : std::filesystem::directory_iterator(projectFolderPath))
-        {
-            if (!entry.is_directory() && entry.path().extension() == ".heproj")
-            {
-                projectPath = entry.path();
-                break;
-            }
-        }
-
-        if (projectPath.empty())
-        {
-            HE_LOG_ERROR("Unable to locate project");
-            throw std::exception();
-        }
-
         u32 fileLength;
-        unsigned char* data = Heart::FilesystemUtils::ReadFile(projectPath.generic_u8string(), fileLength);
+        unsigned char* data = Heart::FilesystemUtils::ReadFile(m_ProjectPath.generic_u8string(), fileLength);
         if (!data)
         {
             HE_LOG_ERROR("Unable to load project");
@@ -119,12 +96,6 @@ namespace HeartRuntime
         {
             HE_LOG_ERROR("Unable to load scene");
             throw std::exception();
-        }
-
-        if (j.contains("name") && !j["name"].empty())
-        {
-            std::string title = j["name"];
-            RuntimeApp::Get().GetWindow().SetWindowTitle(title.c_str());
         }
 
         Heart::UUID sceneAssetId = Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Scene, j["loadedScene"]);
