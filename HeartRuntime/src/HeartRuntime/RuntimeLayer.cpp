@@ -35,6 +35,9 @@ namespace HeartRuntime
     {
         UnsubscribeFromEmitter(&RuntimeApp::Get().GetWindow());
 
+        m_Viewport.Shutdown();
+        m_RuntimeScene.reset();
+
         HE_LOG_INFO("Runtime detached");
     }
 

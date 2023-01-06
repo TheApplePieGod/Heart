@@ -19,6 +19,11 @@ namespace HeartRuntime
         m_RenderSettings.CopyEntityIdsTextureToCPU = false;
     }
 
+    void Viewport::Shutdown()
+    {
+        m_SceneRenderer.reset();
+    }
+
     void Viewport::OnImGuiRender(Heart::Scene* sceneContext)
     {
         HE_PROFILE_FUNCTION();

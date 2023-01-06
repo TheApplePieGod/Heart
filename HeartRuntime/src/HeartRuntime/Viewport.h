@@ -12,6 +12,8 @@ namespace HeartRuntime
     public:
         Viewport();
 
+        void Shutdown();
+
         void OnImGuiRender(Heart::Scene* sceneContext);
 
     private:
