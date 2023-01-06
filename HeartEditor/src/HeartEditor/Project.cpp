@@ -199,17 +199,22 @@ namespace HeartEditor
         }
     }
 
-    void Project::BuildScripts()
+    bool Project::BuildScripts(bool debug)
     {
         auto timer = Heart::Timer("Client plugin build");
         
         Heart::HString8 command = "cd ";
         command += Heart::AssetManager::GetAssetsDirectory();
         #ifdef HE_PLATFORM_WINDOWS
-            command += ";BuildScripts.bat";
+            command += ";BuildScripts.bat ";
         #else
-            command += ";sh BuildScripts.sh";
+            command += ";sh BuildScripts.sh ";
         #endif
+        
+        if (debug)
+            command += "Debug";
+        else
+            command += "Release";
         
         Heart::HString8 output;
         int res = Heart::PlatformUtils::ExecuteCommandWithOutput(command, output);
@@ -223,10 +228,18 @@ namespace HeartEditor
             HE_ENGINE_LOG_ERROR("Client plugin failed to build with code {0}", res);
             HE_ENGINE_LOG_ERROR("Build output: {0}", output.Data());
         }
+        
+        return res == 0;
     }
     
     void Project::Export(Heart::HStringView8 absolutePath)
     {
+        if (!BuildScripts(false))
+        {
+            HE_ENGINE_LOG_ERROR("Failed to export project, client plugin build failed");
+            return;
+        }
+
         std::filesystem::path finalPath = std::filesystem::path(absolutePath.Data()).append(m_Name.Data());
         std::filesystem::create_directory(finalPath);
         

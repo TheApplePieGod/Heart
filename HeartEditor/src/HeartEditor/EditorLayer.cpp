@@ -110,8 +110,8 @@ namespace HeartEditor
             Heart::Input::IsKeyPressed(Heart::KeyCode::LeftCtrl) &&
             Editor::GetSceneState() != SceneState::Playing)
         {
-            Project::GetActiveProject()->BuildScripts();
-            Project::GetActiveProject()->LoadScriptsPlugin();
+            if (Project::GetActiveProject()->BuildScripts(true))
+                Project::GetActiveProject()->LoadScriptsPlugin();
         }
             
         return true;
