@@ -239,7 +239,7 @@ namespace HeartEditor
         Heart::HString8 runtimeName = Heart::HStringView8("Runtime") + runtimeExt;
         std::filesystem::copy(
             runtimeName.Data(),
-            std::filesystem::path(finalPath).append(runtimeName.Data()),
+            std::filesystem::path(finalPath).append((m_Name + runtimeExt).Data()),
             std::filesystem::copy_options::recursive
         );
         
@@ -283,6 +283,12 @@ namespace HeartEditor
               std::filesystem::path(dst).append("libMoltenVK.dylib"),
               std::filesystem::path(dst).append("libvulkan.1.dylib"),
               std::filesystem::copy_options::create_symlinks
+            );
+        #elif defined(HE_PLATFORM_WINDOWS)
+            std::filesystem::path dst = std::filesystem::path(copyPath).parent_path();
+            std::filesystem::copy(
+              "shaderc_shared.dll",
+              std::filesystem::path(dst).append("shaderc_shared.dll")
             );
         #endif
         
