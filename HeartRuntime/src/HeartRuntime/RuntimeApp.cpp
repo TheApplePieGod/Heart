@@ -5,9 +5,9 @@
 
 namespace HeartRuntime
 {
-    RuntimeApp::RuntimeApp()
-        : App("Heart Runtime")
+    RuntimeApp::RuntimeApp(const std::filesystem::path& projectPath)
+        : App(projectPath.stem().generic_u8string())
     {
-        PushLayer(Heart::CreateRef<RuntimeLayer>());
+        PushLayer(Heart::CreateRef<RuntimeLayer>(projectPath));
     }
 }

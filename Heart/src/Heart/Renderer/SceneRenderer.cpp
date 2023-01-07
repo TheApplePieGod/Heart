@@ -123,7 +123,7 @@ namespace Heart
         bufCreateInfo.ElementCount = 1;
         m_FrameDataBuffer = Flourish::Buffer::Create(bufCreateInfo);
 
-        bufCreateInfo.Type = Flourish::BufferType::Uniform;
+        bufCreateInfo.Type = Flourish::BufferType::Storage;
         bufCreateInfo.Stride = sizeof(BloomData);
         bufCreateInfo.ElementCount = m_MaxBloomMipCount * 2;
         m_BloomDataBuffer = Flourish::Buffer::Create(bufCreateInfo);

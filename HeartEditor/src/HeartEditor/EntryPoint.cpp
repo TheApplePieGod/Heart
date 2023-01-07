@@ -2,9 +2,13 @@
 
 #include "HeartEditor/EditorApp.h"
 #include "Heart/Core/Log.h"
+#include "Heart/Util/PlatformUtils.h"
 
 int Main(int argc, char** argv)
 {
+    // Init platform
+    Heart::PlatformUtils::InitializePlatform();
+
     HeartEditor::EditorApp* app = new HeartEditor::EditorApp();
     app->Run();
     delete app;

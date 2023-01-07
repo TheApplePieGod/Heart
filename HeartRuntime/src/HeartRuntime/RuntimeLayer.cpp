@@ -12,9 +12,12 @@
 
 namespace HeartRuntime
 {
-    RuntimeLayer::RuntimeLayer()
+    RuntimeLayer::RuntimeLayer(const std::filesystem::path& projectPath)
+        : m_ProjectPath(projectPath)
     {
-
+        m_RenderSettings.DrawGrid = false;
+        m_RenderSettings.AsyncAssetLoading = true;
+        m_RenderSettings.CopyEntityIdsTextureToCPU = false;
     }
 
     RuntimeLayer::~RuntimeLayer()
@@ -35,6 +38,9 @@ namespace HeartRuntime
     {
         UnsubscribeFromEmitter(&RuntimeApp::Get().GetWindow());
 
+        m_Viewport.Shutdown();
+        m_RuntimeScene.reset();
+
         HE_LOG_INFO("Runtime detached");
     }
 
@@ -45,7 +51,8 @@ namespace HeartRuntime
 
     void RuntimeLayer::OnImGuiRender()
     {
-        m_Viewport.OnImGuiRender(m_RuntimeScene.get());
+        m_Viewport.OnImGuiRender(m_RuntimeScene.get(), m_RenderSettings);
+        m_DevPanel.OnImGuiRender(m_RuntimeScene.get(), m_RenderSettings);
     }
 
     void RuntimeLayer::OnEvent(Heart::Event& event)
@@ -57,38 +64,27 @@ namespace HeartRuntime
     {
         if (event.GetKeyCode() == Heart::KeyCode::F11)
             RuntimeApp::Get().GetWindow().ToggleFullscreen();
+        if (event.GetKeyCode() == Heart::KeyCode::F12)
+        {
+            if (m_DevPanel.IsOpen())
+            {
+                RuntimeApp::Get().GetWindow().DisableCursor();
+                m_DevPanel.SetOpen(false);
+            }
+            else
+            {
+                RuntimeApp::Get().GetWindow().EnableCursor();
+                m_DevPanel.SetOpen(true);
+            }
+        }
         
         return true;
     }
 
     void RuntimeLayer::LoadProject()
     {
-        // Locate the project file to run
-        auto projectFolderPath = std::filesystem::path("project");
-        if (!std::filesystem::exists(projectFolderPath))
-        {
-            HE_LOG_ERROR("Unable to locate project folder");
-            throw std::exception();
-        }
-
-        auto projectPath = std::filesystem::path();
-        for (const auto& entry : std::filesystem::directory_iterator(projectFolderPath))
-        {
-            if (!entry.is_directory() && entry.path().extension() == ".heproj")
-            {
-                projectPath = entry.path();
-                break;
-            }
-        }
-
-        if (projectPath.empty())
-        {
-            HE_LOG_ERROR("Unable to locate project");
-            throw std::exception();
-        }
-
         u32 fileLength;
-        unsigned char* data = Heart::FilesystemUtils::ReadFile(projectPath.generic_u8string(), fileLength);
+        unsigned char* data = Heart::FilesystemUtils::ReadFile(m_ProjectPath.generic_u8string(), fileLength);
         if (!data)
         {
             HE_LOG_ERROR("Unable to load project");
@@ -116,12 +112,6 @@ namespace HeartRuntime
         {
             HE_LOG_ERROR("Unable to load scene");
             throw std::exception();
-        }
-
-        if (j.contains("name") && !j["name"].empty())
-        {
-            std::string title = j["name"];
-            RuntimeApp::Get().GetWindow().SetWindowTitle(title.c_str());
         }
 
         Heart::UUID sceneAssetId = Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Scene, j["loadedScene"]);

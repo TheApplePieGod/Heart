@@ -1,1 +1,1 @@
-dotnet build ${PROJECT_NAME}.csproj -c Debug
+dotnet build ${PROJECT_NAME}.csproj -c %1

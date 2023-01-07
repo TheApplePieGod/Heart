@@ -3,7 +3,7 @@ project(Runtime)
 # Build main
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp" "src/*.h")
 
-if(APPLE AND ${CMAKE_BUILD_TYPE} MATCHES Release)
+if(APPLE)
   add_executable(Runtime MACOSX_BUNDLE "${SOURCES}")
 else()
   add_executable(Runtime "${SOURCES}")
@@ -18,7 +18,7 @@ target_include_directories(
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>"
 )
 
-target_link_libraries(Runtime Engine)
+target_link_libraries(Runtime EngineRuntime)
 
 if (WIN32)
   set_target_properties(Runtime PROPERTIES WIN32_EXECUTABLE true)
@@ -36,4 +36,4 @@ elseif(APPLE)
 endif()
 
 # PCH
-target_precompile_headers(Runtime REUSE_FROM Engine)
+target_precompile_headers(Runtime REUSE_FROM EngineRuntime)

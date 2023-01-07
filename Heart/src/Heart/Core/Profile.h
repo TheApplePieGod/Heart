@@ -1,6 +1,6 @@
 #pragma once
 
-#ifdef HE_DEBUG
+#if defined(HE_DEBUG) && !defined(HE_DIST)
 
 #include "optick.h"
 

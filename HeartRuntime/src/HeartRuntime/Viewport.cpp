@@ -14,12 +14,14 @@ namespace HeartRuntime
     Viewport::Viewport()
     {
         m_SceneRenderer = Heart::CreateScope<Heart::SceneRenderer>();
-        m_RenderSettings.DrawGrid = false;
-        m_RenderSettings.AsyncAssetLoading = true;
-        m_RenderSettings.CopyEntityIdsTextureToCPU = false;
     }
 
-    void Viewport::OnImGuiRender(Heart::Scene* sceneContext)
+    void Viewport::Shutdown()
+    {
+        m_SceneRenderer.reset();
+    }
+
+    void Viewport::OnImGuiRender(Heart::Scene* sceneContext, const Heart::SceneRenderSettings& settings)
     {
         HE_PROFILE_FUNCTION();
 
@@ -80,7 +82,7 @@ namespace HeartRuntime
             sceneContext,
             m_Camera,
             cameraPosition,
-            m_RenderSettings
+            settings
         );
         RuntimeApp::Get().GetWindow().PushDependencyBuffers(m_SceneRenderer->GetRenderBuffers());
 

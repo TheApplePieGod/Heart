@@ -8,6 +8,10 @@
 #include "spdlog/details/fmt_helper.h"
 #include "spdlog/details/os.h"
 
+#if defined(HE_PLATFORM_MACOS) && defined(HE_DIST)
+#include "Heart/Platform/MacOS/Utils.h"
+#endif
+
 namespace Heart
 {
     template<typename Mutex>
@@ -42,21 +46,31 @@ namespace Heart
         }
     };
 
-    void Logger::Initialize()
+    void Logger::Initialize(const char* appName)
     {
+        #if defined(HE_PLATFORM_MACOS) && defined(HE_DIST)
+            std::string logPath = MacOS::Utils::GetApplicationSupportDirectory();
+            logPath += "/";
+            logPath += appName;
+            logPath += "_Heart/";
+            if (!std::filesystem::exists(logPath))
+                std::filesystem::create_directory(logPath);
+            logPath += appName;
+            logPath += ".log";
+        #else
+            std::string logPath = appName;
+            logPath += ".log";
+        #endif
+        
         HVector<spdlog::sink_ptr> logSinks = {
-            #if !defined(HE_PLATFORM_MACOS) || !defined(HE_DIST)
-            CreateRef<spdlog::sinks::basic_file_sink_mt>("Heart.log", true),
-            #endif
+            CreateRef<spdlog::sinks::basic_file_sink_mt>(logPath, true),
         };
-
+        
         #ifndef HE_DIST
         logSinks.Add(CreateRef<LogListSink<std::mutex>>());
         #endif
 
-        #if !defined(HE_PLATFORM_MACOS) || !defined(HE_DIST)
         logSinks[0]->set_pattern("[%T] [%l] %n: %v");
-        #endif
 
         s_EngineLogger = CreateRef<spdlog::logger>("ENGINE", logSinks.Begin(), logSinks.End());
         spdlog::register_logger(s_EngineLogger);
@@ -64,13 +78,18 @@ namespace Heart
             s_EngineLogger->set_level(spdlog::level::trace);
             s_EngineLogger->flush_on(spdlog::level::trace);
         #else
-            s_EngineLogger->set_level(spdlog::level::debug);
-            s_EngineLogger->flush_on(spdlog::level::debug);
+            s_EngineLogger->set_level(spdlog::level::info);
+            s_EngineLogger->flush_on(spdlog::level::info);
         #endif
 
         s_ClientLogger = CreateRef<spdlog::logger>("CLIENT", logSinks.Begin(), logSinks.End());
         spdlog::register_logger(s_ClientLogger);
-        s_ClientLogger->set_level(spdlog::level::trace);
-        s_ClientLogger->flush_on(spdlog::level::trace);
+        #ifdef HE_DEBUG
+            s_ClientLogger->set_level(spdlog::level::trace);
+            s_ClientLogger->flush_on(spdlog::level::trace);
+        #else
+            s_ClientLogger->set_level(spdlog::level::info);
+            s_ClientLogger->flush_on(spdlog::level::info);
+        #endif
     }
 }

@@ -20,9 +20,7 @@ namespace Heart
         if (s_Instance) return;
         s_Instance = this;
 
-        PlatformUtils::InitializePlatform();
-
-        Heart::Logger::Initialize();
+        Heart::Logger::Initialize(windowName.Data());
 
         Timer timer = Timer("App initialization");
         #ifdef HE_DEBUG
@@ -169,15 +167,19 @@ namespace Heart
             m_LastTimestep = Timestep(currentFrameTime - m_LastFrameTime);
             m_LastFrameTime = currentFrameTime;
 
+            auto timer = AggregateTimer("App::Run - PollEvents");
             m_Window->PollEvents();
+            timer.Finish();
 
             if (m_Minimized)
                 continue;
 
+            // Begin frame
+            timer = AggregateTimer("App::Run - Begin frame");
             Flourish::Context::BeginFrame();
             AssetManager::OnUpdate();
-
             m_Window->BeginFrame();
+            timer.Finish();
 
             // Layer update
             for (auto layer : m_Layers)
@@ -187,12 +189,14 @@ namespace Heart
             m_ImGuiInstance->BeginFrame();
             for (auto layer : m_Layers)
                 layer->OnImGuiRender();
+
+            // End frame
+            timer = AggregateTimer("App::Run - End frame");
             m_ImGuiInstance->EndFrame();
-
             m_Window->EndFrame();
-            m_FrameCount++;
-
             Flourish::Context::EndFrame();
+            m_FrameCount++;
+            timer.Finish();
 
             CheckForAssetsDirectorySwitch();
             AggregateTimer::EndFrame();

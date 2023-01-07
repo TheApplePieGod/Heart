@@ -28,6 +28,7 @@ namespace HeartEditor
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 5.0f));
         
         bool newProjectModalOpened = false;
+        bool isRuntime = Editor::GetSceneState() != SceneState::Editing;
         if (ImGui::BeginViewportSideBar("##MainMenuBar", viewport, ImGuiDir_Up, height, window_flags))
         {
             if (ImGui::BeginMenuBar())
@@ -36,23 +37,33 @@ namespace HeartEditor
                 {
                     if (Project::GetActiveProject())
                     {
-                        bool disabled = Editor::GetSceneState() != SceneState::Editing;
-                        if (disabled)
+                        if (isRuntime)
                             ImGui::BeginDisabled();
                         if (ImGui::MenuItem("Reload Client Scripts"))
                             Project::GetActiveProject()->LoadScriptsPlugin();
                         if (ImGui::MenuItem("Build & Load Client Scripts", "Ctrl+B"))
                         {
-                            Project::GetActiveProject()->BuildScripts();
-                            Project::GetActiveProject()->LoadScriptsPlugin();
+                            if (Project::GetActiveProject()->BuildScripts(true))
+                                Project::GetActiveProject()->LoadScriptsPlugin();
                         }
-                        if (disabled)
+                        if (isRuntime)
                             ImGui::EndDisabled();
                         ImGui::Separator();
                     }
 
                     if (Project::GetActiveProject() && ImGui::MenuItem("Save Project", "Ctrl+S"))
                         Project::GetActiveProject()->SaveToDisk();
+                    
+                    if (isRuntime)
+                        ImGui::BeginDisabled();
+                    if (Project::GetActiveProject() && ImGui::MenuItem("Export Project"))
+                    {
+                        Heart::HString8 path = Heart::FilesystemUtils::OpenFolderDialog(Project::GetActiveProject()->GetPath(), "Export Parent Directory");
+                        if (!path.IsEmpty())
+                            Project::GetActiveProject()->Export(path);
+                    }
+                    if (isRuntime)
+                        ImGui::EndDisabled();
 
                     if (ImGui::MenuItem("New Project"))
                         newProjectModalOpened = true;

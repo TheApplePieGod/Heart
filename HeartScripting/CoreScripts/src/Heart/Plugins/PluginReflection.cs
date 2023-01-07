@@ -28,8 +28,11 @@ namespace Heart.Plugins
         {
             Type serializeType = typeof(SerializeFieldAttribute);
             List<string> names = new();
-            var fields = assembly.GetType(typeName)
-                            .GetFields()
+            
+            var type = assembly.GetType(typeName);
+            if (type == null) return names;
+
+            var fields = type.GetFields()
                             .Where(f => f.IsPublic || f.CustomAttributes
                                                         .Where(a => a.AttributeType == serializeType)
                                                         .Any());

@@ -30,6 +30,11 @@ set(BUILD_EXTRAS OFF)
 set(BUILD_UNIT_TESTS OFF)
 set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
 add_subdirectory("lib/bullet3")
+set(FT_DISABLE_ZLIB ON)
+set(FT_DISABLE_BZIP2 ON)
+set(FT_DISABLE_PNG ON)
+set(FT_DISABLE_HARFBUZZ ON)
+set(FT_DISABLE_BROTLI ON)
 add_subdirectory("lib/FreeType")
 add_library(Freetype::Freetype ALIAS freetype-interface) # Add alias so msdf can find
 set (MSDF_ATLAS_GEN_BUILD_STANDALONE OFF)
@@ -108,18 +113,18 @@ target_include_directories(
 )
 
 # Link dependencies
-target_link_libraries(
-  Engine
-  PUBLIC
+set(LINK_LIBS
   glfw glm imgui spdlog glad imguizmo nlohmann_json FlourishCore
   BulletDynamics BulletCollision LinearMath
   freetype msdf-atlas-gen
 )
-
+target_link_libraries(Engine
+  PUBLIC
+  ${LINK_LIBS}
+)
 if(${CMAKE_BUILD_TYPE} MATCHES Debug)
-  target_link_libraries(
-    Engine
-    PUBLIC
+  target_link_libraries(Engine
+    PRIVATE
     OptickCore
   )
 endif()
@@ -130,6 +135,31 @@ target_precompile_headers(
   PRIVATE
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/hepch.h>"
 )
+
+# Shared dist library
+if (HEART_BUILD_RUNTIME)
+  add_library(EngineRuntime STATIC "${SOURCES}" "${DEPENDENCY_SOURCES}")
+
+  target_compile_definitions(EngineRuntime PUBLIC HE_DIST)
+  target_compile_features(EngineRuntime PUBLIC cxx_std_17)
+
+  target_include_directories(EngineRuntime
+    PUBLIC
+    "$<TARGET_PROPERTY:Engine,INTERFACE_INCLUDE_DIRECTORIES>"
+  )
+  
+  target_link_libraries(EngineRuntime
+    PUBLIC
+    ${LINK_LIBS}
+  )
+
+  # Don't reuse from engine because PCH may be different when HE_DIST is set
+  target_precompile_headers(
+    EngineRuntime
+    PRIVATE
+    "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/hepch.h>"
+  )
+endif()
 
 # Installation
 include(CMakePackageConfigHelpers)
