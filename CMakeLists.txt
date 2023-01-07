@@ -46,6 +46,12 @@ else()
     message("Building HeartEngine in Release mode")
 endif()
 
+# Macos intel testing
+# if (APPLE)
+#     set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64")
+#     set(CMAKE_OSX_DEPLOYMENT_TARGET "10.15")
+# endif()
+
 # Configure & locate dotnet hostfxr
 find_package(Python3 COMPONENTS Interpreter)
 if(Python3_FOUND)

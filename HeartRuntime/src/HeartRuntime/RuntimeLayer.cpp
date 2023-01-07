@@ -15,7 +15,9 @@ namespace HeartRuntime
     RuntimeLayer::RuntimeLayer(const std::filesystem::path& projectPath)
         : m_ProjectPath(projectPath)
     {
-
+        m_RenderSettings.DrawGrid = false;
+        m_RenderSettings.AsyncAssetLoading = true;
+        m_RenderSettings.CopyEntityIdsTextureToCPU = false;
     }
 
     RuntimeLayer::~RuntimeLayer()
@@ -49,7 +51,8 @@ namespace HeartRuntime
 
     void RuntimeLayer::OnImGuiRender()
     {
-        m_Viewport.OnImGuiRender(m_RuntimeScene.get());
+        m_Viewport.OnImGuiRender(m_RuntimeScene.get(), m_RenderSettings);
+        m_DevPanel.OnImGuiRender(m_RuntimeScene.get(), m_RenderSettings);
     }
 
     void RuntimeLayer::OnEvent(Heart::Event& event)
@@ -61,6 +64,19 @@ namespace HeartRuntime
     {
         if (event.GetKeyCode() == Heart::KeyCode::F11)
             RuntimeApp::Get().GetWindow().ToggleFullscreen();
+        if (event.GetKeyCode() == Heart::KeyCode::F12)
+        {
+            if (m_DevPanel.IsOpen())
+            {
+                RuntimeApp::Get().GetWindow().DisableCursor();
+                m_DevPanel.SetOpen(false);
+            }
+            else
+            {
+                RuntimeApp::Get().GetWindow().EnableCursor();
+                m_DevPanel.SetOpen(true);
+            }
+        }
         
         return true;
     }

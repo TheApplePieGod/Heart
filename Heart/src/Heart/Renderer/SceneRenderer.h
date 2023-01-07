@@ -25,7 +25,7 @@ namespace Heart
     {
         bool DrawGrid = true;
         bool BloomEnable = true;
-        bool SSAOEnable = true;
+        bool SSAOEnable = false;
         float SSAORadius = 0.5f;
         float SSAOBias = 0.025f;
         int SSAOKernelSize = 64;
