@@ -504,7 +504,6 @@ namespace Heart
         return { this, m_UUIDMap[uuid] };
     }
 
-
     void Scene::CollisionStartCallback(UUID id0, UUID id1)
     {
         auto ent0 = GetEntityFromUUIDUnchecked(id0);
