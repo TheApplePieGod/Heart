@@ -64,6 +64,7 @@ namespace Heart
         }
     }
 
+    // TODO: switch this over to new processing system
     void AssetManager::ProcessQueue()
     {
         while (s_Initialized)
@@ -88,7 +89,7 @@ namespace Heart
             }
 
             if (s_Initialized)
-                std::this_thread::sleep_for(std::chrono::milliseconds(50));
+                std::this_thread::sleep_for(std::chrono::milliseconds(5));
         }
     }
 
