@@ -34,38 +34,6 @@ namespace Heart
         HE_ENGINE_LOG_INFO("Using {0} task worker threads", taskThreads);
         TaskManager::Initialize(taskThreads);
         
-        Task taskA = TaskManager::Schedule([]()
-        {
-            HE_ENGINE_LOG_WARN("Starting task A");
-            std::this_thread::sleep_for(std::chrono::seconds(1));
-            HE_ENGINE_LOG_WARN("Task A finish");
-        });
-        
-        Task taskB = TaskManager::Schedule([]()
-        {
-            HE_ENGINE_LOG_WARN("Starting task B");
-            std::this_thread::sleep_for(std::chrono::seconds(1));
-            HE_ENGINE_LOG_WARN("Task B finish");
-        }, taskA);
-        
-        Task taskC = TaskManager::Schedule([]()
-        {
-            HE_ENGINE_LOG_WARN("Starting task C");
-            std::this_thread::sleep_for(std::chrono::seconds(1));
-            HE_ENGINE_LOG_WARN("Task C finish");
-        }, taskA);
-         
-        Task taskP = TaskManager::Schedule([]()
-        {
-            HE_ENGINE_LOG_WARN("Starting task P");
-            std::this_thread::sleep_for(std::chrono::seconds(1));
-            HE_ENGINE_LOG_WARN("Task P finish");
-        });
-         
-        HE_ENGINE_LOG_WARN("Waiting for tasks");
-        taskB.Wait();
-        HE_ENGINE_LOG_WARN("Done waiting");
-        
         WindowCreateInfo windowCreateInfo = WindowCreateInfo(windowName);
         InitializeGraphicsApi(windowCreateInfo);
 

@@ -29,7 +29,27 @@ namespace Heart
             thread.join();
     }
 
-    Task TaskManager::Schedule(std::function<void()>&& task, Task dependency)
+    Task TaskManager::Schedule(const std::function<void()>& task)
+    {
+        return Schedule(task, nullptr, 0);
+    }
+
+    Task TaskManager::Schedule(const std::function<void()>& task, Task dependency)
+    {
+        return Schedule(task, &dependency, 1);
+    }
+
+    Task TaskManager::Schedule(const std::function<void()>& task, std::initializer_list<Task> dependencies)
+    {
+        return Schedule(task, dependencies.begin(), dependencies.size());
+    }
+
+    Task TaskManager::Schedule(const std::function<void()>& task, const HVector<Task>& dependencies)
+    {
+        return Schedule(task, dependencies.Data(), dependencies.Count());
+    }
+
+    Task TaskManager::Schedule(const std::function<void()>& task, const Task* dependencies, u32 dependencyCount)
     {
         u32 handle;
         s_FreeListMutex.lock();
@@ -55,7 +75,7 @@ namespace Heart
         data.ShouldExecute = true;
         data.Dependents.Clear();
         data.Task = task;
-        data.DependencyCount = dependency.GetHandle() == InvalidHandle ? 0 : 1;
+        data.DependencyCount = dependencyCount;
         data.Name = "";
         // Set the initial refcount to one because we'll consider a task before it is completed as having a reference to
         // itself. This saves some complexity when decrementing since we no longer need to check for completion
@@ -64,20 +84,24 @@ namespace Heart
         
         bool executeNow = false;
         // No dependencies so it can be executed whenever
-        if (dependency.GetHandle() == InvalidHandle)
+        if (dependencyCount == 0)
             executeNow = true;
         // Otherwise we must add this to the dependents list of the dependencies unless it is already
         // completed
         else
         {
             s_TaskListMutex.lock_shared();
-            TaskData& dependencyData = s_TaskList[dependency.GetHandle()];
-            dependencyData.Mutex.lock();
-            if (dependencyData.Complete)
-                executeNow = true;
-            else
-                dependencyData.Dependents.Add(handle);
-            dependencyData.Mutex.unlock();
+            for (u32 i = 0; i < dependencyCount; i++)
+            {
+                if (dependencies[i].GetHandle() == InvalidHandle) continue;
+                TaskData& dependencyData = s_TaskList[dependencies[i].GetHandle()];
+                dependencyData.Mutex.lock();
+                if (dependencyData.Complete)
+                    executeNow = true;
+                else
+                    dependencyData.Dependents.Add(handle);
+                dependencyData.Mutex.unlock();
+            }
             s_TaskListMutex.unlock_shared();
         }
         

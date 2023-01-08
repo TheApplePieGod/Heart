@@ -12,9 +12,11 @@ namespace Heart
         static void Initialize(u32 numWorkers);
         static void Shutdown();
         
-        static Task Schedule(std::function<void()>&& task, Task dependency = Task());
-        static Task Schedule(std::function<void()>&& task, std::initializer_list<Task> dependencies);
-        static Task Schedule(std::function<void()>&& task, const HVector<Task>& dependencies);
+        static Task Schedule(const std::function<void()>& task);
+        static Task Schedule(const std::function<void()>& task, Task dependency);
+        static Task Schedule(const std::function<void()>& task, std::initializer_list<Task> dependencies);
+        static Task Schedule(const std::function<void()>& task, const HVector<Task>& dependencies);
+        static Task Schedule(const std::function<void()>& task, const Task* dependencies, u32 dependencyCount);
         
         static bool Wait(const Task& task, u32 timeout); // milliseconds
         
