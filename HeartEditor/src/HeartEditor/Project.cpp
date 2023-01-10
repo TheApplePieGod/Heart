@@ -221,7 +221,7 @@ namespace HeartEditor
             command += "Debug";
         else
             command += "Release";
-        
+
         Heart::HString8 output;
         int res = Heart::PlatformUtils::ExecuteCommandWithOutput(command, output);
         if (res == 0)

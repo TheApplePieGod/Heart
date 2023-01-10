@@ -122,12 +122,12 @@ namespace Heart
                 CloseHandle(piProcInfo.hThread);
                 CloseHandle(hChildStd_OUT_Wr);
             }
-        
+            
             // Read output from pipe
             DWORD dwRead; 
+            DWORD bytesAvail;
             CHAR* chBuf = new char[4096]; 
             bSuccess = FALSE;
-            HANDLE hParentStdOut = GetStdHandle(STD_OUTPUT_HANDLE);
             while (true) 
             { 
                 bSuccess = ReadFile(hChildStd_OUT_Rd, chBuf, 4096, &dwRead, NULL);
