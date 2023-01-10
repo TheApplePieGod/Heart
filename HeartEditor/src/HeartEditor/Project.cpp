@@ -299,10 +299,11 @@ namespace HeartEditor
               "libMoltenVK.dylib",
               std::filesystem::path(dst).append("libMoltenVK.dylib")
             );
+            // TODO: this is bad. We should be using a symlink, but it doesn't seem to work, so for now
+            // we are just copying the entire dylib again
             std::filesystem::copy(
-              std::filesystem::path(dst).append("libMoltenVK.dylib"),
-              std::filesystem::path(dst).append("libvulkan.1.dylib"),
-              std::filesystem::copy_options::create_symlinks
+              "libMoltenVK.dylib",
+              std::filesystem::path(dst).append("libvulkan.1.dylib")
             );
         #elif defined(HE_PLATFORM_WINDOWS)
             std::filesystem::path dst = std::filesystem::path(copyPath).parent_path();
