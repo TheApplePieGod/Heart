@@ -9,7 +9,8 @@
 #include "Heart/Events/WindowEvents.h"
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Scripting/ScriptingEngine.h"
-#include "Heart/Core/TaskManager.h"
+#include "Heart/Task/TaskManager.h"
+#include "Heart/Task/JobManager.h"
 #include "Heart/Util/PlatformUtils.h"
 #include "Flourish/Api/Context.h"
 #include "Flourish/Core/Log.h"
@@ -31,8 +32,62 @@ namespace Heart
         #endif
         
         u32 taskThreads = std::thread::hardware_concurrency() - 2;
-        HE_ENGINE_LOG_INFO("Using {0} task worker threads", taskThreads);
+        HE_ENGINE_LOG_INFO("Using {0} task & job worker threads", taskThreads);
+        JobManager::Initialize(taskThreads);
         TaskManager::Initialize(taskThreads);
+        
+        /*
+        Task taskA = TaskManager::Schedule([]()
+        {
+            HE_ENGINE_LOG_WARN("Starting task A");
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+            HE_ENGINE_LOG_WARN("Task A finish");
+        });
+        
+        Task taskB = TaskManager::Schedule([]()
+        {
+            HE_ENGINE_LOG_WARN("Starting task B");
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+            HE_ENGINE_LOG_WARN("Task B finish");
+        }, taskA);
+        
+        Task taskC = TaskManager::Schedule([]()
+        {
+            HE_ENGINE_LOG_WARN("Starting task C");
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+            HE_ENGINE_LOG_WARN("Task C finish");
+        }, taskA);
+        
+        TaskGroup group({ taskB, taskC });
+        
+        Task taskD = TaskManager::Schedule([]()
+        {
+            HE_ENGINE_LOG_WARN("Starting task D");
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+            HE_ENGINE_LOG_WARN("Task D finish");
+        }, group);
+         
+        Task taskP = TaskManager::Schedule([]()
+        {
+            HE_ENGINE_LOG_WARN("Starting task P");
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+            HE_ENGINE_LOG_WARN("Task P finish");
+        });
+         
+        HE_ENGINE_LOG_WARN("Waiting for tasks");
+        taskD.Wait();
+        HE_ENGINE_LOG_WARN("Done waiting");
+        */
+        
+        /*
+        Job job = JobManager::Schedule([](size_t index)
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+            HE_ENGINE_LOG_WARN("JOB {0}", index);
+        }, 500);
+        
+        job.Wait();
+        */
         
         WindowCreateInfo windowCreateInfo = WindowCreateInfo(windowName);
         InitializeGraphicsApi(windowCreateInfo);
@@ -55,7 +110,10 @@ namespace Heart
             layer->OnDetach();
 
         ShutdownGraphicsApi();
-
+        
+        TaskManager::Shutdown();
+        JobManager::Shutdown();
+        
         PlatformUtils::ShutdownPlatform();
 
         HE_ENGINE_LOG_INFO("Shutdown complete");

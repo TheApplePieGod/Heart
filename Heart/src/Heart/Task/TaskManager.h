@@ -2,7 +2,7 @@
 
 #include "Heart/Container/HVector.hpp"
 #include "Heart/Container/HString8.h"
-#include "Heart/Core/Task.h"
+#include "Heart/Task/Task.h"
 
 namespace Heart
 {
@@ -12,15 +12,23 @@ namespace Heart
         static void Initialize(u32 numWorkers);
         static void Shutdown();
         
+        template <class Iter, class Func>
+        static TaskGroup ScheduleIter(Func task, Iter begin, Iter end, const TaskGroup& dependencies)
+        {
+            TaskGroup group;
+            for (; begin != end; ++begin)
+                group.AddTask(Schedule([begin, &task](){ task(*begin); }, dependencies));
+            return group;
+        }
+        
         static Task Schedule(const std::function<void()>& task);
-        static Task Schedule(const std::function<void()>& task, Task dependency);
+        static Task Schedule(const std::function<void()>& task, const Task& dependency);
+        static Task Schedule(const std::function<void()>& task, const TaskGroup& dependencies);
         static Task Schedule(const std::function<void()>& task, std::initializer_list<Task> dependencies);
         static Task Schedule(const std::function<void()>& task, const HVector<Task>& dependencies);
         static Task Schedule(const std::function<void()>& task, const Task* dependencies, u32 dependencyCount);
         
         static bool Wait(const Task& task, u32 timeout); // milliseconds
-        
-        inline static constexpr u32 InvalidHandle = std::numeric_limits<u32>::max();
         
     private:
         struct TaskData

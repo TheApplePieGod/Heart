@@ -34,9 +34,14 @@ namespace Heart
         return Schedule(task, nullptr, 0);
     }
 
-    Task TaskManager::Schedule(const std::function<void()>& task, Task dependency)
+    Task TaskManager::Schedule(const std::function<void()>& task, const Task& dependency)
     {
         return Schedule(task, &dependency, 1);
+    }
+
+    Task TaskManager::Schedule(const std::function<void()>& task, const TaskGroup& dependencies)
+    {
+        return Schedule(task, dependencies.GetTasks().Data(), dependencies.GetTasks().Count());
     }
 
     Task TaskManager::Schedule(const std::function<void()>& task, std::initializer_list<Task> dependencies)
@@ -93,7 +98,7 @@ namespace Heart
             s_TaskListMutex.lock_shared();
             for (u32 i = 0; i < dependencyCount; i++)
             {
-                if (dependencies[i].GetHandle() == InvalidHandle) continue;
+                if (dependencies[i].GetHandle() == Task::InvalidHandle) continue;
                 TaskData& dependencyData = s_TaskList[dependencies[i].GetHandle()];
                 dependencyData.Mutex.lock();
                 if (dependencyData.Complete)
@@ -113,7 +118,7 @@ namespace Heart
 
     bool TaskManager::Wait(const Task& task, u32 timeout)
     {
-        if (task.GetHandle() == InvalidHandle) return false;
+        if (task.GetHandle() == Task::InvalidHandle) return false;
         
         s_TaskListMutex.lock_shared();
         auto& data = s_TaskList[task.GetHandle()];
@@ -159,8 +164,6 @@ namespace Heart
             // Clear func to potentially free resources
             data.Task = nullptr;
             
-            HE_ENGINE_LOG_WARN("HANDLE FREE");
-            
             s_FreeListMutex.lock();
             s_HandleFreeList.Add(handle);
             s_FreeListMutex.unlock();
@@ -188,7 +191,7 @@ namespace Heart
             
             // Retrieve func to execute
             s_TaskListMutex.lock_shared();
-            auto func = s_TaskList[handle].Task;
+            auto func = std::move(s_TaskList[handle].Task);
             s_TaskListMutex.unlock_shared();
             
             try
