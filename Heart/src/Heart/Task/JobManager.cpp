@@ -35,25 +35,30 @@ namespace Heart
             thread.join();
     }
 
-    Job JobManager::Schedule(std::function<void(size_t)>&& job, size_t count)
+    Job JobManager::Schedule(size_t count, std::function<void(size_t)>&& job, std::function<bool(size_t)>&& check)
     {
         u32 handle = CreateJob();
-        
-        s_JobListMutex.lock_shared();
-        JobData& data = s_JobList[handle];
-        data.Complete = count == 0;
-        data.Remaining = count;
-        data.RefCount = count == 0 ? 0 : 1;
-        data.Job = std::move(job);
-        s_JobListMutex.unlock_shared();
         
         std::uniform_int_distribution<int> distribution(0, (int)s_ExecuteQueues.Count() - 1);
         
         for (auto& queue : s_ExecuteQueues)
             queue.Mutex.lock();
         
+        size_t realCount = 0;
         for (size_t i = 0; i < count; i++)
+        {
+            if (!check(i)) continue;
             s_ExecuteQueues[distribution(s_Generator)].Queue.emplace(handle, i);
+            realCount++;
+        }
+
+        s_JobListMutex.lock_shared();
+        JobData& data = s_JobList[handle];
+        data.Complete = realCount == 0;
+        data.Remaining = realCount;
+        data.RefCount = realCount == 0 ? 0 : 1;
+        data.Job = std::move(job);
+        s_JobListMutex.unlock_shared();
 
         for (auto& queue : s_ExecuteQueues)
         {
@@ -118,6 +123,8 @@ namespace Heart
 
     void JobManager::DecrementRefCount(u32 handle, bool lock)
     {
+        if (!s_Initialized) return;
+
         if (lock)
             s_JobListMutex.lock_shared();
         auto& data = s_JobList[handle];
@@ -155,7 +162,9 @@ namespace Heart
             // Decrement job completion count
             if (--data.Remaining == 0)
             {
+                data.Mutex.lock();
                 data.Complete = true;
+                data.Mutex.unlock();
                 data.CompletionCV.notify_all();
                 DecrementRefCount(executeData.Handle, false);
             }

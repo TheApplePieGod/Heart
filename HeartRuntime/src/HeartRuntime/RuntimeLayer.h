@@ -4,7 +4,9 @@
 #include "HeartRuntime/DevPanel.h"
 #include "Heart/Core/Layer.h"
 #include "Heart/Scene/Scene.h"
+#include "Heart/Scene/RenderScene.h"
 #include "Heart/Events/KeyboardEvents.h"
+#include "Heart/Task/Task.h"
 
 namespace HeartRuntime
 {
@@ -27,6 +29,8 @@ namespace HeartRuntime
     private:
         std::filesystem::path m_ProjectPath;
         Heart::Ref<Heart::Scene> m_RuntimeScene;
+        Heart::RenderScene m_RenderScene;
+        Heart::Task m_SceneUpdateTask;
         Heart::SceneRenderSettings m_RenderSettings;
         Viewport m_Viewport;
         DevPanel m_DevPanel;

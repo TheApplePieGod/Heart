@@ -12,7 +12,7 @@ namespace Heart
         static void Initialize(u32 numWorkers);
         static void Shutdown();
         
-        static Job Schedule(std::function<void(size_t)>&& job, size_t count);
+        static Job Schedule(size_t count, std::function<void(size_t)>&& job, std::function<bool(size_t)>&& check = [](size_t index){ return true; });
         
         template<typename Iter>
         static Job ScheduleIter(Iter begin, Iter end, std::function<void(size_t)>&& job, std::function<bool(size_t)>&& check = [](size_t index){ return true; });

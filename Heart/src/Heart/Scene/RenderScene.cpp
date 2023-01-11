@@ -3,17 +3,23 @@
 
 #include "Heart/Scene/Entity.h"
 #include "Heart/Core/Timing.h"
+#include "Heart/Task/JobManager.h"
 
 namespace Heart
 {
-    void RenderScene::CopyFromScene(Scene* scene)
+    void RenderScene::Cleanup()
     {
-        auto timer = AggregateTimer("RenderScene::CopyFromScene");
-
         m_EntityData.Clear();
         m_MeshComponents.Clear();
         m_TextComponents.Clear();
         m_LightComponents.Clear();
+    }
+
+    void RenderScene::CopyFromScene(Scene* scene)
+    {
+        auto timer = AggregateTimer("RenderScene::CopyFromScene");
+
+        Cleanup();
 
         scene->GetRegistry().each([&](auto handle)
         {
@@ -53,5 +59,31 @@ namespace Heart
                 cachedData.ForwardVec
             );
         });
+        
+        // Spawn jobs to recompute text data
+        if (m_TextComponents.Count() > 0)
+        {
+            auto job = JobManager::Schedule(
+                m_TextComponents.Count(),
+                [this, scene](size_t index)
+                {
+                    auto& textComp = m_TextComponents[index];
+                    textComp.Data.RecomputeRenderData();
+                    
+                    // Update original text component with new data so that we can cache the computed result
+                    u32 entityHandle = m_EntityData[textComp.EntityIndex].Id;
+                    auto& ogTextComp = scene->GetRegistry().get<TextComponent>((entt::entity)entityHandle);
+                    ogTextComp.ComputedVertices = textComp.Data.ComputedVertices;
+                    ogTextComp.ComputedIndices = textComp.Data.ComputedIndices;
+                },
+                [this](size_t index)
+                {
+                    const auto& comp = m_TextComponents[index];
+                    return comp.Data.Font && !comp.Data.Text.IsEmpty() && (!comp.Data.ComputedVertices || !comp.Data.ComputedIndices);
+                }
+            );
+
+            job.Wait();
+        }
     }
 }

@@ -6,6 +6,7 @@
 #include "HeartEditor/EditorApp.h"
 #include "HeartEditor/Project.h"
 #include "Heart/Core/Window.h"
+#include "Heart/Task/TaskManager.h"
 #include "Heart/Renderer/SceneRenderer.h"
 #include "Flourish/Api/Texture.h"
 #include "Heart/Scene/Entity.h"
@@ -50,10 +51,15 @@ namespace HeartEditor
     {
         HE_PROFILE_FUNCTION();
 
+        Editor::GetSceneUpdateTask().Wait();
+
         Editor::GetRenderScene().CopyFromScene(&Editor::GetActiveScene());
 
-        if (Editor::GetSceneState() == SceneState::Playing)
-            Editor::GetActiveScene().OnUpdateRuntime(ts);
+        Editor::SetSceneUpdateTask(Heart::TaskManager::Schedule([ts]()
+        {
+            if (Editor::GetSceneState() == SceneState::Playing)
+                Editor::GetActiveScene().OnUpdateRuntime(ts);
+        }));
 
         auto& viewport = (Widgets::Viewport&)Editor::GetWindow("Viewport");
         viewport.UpdateCamera();

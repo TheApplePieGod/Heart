@@ -156,6 +156,8 @@ namespace Heart
 
     void TaskManager::DecrementRefCount(u32 handle, bool lock)
     {
+        if (!s_Initialized) return;
+
         if (lock)
             s_TaskListMutex.lock_shared();
         auto& data = s_TaskList[handle];

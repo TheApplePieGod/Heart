@@ -42,6 +42,7 @@ namespace HeartEditor
         s_Windows.clear();
         s_ActiveScene.reset();
         s_EditorScene.reset();
+        s_RenderScene.Cleanup();
     }
 
     void Editor::CreateWindows()
@@ -177,6 +178,8 @@ namespace HeartEditor
     void Editor::StopScene()
     {
         s_SceneState = SceneState::Editing;
+
+        s_SceneUpdateTask.Wait();
         
         s_ActiveScene->StopRuntime();
         s_ActiveScene = s_EditorScene;

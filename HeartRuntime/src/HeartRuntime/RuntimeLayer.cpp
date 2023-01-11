@@ -6,6 +6,7 @@
 #include "Heart/ImGui/ImGuiInstance.h"
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/SceneAsset.h"
+#include "Heart/Task/TaskManager.h"
 #include "Heart/Scripting/ScriptingEngine.h"
 #include "Heart/Util/FilesystemUtils.h"
 #include "nlohmann/json.hpp"
@@ -40,13 +41,21 @@ namespace HeartRuntime
 
         m_Viewport.Shutdown();
         m_RuntimeScene.reset();
+        m_RenderScene.Cleanup();
 
         HE_LOG_INFO("Runtime detached");
     }
 
     void RuntimeLayer::OnUpdate(Heart::Timestep ts)
     {
-        m_RuntimeScene->OnUpdateRuntime(ts);
+        m_SceneUpdateTask.Wait();
+
+        m_RenderScene.CopyFromScene(m_RuntimeScene.get());
+        
+        m_SceneUpdateTask = Heart::TaskManager::Schedule([this, ts]()
+        {
+            m_RuntimeScene->OnUpdateRuntime(ts);
+        });
 
         m_Viewport.OnImGuiRender(m_RuntimeScene.get(), m_RenderSettings);
         m_DevPanel.OnImGuiRender(m_RuntimeScene.get(), m_RenderSettings);

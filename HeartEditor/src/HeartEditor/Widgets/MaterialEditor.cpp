@@ -33,8 +33,7 @@ namespace Widgets
         m_SceneCamera.UpdateViewMatrix(glm::vec3(0.f), m_Radius, glm::vec3(0.f));
         m_SceneCameraPosition = -m_SceneCamera.GetForwardVector() * m_Radius;
 
-        // Register an in-memory asset for the in-progress material
-        m_EditingMaterialAsset = Heart::AssetManager::RegisterInMemoryAsset(Heart::Asset::Type::Material);
+        Reset();
     }
 
     MaterialEditor::~MaterialEditor()
@@ -123,6 +122,12 @@ namespace Widgets
 
         ImGui::End();
         ImGui::PopStyleVar();
+    }
+    
+    void MaterialEditor::Reset()
+    {
+        // Register an in-memory asset for the in-progress material
+        m_EditingMaterialAsset = Heart::AssetManager::RegisterInMemoryAsset(Heart::Asset::Type::Material);
     }
 
     void MaterialEditor::RenderSidebar()

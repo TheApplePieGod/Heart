@@ -4,6 +4,11 @@
 #include "Heart/Scene/Components.h"
 #include "glm/mat4x4.hpp"
 
+namespace Flourish
+{
+    class Buffer;
+}
+
 namespace Heart
 {
     class Scene;
@@ -38,6 +43,8 @@ namespace Heart
     public:
         RenderScene() = default;
         
+        void Cleanup();
+        
         void CopyFromScene(Scene* scene);
         
         inline bool IsInitialized() const { return m_Initialized; }
@@ -47,6 +54,9 @@ namespace Heart
         inline auto& GetLightComponents() const { return m_LightComponents; }
         
         inline static constexpr u32 InvalidIndex = std::numeric_limits<u32>::max();
+
+    private:
+        void ComputeTextRenderData();
 
     private:
         HVector<EntityData> m_EntityData;

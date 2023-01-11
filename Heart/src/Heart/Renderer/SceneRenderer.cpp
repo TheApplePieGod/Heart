@@ -470,6 +470,8 @@ namespace Heart
         m_RenderedObjectCount = 0;
         bool async = m_SceneRenderSettings.AsyncAssetLoading;
         
+        // TODO: use last frame's batches to render while calculating this frame's in parallel
+        
         // Loop over each mesh component / submesh, hash the mesh & material, and place the entity in a batch
         // associated with the mesh & material. At this stage, Batch.First is unused and Batch.Count indicates
         // how many instances there are
@@ -808,9 +810,6 @@ namespace Heart
             auto fontAsset = AssetManager::RetrieveAsset<FontAsset>(textComp.Data.Font, true, m_SceneRenderSettings.AsyncAssetLoading);
             if (!fontAsset || !fontAsset->IsValid()) continue;
             
-            if (!textComp.Data.ComputedVertices || !textComp.Data.ComputedIndices)
-                textComp.Data.RecomputeRenderData();
-                
             // Object data
             ObjectData objectData = {
                 entityData.Transform,

@@ -5,6 +5,7 @@
 #include "HeartEditor/EditorApp.h"
 #include "HeartEditor/EditorCamera.h"
 #include "HeartEditor/Widgets/ContentBrowser.h"
+#include "HeartEditor/Widgets/MaterialEditor.h"
 #include "HeartEditor/Widgets/Viewport.h"
 #include "Heart/ImGui/ImGuiInstance.h"
 #include "Heart/Core/Timing.h"
@@ -89,8 +90,9 @@ namespace HeartEditor
             Heart::FilesystemUtils::GetParentDirectory(absolutePath)
         );
 
-        // Update content browser
+        // Update widgets
         ((Widgets::ContentBrowser&)Editor::GetWindow("Content Browser")).Reset();
+        ((Widgets::MaterialEditor&)Editor::GetWindow("Material Editor")).Reset();
         
         // Update the imgui project config
         EditorApp::Get().GetImGuiInstance().OverrideImGuiConfig(Heart::AssetManager::GetAssetsDirectory());

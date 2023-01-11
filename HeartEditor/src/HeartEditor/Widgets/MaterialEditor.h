@@ -24,6 +24,8 @@ namespace Widgets
         ~MaterialEditor();
         
         void OnImGuiRender() override;
+        
+        void Reset();
 
         inline void SetSelectedMaterial(Heart::UUID material) { m_SelectedMaterial = material; }
 
