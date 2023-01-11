@@ -4,6 +4,7 @@
 #include "Heart/Core/App.h"
 #include "Heart/Core/Window.h"
 #include "Heart/Core/Timing.h"
+#include "Heart/Task/TaskManager.h"
 #include "Flourish/Api/Context.h"
 #include "Flourish/Api/GraphicsPipeline.h"
 #include "Flourish/Api/ComputePipeline.h"
@@ -132,26 +133,32 @@ namespace Heart
         bufCreateInfo.Stride = sizeof(SSAOData);
         bufCreateInfo.ElementCount = 1;
         m_SSAODataBuffer = Flourish::Buffer::Create(bufCreateInfo);
-        
-        bufCreateInfo.Type = Flourish::BufferType::Storage;
-        bufCreateInfo.Stride = sizeof(ObjectData);
-        bufCreateInfo.ElementCount = maxObjects;
-        m_ObjectDataBuffer = Flourish::Buffer::Create(bufCreateInfo);
 
         bufCreateInfo.Type = Flourish::BufferType::Storage;
         bufCreateInfo.Stride = sizeof(LightData);
         bufCreateInfo.ElementCount = 500;
         m_LightingDataBuffer = Flourish::Buffer::Create(bufCreateInfo);
 
-        bufCreateInfo.Type = Flourish::BufferType::Storage;
-        bufCreateInfo.Stride = sizeof(MaterialData);
-        bufCreateInfo.ElementCount = maxObjects;
-        m_MaterialDataBuffer = Flourish::Buffer::Create(bufCreateInfo);
+        for (u32 i = 0; i < Flourish::Context::FrameBufferCount(); i++)
+        {
+            bufCreateInfo.Usage = Flourish::BufferUsageType::DynamicOneFrame;
+            bufCreateInfo.Type = Flourish::BufferType::Storage;
+            bufCreateInfo.Stride = sizeof(ObjectData);
+            bufCreateInfo.ElementCount = maxObjects;
+            m_BatchRenderData[i].ObjectDataBuffer = Flourish::Buffer::Create(bufCreateInfo);
 
-        bufCreateInfo.Type = Flourish::BufferType::Indirect;
-        bufCreateInfo.Stride = sizeof(IndexedIndirectCommand);
-        bufCreateInfo.ElementCount = maxObjects;
-        m_IndirectBuffer = Flourish::Buffer::Create(bufCreateInfo);
+            bufCreateInfo.Usage = Flourish::BufferUsageType::DynamicOneFrame;
+            bufCreateInfo.Type = Flourish::BufferType::Storage;
+            bufCreateInfo.Stride = sizeof(MaterialData);
+            bufCreateInfo.ElementCount = maxObjects;
+            m_BatchRenderData[i].MaterialDataBuffer = Flourish::Buffer::Create(bufCreateInfo);
+
+            bufCreateInfo.Usage = Flourish::BufferUsageType::DynamicOneFrame;
+            bufCreateInfo.Type = Flourish::BufferType::Indirect;
+            bufCreateInfo.Stride = sizeof(IndexedIndirectCommand);
+            bufCreateInfo.ElementCount = maxObjects;
+            m_BatchRenderData[i].IndirectBuffer = Flourish::Buffer::Create(bufCreateInfo);
+        }
     }
 
     void SceneRenderer::CreateTextures()
@@ -333,26 +340,45 @@ namespace Heart
         m_SSAOComputeTarget = Flourish::ComputeTarget::Create();
     }
 
-    void SceneRenderer::Render(RenderScene* scene, EnvironmentMap* envMap, const Camera& camera, glm::vec3 cameraPosition, const SceneRenderSettings& renderSettings)
+    void SceneRenderer::ClearRenderData()
+    {
+        for (u32 i = 0; i < Flourish::Context::FrameBufferCount(); i++)
+            m_BatchRenderData[i].IndirectBatches.clear();
+    }
+
+    Task SceneRenderer::Render(RenderScene* scene, EnvironmentMap* envMap, const Camera& camera, glm::vec3 cameraPosition, const SceneRenderSettings& renderSettings)
     {
         HE_PROFILE_FUNCTION();
-        auto timer = AggregateTimer("SceneRenderer::RenderScene");
+        auto timer = AggregateTimer("SceneRenderer::Render");
 
         HE_ENGINE_ASSERT(scene, "Scene cannot be nullptr");
         
         if (m_ShouldResize)
             Resize();
 
+        // If scenes have changed, clear previously computed batches so that no renders occur
+        // since assets may possibly unload or resources are no longer valid
+        if (scene != m_Scene)
+            ClearRenderData();
+
         // Reset in-flight frame data
         m_SceneRenderSettings = renderSettings;
         m_Scene = scene;
         m_Camera = &camera;
         m_EnvironmentMap = envMap;
-        m_IndirectBatches.clear();
-        m_DeferredIndirectBatches.Clear();
+        m_UpdateFrameIndex = App::Get().GetFrameCount() % Flourish::Context::FrameBufferCount();
+        m_RenderFrameIndex = (App::Get().GetFrameCount() - 1) % Flourish::Context::FrameBufferCount();
+        m_BatchRenderData[m_UpdateFrameIndex].IndirectBatches.clear();
+        m_BatchRenderData[m_RenderFrameIndex].DeferredIndirectBatches.Clear();
         m_RenderBuffers.clear();
-        for (auto& list : m_EntityListPool)
+        for (auto& list : m_BatchRenderData[m_UpdateFrameIndex].EntityListPool)
             list.Clear();
+
+        // Recalculate the indirect render batches for the next render
+        Task updateTask = TaskManager::Schedule([this]()
+        {
+            CalculateBatches();
+        });
 
         // Set the global data for this frame
         FrameData frameData = {
@@ -371,9 +397,6 @@ namespace Heart
 
         // Update the light buffer with lights  (TODO: that are on screen)
         UpdateLightingBuffer();
-
-        // Recalculate the indirect render batches
-        CalculateBatches();
 
         m_RenderEncoder = m_MainCommandBuffer->EncodeRenderCommands(m_MainFramebuffer.get());
 
@@ -423,6 +446,8 @@ namespace Heart
             Bloom();
             
         FinalComposite();
+        
+        return updateTask;
     }
 
     void SceneRenderer::UpdateLightingBuffer()
@@ -465,10 +490,12 @@ namespace Heart
     void SceneRenderer::CalculateBatches()
     {
         HE_PROFILE_FUNCTION();
+        auto timer = AggregateTimer("SceneRenderer::CalculateBatches");
 
         m_RenderedInstanceCount = 0;
         m_RenderedObjectCount = 0;
         bool async = m_SceneRenderSettings.AsyncAssetLoading;
+        auto& batchData = m_BatchRenderData[m_UpdateFrameIndex];
         
         // TODO: use last frame's batches to render while calculating this frame's in parallel
         
@@ -504,15 +531,15 @@ namespace Heart
                     hash ^= meshComp.Data.Materials[meshData.GetMaterialIndex()];
 
                 // Get/create a batch associated with this hash
-                auto& batch = m_IndirectBatches[hash];
+                auto& batch = batchData.IndirectBatches[hash];
 
                 // Update the batch information if this is the first entity being added to it
                 if (batch.Count == 0)
                 {
                     // Retrieve a vector from the pool
                     batch.EntityListIndex = batchIndex;
-                    if (batchIndex >= m_EntityListPool.Count())
-                        m_EntityListPool.AddInPlace();
+                    if (batchIndex >= batchData.EntityListPool.Count())
+                        batchData.EntityListPool.AddInPlace();
 
                     // Set the material & mesh associated with this batch
                     batch.Mesh = &meshData;
@@ -531,7 +558,7 @@ namespace Heart
                 m_RenderedInstanceCount++;
 
                 // Push the associated entity to the associated vector from the pool
-                m_EntityListPool[batch.EntityListIndex].AddInPlace(static_cast<u32>(meshComp.EntityIndex));
+                batchData.EntityListPool[batch.EntityListIndex].AddInPlace(static_cast<u32>(meshComp.EntityIndex));
             }
         }
 
@@ -540,7 +567,7 @@ namespace Heart
         // Batch.Count will equal 1 because it represents how many draw commands are in each batch
         u32 commandIndex = 0;
         u32 objectId = 0;
-        for (auto& pair : m_IndirectBatches)
+        for (auto& pair : batchData.IndirectBatches)
         {
             // Update the draw command index
             pair.second.First = commandIndex;
@@ -551,10 +578,10 @@ namespace Heart
                 pair.second.Count,
                 0, 0, objectId
             };
-            m_IndirectBuffer->SetElements(&command, 1, commandIndex);
+            batchData.IndirectBuffer->SetElements(&command, 1, commandIndex);
 
             // Contiguiously set the instance data for each entity associated with this batch
-            auto& entityList = m_EntityListPool[pair.second.EntityListIndex];
+            auto& entityList = batchData.EntityListPool[pair.second.EntityListIndex];
             for (u32 entity : entityList)
             {
                 const auto& entityData = m_Scene->GetEntityData()[entity];
@@ -564,7 +591,7 @@ namespace Heart
                     entityData.Transform,
                     { entityData.Id, 0.f, 0.f, 0.f }
                 };
-                m_ObjectDataBuffer->SetElements(&objectData, 1, objectId);
+                batchData.ObjectDataBuffer->SetElements(&objectData, 1, objectId);
 
                 // Material data
                 if (pair.second.Material)
@@ -586,10 +613,10 @@ namespace Heart
                     auto occlusionAsset = AssetManager::RetrieveAsset<TextureAsset>(pair.second.Material->GetOcclusionTexture(), true, async);
                     materialData.SetHasOcclusion(occlusionAsset && occlusionAsset->IsValid());
 
-                    m_MaterialDataBuffer->SetElements(&materialData, 1, objectId);
+                    batchData.MaterialDataBuffer->SetElements(&materialData, 1, objectId);
                 }
                 else
-                    m_MaterialDataBuffer->SetElements(&AssetManager::RetrieveAsset<MaterialAsset>("engine/DefaultMaterial.hemat", true)->GetMaterial().GetMaterialData(), 1, objectId);
+                    batchData.MaterialDataBuffer->SetElements(&AssetManager::RetrieveAsset<MaterialAsset>("engine/DefaultMaterial.hemat", true)->GetMaterial().GetMaterialData(), 1, objectId);
 
                 objectId++;
             }
@@ -680,14 +707,16 @@ namespace Heart
 
     void SceneRenderer::BindPBRDefaults()
     {
+        auto& batchData = m_BatchRenderData[m_RenderFrameIndex];
+
         // Bind frame data
         m_RenderEncoder->BindPipelineBufferResource(0, m_FrameDataBuffer.get(), 0, 0, 1);
 
         // Bind object data
-        m_RenderEncoder->BindPipelineBufferResource(1, m_ObjectDataBuffer.get(), 0, 0, m_ObjectDataBuffer->GetAllocatedCount());
+        m_RenderEncoder->BindPipelineBufferResource(1, batchData.ObjectDataBuffer.get(), 0, 0, batchData.ObjectDataBuffer->GetAllocatedCount());
 
         // Bind material data
-        m_RenderEncoder->BindPipelineBufferResource(2, m_MaterialDataBuffer.get(), 0, 0, m_MaterialDataBuffer->GetAllocatedCount());
+        m_RenderEncoder->BindPipelineBufferResource(2, batchData.MaterialDataBuffer.get(), 0, 0, batchData.MaterialDataBuffer->GetAllocatedCount());
         
         // Bind lighting data
         m_RenderEncoder->BindPipelineBufferResource(3, m_LightingDataBuffer.get(), 0, 0, m_LightingDataBuffer->GetAllocatedCount());
@@ -742,7 +771,8 @@ namespace Heart
         BindPBRDefaults();
 
         // Initial (opaque) batches pass
-        for (auto& pair : m_IndirectBatches)
+        auto& batchData = m_BatchRenderData[m_RenderFrameIndex];
+        for (auto& pair : batchData.IndirectBatches)
         {
             auto& batch = pair.second;
 
@@ -750,7 +780,7 @@ namespace Heart
             {
                 if (batch.Material->IsTranslucent())
                 {
-                    m_DeferredIndirectBatches.AddInPlace(&batch);
+                    batchData.DeferredIndirectBatches.AddInPlace(&batch);
                     continue;
                 }
                 BindMaterial(batch.Material);
@@ -762,7 +792,7 @@ namespace Heart
             m_RenderEncoder->BindVertexBuffer(batch.Mesh->GetVertexBuffer());
             m_RenderEncoder->BindIndexBuffer(batch.Mesh->GetIndexBuffer());
             m_RenderEncoder->DrawIndexedIndirect(
-                m_IndirectBuffer.get(), batch.First, batch.Count
+                batchData.IndirectBuffer.get(), batch.First, batch.Count
             );
         }
         
@@ -773,7 +803,7 @@ namespace Heart
         m_RenderEncoder->BindPipeline("pbrTpColor");
         BindPBRDefaults();
 
-        for (auto batch : m_DeferredIndirectBatches)
+        for (auto batch : batchData.DeferredIndirectBatches)
         {
             if (batch->Material)
                 BindMaterial(batch->Material);
@@ -784,7 +814,7 @@ namespace Heart
             m_RenderEncoder->BindVertexBuffer(batch->Mesh->GetVertexBuffer());
             m_RenderEncoder->BindIndexBuffer(batch->Mesh->GetIndexBuffer());
             m_RenderEncoder->DrawIndexedIndirect(
-                m_IndirectBuffer.get(), batch->First, batch->Count
+                batchData.IndirectBuffer.get(), batch->First, batch->Count
             );
         }
     }
@@ -801,6 +831,7 @@ namespace Heart
 
         // TODO: batch by font?
         MaterialData material;
+        auto& batchData = m_BatchRenderData[m_RenderFrameIndex];
         for (auto& textComp : m_Scene->GetTextComponents())
         {
             const auto& entityData = m_Scene->GetEntityData()[textComp.EntityIndex];
@@ -815,14 +846,14 @@ namespace Heart
                 entityData.Transform,
                 { entityData.Id, 0.f, 0.f, 0.f }
             };
-            m_ObjectDataBuffer->SetElements(&objectData, 1, m_RenderedObjectCount);
+            batchData.ObjectDataBuffer->SetElements(&objectData, 1, m_RenderedObjectCount);
             
             // Material data
             material.BaseColor = glm::vec4(textComp.Data.BaseColor, 1.f);
             material.EmissiveFactor = glm::vec4(textComp.Data.EmissiveFactor, 1.f);
             material.Scalars.x = textComp.Data.Metalness;
             material.Scalars.y = textComp.Data.Roughness;
-            m_MaterialDataBuffer->SetElements(&material, 1, m_RenderedObjectCount);
+            batchData.MaterialDataBuffer->SetElements(&material, 1, m_RenderedObjectCount);
             
             m_RenderEncoder->BindPipelineTextureResource(16, fontAsset->GetAtlasTexture());
             m_RenderEncoder->FlushPipelineBindings();

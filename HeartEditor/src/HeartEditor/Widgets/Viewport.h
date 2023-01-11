@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Heart/Task/Task.h"
 #include "HeartEditor/Widgets/Widget.h"
 #include "imgui/imgui.h"
 #include "imguizmo/ImGuizmo.h"
@@ -30,6 +31,8 @@ namespace Widgets
         nlohmann::json Serialize() override;
         void Deserialize(const nlohmann::json& elem) override;
 
+        void Reset();
+
         void UpdateCamera();
         void SetFocused(bool focus);
         void ResetEditorCamera();
@@ -47,6 +50,7 @@ namespace Widgets
 
     private:
         Heart::Ref<Heart::SceneRenderer> m_SceneRenderer;
+        Heart::Task m_SceneRendererUpdateTask;
         Heart::Ref<Heart::Camera> m_ActiveCamera;
         Heart::Ref<EditorCamera> m_EditorCamera;
         glm::vec3 m_ActiveCameraPos;

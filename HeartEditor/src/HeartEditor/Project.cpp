@@ -90,9 +90,10 @@ namespace HeartEditor
             Heart::FilesystemUtils::GetParentDirectory(absolutePath)
         );
 
-        // Update widgets
+        // Update widgets (TODO: inheritance)
         ((Widgets::ContentBrowser&)Editor::GetWindow("Content Browser")).Reset();
         ((Widgets::MaterialEditor&)Editor::GetWindow("Material Editor")).Reset();
+        ((Widgets::Viewport&)Editor::GetWindow("Viewport")).Reset();
         
         // Update the imgui project config
         EditorApp::Get().GetImGuiInstance().OverrideImGuiConfig(Heart::AssetManager::GetAssetsDirectory());
