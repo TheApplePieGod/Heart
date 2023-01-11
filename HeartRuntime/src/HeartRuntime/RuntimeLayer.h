@@ -16,7 +16,6 @@ namespace HeartRuntime
 
         void OnAttach() override;
         void OnUpdate(Heart::Timestep ts) override;
-        void OnImGuiRender() override;
         void OnDetach() override;
 
         void OnEvent(Heart::Event& event) override;

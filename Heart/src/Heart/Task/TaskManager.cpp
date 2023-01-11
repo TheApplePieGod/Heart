@@ -79,7 +79,7 @@ namespace Heart
         data.Success = false;
         data.ShouldExecute = true;
         data.Dependents.Clear();
-        data.Task = task;
+        data.Task = std::move(task);
         data.DependencyCount = dependencyCount;
         data.Name = "";
         // Set the initial refcount to one because we'll consider a task before it is completed as having a reference to

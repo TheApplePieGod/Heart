@@ -93,8 +93,10 @@ namespace Widgets
             m_LastMaterial = m_SelectedMaterial;
             m_DemoEntity.GetComponent<Heart::MeshComponent>().Materials[0] = m_EditingMaterialAsset;
             m_SceneCamera.UpdateAspectRatio(m_WindowSizes.y / ImGui::GetContentRegionMax().y); // update aspect using estimated size
-            m_SceneRenderer->RenderScene(
-                m_Scene.get(),
+            m_RenderScene.CopyFromScene(m_Scene.get());
+            m_SceneRenderer->Render(
+                &m_RenderScene,
+                m_Scene->GetEnvironmentMap(),
                 m_SceneCamera,
                 m_SceneCameraPosition,
                 renderSettings

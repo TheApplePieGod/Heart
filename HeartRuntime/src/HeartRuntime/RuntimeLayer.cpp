@@ -47,10 +47,7 @@ namespace HeartRuntime
     void RuntimeLayer::OnUpdate(Heart::Timestep ts)
     {
         m_RuntimeScene->OnUpdateRuntime(ts);
-    }
 
-    void RuntimeLayer::OnImGuiRender()
-    {
         m_Viewport.OnImGuiRender(m_RuntimeScene.get(), m_RenderSettings);
         m_DevPanel.OnImGuiRender(m_RuntimeScene.get(), m_RenderSettings);
     }

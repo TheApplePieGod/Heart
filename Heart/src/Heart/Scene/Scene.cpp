@@ -282,7 +282,8 @@ namespace Heart
             quat,
             translation,
             rot,
-            scale
+            scale,
+            glm::normalize(glm::vec3(glm::toMat4(quat) * glm::vec4(0.f, 0.f, 1.f, 1.f)))
         };
         
         if (updatePhysics && entity.HasComponent<CollisionComponent>())
@@ -558,6 +559,11 @@ namespace Heart
             ent1.GetComponent<ScriptComponent>().Instance.OnCollisionEnded(ent0);
     }
 
+    const Scene::CachedTransformData& Scene::GetEntityCachedData(Entity entity)
+    {
+        return m_CachedTransforms[entity.GetHandle()];
+    }
+
     const glm::mat4& Scene::GetEntityCachedTransform(Entity entity)
     {
         return m_CachedTransforms[entity.GetHandle()].Transform;
@@ -581,5 +587,10 @@ namespace Heart
     glm::vec3 Scene::GetEntityCachedScale(Entity entity)
     {
         return m_CachedTransforms[entity.GetHandle()].Scale;
+    }
+
+    glm::vec3 Scene::GetEntityCachedForwardVec(Entity entity)
+    {
+        return m_CachedTransforms[entity.GetHandle()].ForwardVec;
     }
 }

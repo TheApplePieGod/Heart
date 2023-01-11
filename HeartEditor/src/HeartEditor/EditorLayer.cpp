@@ -48,16 +48,20 @@ namespace HeartEditor
 
     void EditorLayer::OnUpdate(Heart::Timestep ts)
     {
+        HE_PROFILE_FUNCTION();
+
+        Editor::GetRenderScene().CopyFromScene(&Editor::GetActiveScene());
+
         if (Editor::GetSceneState() == SceneState::Playing)
             Editor::GetActiveScene().OnUpdateRuntime(ts);
 
         auto& viewport = (Widgets::Viewport&)Editor::GetWindow("Viewport");
         viewport.UpdateCamera();
-    }
 
-    void EditorLayer::OnImGuiRender()
-    {
-        HE_PROFILE_FUNCTION();
+        /*
+         * ImGui render
+         */
+
         ImGuizmo::BeginFrame();
 
         ImGui::SetNextWindowPos(ImGui::GetMainViewport()->WorkPos);

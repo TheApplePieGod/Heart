@@ -38,7 +38,7 @@ namespace Heart
         bool RenderPhysicsVolumes = false;
     };
 
-    class Scene;
+    class RenderScene;
     class Material;
     class Mesh;
     class EnvironmentMap;
@@ -52,7 +52,7 @@ namespace Heart
         SceneRenderer();
         ~SceneRenderer();
 
-        void RenderScene(Scene* scene, const Camera& camera, glm::vec3 cameraPosition, const SceneRenderSettings& renderSettings);
+        void Render(RenderScene* scene, EnvironmentMap* envMap, const Camera& camera, glm::vec3 cameraPosition, const SceneRenderSettings& renderSettings);
 
         void OnEvent(Event& event) override;
 
@@ -227,7 +227,7 @@ namespace Heart
         
         // In-flight frame data
         Flourish::RenderCommandEncoder* m_RenderEncoder;
-        Scene* m_Scene;
+        RenderScene* m_Scene;
         EnvironmentMap* m_EnvironmentMap;
         const Camera* m_Camera;
         std::unordered_map<u64, IndirectBatch> m_IndirectBatches;

@@ -30,9 +30,6 @@ namespace Heart
          */
         virtual void OnUpdate(Timestep ts) {}
 
-        /*! @brief Called each frame during the GUI render step. */
-        virtual void OnImGuiRender() {}
-
         /*! @brief Called when the layer is detached from the application. */
         virtual void OnDetach() {}
 

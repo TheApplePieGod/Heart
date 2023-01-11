@@ -40,8 +40,9 @@ namespace Widgets
 
         ImGui::Begin(m_Name.Data(), &m_Open);
 
-        m_SceneRenderer->RenderScene(
-            &Editor::GetActiveScene(),
+        m_SceneRenderer->Render(
+            &Editor::GetRenderScene(),
+            Editor::GetActiveScene().GetEnvironmentMap(),
             *m_ActiveCamera,
             m_ActiveCameraPos,
             Editor::GetState().RenderSettings

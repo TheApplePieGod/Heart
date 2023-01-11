@@ -23,7 +23,7 @@
 #include "Heart/Core/Camera.h"
 #include "Heart/Events/WindowEvents.h"
 #include "Heart/Scene/Components.h"
-#include "Heart/Scene/Entity.h"
+#include "Heart/Scene/RenderScene.h"
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/TextureAsset.h"
 #include "Heart/Asset/MaterialAsset.h"
@@ -333,7 +333,7 @@ namespace Heart
         m_SSAOComputeTarget = Flourish::ComputeTarget::Create();
     }
 
-    void SceneRenderer::RenderScene(Scene* scene, const Camera& camera, glm::vec3 cameraPosition, const SceneRenderSettings& renderSettings)
+    void SceneRenderer::Render(RenderScene* scene, EnvironmentMap* envMap, const Camera& camera, glm::vec3 cameraPosition, const SceneRenderSettings& renderSettings)
     {
         HE_PROFILE_FUNCTION();
         auto timer = AggregateTimer("SceneRenderer::RenderScene");
@@ -347,7 +347,7 @@ namespace Heart
         m_SceneRenderSettings = renderSettings;
         m_Scene = scene;
         m_Camera = &camera;
-        m_EnvironmentMap = scene->GetEnvironmentMap();
+        m_EnvironmentMap = envMap;
         m_IndirectBatches.clear();
         m_DeferredIndirectBatches.Clear();
         m_RenderBuffers.clear();
@@ -405,7 +405,7 @@ namespace Heart
         {
             if (!m_PhysicsDebugRenderer)
                 m_PhysicsDebugRenderer = CreateRef<PhysicsDebugRenderer>(m_RenderWidth, m_RenderHeight);
-            m_PhysicsDebugRenderer->Draw(m_Scene, *m_Camera);
+            //m_PhysicsDebugRenderer->Draw(m_Scene, *m_Camera);
         }
 
         // Submit
@@ -430,31 +430,29 @@ namespace Heart
         HE_PROFILE_FUNCTION();
 
         u32 lightIndex = 1;
-        auto view = m_Scene->GetRegistry().view<TransformComponent, LightComponent>();
-        for (auto entityHandle : view)
+        for (const auto& lightComp : m_Scene->GetLightComponents())
         {
-            Entity entity = { m_Scene, entityHandle };
-            auto [transform, light] = view.get<TransformComponent, LightComponent>(entityHandle);
+            const auto& entityData = m_Scene->GetEntityData()[lightComp.EntityIndex];
+
             u32 offset = lightIndex * m_LightingDataBuffer->GetStride();
 
-            if (light.LightType == LightComponent::Type::Disabled) continue;
+            if (lightComp.Data.LightType == LightComponent::Type::Disabled) continue;
 
             // Update the translation part of the light struct
-            glm::vec3 worldPos = entity.GetWorldPosition();
-            m_LightingDataBuffer->SetBytes(&worldPos, sizeof(glm::vec3), offset);
+            m_LightingDataBuffer->SetBytes(&entityData.Translation, sizeof(glm::vec3), offset);
             offset += sizeof(glm::vec4);
 
             // Update the light direction if the light is not a point light
-            if (light.LightType != LightComponent::Type::Point)
+            if (lightComp.Data.LightType != LightComponent::Type::Point)
             {
                 // Negate the forward vector so it points in the direction of the light's +Z
-                glm::vec3 forwardVector = -entity.GetWorldForwardVector();
+                glm::vec3 forwardVector = -entityData.ForwardVec;
                 m_LightingDataBuffer->SetBytes(&forwardVector, sizeof(forwardVector), offset);
             }
             offset += sizeof(glm::vec4);
 
             // Update the rest of the light data after the transform
-            m_LightingDataBuffer->SetBytes(&light, sizeof(light), offset);
+            m_LightingDataBuffer->SetBytes(&lightComp.Data, sizeof(lightComp.Data), offset);
 
             lightIndex++;
         }
@@ -476,17 +474,16 @@ namespace Heart
         // associated with the mesh & material. At this stage, Batch.First is unused and Batch.Count indicates
         // how many instances there are
         u32 batchIndex = 0;
-        auto group = m_Scene->GetRegistry().group<TransformComponent, MeshComponent>();
-        for (auto entity : group)
+        for (const auto& meshComp : m_Scene->GetMeshComponents())
         {
-            auto [transform, mesh] = group.get<TransformComponent, MeshComponent>(entity);
+            const auto& entityData = m_Scene->GetEntityData()[meshComp.EntityIndex];
 
             // Compute max scale for calculating the bounding sphere
-            glm::vec3 scale = transform.Scale;
+            glm::vec3 scale = entityData.Scale;
             float maxScale = std::max(std::max(scale.x, scale.y), scale.z);
 
             // Skip invalid meshes
-            auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>(mesh.Mesh, true, async);
+            auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>(meshComp.Data.Mesh, true, async);
             if (!meshAsset || !meshAsset->IsValid()) continue;
 
             for (u32 i = 0; i < meshAsset->GetSubmeshCount(); i++)
@@ -496,13 +493,13 @@ namespace Heart
                 glm::vec4 boundingSphere = meshData.GetBoundingSphere();
                 boundingSphere.w *= maxScale; // Extend the bounding sphere to fit the largest scale 
                 if (m_SceneRenderSettings.CullEnable && 
-                    !FrustumCull(boundingSphere, m_Scene->GetEntityCachedTransform({ m_Scene, entity })))
+                    !FrustumCull(boundingSphere, entityData.Transform))
                     continue;
                 
                 // Create a hash based on the submesh and its material if applicable
-                u64 hash = mesh.Mesh ^ (i * 45787893);
-                if (meshData.GetMaterialIndex() < mesh.Materials.Count())
-                    hash ^= mesh.Materials[meshData.GetMaterialIndex()];
+                u64 hash = meshComp.Data.Mesh ^ (i * 45787893);
+                if (meshData.GetMaterialIndex() < meshComp.Data.Materials.Count())
+                    hash ^= meshComp.Data.Materials[meshData.GetMaterialIndex()];
 
                 // Get/create a batch associated with this hash
                 auto& batch = m_IndirectBatches[hash];
@@ -518,9 +515,9 @@ namespace Heart
                     // Set the material & mesh associated with this batch
                     batch.Mesh = &meshData;
                     batch.Material = &meshAsset->GetDefaultMaterials()[meshData.GetMaterialIndex()]; // default material
-                    if (mesh.Materials.Count() > meshData.GetMaterialIndex())
+                    if (meshComp.Data.Materials.Count() > meshData.GetMaterialIndex())
                     {
-                        auto materialAsset = AssetManager::RetrieveAsset<MaterialAsset>(mesh.Materials[meshData.GetMaterialIndex()]);
+                        auto materialAsset = AssetManager::RetrieveAsset<MaterialAsset>(meshComp.Data.Materials[meshData.GetMaterialIndex()]);
                         if (materialAsset && materialAsset->IsValid())
                             batch.Material = &materialAsset->GetMaterial();
                     }
@@ -532,7 +529,7 @@ namespace Heart
                 m_RenderedInstanceCount++;
 
                 // Push the associated entity to the associated vector from the pool
-                m_EntityListPool[batch.EntityListIndex].AddInPlace(static_cast<u32>(entity));
+                m_EntityListPool[batch.EntityListIndex].AddInPlace(static_cast<u32>(meshComp.EntityIndex));
             }
         }
 
@@ -556,14 +553,14 @@ namespace Heart
 
             // Contiguiously set the instance data for each entity associated with this batch
             auto& entityList = m_EntityListPool[pair.second.EntityListIndex];
-            for (auto& _entity : entityList)
+            for (u32 entity : entityList)
             {
-                Entity entity = { m_Scene, _entity };
+                const auto& entityData = m_Scene->GetEntityData()[entity];
 
                 // Object data
                 ObjectData objectData = {
-                    m_Scene->GetEntityCachedTransform(entity),
-                    { _entity, 0.f, 0.f, 0.f }
+                    entityData.Transform,
+                    { entityData.Id, 0.f, 0.f, 0.f }
                 };
                 m_ObjectDataBuffer->SetElements(&objectData, 1, objectId);
 
@@ -802,42 +799,40 @@ namespace Heart
 
         // TODO: batch by font?
         MaterialData material;
-        auto view = m_Scene->GetRegistry().view<TransformComponent, TextComponent>();
-        for (auto entityHandle : view)
+        for (auto& textComp : m_Scene->GetTextComponents())
         {
-            Entity entity = { m_Scene, entityHandle };
-            auto [transform, text] = view.get<TransformComponent, TextComponent>(entityHandle);
+            const auto& entityData = m_Scene->GetEntityData()[textComp.EntityIndex];
             
-            if (text.Text.Count() == 0) continue;
+            if (textComp.Data.Text.Count() == 0) continue;
             
-            auto fontAsset = AssetManager::RetrieveAsset<FontAsset>(text.Font, true, m_SceneRenderSettings.AsyncAssetLoading);
+            auto fontAsset = AssetManager::RetrieveAsset<FontAsset>(textComp.Data.Font, true, m_SceneRenderSettings.AsyncAssetLoading);
             if (!fontAsset || !fontAsset->IsValid()) continue;
             
-            if (!text.ComputedVertices || !text.ComputedIndices)
-                text.RecomputeRenderData();
+            if (!textComp.Data.ComputedVertices || !textComp.Data.ComputedIndices)
+                textComp.Data.RecomputeRenderData();
                 
             // Object data
             ObjectData objectData = {
-                m_Scene->GetEntityCachedTransform(entity),
-                { entityHandle, 0.f, 0.f, 0.f }
+                entityData.Transform,
+                { entityData.Id, 0.f, 0.f, 0.f }
             };
             m_ObjectDataBuffer->SetElements(&objectData, 1, m_RenderedObjectCount);
             
             // Material data
-            material.BaseColor = glm::vec4(text.BaseColor, 1.f);
-            material.EmissiveFactor = glm::vec4(text.EmissiveFactor, 1.f);
-            material.Scalars.x = text.Metalness;
-            material.Scalars.y = text.Roughness;
+            material.BaseColor = glm::vec4(textComp.Data.BaseColor, 1.f);
+            material.EmissiveFactor = glm::vec4(textComp.Data.EmissiveFactor, 1.f);
+            material.Scalars.x = textComp.Data.Metalness;
+            material.Scalars.y = textComp.Data.Roughness;
             m_MaterialDataBuffer->SetElements(&material, 1, m_RenderedObjectCount);
             
             m_RenderEncoder->BindPipelineTextureResource(16, fontAsset->GetAtlasTexture());
             m_RenderEncoder->FlushPipelineBindings();
             
             // Draw
-            m_RenderEncoder->BindVertexBuffer(text.ComputedVertices.get());
-            m_RenderEncoder->BindIndexBuffer(text.ComputedIndices.get());
+            m_RenderEncoder->BindVertexBuffer(textComp.Data.ComputedVertices.get());
+            m_RenderEncoder->BindIndexBuffer(textComp.Data.ComputedIndices.get());
             m_RenderEncoder->DrawIndexed(
-                text.ComputedIndices->GetAllocatedCount(),
+                textComp.Data.ComputedIndices->GetAllocatedCount(),
                 0, 0, 1, m_RenderedObjectCount
             );
              
