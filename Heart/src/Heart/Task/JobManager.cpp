@@ -16,7 +16,10 @@ namespace Heart
         s_Initialized = true;
         
         for (u32 i = 0; i < numWorkers; i++)
-            s_WorkerThreads.AddInPlace(&JobManager::ProcessQueue);
+        {
+            s_ExecuteQueues.AddInPlace();
+            s_WorkerThreads.AddInPlace(&JobManager::ProcessQueue, i);
+        }
     }
 
     void JobManager::Shutdown()
@@ -24,7 +27,8 @@ namespace Heart
         s_Initialized = false;
         
         // Wake all worker threads
-        s_ExecuteQueueCV.notify_all();
+        for (auto& queue : s_ExecuteQueues)
+            queue.QueueCV.notify_all();
         
         // Now wait for completion
         for (auto& thread : s_WorkerThreads)
@@ -37,15 +41,25 @@ namespace Heart
         
         s_JobListMutex.lock_shared();
         JobData& data = s_JobList[handle];
+        data.Complete = count == 0;
         data.Remaining = count;
-        data.RefCount = 1;
+        data.RefCount = count == 0 ? 0 : 1;
         data.Job = std::move(job);
-        data.Indices.Resize(count);
-        for (size_t i = 0; i < count; i++)
-            data.Indices[i] = i;
         s_JobListMutex.unlock_shared();
         
-        PushHandleToQueue(handle);
+        std::uniform_int_distribution<int> distribution(0, (int)s_ExecuteQueues.Count() - 1);
+        
+        for (auto& queue : s_ExecuteQueues)
+            queue.Mutex.lock();
+        
+        for (size_t i = 0; i < count; i++)
+            s_ExecuteQueues[distribution(s_Generator)].Queue.emplace(handle, i);
+
+        for (auto& queue : s_ExecuteQueues)
+        {
+            queue.Mutex.unlock();
+            queue.QueueCV.notify_all();
+        }
         
         return Job(handle);
     }
@@ -63,11 +77,11 @@ namespace Heart
             complete = data.CompletionCV.wait_for(
                 lock,
                 std::chrono::milliseconds(timeout),
-                [&data]{ return data.Remaining == 0; }
+                [&data]{ return data.Complete; }
             );
         }
         else
-            data.CompletionCV.wait(lock, [&data]{ return data.Remaining == 0; });
+            data.CompletionCV.wait(lock, [&data]{ return data.Complete; });
         s_JobListMutex.unlock_shared();
         
         return complete;
@@ -95,14 +109,6 @@ namespace Heart
         return handle;
     }
 
-    void JobManager::PushHandleToQueue(u32 handle)
-    {
-        s_ExecuteQueueMutex.lock();
-        s_ExecuteQueue.push(handle);
-        s_ExecuteQueueMutex.unlock();
-        s_ExecuteQueueCV.notify_all();
-    }
-
     void JobManager::IncrementRefCount(u32 handle)
     {
         s_JobListMutex.lock_shared();
@@ -125,34 +131,33 @@ namespace Heart
             s_JobListMutex.unlock_shared();
     }
 
-    void JobManager::ProcessQueue()
+    void JobManager::ProcessQueue(u32 workerIndex)
     {
-        std::unique_lock lock(s_ExecuteQueueMutex);
+        const auto pred = [workerIndex]{ return !s_ExecuteQueues[workerIndex].Queue.empty() || !s_Initialized; };
+
+        auto& queue = s_ExecuteQueues[workerIndex];
+        std::unique_lock lock(queue.Mutex);
         while (s_Initialized)
         {
-            s_ExecuteQueueCV.wait(lock, []{ return !s_ExecuteQueue.empty() || !s_Initialized; });
+            queue.QueueCV.wait(lock, pred);
             
             if (!s_Initialized) break;
             
             // lock already locked by wait()
-            u32 handle = s_ExecuteQueue.front();
+            auto executeData = std::move(queue.Queue.front());
+            queue.Queue.pop();
             lock.unlock();
             
             s_JobListMutex.lock_shared();
-            auto& data = s_JobList[handle]
-            size_t remaining = data.Remaining--;
-            while (remaining > 0)
-            {
-                execution.Func(execution.Index);
-                
-            }
+            auto& data = s_JobList[executeData.Handle];
+            data.Job(executeData.Index);
                 
             // Decrement job completion count
-            auto& data = s_JobList[execution.Handle];
             if (--data.Remaining == 0)
             {
+                data.Complete = true;
                 data.CompletionCV.notify_all();
-                DecrementRefCount(execution.Handle, false);
+                DecrementRefCount(executeData.Handle, false);
             }
             s_JobListMutex.unlock_shared();
             

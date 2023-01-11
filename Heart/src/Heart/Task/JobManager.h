@@ -15,14 +15,14 @@ namespace Heart
         static Job Schedule(std::function<void(size_t)>&& job, size_t count);
         
         template<typename Iter>
-        static Job ScheduleIter(std::function<void(size_t)>&& job, Iter begin, Iter end);
+        static Job ScheduleIter(Iter begin, Iter end, std::function<void(size_t)>&& job, std::function<bool(size_t)>&& check = [](size_t index){ return true; });
         
         static bool Wait(const Job& job, u32 timeout); // milliseconds
     
     private:
         struct JobData
         {
-            HVector<size_t> Indices;
+            bool Complete;
             std::function<void(size_t)> Job = nullptr;
             std::atomic<u32> RefCount;
             std::atomic<size_t> Remaining;
@@ -30,23 +30,38 @@ namespace Heart
             std::condition_variable CompletionCV;
         };
         
-    private:
-        static u32 CreateJob();
-        static void PushHandleToQueue(u32 handle);
-        static void IncrementRefCount(u32 handle);
-        static void DecrementRefCount(u32 handle, bool lock);
-        static void ProcessQueue();
+        struct ExecutionData
+        {
+            ExecutionData(u32 handle, size_t index)
+                : Handle(handle), Index(index)
+            {}
+
+            u32 Handle;
+            size_t Index;
+        };
+        
+        struct WorkerQueue
+        {
+            std::queue<ExecutionData> Queue;
+            std::mutex Mutex;
+            std::condition_variable QueueCV;
+        };
         
     private:
-        inline static std::queue<u32> s_ExecuteQueue;
+        static u32 CreateJob();
+        static void IncrementRefCount(u32 handle);
+        static void DecrementRefCount(u32 handle, bool lock);
+        static void ProcessQueue(u32 workerIndex);
+        
+    private:
+        inline static HVector<WorkerQueue> s_ExecuteQueues;
         inline static HVector<u32> s_HandleFreeList;
         inline static HVector<JobData> s_JobList;
         inline static HVector<std::thread> s_WorkerThreads;
         
         inline static std::shared_mutex s_JobListMutex;
         inline static std::mutex s_FreeListMutex;
-        inline static std::mutex s_ExecuteQueueMutex;
-        inline static std::condition_variable s_ExecuteQueueCV;
+        inline static std::mt19937 s_Generator;
         
         inline static bool s_Initialized = false;
         
@@ -54,22 +69,36 @@ namespace Heart
     };
 
     template<typename Iter>
-    Job JobManager::ScheduleIter(std::function<void(size_t)>&& job, Iter begin, Iter end)
+    Job JobManager::ScheduleIter(Iter begin, Iter end, std::function<void(size_t)>&& job, std::function<bool(size_t)>&& check)
     {
         u32 handle = CreateJob();
         
-        s_ExecuteQueueMutex.lock();
+        for (auto& queue : s_ExecuteQueues)
+            queue.Mutex.lock();
+        
         size_t count = 0;
+        std::uniform_int_distribution<int> distribution(0, (int)s_ExecuteQueues.Count() - 1);
         for (; begin != end; ++begin)
         {
-            s_ExecuteQueue.emplace(std::move(job), (size_t)*begin, handle);
+            size_t idx = (size_t)*begin;
+            if (!check(idx)) continue;
+            s_ExecuteQueues[distribution(s_Generator)].Queue.emplace(handle, (size_t)*begin);
             count++;
         }
-        
-        InitJob(handle, count);
-        
-        s_ExecuteQueueMutex.unlock();
-        s_ExecuteQueueCV.notify_all();
+
+        s_JobListMutex.lock_shared();
+        JobData& data = s_JobList[handle];
+        data.Complete = count == 0;
+        data.Remaining = count;
+        data.RefCount = count == 0 ? 0 : 1;
+        data.Job = std::move(job);
+        s_JobListMutex.unlock_shared();
+
+        for (auto& queue : s_ExecuteQueues)
+        {
+            queue.Mutex.unlock();
+            queue.QueueCV.notify_all();
+        }
         
         return Job(handle);
     }

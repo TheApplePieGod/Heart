@@ -426,57 +426,71 @@ namespace Heart
         runTimer.Finish();
         
         // Update positions of physics entities to reflect physics body position
-        runTimer = AggregateTimer("Scene::OnUpdateRuntime - Post Physics (Schedule)");
+        runTimer = AggregateTimer("Scene::OnUpdateRuntime - Post Physics");
         auto physView = m_Registry.view<CollisionComponent, TransformComponent>();
-        Job physJob = JobManager::ScheduleIter([this, &physView](size_t _entity)
-        //for (auto entity : physView)
-        {
-            auto entity = (entt::entity)_entity;
-            
-            auto& bodyComp = physView.get<CollisionComponent>(entity);
-            PhysicsBody* body = m_PhysicsWorld.GetBody(bodyComp.BodyId);
-            
-            // Static & ghost objects will never have an updated position so skip
-            if (body->GetBodyType() != PhysicsBodyType::Rigid || body->GetMass() == 0.f) return;
-            
-            auto& transformComp = physView.get<TransformComponent>(entity);
-            bool dirty = false;
-            
-            // TODO: store body's position and check that rather than the entity's
-            auto newPos = body->GetPosition();
-            if (transformComp.Translation != newPos)
+        Job physJob = JobManager::ScheduleIter(
+            physView.begin(),
+            physView.end(),
+            [this, &physView](size_t _entity)
             {
-                transformComp.Translation = newPos;
-                dirty = true;
-            }
-            
-            auto bodyRot = body->GetRotation();
-            auto eq = glm::equal(m_CachedTransforms[entity].Quat, bodyRot, 0.0001f);
-            if (!eq.x || !eq.y || !eq.z || !eq.w)
+                auto entity = (entt::entity)_entity;
+
+                auto& bodyComp = physView.get<CollisionComponent>(entity);
+                PhysicsBody* body = m_PhysicsWorld.GetBody(bodyComp.BodyId);
+                
+                auto& transformComp = physView.get<TransformComponent>(entity);
+                bool dirty = false;
+                
+                // TODO: store body's position and check that rather than the entity's
+                auto newPos = body->GetPosition();
+                if (transformComp.Translation != newPos)
+                {
+                    transformComp.Translation = newPos;
+                    dirty = true;
+                }
+                
+                auto bodyRot = body->GetRotation();
+                auto eq = glm::equal(m_CachedTransforms[entity].Quat, bodyRot, 0.0001f);
+                if (!eq.x || !eq.y || !eq.z || !eq.w)
+                {
+                    transformComp.Rotation = glm::degrees(glm::eulerAngles(bodyRot));
+                    dirty = true;
+                }
+                
+                if (dirty)
+                    CacheEntityTransform({ this, entity }, true, false);
+            },
+            [this, &physView](size_t _entity)
             {
-                transformComp.Rotation = glm::degrees(glm::eulerAngles(bodyRot));
-                dirty = true;
+                auto entity = (entt::entity)_entity;
+                
+                auto& bodyComp = physView.get<CollisionComponent>(entity);
+                PhysicsBody* body = m_PhysicsWorld.GetBody(bodyComp.BodyId);
+                
+                // Static & ghost objects will never have an updated position so skip
+                return body->GetBodyType() == PhysicsBodyType::Rigid && body->GetMass() != 0.f;
             }
-            
-            if (dirty)
-                CacheEntityTransform({ this, entity }, true, false);
-        }, physView.begin(), physView.end());
-        runTimer.Finish();
-        runTimer = AggregateTimer("Scene::OnUpdateRuntime - Post Physics (Wait)");
+        );
         physJob.Wait();
         runTimer.Finish();
         
         // Call OnUpdate lifecycle method
+        // TODO: replace with OnUpdateParallel method
         runTimer = AggregateTimer("Scene::OnUpdateRuntime - Scripts (Parallel)");
         auto parScriptView = m_Registry.view<ScriptComponent, ParallelUpdateComponent>();
-        auto scriptTaskGroup = TaskManager::ScheduleIter([ts, parScriptView](auto entity)
-        {
-            auto& scriptComp = parScriptView.get<ScriptComponent>(entity);
-            scriptComp.Instance.OnUpdate(ts);
-        }, parScriptView.begin(), parScriptView.end(), TaskGroup());
-        scriptTaskGroup.Wait();
+        auto parScriptJob = JobManager::ScheduleIter(
+            parScriptView.begin(),
+            parScriptView.end(),
+            [ts, &parScriptView](size_t entity)
+            {
+                auto& scriptComp = parScriptView.get<ScriptComponent>((entt::entity)entity);
+                scriptComp.Instance.OnUpdate(ts);
+            }
+        );
+        parScriptJob.Wait();
         runTimer.Finish();
         
+        // Call OnUpdate lifecycle method
         runTimer = AggregateTimer("Scene::OnUpdateRuntime - Scripts (Regular)");
         auto scriptView = m_Registry.view<ScriptComponent>(entt::exclude<ParallelUpdateComponent>);
         for (auto entity : scriptView)

@@ -172,7 +172,6 @@ namespace Heart
             s_TaskListMutex.unlock_shared();
     }
 
-
     // TODO: priority
 
     void TaskManager::ProcessQueue()
