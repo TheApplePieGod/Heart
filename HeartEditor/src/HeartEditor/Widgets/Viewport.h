@@ -47,6 +47,7 @@ namespace Widgets
         inline glm::vec3 GetActiveCameraPosition() const { return m_ActiveCameraPos; }
         inline glm::vec3 GetActiveCameraRotation() const { return m_ActiveCameraRot; }
         inline EditorCamera& GetEditorCamera() { return *m_EditorCamera; }
+        inline const Heart::Task& GetSceneRendererUpdateTask() const { return m_SceneRendererUpdateTask; }
 
     private:
         Heart::Ref<Heart::SceneRenderer> m_SceneRenderer;

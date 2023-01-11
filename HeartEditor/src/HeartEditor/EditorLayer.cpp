@@ -52,6 +52,7 @@ namespace HeartEditor
         HE_PROFILE_FUNCTION();
 
         Editor::GetSceneUpdateTask().Wait();
+        ((Widgets::Viewport&)Editor::GetWindow("Viewport")).GetSceneRendererUpdateTask().Wait();
 
         Editor::GetRenderScene().CopyFromScene(&Editor::GetActiveScene());
 

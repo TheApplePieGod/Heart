@@ -47,7 +47,7 @@ namespace Widgets
         ImGui::Text("CPU Timing:");
         ImGui::Indent();
         for (auto& pair : Heart::AggregateTimer::GetTimeMap())
-            ImGui::Text("%s: %.1fms", pair.first.Data(), pair.second);
+            ImGui::Text("%s: %.1fms", pair.first.Data(), Heart::AggregateTimer::GetAggregateTime(pair.first));
         ImGui::Unindent();
 
         ImGui::Text("GPU Timing:");

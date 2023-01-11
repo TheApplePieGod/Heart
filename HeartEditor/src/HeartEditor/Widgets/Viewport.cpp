@@ -41,7 +41,6 @@ namespace Widgets
 
         ImGui::Begin(m_Name.Data(), &m_Open);
 
-        m_SceneRendererUpdateTask.Wait();
         m_SceneRendererUpdateTask = m_SceneRenderer->Render(
             &Editor::GetRenderScene(),
             Editor::GetActiveScene().GetEnvironmentMap(),
