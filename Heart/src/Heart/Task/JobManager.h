@@ -20,12 +20,12 @@ namespace Heart
         static bool Wait(const Job& job, u32 timeout); // milliseconds
     
     private:
-        struct JobData
+        struct  JobData
         {
             bool Complete;
             std::function<void(size_t)> Job = nullptr;
             std::atomic<u32> RefCount;
-            std::atomic<size_t> Remaining;
+            std::atomic<u32> Remaining;
             std::mutex Mutex;
             std::condition_variable CompletionCV;
         };
