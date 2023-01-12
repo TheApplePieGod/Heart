@@ -35,6 +35,8 @@ namespace Widgets
         int m_DirectoryStackIndex = 0;
         Heart::HVector<std::filesystem::directory_entry> m_DirectoryList;
         bool m_ShouldRescan = false;
+        bool m_CardHovered = false;
+        bool m_Hovered = false;
 
         std::filesystem::path m_RenamingPath;
         std::filesystem::path m_DeletingPath;

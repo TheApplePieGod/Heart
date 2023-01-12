@@ -44,7 +44,7 @@ namespace Widgets
         glm::vec3 m_SwivelRotation = { 0.f, 0.f, 0.f };
         float m_Radius = 2.f;
         Heart::Entity m_DemoEntity;
-        glm::vec2 m_WindowSizes = { 0.f, 0.f };
+        glm::vec2 m_WindowSizes = { 300.f, 700.f };
         u32 m_RenderedFrames = 0;
         Heart::UUID m_LastMaterial = 0;
         Heart::UUID m_SelectedMaterial = 0;

@@ -216,6 +216,9 @@ namespace Widgets
         }
         ImGui::PopStyleVar();
 
+        if (!m_CardHovered && m_Hovered && ImGui::IsMouseReleased(1))
+            ImGui::OpenPopup("CreatePopup");
+
         // Size-aware file list (TODO: redo this)
         ImGui::BeginChild("cbfileslist", ImVec2(m_WindowSizes.y, ImGui::GetContentRegionAvail().y));
         f32 currentExtent = 999999.f; // to prevent SameLine spacing in first row
@@ -233,9 +236,7 @@ namespace Widgets
             currentExtent += m_CardSize.x;
         }
         ImGui::EndChild();
-
-        if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(1))
-            ImGui::OpenPopup("CreatePopup");
+        m_Hovered = ImGui::IsItemHovered();
     }
 
     void ContentBrowser::RenderFileCard(const std::filesystem::directory_entry& entry)
@@ -271,7 +272,8 @@ namespace Widgets
         FileTransferDropTarget(entry);
 
         // If the card is clicked
-        if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0))
+        m_CardHovered = ImGui::IsItemHovered();
+        if (m_CardHovered && ImGui::IsMouseDoubleClicked(0))
         {
             if (entry.is_directory())
             {
