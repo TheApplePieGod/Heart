@@ -316,24 +316,27 @@ namespace Heart
         auto& uuidEntry = s_UUIDs[uuid];
         auto& entry = uuidEntry.IsResource ? s_Resources[uuidEntry.Path] : s_Registry[uuidEntry.Path];
 
-        // Ensure that we only load if the asset is unloaded and a task hasn't been started (i.e. when the loaded frame is this value)
-        if (load && entry.LoadedFrame == std::numeric_limits<u64>::max() - s_AssetFrameLimit)
+        if (load)
         {
-            entry.LoadedFrame = App::Get().GetFrameCount();
-
-            if (async)
+            // Ensure that we only load if the asset is unloaded and a task hasn't been started (i.e. when the loaded frame is this value)
+            if (entry.LoadedFrame == std::numeric_limits<u64>::max() - s_AssetFrameLimit)
             {
-                s_AsyncLoadsInProgress++;
-                TaskManager::Schedule([uuid]()
+                if (async)
                 {
-                    auto& uuidEntry = s_UUIDs[uuid];
-                    auto& entry = uuidEntry.IsResource ? s_Resources[uuidEntry.Path] : s_Registry[uuidEntry.Path];
-                    LoadAsset(entry, true);
-                    s_AsyncLoadsInProgress--;
-                }, Task::Priority::Medium, "Load asset");
+                    s_AsyncLoadsInProgress++;
+                    TaskManager::Schedule([uuid]()
+                    {
+                        auto& uuidEntry = s_UUIDs[uuid];
+                        auto& entry = uuidEntry.IsResource ? s_Resources[uuidEntry.Path] : s_Registry[uuidEntry.Path];
+                        LoadAsset(entry, true);
+                        s_AsyncLoadsInProgress--;
+                    }, Task::Priority::Medium, "Load asset");
+                }
+                else
+                    LoadAsset(entry);
             }
-            else
-                LoadAsset(entry);
+
+            entry.LoadedFrame = App::Get().GetFrameCount();
         }
             
         return entry.Asset.get();
