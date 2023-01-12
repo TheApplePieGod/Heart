@@ -33,7 +33,7 @@ namespace Widgets
         m_EditorCamera = Heart::CreateRef<EditorCamera>(70.f, 0.1f, 500.f, 1.f, glm::vec3(0.f, 1.f, 0.f));
     }
 
-    void Viewport::OnImGuiRender()
+    void Viewport::OnImGuiRenderPostSceneUpdate()
     {
         HE_PROFILE_FUNCTION();
 

@@ -105,6 +105,15 @@ namespace HeartEditor
 
         for (auto& pair : s_Windows)
             pair.second->OnImGuiRender();
+    }
+
+    void Editor::RenderWindowsPostSceneUpdate()
+    {
+        HE_PROFILE_FUNCTION();
+        auto timer = Heart::AggregateTimer("Editor::RenderWindowsPostSceneUpdate");
+
+        for (auto& pair : s_Windows)
+            pair.second->OnImGuiRenderPostSceneUpdate();
 
         if (s_ImGuiDemoOpen)
             ImGui::ShowDemoWindow(&s_ImGuiDemoOpen);

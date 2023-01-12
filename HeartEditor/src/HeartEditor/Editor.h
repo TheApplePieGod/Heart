@@ -30,6 +30,7 @@ namespace HeartEditor
         static void CreateWindows();
         static void DestroyWindows();
         static void RenderWindows();
+        static void RenderWindowsPostSceneUpdate();
 
         static void SaveScene();
         static void OpenScene(const Heart::Ref<Heart::Scene>& scene);

@@ -56,12 +56,6 @@ namespace HeartEditor
 
         Editor::GetRenderScene().CopyFromScene(&Editor::GetActiveScene());
 
-        Editor::SetSceneUpdateTask(Heart::TaskManager::Schedule([ts]()
-        {
-            if (Editor::GetSceneState() == SceneState::Playing)
-                Editor::GetActiveScene().OnUpdateRuntime(ts);
-        }, Heart::Task::Priority::High, "Editor SceneUpdate"));
-
         auto& viewport = (Widgets::Viewport&)Editor::GetWindow("Viewport");
         viewport.UpdateCamera();
 
@@ -88,9 +82,24 @@ namespace HeartEditor
 
         Editor::RenderWindows();
 
+        // Start updating after because we still need scene data to correctly render gui stuff
+        Editor::SetSceneUpdateTask(Heart::TaskManager::Schedule([ts]()
+        {
+            if (Editor::GetSceneState() == SceneState::Playing)
+                Editor::GetActiveScene().OnUpdateRuntime(ts);
+        }, Heart::Task::Priority::High, "Editor SceneUpdate"));
+
+        // TODO: replace this system with a more streamlined 'render group' system
+        Editor::RenderWindowsPostSceneUpdate();
+
         ImGui::End();
 
         ImGui::PopStyleVar(2);
+
+        // Update camera after we render the viewport so that it doesn't look like we're lagging behind
+        // this only applies when doing deferred scene rendering
+        //auto& viewport = (Widgets::Viewport&)Editor::GetWindow("Viewport");
+        //viewport.UpdateCamera();
     }
 
     void EditorLayer::OnEvent(Heart::Event& event)

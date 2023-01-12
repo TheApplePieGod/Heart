@@ -23,7 +23,7 @@ namespace Widgets
         MaterialEditor(const Heart::HStringView8& name, bool initialOpen);
         ~MaterialEditor();
         
-        void OnImGuiRender() override;
+        void OnImGuiRenderPostSceneUpdate() override;
         
         void Reset();
 

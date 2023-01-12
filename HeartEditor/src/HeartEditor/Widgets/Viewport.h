@@ -27,7 +27,7 @@ namespace Widgets
     public:
         Viewport(const Heart::HStringView8& name, bool initialOpen);
 
-        void OnImGuiRender() override;
+        void OnImGuiRenderPostSceneUpdate() override;
         nlohmann::json Serialize() override;
         void Deserialize(const nlohmann::json& elem) override;
 

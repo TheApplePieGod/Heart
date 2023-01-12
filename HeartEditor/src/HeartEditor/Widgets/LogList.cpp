@@ -9,7 +9,7 @@ namespace HeartEditor
 {
 namespace Widgets
 {
-    void LogList::OnImGuiRender()
+    void LogList::OnImGuiRenderPostSceneUpdate()
     {
         HE_PROFILE_FUNCTION();
 

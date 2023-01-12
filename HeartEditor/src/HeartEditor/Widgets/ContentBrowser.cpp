@@ -23,7 +23,7 @@ namespace Widgets
         ScanDirectory();
     }
 
-    void ContentBrowser::OnImGuiRender()
+    void ContentBrowser::OnImGuiRenderPostSceneUpdate()
     {
         HE_PROFILE_FUNCTION();
 

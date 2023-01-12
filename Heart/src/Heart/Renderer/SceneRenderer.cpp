@@ -370,8 +370,11 @@ namespace Heart
         m_Scene = scene;
         m_Camera = &camera;
         m_EnvironmentMap = envMap;
+
+        // TODO: revisit this. Disabling previous-frame batch rendering for now because there is a lot of nuance in terms of
+        // ghosting, culling, etc. that really isn't worth it right now
         m_UpdateFrameIndex = App::Get().GetFrameCount() % Flourish::Context::FrameBufferCount();
-        m_RenderFrameIndex = (App::Get().GetFrameCount() - 1) % Flourish::Context::FrameBufferCount();
+        m_RenderFrameIndex = m_UpdateFrameIndex;//(App::Get().GetFrameCount() - 1) % Flourish::Context::FrameBufferCount();
         m_BatchRenderData[m_UpdateFrameIndex].IndirectBatches.clear();
         m_BatchRenderData[m_UpdateFrameIndex].RenderedInstanceCount = 0;
         m_BatchRenderData[m_UpdateFrameIndex].RenderedObjectCount = 0;
@@ -385,6 +388,7 @@ namespace Heart
         {
             CalculateBatches();
         }, Task::Priority::High, "SceneRenderer CalculateBatches");
+        updateTask.Wait(); // Remove this when m_UpdateFrameIndex != m_RenderFrameIndex
 
         // Set the global data for this frame
         FrameData frameData = {
@@ -840,8 +844,6 @@ namespace Heart
         for (auto& textComp : m_Scene->GetTextComponents())
         {
             const auto& entityData = m_Scene->GetEntityData()[textComp.EntityIndex];
-            
-            if (textComp.Data.Text.Count() == 0) continue;
             
             auto fontAsset = AssetManager::RetrieveAsset<FontAsset>(textComp.Data.Font, true, m_SceneRenderSettings.AsyncAssetLoading);
             if (!fontAsset || !fontAsset->IsValid()) continue;

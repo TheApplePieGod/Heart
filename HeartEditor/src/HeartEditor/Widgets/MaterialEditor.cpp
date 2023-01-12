@@ -41,7 +41,7 @@ namespace Widgets
         Heart::AssetManager::UnregisterAsset(m_EditingMaterialAsset);
     }
 
-    void MaterialEditor::OnImGuiRender()
+    void MaterialEditor::OnImGuiRenderPostSceneUpdate()
     {
         HE_PROFILE_FUNCTION();
 
