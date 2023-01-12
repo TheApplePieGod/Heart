@@ -37,6 +37,8 @@ namespace Heart
 
     Job JobManager::Schedule(size_t count, std::function<void(size_t)>&& job, std::function<bool(size_t)>&& check)
     {
+        HE_PROFILE_FUNCTION();
+
         u32 handle = CreateJob();
         
         std::uniform_int_distribution<int> distribution(0, (int)s_ExecuteQueues.Count() - 1);
@@ -72,6 +74,8 @@ namespace Heart
     bool JobManager::Wait(const Job& job, u32 timeout)
     {
         if (job.GetHandle() == Job::InvalidHandle) return false;
+
+        HE_PROFILE_FUNCTION();
         
         auto& data = s_JobList[job.GetHandle()];
         std::unique_lock<std::mutex> lock(data.Mutex);
@@ -126,6 +130,8 @@ namespace Heart
 
     void JobManager::ProcessQueue(u32 workerIndex)
     {
+        HE_PROFILE_THREAD("Job Thread");
+
         const auto pred = [workerIndex]{ return !s_ExecuteQueues[workerIndex].Queue.empty() || !s_Initialized; };
 
         auto& queue = s_ExecuteQueues[workerIndex];

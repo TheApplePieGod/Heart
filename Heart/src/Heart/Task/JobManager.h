@@ -70,6 +70,8 @@ namespace Heart
     template<typename Iter>
     Job JobManager::ScheduleIter(Iter begin, Iter end, std::function<void(size_t)>&& job, std::function<bool(size_t)>&& check)
     {
+        HE_PROFILE_FUNCTION();
+
         u32 handle = CreateJob();
         
         for (auto& queue : s_ExecuteQueues)

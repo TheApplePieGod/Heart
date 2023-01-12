@@ -56,6 +56,8 @@ namespace Heart
 
     Task TaskManager::Schedule(std::function<void()>&& task, Task::Priority priority, const Task* dependencies, u32 dependencyCount, HStringView8 name)
     {
+        HE_PROFILE_FUNCTION();
+
         s_FreeListMutex.lock();
         HE_ENGINE_ASSERT(s_HandleFreeList.Count() != 0, "Scheduled too many tasks!");
         u32 handle = s_HandleFreeList.Back();
@@ -109,6 +111,8 @@ namespace Heart
     bool TaskManager::Wait(const Task& task, u32 timeout)
     {
         if (task.GetHandle() == Task::InvalidHandle) return false;
+
+        HE_PROFILE_FUNCTION();
         
         auto& data = s_TaskList[task.GetHandle()];
         std::unique_lock<std::mutex> lock(data.Mutex);
@@ -170,6 +174,8 @@ namespace Heart
 
     void TaskManager::ProcessQueue()
     {
+        HE_PROFILE_THREAD("Task Thread");
+
         std::unique_lock lock(s_ExecuteQueueMutex);
         while (s_Initialized)
         {
