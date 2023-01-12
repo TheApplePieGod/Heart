@@ -187,6 +187,11 @@ namespace Heart
 
             double currentFrameTime = m_Window->GetWindowTime();
             m_LastTimestep = Timestep(currentFrameTime - m_LastFrameTime);
+            m_TimestepSamples[m_FrameCount % 5] = m_LastTimestep.StepMilliseconds();
+            double averaged = 0.0;
+            for (auto sample : m_TimestepSamples)
+                averaged += sample;
+            m_AveragedTimestep = averaged / m_TimestepSamples.size();
             m_LastFrameTime = currentFrameTime;
 
             auto timer = AggregateTimer("App::Run - PollEvents");

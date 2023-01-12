@@ -131,6 +131,8 @@ namespace Heart
         return complete;
     }
 
+    // TODO: better priority. This will likely look like having three separate queues for each
+    // priority
     void TaskManager::PushHandleToQueue(u32 handle)
     {
         auto& data = s_TaskList[handle];
@@ -170,8 +172,6 @@ namespace Heart
         }
     }
 
-    // TODO: priority
-
     void TaskManager::ProcessQueue()
     {
         HE_PROFILE_THREAD("Task Thread");
@@ -192,7 +192,6 @@ namespace Heart
             data.Mutex.lock();
             try
             {
-                HE_ENGINE_ASSERT(data.Task);
                 data.Task();
                 
                 // Set success flag

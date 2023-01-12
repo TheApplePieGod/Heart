@@ -79,6 +79,9 @@ namespace Heart
         /*! @brief Get the timestamp for the last frame */
         inline Timestep GetLastTimestep() const { return m_LastTimestep; }
 
+        /*! @brief Get the average timestamp from the last 5 frames */
+        inline Timestep GetAveragedTimestep() const { return m_AveragedTimestep; }
+
     protected:
         HVector<Ref<Layer>> m_Layers;
         Ref<ImGuiInstance> m_ImGuiInstance;
@@ -87,6 +90,8 @@ namespace Heart
         bool m_Minimized = false;
         u64 m_FrameCount = 1;
         double m_LastFrameTime = 0.0;
+        std::array<double, 5> m_TimestepSamples;
+        Timestep m_AveragedTimestep;
         Timestep m_LastTimestep;
 
     private:

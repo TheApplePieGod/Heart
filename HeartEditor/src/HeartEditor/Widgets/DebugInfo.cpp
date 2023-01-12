@@ -25,7 +25,7 @@ namespace Widgets
 
         ImGui::Text("Basic Info:");
         ImGui::Indent();
-        double stepMs = EditorApp::Get().GetLastTimestep().StepMilliseconds();
+        double stepMs = EditorApp::Get().GetAveragedTimestep().StepMilliseconds();
         // ImGui::Text("Render Api: %s", HE_ENUM_TO_STRING(Heart::RenderApi, Heart::Renderer::GetApiType()));
         ImGui::Text("Frametime: %.1fms", stepMs);
         ImGui::Text("Framerate: %d FPS", static_cast<u32>(1000.0 / stepMs));
