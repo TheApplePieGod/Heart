@@ -9,7 +9,7 @@ namespace Heart
     public:
         Job() = default;
         Job(const Job& other);
-        Job(u32 handle);
+        Job(u32 handle, bool incref = true);
         ~Job();
 
         bool Wait(u32 timeout = 0) const;

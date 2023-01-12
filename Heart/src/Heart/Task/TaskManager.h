@@ -21,12 +21,12 @@ namespace Heart
             return group;
         }
         
-        static Task Schedule(const std::function<void()>& task);
-        static Task Schedule(const std::function<void()>& task, const Task& dependency);
-        static Task Schedule(const std::function<void()>& task, const TaskGroup& dependencies);
-        static Task Schedule(const std::function<void()>& task, std::initializer_list<Task> dependencies);
-        static Task Schedule(const std::function<void()>& task, const HVector<Task>& dependencies);
-        static Task Schedule(const std::function<void()>& task, const Task* dependencies, u32 dependencyCount);
+        static Task Schedule(std::function<void()>&& task, HStringView8 name);
+        static Task Schedule(std::function<void()>&& task, const Task& dependency);
+        static Task Schedule(std::function<void()>&& task, const TaskGroup& dependencies);
+        static Task Schedule(std::function<void()>&& task, std::initializer_list<Task> dependencies);
+        static Task Schedule(std::function<void()>&& task, const HVector<Task>& dependencies);
+        static Task Schedule(std::function<void()>&& task, const Task* dependencies, u32 dependencyCount, HStringView8 name);
         
         static bool Wait(const Task& task, u32 timeout); // milliseconds
         
@@ -48,7 +48,7 @@ namespace Heart
     private:
         static void PushHandleToQueue(u32 handle);
         static void IncrementRefCount(u32 handle);
-        static void DecrementRefCount(u32 handle, bool lock);
+        static void DecrementRefCount(u32 handle);
         static void ProcessQueue();
         
     private:
@@ -57,7 +57,6 @@ namespace Heart
         inline static HVector<TaskData> s_TaskList;
         inline static HVector<std::thread> s_WorkerThreads;
         
-        inline static std::shared_mutex s_TaskListMutex;
         inline static std::mutex s_FreeListMutex;
         inline static std::mutex s_ExecuteQueueMutex;
         inline static std::condition_variable s_ExecuteQueueCV;

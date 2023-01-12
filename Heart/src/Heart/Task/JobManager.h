@@ -50,7 +50,7 @@ namespace Heart
     private:
         static u32 CreateJob();
         static void IncrementRefCount(u32 handle);
-        static void DecrementRefCount(u32 handle, bool lock);
+        static void DecrementRefCount(u32 handle);
         static void ProcessQueue(u32 workerIndex);
         
     private:
@@ -59,7 +59,6 @@ namespace Heart
         inline static HVector<JobData> s_JobList;
         inline static HVector<std::thread> s_WorkerThreads;
         
-        inline static std::shared_mutex s_JobListMutex;
         inline static std::mutex s_FreeListMutex;
         inline static std::mt19937 s_Generator;
         
@@ -86,13 +85,13 @@ namespace Heart
             count++;
         }
 
-        s_JobListMutex.lock_shared();
         JobData& data = s_JobList[handle];
+        data.Mutex.lock();
         data.Complete = count == 0;
         data.Remaining = count;
-        data.RefCount = count == 0 ? 0 : 1;
+        data.RefCount = count == 0 ? 1 : 2;
         data.Job = std::move(job);
-        s_JobListMutex.unlock_shared();
+        data.Mutex.unlock();
 
         for (auto& queue : s_ExecuteQueues)
         {
@@ -100,7 +99,7 @@ namespace Heart
             queue.QueueCV.notify_all();
         }
         
-        return Job(handle);
+        return Job(handle, false);
     }
 
 }

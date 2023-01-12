@@ -9,7 +9,7 @@ namespace Heart
     {
         // Populate initial data to prevent resizing
         s_JobList.Resize(5000);
-        s_HandleFreeList.Reserve(5000);
+        s_HandleFreeList.Reserve(s_JobList.Count());
         for (u32 i = 0; i < s_JobList.Count(); i++)
             s_HandleFreeList.Add(i);
             
@@ -52,13 +52,13 @@ namespace Heart
             realCount++;
         }
 
-        s_JobListMutex.lock_shared();
         JobData& data = s_JobList[handle];
+        data.Mutex.lock();
         data.Complete = realCount == 0;
         data.Remaining = realCount;
-        data.RefCount = realCount == 0 ? 0 : 1;
+        data.RefCount = realCount == 0 ? 1 : 2;
         data.Job = std::move(job);
-        s_JobListMutex.unlock_shared();
+        data.Mutex.unlock();
 
         for (auto& queue : s_ExecuteQueues)
         {
@@ -66,14 +66,13 @@ namespace Heart
             queue.QueueCV.notify_all();
         }
         
-        return Job(handle);
+        return Job(handle, false);
     }
 
     bool JobManager::Wait(const Job& job, u32 timeout)
     {
         if (job.GetHandle() == Job::InvalidHandle) return false;
         
-        s_JobListMutex.lock_shared();
         auto& data = s_JobList[job.GetHandle()];
         std::unique_lock<std::mutex> lock(data.Mutex);
         bool complete = true;
@@ -87,55 +86,42 @@ namespace Heart
         }
         else
             data.CompletionCV.wait(lock, [&data]{ return data.Complete; });
-        s_JobListMutex.unlock_shared();
         
         return complete;
     }
 
     u32 JobManager::CreateJob()
     {
-        u32 handle;
         s_FreeListMutex.lock();
-        if (s_HandleFreeList.Count() == 0)
-        {
-            s_FreeListMutex.unlock();
-            handle = s_JobList.Count();
-            s_JobListMutex.lock();
-            s_JobList.AddInPlace();
-            s_JobListMutex.unlock();
-        }
-        else
-        {
-            handle = s_HandleFreeList.Back();
-            s_HandleFreeList.Pop();
-            s_FreeListMutex.unlock();
-        }
+        HE_ENGINE_ASSERT(s_HandleFreeList.Count() != 0, "Scheduled too many jobs!");
+        u32 handle = s_HandleFreeList.Back();
+        s_HandleFreeList.Pop();
+        s_FreeListMutex.unlock();
         
         return handle;
     }
 
     void JobManager::IncrementRefCount(u32 handle)
     {
-        s_JobListMutex.lock_shared();
         s_JobList[handle].RefCount++;
-        s_JobListMutex.unlock_shared();
     }
 
-    void JobManager::DecrementRefCount(u32 handle, bool lock)
+    void JobManager::DecrementRefCount(u32 handle)
     {
         if (!s_Initialized) return;
 
-        if (lock)
-            s_JobListMutex.lock_shared();
         auto& data = s_JobList[handle];
         if (--data.RefCount == 0)
         {
+            // Clear func to potentially free resources
+            data.Mutex.lock();
+            data.Job = nullptr;
+            data.Mutex.unlock();
+
             s_FreeListMutex.lock();
             s_HandleFreeList.Add(handle);
             s_FreeListMutex.unlock();
         }
-        if (lock)
-            s_JobListMutex.unlock_shared();
     }
 
     void JobManager::ProcessQueue(u32 workerIndex)
@@ -155,7 +141,6 @@ namespace Heart
             queue.Queue.pop();
             lock.unlock();
             
-            s_JobListMutex.lock_shared();
             auto& data = s_JobList[executeData.Handle];
             data.Job(executeData.Index);
                 
@@ -165,10 +150,9 @@ namespace Heart
                 data.Mutex.lock();
                 data.Complete = true;
                 data.Mutex.unlock();
+                DecrementRefCount(executeData.Handle);
                 data.CompletionCV.notify_all();
-                DecrementRefCount(executeData.Handle, false);
             }
-            s_JobListMutex.unlock_shared();
             
             // Relock lock before next iteration (required by wait())
             lock.lock();

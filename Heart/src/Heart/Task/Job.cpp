@@ -10,17 +10,18 @@ namespace Heart
         Copy(other);
     }
 
-    Job::Job(u32 handle)
+    Job::Job(u32 handle, bool incref)
         : m_Handle(handle)
     {
         if (m_Handle == InvalidHandle) return;
-        JobManager::IncrementRefCount(m_Handle);
+        if (incref)
+            JobManager::IncrementRefCount(m_Handle);
     }
 
     Job::~Job()
     {
         if (m_Handle == InvalidHandle) return;
-        JobManager::DecrementRefCount(m_Handle, true);
+        JobManager::DecrementRefCount(m_Handle);
     }
 
     bool Job::Wait(u32 timeout) const
@@ -31,7 +32,7 @@ namespace Heart
     void Job::Copy(const Job& other)
     {
         if (m_Handle != InvalidHandle)
-            JobManager::DecrementRefCount(m_Handle, true);
+            JobManager::DecrementRefCount(m_Handle);
         m_Handle = other.m_Handle;
         if (m_Handle == InvalidHandle) return;
         JobManager::IncrementRefCount(m_Handle);

@@ -6,9 +6,9 @@ namespace Heart
     void TaskManager::Initialize(u32 numWorkers)
     {
         // Populate initial data to prevent resizing
-        s_TaskList.Resize(500);
-        s_HandleFreeList.Reserve(500);
-        for (u32 i = 0; i < 500; i++)
+        s_TaskList.Resize(5000);
+        s_HandleFreeList.Reserve(s_TaskList.Count());
+        for (u32 i = 0; i < s_TaskList.Count(); i++)
             s_HandleFreeList.Add(i);
             
         s_Initialized = true;
@@ -29,63 +29,54 @@ namespace Heart
             thread.join();
     }
 
-    Task TaskManager::Schedule(const std::function<void()>& task)
+    Task TaskManager::Schedule(std::function<void()>&& task, HStringView8 name)
     {
-        return Schedule(task, nullptr, 0);
+        return Schedule(std::move(task), nullptr, 0, name);
     }
 
-    Task TaskManager::Schedule(const std::function<void()>& task, const Task& dependency)
+    Task TaskManager::Schedule(std::function<void()>&& task, const Task& dependency)
     {
-        return Schedule(task, &dependency, 1);
+        return Schedule(std::move(task), &dependency, 1, "");
     }
 
-    Task TaskManager::Schedule(const std::function<void()>& task, const TaskGroup& dependencies)
+    Task TaskManager::Schedule(std::function<void()>&& task, const TaskGroup& dependencies)
     {
-        return Schedule(task, dependencies.GetTasks().Data(), dependencies.GetTasks().Count());
+        return Schedule(std::move(task), dependencies.GetTasks().Data(), dependencies.GetTasks().Count(), "");
     }
 
-    Task TaskManager::Schedule(const std::function<void()>& task, std::initializer_list<Task> dependencies)
+    Task TaskManager::Schedule(std::function<void()>&& task, std::initializer_list<Task> dependencies)
     {
-        return Schedule(task, dependencies.begin(), dependencies.size());
+        return Schedule(std::move(task), dependencies.begin(), dependencies.size(), "");
     }
 
-    Task TaskManager::Schedule(const std::function<void()>& task, const HVector<Task>& dependencies)
+    Task TaskManager::Schedule(std::function<void()>&& task, const HVector<Task>& dependencies)
     {
-        return Schedule(task, dependencies.Data(), dependencies.Count());
+        return Schedule(std::move(task), dependencies.Data(), dependencies.Count(), "");
     }
 
-    Task TaskManager::Schedule(const std::function<void()>& task, const Task* dependencies, u32 dependencyCount)
+    Task TaskManager::Schedule(std::function<void()>&& task, const Task* dependencies, u32 dependencyCount, HStringView8 name)
     {
-        u32 handle;
         s_FreeListMutex.lock();
-        if (s_HandleFreeList.Count() == 0)
-        {
-            s_FreeListMutex.unlock();
-            handle = s_TaskList.Count();
-            s_TaskListMutex.lock();
-            s_TaskList.AddInPlace();
-            s_TaskListMutex.unlock();
-        }
-        else
-        {
-            handle = s_HandleFreeList.Back();
-            s_HandleFreeList.Pop();
-            s_FreeListMutex.unlock();
-        }
+        HE_ENGINE_ASSERT(s_HandleFreeList.Count() != 0, "Scheduled too many tasks!");
+        u32 handle = s_HandleFreeList.Back();
+        s_HandleFreeList.Pop();
+        s_FreeListMutex.unlock();
         
-        s_TaskListMutex.lock_shared();
         TaskData& data = s_TaskList[handle];
+        data.Mutex.lock();
         data.Complete = false;
         data.Success = false;
         data.ShouldExecute = true;
         data.Dependents.Clear();
         data.Task = std::move(task);
         data.DependencyCount = dependencyCount;
-        data.Name = "";
-        // Set the initial refcount to one because we'll consider a task before it is completed as having a reference to
-        // itself. This saves some complexity when decrementing since we no longer need to check for completion
-        data.RefCount = 1;
-        s_TaskListMutex.unlock_shared();
+        data.Name = name;
+        // Increase the initial refcount by one because we'll consider a task before it is completed as having a reference to
+        // itself. This saves some complexity when decrementing since we no longer need to check for completion. Increase it
+        // by an additional one because we want to ensure the task doesn't get completed and the refcount go to zero before
+        // the task object gets constructed because that would cause the refcount to go to zero twice
+        data.RefCount = 2;
+        data.Mutex.unlock();
         
         bool executeNow = false;
         // No dependencies so it can be executed whenever
@@ -95,7 +86,6 @@ namespace Heart
         // completed
         else
         {
-            s_TaskListMutex.lock_shared();
             for (u32 i = 0; i < dependencyCount; i++)
             {
                 if (dependencies[i].GetHandle() == Task::InvalidHandle) continue;
@@ -107,20 +97,18 @@ namespace Heart
                     dependencyData.Dependents.Add(handle);
                 dependencyData.Mutex.unlock();
             }
-            s_TaskListMutex.unlock_shared();
         }
         
         if (executeNow)
             PushHandleToQueue(handle);
         
-        return Task(handle);
+        return Task(handle, false);
     }
 
     bool TaskManager::Wait(const Task& task, u32 timeout)
     {
         if (task.GetHandle() == Task::InvalidHandle) return false;
         
-        s_TaskListMutex.lock_shared();
         auto& data = s_TaskList[task.GetHandle()];
         std::unique_lock<std::mutex> lock(data.Mutex);
         bool complete = true;
@@ -134,7 +122,6 @@ namespace Heart
         }
         else
             data.CompletionCV.wait(lock, [&data]{ return data.Complete; });
-        s_TaskListMutex.unlock_shared();
         
         return complete;
     }
@@ -149,17 +136,13 @@ namespace Heart
 
     void TaskManager::IncrementRefCount(u32 handle)
     {
-        s_TaskListMutex.lock_shared();
         s_TaskList[handle].RefCount++;
-        s_TaskListMutex.unlock_shared();
     }
 
-    void TaskManager::DecrementRefCount(u32 handle, bool lock)
+    void TaskManager::DecrementRefCount(u32 handle)
     {
         if (!s_Initialized) return;
 
-        if (lock)
-            s_TaskListMutex.lock_shared();
         auto& data = s_TaskList[handle];
         if (--data.RefCount == 0)
         {
@@ -170,8 +153,6 @@ namespace Heart
             s_HandleFreeList.Add(handle);
             s_FreeListMutex.unlock();
         }
-        if (lock)
-            s_TaskListMutex.unlock_shared();
     }
 
     // TODO: priority
@@ -190,28 +171,22 @@ namespace Heart
             s_ExecuteQueue.pop();
             lock.unlock();
             
-            // Retrieve func to execute
-            s_TaskListMutex.lock_shared();
-            auto func = std::move(s_TaskList[handle].Task);
-            s_TaskListMutex.unlock_shared();
-            
+            auto& data = s_TaskList[handle];
+            data.Mutex.lock();
             try
             {
-                func();
+                HE_ENGINE_ASSERT(data.Task);
+                data.Task();
                 
                 // Set success flag
-                s_TaskListMutex.lock_shared();
-                s_TaskList[handle].Success = true;
+                data.Success = true;
             }
             catch (const std::exception& e)
             {
-                s_TaskListMutex.lock_shared();
                 HE_ENGINE_LOG_WARN("Task '{0}' failed with an exception: {1}", s_TaskList[handle].Name.Data(), e.what());
             }
             
             // Mark complete and update all dependents
-            auto& data = s_TaskList[handle];
-            data.Mutex.lock();
             data.Complete = true;
             for (u32 dep : data.Dependents)
             {
@@ -219,11 +194,9 @@ namespace Heart
                 if (--depData.DependencyCount == 0)
                     PushHandleToQueue(dep);
             }
-            DecrementRefCount(handle, false);
+            DecrementRefCount(handle);
             data.Mutex.unlock();
             data.CompletionCV.notify_all();
-            
-            s_TaskListMutex.unlock_shared();
             
             // Relock lock before next iteration (required by wait())
             lock.lock();

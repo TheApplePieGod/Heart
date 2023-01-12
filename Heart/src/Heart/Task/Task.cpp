@@ -10,17 +10,18 @@ namespace Heart
         Copy(other);
     }
 
-    Task::Task(u32 handle)
+    Task::Task(u32 handle, bool incref)
         : m_Handle(handle)
     {
         if (m_Handle == InvalidHandle) return;
-        TaskManager::IncrementRefCount(m_Handle);
+        if (incref)
+            TaskManager::IncrementRefCount(m_Handle);
     }
 
     Task::~Task()
     {
         if (m_Handle == InvalidHandle) return;
-        TaskManager::DecrementRefCount(m_Handle, true);
+        TaskManager::DecrementRefCount(m_Handle);
     }
 
     bool Task::Wait(u32 timeout) const
@@ -31,7 +32,7 @@ namespace Heart
     void Task::Copy(const Task& other)
     {
         if (m_Handle != InvalidHandle)
-            TaskManager::DecrementRefCount(m_Handle, true);
+            TaskManager::DecrementRefCount(m_Handle);
         m_Handle = other.m_Handle;
         if (m_Handle == InvalidHandle) return;
         TaskManager::IncrementRefCount(m_Handle);

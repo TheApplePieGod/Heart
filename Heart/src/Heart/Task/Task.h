@@ -9,7 +9,7 @@ namespace Heart
     public:
         Task() = default;
         Task(const Task& other);
-        Task(u32 handle);
+        Task(u32 handle, bool incref = true);
         ~Task();
         
         bool Wait(u32 timeout = 0) const;
