@@ -3,7 +3,7 @@
 
 #include "Heart/Core/App.h"
 #include "Heart/Core/Timing.h"
-#include <future>
+#include "Heart/Task/TaskManager.h"
 
 namespace Heart
 {
@@ -23,15 +23,16 @@ namespace Heart
         else
             HE_ENGINE_LOG_INFO("Assets directory not specified, skipping registration");
 
-
         s_Initialized = true;
-        s_AssetThread = std::thread(&AssetManager::ProcessQueue);
     }
 
     void AssetManager::Shutdown()
     {
         s_Initialized = false;
-        s_AssetThread.join();
+
+        // Wait for tasks to finish
+        while (s_AsyncLoadsInProgress)
+        { std::this_thread::sleep_for(std::chrono::milliseconds(1)); }
 
         // cleanup assets
         for (auto& pair : s_Registry)
@@ -59,45 +60,20 @@ namespace Heart
                     uuidEntry.IsResource ? "resource" : "asset", 
                     entry.Asset->GetPath().Data()
                 );
-                PushOperation({ false, pair.first });
-            }
-        }
-    }
-
-    // TODO: switch this over to new processing system
-    void AssetManager::ProcessQueue()
-    {
-        while (s_Initialized)
-        {
-            while (!s_OperationQueue.empty())
-            {
-                s_QueueLock.lock();
-                auto operation = s_OperationQueue.front();
-                s_OperationQueue.pop();
-                s_QueueLock.unlock();
                 
-                if (s_UUIDs.find(operation.Asset) != s_UUIDs.end())
+                entry.LoadedFrame = std::numeric_limits<u64>::max() - s_AssetFrameLimit; // prevent extraneous unloading
+
+                UUID uuid = pair.first;
+                s_AsyncLoadsInProgress++;
+                TaskManager::Schedule([uuid]()
                 {
-                    auto& uuidEntry = s_UUIDs[operation.Asset];
+                    auto& uuidEntry = s_UUIDs[uuid];
                     auto& entry = uuidEntry.IsResource ? s_Resources[uuidEntry.Path] : s_Registry[uuidEntry.Path];
-
-                    if (operation.Load)
-                        LoadAsset(entry, true);
-                    else
-                        UnloadAsset(entry);
-                }
+                    UnloadAsset(entry, true);
+                    s_AsyncLoadsInProgress--;
+                }, "Unload asset");
             }
-
-            if (s_Initialized)
-                std::this_thread::sleep_for(std::chrono::milliseconds(5));
         }
-    }
-
-    void AssetManager::PushOperation(const LoadOperation& operation)
-    {
-        s_QueueLock.lock();
-        s_OperationQueue.push(operation);
-        s_QueueLock.unlock();
     }
 
     void AssetManager::UnloadAllAssets()
@@ -246,6 +222,10 @@ namespace Heart
 
     void AssetManager::UpdateAssetsDirectory(const HStringView8& directory)
     {
+        // Wait for tasks to finish
+        while (s_AsyncLoadsInProgress)
+        { std::this_thread::sleep_for(std::chrono::milliseconds(1)); }
+
         UnloadAllAssets();
         s_AssetsDirectory = directory;
 
@@ -341,7 +321,15 @@ namespace Heart
                 if (async)
                 {
                     entry.LoadedFrame = App::Get().GetFrameCount();
-                    PushOperation({ true, uuid });
+
+                    s_AsyncLoadsInProgress++;
+                    TaskManager::Schedule([uuid]()
+                    {
+                        auto& uuidEntry = s_UUIDs[uuid];
+                        auto& entry = uuidEntry.IsResource ? s_Resources[uuidEntry.Path] : s_Registry[uuidEntry.Path];
+                        LoadAsset(entry, true);
+                        s_AsyncLoadsInProgress--;
+                    }, "Load asset");
                 }
                 else
                     LoadAsset(entry);

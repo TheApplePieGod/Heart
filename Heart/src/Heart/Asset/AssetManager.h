@@ -241,8 +241,6 @@ namespace Heart
     private:
         static void LoadAsset(AssetEntry& entry, bool async = false);
         static void UnloadAsset(AssetEntry& entry, bool async = false);
-        static void ProcessQueue();
-        static void PushOperation(const LoadOperation& operation);
 
     private:
         inline static constexpr u64 s_AssetFrameLimit = 1000;
@@ -253,8 +251,6 @@ namespace Heart
         inline static HString8 s_AssetsDirectory;
 
         inline static bool s_Initialized = false;
-        inline static std::thread s_AssetThread;
-        inline static std::queue<LoadOperation> s_OperationQueue;
-        inline static std::mutex s_QueueLock;
+        inline static std::atomic<u32> s_AsyncLoadsInProgress;
     };
 }
