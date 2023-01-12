@@ -21,12 +21,12 @@ namespace Heart
             return group;
         }
         
-        static Task Schedule(std::function<void()>&& task, HStringView8 name);
-        static Task Schedule(std::function<void()>&& task, const Task& dependency);
-        static Task Schedule(std::function<void()>&& task, const TaskGroup& dependencies);
-        static Task Schedule(std::function<void()>&& task, std::initializer_list<Task> dependencies);
-        static Task Schedule(std::function<void()>&& task, const HVector<Task>& dependencies);
-        static Task Schedule(std::function<void()>&& task, const Task* dependencies, u32 dependencyCount, HStringView8 name);
+        static Task Schedule(std::function<void()>&& task, Task::Priority priority, HStringView8 name);
+        static Task Schedule(std::function<void()>&& task, Task::Priority priority, const Task& dependency);
+        static Task Schedule(std::function<void()>&& task, Task::Priority priority, const TaskGroup& dependencies);
+        static Task Schedule(std::function<void()>&& task, Task::Priority priority, std::initializer_list<Task> dependencies);
+        static Task Schedule(std::function<void()>&& task, Task::Priority priority, const HVector<Task>& dependencies);
+        static Task Schedule(std::function<void()>&& task, Task::Priority priority, const Task* dependencies, u32 dependencyCount, HStringView8 name);
         
         static bool Wait(const Task& task, u32 timeout); // milliseconds
         
@@ -43,6 +43,7 @@ namespace Heart
             std::condition_variable CompletionCV;
             std::mutex Mutex;
             HString8 Name;
+            Task::Priority Priority;
         };
 
     private:
@@ -52,7 +53,7 @@ namespace Heart
         static void ProcessQueue();
         
     private:
-        inline static std::queue<u32> s_ExecuteQueue;
+        inline static std::deque<u32> s_ExecuteQueue;
         inline static HVector<u32> s_HandleFreeList;
         inline static HVector<TaskData> s_TaskList;
         inline static HVector<std::thread> s_WorkerThreads;

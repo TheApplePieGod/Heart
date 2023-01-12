@@ -29,32 +29,32 @@ namespace Heart
             thread.join();
     }
 
-    Task TaskManager::Schedule(std::function<void()>&& task, HStringView8 name)
+    Task TaskManager::Schedule(std::function<void()>&& task, Task::Priority priority, HStringView8 name)
     {
-        return Schedule(std::move(task), nullptr, 0, name);
+        return Schedule(std::move(task), priority, nullptr, 0, name);
     }
 
-    Task TaskManager::Schedule(std::function<void()>&& task, const Task& dependency)
+    Task TaskManager::Schedule(std::function<void()>&& task, Task::Priority priority, const Task& dependency)
     {
-        return Schedule(std::move(task), &dependency, 1, "");
+        return Schedule(std::move(task), priority, &dependency, 1, "");
     }
 
-    Task TaskManager::Schedule(std::function<void()>&& task, const TaskGroup& dependencies)
+    Task TaskManager::Schedule(std::function<void()>&& task, Task::Priority priority, const TaskGroup& dependencies)
     {
-        return Schedule(std::move(task), dependencies.GetTasks().Data(), dependencies.GetTasks().Count(), "");
+        return Schedule(std::move(task), priority, dependencies.GetTasks().Data(), dependencies.GetTasks().Count(), "");
     }
 
-    Task TaskManager::Schedule(std::function<void()>&& task, std::initializer_list<Task> dependencies)
+    Task TaskManager::Schedule(std::function<void()>&& task, Task::Priority priority, std::initializer_list<Task> dependencies)
     {
-        return Schedule(std::move(task), dependencies.begin(), dependencies.size(), "");
+        return Schedule(std::move(task), priority, dependencies.begin(), dependencies.size(), "");
     }
 
-    Task TaskManager::Schedule(std::function<void()>&& task, const HVector<Task>& dependencies)
+    Task TaskManager::Schedule(std::function<void()>&& task, Task::Priority priority, const HVector<Task>& dependencies)
     {
-        return Schedule(std::move(task), dependencies.Data(), dependencies.Count(), "");
+        return Schedule(std::move(task), priority, dependencies.Data(), dependencies.Count(), "");
     }
 
-    Task TaskManager::Schedule(std::function<void()>&& task, const Task* dependencies, u32 dependencyCount, HStringView8 name)
+    Task TaskManager::Schedule(std::function<void()>&& task, Task::Priority priority, const Task* dependencies, u32 dependencyCount, HStringView8 name)
     {
         s_FreeListMutex.lock();
         HE_ENGINE_ASSERT(s_HandleFreeList.Count() != 0, "Scheduled too many tasks!");
@@ -71,6 +71,7 @@ namespace Heart
         data.Task = std::move(task);
         data.DependencyCount = dependencyCount;
         data.Name = name;
+        data.Priority = priority;
         // Increase the initial refcount by one because we'll consider a task before it is completed as having a reference to
         // itself. This saves some complexity when decrementing since we no longer need to check for completion. Increase it
         // by an additional one because we want to ensure the task doesn't get completed and the refcount go to zero before
@@ -128,8 +129,18 @@ namespace Heart
 
     void TaskManager::PushHandleToQueue(u32 handle)
     {
+        auto& data = s_TaskList[handle];
         s_ExecuteQueueMutex.lock();
-        s_ExecuteQueue.push(handle);
+        switch (data.Priority)
+        {
+            default:
+            case Task::Priority::High:
+            { s_ExecuteQueue.push_front(handle); } break;
+            case Task::Priority::Medium:
+            { s_ExecuteQueue.insert(s_ExecuteQueue.begin() + s_ExecuteQueue.size() / 2, handle); } break;
+            case Task::Priority::Low:
+            { s_ExecuteQueue.push_back(handle); } break;
+        }
         s_ExecuteQueueMutex.unlock();
         s_ExecuteQueueCV.notify_one();
     }
@@ -168,7 +179,7 @@ namespace Heart
             
             // lock already locked by wait()
             u32 handle = s_ExecuteQueue.front();
-            s_ExecuteQueue.pop();
+            s_ExecuteQueue.pop_front();
             lock.unlock();
             
             auto& data = s_TaskList[handle];

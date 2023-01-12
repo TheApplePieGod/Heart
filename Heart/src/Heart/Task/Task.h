@@ -7,6 +7,13 @@ namespace Heart
     class Task
     {
     public:
+        enum class Priority
+        {
+            High = 0,
+            Medium, Low
+        };
+
+    public:
         Task() = default;
         Task(const Task& other);
         Task(u32 handle, bool incref = true);

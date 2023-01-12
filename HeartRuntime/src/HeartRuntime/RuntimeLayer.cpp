@@ -55,7 +55,7 @@ namespace HeartRuntime
         m_SceneUpdateTask = Heart::TaskManager::Schedule([this, ts]()
         {
             m_RuntimeScene->OnUpdateRuntime(ts);
-        });
+        }, Task::Priority::High, "SceneUpdate task");
 
         m_Viewport.OnImGuiRender(m_RuntimeScene.get(), m_RenderSettings);
         m_DevPanel.OnImGuiRender(m_RuntimeScene.get(), m_RenderSettings);

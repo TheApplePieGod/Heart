@@ -43,6 +43,7 @@ namespace Heart
             pair.second.Asset.reset();
     }
 
+    // TODO: this could probably be a task
     void AssetManager::OnUpdate()
     {
         // Check to see if assets should be unloaded
@@ -55,12 +56,6 @@ namespace Heart
 
             if (App::Get().GetFrameCount() > entry.LoadedFrame + s_AssetFrameLimit)
             {
-                HE_ENGINE_LOG_TRACE(
-                    "Unloading {0} @ {1}",
-                    uuidEntry.IsResource ? "resource" : "asset", 
-                    entry.Asset->GetPath().Data()
-                );
-                
                 entry.LoadedFrame = std::numeric_limits<u64>::max() - s_AssetFrameLimit; // prevent extraneous unloading
 
                 UUID uuid = pair.first;
@@ -69,9 +64,16 @@ namespace Heart
                 {
                     auto& uuidEntry = s_UUIDs[uuid];
                     auto& entry = uuidEntry.IsResource ? s_Resources[uuidEntry.Path] : s_Registry[uuidEntry.Path];
+
+                    HE_ENGINE_LOG_TRACE(
+                        "Unloading {0} @ {1}",
+                        uuidEntry.IsResource ? "resource" : "asset", 
+                        entry.Asset->GetPath().Data()
+                    );
+                
                     UnloadAsset(entry, true);
                     s_AsyncLoadsInProgress--;
-                }, "Unload asset");
+                }, Task::Priority::Low, "Unload asset");
             }
         }
     }
@@ -314,28 +316,24 @@ namespace Heart
         auto& uuidEntry = s_UUIDs[uuid];
         auto& entry = uuidEntry.IsResource ? s_Resources[uuidEntry.Path] : s_Registry[uuidEntry.Path];
 
-        if (load)
+        // Ensure that we only load if the asset is unloaded and a task hasn't been started (i.e. when the loaded frame is this value)
+        if (load && entry.LoadedFrame == std::numeric_limits<u64>::max() - s_AssetFrameLimit)
         {
-            if (!entry.Asset->IsLoading())
-            {
-                if (async)
-                {
-                    entry.LoadedFrame = App::Get().GetFrameCount();
+            entry.LoadedFrame = App::Get().GetFrameCount();
 
-                    s_AsyncLoadsInProgress++;
-                    TaskManager::Schedule([uuid]()
-                    {
-                        auto& uuidEntry = s_UUIDs[uuid];
-                        auto& entry = uuidEntry.IsResource ? s_Resources[uuidEntry.Path] : s_Registry[uuidEntry.Path];
-                        LoadAsset(entry, true);
-                        s_AsyncLoadsInProgress--;
-                    }, "Load asset");
-                }
-                else
-                    LoadAsset(entry);
+            if (async)
+            {
+                s_AsyncLoadsInProgress++;
+                TaskManager::Schedule([uuid]()
+                {
+                    auto& uuidEntry = s_UUIDs[uuid];
+                    auto& entry = uuidEntry.IsResource ? s_Resources[uuidEntry.Path] : s_Registry[uuidEntry.Path];
+                    LoadAsset(entry, true);
+                    s_AsyncLoadsInProgress--;
+                }, Task::Priority::Medium, "Load asset");
             }
             else
-                entry.LoadedFrame = App::Get().GetFrameCount();
+                LoadAsset(entry);
         }
             
         return entry.Asset.get();

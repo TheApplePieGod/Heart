@@ -47,12 +47,12 @@ namespace Heart
         {
             AssetManager::Initialize();
             HE_ENGINE_LOG_DEBUG("Asset manager ready");
-        }, "AssetManager Init");
+        }, Task::Priority::High, "AssetManager Init");
         auto scriptsTask = TaskManager::Schedule([]()
         {
             ScriptingEngine::Initialize();
             HE_ENGINE_LOG_DEBUG("Scripts ready");
-        }, "Scripts Init");
+        }, Task::Priority::High, "Scripts Init");
         
         TaskGroup({ assetTask, scriptsTask }).Wait();
 

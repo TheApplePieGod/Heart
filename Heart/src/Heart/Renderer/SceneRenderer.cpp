@@ -378,7 +378,7 @@ namespace Heart
         Task updateTask = TaskManager::Schedule([this]()
         {
             CalculateBatches();
-        }, "SceneRenderer CalculateBatches");
+        }, Task::Priority::High, "SceneRenderer CalculateBatches");
 
         // Set the global data for this frame
         FrameData frameData = {
