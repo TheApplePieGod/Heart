@@ -343,7 +343,11 @@ namespace Heart
     void SceneRenderer::ClearRenderData()
     {
         for (u32 i = 0; i < Flourish::Context::FrameBufferCount(); i++)
+        {
             m_BatchRenderData[i].IndirectBatches.clear();
+            m_BatchRenderData[i].RenderedInstanceCount = 0;
+            m_BatchRenderData[i].RenderedObjectCount = 0;
+        }
     }
 
     Task SceneRenderer::Render(RenderScene* scene, EnvironmentMap* envMap, const Camera& camera, glm::vec3 cameraPosition, const SceneRenderSettings& renderSettings)
@@ -369,6 +373,8 @@ namespace Heart
         m_UpdateFrameIndex = App::Get().GetFrameCount() % Flourish::Context::FrameBufferCount();
         m_RenderFrameIndex = (App::Get().GetFrameCount() - 1) % Flourish::Context::FrameBufferCount();
         m_BatchRenderData[m_UpdateFrameIndex].IndirectBatches.clear();
+        m_BatchRenderData[m_UpdateFrameIndex].RenderedInstanceCount = 0;
+        m_BatchRenderData[m_UpdateFrameIndex].RenderedObjectCount = 0;
         m_BatchRenderData[m_RenderFrameIndex].DeferredIndirectBatches.Clear();
         m_RenderBuffers.clear();
         for (auto& list : m_BatchRenderData[m_UpdateFrameIndex].EntityListPool)
@@ -492,8 +498,6 @@ namespace Heart
         HE_PROFILE_FUNCTION();
         auto timer = AggregateTimer("SceneRenderer::CalculateBatches");
 
-        m_RenderedInstanceCount = 0;
-        m_RenderedObjectCount = 0;
         bool async = m_SceneRenderSettings.AsyncAssetLoading;
         auto& batchData = m_BatchRenderData[m_UpdateFrameIndex];
         
@@ -508,6 +512,7 @@ namespace Heart
             const auto& entityData = m_Scene->GetEntityData()[meshComp.EntityIndex];
 
             // Compute max scale for calculating the bounding sphere
+            // TODO: scale scale by some factor or some sort of predictive culling based on camera speed
             glm::vec3 scale = entityData.Scale;
             float maxScale = std::max(std::max(scale.x, scale.y), scale.z);
 
@@ -555,7 +560,7 @@ namespace Heart
                 }
                 
                 batch.Count++;
-                m_RenderedInstanceCount++;
+                batchData.RenderedInstanceCount++;
 
                 // Push the associated entity to the associated vector from the pool
                 batchData.EntityListPool[batch.EntityListIndex].AddInPlace(static_cast<u32>(meshComp.EntityIndex));
@@ -627,7 +632,7 @@ namespace Heart
             commandIndex++;
         }
         
-        m_RenderedObjectCount = objectId;
+        batchData.RenderedObjectCount = objectId;
     }
 
     void SceneRenderer::RenderEnvironmentMap()
@@ -846,14 +851,14 @@ namespace Heart
                 entityData.Transform,
                 { entityData.Id, 0.f, 0.f, 0.f }
             };
-            batchData.ObjectDataBuffer->SetElements(&objectData, 1, m_RenderedObjectCount);
+            batchData.ObjectDataBuffer->SetElements(&objectData, 1, batchData.RenderedObjectCount);
             
             // Material data
             material.BaseColor = glm::vec4(textComp.Data.BaseColor, 1.f);
             material.EmissiveFactor = glm::vec4(textComp.Data.EmissiveFactor, 1.f);
             material.Scalars.x = textComp.Data.Metalness;
             material.Scalars.y = textComp.Data.Roughness;
-            batchData.MaterialDataBuffer->SetElements(&material, 1, m_RenderedObjectCount);
+            batchData.MaterialDataBuffer->SetElements(&material, 1, batchData.RenderedObjectCount);
             
             m_RenderEncoder->BindPipelineTextureResource(16, fontAsset->GetAtlasTexture());
             m_RenderEncoder->FlushPipelineBindings();
@@ -863,10 +868,10 @@ namespace Heart
             m_RenderEncoder->BindIndexBuffer(textComp.Data.ComputedIndices.get());
             m_RenderEncoder->DrawIndexed(
                 textComp.Data.ComputedIndices->GetAllocatedCount(),
-                0, 0, 1, m_RenderedObjectCount
+                0, 0, 1, batchData.RenderedObjectCount
             );
              
-            m_RenderedObjectCount++;
+            batchData.RenderedObjectCount++;
         }
     }
 

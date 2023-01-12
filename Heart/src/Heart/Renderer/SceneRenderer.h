@@ -72,8 +72,8 @@ namespace Heart
         inline Flourish::Buffer* GetEntityIdsPixelBuffer() { return m_EntityIdsPixelBuffer.get(); }
         inline u32 GetBloomMipCount() const { return m_BloomMipCount; }
         
-        inline u32 GetRenderedInstanceCount() const { return m_RenderedInstanceCount; }
-        inline u32 GetRenderedObjectCount() const { return m_RenderedObjectCount; }
+        inline u32 GetRenderedInstanceCount() const { return m_BatchRenderData[m_RenderFrameIndex].RenderedInstanceCount; }
+        inline u32 GetRenderedObjectCount() const { return m_BatchRenderData[m_RenderFrameIndex].RenderedObjectCount; }
         inline u32 GetBatchCount() const { return m_BatchRenderData[m_RenderFrameIndex].IndirectBatches.size(); }
         
     private:
@@ -166,6 +166,9 @@ namespace Heart
             Ref<Flourish::Buffer> IndirectBuffer;
             Ref<Flourish::Buffer> ObjectDataBuffer;
             Ref<Flourish::Buffer> MaterialDataBuffer;
+
+            u32 RenderedInstanceCount;
+            u32 RenderedObjectCount;
         };
 
     private:
@@ -247,8 +250,6 @@ namespace Heart
         u32 m_RenderFrameIndex = 0;
         std::array<BatchRenderData, Flourish::Context::MaxFrameBufferCount> m_BatchRenderData;
         SceneRenderSettings m_SceneRenderSettings;
-        u32 m_RenderedInstanceCount;
-        u32 m_RenderedObjectCount;
         std::vector<std::vector<Flourish::CommandBuffer*>> m_RenderBuffers;
 
         u32 m_BloomMipCount = 0;
