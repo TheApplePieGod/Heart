@@ -9,7 +9,7 @@ namespace HeartEditor
 {
 namespace Widgets
 {
-    void AssetRegistry::OnImGuiRender()
+    void AssetRegistry::OnImGuiRenderPostSceneUpdate()
     {
         HE_PROFILE_FUNCTION();
 

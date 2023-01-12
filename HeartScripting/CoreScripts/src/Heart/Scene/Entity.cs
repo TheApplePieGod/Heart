@@ -144,6 +144,10 @@ namespace Heart.Scene
         public void RemoveComponent<T>() where T : Component, new()
             => ComponentUtils.RemoveComponent<T>(_entityHandle, _sceneHandle);
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void SetParallelUpdate(bool parallel)
+            => Native_Entity_SetParallelUpdate(_entityHandle, _sceneHandle, NativeMarshal.BoolToInteropBool(parallel));
+
         public void Destroy()
         {
             Native_Entity_Destroy(_entityHandle, _sceneHandle);
@@ -160,5 +164,8 @@ namespace Heart.Scene
 
         [DllImport("__Internal")]
         internal static extern InteropBool Native_Entity_IsValid(uint entityHandle, IntPtr sceneHandle);
+
+        [DllImport("__Internal")]
+        internal static extern void Native_Entity_SetParallelUpdate(uint entityHandle, IntPtr sceneHandle, InteropBool parallel);
     }
 }

@@ -17,6 +17,17 @@ namespace Heart
     class Scene
     {
     public:
+        struct CachedTransformData
+        {
+            glm::mat4 Transform;
+            glm::quat Quat;
+            glm::vec3 Position;
+            glm::vec3 Rotation;
+            glm::vec3 Scale;
+            glm::vec3 ForwardVec;
+        };
+
+    public:
         Scene();
         ~Scene();
 
@@ -33,11 +44,13 @@ namespace Heart
         void CacheEntityTransform(Entity entity, bool propagateToChildren = true, bool updatePhysics = true);
         void CalculateEntityTransform(Entity target, glm::mat4& outTransform, glm::vec3& outRotation);
         void GetEntityParentTransform(Entity target, glm::mat4& outTransform);
+        const CachedTransformData& GetEntityCachedData(Entity entity);
         const glm::mat4& GetEntityCachedTransform(Entity entity);
         glm::vec3 GetEntityCachedPosition(Entity entity);
         glm::vec3 GetEntityCachedRotation(Entity entity);
         glm::quat GetEntityCachedQuat(Entity entity);
         glm::vec3 GetEntityCachedScale(Entity entity);
+        glm::vec3 GetEntityCachedForwardVec(Entity entity);
 
         Ref<Scene> Clone();
         void ClearScene();
@@ -57,14 +70,6 @@ namespace Heart
         }
 
     private:
-        struct CachedTransform
-        {
-            glm::mat4 Transform;
-            glm::quat Quat;
-            glm::vec3 Position;
-            glm::vec3 Rotation;
-            glm::vec3 Scale;
-        };
         
     private:
         template<typename Component>
@@ -81,7 +86,7 @@ namespace Heart
     private:
         entt::registry m_Registry;
         std::unordered_map<UUID, entt::entity> m_UUIDMap;
-        std::unordered_map<entt::entity, CachedTransform> m_CachedTransforms;
+        std::unordered_map<entt::entity, CachedTransformData> m_CachedTransforms;
         PhysicsWorld m_PhysicsWorld;
         Ref<EnvironmentMap> m_EnvironmentMap; // TODO: move this out of scene
         bool m_IsRuntime = false;

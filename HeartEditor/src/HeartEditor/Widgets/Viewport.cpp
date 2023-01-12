@@ -6,6 +6,7 @@
 #include "HeartEditor/EditorCamera.h"
 #include "Heart/Core/Window.h"
 #include "Heart/Core/Camera.h"
+#include "Heart/Task/TaskManager.h"
 #include "Heart/Scene/Scene.h"
 #include "Heart/Renderer/SceneRenderer.h"
 #include "Heart/Asset/AssetManager.h"
@@ -32,7 +33,7 @@ namespace Widgets
         m_EditorCamera = Heart::CreateRef<EditorCamera>(70.f, 0.1f, 500.f, 1.f, glm::vec3(0.f, 1.f, 0.f));
     }
 
-    void Viewport::OnImGuiRender()
+    void Viewport::OnImGuiRenderPostSceneUpdate()
     {
         HE_PROFILE_FUNCTION();
 
@@ -40,8 +41,9 @@ namespace Widgets
 
         ImGui::Begin(m_Name.Data(), &m_Open);
 
-        m_SceneRenderer->RenderScene(
-            &Editor::GetActiveScene(),
+        m_SceneRendererUpdateTask = m_SceneRenderer->Render(
+            &Editor::GetRenderScene(),
+            Editor::GetActiveScene().GetEnvironmentMap(),
             *m_ActiveCamera,
             m_ActiveCameraPos,
             Editor::GetState().RenderSettings
@@ -300,6 +302,11 @@ namespace Widgets
             m_EditorCamera->SetPosition({ camField["pos"][0], camField["pos"][1], camField["pos"][2] });
             m_EditorCamera->SetRotation({ camField["rot"][0], camField["rot"][1], 0.f });
         }
+    }
+
+    void Viewport::Reset()
+    {
+        m_SceneRenderer->ClearRenderData();
     }
 
     void Viewport::UpdateCamera()

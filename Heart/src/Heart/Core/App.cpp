@@ -9,6 +9,8 @@
 #include "Heart/Events/WindowEvents.h"
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Scripting/ScriptingEngine.h"
+#include "Heart/Task/TaskManager.h"
+#include "Heart/Task/JobManager.h"
 #include "Heart/Util/PlatformUtils.h"
 #include "Flourish/Api/Context.h"
 #include "Flourish/Core/Log.h"
@@ -28,14 +30,31 @@ namespace Heart
         #else
             HE_ENGINE_LOG_INFO("Running Heart in Release mode");
         #endif
-
+        
+        u32 taskThreads = std::thread::hardware_concurrency() - 2;
+        HE_ENGINE_LOG_INFO("Using {0} task & job worker threads", taskThreads);
+        JobManager::Initialize(taskThreads);
+        TaskManager::Initialize(taskThreads);
+        
         WindowCreateInfo windowCreateInfo = WindowCreateInfo(windowName);
         InitializeGraphicsApi(windowCreateInfo);
+        HE_ENGINE_LOG_DEBUG("Graphics ready");
+
+        PhysicsWorld::Initialize();
 
         // Init services
-        PhysicsWorld::Initialize();
-        AssetManager::Initialize();
-        ScriptingEngine::Initialize();
+        auto assetTask = TaskManager::Schedule([]()
+        {
+            AssetManager::Initialize();
+            HE_ENGINE_LOG_DEBUG("Asset manager ready");
+        }, Task::Priority::High, "AssetManager Init");
+        auto scriptsTask = TaskManager::Schedule([]()
+        {
+            ScriptingEngine::Initialize();
+            HE_ENGINE_LOG_DEBUG("Scripts ready");
+        }, Task::Priority::High, "Scripts Init");
+        
+        TaskGroup({ assetTask, scriptsTask }).Wait();
 
         HE_ENGINE_LOG_INFO("App initialized");
     }
@@ -50,7 +69,10 @@ namespace Heart
             layer->OnDetach();
 
         ShutdownGraphicsApi();
-
+        
+        TaskManager::Shutdown();
+        JobManager::Shutdown();
+        
         PlatformUtils::ShutdownPlatform();
 
         HE_ENGINE_LOG_INFO("Shutdown complete");
@@ -165,6 +187,11 @@ namespace Heart
 
             double currentFrameTime = m_Window->GetWindowTime();
             m_LastTimestep = Timestep(currentFrameTime - m_LastFrameTime);
+            m_TimestepSamples[m_FrameCount % 5] = m_LastTimestep.StepMilliseconds();
+            double averaged = 0.0;
+            for (auto sample : m_TimestepSamples)
+                averaged += sample;
+            m_AveragedTimestep = averaged / m_TimestepSamples.size();
             m_LastFrameTime = currentFrameTime;
 
             auto timer = AggregateTimer("App::Run - PollEvents");
@@ -179,16 +206,12 @@ namespace Heart
             Flourish::Context::BeginFrame();
             AssetManager::OnUpdate();
             m_Window->BeginFrame();
+            m_ImGuiInstance->BeginFrame();
             timer.Finish();
 
             // Layer update
             for (auto layer : m_Layers)
                 layer->OnUpdate(m_LastTimestep);
-
-            // ImGui render
-            m_ImGuiInstance->BeginFrame();
-            for (auto layer : m_Layers)
-                layer->OnImGuiRender();
 
             // End frame
             timer = AggregateTimer("App::Run - End frame");

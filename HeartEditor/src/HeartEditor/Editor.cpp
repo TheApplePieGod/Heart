@@ -42,6 +42,7 @@ namespace HeartEditor
         s_Windows.clear();
         s_ActiveScene.reset();
         s_EditorScene.reset();
+        s_RenderScene.Cleanup();
     }
 
     void Editor::CreateWindows()
@@ -104,6 +105,15 @@ namespace HeartEditor
 
         for (auto& pair : s_Windows)
             pair.second->OnImGuiRender();
+    }
+
+    void Editor::RenderWindowsPostSceneUpdate()
+    {
+        HE_PROFILE_FUNCTION();
+        auto timer = Heart::AggregateTimer("Editor::RenderWindowsPostSceneUpdate");
+
+        for (auto& pair : s_Windows)
+            pair.second->OnImGuiRenderPostSceneUpdate();
 
         if (s_ImGuiDemoOpen)
             ImGui::ShowDemoWindow(&s_ImGuiDemoOpen);
@@ -177,6 +187,8 @@ namespace HeartEditor
     void Editor::StopScene()
     {
         s_SceneState = SceneState::Editing;
+
+        s_SceneUpdateTask.Wait();
         
         s_ActiveScene->StopRuntime();
         s_ActiveScene = s_EditorScene;

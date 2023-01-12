@@ -112,7 +112,25 @@ namespace Heart
             }
         }
 
-        // insert
+        void Insert(const T& other, u32 index)
+        {
+            u32 oldCount = Count();
+            Resize(oldCount + 1, false);
+
+            // Shift elements
+            index = std::min(index, oldCount);
+            if (index != oldCount)
+            {
+                memmove(
+                    Begin() + index + 1,
+                    Begin() + index,
+                    (Count() - index) * sizeof(T)
+                );
+            }
+
+            HE_PLACEMENT_NEW(Begin() + index, T, other);
+        }
+
         // find
         
         inline void Reserve(u32 allocCount) { m_Container.Reserve(allocCount); }

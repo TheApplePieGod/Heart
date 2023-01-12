@@ -33,8 +33,7 @@ namespace Widgets
         m_SceneCamera.UpdateViewMatrix(glm::vec3(0.f), m_Radius, glm::vec3(0.f));
         m_SceneCameraPosition = -m_SceneCamera.GetForwardVector() * m_Radius;
 
-        // Register an in-memory asset for the in-progress material
-        m_EditingMaterialAsset = Heart::AssetManager::RegisterInMemoryAsset(Heart::Asset::Type::Material);
+        Reset();
     }
 
     MaterialEditor::~MaterialEditor()
@@ -42,7 +41,7 @@ namespace Widgets
         Heart::AssetManager::UnregisterAsset(m_EditingMaterialAsset);
     }
 
-    void MaterialEditor::OnImGuiRender()
+    void MaterialEditor::OnImGuiRenderPostSceneUpdate()
     {
         HE_PROFILE_FUNCTION();
 
@@ -93,8 +92,10 @@ namespace Widgets
             m_LastMaterial = m_SelectedMaterial;
             m_DemoEntity.GetComponent<Heart::MeshComponent>().Materials[0] = m_EditingMaterialAsset;
             m_SceneCamera.UpdateAspectRatio(m_WindowSizes.y / ImGui::GetContentRegionMax().y); // update aspect using estimated size
-            m_SceneRenderer->RenderScene(
-                m_Scene.get(),
+            m_RenderScene.CopyFromScene(m_Scene.get());
+            m_SceneRenderer->Render(
+                &m_RenderScene,
+                m_Scene->GetEnvironmentMap(),
                 m_SceneCamera,
                 m_SceneCameraPosition,
                 renderSettings
@@ -121,6 +122,12 @@ namespace Widgets
 
         ImGui::End();
         ImGui::PopStyleVar();
+    }
+    
+    void MaterialEditor::Reset()
+    {
+        // Register an in-memory asset for the in-progress material
+        m_EditingMaterialAsset = Heart::AssetManager::RegisterInMemoryAsset(Heart::Asset::Type::Material);
     }
 
     void MaterialEditor::RenderSidebar()

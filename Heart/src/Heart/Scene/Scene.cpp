@@ -2,6 +2,8 @@
 #include "Scene.h"
 
 #include "Heart/Core/Timing.h"
+#include "Heart/Task/TaskManager.h"
+#include "Heart/Task/JobManager.h"
 #include "Heart/Container/HArray.h"
 #include "Heart/Container/HString8.h"
 #include "Heart/Scripting/ScriptingEngine.h"
@@ -280,7 +282,8 @@ namespace Heart
             quat,
             translation,
             rot,
-            scale
+            scale,
+            glm::normalize(glm::vec3(glm::toMat4(quat) * glm::vec4(0.f, 0.f, 1.f, 1.f)))
         };
         
         if (updatePhysics && entity.HasComponent<CollisionComponent>())
@@ -426,41 +429,71 @@ namespace Heart
         // Update positions of physics entities to reflect physics body position
         runTimer = AggregateTimer("Scene::OnUpdateRuntime - Post Physics");
         auto physView = m_Registry.view<CollisionComponent, TransformComponent>();
-        for (auto entity : physView)
-        {
-            auto& bodyComp = physView.get<CollisionComponent>(entity);
-            PhysicsBody* body = m_PhysicsWorld.GetBody(bodyComp.BodyId);
-            
-            // Static & ghost objects will never have an updated position so skip
-            if (body->GetBodyType() != PhysicsBodyType::Rigid || body->GetMass() == 0.f) continue;
-            
-            auto& transformComp = physView.get<TransformComponent>(entity);
-            bool dirty = false;
-            
-            // TODO: store body's position and check that rather than the entity's
-            auto newPos = body->GetPosition();
-            if (transformComp.Translation != newPos)
+        Job physJob = JobManager::ScheduleIter(
+            physView.begin(),
+            physView.end(),
+            [this, &physView](size_t _entity)
             {
-                transformComp.Translation = newPos;
-                dirty = true;
-            }
-            
-            auto bodyRot = body->GetRotation();
-            auto eq = glm::equal(m_CachedTransforms[entity].Quat, bodyRot, 0.0001f);
-            if (!eq.x || !eq.y || !eq.z || !eq.w)
-            {
-                transformComp.Rotation = glm::degrees(glm::eulerAngles(bodyRot));
-                dirty = true;
-            }
+                auto entity = (entt::entity)_entity;
+
+                auto& bodyComp = physView.get<CollisionComponent>(entity);
+                PhysicsBody* body = m_PhysicsWorld.GetBody(bodyComp.BodyId);
                 
-            if (dirty)
-                CacheEntityTransform({ this, entity }, true, false);
-        }
+                auto& transformComp = physView.get<TransformComponent>(entity);
+                bool dirty = false;
+                
+                // TODO: store body's position and check that rather than the entity's
+                auto newPos = body->GetPosition();
+                if (transformComp.Translation != newPos)
+                {
+                    transformComp.Translation = newPos;
+                    dirty = true;
+                }
+                
+                auto bodyRot = body->GetRotation();
+                auto eq = glm::equal(m_CachedTransforms[entity].Quat, bodyRot, 0.0001f);
+                if (!eq.x || !eq.y || !eq.z || !eq.w)
+                {
+                    transformComp.Rotation = glm::degrees(glm::eulerAngles(bodyRot));
+                    dirty = true;
+                }
+                
+                if (dirty)
+                    CacheEntityTransform({ this, entity }, true, false);
+            },
+            [this, &physView](size_t _entity)
+            {
+                auto entity = (entt::entity)_entity;
+                
+                auto& bodyComp = physView.get<CollisionComponent>(entity);
+                PhysicsBody* body = m_PhysicsWorld.GetBody(bodyComp.BodyId);
+                
+                // Static & ghost objects will never have an updated position so skip
+                return body->GetBodyType() == PhysicsBodyType::Rigid && body->GetMass() != 0.f;
+            }
+        );
+        physJob.Wait();
         runTimer.Finish();
         
         // Call OnUpdate lifecycle method
-        runTimer = AggregateTimer("Scene::OnUpdateRuntime - Scripts");
-        auto scriptView = m_Registry.view<ScriptComponent>();
+        // TODO: replace with OnUpdateParallel method
+        runTimer = AggregateTimer("Scene::OnUpdateRuntime - Scripts (Parallel)");
+        auto parScriptView = m_Registry.view<ScriptComponent, ParallelUpdateComponent>();
+        auto parScriptJob = JobManager::ScheduleIter(
+            parScriptView.begin(),
+            parScriptView.end(),
+            [ts, &parScriptView](size_t entity)
+            {
+                auto& scriptComp = parScriptView.get<ScriptComponent>((entt::entity)entity);
+                scriptComp.Instance.OnUpdate(ts);
+            }
+        );
+        parScriptJob.Wait();
+        runTimer.Finish();
+        
+        // Call OnUpdate lifecycle method
+        runTimer = AggregateTimer("Scene::OnUpdateRuntime - Scripts (Regular)");
+        auto scriptView = m_Registry.view<ScriptComponent>(entt::exclude<ParallelUpdateComponent>);
         for (auto entity : scriptView)
         {
             auto& scriptComp = scriptView.get<ScriptComponent>(entity);
@@ -504,7 +537,6 @@ namespace Heart
         return { this, m_UUIDMap[uuid] };
     }
 
-
     void Scene::CollisionStartCallback(UUID id0, UUID id1)
     {
         auto ent0 = GetEntityFromUUIDUnchecked(id0);
@@ -525,6 +557,11 @@ namespace Heart
             ent0.GetComponent<ScriptComponent>().Instance.OnCollisionEnded(ent1);
         if (ent1.IsValid() && ent1.HasComponent<ScriptComponent>())
             ent1.GetComponent<ScriptComponent>().Instance.OnCollisionEnded(ent0);
+    }
+
+    const Scene::CachedTransformData& Scene::GetEntityCachedData(Entity entity)
+    {
+        return m_CachedTransforms[entity.GetHandle()];
     }
 
     const glm::mat4& Scene::GetEntityCachedTransform(Entity entity)
@@ -550,5 +587,10 @@ namespace Heart
     glm::vec3 Scene::GetEntityCachedScale(Entity entity)
     {
         return m_CachedTransforms[entity.GetHandle()].Scale;
+    }
+
+    glm::vec3 Scene::GetEntityCachedForwardVec(Entity entity)
+    {
+        return m_CachedTransforms[entity.GetHandle()].ForwardVec;
     }
 }

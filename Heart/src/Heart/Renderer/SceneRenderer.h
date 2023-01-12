@@ -6,6 +6,8 @@
 #include "glm/mat4x4.hpp"
 #include "Heart/Container/HVector.hpp"
 #include "Heart/Renderer/PhysicsDebugRenderer.h"
+#include "Flourish/Api/Context.h"
+#include "Heart/Task/Task.h"
 
 namespace Flourish
 {
@@ -38,7 +40,7 @@ namespace Heart
         bool RenderPhysicsVolumes = false;
     };
 
-    class Scene;
+    class RenderScene;
     class Material;
     class Mesh;
     class EnvironmentMap;
@@ -51,8 +53,11 @@ namespace Heart
     public:
         SceneRenderer();
         ~SceneRenderer();
+        
+        void ClearRenderData();
 
-        void RenderScene(Scene* scene, const Camera& camera, glm::vec3 cameraPosition, const SceneRenderSettings& renderSettings);
+        // Returns update task that must be waited on before RenderScene changes or Render is called again
+        Task Render(RenderScene* scene, EnvironmentMap* envMap, const Camera& camera, glm::vec3 cameraPosition, const SceneRenderSettings& renderSettings);
 
         void OnEvent(Event& event) override;
 
@@ -67,9 +72,9 @@ namespace Heart
         inline Flourish::Buffer* GetEntityIdsPixelBuffer() { return m_EntityIdsPixelBuffer.get(); }
         inline u32 GetBloomMipCount() const { return m_BloomMipCount; }
         
-        inline u32 GetRenderedInstanceCount() const { return m_RenderedInstanceCount; }
-        inline u32 GetRenderedObjectCount() const { return m_RenderedObjectCount; }
-        inline u32 GetBatchCount() const { return m_IndirectBatches.size(); }
+        inline u32 GetRenderedInstanceCount() const { return m_BatchRenderData[m_RenderFrameIndex].RenderedInstanceCount; }
+        inline u32 GetRenderedObjectCount() const { return m_BatchRenderData[m_RenderFrameIndex].RenderedObjectCount; }
+        inline u32 GetBatchCount() const { return m_BatchRenderData[m_RenderFrameIndex].IndirectBatches.size(); }
         
     private:
         struct IndirectBatch
@@ -152,6 +157,20 @@ namespace Heart
             float Padding;
         };
         
+        struct BatchRenderData
+        {
+            std::unordered_map<u64, IndirectBatch> IndirectBatches;
+            HVector<IndirectBatch*> DeferredIndirectBatches;
+            HVector<HVector<u32>> EntityListPool;
+
+            Ref<Flourish::Buffer> IndirectBuffer;
+            Ref<Flourish::Buffer> ObjectDataBuffer;
+            Ref<Flourish::Buffer> MaterialDataBuffer;
+
+            u32 RenderedInstanceCount;
+            u32 RenderedObjectCount;
+        };
+
     private:
         void Initialize();
         void Resize();
@@ -186,10 +205,7 @@ namespace Heart
         const u32 m_MaxBloomMipCount = 7;
 
         Ref<Flourish::Buffer> m_EntityIdsPixelBuffer;
-        Ref<Flourish::Buffer> m_IndirectBuffer;
         Ref<Flourish::Buffer> m_FrameDataBuffer;
-        Ref<Flourish::Buffer> m_ObjectDataBuffer;
-        Ref<Flourish::Buffer> m_MaterialDataBuffer;
         Ref<Flourish::Buffer> m_LightingDataBuffer;
         Ref<Flourish::Texture> m_DepthTexture;
         Ref<Flourish::Texture> m_DefaultEnvironmentMap;
@@ -227,15 +243,13 @@ namespace Heart
         
         // In-flight frame data
         Flourish::RenderCommandEncoder* m_RenderEncoder;
-        Scene* m_Scene;
+        RenderScene* m_Scene = nullptr;
         EnvironmentMap* m_EnvironmentMap;
         const Camera* m_Camera;
-        std::unordered_map<u64, IndirectBatch> m_IndirectBatches;
-        HVector<IndirectBatch*> m_DeferredIndirectBatches;
-        HVector<HVector<u32>> m_EntityListPool;
+        u32 m_UpdateFrameIndex = 0;
+        u32 m_RenderFrameIndex = 0;
+        std::array<BatchRenderData, Flourish::Context::MaxFrameBufferCount> m_BatchRenderData;
         SceneRenderSettings m_SceneRenderSettings;
-        u32 m_RenderedInstanceCount;
-        u32 m_RenderedObjectCount;
         std::vector<std::vector<Flourish::CommandBuffer*>> m_RenderBuffers;
 
         u32 m_BloomMipCount = 0;

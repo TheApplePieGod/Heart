@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Heart/Task/Task.h"
 #include "HeartEditor/Widgets/Widget.h"
 #include "imgui/imgui.h"
 #include "imguizmo/ImGuizmo.h"
@@ -26,9 +27,11 @@ namespace Widgets
     public:
         Viewport(const Heart::HStringView8& name, bool initialOpen);
 
-        void OnImGuiRender() override;
+        void OnImGuiRenderPostSceneUpdate() override;
         nlohmann::json Serialize() override;
         void Deserialize(const nlohmann::json& elem) override;
+
+        void Reset();
 
         void UpdateCamera();
         void SetFocused(bool focus);
@@ -44,9 +47,11 @@ namespace Widgets
         inline glm::vec3 GetActiveCameraPosition() const { return m_ActiveCameraPos; }
         inline glm::vec3 GetActiveCameraRotation() const { return m_ActiveCameraRot; }
         inline EditorCamera& GetEditorCamera() { return *m_EditorCamera; }
+        inline const Heart::Task& GetSceneRendererUpdateTask() const { return m_SceneRendererUpdateTask; }
 
     private:
         Heart::Ref<Heart::SceneRenderer> m_SceneRenderer;
+        Heart::Task m_SceneRendererUpdateTask;
         Heart::Ref<Heart::Camera> m_ActiveCamera;
         Heart::Ref<EditorCamera> m_EditorCamera;
         glm::vec3 m_ActiveCameraPos;

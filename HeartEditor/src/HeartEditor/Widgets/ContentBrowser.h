@@ -13,7 +13,7 @@ namespace Widgets
     public:
         ContentBrowser(const Heart::HStringView8& name, bool initialOpen);
 
-        void OnImGuiRender() override;
+        void OnImGuiRenderPostSceneUpdate() override;
         
         void Reset();
         

@@ -6,6 +6,7 @@
 #include "HeartEditor/EditorApp.h"
 #include "HeartEditor/Project.h"
 #include "Heart/Core/Window.h"
+#include "Heart/Task/TaskManager.h"
 #include "Heart/Renderer/SceneRenderer.h"
 #include "Flourish/Api/Texture.h"
 #include "Heart/Scene/Entity.h"
@@ -48,16 +49,20 @@ namespace HeartEditor
 
     void EditorLayer::OnUpdate(Heart::Timestep ts)
     {
-        if (Editor::GetSceneState() == SceneState::Playing)
-            Editor::GetActiveScene().OnUpdateRuntime(ts);
+        HE_PROFILE_FUNCTION();
+
+        Editor::GetSceneUpdateTask().Wait();
+        ((Widgets::Viewport&)Editor::GetWindow("Viewport")).GetSceneRendererUpdateTask().Wait();
+
+        Editor::GetRenderScene().CopyFromScene(&Editor::GetActiveScene());
 
         auto& viewport = (Widgets::Viewport&)Editor::GetWindow("Viewport");
         viewport.UpdateCamera();
-    }
 
-    void EditorLayer::OnImGuiRender()
-    {
-        HE_PROFILE_FUNCTION();
+        /*
+         * ImGui render
+         */
+
         ImGuizmo::BeginFrame();
 
         ImGui::SetNextWindowPos(ImGui::GetMainViewport()->WorkPos);
@@ -77,9 +82,24 @@ namespace HeartEditor
 
         Editor::RenderWindows();
 
+        // Start updating after because we still need scene data to correctly render gui stuff
+        Editor::SetSceneUpdateTask(Heart::TaskManager::Schedule([ts]()
+        {
+            if (Editor::GetSceneState() == SceneState::Playing)
+                Editor::GetActiveScene().OnUpdateRuntime(ts);
+        }, Heart::Task::Priority::High, "Editor SceneUpdate"));
+
+        // TODO: replace this system with a more streamlined 'render group' system
+        Editor::RenderWindowsPostSceneUpdate();
+
         ImGui::End();
 
         ImGui::PopStyleVar(2);
+
+        // Update camera after we render the viewport so that it doesn't look like we're lagging behind
+        // this only applies when doing deferred scene rendering
+        //auto& viewport = (Widgets::Viewport&)Editor::GetWindow("Viewport");
+        //viewport.UpdateCamera();
     }
 
     void EditorLayer::OnEvent(Heart::Event& event)

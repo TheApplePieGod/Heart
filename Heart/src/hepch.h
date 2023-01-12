@@ -24,6 +24,8 @@
 #include <type_traits>
 #include <new>
 #include <locale>
+#include <atomic>
+#include <condition_variable>
 
 #include <string>
 #include <regex>
