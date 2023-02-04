@@ -45,8 +45,6 @@ namespace Heart
     class Mesh;
     class EnvironmentMap;
     class Camera;
-    class AppGraphicsInitEvent;
-    class AppGraphicsShutdownEvent;
     class WindowResizeEvent;
     class SceneRenderer : public EventListener
     {
@@ -187,7 +185,6 @@ namespace Heart
         void CalculateBatches();
         void BindMaterial(Material* material);
         void BindPBRDefaults();
-        bool FrustumCull(glm::vec4 boundingSphere, const glm::mat4& transform); // True if visible
 
         void RenderEnvironmentMap();
         void RenderGrid();
