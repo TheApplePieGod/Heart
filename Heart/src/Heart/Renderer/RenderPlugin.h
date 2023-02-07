@@ -14,11 +14,11 @@ namespace Heart
         RenderPlugin(HStringView8 name)
             : m_Name(name)
         {}
-        RenderPlugin(HStringView8 name, const HVector<Ref<RenderPlugin>>& dependencies)
-            : m_Name(name), m_Dependencies(dependencies)
-        {}
 
         void Render(const SceneRenderData& data, SceneRenderer2* sceneRenderer);
+        virtual void Resize(u32 width, u32 height) = 0;
+        
+        inline void AddDependency(const Ref<RenderPlugin>& plugin) { m_Dependencies.AddInPlace(plugin); }
         
         inline const Task& GetTask() const { return m_Task; }
         inline void SetActive(bool active) { m_Active = active; }

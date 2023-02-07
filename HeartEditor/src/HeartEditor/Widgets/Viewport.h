@@ -10,6 +10,7 @@
 namespace Heart
 {
     class SceneRenderer;
+    class SceneRenderer2;
     class Camera;
 }
 
@@ -51,6 +52,7 @@ namespace Widgets
 
     private:
         Heart::Ref<Heart::SceneRenderer> m_SceneRenderer;
+        Heart::Ref<Heart::SceneRenderer2> m_SceneRenderer2;
         Heart::Task m_SceneRendererUpdateTask;
         Heart::Ref<Heart::Camera> m_ActiveCamera;
         Heart::Ref<EditorCamera> m_EditorCamera;

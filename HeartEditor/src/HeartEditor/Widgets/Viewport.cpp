@@ -21,6 +21,10 @@
 #include "glm/gtc/type_ptr.hpp"
 #include "glm/gtx/matrix_decompose.hpp"
 
+// TESTING
+#include "Heart/Renderer/SceneRenderer2.h"
+#include "Heart/Renderer/Plugins/AllPlugins.h"
+
 namespace HeartEditor
 {
 namespace Widgets
@@ -29,6 +33,7 @@ namespace Widgets
         : Widget(name, initialOpen)
     {
         m_SceneRenderer = Heart::CreateRef<Heart::SceneRenderer>();
+        m_SceneRenderer2 = Heart::CreateRef<Heart::SceneRenderer2>();
         m_ActiveCamera = Heart::CreateRef<Heart::Camera>(70.f, 0.1f, 500.f, 1.f);
         m_EditorCamera = Heart::CreateRef<EditorCamera>(70.f, 0.1f, 500.f, 1.f, glm::vec3(0.f, 1.f, 0.f));
     }
@@ -49,6 +54,16 @@ namespace Widgets
             Editor::GetState().RenderSettings
         );
         EditorApp::Get().GetWindow().PushDependencyBuffers(m_SceneRenderer->GetRenderBuffers());
+        
+        auto render2group = m_SceneRenderer2->Render({
+            &Editor::GetRenderScene(),
+            Editor::GetActiveScene().GetEnvironmentMap(),
+            m_ActiveCamera.get(),
+            m_ActiveCameraPos,
+            Heart::SceneRenderSettings2()
+        });
+        //EditorApp::Get().GetWindow().PushDependencyBuffers({{ m_SceneRenderer2->GetPlugin<Heart::RenderPlugins::RenderMeshBatches>("RBMESHCam")->GetCommandBuffer() }});
+        render2group.Wait();
         
         // calculate viewport bounds & aspect ratio
         ImVec2 viewportMin = ImGui::GetWindowContentRegionMin();

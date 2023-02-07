@@ -10,12 +10,11 @@ namespace Heart::RenderPlugins
         Empty(HStringView8 name)
             : RenderPlugin(name)
         { m_Active = false; }
-        Empty(HStringView8 name, const HVector<Ref<RenderPlugin>>& dependencies)
-            : RenderPlugin(name, dependencies)
-        { m_Active = false; }
+
+        void Resize(u32 width, u32 height) override {}
 
     protected:
-        void RenderInternal(const SceneRenderData& data, SceneRenderer2* sceneRenderer) override;
+        void RenderInternal(const SceneRenderData& data, SceneRenderer2* sceneRenderer) override {}
 
     private:
     

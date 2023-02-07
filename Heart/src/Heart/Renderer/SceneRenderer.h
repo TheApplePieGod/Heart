@@ -186,6 +186,8 @@ namespace Heart
         void BindMaterial(Material* material);
         void BindPBRDefaults();
 
+        bool FrustumCull(glm::vec4 boundingSphere, const glm::mat4& transform);
+
         void RenderEnvironmentMap();
         void RenderGrid();
         void RenderBatches();

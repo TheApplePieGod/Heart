@@ -1,6 +1,7 @@
 #pragma once
 
 #include "glm/vec3.hpp"
+#include "Heart/Events/EventEmitter.h"
 #include "Heart/Task/Task.h"
 #include "Heart/Container/HVector.hpp"
 #include "Heart/Container/HString8.h"
@@ -37,10 +38,14 @@ namespace Heart
     };
     
     class RenderPlugin;
-    class SceneRenderer2
+    class WindowResizeEvent;
+    class SceneRenderer2 : public EventListener
     {
     public:
         SceneRenderer2();
+        ~SceneRenderer2();
+
+        void OnEvent(Event& event) override;
 
         TaskGroup Render(const SceneRenderData& data);
 
@@ -63,8 +68,16 @@ namespace Heart
             return static_cast<Plugin*>(m_Plugins.at(name).get());
         }
 
+        inline u32 GetRenderWidth() const { return m_RenderWidth; }
+        inline u32 GetRenderHeight() const { return m_RenderHeight; }
+    
+    private:
+        bool OnWindowResize(WindowResizeEvent& event);
+
     private:
         HVector<HString8> m_PluginLeaves;
         std::unordered_map<HString8, Ref<RenderPlugin>> m_Plugins;
+        u32 m_RenderWidth, m_RenderHeight;
+        bool m_ShouldResize = false;
     };
 }
