@@ -20,7 +20,7 @@ namespace Heart
         static bool Wait(const Job& job, u32 timeout); // milliseconds
     
     private:
-        struct  JobData
+        struct JobData
         {
             bool Complete;
             std::function<void(size_t)> Job = nullptr;

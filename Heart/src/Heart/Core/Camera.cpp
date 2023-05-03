@@ -146,7 +146,7 @@ namespace Heart
             0.f, 0.f, -1.f, 0.f,
             0.f, 0.f, 0.f, 1.f
         ) * m_ViewMatrix;
-
+        
         // invert the y axis for ViewMatrixInvertedY
         m_ViewMatrixInvertedY = glm::mat4(
             1.f, 0.f, 0.f, 0.f,
