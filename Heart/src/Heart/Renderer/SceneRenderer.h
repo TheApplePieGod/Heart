@@ -13,10 +13,10 @@ namespace Flourish
 {
     class Framebuffer;
     class ComputePipeline;
-    class ComputeTarget;
     class Buffer;
     class Texture;
     class CommandBuffer;
+    class DescriptorSet;
     class RenderPass;
     class RenderCommandEncoder;
 }
@@ -213,17 +213,16 @@ namespace Heart
         Ref<Flourish::Framebuffer> m_MainFramebuffer;
         Ref<Flourish::CommandBuffer> m_MainCommandBuffer;
         Ref<Flourish::RenderPass> m_MainRenderPass;
+        Ref<Flouish::DescriptorSet> m_
 
         Ref<Flourish::ComputePipeline> m_BloomDownsampleComputePipeline;
         Ref<Flourish::ComputePipeline> m_BloomUpsampleComputePipeline;
-        Ref<Flourish::ComputeTarget> m_BloomComputeTarget;
         Ref<Flourish::CommandBuffer> m_BloomCommandBuffer;
         Ref<Flourish::Texture> m_BloomDownsampleBufferTexture;
         Ref<Flourish::Texture> m_BloomUpsampleBufferTexture;
         Ref<Flourish::Buffer> m_BloomDataBuffer;
 
         Ref<Flourish::ComputePipeline> m_SSAOComputePipeline;
-        Ref<Flourish::ComputeTarget> m_SSAOComputeTarget;
         Ref<Flourish::CommandBuffer> m_SSAOCommandBuffer;
         Ref<Flourish::Texture> m_SSAOTexture;
         Ref<Flourish::Texture> m_SSAONoiseTexture;
@@ -231,7 +230,6 @@ namespace Heart
         SSAOData m_SSAOData;
         
         Ref<Flourish::ComputePipeline> m_FinalCompositeComputePipeline;
-        Ref<Flourish::ComputeTarget> m_FinalComputeTarget;
         Ref<Flourish::CommandBuffer> m_FinalCommandBuffer;
         Ref<Flourish::Texture> m_FinalTexture;
 

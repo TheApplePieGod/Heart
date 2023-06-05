@@ -8,7 +8,6 @@
 #include "Flourish/Api/Context.h"
 #include "Flourish/Api/GraphicsPipeline.h"
 #include "Flourish/Api/ComputePipeline.h"
-#include "Flourish/Api/ComputeTarget.h"
 #include "Flourish/Api/RenderContext.h"
 #include "Flourish/Api/RenderPass.h"
 #include "Flourish/Api/Framebuffer.h"
@@ -334,10 +333,6 @@ namespace Heart
 
         compCreateInfo.ComputeShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/SSAO.comp", true)->GetShader();
         m_SSAOComputePipeline = Flourish::ComputePipeline::Create(compCreateInfo);
-        
-        m_BloomComputeTarget = Flourish::ComputeTarget::Create();
-        m_FinalComputeTarget = Flourish::ComputeTarget::Create();
-        m_SSAOComputeTarget = Flourish::ComputeTarget::Create();
     }
 
     void SceneRenderer::ClearRenderData()
@@ -911,7 +906,7 @@ namespace Heart
         m_SSAOData.Bias = m_SceneRenderSettings.SSAOBias;
         m_SSAODataBuffer->SetElements(&m_SSAOData, 1, 0);
 
-        auto encoder = m_SSAOCommandBuffer->EncodeComputeCommands(m_SSAOComputeTarget.get());
+        auto encoder = m_SSAOCommandBuffer->EncodeComputeCommands();
         encoder->BindPipeline(m_SSAOComputePipeline.get());
         encoder->BindPipelineBufferResource(0, m_FrameDataBuffer.get(), 0, 0, 1);
         encoder->BindPipelineBufferResource(1, m_SSAODataBuffer.get(), 0, 0, 1);
@@ -943,7 +938,7 @@ namespace Heart
             };
             m_BloomDataBuffer->SetElements(&data, 1, i - 1);
 
-            auto encoder = m_BloomCommandBuffer->EncodeComputeCommands(m_BloomComputeTarget.get());
+            auto encoder = m_BloomCommandBuffer->EncodeComputeCommands();
             encoder->BindPipeline(m_BloomDownsampleComputePipeline.get());
             encoder->BindPipelineBufferResource(0, m_BloomDataBuffer.get(), 0, i - 1, 1);
             if (i == 1)
@@ -969,7 +964,7 @@ namespace Heart
             };
             m_BloomDataBuffer->SetElements(&data, 1, i + m_BloomMipCount);
 
-            auto encoder = m_BloomCommandBuffer->EncodeComputeCommands(m_BloomComputeTarget.get());
+            auto encoder = m_BloomCommandBuffer->EncodeComputeCommands();
             encoder->BindPipeline(m_BloomUpsampleComputePipeline.get());
             encoder->BindPipelineBufferResource(0, m_BloomDataBuffer.get(), 0, i + m_BloomMipCount, 1);
             if (i == m_BloomMipCount - 2)
@@ -988,7 +983,7 @@ namespace Heart
     
     void SceneRenderer::FinalComposite()
     {
-        auto encoder = m_FinalCommandBuffer->EncodeComputeCommands(m_FinalComputeTarget.get());
+        auto encoder = m_FinalCommandBuffer->EncodeComputeCommands();
         encoder->BindPipeline(m_FinalCompositeComputePipeline.get());
         encoder->BindPipelineBufferResource(0, m_FrameDataBuffer.get(), 0, 0, 1);
         encoder->BindPipelineTextureResource(1, m_FinalTexture.get());
