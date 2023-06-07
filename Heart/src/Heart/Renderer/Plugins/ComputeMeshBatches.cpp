@@ -86,10 +86,10 @@ namespace Heart::RenderPlugins
                 batchData.RenderedInstanceCount++;
 
                 // Push the associated entity to the associated vector from the pool
-                batchData.EntityListPool[batch.EntityListIndex].AddInPlace(
+                batchData.EntityListPool[batch.EntityListIndex].AddInPlace(EntityListEntry {
                     static_cast<u32>(meshComp.EntityIndex),
                     meshCompIndex
-                );
+                });
             }
         }
 

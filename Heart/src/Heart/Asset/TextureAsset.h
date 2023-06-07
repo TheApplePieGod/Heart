@@ -21,8 +21,8 @@ namespace Heart
         void Load(bool async = false) override;
         void Unload() override;
 
-        /*! @brief Get a pointer to the texture stored in this asset. */
-        inline Flourish::Texture* GetTexture() { return m_Texture.get(); }
+        /*! @brief Get a reference to the texture stored in this asset. */
+        inline const Ref<Flourish::Texture>& GetTexture() { return m_Texture; }
 
     private:
         const int m_DesiredChannelCount = 4; // all images will load as RGBA

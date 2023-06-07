@@ -175,5 +175,7 @@ namespace Heart
     {
         gContactStartedCallback = ContactStartedCallback;
         gContactEndedCallback = ContactEndedCallback;
+
+        HE_ENGINE_LOG_DEBUG("Physics world ready");
     }
 }

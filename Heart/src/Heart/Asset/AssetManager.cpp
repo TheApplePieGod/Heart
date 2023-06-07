@@ -24,6 +24,8 @@ namespace Heart
             HE_ENGINE_LOG_INFO("Assets directory not specified, skipping registration");
 
         s_Initialized = true;
+
+        HE_ENGINE_LOG_DEBUG("Asset manager ready");
     }
 
     void AssetManager::Shutdown()

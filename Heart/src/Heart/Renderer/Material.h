@@ -5,6 +5,12 @@
 #include "glm/vec3.hpp"
 #include "glm/vec4.hpp"
 
+namespace Flourish
+{
+    class DescriptorSet;
+    class DescriptorSetAllocator;
+}
+
 namespace Heart
 {
     struct MaterialData
@@ -46,7 +52,6 @@ namespace Heart
     class Material
     {
     public:
-    
         inline MaterialData& GetMaterialData() { return m_MaterialData; }
         inline UUID GetAlbedoTexture() const { return m_AlbedoTextureAsset; }
         inline UUID GetMetallicRoughnessTexture() const { return m_MetallicRoughnessTextureAsset; }
@@ -62,6 +67,14 @@ namespace Heart
         inline void SetOcclusionTexture(UUID texture) { m_OcclusionTextureAsset = texture; }
         inline void SetTranslucent(bool translucent) { m_Translucent = translucent; }
 
+        void RecomputeDescriptorSet();
+
+    public:
+        static void Initialize();
+    
+    private:
+        inline static Ref<Flourish::DescriptorSetAllocator> s_DescriptorSetAllocator = nullptr;
+
     private:
         MaterialData m_MaterialData;
         UUID m_AlbedoTextureAsset = 0;
@@ -70,6 +83,8 @@ namespace Heart
         UUID m_EmissiveTextureAsset = 0;
         UUID m_OcclusionTextureAsset = 0;
         bool m_Translucent = false;
+
+        Ref<Flourish::DescriptorSet> m_DescriptorSet;
 
         friend class MaterialAsset;
         friend class MeshAsset;

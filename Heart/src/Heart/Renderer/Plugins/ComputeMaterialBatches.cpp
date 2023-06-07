@@ -32,26 +32,12 @@ namespace Heart::RenderPlugins
         newBatchData.RenderedInstanceCount = 0;
         newBatchData.RenderedObjectCount = 0;
 
-        // Loop over the calculated batches and populate the indirect buffer with draw commands. Because we are instancing, we need to make sure each object data
-        // element gets placed contiguously for each indirect draw call. At this stage, Batch.First is the index of the indirect draw command in the buffer and
-        // Batch.Count will equal 1 because it represents how many draw commands are in each batch
+        // Using the previously computed mesh batches, compute new batches that group by material. Since we do not do a full recomputation,
+        // each batch is subdivided first by mesh and then by material.
         u32 commandIndex = 0;
         u32 objectId = 0;
         for (auto& pair : computedBatchData.Batches)
         {
-            // Update the draw command index
-            /*
-            pair.second.First = commandIndex;
-
-            // Popupate the indirect buffer
-            IndexedIndirectCommand command = {
-                pair.second.Mesh->GetIndexBuffer()->GetAllocatedCount(),
-                pair.second.Count,
-                0, 0, objectId
-            };
-            batchData.IndirectBuffer->SetElements(&command, 1, commandIndex);
-            */
-
             // Should always be loaded & valid since CMB checks
             auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>(
                 data.Scene->GetMeshComponents()[pair.second.MeshIndex].Data.Mesh,
@@ -89,6 +75,9 @@ namespace Heart::RenderPlugins
                             0, 0, objectId
                         };
                         newBatchData.IndirectBuffer->SetElements(&command, 1, commandIndex);
+
+                        // Populate the material buffer
+                        newBatchData.MaterialDataBuffer->SetElements(&selectedMaterial->GetMaterialData(), 1, commandIndex);
                         
                         commandIndex++;
                     }
@@ -96,7 +85,8 @@ namespace Heart::RenderPlugins
                     MaterialBatch batch = {
                         pair.second.Mesh,
                         selectedMaterial,
-                        0, 0
+                        commandIndex,
+                        0
                     };
 
                     newBatchData.Batches.AddInPlace(batch);
@@ -106,19 +96,17 @@ namespace Heart::RenderPlugins
                 newBatchData.RenderedInstanceCount++;
 
                 // Object data
-                batchData.ObjectDataBuffer->SetElements(&entityData.Transform, 1, objectId);
+                ObjectData objectData = {
+                    entityData.Transform,
+                    { entityData.Id, 0.f, 0.f, 0.f }
+                };
+                newBatchData.ObjectDataBuffer->SetElements(&objectData, 1, objectId);
 
                 objectId++;
             }
-
-            // Change the count to represent the number of draw commands
-            // Only relevant when using GPU culling
-            pair.second.Count = 1;
-
-            commandIndex++;
         }
         
-        batchData.RenderedObjectCount = objectId;
+        newBatchData.RenderedObjectCount = objectId;
     }
     
     void ComputeMaterialBatches::Initialize()

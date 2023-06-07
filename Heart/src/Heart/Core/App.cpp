@@ -8,6 +8,7 @@
 #include "Heart/Physics/PhysicsWorld.h"
 #include "Heart/Events/WindowEvents.h"
 #include "Heart/Asset/AssetManager.h"
+#include "Heart/Renderer/Material.h"
 #include "Heart/Scripting/ScriptingEngine.h"
 #include "Heart/Task/TaskManager.h"
 #include "Heart/Task/JobManager.h"
@@ -40,21 +41,22 @@ namespace Heart
         InitializeGraphicsApi(windowCreateInfo);
         HE_ENGINE_LOG_DEBUG("Graphics ready");
 
-        PhysicsWorld::Initialize();
-
         // Init services
-        auto assetTask = TaskManager::Schedule([]()
-        {
-            AssetManager::Initialize();
-            HE_ENGINE_LOG_DEBUG("Asset manager ready");
-        }, Task::Priority::High, "AssetManager Init");
-        auto scriptsTask = TaskManager::Schedule([]()
-        {
-            ScriptingEngine::Initialize();
-            HE_ENGINE_LOG_DEBUG("Scripts ready");
-        }, Task::Priority::High, "Scripts Init");
+        TaskGroup initServices;
+        initServices.AddTask(TaskManager::Schedule(
+            [](){ PhysicsWorld::Initialize(); },
+            Task::Priority::High, "PhysicsWorld Init")
+        );
+        initServices.AddTask(TaskManager::Schedule(
+            [](){ AssetManager::Initialize(); },
+            Task::Priority::High, "AssetManager Init")
+        );
+        initServices.AddTask(TaskManager::Schedule(
+            [](){ ScriptingEngine::Initialize(); },
+            Task::Priority::High, "Scripts Init")
+        );
         
-        TaskGroup({ assetTask, scriptsTask }).Wait();
+        initServices.Wait();
 
         HE_ENGINE_LOG_INFO("App initialized");
     }
@@ -111,6 +113,8 @@ namespace Heart
         Window::SetMainWindow(m_Window);
 
         m_ImGuiInstance = CreateRef<ImGuiInstance>(m_Window);
+
+        Material::Initialize();
     }
 
     void App::ShutdownGraphicsApi()
