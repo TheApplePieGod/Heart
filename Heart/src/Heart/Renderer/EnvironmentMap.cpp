@@ -71,7 +71,7 @@ namespace Heart
         // Create the cubemap data buffer to hold data for each face render
         Flourish::BufferCreateInfo bufCreateInfo;
         bufCreateInfo.Type = Flourish::BufferType::Storage;
-        bufCreateInfo.Usage = Flourish::BufferUsageType::Dynamic;
+        bufCreateInfo.Usage = Flourish::BufferUsageType::DynamicOneFrame;
         bufCreateInfo.Layout = {
             { Flourish::BufferDataType::Mat4 },
             { Flourish::BufferDataType::Mat4 },
@@ -260,9 +260,12 @@ namespace Heart
         // Render equirectangular map to cubemap
         // ------------------------------------------------------------------
         {
-            m_EnvironmentMap.DescriptorSet->BindBuffer(0, m_CubemapDataBuffer.get(), 0, 1);
-            m_EnvironmentMap.DescriptorSet->BindTexture(1, mapAsset->GetTexture());
-            m_EnvironmentMap.DescriptorSet->FlushBindings();
+            if (!m_SetsWritten)
+            {
+                m_EnvironmentMap.DescriptorSet->BindBuffer(0, m_CubemapDataBuffer.get(), 0, 1);
+                m_EnvironmentMap.DescriptorSet->BindTexture(1, mapAsset->GetTexture());
+                m_EnvironmentMap.DescriptorSet->FlushBindings();
+            }
 
             auto rcEncoder = m_EnvironmentMap.CommandBuffer->EncodeRenderCommands(m_EnvironmentMap.Framebuffer.get());
             for (u32 i = 0; i < 6; i++)
@@ -300,9 +303,12 @@ namespace Heart
         // Precalculate environment irradiance
         // ------------------------------------------------------------------
         {
-            m_IrradianceMap.DescriptorSet->BindBuffer(0, m_CubemapDataBuffer.get(), 0, 1);
-            m_IrradianceMap.DescriptorSet->BindTexture(1, m_EnvironmentMap.Texture.get());
-            m_IrradianceMap.DescriptorSet->FlushBindings();
+            if (!m_SetsWritten)
+            {
+                m_IrradianceMap.DescriptorSet->BindBuffer(0, m_CubemapDataBuffer.get(), 0, 1);
+                m_IrradianceMap.DescriptorSet->BindTexture(1, m_EnvironmentMap.Texture.get());
+                m_IrradianceMap.DescriptorSet->FlushBindings();
+            }
 
             auto rcEncoder = m_IrradianceMap.CommandBuffer->EncodeRenderCommands(m_IrradianceMap.Framebuffer.get());
             for (u32 i = 0; i < 6; i++)
@@ -328,12 +334,15 @@ namespace Heart
         // ------------------------------------------------------------------
         // Prefilter the environment map based on roughness
         // ------------------------------------------------------------------
-        for (u32 i = 0; i < m_PrefilterMaps.Count(); i++)
+        if (!m_SetsWritten)
         {
             m_PrefilterMaps[0].DescriptorSet->BindBuffer(0, m_CubemapDataBuffer.get(), 0, 1);
             m_PrefilterMaps[0].DescriptorSet->BindTexture(1, m_EnvironmentMap.Texture.get());
             m_PrefilterMaps[0].DescriptorSet->FlushBindings();
+        }
 
+        for (u32 i = 0; i < m_PrefilterMaps.Count(); i++)
+        {
             auto rcEncoder = m_PrefilterMaps[i].CommandBuffer->EncodeRenderCommands(m_PrefilterMaps[i].Framebuffer.get());
             float roughness = static_cast<float>(i) / 4;
             for (u32 j = 0; j < 6; j++) // each face
@@ -372,8 +381,11 @@ namespace Heart
         // Precalculate the BRDF texture
         // ------------------------------------------------------------------
         {
-            m_BRDFTexture.DescriptorSet->BindBuffer(0, m_CubemapDataBuffer.get(), cubeDataIndex, 1);
-            m_BRDFTexture.DescriptorSet->FlushBindings();
+            if (!m_SetsWritten)
+            {
+                m_BRDFTexture.DescriptorSet->BindBuffer(0, m_CubemapDataBuffer.get(), cubeDataIndex, 1);
+                m_BRDFTexture.DescriptorSet->FlushBindings();
+            }
 
             auto rcEncoder = m_BRDFTexture.CommandBuffer->EncodeRenderCommands(m_BRDFTexture.Framebuffer.get());
 
@@ -394,6 +406,8 @@ namespace Heart
 
             cubeDataIndex++;
         }
+
+        m_SetsWritten = true;
 
         std::vector<std::vector<Flourish::CommandBuffer*>> submission = {
             { m_EnvironmentMap.CommandBuffer.get() }, { m_IrradianceMap.CommandBuffer.get() }

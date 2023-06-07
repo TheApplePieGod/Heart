@@ -419,6 +419,9 @@ namespace Heart
         m_RenderEncoder->StartNextSubpass();
         RenderBatches();
         
+        // REMOVE AFTER UNCOMMENTING
+        m_RenderEncoder->StartNextSubpass();
+        
         // Composite pass
         m_RenderEncoder->StartNextSubpass();
         Composite();

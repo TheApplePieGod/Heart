@@ -53,6 +53,7 @@ namespace Heart
 
     private:
         UUID m_MapAsset;
+        bool m_SetsWritten = false;
 
         RenderData m_EnvironmentMap;
         RenderData m_IrradianceMap;

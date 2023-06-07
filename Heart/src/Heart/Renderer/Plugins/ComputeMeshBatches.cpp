@@ -22,6 +22,10 @@ namespace Heart::RenderPlugins
 
         bool async = data.Settings.AsyncAssetLoading;
         auto& batchData = m_BatchData[m_UpdateFrameIndex];
+
+        // Clear previously rendered entities
+        for (auto& list : batchData.EntityListPool)
+            list.Clear();
         
         // TODO: check for transparent/translucent stuff
         
