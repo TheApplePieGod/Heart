@@ -23,7 +23,10 @@ namespace Heart::RenderPlugins
         bool async = data.Settings.AsyncAssetLoading;
         auto& batchData = m_BatchData[m_UpdateFrameIndex];
 
-        // Clear previously rendered entities
+        // Clear previous data
+        batchData.Batches.clear();
+        batchData.RenderedInstanceCount = 0;
+        batchData.RenderedObjectCount = 0;
         for (auto& list : batchData.EntityListPool)
             list.Clear();
         
@@ -33,8 +36,9 @@ namespace Heart::RenderPlugins
         // associated with the mesh & material. At this stage, Batch.First is unused and Batch.Count indicates
         // how many instances there are
         u32 batchIndex = 0;
-        for (const auto& meshComp : data.Scene->GetMeshComponents())
+        for (u32 meshCompIndex = 0; meshCompIndex < data.Scene->GetMeshComponents().Count(); meshCompIndex++)
         {
+            const auto& meshComp = data.Scene->GetMeshComponents()[meshCompIndex];
             const auto& entityData = data.Scene->GetEntityData()[meshComp.EntityIndex];
 
             // Compute max scale for calculating the bounding sphere
@@ -72,6 +76,8 @@ namespace Heart::RenderPlugins
 
                     // Set the mesh associated with this batch
                     batch.Mesh = &meshData;
+                    batch.MeshIndex = meshCompIndex;
+                    batch.SubmeshIndex = i;
 
                     batchIndex++;
                 }
@@ -80,7 +86,10 @@ namespace Heart::RenderPlugins
                 batchData.RenderedInstanceCount++;
 
                 // Push the associated entity to the associated vector from the pool
-                batchData.EntityListPool[batch.EntityListIndex].AddInPlace(static_cast<u32>(meshComp.EntityIndex));
+                batchData.EntityListPool[batch.EntityListIndex].AddInPlace(
+                    static_cast<u32>(meshComp.EntityIndex),
+                    meshCompIndex
+                );
             }
         }
 
@@ -104,9 +113,9 @@ namespace Heart::RenderPlugins
 
             // Contiguiously set the instance data for each entity associated with this batch
             auto& entityList = batchData.EntityListPool[pair.second.EntityListIndex];
-            for (u32 entity : entityList)
+            for (auto& entity : entityList)
             {
-                const auto& entityData = data.Scene->GetEntityData()[entity];
+                const auto& entityData = data.Scene->GetEntityData()[entity.EntityIndex];
 
                 // Object data
                 batchData.ObjectDataBuffer->SetElements(&entityData.Transform, 1, objectId);

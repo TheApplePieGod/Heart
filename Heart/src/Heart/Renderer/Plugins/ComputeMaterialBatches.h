@@ -2,6 +2,7 @@
 
 #include "glm/mat4x4.hpp"
 #include "Flourish/Api/Context.h"
+#include "Heart/Core/UUID.h"
 #include "Heart/Renderer/RenderPlugin.h"
 
 namespace Flourish
@@ -17,7 +18,12 @@ namespace Heart
 
 namespace Heart::RenderPlugins
 {
-    class ComputeMeshBatches : public RenderPlugin
+    struct ComputeMaterialBatchesCreateInfo
+    {
+        HString8 MeshBatchesPluginName;
+    };
+
+    class ComputeMaterialBatches : public RenderPlugin
     {
     public:
         struct IndexedIndirectCommand
@@ -32,60 +38,54 @@ namespace Heart::RenderPlugins
             glm::vec2 padding2;
         };
 
-        struct MeshBatch
+        struct MaterialBatch
         {
-            Mesh* Mesh;
+            Mesh* Mesh = nullptr;
+            Material* Material = nullptr;
             u32 First = 0;
             u32 Count = 0;
-            u32 EntityListIndex = 0;
-            u32 MeshIndex = 0;
-            u32 SubmeshIndex = 0;
         };
 
         struct ObjectData
         {
             glm::mat4 Model;
-        };
-
-        struct EntityListEntry
-        {
-            u32 EntityIndex;
-            u32 MeshIndex;
+            glm::vec4 Data;
         };
 
         struct BatchData
         {
-            std::unordered_map<u64, MeshBatch> Batches;
-            HVector<HVector<EntityListEntry>> EntityListPool;
+            HVector<MaterialBatch> Batches;
 
             Ref<Flourish::Buffer> IndirectBuffer;
             Ref<Flourish::Buffer> ObjectDataBuffer;
+            Ref<Flourish::Buffer> MaterialDataBuffer;
 
             u32 RenderedInstanceCount;
             u32 RenderedObjectCount;
         };
 
     public:
-        ComputeMeshBatches(HStringView8 name)
-            : RenderPlugin(name)
+        ComputeMaterialBatches(HStringView8 name, const ComputeMaterialBatchesCreateInfo& createInfo)
+            : RenderPlugin(name), m_Info(createInfo)
         { Initialize(); }
 
         void Resize(u32 width, u32 height) override {}
-        
+
         inline u32 GetMaxObjects() const { return m_MaxObjects; }
         inline const auto& GetBatchData() const { return m_BatchData[m_RenderFrameIndex]; }
 
     protected:
         void RenderInternal(const SceneRenderData& data, SceneRenderer2* sceneRenderer) override;
-        
-    private:
-        void Initialize();
-        bool FrustumCull(const SceneRenderData& data, glm::vec4 boundingSphere, const glm::mat4& transform); // True if visible
 
     private:
+        void Initialize();
+
+    private:
+        ComputeMaterialBatchesCreateInfo m_Info;
         std::array<BatchData, Flourish::Context::MaxFrameBufferCount> m_BatchData;
         u32 m_UpdateFrameIndex = 0;
         u32 m_RenderFrameIndex = 0;
         u32 m_MaxObjects = 10000; // TODO: parameterize
+        u32 m_MaxMaterials = 10000;
     };
 }

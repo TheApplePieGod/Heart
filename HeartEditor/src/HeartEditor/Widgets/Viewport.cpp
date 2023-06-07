@@ -62,7 +62,7 @@ namespace Widgets
             m_ActiveCameraPos,
             Heart::SceneRenderSettings2()
         });
-        //EditorApp::Get().GetWindow().PushDependencyBuffers({{ m_SceneRenderer2->GetPlugin<Heart::RenderPlugins::RenderMeshBatches>("RBMESHCam")->GetCommandBuffer() }});
+        EditorApp::Get().GetWindow().PushDependencyBuffers({{ m_SceneRenderer2->GetPlugin<Heart::RenderPlugins::RenderMeshBatches>("RBMESHCam")->GetCommandBuffer() }});
         render2group.Wait();
         
         // calculate viewport bounds & aspect ratio

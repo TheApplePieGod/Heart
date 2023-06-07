@@ -16,10 +16,8 @@
 
 namespace Heart::RenderPlugins
 {
-    void RenderMeshBatches::Initialize(const RenderMeshBatchesCreateInfo& createInfo)
+    void RenderMeshBatches::Initialize()
     {
-        m_Info = createInfo;
-        
         Flourish::TextureCreateInfo texCreateInfo;
         texCreateInfo.Width = m_Info.Width;
         texCreateInfo.Height = m_Info.Height;

@@ -25,8 +25,8 @@ namespace Heart::RenderPlugins
     {
     public:
         RenderMeshBatches(HStringView8 name, const RenderMeshBatchesCreateInfo& createInfo)
-            : RenderPlugin(name)
-        { Initialize(createInfo); }
+            : RenderPlugin(name), m_Info(createInfo)
+        { Initialize(); }
 
         void Resize(u32 width, u32 height) override;
 
@@ -36,7 +36,7 @@ namespace Heart::RenderPlugins
         void RenderInternal(const SceneRenderData& data, SceneRenderer2* sceneRenderer) override;
 
     private:
-        void Initialize(const RenderMeshBatchesCreateInfo& createInfo);
+        void Initialize();
 
     private:
         RenderMeshBatchesCreateInfo m_Info;
