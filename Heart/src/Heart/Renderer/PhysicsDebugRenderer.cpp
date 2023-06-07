@@ -77,6 +77,7 @@ namespace Heart
         };
         m_CameraDataBuffer->SetElements(&camData, 1, 0);
         
+        /*
         auto encoder = m_MainCommandBuffer->EncodeRenderCommands(m_MainFramebuffer.get());
         encoder->BindPipeline("main");
         encoder->BindPipelineBufferResource(0, m_CameraDataBuffer.get(), 0, 0, 1);
@@ -85,6 +86,7 @@ namespace Heart
         encoder->BindVertexBuffer(m_VertexBuffer.get());
         encoder->Draw(m_VertexCount, 0, 1, 0);
         encoder->EndEncoding();
+        */
         
         m_VertexCount = 0;
     }

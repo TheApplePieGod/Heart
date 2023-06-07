@@ -12,6 +12,7 @@
 #include "Flourish/Api/RenderPass.h"
 #include "Flourish/Api/Framebuffer.h"
 #include "Flourish/Api/Texture.h"
+#include "Flourish/Api/DescriptorSet.h"
 
 namespace Heart::RenderPlugins
 {
@@ -67,7 +68,7 @@ namespace Heart::RenderPlugins
         pipelineCreateInfo.DepthWrite = true;
         pipelineCreateInfo.CullMode = Flourish::CullMode::None;
         pipelineCreateInfo.WindingOrder = Flourish::WindingOrder::Clockwise;
-        m_RenderPass->CreatePipeline("main", pipelineCreateInfo);
+        auto pipeline = m_RenderPass->CreatePipeline("main", pipelineCreateInfo);
 
         Flourish::FramebufferCreateInfo fbCreateInfo;
         fbCreateInfo.RenderPass = m_RenderPass;
@@ -82,6 +83,10 @@ namespace Heart::RenderPlugins
         cbCreateInfo.FrameRestricted = true;
         cbCreateInfo.MaxEncoders = 1;
         m_CommandBuffer = Flourish::CommandBuffer::Create(cbCreateInfo);
+
+        Flourish::DescriptorSetCreateInfo dsCreateInfo;
+        dsCreateInfo.Writability = Flourish::DescriptorSetWritability::PerFrame;
+        m_DescriptorSet = pipeline->CreateDescriptorSet(0, dsCreateInfo);
     }
 
     void RenderMeshBatches::Resize(u32 width, u32 height)
@@ -97,13 +102,15 @@ namespace Heart::RenderPlugins
         auto batchesPlugin = sceneRenderer->GetPlugin<RenderPlugins::ComputeMeshBatches>(m_Info.MeshBatchesPluginName);
         auto frameDataBuffer = frameDataPlugin->GetBuffer();
         const auto& batchData = batchesPlugin->GetBatchData();
+
+        m_DescriptorSet->BindBuffer(0, frameDataBuffer, 0, 1);
+        m_DescriptorSet->BindBuffer(1, batchData.ObjectDataBuffer.get(), 0, batchData.ObjectDataBuffer->GetAllocatedCount());
+        m_DescriptorSet->FlushBindings();
         
         auto encoder = m_CommandBuffer->EncodeRenderCommands(m_Framebuffer.get());
-
         encoder->BindPipeline("main");
-        encoder->BindPipelineBufferResource(0, frameDataBuffer, 0, 0, 1);
-        encoder->BindPipelineBufferResource(1, batchData.ObjectDataBuffer.get(), 0, 0, batchData.ObjectDataBuffer->GetAllocatedCount());
-        encoder->FlushPipelineBindings();
+        encoder->BindDescriptorSet(m_DescriptorSet.get(), 0);
+        encoder->FlushDescriptorSet(0);
 
         for (auto& pair : batchData.Batches)
         {

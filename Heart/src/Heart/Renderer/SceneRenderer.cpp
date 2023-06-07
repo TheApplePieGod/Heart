@@ -13,6 +13,7 @@
 #include "Flourish/Api/Framebuffer.h"
 #include "Flourish/Api/Buffer.h"
 #include "Flourish/Api/Texture.h"
+#include "Flourish/Api/DescriptorSet.h"
 #include "Flourish/Api/CommandBuffer.h"
 #include "Flourish/Api/RenderCommandEncoder.h"
 #include "Flourish/Api/ComputeCommandEncoder.h"
@@ -636,6 +637,7 @@ namespace Heart
 
     void SceneRenderer::RenderEnvironmentMap()
     {
+        /*
         m_RenderEncoder->BindPipeline("skybox");
         m_RenderEncoder->BindPipelineBufferResource(0, m_FrameDataBuffer.get(), 0, 0, 1);
         m_RenderEncoder->BindPipelineTextureResource(1, m_EnvironmentMap->GetEnvironmentCubemap());
@@ -650,10 +652,12 @@ namespace Heart
             meshData.GetIndexBuffer()->GetAllocatedCount(),
             0, 0, 1, 0
         );
+        */
     }
 
     void SceneRenderer::RenderGrid()
     {
+        /*
         // Bind grid pipeline
         m_RenderEncoder->BindPipeline("grid");
 
@@ -670,10 +674,12 @@ namespace Heart
             m_GridIndices->GetAllocatedCount(),
             0, 0, 1, 0
         );
+        */
     }
     
     void SceneRenderer::BindMaterial(Material* material)
     {
+        /*
         HE_PROFILE_FUNCTION();
 
         auto& materialData = material->GetMaterialData();
@@ -707,10 +713,12 @@ namespace Heart
             auto occlusionAsset = AssetManager::RetrieveAsset<TextureAsset>(material->GetOcclusionTexture());
             m_RenderEncoder->BindPipelineTextureResource(8, occlusionAsset->GetTexture());
         }
+        */
     }
 
     void SceneRenderer::BindPBRDefaults()
     {
+        /*
         auto& batchData = m_BatchRenderData[m_RenderFrameIndex];
 
         // Bind frame data
@@ -747,6 +755,7 @@ namespace Heart
         
         // Bind SSAO texture
         m_RenderEncoder->BindPipelineTextureResource(12, m_SSAOTexture.get());
+        */
     }
 
     bool SceneRenderer::FrustumCull(glm::vec4 boundingSphere, const glm::mat4& transform)
@@ -766,6 +775,7 @@ namespace Heart
 
     void SceneRenderer::RenderBatches()
     {
+        /*
         HE_PROFILE_FUNCTION();
         
         // Bind opaque PBR pipeline
@@ -821,10 +831,12 @@ namespace Heart
                 batchData.IndirectBuffer.get(), batch->First, batch->Count
             );
         }
+        */
     }
     
     void SceneRenderer::RenderText()
     {
+        /*
         HE_PROFILE_FUNCTION();
         
         // Bind text PBR pipeline
@@ -870,10 +882,12 @@ namespace Heart
              
             batchData.RenderedObjectCount++;
         }
+        */
     }
 
     void SceneRenderer::Composite()
     {
+        /*
         // Bind alpha compositing pipeline
         m_RenderEncoder->BindPipeline("tpComposite");
 
@@ -887,6 +901,7 @@ namespace Heart
 
         // Draw the fullscreen triangle (TODO: make this compute)
         m_RenderEncoder->Draw(3, 0, 1, 0);
+        */
     }
 
     void SceneRenderer::CopyEntityIdsTexture()
@@ -901,6 +916,7 @@ namespace Heart
 
     void SceneRenderer::SSAO()
     {
+        /*
         m_SSAOData.KernelSize = m_SceneRenderSettings.SSAOKernelSize;
         m_SSAOData.Radius = m_SceneRenderSettings.SSAORadius;
         m_SSAOData.Bias = m_SceneRenderSettings.SSAOBias;
@@ -918,10 +934,12 @@ namespace Heart
         encoder->EndEncoding();
 
         m_RenderBuffers.push_back({ m_SSAOCommandBuffer.get() });
+        */
     }
 
     void SceneRenderer::Bloom()
     {
+        /*
         // Downsample
         for (u32 i = 1; i < m_BloomMipCount; i++)
         {
@@ -979,10 +997,12 @@ namespace Heart
         }
 
         m_RenderBuffers.push_back({ m_BloomCommandBuffer.get() });
+        */
     }
     
     void SceneRenderer::FinalComposite()
     {
+        /*
         auto encoder = m_FinalCommandBuffer->EncodeComputeCommands();
         encoder->BindPipeline(m_FinalCompositeComputePipeline.get());
         encoder->BindPipelineBufferResource(0, m_FrameDataBuffer.get(), 0, 0, 1);
@@ -998,6 +1018,7 @@ namespace Heart
         encoder->EndEncoding();
 
         m_RenderBuffers.push_back({ m_FinalCommandBuffer.get() });
+        */
     }
 
     void SceneRenderer::InitializeGridBuffers()

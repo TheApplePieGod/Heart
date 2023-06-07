@@ -213,7 +213,6 @@ namespace Heart
         Ref<Flourish::Framebuffer> m_MainFramebuffer;
         Ref<Flourish::CommandBuffer> m_MainCommandBuffer;
         Ref<Flourish::RenderPass> m_MainRenderPass;
-        Ref<Flouish::DescriptorSet> m_
 
         Ref<Flourish::ComputePipeline> m_BloomDownsampleComputePipeline;
         Ref<Flourish::ComputePipeline> m_BloomUpsampleComputePipeline;

@@ -13,12 +13,11 @@ namespace Flourish
     class Framebuffer;
     class RenderPass;
     class CommandBuffer;
+    class DescriptorSet;
 }
 
 namespace Heart
 {
-    class AppGraphicsInitEvent;
-    class AppGraphicsShutdownEvent;
     class EnvironmentMap
     {
     public:
@@ -46,6 +45,7 @@ namespace Heart
             Ref<Flourish::Framebuffer> Framebuffer;
             Ref<Flourish::Texture> Texture;
             Ref<Flourish::CommandBuffer> CommandBuffer; // One for each face
+            Ref<Flourish::DescriptorSet> DescriptorSet;
         };
 
     private:

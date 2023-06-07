@@ -19,6 +19,7 @@
 #include "Flourish/Api/RenderCommandEncoder.h"
 #include "Flourish/Api/GraphicsPipeline.h"
 #include "Flourish/Api/Buffer.h"
+#include "Flourish/Api/DescriptorSet.h"
 
 namespace Heart
 {
@@ -120,7 +121,11 @@ namespace Heart
             pipelineCreateInfo.CullMode = Flourish::CullMode::Frontface;
             pipelineCreateInfo.WindingOrder = Flourish::WindingOrder::Clockwise;
 
-            m_RenderPass->CreatePipeline("cubemap", pipelineCreateInfo);
+            auto pipeline = m_RenderPass->CreatePipeline("cubemap", pipelineCreateInfo);
+
+            Flourish::DescriptorSetCreateInfo dsCreateInfo;
+            dsCreateInfo.Writability = Flourish::DescriptorSetWritability::OnceStaticData;
+            m_EnvironmentMap.DescriptorSet = pipeline->CreateDescriptorSet(0, dsCreateInfo);
         }
 
         // -----------------------------------------------------------------------------------------
@@ -147,7 +152,11 @@ namespace Heart
             pipelineCreateInfo.CullMode = Flourish::CullMode::Frontface;
             pipelineCreateInfo.WindingOrder = Flourish::WindingOrder::Clockwise;
 
-            m_RenderPass->CreatePipeline("irradiance", pipelineCreateInfo);
+            auto pipeline = m_RenderPass->CreatePipeline("irradiance", pipelineCreateInfo);
+
+            Flourish::DescriptorSetCreateInfo dsCreateInfo;
+            dsCreateInfo.Writability = Flourish::DescriptorSetWritability::OnceStaticData;
+            m_IrradianceMap.DescriptorSet = pipeline->CreateDescriptorSet(0, dsCreateInfo);
         }
 
         // -----------------------------------------------------------------------------------------------------------------------
@@ -179,7 +188,11 @@ namespace Heart
             pipelineCreateInfo.CullMode = Flourish::CullMode::Frontface;
             pipelineCreateInfo.WindingOrder = Flourish::WindingOrder::Clockwise;
 
-            m_RenderPass->CreatePipeline("prefilter", pipelineCreateInfo);
+            auto pipeline = m_RenderPass->CreatePipeline("prefilter", pipelineCreateInfo);
+
+            Flourish::DescriptorSetCreateInfo dsCreateInfo;
+            dsCreateInfo.Writability = Flourish::DescriptorSetWritability::OnceStaticData;
+            m_PrefilterMaps[0].DescriptorSet = pipeline->CreateDescriptorSet(0, dsCreateInfo);
         }
 
         // -----------------------------------------------------------------------------------------------------------------------
@@ -203,7 +216,11 @@ namespace Heart
             pipelineCreateInfo.CullMode = Flourish::CullMode::None;
             pipelineCreateInfo.WindingOrder = Flourish::WindingOrder::Clockwise;
 
-            m_BRDFRenderPass->CreatePipeline("brdf", pipelineCreateInfo);
+            auto pipeline = m_BRDFRenderPass->CreatePipeline("brdf", pipelineCreateInfo);
+
+            Flourish::DescriptorSetCreateInfo dsCreateInfo;
+            dsCreateInfo.Writability = Flourish::DescriptorSetWritability::OnceStaticData;
+            m_BRDFTexture.DescriptorSet = pipeline->CreateDescriptorSet(0, dsCreateInfo);
         }
     }
 
@@ -243,21 +260,25 @@ namespace Heart
         // Render equirectangular map to cubemap
         // ------------------------------------------------------------------
         {
+            m_EnvironmentMap.DescriptorSet->BindBuffer(0, m_CubemapDataBuffer.get(), 0, 1);
+            m_EnvironmentMap.DescriptorSet->BindTexture(1, mapAsset->GetTexture());
+            m_EnvironmentMap.DescriptorSet->FlushBindings();
+
             auto rcEncoder = m_EnvironmentMap.CommandBuffer->EncodeRenderCommands(m_EnvironmentMap.Framebuffer.get());
             for (u32 i = 0; i < 6; i++)
             {
                 if (i != 0)
                     rcEncoder->StartNextSubpass();
 
-                rcEncoder->BindPipeline("cubemap");  
-
                 cubemapCam.UpdateViewMatrix(glm::vec3(0.f), rotations[i]);
 
                 CubemapData mapData = { cubemapCam.GetProjectionMatrix(), cubemapCam.GetViewMatrix(), glm::vec4(0.f) };
                 m_CubemapDataBuffer->SetElements(&mapData, 1, cubeDataIndex);
-                rcEncoder->BindPipelineBufferResource(0, m_CubemapDataBuffer.get(), 0, i, 1);
-                rcEncoder->BindPipelineTextureResource(1, mapAsset->GetTexture());
-                rcEncoder->FlushPipelineBindings();
+
+                rcEncoder->BindPipeline("cubemap");  
+                rcEncoder->BindDescriptorSet(m_EnvironmentMap.DescriptorSet.get(), 0);
+                rcEncoder->UpdateDynamicOffset(0, 0, i * sizeof(CubemapData));
+                rcEncoder->FlushDescriptorSet(0);
 
                 rcEncoder->BindVertexBuffer(meshData.GetVertexBuffer());
                 rcEncoder->BindIndexBuffer(meshData.GetIndexBuffer());
@@ -279,6 +300,10 @@ namespace Heart
         // Precalculate environment irradiance
         // ------------------------------------------------------------------
         {
+            m_IrradianceMap.DescriptorSet->BindBuffer(0, m_CubemapDataBuffer.get(), 0, 1);
+            m_IrradianceMap.DescriptorSet->BindTexture(1, m_EnvironmentMap.Texture.get());
+            m_IrradianceMap.DescriptorSet->FlushBindings();
+
             auto rcEncoder = m_IrradianceMap.CommandBuffer->EncodeRenderCommands(m_IrradianceMap.Framebuffer.get());
             for (u32 i = 0; i < 6; i++)
             {
@@ -286,9 +311,9 @@ namespace Heart
                     rcEncoder->StartNextSubpass();
 
                 rcEncoder->BindPipeline("irradiance");  
-                rcEncoder->BindPipelineBufferResource(0, m_CubemapDataBuffer.get(), 0, i, 1);
-                rcEncoder->BindPipelineTextureResource(1, m_EnvironmentMap.Texture.get());
-                rcEncoder->FlushPipelineBindings();
+                rcEncoder->BindDescriptorSet(m_IrradianceMap.DescriptorSet.get(), 0);
+                rcEncoder->UpdateDynamicOffset(0, 0, i * sizeof(CubemapData));
+                rcEncoder->FlushDescriptorSet(0);
 
                 rcEncoder->BindVertexBuffer(meshData.GetVertexBuffer());
                 rcEncoder->BindIndexBuffer(meshData.GetIndexBuffer());
@@ -305,8 +330,11 @@ namespace Heart
         // ------------------------------------------------------------------
         for (u32 i = 0; i < m_PrefilterMaps.Count(); i++)
         {
-            auto rcEncoder = m_PrefilterMaps[i].CommandBuffer->EncodeRenderCommands(m_PrefilterMaps[i].Framebuffer.get());
+            m_PrefilterMaps[0].DescriptorSet->BindBuffer(0, m_CubemapDataBuffer.get(), 0, 1);
+            m_PrefilterMaps[0].DescriptorSet->BindTexture(1, m_EnvironmentMap.Texture.get());
+            m_PrefilterMaps[0].DescriptorSet->FlushBindings();
 
+            auto rcEncoder = m_PrefilterMaps[i].CommandBuffer->EncodeRenderCommands(m_PrefilterMaps[i].Framebuffer.get());
             float roughness = static_cast<float>(i) / 4;
             for (u32 j = 0; j < 6; j++) // each face
             {
@@ -323,9 +351,9 @@ namespace Heart
                     glm::vec4(roughness, m_EnvironmentMap.Texture->GetWidth(), 0.f, 0.f)
                 };
                 m_CubemapDataBuffer->SetElements(&mapData, 1, cubeDataIndex);
-                rcEncoder->BindPipelineBufferResource(0, m_CubemapDataBuffer.get(), 0, cubeDataIndex, 1);
-                rcEncoder->BindPipelineTextureResource(1, m_EnvironmentMap.Texture.get());
-                rcEncoder->FlushPipelineBindings();
+                rcEncoder->BindDescriptorSet(m_PrefilterMaps[0].DescriptorSet.get(), 0);
+                rcEncoder->UpdateDynamicOffset(0, 0, cubeDataIndex * sizeof(CubemapData));
+                rcEncoder->FlushDescriptorSet(0);
 
                 rcEncoder->BindVertexBuffer(meshData.GetVertexBuffer());
                 rcEncoder->BindIndexBuffer(meshData.GetIndexBuffer());
@@ -344,6 +372,9 @@ namespace Heart
         // Precalculate the BRDF texture
         // ------------------------------------------------------------------
         {
+            m_BRDFTexture.DescriptorSet->BindBuffer(0, m_CubemapDataBuffer.get(), cubeDataIndex, 1);
+            m_BRDFTexture.DescriptorSet->FlushBindings();
+
             auto rcEncoder = m_BRDFTexture.CommandBuffer->EncodeRenderCommands(m_BRDFTexture.Framebuffer.get());
 
             rcEncoder->BindPipeline("brdf");  
@@ -354,8 +385,8 @@ namespace Heart
                 glm::vec4(Flourish::Context::ReversedZBuffer(), 0.f, 0.f, 0.f)
             };
             m_CubemapDataBuffer->SetElements(&mapData, 1, cubeDataIndex);
-            rcEncoder->BindPipelineBufferResource(0, m_CubemapDataBuffer.get(), 0, cubeDataIndex, 1);
-            rcEncoder->FlushPipelineBindings();
+            rcEncoder->BindDescriptorSet(m_BRDFTexture.DescriptorSet.get(), 0);
+            rcEncoder->FlushDescriptorSet(0);
 
             rcEncoder->Draw(3, 0, 1, 0);
 
