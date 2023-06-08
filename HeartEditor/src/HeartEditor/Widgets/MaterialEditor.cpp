@@ -45,6 +45,8 @@ namespace Widgets
     {
         HE_PROFILE_FUNCTION();
 
+        return;
+
         // Open the window when a new material is selected
         if (m_SelectedMaterial != m_LastMaterial)
             m_Open = true;

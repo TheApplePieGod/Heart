@@ -46,6 +46,7 @@ namespace Widgets
 
         ImGui::Begin(m_Name.Data(), &m_Open);
 
+        /*
         m_SceneRendererUpdateTask = m_SceneRenderer->Render(
             &Editor::GetRenderScene(),
             Editor::GetActiveScene().GetEnvironmentMap(),
@@ -54,6 +55,7 @@ namespace Widgets
             Editor::GetState().RenderSettings
         );
         EditorApp::Get().GetWindow().PushDependencyBuffers(m_SceneRenderer->GetRenderBuffers());
+        */
         
         auto render2group = m_SceneRenderer2->Render({
             &Editor::GetRenderScene(),
@@ -62,7 +64,12 @@ namespace Widgets
             m_ActiveCameraPos,
             Heart::SceneRenderSettings2()
         });
-        EditorApp::Get().GetWindow().PushDependencyBuffers({{ m_SceneRenderer2->GetPlugin<Heart::RenderPlugins::RenderMeshBatches>("RBMESHCam")->GetCommandBuffer() }});
+        EditorApp::Get().GetWindow().PushDependencyBuffers(
+            {{ m_SceneRenderer2->GetPlugin<Heart::RenderPlugins::RenderMeshBatches>("RBMESHCam")->GetCommandBuffer() }}
+        );
+        EditorApp::Get().GetWindow().PushDependencyBuffers(
+            {{ m_SceneRenderer2->GetPlugin<Heart::RenderPlugins::RenderMaterialBatches>("RBMATCam")->GetCommandBuffer() }}
+        );
         render2group.Wait();
         
         // calculate viewport bounds & aspect ratio
@@ -81,7 +88,9 @@ namespace Widgets
         // draw the rendered texture
         Flourish::Texture* outputTex = nullptr;
         switch (m_SelectedOutput){
-            default: outputTex = m_SceneRenderer->GetFinalTexture(); break;
+            //default: outputTex = m_SceneRenderer->GetFinalTexture(); break;
+            default: outputTex = m_SceneRenderer2->GetPlugin<Heart::RenderPlugins::RenderMaterialBatches>("RBMATCam")->GetOutputTexture(); break;
+            //default: outputTex = m_SceneRenderer2->GetPlugin<Heart::RenderPlugins::RenderMeshBatches>("RBMESHCam")->GetNormalsTexture(); break;
             case 1: outputTex = m_SceneRenderer->GetRenderOutputTexture(); break;
             case 2: outputTex = m_SceneRenderer->GetEntityIdsTexture(); break;
             case 3: outputTex = m_SceneRenderer->GetDepthTexture(); break;

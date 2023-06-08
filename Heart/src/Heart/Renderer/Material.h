@@ -52,6 +52,9 @@ namespace Heart
     class Material
     {
     public:
+        void RecomputeDescriptorSet();
+
+        inline const Flourish::DescriptorSet* GetDescriptorSet() const { return m_DescriptorSet.get(); }
         inline MaterialData& GetMaterialData() { return m_MaterialData; }
         inline UUID GetAlbedoTexture() const { return m_AlbedoTextureAsset; }
         inline UUID GetMetallicRoughnessTexture() const { return m_MetallicRoughnessTextureAsset; }
@@ -67,10 +70,9 @@ namespace Heart
         inline void SetOcclusionTexture(UUID texture) { m_OcclusionTextureAsset = texture; }
         inline void SetTranslucent(bool translucent) { m_Translucent = translucent; }
 
-        void RecomputeDescriptorSet();
-
     public:
         static void Initialize();
+        static void Shutdown();
     
     private:
         inline static Ref<Flourish::DescriptorSetAllocator> s_DescriptorSetAllocator = nullptr;

@@ -32,10 +32,30 @@ namespace Heart::RenderPlugins
         newBatchData.RenderedInstanceCount = 0;
         newBatchData.RenderedObjectCount = 0;
 
-        // Using the previously computed mesh batches, compute new batches that group by material. Since we do not do a full recomputation,
-        // each batch is subdivided first by mesh and then by material.
         u32 commandIndex = 0;
         u32 objectId = 0;
+        u32 objectIdStart = 0;
+        auto addIndirectCommand = [](const Mesh& meshData, BatchData& batchData, u32 commandIndex, u32 objectId)
+        {
+            auto& batch = batchData.Batches.Back();
+            
+            // Update the draw command index
+            batch.First = commandIndex;
+
+            // Popupate the indirect buffer
+            IndexedIndirectCommand command = {
+                meshData.GetIndexBuffer()->GetAllocatedCount(),
+                batch.Count,
+                0, 0, objectId
+            };
+            batchData.IndirectBuffer->SetElements(&command, 1, commandIndex);
+
+            // Change the count to represent the number of draw commands
+            batch.Count = 1;
+        };
+
+        // Using the previously computed mesh batches, compute new batches that group by material. Since we do not do a full recomputation,
+        // each batch is subdivided first by mesh and then by material.
         for (auto& pair : computedBatchData.Batches)
         {
             // Should always be loaded & valid since CMB checks
@@ -47,8 +67,9 @@ namespace Heart::RenderPlugins
 
             // Contiguiously set the instance data for each entity associated with this batch
             auto& entityList = computedBatchData.EntityListPool[pair.second.EntityListIndex];
-            for (auto& entity : entityList)
+            for (u32 entityListIndex = 0; entityListIndex < entityList.Count(); entityListIndex++)
             {
+                auto& entity = entityList[entityListIndex];
                 const auto& entityData = data.Scene->GetEntityData()[entity.EntityIndex];
                 const auto& materials = data.Scene->GetMeshComponents()[entity.MeshIndex].Data.Materials;
 
@@ -60,28 +81,16 @@ namespace Heart::RenderPlugins
                 bool batchesEmpty = newBatchData.Batches.IsEmpty();
                 if (batchesEmpty || newBatchData.Batches.Back().Material != selectedMaterial)
                 {
-                    // Upload data for previous batch
                     if (!batchesEmpty)
                     {
-                        auto& batch = newBatchData.Batches.Back();
-                        
-                        // Update the draw command index
-                        batch.First = commandIndex;
-
-                        // Popupate the indirect buffer
-                        IndexedIndirectCommand command = {
-                            meshData.GetIndexBuffer()->GetAllocatedCount(),
-                            batch.Count,
-                            0, 0, objectId
-                        };
-                        newBatchData.IndirectBuffer->SetElements(&command, 1, commandIndex);
-
-                        // Populate the material buffer
-                        newBatchData.MaterialDataBuffer->SetElements(&selectedMaterial->GetMaterialData(), 1, commandIndex);
-                        
+                        addIndirectCommand(meshData, newBatchData, commandIndex, objectIdStart);
+                        objectIdStart = objectId;
                         commandIndex++;
                     }
 
+                    // Populate the material buffer
+                    newBatchData.MaterialDataBuffer->SetElements(&selectedMaterial->GetMaterialData(), 1, commandIndex);
+                    
                     MaterialBatch batch = {
                         pair.second.Mesh,
                         selectedMaterial,
@@ -98,9 +107,13 @@ namespace Heart::RenderPlugins
                 // Object data
                 ObjectData objectData = {
                     entityData.Transform,
-                    { entityData.Id, 0.f, 0.f, 0.f }
+                    { entityData.Id, commandIndex, 0.f, 0.f }
                 };
                 newBatchData.ObjectDataBuffer->SetElements(&objectData, 1, objectId);
+
+                // Always add on the last elem
+                if (entityListIndex == entityList.Count() - 1)
+                    addIndirectCommand(meshData, newBatchData, commandIndex, objectIdStart);
 
                 objectId++;
             }

@@ -15,6 +15,7 @@ namespace Heart
         try
         {
             m_Material = DeserializeMaterial(m_AbsolutePath);
+            m_Material.RecomputeDescriptorSet();
         }
         catch (std::exception e)
         {

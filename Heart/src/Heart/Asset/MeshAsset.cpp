@@ -203,12 +203,17 @@ namespace Heart
                 if (material.contains("emissiveFactor"))
                     parsingMaterial.m_MaterialData.SetEmissiveFactor({ material["emissiveFactor"][0], material["emissiveFactor"][1], material["emissiveFactor"][2], 0.f });
 
+                parsingMaterial.RecomputeDescriptorSet();
+
                 m_DefaultMaterials.AddInPlace(parsingMaterial);
                 materialIndex++;
             }
         }
         else // should always have one material
+        {
             m_DefaultMaterials.AddInPlace();
+            m_DefaultMaterials.Back().RecomputeDescriptorSet();
+        }
 
         // parse meshes
         bool hasTangents = false;

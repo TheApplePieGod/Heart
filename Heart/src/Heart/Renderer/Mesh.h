@@ -30,8 +30,8 @@ namespace Heart
         Mesh() = default;
 
         const HVector<Vertex>& GetVertices() const { return m_Vertices; }
-        Flourish::Buffer* GetVertexBuffer() { return m_VertexBuffer.get(); }
-        Flourish::Buffer* GetIndexBuffer() { return m_IndexBuffer.get(); }
+        const Flourish::Buffer* GetVertexBuffer() const { return m_VertexBuffer.get(); }
+        const Flourish::Buffer* GetIndexBuffer() const { return m_IndexBuffer.get(); }
         u32 GetMaterialIndex() const { return m_MaterialIndex; }
         const AABB& GetBoundingBox() const { return m_BoundingBox; }
         glm::vec4 GetBoundingSphere() const { return m_BoundingSphere; }

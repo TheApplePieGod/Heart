@@ -101,6 +101,7 @@ namespace Heart::RenderPlugins
         auto frameDataBuffer = frameDataPlugin->GetBuffer();
         const auto& batchData = batchesPlugin->GetBatchData();
 
+        // TODO: this could probably be static
         m_DescriptorSet->BindBuffer(0, frameDataBuffer, 0, 1);
         m_DescriptorSet->BindBuffer(1, batchData.ObjectDataBuffer.get(), 0, batchData.ObjectDataBuffer->GetAllocatedCount());
         m_DescriptorSet->FlushBindings();

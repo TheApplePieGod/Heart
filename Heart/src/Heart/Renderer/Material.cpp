@@ -11,16 +11,21 @@ namespace Heart
     void Material::Initialize()
     {
         Flourish::DescriptorSetAllocatorCreateInfo dsaCreateInfo;
-        dsaCreateInfo.Compatability = Flourish::ShaderTypeFlags::Fragment;
+        dsaCreateInfo.Compatability = Flourish::DescriptorSetPipelineCompatabilityFlags::Graphics;
         dsaCreateInfo.Layout = {
-            { Flourish::ShaderResourceType::Texture, 0, 1 },
-            { Flourish::ShaderResourceType::Texture, 1, 1 },
-            { Flourish::ShaderResourceType::Texture, 2, 1 },
-            { Flourish::ShaderResourceType::Texture, 3, 1 },
-            { Flourish::ShaderResourceType::Texture, 4, 1 }
+            { 0, Flourish::ShaderResourceType::Texture, Flourish::ShaderTypeFlags::Fragment, 1 },
+            { 1, Flourish::ShaderResourceType::Texture, Flourish::ShaderTypeFlags::Fragment, 1 },
+            { 2, Flourish::ShaderResourceType::Texture, Flourish::ShaderTypeFlags::Fragment, 1 },
+            { 3, Flourish::ShaderResourceType::Texture, Flourish::ShaderTypeFlags::Fragment, 1 },
+            { 4, Flourish::ShaderResourceType::Texture, Flourish::ShaderTypeFlags::Fragment, 1 }
         };
 
         s_DescriptorSetAllocator = Flourish::DescriptorSetAllocator::Create(dsaCreateInfo);
+    }
+
+    void Material::Shutdown()
+    {
+        s_DescriptorSetAllocator.reset();
     }
 
     bool BindTextureToIndex(const Ref<Flourish::Texture>& defaultTex, const Ref<Flourish::DescriptorSet>& set, UUID texId, u32 bindIndex)
