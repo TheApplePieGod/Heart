@@ -121,6 +121,8 @@ namespace Heart
     {
         UnsubscribeFromEmitter(&GetWindow());
 
+        Material::Shutdown();
+
         Flourish::Context::Shutdown([this]()
         {
             m_ImGuiInstance.reset();
@@ -202,30 +204,31 @@ namespace Heart
             m_Window->PollEvents();
             timer.Finish();
 
-            if (m_Minimized)
-                continue;
+            if (!m_Minimized)
+            {
+                // Begin frame
+                timer = AggregateTimer("App::Run - Begin frame");
+                Flourish::Context::BeginFrame();
+                AssetManager::OnUpdate();
+                m_Window->BeginFrame();
+                m_ImGuiInstance->BeginFrame();
+                timer.Finish();
 
-            // Begin frame
-            timer = AggregateTimer("App::Run - Begin frame");
-            Flourish::Context::BeginFrame();
-            AssetManager::OnUpdate();
-            m_Window->BeginFrame();
-            m_ImGuiInstance->BeginFrame();
-            timer.Finish();
+                // Layer update
+                for (auto layer : m_Layers)
+                    layer->OnUpdate(m_LastTimestep);
 
-            // Layer update
-            for (auto layer : m_Layers)
-                layer->OnUpdate(m_LastTimestep);
+                // End frame
+                timer = AggregateTimer("App::Run - End frame");
+                m_ImGuiInstance->EndFrame();
+                m_Window->EndFrame();
+                Flourish::Context::EndFrame();
+                m_FrameCount++;
+                timer.Finish();
 
-            // End frame
-            timer = AggregateTimer("App::Run - End frame");
-            m_ImGuiInstance->EndFrame();
-            m_Window->EndFrame();
-            Flourish::Context::EndFrame();
-            m_FrameCount++;
-            timer.Finish();
+                CheckForAssetsDirectorySwitch();
+            }
 
-            CheckForAssetsDirectorySwitch();
             AggregateTimer::EndFrame();
         }
     }

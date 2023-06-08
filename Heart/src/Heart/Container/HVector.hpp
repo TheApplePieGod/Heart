@@ -114,8 +114,7 @@ namespace Heart
 
         void Insert(const T& other, u32 index)
         {
-            u32 oldCount = Count();
-            Resize(oldCount + 1, false);
+            u32 oldCount = PreAdd();
 
             // Shift elements
             index = std::min(index, oldCount);
@@ -124,7 +123,7 @@ namespace Heart
                 memmove(
                     Begin() + index + 1,
                     Begin() + index,
-                    (Count() - index) * sizeof(T)
+                    (oldCount - index) * sizeof(T)
                 );
             }
 
