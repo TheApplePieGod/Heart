@@ -27,10 +27,10 @@ namespace Heart
         void Recalculate();
         inline void UpdateMapAsset(UUID asset) { m_MapAsset = asset; }
         inline UUID GetMapAsset() const { return m_MapAsset; }
-        inline Flourish::Texture* GetEnvironmentCubemap() { return m_EnvironmentMap.Texture.get(); }
-        inline Flourish::Texture* GetIrradianceCubemap() { return m_IrradianceMap.Texture.get(); }
-        inline Flourish::Texture* GetPrefilterCubemap() { return m_PrefilterMaps[0].Texture.get(); }
-        inline Flourish::Texture* GetBRDFTexture() { return m_BRDFTexture.Texture.get(); }
+        inline const Flourish::Texture* GetEnvironmentCubemap() const { return m_EnvironmentMap.Texture.get(); }
+        inline const Flourish::Texture* GetIrradianceCubemap() const { return m_IrradianceMap.Texture.get(); }
+        inline const Flourish::Texture* GetPrefilterCubemap() const { return m_PrefilterMaps[0].Texture.get(); }
+        inline const Flourish::Texture* GetBRDFTexture() const { return m_BRDFTexture.Texture.get(); }
 
     private:
         struct CubemapData

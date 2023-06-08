@@ -5,6 +5,7 @@
 #include "Heart/Renderer/Plugins/ComputeMeshBatches.h"
 #include "Heart/Renderer/SceneRenderer2.h"
 #include "Heart/Renderer/Mesh.h"
+#include "Heart/Core/Timing.h"
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/ShaderAsset.h"
 #include "Flourish/Api/RenderCommandEncoder.h"
@@ -95,6 +96,7 @@ namespace Heart::RenderPlugins
     void RenderMeshBatches::RenderInternal(const SceneRenderData& data, SceneRenderer2* sceneRenderer)
     {
         HE_PROFILE_FUNCTION();
+        auto timer = AggregateTimer("RenderPlugins::RenderMeshBatches");
         
         auto frameDataPlugin = sceneRenderer->GetPlugin<RenderPlugins::FrameData>(m_Info.FrameDataPluginName);
         auto batchesPlugin = sceneRenderer->GetPlugin<RenderPlugins::ComputeMeshBatches>(m_Info.MeshBatchesPluginName);

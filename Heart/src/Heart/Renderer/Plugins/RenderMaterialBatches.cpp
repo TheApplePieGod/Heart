@@ -7,6 +7,8 @@
 #include "Heart/Renderer/SceneRenderer2.h"
 #include "Heart/Renderer/Mesh.h"
 #include "Heart/Renderer/Material.h"
+#include "Heart/Renderer/EnvironmentMap.h"
+#include "Heart/Core/Timing.h"
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/ShaderAsset.h"
 #include "Flourish/Api/RenderCommandEncoder.h"
@@ -102,6 +104,7 @@ namespace Heart::RenderPlugins
     void RenderMaterialBatches::RenderInternal(const SceneRenderData& data, SceneRenderer2* sceneRenderer)
     {
         HE_PROFILE_FUNCTION();
+        auto timer = AggregateTimer("RenderPlugins::RenderMaterialBatches");
 
         auto frameDataPlugin = sceneRenderer->GetPlugin<RenderPlugins::FrameData>(m_Info.FrameDataPluginName);
         auto lightingDataPlugin = sceneRenderer->GetPlugin<RenderPlugins::LightingData>(m_Info.LightingDataPluginName);
@@ -115,9 +118,18 @@ namespace Heart::RenderPlugins
         m_DescriptorSet->BindBuffer(1, batchData.ObjectDataBuffer.get(), 0, batchData.ObjectDataBuffer->GetAllocatedCount());
         m_DescriptorSet->BindBuffer(2, batchData.MaterialDataBuffer.get(), 0, batchData.MaterialDataBuffer->GetAllocatedCount());
         m_DescriptorSet->BindBuffer(3, lightingDataBuffer, 0, lightingDataBuffer->GetAllocatedCount());
-        m_DescriptorSet->BindTexture(5, m_DefaultEnvironmentMap.get());
-        m_DescriptorSet->BindTexture(6, m_DefaultEnvironmentMap.get());
-        m_DescriptorSet->BindTextureLayer(7, m_DefaultEnvironmentMap.get(), 0, 0);
+        if (data.EnvMap)
+        {
+            m_DescriptorSet->BindTexture(5, data.EnvMap->GetIrradianceCubemap());
+            m_DescriptorSet->BindTexture(6, data.EnvMap->GetPrefilterCubemap());
+            m_DescriptorSet->BindTexture(7, data.EnvMap->GetBRDFTexture());
+        }
+        else
+        {
+            m_DescriptorSet->BindTexture(5, m_DefaultEnvironmentMap.get());
+            m_DescriptorSet->BindTexture(6, m_DefaultEnvironmentMap.get());
+            m_DescriptorSet->BindTextureLayer(7, m_DefaultEnvironmentMap.get(), 0, 0);
+        }
         m_DescriptorSet->BindTextureLayer(8, m_DefaultEnvironmentMap.get(), 0, 0);
         m_DescriptorSet->FlushBindings();
 

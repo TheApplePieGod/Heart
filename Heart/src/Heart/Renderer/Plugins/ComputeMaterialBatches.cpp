@@ -15,7 +15,7 @@ namespace Heart::RenderPlugins
     void ComputeMaterialBatches::RenderInternal(const SceneRenderData& data, SceneRenderer2* sceneRenderer)
     {
         HE_PROFILE_FUNCTION();
-        auto timer = AggregateTimer("RenderPlugins::ComputeMeshBatches");
+        auto timer = AggregateTimer("RenderPlugins::ComputeMaterialBatches");
         
         // TODO: revisit this. Disabling previous-frame batch rendering for now because there is a lot of nuance in terms of
         // ghosting, culling, etc. that really isn't worth it right now
@@ -35,7 +35,7 @@ namespace Heart::RenderPlugins
         u32 commandIndex = 0;
         u32 objectId = 0;
         u32 objectIdStart = 0;
-        auto addIndirectCommand = [](const Mesh& meshData, BatchData& batchData, u32 commandIndex, u32 objectId)
+        auto addIndirectCommand = [](BatchData& batchData, u32& commandIndex, u32 objectId)
         {
             auto& batch = batchData.Batches.Back();
             
@@ -44,7 +44,7 @@ namespace Heart::RenderPlugins
 
             // Popupate the indirect buffer
             IndexedIndirectCommand command = {
-                meshData.GetIndexBuffer()->GetAllocatedCount(),
+                batch.Mesh->GetIndexBuffer()->GetAllocatedCount(),
                 batch.Count,
                 0, 0, objectId
             };
@@ -52,10 +52,13 @@ namespace Heart::RenderPlugins
 
             // Change the count to represent the number of draw commands
             batch.Count = 1;
+
+            commandIndex++;
         };
 
         // Using the previously computed mesh batches, compute new batches that group by material. Since we do not do a full recomputation,
         // each batch is subdivided first by mesh and then by material.
+        u32 pairIndex = 0;
         for (auto& pair : computedBatchData.Batches)
         {
             // Should always be loaded & valid since CMB checks
@@ -74,18 +77,19 @@ namespace Heart::RenderPlugins
                 const auto& materials = data.Scene->GetMeshComponents()[entity.MeshIndex].Data.Materials;
 
                 auto selectedMaterial = &meshAsset->GetDefaultMaterials()[meshData.GetMaterialIndex()]; // default material
-                auto materialAsset = AssetManager::RetrieveAsset<MaterialAsset>(materials[meshData.GetMaterialIndex()]);
-                if (materialAsset && materialAsset->IsValid())
-                    selectedMaterial = &materialAsset->GetMaterial();
-
-                bool batchesEmpty = newBatchData.Batches.IsEmpty();
-                if (batchesEmpty || newBatchData.Batches.Back().Material != selectedMaterial)
+                if (meshData.GetMaterialIndex() < materials.Count()) // This check may not be necessary if data is saved correctly
                 {
-                    if (!batchesEmpty)
+                    auto materialAsset = AssetManager::RetrieveAsset<MaterialAsset>(materials[meshData.GetMaterialIndex()]);
+                    if (materialAsset && materialAsset->IsValid())
+                        selectedMaterial = &materialAsset->GetMaterial();
+                }
+
+                if (entityListIndex == 0 || newBatchData.Batches.Back().Material != selectedMaterial)
+                {
+                    if (!newBatchData.Batches.IsEmpty())
                     {
-                        addIndirectCommand(meshData, newBatchData, commandIndex, objectIdStart);
+                        addIndirectCommand(newBatchData, commandIndex, objectIdStart);
                         objectIdStart = objectId;
-                        commandIndex++;
                     }
 
                     // Populate the material buffer
@@ -111,12 +115,14 @@ namespace Heart::RenderPlugins
                 };
                 newBatchData.ObjectDataBuffer->SetElements(&objectData, 1, objectId);
 
-                // Always add on the last elem
-                if (entityListIndex == entityList.Count() - 1)
-                    addIndirectCommand(meshData, newBatchData, commandIndex, objectIdStart);
-
                 objectId++;
             }
+
+            // Always add on the last elem of the last mesh
+            if (pairIndex == computedBatchData.Batches.size() - 1)
+                addIndirectCommand(newBatchData, commandIndex, objectIdStart);
+
+            pairIndex++;
         }
         
         newBatchData.RenderedObjectCount = objectId;

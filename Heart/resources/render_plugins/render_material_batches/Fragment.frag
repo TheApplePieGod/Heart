@@ -161,6 +161,7 @@ vec4 GetFinalColor()
     vec3 F0 = vec3(0.04);
     F0 = mix(F0, baseColor.rgb, metalness);
 
+    // TODO: remove?
     vec3 nDfdx = dFdx(N.xyz);
     vec3 nDfdy = dFdy(N.xyz);
     float slopeSquare = max(dot(nDfdx, nDfdx), dot(nDfdy, nDfdy));
