@@ -9,6 +9,7 @@ namespace Flourish
     class RenderPass;
     class Framebuffer;
     class DescriptorSet;
+    class Buffer;
 }
 
 namespace Heart::RenderPlugins
@@ -19,6 +20,7 @@ namespace Heart::RenderPlugins
         HString8 FrameDataPluginName;
         HString8 LightingDataPluginName;
         u32 Width, Height;
+        bool CanOutputEntityIds;
     };
 
     class RenderMaterialBatches : public RenderPlugin
@@ -32,6 +34,9 @@ namespace Heart::RenderPlugins
 
         inline Flourish::CommandBuffer* GetCommandBuffer() const { return m_CommandBuffer.get(); }
         inline Flourish::Texture* GetOutputTexture() const { return m_RenderOutputTexture.get(); }
+        inline Flourish::Texture* GetEntityIdsTexture() const { return m_EntityIdsTexture.get(); }
+        inline Flourish::Texture* GetDepthTexture() const { return m_DepthTexture.get(); }
+        inline Flourish::Buffer* GetEntityIdsBuffer() const { return m_EntityIdsBuffer.get(); }
 
     protected:
         void RenderInternal(const SceneRenderData& data, SceneRenderer2* sceneRenderer) override;
@@ -47,7 +52,9 @@ namespace Heart::RenderPlugins
         Ref<Flourish::RenderPass> m_RenderPass;
         Ref<Flourish::Framebuffer> m_Framebuffer;
         Ref<Flourish::Texture> m_RenderOutputTexture;
+        Ref<Flourish::Texture> m_EntityIdsTexture;
         Ref<Flourish::Texture> m_DepthTexture;
         Ref<Flourish::Texture> m_DefaultEnvironmentMap;
+        Ref<Flourish::Buffer> m_EntityIdsBuffer;
     };
 }

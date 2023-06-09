@@ -44,6 +44,7 @@ namespace Widgets
         inline glm::vec2 GetRelativeMousePos() const { return m_ViewportMousePos; }
         inline glm::vec2 GetSize() const { return m_ViewportSize; }
         inline Heart::SceneRenderer& GetSceneRenderer() { return *m_SceneRenderer; }
+        inline Heart::SceneRenderer2& GetSceneRenderer2() { return *m_SceneRenderer2; }
         inline Heart::Camera& GetActiveCamera() { return *m_ActiveCamera; }
         inline glm::vec3 GetActiveCameraPosition() const { return m_ActiveCameraPos; }
         inline glm::vec3 GetActiveCameraRotation() const { return m_ActiveCameraRot; }

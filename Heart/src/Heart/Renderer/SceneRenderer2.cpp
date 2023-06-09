@@ -37,6 +37,8 @@ namespace Heart
         RenderPlugins::RenderMaterialBatchesCreateInfo RBMATCamCreateInfo;
         RBMATCamCreateInfo.Width = m_RenderWidth;
         RBMATCamCreateInfo.Height = m_RenderHeight;
+        // TODO: parameterize. will need to add support for specialization constants to do this
+        RBMATCamCreateInfo.CanOutputEntityIds = true; 
         RBMATCamCreateInfo.FrameDataPluginName = FrameData->GetName();
         RBMATCamCreateInfo.LightingDataPluginName = LightingData->GetName();
         RBMATCamCreateInfo.MaterialBatchesPluginName = CBMATCam->GetName();

@@ -57,12 +57,14 @@ namespace Widgets
         EditorApp::Get().GetWindow().PushDependencyBuffers(m_SceneRenderer->GetRenderBuffers());
         */
         
+        auto renderSettings2 = Heart::SceneRenderSettings2();
+        renderSettings2.CopyEntityIdsTextureToCPU = true;
         auto render2group = m_SceneRenderer2->Render({
             &Editor::GetRenderScene(),
             Editor::GetActiveScene().GetEnvironmentMap(),
             m_ActiveCamera.get(),
             m_ActiveCameraPos,
-            Heart::SceneRenderSettings2()
+            renderSettings2
         });
         EditorApp::Get().GetWindow().PushDependencyBuffers(
             {{ m_SceneRenderer2->GetPlugin<Heart::RenderPlugins::RenderMeshBatches>("RBMESHCam")->GetCommandBuffer() }}

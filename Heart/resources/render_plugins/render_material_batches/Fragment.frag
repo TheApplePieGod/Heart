@@ -36,7 +36,7 @@ layout(binding = 7) uniform sampler2D brdfLUT;
 layout(binding = 8) uniform sampler2D ssaoTex;
 
 layout(location = 0) out vec4 outHDRColor;
-//layout(location = 1) out float outEntityId;
+layout(location = 1) out float outEntityId;
 
 #define PI 3.1415926
 #define DIRECTIONAL 1
@@ -235,5 +235,5 @@ vec4 GetFinalColor()
 
 void main() {
     outHDRColor = GetFinalColor();
-    //outEntityId = float(entityId);
+    outEntityId = float(entityId);
 }

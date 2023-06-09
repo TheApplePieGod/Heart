@@ -12,6 +12,7 @@
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/ShaderAsset.h"
 #include "Flourish/Api/RenderCommandEncoder.h"
+#include "Flourish/Api/TransferCommandEncoder.h"
 #include "Flourish/Api/CommandBuffer.h"
 #include "Flourish/Api/RenderPass.h"
 #include "Flourish/Api/Framebuffer.h"
@@ -29,8 +30,8 @@ namespace Heart::RenderPlugins
         // TODO: this should be static somewhere (or an asset)
         {
             Flourish::TextureCreateInfo envTexCreateInfo;
-            envTexCreateInfo.Width = 512;
-            envTexCreateInfo.Height = 512;
+            envTexCreateInfo.Width = 256;
+            envTexCreateInfo.Height = 256;
             envTexCreateInfo.Format = Flourish::ColorFormat::RGBA8_UNORM;
             envTexCreateInfo.Usage = Flourish::TextureUsageType::Readonly;
             envTexCreateInfo.Writability = Flourish::TextureWritability::Once;
@@ -50,18 +51,38 @@ namespace Heart::RenderPlugins
             texCreateInfo.SamplerState.UVWWrap = { Flourish::SamplerWrapMode::ClampToBorder, Flourish::SamplerWrapMode::ClampToBorder, Flourish::SamplerWrapMode::ClampToBorder };
             texCreateInfo.Format = Flourish::ColorFormat::RGBA16_FLOAT;
             m_RenderOutputTexture = Flourish::Texture::Create(texCreateInfo);
+            if (m_Info.CanOutputEntityIds)
+            {
+                texCreateInfo.Format = Flourish::ColorFormat::R32_FLOAT;
+                m_EntityIdsTexture = Flourish::Texture::Create(texCreateInfo);
+            }
             texCreateInfo.Format = Flourish::ColorFormat::Depth;
             m_DepthTexture = Flourish::Texture::Create(texCreateInfo);
         }
 
         Flourish::RenderPassCreateInfo rpCreateInfo;
-        rpCreateInfo.SampleCount = Flourish::MsaaSampleCount::Four;
+        rpCreateInfo.SampleCount = Flourish::MsaaSampleCount::None;
         rpCreateInfo.DepthAttachments.push_back({ Flourish::ColorFormat::Depth });
         rpCreateInfo.ColorAttachments.push_back({ m_RenderOutputTexture->GetColorFormat() });
-        rpCreateInfo.Subpasses.push_back({
-            {},
-            { { Flourish::SubpassAttachmentType::Depth, 0 }, { Flourish::SubpassAttachmentType::Color, 0 } }
-        });
+        if (m_Info.CanOutputEntityIds)
+        {
+            rpCreateInfo.ColorAttachments.push_back({ m_EntityIdsTexture->GetColorFormat() });
+            rpCreateInfo.Subpasses.push_back({
+                {},
+                {
+                    { Flourish::SubpassAttachmentType::Depth, 0 },
+                    { Flourish::SubpassAttachmentType::Color, 0 },
+                    { Flourish::SubpassAttachmentType::Color, 1 }
+                }
+            });
+        }
+        else
+        {
+            rpCreateInfo.Subpasses.push_back({
+                {},
+                { { Flourish::SubpassAttachmentType::Depth, 0 }, { Flourish::SubpassAttachmentType::Color, 0 } }
+            });
+        }
         m_RenderPass = Flourish::RenderPass::Create(rpCreateInfo);
 
         Flourish::GraphicsPipelineCreateInfo pipelineCreateInfo;
@@ -71,6 +92,8 @@ namespace Heart::RenderPlugins
         pipelineCreateInfo.VertexLayout = Mesh::GetVertexLayout();
         pipelineCreateInfo.VertexInput = true;
         pipelineCreateInfo.BlendStates = { { false } };
+        if (m_Info.CanOutputEntityIds)
+            pipelineCreateInfo.BlendStates.push_back({ false });
         pipelineCreateInfo.DepthTest = true;
         pipelineCreateInfo.DepthWrite = true;
         pipelineCreateInfo.CullMode = Flourish::CullMode::Backface;
@@ -83,17 +106,29 @@ namespace Heart::RenderPlugins
         fbCreateInfo.Width = m_Info.Width;
         fbCreateInfo.Height = m_Info.Height;
         fbCreateInfo.ColorAttachments.push_back({ { 0.f, 0.f, 0.f, 0.f }, m_RenderOutputTexture });
+        if (m_Info.CanOutputEntityIds)
+            fbCreateInfo.ColorAttachments.push_back({ { -1.f, 0.f, 0.f, 0.f }, m_EntityIdsTexture });
         fbCreateInfo.DepthAttachments.push_back({ m_DepthTexture });
         m_Framebuffer = Flourish::Framebuffer::Create(fbCreateInfo);
 
         Flourish::CommandBufferCreateInfo cbCreateInfo;
         cbCreateInfo.FrameRestricted = true;
-        cbCreateInfo.MaxEncoders = 1;
+        cbCreateInfo.MaxEncoders = 2;
         m_CommandBuffer = Flourish::CommandBuffer::Create(cbCreateInfo);
 
         Flourish::DescriptorSetCreateInfo dsCreateInfo;
         dsCreateInfo.Writability = Flourish::DescriptorSetWritability::PerFrame;
         m_DescriptorSet = pipeline->CreateDescriptorSet(0, dsCreateInfo);
+
+        if (m_Info.CanOutputEntityIds)
+        {
+            Flourish::BufferCreateInfo bufCreateInfo;
+            bufCreateInfo.Usage = Flourish::BufferUsageType::Dynamic;
+            bufCreateInfo.Type = Flourish::BufferType::Pixel;
+            bufCreateInfo.Stride = sizeof(float);
+            bufCreateInfo.ElementCount = m_Info.Width * m_Info.Height;
+            m_EntityIdsBuffer = Flourish::Buffer::Create(bufCreateInfo);
+        }
     }
 
     void RenderMaterialBatches::Resize(u32 width, u32 height)
@@ -156,5 +191,16 @@ namespace Heart::RenderPlugins
         }
         
         encoder->EndEncoding();
+
+        if (m_Info.CanOutputEntityIds && data.Settings.CopyEntityIdsTextureToCPU)
+        {
+            auto encoder = m_CommandBuffer->EncodeTransferCommands();
+            encoder->CopyTextureToBuffer(m_EntityIdsTexture.get(), m_EntityIdsBuffer.get());
+            //encoder->FlushBuffer(m_EntityIdsBuffer.get());
+            encoder->EndEncoding();
+
+            // Lazy flushing because we don't care about immediate / accurate results
+            m_EntityIdsBuffer->Flush();
+        }
     }
 }
