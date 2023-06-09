@@ -7,7 +7,7 @@
 
 namespace Heart
 {
-    void RenderPlugin::Render(const SceneRenderData& data, SceneRenderer2* sceneRenderer)
+    void RenderPlugin::Render(const SceneRenderData& data)
     {
         if (App::Get().GetFrameCount() == m_LastRenderFrame)
             return;
@@ -16,14 +16,22 @@ namespace Heart
         m_DependencyTasks.Clear();
         for (const auto& dep : m_Dependencies)
         {
-            dep->Render(data, sceneRenderer);
+            dep->Render(data);
             m_DependencyTasks.Add(dep->GetTask());
         }
         
         m_Task = TaskManager::Schedule(
-            [this, data, sceneRenderer](){ RenderInternal(data, sceneRenderer); },
+            [this, data](){ RenderInternal(data); },
             Task::Priority::High,
             m_DependencyTasks
         );
+    }
+
+    void RenderPlugin::Resize()
+    {
+        for (const auto& dep : m_Dependencies)
+            dep->Resize();
+
+        ResizeInternal();
     }
 }

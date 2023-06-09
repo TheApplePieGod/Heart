@@ -18,23 +18,21 @@ namespace Heart::RenderPlugins
         bool WriteNormals;
         HString8 MeshBatchesPluginName;
         HString8 FrameDataPluginName;
-        u32 Width, Height;
     };
 
     class RenderMeshBatches : public RenderPlugin
     {
     public:
-        RenderMeshBatches(HStringView8 name, const RenderMeshBatchesCreateInfo& createInfo)
-            : RenderPlugin(name), m_Info(createInfo)
+        RenderMeshBatches(SceneRenderer2* renderer, HStringView8 name, const RenderMeshBatchesCreateInfo& createInfo)
+            : RenderPlugin(renderer, name), m_Info(createInfo)
         { Initialize(); }
-
-        void Resize(u32 width, u32 height) override;
 
         inline Flourish::CommandBuffer* GetCommandBuffer() const { return m_CommandBuffer.get(); }
         inline Flourish::Texture* GetNormalsTexture() const { return m_NormalsTexture.get(); }
 
     protected:
-        void RenderInternal(const SceneRenderData& data, SceneRenderer2* sceneRenderer) override;
+        void RenderInternal(const SceneRenderData& data) override;
+        void ResizeInternal() override;
 
     private:
         void Initialize();

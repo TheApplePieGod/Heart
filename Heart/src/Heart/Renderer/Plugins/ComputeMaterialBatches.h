@@ -65,17 +65,16 @@ namespace Heart::RenderPlugins
         };
 
     public:
-        ComputeMaterialBatches(HStringView8 name, const ComputeMaterialBatchesCreateInfo& createInfo)
-            : RenderPlugin(name), m_Info(createInfo)
+        ComputeMaterialBatches(SceneRenderer2* renderer, HStringView8 name, const ComputeMaterialBatchesCreateInfo& createInfo)
+            : RenderPlugin(renderer, name), m_Info(createInfo)
         { Initialize(); }
-
-        void Resize(u32 width, u32 height) override {}
 
         inline u32 GetMaxObjects() const { return m_MaxObjects; }
         inline const auto& GetBatchData() const { return m_BatchData[m_RenderFrameIndex]; }
 
     protected:
-        void RenderInternal(const SceneRenderData& data, SceneRenderer2* sceneRenderer) override;
+        void RenderInternal(const SceneRenderData& data) override;
+        void ResizeInternal() override {};
 
     private:
         void Initialize();

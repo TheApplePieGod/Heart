@@ -4,6 +4,7 @@
 #include "Heart/Renderer/Plugins/FrameData.h"
 #include "Heart/Renderer/Plugins/LightingData.h"
 #include "Heart/Renderer/Plugins/ComputeMaterialBatches.h"
+#include "Heart/Renderer/Plugins/RenderMeshBatches.h"
 #include "Heart/Renderer/SceneRenderer2.h"
 #include "Heart/Renderer/Mesh.h"
 #include "Heart/Renderer/Material.h"
@@ -18,9 +19,6 @@
 #include "Flourish/Api/Framebuffer.h"
 #include "Flourish/Api/Texture.h"
 #include "Flourish/Api/DescriptorSet.h"
-
-// REMOVE
-#include "Flourish/Backends/Vulkan/DescriptorSet.h"
 
 namespace Heart::RenderPlugins
 {
@@ -40,30 +38,24 @@ namespace Heart::RenderPlugins
             m_DefaultEnvironmentMap = Flourish::Texture::Create(envTexCreateInfo);
         }
 
+        if (m_Info.CanOutputEntityIds)
         {
             Flourish::TextureCreateInfo texCreateInfo;
-            texCreateInfo.Width = m_Info.Width;
-            texCreateInfo.Height = m_Info.Height;
+            texCreateInfo.Width = m_Renderer->GetRenderWidth();
+            texCreateInfo.Height = m_Renderer->GetRenderHeight();
             texCreateInfo.ArrayCount = 1;
             texCreateInfo.MipCount = 1;
             texCreateInfo.Usage = Flourish::TextureUsageType::RenderTarget;
             texCreateInfo.Writability = Flourish::TextureWritability::PerFrame;
             texCreateInfo.SamplerState.UVWWrap = { Flourish::SamplerWrapMode::ClampToBorder, Flourish::SamplerWrapMode::ClampToBorder, Flourish::SamplerWrapMode::ClampToBorder };
-            texCreateInfo.Format = Flourish::ColorFormat::RGBA16_FLOAT;
-            m_RenderOutputTexture = Flourish::Texture::Create(texCreateInfo);
-            if (m_Info.CanOutputEntityIds)
-            {
-                texCreateInfo.Format = Flourish::ColorFormat::R32_FLOAT;
-                m_EntityIdsTexture = Flourish::Texture::Create(texCreateInfo);
-            }
-            texCreateInfo.Format = Flourish::ColorFormat::Depth;
-            m_DepthTexture = Flourish::Texture::Create(texCreateInfo);
+            texCreateInfo.Format = Flourish::ColorFormat::R32_FLOAT;
+            m_EntityIdsTexture = Flourish::Texture::Create(texCreateInfo);
         }
 
         Flourish::RenderPassCreateInfo rpCreateInfo;
         rpCreateInfo.SampleCount = Flourish::MsaaSampleCount::None;
-        rpCreateInfo.DepthAttachments.push_back({ Flourish::ColorFormat::Depth });
-        rpCreateInfo.ColorAttachments.push_back({ m_RenderOutputTexture->GetColorFormat() });
+        rpCreateInfo.DepthAttachments.push_back({ m_Renderer->GetDepthTexture()->GetColorFormat() });
+        rpCreateInfo.ColorAttachments.push_back({ m_Renderer->GetRenderTexture()->GetColorFormat() });
         if (m_Info.CanOutputEntityIds)
         {
             rpCreateInfo.ColorAttachments.push_back({ m_EntityIdsTexture->GetColorFormat() });
@@ -95,7 +87,7 @@ namespace Heart::RenderPlugins
         if (m_Info.CanOutputEntityIds)
             pipelineCreateInfo.BlendStates.push_back({ false });
         pipelineCreateInfo.DepthTest = true;
-        pipelineCreateInfo.DepthWrite = true;
+        pipelineCreateInfo.DepthWrite = true; // Need to add more depth test settings
         pipelineCreateInfo.CullMode = Flourish::CullMode::Backface;
         pipelineCreateInfo.WindingOrder = Flourish::WindingOrder::Clockwise;
         //pipelineCreateInfo.CompatibleSubpasses = { 2 };
@@ -103,12 +95,12 @@ namespace Heart::RenderPlugins
 
         Flourish::FramebufferCreateInfo fbCreateInfo;
         fbCreateInfo.RenderPass = m_RenderPass;
-        fbCreateInfo.Width = m_Info.Width;
-        fbCreateInfo.Height = m_Info.Height;
-        fbCreateInfo.ColorAttachments.push_back({ { 0.f, 0.f, 0.f, 0.f }, m_RenderOutputTexture });
+        fbCreateInfo.Width = m_Renderer->GetRenderWidth();
+        fbCreateInfo.Height = m_Renderer->GetRenderHeight();
+        fbCreateInfo.ColorAttachments.push_back({ { 0.f, 0.f, 0.f, 0.f }, m_Renderer->GetRenderTexture() });
         if (m_Info.CanOutputEntityIds)
             fbCreateInfo.ColorAttachments.push_back({ { -1.f, 0.f, 0.f, 0.f }, m_EntityIdsTexture });
-        fbCreateInfo.DepthAttachments.push_back({ m_DepthTexture });
+        fbCreateInfo.DepthAttachments.push_back({ m_Renderer->GetDepthTexture() });
         m_Framebuffer = Flourish::Framebuffer::Create(fbCreateInfo);
 
         Flourish::CommandBufferCreateInfo cbCreateInfo;
@@ -126,24 +118,25 @@ namespace Heart::RenderPlugins
             bufCreateInfo.Usage = Flourish::BufferUsageType::Dynamic;
             bufCreateInfo.Type = Flourish::BufferType::Pixel;
             bufCreateInfo.Stride = sizeof(float);
-            bufCreateInfo.ElementCount = m_Info.Width * m_Info.Height;
+            bufCreateInfo.ElementCount = m_Renderer->GetRenderWidth() * m_Renderer->GetRenderHeight();
             m_EntityIdsBuffer = Flourish::Buffer::Create(bufCreateInfo);
         }
     }
 
-    void RenderMaterialBatches::Resize(u32 width, u32 height)
+    void RenderMaterialBatches::ResizeInternal()
     {
 
     }
 
-    void RenderMaterialBatches::RenderInternal(const SceneRenderData& data, SceneRenderer2* sceneRenderer)
+    void RenderMaterialBatches::RenderInternal(const SceneRenderData& data)
     {
         HE_PROFILE_FUNCTION();
         auto timer = AggregateTimer("RenderPlugins::RenderMaterialBatches");
 
-        auto frameDataPlugin = sceneRenderer->GetPlugin<RenderPlugins::FrameData>(m_Info.FrameDataPluginName);
-        auto lightingDataPlugin = sceneRenderer->GetPlugin<RenderPlugins::LightingData>(m_Info.LightingDataPluginName);
-        auto batchesPlugin = sceneRenderer->GetPlugin<RenderPlugins::ComputeMaterialBatches>(m_Info.MaterialBatchesPluginName);
+        auto frameDataPlugin = m_Renderer->GetPlugin<RenderPlugins::FrameData>(m_Info.FrameDataPluginName);
+        auto lightingDataPlugin = m_Renderer->GetPlugin<RenderPlugins::LightingData>(m_Info.LightingDataPluginName);
+        auto batchesPlugin = m_Renderer->GetPlugin<RenderPlugins::ComputeMaterialBatches>(m_Info.MaterialBatchesPluginName);
+        auto renderMeshPlugin = m_Renderer->GetPlugin<RenderPlugins::RenderMeshBatches>(m_Info.RenderMeshBatchesPluginName);
         auto frameDataBuffer = frameDataPlugin->GetBuffer();
         auto lightingDataBuffer = lightingDataPlugin->GetBuffer();
         const auto& batchData = batchesPlugin->GetBatchData();

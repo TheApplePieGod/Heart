@@ -9,6 +9,11 @@
 #include "Heart/Core/Camera.h"
 #include "Heart/Renderer/EnvironmentMap.h"
 
+namespace Flourish
+{
+
+}
+
 namespace Heart
 {
     struct SceneRenderSettings2
@@ -52,7 +57,7 @@ namespace Heart
         template<typename Plugin, typename ... Args>
         Ref<RenderPlugin> RegisterPlugin(Args&& ... args)
         {
-            auto plugin = CreateRef<Plugin>(std::forward<Args>(args)...);
+            auto plugin = CreateRef<Plugin>(this, std::forward<Args>(args)...);
             m_Plugins[plugin->GetName()] = plugin;
             return plugin;
         }
@@ -70,14 +75,23 @@ namespace Heart
 
         inline u32 GetRenderWidth() const { return m_RenderWidth; }
         inline u32 GetRenderHeight() const { return m_RenderHeight; }
+        inline Ref<Flourish::Texture>& GetRenderTexture() { return m_RenderTexture; }
+        inline Ref<Flourish::Texture>& GetOutputTexture() { return m_OutputTexture; }
+        inline Ref<Flourish::Texture>& GetDepthTexture() { return m_DepthTexture; }
     
     private:
         bool OnWindowResize(WindowResizeEvent& event);
+        void CreateTextures();
+        void Resize();
 
     private:
         HVector<HString8> m_PluginLeaves;
         std::unordered_map<HString8, Ref<RenderPlugin>> m_Plugins;
         u32 m_RenderWidth, m_RenderHeight;
         bool m_ShouldResize = false;
+
+        Ref<Flourish::Texture> m_RenderTexture;
+        Ref<Flourish::Texture> m_OutputTexture;
+        Ref<Flourish::Texture> m_DepthTexture;
     };
 }

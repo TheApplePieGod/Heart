@@ -12,7 +12,7 @@
 
 namespace Heart::RenderPlugins
 {
-    void ComputeMaterialBatches::RenderInternal(const SceneRenderData& data, SceneRenderer2* sceneRenderer)
+    void ComputeMaterialBatches::RenderInternal(const SceneRenderData& data)
     {
         HE_PROFILE_FUNCTION();
         auto timer = AggregateTimer("RenderPlugins::ComputeMaterialBatches");
@@ -24,7 +24,7 @@ namespace Heart::RenderPlugins
 
         bool async = data.Settings.AsyncAssetLoading;
         auto& newBatchData = m_BatchData[m_UpdateFrameIndex];
-        auto batchesPlugin = sceneRenderer->GetPlugin<RenderPlugins::ComputeMeshBatches>(m_Info.MeshBatchesPluginName);
+        auto batchesPlugin = m_Renderer->GetPlugin<RenderPlugins::ComputeMeshBatches>(m_Info.MeshBatchesPluginName);
         const auto& computedBatchData = batchesPlugin->GetBatchData();
         
         // Clear previous data

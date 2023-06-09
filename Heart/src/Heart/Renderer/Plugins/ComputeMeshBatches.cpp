@@ -10,7 +10,7 @@
 
 namespace Heart::RenderPlugins
 {
-    void ComputeMeshBatches::RenderInternal(const SceneRenderData& data, SceneRenderer2* sceneRenderer)
+    void ComputeMeshBatches::RenderInternal(const SceneRenderData& data)
     {
         HE_PROFILE_FUNCTION();
         auto timer = AggregateTimer("RenderPlugins::ComputeMeshBatches");

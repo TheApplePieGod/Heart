@@ -11,12 +11,12 @@ namespace Heart
     class RenderPlugin
     {
     public:
-        RenderPlugin(HStringView8 name)
-            : m_Name(name)
+        RenderPlugin(SceneRenderer2* renderer, HStringView8 name)
+            : m_Renderer(renderer), m_Name(name)
         {}
 
-        void Render(const SceneRenderData& data, SceneRenderer2* sceneRenderer);
-        virtual void Resize(u32 width, u32 height) = 0;
+        void Render(const SceneRenderData& data);
+        void Resize();
         
         inline void AddDependency(const Ref<RenderPlugin>& plugin) { m_Dependencies.AddInPlace(plugin); }
         
@@ -26,7 +26,8 @@ namespace Heart
         inline HStringView8 GetName() const { return HStringView8(m_Name); }
     
     protected:
-        virtual void RenderInternal(const SceneRenderData& data, SceneRenderer2* sceneRenderer) = 0;
+        virtual void RenderInternal(const SceneRenderData& data) = 0;
+        virtual void ResizeInternal() = 0;
 
     protected:
         Task m_Task;
@@ -35,5 +36,6 @@ namespace Heart
         u64 m_LastRenderFrame = 0;
         HVector<Ref<RenderPlugin>> m_Dependencies;
         HVector<Task> m_DependencyTasks;
+        SceneRenderer2* m_Renderer;
     };
 }

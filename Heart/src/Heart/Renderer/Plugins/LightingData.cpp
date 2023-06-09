@@ -7,13 +7,16 @@
 
 namespace Heart::RenderPlugins
 {
-    void LightingData::RenderInternal(const SceneRenderData& data, SceneRenderer2* sceneRenderer)
+    void LightingData::RenderInternal(const SceneRenderData& data)
     {
         HE_PROFILE_FUNCTION();
 
         u32 lightIndex = 1;
         for (const auto& lightComp : data.Scene->GetLightComponents())
         {
+            if (lightIndex >= m_MaxLights)
+                break;
+
             const auto& entityData = data.Scene->GetEntityData()[lightComp.EntityIndex];
 
             u32 offset = lightIndex * m_Buffer->GetStride();

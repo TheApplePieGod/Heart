@@ -4,6 +4,7 @@
 #include "Heart/Renderer/Plugins/AllPlugins.h"
 #include "Heart/Core/Window.h"
 #include "Heart/Events/WindowEvents.h"
+#include "Flourish/Api/Texture.h"
 
 namespace Heart
 {
@@ -14,6 +15,8 @@ namespace Heart
         m_RenderWidth = Window::GetMainWindow().GetWidth();
         m_RenderHeight = Window::GetMainWindow().GetHeight();
 
+        CreateTextures();
+
         // Register plugins
 
         auto FrameData = RegisterPlugin<RenderPlugins::FrameData>("FrameData");
@@ -21,8 +24,6 @@ namespace Heart
         auto CBMESHCam = RegisterPlugin<RenderPlugins::ComputeMeshBatches>("CBMESHCam");
 
         RenderPlugins::RenderMeshBatchesCreateInfo RBMESHCamCreateInfo;
-        RBMESHCamCreateInfo.Width = m_RenderWidth;
-        RBMESHCamCreateInfo.Height = m_RenderHeight;
         RBMESHCamCreateInfo.WriteNormals = true;
         RBMESHCamCreateInfo.FrameDataPluginName = FrameData->GetName();
         RBMESHCamCreateInfo.MeshBatchesPluginName = CBMESHCam->GetName();
@@ -35,13 +36,12 @@ namespace Heart
         CBMATCam->AddDependency(CBMESHCam);
 
         RenderPlugins::RenderMaterialBatchesCreateInfo RBMATCamCreateInfo;
-        RBMATCamCreateInfo.Width = m_RenderWidth;
-        RBMATCamCreateInfo.Height = m_RenderHeight;
         // TODO: parameterize. will need to add support for specialization constants to do this
         RBMATCamCreateInfo.CanOutputEntityIds = true; 
         RBMATCamCreateInfo.FrameDataPluginName = FrameData->GetName();
         RBMATCamCreateInfo.LightingDataPluginName = LightingData->GetName();
         RBMATCamCreateInfo.MaterialBatchesPluginName = CBMATCam->GetName();
+        RBMATCamCreateInfo.RenderMeshBatchesPluginName = RBMESHCam->GetName();
         auto RBMATCam = RegisterPlugin<RenderPlugins::RenderMaterialBatches>("RBMATCam", RBMATCamCreateInfo);
         RBMATCam->AddDependency(CBMATCam);
         RBMATCam->AddDependency(RBMESHCam);
@@ -55,6 +55,54 @@ namespace Heart
     SceneRenderer2::~SceneRenderer2()
     {
         UnsubscribeFromEmitter(&Window::GetMainWindow());
+    }
+
+    TaskGroup SceneRenderer2::Render(const SceneRenderData& data)
+    {
+        if (m_ShouldResize)
+        {
+            m_ShouldResize = false;
+            Resize();
+        }
+
+        TaskGroup group;
+        for (const auto& leaf : m_PluginLeaves)
+        {
+            auto& plugin = m_Plugins[leaf];
+            plugin->Render(data);
+            group.AddTask(plugin->GetTask());
+        }
+
+        return group;
+    }
+
+    void SceneRenderer2::Resize()
+    {
+        CreateTextures();
+
+        for (const auto& leaf : m_PluginLeaves)
+        {
+            auto& plugin = m_Plugins[leaf];
+            plugin->Resize();
+        }
+    }
+
+    void SceneRenderer2::CreateTextures()
+    {
+        Flourish::TextureCreateInfo texCreateInfo;
+        texCreateInfo.Width = m_RenderWidth;
+        texCreateInfo.Height = m_RenderHeight;
+        texCreateInfo.ArrayCount = 1;
+        texCreateInfo.MipCount = 1;
+        texCreateInfo.Usage = Flourish::TextureUsageType::RenderTarget;
+        texCreateInfo.Writability = Flourish::TextureWritability::PerFrame;
+        texCreateInfo.SamplerState.UVWWrap = { Flourish::SamplerWrapMode::ClampToBorder, Flourish::SamplerWrapMode::ClampToBorder, Flourish::SamplerWrapMode::ClampToBorder };
+        texCreateInfo.Format = Flourish::ColorFormat::RGBA16_FLOAT;
+        m_RenderTexture = Flourish::Texture::Create(texCreateInfo);
+        texCreateInfo.Format = Flourish::ColorFormat::RGBA8_UNORM;
+        m_OutputTexture = Flourish::Texture::Create(texCreateInfo);
+        texCreateInfo.Format = Flourish::ColorFormat::Depth;
+        m_DepthTexture = Flourish::Texture::Create(texCreateInfo);
     }
 
     void SceneRenderer2::OnEvent(Event& event)
@@ -74,16 +122,4 @@ namespace Heart
         return false;
     }
 
-    TaskGroup SceneRenderer2::Render(const SceneRenderData& data)
-    {
-        TaskGroup group;
-        for (const auto& leaf : m_PluginLeaves)
-        {
-            auto& plugin = m_Plugins[leaf];
-            plugin->Render(data, this);
-            group.AddTask(plugin->GetTask());
-        }
-
-        return group;
-    }
 }

@@ -20,8 +20,8 @@ namespace Heart::RenderPlugins
     void RenderMeshBatches::Initialize()
     {
         Flourish::TextureCreateInfo texCreateInfo;
-        texCreateInfo.Width = m_Info.Width;
-        texCreateInfo.Height = m_Info.Height;
+        texCreateInfo.Width = m_Renderer->GetRenderWidth();
+        texCreateInfo.Height = m_Renderer->GetRenderHeight();
         texCreateInfo.ArrayCount = 1;
         texCreateInfo.MipCount = 1;
         texCreateInfo.Usage = Flourish::TextureUsageType::RenderTarget;
@@ -71,8 +71,8 @@ namespace Heart::RenderPlugins
 
         Flourish::FramebufferCreateInfo fbCreateInfo;
         fbCreateInfo.RenderPass = m_RenderPass;
-        fbCreateInfo.Width = m_Info.Width;
-        fbCreateInfo.Height = m_Info.Height;
+        fbCreateInfo.Width = m_Renderer->GetRenderWidth();
+        fbCreateInfo.Height = m_Renderer->GetRenderHeight();
         if (m_Info.WriteNormals)
             fbCreateInfo.ColorAttachments.push_back({ { 0.f, 0.f, 0.f, 0.f }, m_NormalsTexture });
         fbCreateInfo.DepthAttachments.push_back({ m_DepthTexture });
@@ -88,18 +88,18 @@ namespace Heart::RenderPlugins
         m_DescriptorSet = pipeline->CreateDescriptorSet(0, dsCreateInfo);
     }
 
-    void RenderMeshBatches::Resize(u32 width, u32 height)
+    void RenderMeshBatches::ResizeInternal()
     {
 
     }
 
-    void RenderMeshBatches::RenderInternal(const SceneRenderData& data, SceneRenderer2* sceneRenderer)
+    void RenderMeshBatches::RenderInternal(const SceneRenderData& data)
     {
         HE_PROFILE_FUNCTION();
         auto timer = AggregateTimer("RenderPlugins::RenderMeshBatches");
         
-        auto frameDataPlugin = sceneRenderer->GetPlugin<RenderPlugins::FrameData>(m_Info.FrameDataPluginName);
-        auto batchesPlugin = sceneRenderer->GetPlugin<RenderPlugins::ComputeMeshBatches>(m_Info.MeshBatchesPluginName);
+        auto frameDataPlugin = m_Renderer->GetPlugin<RenderPlugins::FrameData>(m_Info.FrameDataPluginName);
+        auto batchesPlugin = m_Renderer->GetPlugin<RenderPlugins::ComputeMeshBatches>(m_Info.MeshBatchesPluginName);
         auto frameDataBuffer = frameDataPlugin->GetBuffer();
         const auto& batchData = batchesPlugin->GetBatchData();
 

@@ -6,6 +6,7 @@
 namespace Flourish
 {
     class Buffer;
+    class Texture;
 }
 
 namespace Heart::RenderPlugins
@@ -29,16 +30,15 @@ namespace Heart::RenderPlugins
         };
 
     public:
-        FrameData(HStringView8 name)
-            : RenderPlugin(name)
+        FrameData(SceneRenderer2* renderer, HStringView8 name)
+            : RenderPlugin(renderer, name)
         { Initialize(); }
 
-        void Resize(u32 width, u32 height) override {}
-        
         inline const Flourish::Buffer* GetBuffer() const { return m_Buffer.get(); }
 
     protected:
-        void RenderInternal(const SceneRenderData& data, SceneRenderer2* sceneRenderer) override;
+        void RenderInternal(const SceneRenderData& data) override;
+        void ResizeInternal() override {};
 
     private:
         void Initialize();

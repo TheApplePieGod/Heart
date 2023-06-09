@@ -88,10 +88,10 @@ namespace Widgets
         ImGui::GetWindowDrawList()->AddRectFilled({ viewportStart.x, viewportStart.y }, { viewportEnd.x, viewportEnd.y }, IM_COL32( 0, 0, 0, 255 )); // viewport background
 
         // draw the rendered texture
-        Flourish::Texture* outputTex = nullptr;
+        const Flourish::Texture* outputTex = nullptr;
         switch (m_SelectedOutput){
             //default: outputTex = m_SceneRenderer->GetFinalTexture(); break;
-            default: outputTex = m_SceneRenderer2->GetPlugin<Heart::RenderPlugins::RenderMaterialBatches>("RBMATCam")->GetOutputTexture(); break;
+            default: outputTex = m_SceneRenderer2->GetRenderTexture().get(); break;
             //default: outputTex = m_SceneRenderer2->GetPlugin<Heart::RenderPlugins::RenderMeshBatches>("RBMESHCam")->GetNormalsTexture(); break;
             case 1: outputTex = m_SceneRenderer->GetRenderOutputTexture(); break;
             case 2: outputTex = m_SceneRenderer->GetEntityIdsTexture(); break;

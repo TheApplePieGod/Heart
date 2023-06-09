@@ -8,14 +8,14 @@
 
 namespace Heart::RenderPlugins
 {
-    void FrameData::RenderInternal(const SceneRenderData& data, SceneRenderer2* sceneRenderer)
+    void FrameData::RenderInternal(const SceneRenderData& data)
     {
         BufferData bufData = {
             data.Camera->GetProjectionMatrix(),
             data.Camera->GetViewMatrix(),
             glm::inverse(data.Camera->GetProjectionMatrix()/* * camera.GetViewMatrix()*/),
             glm::vec4(data.CameraPos, 1.f),
-            { sceneRenderer->GetRenderWidth(), sceneRenderer->GetRenderHeight() },
+            { m_Renderer->GetRenderWidth(), m_Renderer->GetRenderHeight() },
             Flourish::Context::ReversedZBuffer(),
             data.Settings.CullEnable,
             data.Settings.BloomEnable,

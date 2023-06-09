@@ -25,22 +25,21 @@ namespace Heart::RenderPlugins
         };
 
     public:
-        LightingData(HStringView8 name)
-            : RenderPlugin(name)
+        LightingData(SceneRenderer2* renderer, HStringView8 name)
+            : RenderPlugin(renderer, name)
         { Initialize(); }
 
-        void Resize(u32 width, u32 height) override {}
-        
         inline const Flourish::Buffer* GetBuffer() const { return m_Buffer.get(); }
 
     protected:
-        void RenderInternal(const SceneRenderData& data, SceneRenderer2* sceneRenderer) override;
+        void RenderInternal(const SceneRenderData& data) override;
+        void ResizeInternal() override {};
 
     private:
         void Initialize();
 
     private:
         Ref<Flourish::Buffer> m_Buffer;
-        u32 m_MaxLights = 100;
+        u32 m_MaxLights = 750;
     };
 }
