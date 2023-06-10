@@ -9,6 +9,12 @@ endif()
 include_directories("lib/imgui")
 
 # Build dependencies
+if(${CMAKE_BUILD_TYPE} MATCHES Debug)
+  set(TRACY_ENABLE ON)
+  set(TRACY_ON_DEMAND ON)
+  set(FLOURISH_TRACY_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lib/tracy/public")
+  add_subdirectory("lib/tracy")
+endif()
 set(GLFW_BUILD_DOCS OFF)
 set(GLFW_BUILD_TESTS OFF)
 set(GLFW_BUILD_EXAMPLES OFF)
@@ -39,10 +45,6 @@ add_subdirectory("lib/FreeType")
 add_library(Freetype::Freetype ALIAS freetype-interface) # Add alias so msdf can find
 set (MSDF_ATLAS_GEN_BUILD_STANDALONE OFF)
 add_subdirectory("lib/msdf")
-
-if(${CMAKE_BUILD_TYPE} MATCHES Debug)
-  add_subdirectory("lib/optick")
-endif()
 
 # Include other dependency sources that need to be built
 set(DEPENDENCY_SOURCES
@@ -85,7 +87,6 @@ target_include_directories(
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/imgui>"
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/spdlog/include>"
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/Glad/include>"
-  "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/optick/src>"
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/entt/src>"
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/imguizmo>"
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/json/include>"
@@ -101,7 +102,6 @@ target_include_directories(
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/imgui>"
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/spdlog/include>"
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/Glad/include>"
-  "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/optick/src>"
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/entt/src>"
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/imguizmo>"
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/json/include>"
@@ -124,8 +124,8 @@ target_link_libraries(Engine
 )
 if(${CMAKE_BUILD_TYPE} MATCHES Debug)
   target_link_libraries(Engine
-    PRIVATE
-    OptickCore
+    PUBLIC
+    TracyClient
   )
 endif()
 
