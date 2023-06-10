@@ -36,8 +36,8 @@ namespace Heart
         pipelineCreateInfo.VertexLayout = { Flourish::BufferDataType::Float3, Flourish::BufferDataType::Float3 };
         pipelineCreateInfo.VertexInput = true;
         pipelineCreateInfo.BlendStates = { { false } };
-        pipelineCreateInfo.DepthTest = false;
-        pipelineCreateInfo.DepthWrite = false;
+        pipelineCreateInfo.DepthConfig.DepthTest = false;
+        pipelineCreateInfo.DepthConfig.DepthWrite = false;
         pipelineCreateInfo.CullMode = Flourish::CullMode::None;
         pipelineCreateInfo.WindingOrder = Flourish::WindingOrder::Clockwise;
         m_MainRenderPass->CreatePipeline("main", pipelineCreateInfo);

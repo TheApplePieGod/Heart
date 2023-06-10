@@ -73,6 +73,7 @@ namespace Heart
             return static_cast<Plugin*>(m_Plugins.at(name).get());
         }
 
+        inline const auto& GetPlugins() const { return m_Plugins; }
         inline u32 GetRenderWidth() const { return m_RenderWidth; }
         inline u32 GetRenderHeight() const { return m_RenderHeight; }
         inline Ref<Flourish::Texture>& GetRenderTexture() { return m_RenderTexture; }

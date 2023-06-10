@@ -19,25 +19,23 @@ namespace Heart::RenderPlugins
 {
     void RenderMeshBatches::Initialize()
     {
-        Flourish::TextureCreateInfo texCreateInfo;
-        texCreateInfo.Width = m_Renderer->GetRenderWidth();
-        texCreateInfo.Height = m_Renderer->GetRenderHeight();
-        texCreateInfo.ArrayCount = 1;
-        texCreateInfo.MipCount = 1;
-        texCreateInfo.Usage = Flourish::TextureUsageType::RenderTarget;
-        texCreateInfo.Writability = Flourish::TextureWritability::PerFrame;
-        texCreateInfo.SamplerState.UVWWrap = { Flourish::SamplerWrapMode::ClampToBorder, Flourish::SamplerWrapMode::ClampToBorder, Flourish::SamplerWrapMode::ClampToBorder };
         if (m_Info.WriteNormals)
         {
+            Flourish::TextureCreateInfo texCreateInfo;
+            texCreateInfo.Width = m_Renderer->GetRenderWidth();
+            texCreateInfo.Height = m_Renderer->GetRenderHeight();
+            texCreateInfo.ArrayCount = 1;
+            texCreateInfo.MipCount = 1;
+            texCreateInfo.Usage = Flourish::TextureUsageType::RenderTarget;
+            texCreateInfo.Writability = Flourish::TextureWritability::PerFrame;
+            texCreateInfo.SamplerState.UVWWrap = { Flourish::SamplerWrapMode::ClampToBorder, Flourish::SamplerWrapMode::ClampToBorder, Flourish::SamplerWrapMode::ClampToBorder };
             texCreateInfo.Format = Flourish::ColorFormat::RGBA16_FLOAT;
             m_NormalsTexture = Flourish::Texture::Create(texCreateInfo);
         }
-        texCreateInfo.Format = Flourish::ColorFormat::Depth;
-        m_DepthTexture = Flourish::Texture::Create(texCreateInfo);
 
         Flourish::RenderPassCreateInfo rpCreateInfo;
-        rpCreateInfo.SampleCount = Flourish::MsaaSampleCount::Four;
-        rpCreateInfo.DepthAttachments.push_back({ Flourish::ColorFormat::Depth });
+        rpCreateInfo.SampleCount = Flourish::MsaaSampleCount::None;
+        rpCreateInfo.DepthAttachments.push_back({ m_Renderer->GetDepthTexture()->GetColorFormat() });
         if (m_Info.WriteNormals)
         {
             rpCreateInfo.ColorAttachments.push_back({ m_NormalsTexture->GetColorFormat() });
@@ -63,8 +61,9 @@ namespace Heart::RenderPlugins
         pipelineCreateInfo.VertexLayout = Mesh::GetVertexLayout();
         pipelineCreateInfo.VertexInput = true;
         pipelineCreateInfo.BlendStates = { { false } };
-        pipelineCreateInfo.DepthTest = true;
-        pipelineCreateInfo.DepthWrite = true;
+        pipelineCreateInfo.DepthConfig.DepthTest = true;
+        pipelineCreateInfo.DepthConfig.DepthWrite = true;
+        pipelineCreateInfo.DepthConfig.CompareOperation = Flourish::DepthComparison::Auto;
         pipelineCreateInfo.CullMode = Flourish::CullMode::None;
         pipelineCreateInfo.WindingOrder = Flourish::WindingOrder::Clockwise;
         auto pipeline = m_RenderPass->CreatePipeline("main", pipelineCreateInfo);
@@ -75,7 +74,7 @@ namespace Heart::RenderPlugins
         fbCreateInfo.Height = m_Renderer->GetRenderHeight();
         if (m_Info.WriteNormals)
             fbCreateInfo.ColorAttachments.push_back({ { 0.f, 0.f, 0.f, 0.f }, m_NormalsTexture });
-        fbCreateInfo.DepthAttachments.push_back({ m_DepthTexture });
+        fbCreateInfo.DepthAttachments.push_back({ m_Renderer->GetDepthTexture() });
         m_Framebuffer = Flourish::Framebuffer::Create(fbCreateInfo);
 
         Flourish::CommandBufferCreateInfo cbCreateInfo;

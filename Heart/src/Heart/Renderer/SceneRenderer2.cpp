@@ -80,6 +80,7 @@ namespace Heart
     {
         CreateTextures();
 
+        // Resize topologically in case of size dependencies
         for (const auto& leaf : m_PluginLeaves)
         {
             auto& plugin = m_Plugins[leaf];

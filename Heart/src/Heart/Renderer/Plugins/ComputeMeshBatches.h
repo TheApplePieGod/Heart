@@ -61,8 +61,7 @@ namespace Heart::RenderPlugins
             Ref<Flourish::Buffer> IndirectBuffer;
             Ref<Flourish::Buffer> ObjectDataBuffer;
 
-            u32 RenderedInstanceCount;
-            u32 RenderedObjectCount;
+            u32 TotalInstanceCount;
         };
 
     public:

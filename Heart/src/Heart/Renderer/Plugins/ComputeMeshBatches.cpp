@@ -25,8 +25,7 @@ namespace Heart::RenderPlugins
 
         // Clear previous data
         batchData.Batches.clear();
-        batchData.RenderedInstanceCount = 0;
-        batchData.RenderedObjectCount = 0;
+        batchData.TotalInstanceCount = 0;
         for (auto& list : batchData.EntityListPool)
             list.Clear();
         
@@ -83,7 +82,7 @@ namespace Heart::RenderPlugins
                 }
                 
                 batch.Count++;
-                batchData.RenderedInstanceCount++;
+                batchData.TotalInstanceCount++;
 
                 // Push the associated entity to the associated vector from the pool
                 batchData.EntityListPool[batch.EntityListIndex].AddInPlace(EntityListEntry {
@@ -130,7 +129,14 @@ namespace Heart::RenderPlugins
             commandIndex++;
         }
         
-        batchData.RenderedObjectCount = objectId;
+        m_Stats["Instance Count"] = {
+            StatType::Int,
+            (int)batchData.TotalInstanceCount
+        };
+        m_Stats["Batch Count"] = {
+            StatType::Int,
+            (int)batchData.Batches.size()
+        };
     }
 
     void ComputeMeshBatches::Initialize()

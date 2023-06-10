@@ -11,6 +11,27 @@ namespace Heart
     class RenderPlugin
     {
     public:
+        enum class StatType
+        {
+            None = 0,
+            Int,
+            Float,
+            Bool,
+            TimeMS
+        };
+
+        struct Stat
+        {
+            StatType Type;
+            union
+            {
+                int Int; // Int
+                float Float; // Float, TimeMS
+                bool Bool; // Bool
+            } Data;
+        };
+
+    public:
         RenderPlugin(SceneRenderer2* renderer, HStringView8 name)
             : m_Renderer(renderer), m_Name(name)
         {}
@@ -24,6 +45,7 @@ namespace Heart
         inline void SetActive(bool active) { m_Active = active; }
         inline bool IsActive() const { return m_Active; }
         inline HStringView8 GetName() const { return HStringView8(m_Name); }
+        inline const auto& GetStats() const { return m_Stats; }
     
     protected:
         virtual void RenderInternal(const SceneRenderData& data) = 0;
@@ -36,6 +58,7 @@ namespace Heart
         u64 m_LastRenderFrame = 0;
         HVector<Ref<RenderPlugin>> m_Dependencies;
         HVector<Task> m_DependencyTasks;
+        std::map<HString8, Stat> m_Stats;
         SceneRenderer2* m_Renderer;
     };
 }

@@ -116,8 +116,8 @@ namespace Heart
             pipelineCreateInfo.VertexTopology = Flourish::VertexTopology::TriangleList;
             pipelineCreateInfo.VertexLayout = Heart::Mesh::GetVertexLayout();
             pipelineCreateInfo.BlendStates = { { false } };
-            pipelineCreateInfo.DepthTest = false;
-            pipelineCreateInfo.DepthWrite = false;
+            pipelineCreateInfo.DepthConfig.DepthTest = false;
+            pipelineCreateInfo.DepthConfig.DepthWrite = false;
             pipelineCreateInfo.CullMode = Flourish::CullMode::Frontface;
             pipelineCreateInfo.WindingOrder = Flourish::WindingOrder::Clockwise;
 
@@ -147,8 +147,8 @@ namespace Heart
             pipelineCreateInfo.VertexTopology = Flourish::VertexTopology::TriangleList;
             pipelineCreateInfo.VertexLayout = Heart::Mesh::GetVertexLayout();
             pipelineCreateInfo.BlendStates = { { false } };
-            pipelineCreateInfo.DepthTest = false;
-            pipelineCreateInfo.DepthWrite = false;
+            pipelineCreateInfo.DepthConfig.DepthTest = false;
+            pipelineCreateInfo.DepthConfig.DepthWrite = false;
             pipelineCreateInfo.CullMode = Flourish::CullMode::Frontface;
             pipelineCreateInfo.WindingOrder = Flourish::WindingOrder::Clockwise;
 
@@ -183,8 +183,8 @@ namespace Heart
             pipelineCreateInfo.VertexTopology = Flourish::VertexTopology::TriangleList;
             pipelineCreateInfo.VertexLayout = Heart::Mesh::GetVertexLayout();
             pipelineCreateInfo.BlendStates = { { false } };
-            pipelineCreateInfo.DepthTest = false;
-            pipelineCreateInfo.DepthWrite = false;
+            pipelineCreateInfo.DepthConfig.DepthTest = false;
+            pipelineCreateInfo.DepthConfig.DepthWrite = false;
             pipelineCreateInfo.CullMode = Flourish::CullMode::Frontface;
             pipelineCreateInfo.WindingOrder = Flourish::WindingOrder::Clockwise;
 
@@ -211,8 +211,8 @@ namespace Heart
             pipelineCreateInfo.FragmentShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/CalcBRDF.frag", true)->GetShader();
             pipelineCreateInfo.VertexInput = false;
             pipelineCreateInfo.BlendStates = { { false } };
-            pipelineCreateInfo.DepthTest = false;
-            pipelineCreateInfo.DepthWrite = false;
+            pipelineCreateInfo.DepthConfig.DepthTest = false;
+            pipelineCreateInfo.DepthConfig.DepthWrite = false;
             pipelineCreateInfo.CullMode = Flourish::CullMode::None;
             pipelineCreateInfo.WindingOrder = Flourish::WindingOrder::Clockwise;
 

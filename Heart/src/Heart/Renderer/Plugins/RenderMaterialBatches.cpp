@@ -54,7 +54,7 @@ namespace Heart::RenderPlugins
 
         Flourish::RenderPassCreateInfo rpCreateInfo;
         rpCreateInfo.SampleCount = Flourish::MsaaSampleCount::None;
-        rpCreateInfo.DepthAttachments.push_back({ m_Renderer->GetDepthTexture()->GetColorFormat() });
+        rpCreateInfo.DepthAttachments.push_back({ m_Renderer->GetDepthTexture()->GetColorFormat(), Flourish::AttachmentInitialization::Preserve });
         rpCreateInfo.ColorAttachments.push_back({ m_Renderer->GetRenderTexture()->GetColorFormat() });
         if (m_Info.CanOutputEntityIds)
         {
@@ -86,8 +86,9 @@ namespace Heart::RenderPlugins
         pipelineCreateInfo.BlendStates = { { false } };
         if (m_Info.CanOutputEntityIds)
             pipelineCreateInfo.BlendStates.push_back({ false });
-        pipelineCreateInfo.DepthTest = true;
-        pipelineCreateInfo.DepthWrite = true; // Need to add more depth test settings
+        pipelineCreateInfo.DepthConfig.DepthTest = true;
+        pipelineCreateInfo.DepthConfig.DepthWrite = false;
+        pipelineCreateInfo.DepthConfig.CompareOperation = Flourish::DepthComparison::Equal;
         pipelineCreateInfo.CullMode = Flourish::CullMode::Backface;
         pipelineCreateInfo.WindingOrder = Flourish::WindingOrder::Clockwise;
         //pipelineCreateInfo.CompatibleSubpasses = { 2 };
@@ -167,17 +168,26 @@ namespace Heart::RenderPlugins
         encoder->FlushDescriptorSet(0);
 
         // Initial (opaque) batches pass
+        Mesh* lastMesh = nullptr;
         for (auto& batch : batchData.Batches)
         {
             //if (batch.Material->IsTranslucent())
             //    continue;
 
+            // Bind material
             encoder->BindDescriptorSet(batch.Material->GetDescriptorSet(), 1);
             encoder->FlushDescriptorSet(1);
 
+            // Bind mesh
+            if (lastMesh != batch.Mesh)
+            {
+                encoder->BindVertexBuffer(batch.Mesh->GetVertexBuffer());
+                encoder->BindIndexBuffer(batch.Mesh->GetIndexBuffer());
+
+                lastMesh = batch.Mesh;
+            }
+
             // Draw
-            encoder->BindVertexBuffer(batch.Mesh->GetVertexBuffer());
-            encoder->BindIndexBuffer(batch.Mesh->GetIndexBuffer());
             encoder->DrawIndexedIndirect(
                 batchData.IndirectBuffer.get(), batch.First, batch.Count
             );

@@ -29,8 +29,7 @@ namespace Heart::RenderPlugins
         
         // Clear previous data
         newBatchData.Batches.Clear();
-        newBatchData.RenderedInstanceCount = 0;
-        newBatchData.RenderedObjectCount = 0;
+        newBatchData.TotalInstanceCount = 0;
 
         u32 commandIndex = 0;
         u32 objectId = 0;
@@ -106,7 +105,7 @@ namespace Heart::RenderPlugins
                 }
 
                 newBatchData.Batches.Back().Count++;
-                newBatchData.RenderedInstanceCount++;
+                newBatchData.TotalInstanceCount++;
 
                 // Object data
                 ObjectData objectData = {
@@ -124,8 +123,15 @@ namespace Heart::RenderPlugins
 
             pairIndex++;
         }
-        
-        newBatchData.RenderedObjectCount = objectId;
+
+        m_Stats["Instance Count"] = {
+            StatType::Int,
+            (int)newBatchData.TotalInstanceCount
+        };
+        m_Stats["Batch Count"] = {
+            StatType::Int,
+            (int)newBatchData.Batches.Count()
+        };
     }
     
     void ComputeMaterialBatches::Initialize()

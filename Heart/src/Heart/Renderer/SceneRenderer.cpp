@@ -242,8 +242,10 @@ namespace Heart
         pipelineCreateInfo.VertexLayout = { Flourish::BufferDataType::Float3 };
         pipelineCreateInfo.VertexInput = true;
         pipelineCreateInfo.BlendStates = { { false } };
+        /*
         pipelineCreateInfo.DepthTest = false;
         pipelineCreateInfo.DepthWrite = false;
+        */
         pipelineCreateInfo.CullMode = Flourish::CullMode::None;
         pipelineCreateInfo.WindingOrder = Flourish::WindingOrder::Clockwise;
         pipelineCreateInfo.CompatibleSubpasses = { 1 };
@@ -254,8 +256,10 @@ namespace Heart
         pipelineCreateInfo.VertexTopology = Flourish::VertexTopology::TriangleList;
         pipelineCreateInfo.VertexLayout = Heart::Mesh::GetVertexLayout();
         pipelineCreateInfo.BlendStates = { { false } };
+        /*
         pipelineCreateInfo.DepthTest = false;
         pipelineCreateInfo.DepthWrite = false;
+        */
         pipelineCreateInfo.CullMode = Flourish::CullMode::Frontface;
         pipelineCreateInfo.CompatibleSubpasses = { 0 };
         m_MainRenderPass->CreatePipeline("skybox", pipelineCreateInfo);
@@ -263,8 +267,10 @@ namespace Heart
         pipelineCreateInfo.VertexShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/PBR.vert", true)->GetShader();
         pipelineCreateInfo.FragmentShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/PBR.frag", true)->GetShader();
         pipelineCreateInfo.BlendStates = { { false }, { false } };
+        /*
         pipelineCreateInfo.DepthTest = true;
         pipelineCreateInfo.DepthWrite = true;
+        */
         pipelineCreateInfo.CullMode = Flourish::CullMode::Backface;
         pipelineCreateInfo.CompatibleSubpasses = { 2 };
         m_MainRenderPass->CreatePipeline("pbr", pipelineCreateInfo);
@@ -272,8 +278,10 @@ namespace Heart
         pipelineCreateInfo.VertexShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/PBR.vert", true)->GetShader();
         pipelineCreateInfo.FragmentShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/TextPBR.frag", true)->GetShader();
         pipelineCreateInfo.BlendStates = { { false }, { false } };
+        /*
         pipelineCreateInfo.DepthTest = true;
         pipelineCreateInfo.DepthWrite = true;
+        */
         pipelineCreateInfo.CullMode = Flourish::CullMode::None;
         pipelineCreateInfo.CompatibleSubpasses = { 2 };
         m_MainRenderPass->CreatePipeline("pbrText", pipelineCreateInfo);
@@ -294,7 +302,7 @@ namespace Heart
         pipelineCreateInfo.BlendStates = {
             { true, Flourish::BlendFactor::OneMinusSrcAlpha, Flourish::BlendFactor::SrcAlpha, Flourish::BlendFactor::SrcAlpha, Flourish::BlendFactor::OneMinusSrcAlpha }
         };
-        pipelineCreateInfo.DepthWrite = false;
+        //pipelineCreateInfo.DepthWrite = false;
         pipelineCreateInfo.CompatibleSubpasses = { 4 };
         m_MainRenderPass->CreatePipeline("tpComposite", pipelineCreateInfo);
     }

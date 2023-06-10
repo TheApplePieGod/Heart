@@ -6,6 +6,8 @@
 #include "HeartEditor/EditorCamera.h"
 #include "Heart/Input/Input.h"
 #include "Heart/Core/Timing.h"
+#include "Heart/Renderer/SceneRenderer2.h"
+#include "Heart/Renderer/RenderPlugin.h"
 #include "imgui/imgui.h"
 
 #include "HeartEditor/Widgets/Viewport.h"
@@ -68,6 +70,38 @@ namespace Widgets
 
         ImGui::Text("Render Statistics:");
         ImGui::Indent();
+        ImGui::Text("Plugins:");
+        for (const auto& pair : viewport.GetSceneRenderer2().GetPlugins())
+        {
+            if (pair.second->GetStats().empty())
+                continue;
+
+            ImGui::Indent();
+            ImGui::Text("%s:", pair.first.Data());
+            for (const auto& stat : pair.second->GetStats())
+            {
+                if (stat.second.Type == Heart::RenderPlugin::StatType::None)
+                    continue;
+                ImGui::Indent();
+                ImGui::Text("%s:", stat.first.Data());
+                ImGui::SameLine();
+                switch (stat.second.Type)
+                {
+                    default:
+                    {} break;
+                    case Heart::RenderPlugin::StatType::Int:
+                    { ImGui::Text("%d", stat.second.Data.Int); } break;
+                    case Heart::RenderPlugin::StatType::Float:
+                    { ImGui::Text("%2.f", stat.second.Data.Float); } break;
+                    case Heart::RenderPlugin::StatType::Bool:
+                    { ImGui::Text("%s", stat.second.Data.Bool ? "true" : "false"); } break;
+                    case Heart::RenderPlugin::StatType::TimeMS:
+                    { ImGui::Text("%1.fms", stat.second.Data.Float); } break;
+                }
+                ImGui::Unindent();
+            }
+            ImGui::Unindent();
+        }
         /*
         for (auto& pair : Heart::Renderer::GetStatistics())
             ImGui::Text("%s: %lld", pair.first.Data(), pair.second);
@@ -78,9 +112,6 @@ namespace Widgets
         ImGui::Text("Scene info:");
         ImGui::Indent();
         ImGui::Text("Entity count: %d", (int)activeScene.GetRegistry().alive());
-        ImGui::Text("Rendered instance count: %d", viewport.GetSceneRenderer().GetRenderedInstanceCount());
-        ImGui::Text("Rendered object count: %d", viewport.GetSceneRenderer().GetRenderedObjectCount());
-        ImGui::Text("Render batches: %d", viewport.GetSceneRenderer().GetBatchCount());
         ImGui::Unindent();
         
         ImGui::End();

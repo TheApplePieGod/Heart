@@ -45,6 +45,5 @@ namespace Heart::RenderPlugins
         Ref<Flourish::RenderPass> m_RenderPass;
         Ref<Flourish::Framebuffer> m_Framebuffer;
         Ref<Flourish::Texture> m_NormalsTexture;
-        Ref<Flourish::Texture> m_DepthTexture;
     };
 }
