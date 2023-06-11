@@ -68,8 +68,11 @@ namespace Widgets
 
         NodeEditor::BeginNode((u64)plugin->GetUUID());
 
+        const float nodeWidth = 200.f;
+        ImVec2 horizLayoutSize = { nodeWidth, 0.f };
+
         ImGui::Text(plugin->GetName().Data());
-        ImGui::BeginHorizontal(plugin->GetName().Data());
+        ImGui::BeginHorizontal(plugin->GetName().Data(), horizLayoutSize);
 
         // Add dependencies as incoming pins
         // Should have no issue with unique ids here
@@ -78,14 +81,12 @@ namespace Widgets
         for (const auto& dep : plugin->GetDependencies())
         {
             NodeEditor::BeginPin(++idCounter, NodeEditor::PinKind::Input);
-            ImGui::Text("-> In");
+            ImGui::Text(">");
             NodeEditor::EndPin();
         }
-        if (plugin->GetDependencies().IsEmpty())
-            ImGui::Dummy({ 30.f, 0.f });
         ImGui::EndVertical();
 
-        ImGui::Spring(1.0f, 8.0f);
+        ImGui::Spring(1.0f, 0);
 
         ImGui::BeginVertical("out");
         for (const auto& depName : plugin->GetDependents())
@@ -98,7 +99,7 @@ namespace Widgets
                     break;
 
             NodeEditor::BeginPin(++idCounter, NodeEditor::PinKind::Output);
-            ImGui::Text("Out ->");
+            ImGui::Text(">");
             NodeEditor::EndPin();
 
             NodeEditor::Link(++m_IdCounter, idCounter, dep->GetUUID() + idx + 1);
@@ -110,8 +111,8 @@ namespace Widgets
         NodeEditor::EndNode();
 
         // Set x position based on computed depth
-        float xScale = 150.f;
-        float xPos = plugin->GetMaxDepth() * xScale;
+        float xOffset = 75.f;
+        float xPos = plugin->GetMaxDepth() * (nodeWidth + xOffset);
         if (m_FirstRender)
             NodeEditor::SetNodePosition((u64)plugin->GetUUID(), { xPos, yPos });
 

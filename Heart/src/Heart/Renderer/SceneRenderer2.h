@@ -56,7 +56,7 @@ namespace Heart
         TaskGroup Render(const SceneRenderData& data);
 
         template<typename Plugin, typename ... Args>
-        Ref<RenderPlugin> RegisterPlugin(Args&& ... args)
+        Ref<Plugin> RegisterPlugin(Args&& ... args)
         {
             auto plugin = CreateRef<Plugin>(this, std::forward<Args>(args)...);
             m_Plugins[plugin->GetName()] = plugin;

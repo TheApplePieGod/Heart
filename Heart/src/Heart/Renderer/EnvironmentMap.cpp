@@ -19,7 +19,7 @@
 #include "Flourish/Api/RenderCommandEncoder.h"
 #include "Flourish/Api/GraphicsPipeline.h"
 #include "Flourish/Api/Buffer.h"
-#include "Flourish/Api/DescriptorSet.h"
+#include "Flourish/Api/ResourceSet.h"
 
 namespace Heart
 {
@@ -123,9 +123,9 @@ namespace Heart
 
             auto pipeline = m_RenderPass->CreatePipeline("cubemap", pipelineCreateInfo);
 
-            Flourish::DescriptorSetCreateInfo dsCreateInfo;
-            dsCreateInfo.Writability = Flourish::DescriptorSetWritability::OnceStaticData;
-            m_EnvironmentMap.DescriptorSet = pipeline->CreateDescriptorSet(0, dsCreateInfo);
+            Flourish::ResourceSetCreateInfo dsCreateInfo;
+            dsCreateInfo.Writability = Flourish::ResourceSetWritability::OnceStaticData;
+            m_EnvironmentMap.ResourceSet = pipeline->CreateResourceSet(0, dsCreateInfo);
         }
 
         // -----------------------------------------------------------------------------------------
@@ -154,9 +154,9 @@ namespace Heart
 
             auto pipeline = m_RenderPass->CreatePipeline("irradiance", pipelineCreateInfo);
 
-            Flourish::DescriptorSetCreateInfo dsCreateInfo;
-            dsCreateInfo.Writability = Flourish::DescriptorSetWritability::OnceStaticData;
-            m_IrradianceMap.DescriptorSet = pipeline->CreateDescriptorSet(0, dsCreateInfo);
+            Flourish::ResourceSetCreateInfo dsCreateInfo;
+            dsCreateInfo.Writability = Flourish::ResourceSetWritability::OnceStaticData;
+            m_IrradianceMap.ResourceSet = pipeline->CreateResourceSet(0, dsCreateInfo);
         }
 
         // -----------------------------------------------------------------------------------------------------------------------
@@ -190,9 +190,9 @@ namespace Heart
 
             auto pipeline = m_RenderPass->CreatePipeline("prefilter", pipelineCreateInfo);
 
-            Flourish::DescriptorSetCreateInfo dsCreateInfo;
-            dsCreateInfo.Writability = Flourish::DescriptorSetWritability::OnceStaticData;
-            m_PrefilterMaps[0].DescriptorSet = pipeline->CreateDescriptorSet(0, dsCreateInfo);
+            Flourish::ResourceSetCreateInfo dsCreateInfo;
+            dsCreateInfo.Writability = Flourish::ResourceSetWritability::OnceStaticData;
+            m_PrefilterMaps[0].ResourceSet = pipeline->CreateResourceSet(0, dsCreateInfo);
         }
 
         // -----------------------------------------------------------------------------------------------------------------------
@@ -218,9 +218,9 @@ namespace Heart
 
             auto pipeline = m_BRDFRenderPass->CreatePipeline("brdf", pipelineCreateInfo);
 
-            Flourish::DescriptorSetCreateInfo dsCreateInfo;
-            dsCreateInfo.Writability = Flourish::DescriptorSetWritability::OnceStaticData;
-            m_BRDFTexture.DescriptorSet = pipeline->CreateDescriptorSet(0, dsCreateInfo);
+            Flourish::ResourceSetCreateInfo dsCreateInfo;
+            dsCreateInfo.Writability = Flourish::ResourceSetWritability::OnceStaticData;
+            m_BRDFTexture.ResourceSet = pipeline->CreateResourceSet(0, dsCreateInfo);
         }
     }
 
@@ -262,9 +262,9 @@ namespace Heart
         {
             if (!m_SetsWritten)
             {
-                m_EnvironmentMap.DescriptorSet->BindBuffer(0, m_CubemapDataBuffer.get(), 0, 1);
-                m_EnvironmentMap.DescriptorSet->BindTexture(1, mapAsset->GetTexture());
-                m_EnvironmentMap.DescriptorSet->FlushBindings();
+                m_EnvironmentMap.ResourceSet->BindBuffer(0, m_CubemapDataBuffer.get(), 0, 1);
+                m_EnvironmentMap.ResourceSet->BindTexture(1, mapAsset->GetTexture());
+                m_EnvironmentMap.ResourceSet->FlushBindings();
             }
 
             auto rcEncoder = m_EnvironmentMap.CommandBuffer->EncodeRenderCommands(m_EnvironmentMap.Framebuffer.get());
@@ -279,9 +279,9 @@ namespace Heart
                 m_CubemapDataBuffer->SetElements(&mapData, 1, cubeDataIndex);
 
                 rcEncoder->BindPipeline("cubemap");  
-                rcEncoder->BindDescriptorSet(m_EnvironmentMap.DescriptorSet.get(), 0);
+                rcEncoder->BindResourceSet(m_EnvironmentMap.ResourceSet.get(), 0);
                 rcEncoder->UpdateDynamicOffset(0, 0, i * sizeof(CubemapData));
-                rcEncoder->FlushDescriptorSet(0);
+                rcEncoder->FlushResourceSet(0);
 
                 rcEncoder->BindVertexBuffer(meshData.GetVertexBuffer());
                 rcEncoder->BindIndexBuffer(meshData.GetIndexBuffer());
@@ -305,9 +305,9 @@ namespace Heart
         {
             if (!m_SetsWritten)
             {
-                m_IrradianceMap.DescriptorSet->BindBuffer(0, m_CubemapDataBuffer.get(), 0, 1);
-                m_IrradianceMap.DescriptorSet->BindTexture(1, m_EnvironmentMap.Texture.get());
-                m_IrradianceMap.DescriptorSet->FlushBindings();
+                m_IrradianceMap.ResourceSet->BindBuffer(0, m_CubemapDataBuffer.get(), 0, 1);
+                m_IrradianceMap.ResourceSet->BindTexture(1, m_EnvironmentMap.Texture.get());
+                m_IrradianceMap.ResourceSet->FlushBindings();
             }
 
             auto rcEncoder = m_IrradianceMap.CommandBuffer->EncodeRenderCommands(m_IrradianceMap.Framebuffer.get());
@@ -317,9 +317,9 @@ namespace Heart
                     rcEncoder->StartNextSubpass();
 
                 rcEncoder->BindPipeline("irradiance");  
-                rcEncoder->BindDescriptorSet(m_IrradianceMap.DescriptorSet.get(), 0);
+                rcEncoder->BindResourceSet(m_IrradianceMap.ResourceSet.get(), 0);
                 rcEncoder->UpdateDynamicOffset(0, 0, i * sizeof(CubemapData));
-                rcEncoder->FlushDescriptorSet(0);
+                rcEncoder->FlushResourceSet(0);
 
                 rcEncoder->BindVertexBuffer(meshData.GetVertexBuffer());
                 rcEncoder->BindIndexBuffer(meshData.GetIndexBuffer());
@@ -336,9 +336,9 @@ namespace Heart
         // ------------------------------------------------------------------
         if (!m_SetsWritten)
         {
-            m_PrefilterMaps[0].DescriptorSet->BindBuffer(0, m_CubemapDataBuffer.get(), 0, 1);
-            m_PrefilterMaps[0].DescriptorSet->BindTexture(1, m_EnvironmentMap.Texture.get());
-            m_PrefilterMaps[0].DescriptorSet->FlushBindings();
+            m_PrefilterMaps[0].ResourceSet->BindBuffer(0, m_CubemapDataBuffer.get(), 0, 1);
+            m_PrefilterMaps[0].ResourceSet->BindTexture(1, m_EnvironmentMap.Texture.get());
+            m_PrefilterMaps[0].ResourceSet->FlushBindings();
         }
 
         for (u32 i = 0; i < m_PrefilterMaps.Count(); i++)
@@ -360,9 +360,9 @@ namespace Heart
                     glm::vec4(roughness, m_EnvironmentMap.Texture->GetWidth(), 0.f, 0.f)
                 };
                 m_CubemapDataBuffer->SetElements(&mapData, 1, cubeDataIndex);
-                rcEncoder->BindDescriptorSet(m_PrefilterMaps[0].DescriptorSet.get(), 0);
+                rcEncoder->BindResourceSet(m_PrefilterMaps[0].ResourceSet.get(), 0);
                 rcEncoder->UpdateDynamicOffset(0, 0, cubeDataIndex * sizeof(CubemapData));
-                rcEncoder->FlushDescriptorSet(0);
+                rcEncoder->FlushResourceSet(0);
 
                 rcEncoder->BindVertexBuffer(meshData.GetVertexBuffer());
                 rcEncoder->BindIndexBuffer(meshData.GetIndexBuffer());
@@ -383,8 +383,8 @@ namespace Heart
         {
             if (!m_SetsWritten)
             {
-                m_BRDFTexture.DescriptorSet->BindBuffer(0, m_CubemapDataBuffer.get(), cubeDataIndex, 1);
-                m_BRDFTexture.DescriptorSet->FlushBindings();
+                m_BRDFTexture.ResourceSet->BindBuffer(0, m_CubemapDataBuffer.get(), cubeDataIndex, 1);
+                m_BRDFTexture.ResourceSet->FlushBindings();
             }
 
             auto rcEncoder = m_BRDFTexture.CommandBuffer->EncodeRenderCommands(m_BRDFTexture.Framebuffer.get());
@@ -397,8 +397,8 @@ namespace Heart
                 glm::vec4(Flourish::Context::ReversedZBuffer(), 0.f, 0.f, 0.f)
             };
             m_CubemapDataBuffer->SetElements(&mapData, 1, cubeDataIndex);
-            rcEncoder->BindDescriptorSet(m_BRDFTexture.DescriptorSet.get(), 0);
-            rcEncoder->FlushDescriptorSet(0);
+            rcEncoder->BindResourceSet(m_BRDFTexture.ResourceSet.get(), 0);
+            rcEncoder->FlushResourceSet(0);
 
             rcEncoder->Draw(3, 0, 1, 0);
 

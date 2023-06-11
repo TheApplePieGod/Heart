@@ -18,7 +18,7 @@
 #include "Flourish/Api/RenderPass.h"
 #include "Flourish/Api/Framebuffer.h"
 #include "Flourish/Api/Texture.h"
-#include "Flourish/Api/DescriptorSet.h"
+#include "Flourish/Api/ResourceSet.h"
 
 namespace Heart::RenderPlugins
 {
@@ -115,9 +115,9 @@ namespace Heart::RenderPlugins
         cbCreateInfo.MaxEncoders = 2;
         m_CommandBuffer = Flourish::CommandBuffer::Create(cbCreateInfo);
 
-        Flourish::DescriptorSetCreateInfo dsCreateInfo;
-        dsCreateInfo.Writability = Flourish::DescriptorSetWritability::PerFrame;
-        m_DescriptorSet = pipeline->CreateDescriptorSet(0, dsCreateInfo);
+        Flourish::ResourceSetCreateInfo dsCreateInfo;
+        dsCreateInfo.Writability = Flourish::ResourceSetWritability::PerFrame;
+        m_ResourceSet = pipeline->CreateResourceSet(0, dsCreateInfo);
 
         if (m_Info.CanOutputEntityIds)
         {
@@ -148,29 +148,29 @@ namespace Heart::RenderPlugins
         const auto& batchData = batchesPlugin->GetBatchData();
 
         // TODO: this could probably be static
-        m_DescriptorSet->BindBuffer(0, frameDataBuffer, 0, 1);
-        m_DescriptorSet->BindBuffer(1, batchData.ObjectDataBuffer.get(), 0, batchData.ObjectDataBuffer->GetAllocatedCount());
-        m_DescriptorSet->BindBuffer(2, batchData.MaterialDataBuffer.get(), 0, batchData.MaterialDataBuffer->GetAllocatedCount());
-        m_DescriptorSet->BindBuffer(3, lightingDataBuffer, 0, lightingDataBuffer->GetAllocatedCount());
+        m_ResourceSet->BindBuffer(0, frameDataBuffer, 0, 1);
+        m_ResourceSet->BindBuffer(1, batchData.ObjectDataBuffer.get(), 0, batchData.ObjectDataBuffer->GetAllocatedCount());
+        m_ResourceSet->BindBuffer(2, batchData.MaterialDataBuffer.get(), 0, batchData.MaterialDataBuffer->GetAllocatedCount());
+        m_ResourceSet->BindBuffer(3, lightingDataBuffer, 0, lightingDataBuffer->GetAllocatedCount());
         if (data.EnvMap)
         {
-            m_DescriptorSet->BindTexture(5, data.EnvMap->GetIrradianceCubemap());
-            m_DescriptorSet->BindTexture(6, data.EnvMap->GetPrefilterCubemap());
-            m_DescriptorSet->BindTexture(7, data.EnvMap->GetBRDFTexture());
+            m_ResourceSet->BindTexture(5, data.EnvMap->GetIrradianceCubemap());
+            m_ResourceSet->BindTexture(6, data.EnvMap->GetPrefilterCubemap());
+            m_ResourceSet->BindTexture(7, data.EnvMap->GetBRDFTexture());
         }
         else
         {
-            m_DescriptorSet->BindTexture(5, m_DefaultEnvironmentMap.get());
-            m_DescriptorSet->BindTexture(6, m_DefaultEnvironmentMap.get());
-            m_DescriptorSet->BindTextureLayer(7, m_DefaultEnvironmentMap.get(), 0, 0);
+            m_ResourceSet->BindTexture(5, m_DefaultEnvironmentMap.get());
+            m_ResourceSet->BindTexture(6, m_DefaultEnvironmentMap.get());
+            m_ResourceSet->BindTextureLayer(7, m_DefaultEnvironmentMap.get(), 0, 0);
         }
-        m_DescriptorSet->BindTextureLayer(8, m_DefaultEnvironmentMap.get(), 0, 0);
-        m_DescriptorSet->FlushBindings();
+        m_ResourceSet->BindTextureLayer(8, m_DefaultEnvironmentMap.get(), 0, 0);
+        m_ResourceSet->FlushBindings();
 
         auto encoder = m_CommandBuffer->EncodeRenderCommands(m_Framebuffer.get());
         encoder->BindPipeline("main");
-        encoder->BindDescriptorSet(m_DescriptorSet.get(), 0);
-        encoder->FlushDescriptorSet(0);
+        encoder->BindResourceSet(m_ResourceSet.get(), 0);
+        encoder->FlushResourceSet(0);
 
         // Initial (opaque) batches pass
         Mesh* lastMesh = nullptr;
@@ -180,8 +180,8 @@ namespace Heart::RenderPlugins
             //    continue;
 
             // Bind material
-            encoder->BindDescriptorSet(batch.Material->GetDescriptorSet(), 1);
-            encoder->FlushDescriptorSet(1);
+            encoder->BindResourceSet(batch.Material->GetResourceSet(), 1);
+            encoder->FlushResourceSet(1);
 
             // Bind mesh
             if (lastMesh != batch.Mesh)

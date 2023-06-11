@@ -13,7 +13,7 @@
 #include "Flourish/Api/RenderPass.h"
 #include "Flourish/Api/Framebuffer.h"
 #include "Flourish/Api/Texture.h"
-#include "Flourish/Api/DescriptorSet.h"
+#include "Flourish/Api/ResourceSet.h"
 
 namespace Heart::RenderPlugins
 {
@@ -56,9 +56,9 @@ namespace Heart::RenderPlugins
         cbCreateInfo.MaxEncoders = 1;
         m_CommandBuffer = Flourish::CommandBuffer::Create(cbCreateInfo);
 
-        Flourish::DescriptorSetCreateInfo dsCreateInfo;
-        dsCreateInfo.Writability = Flourish::DescriptorSetWritability::PerFrame;
-        m_DescriptorSet = pipeline->CreateDescriptorSet(0, dsCreateInfo);
+        Flourish::ResourceSetCreateInfo dsCreateInfo;
+        dsCreateInfo.Writability = Flourish::ResourceSetWritability::PerFrame;
+        m_ResourceSet = pipeline->CreateResourceSet(0, dsCreateInfo);
     }
 
     void RenderEnvironmentMap::ResizeInternal()
@@ -80,14 +80,14 @@ namespace Heart::RenderPlugins
         auto frameDataBuffer = frameDataPlugin->GetBuffer();
 
         // TODO: this could probably be static
-        m_DescriptorSet->BindBuffer(0, frameDataBuffer, 0, 1);
-        m_DescriptorSet->BindTexture(1, data.EnvMap->GetEnvironmentCubemap());
-        m_DescriptorSet->FlushBindings();
+        m_ResourceSet->BindBuffer(0, frameDataBuffer, 0, 1);
+        m_ResourceSet->BindTexture(1, data.EnvMap->GetEnvironmentCubemap());
+        m_ResourceSet->FlushBindings();
         
         auto encoder = m_CommandBuffer->EncodeRenderCommands(m_Framebuffer.get());
         encoder->BindPipeline("main");
-        encoder->BindDescriptorSet(m_DescriptorSet.get(), 0);
-        encoder->FlushDescriptorSet(0);
+        encoder->BindResourceSet(m_ResourceSet.get(), 0);
+        encoder->FlushResourceSet(0);
 
         auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>("engine/DefaultCube.gltf", true);
         auto& meshData = meshAsset->GetSubmesh(0);

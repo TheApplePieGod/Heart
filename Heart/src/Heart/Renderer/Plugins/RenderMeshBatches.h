@@ -8,7 +8,7 @@ namespace Flourish
     class Texture;
     class RenderPass;
     class Framebuffer;
-    class DescriptorSet;
+    class ResourceSet;
 }
 
 namespace Heart::RenderPlugins
@@ -41,7 +41,7 @@ namespace Heart::RenderPlugins
         RenderMeshBatchesCreateInfo m_Info;
 
         Ref<Flourish::CommandBuffer> m_CommandBuffer;
-        Ref<Flourish::DescriptorSet> m_DescriptorSet;
+        Ref<Flourish::ResourceSet> m_ResourceSet;
         Ref<Flourish::RenderPass> m_RenderPass;
         Ref<Flourish::Framebuffer> m_Framebuffer;
         Ref<Flourish::Texture> m_NormalsTexture;

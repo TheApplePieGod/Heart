@@ -16,7 +16,7 @@ namespace Flourish
     class Buffer;
     class Texture;
     class CommandBuffer;
-    class DescriptorSet;
+    class ResourceSet;
     class RenderPass;
     class RenderCommandEncoder;
 }

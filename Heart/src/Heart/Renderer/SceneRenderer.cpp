@@ -13,7 +13,7 @@
 #include "Flourish/Api/Framebuffer.h"
 #include "Flourish/Api/Buffer.h"
 #include "Flourish/Api/Texture.h"
-#include "Flourish/Api/DescriptorSet.h"
+#include "Flourish/Api/ResourceSet.h"
 #include "Flourish/Api/CommandBuffer.h"
 #include "Flourish/Api/RenderCommandEncoder.h"
 #include "Flourish/Api/ComputeCommandEncoder.h"

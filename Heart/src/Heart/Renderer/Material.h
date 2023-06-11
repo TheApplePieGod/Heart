@@ -7,8 +7,8 @@
 
 namespace Flourish
 {
-    class DescriptorSet;
-    class DescriptorSetAllocator;
+    class ResourceSet;
+    class ResourceSetAllocator;
 }
 
 namespace Heart
@@ -52,9 +52,9 @@ namespace Heart
     class Material
     {
     public:
-        void RecomputeDescriptorSet();
+        void RecomputeResourceSet();
 
-        inline const Flourish::DescriptorSet* GetDescriptorSet() const { return m_DescriptorSet.get(); }
+        inline const Flourish::ResourceSet* GetResourceSet() const { return m_ResourceSet.get(); }
         inline MaterialData& GetMaterialData() { return m_MaterialData; }
         inline UUID GetAlbedoTexture() const { return m_AlbedoTextureAsset; }
         inline UUID GetMetallicRoughnessTexture() const { return m_MetallicRoughnessTextureAsset; }
@@ -75,7 +75,7 @@ namespace Heart
         static void Shutdown();
     
     private:
-        inline static Ref<Flourish::DescriptorSetAllocator> s_DescriptorSetAllocator = nullptr;
+        inline static Ref<Flourish::ResourceSetAllocator> s_ResourceSetAllocator = nullptr;
 
     private:
         MaterialData m_MaterialData;
@@ -86,7 +86,7 @@ namespace Heart
         UUID m_OcclusionTextureAsset = 0;
         bool m_Translucent = false;
 
-        Ref<Flourish::DescriptorSet> m_DescriptorSet;
+        Ref<Flourish::ResourceSet> m_ResourceSet;
 
         friend class MaterialAsset;
         friend class MeshAsset;

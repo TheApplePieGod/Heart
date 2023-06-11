@@ -1,8 +1,8 @@
 #include "hepch.h"
 #include "Material.h"
 
-#include "Flourish/Api/DescriptorSet.h"
-#include "Flourish/Api/DescriptorSetAllocator.h"
+#include "Flourish/Api/ResourceSet.h"
+#include "Flourish/Api/ResourceSetAllocator.h"
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/TextureAsset.h"
 
@@ -10,8 +10,8 @@ namespace Heart
 {
     void Material::Initialize()
     {
-        Flourish::DescriptorSetAllocatorCreateInfo dsaCreateInfo;
-        dsaCreateInfo.Compatability = Flourish::DescriptorSetPipelineCompatabilityFlags::Graphics;
+        Flourish::ResourceSetAllocatorCreateInfo dsaCreateInfo;
+        dsaCreateInfo.Compatability = Flourish::ResourceSetPipelineCompatabilityFlags::Graphics;
         dsaCreateInfo.Layout = {
             { 0, Flourish::ShaderResourceType::Texture, Flourish::ShaderTypeFlags::Fragment, 1 },
             { 1, Flourish::ShaderResourceType::Texture, Flourish::ShaderTypeFlags::Fragment, 1 },
@@ -20,15 +20,15 @@ namespace Heart
             { 4, Flourish::ShaderResourceType::Texture, Flourish::ShaderTypeFlags::Fragment, 1 }
         };
 
-        s_DescriptorSetAllocator = Flourish::DescriptorSetAllocator::Create(dsaCreateInfo);
+        s_ResourceSetAllocator = Flourish::ResourceSetAllocator::Create(dsaCreateInfo);
     }
 
     void Material::Shutdown()
     {
-        s_DescriptorSetAllocator.reset();
+        s_ResourceSetAllocator.reset();
     }
 
-    bool BindTextureToIndex(const Ref<Flourish::Texture>& defaultTex, const Ref<Flourish::DescriptorSet>& set, UUID texId, u32 bindIndex)
+    bool BindTextureToIndex(const Ref<Flourish::Texture>& defaultTex, const Ref<Flourish::ResourceSet>& set, UUID texId, u32 bindIndex)
     {
         auto texAsset = AssetManager::RetrieveAsset<TextureAsset>(texId);
 
@@ -41,13 +41,13 @@ namespace Heart
         return valid;
     }
 
-    void Material::RecomputeDescriptorSet()
+    void Material::RecomputeResourceSet()
     {
-        Flourish::DescriptorSetCreateInfo dsCreateInfo;
-        dsCreateInfo.Writability = Flourish::DescriptorSetWritability::OnceStaticData;
+        Flourish::ResourceSetCreateInfo dsCreateInfo;
+        dsCreateInfo.Writability = Flourish::ResourceSetWritability::OnceStaticData;
         dsCreateInfo.StoreBindingReferences = true;
 
-        auto set = s_DescriptorSetAllocator->Allocate(dsCreateInfo);
+        auto set = s_ResourceSetAllocator->Allocate(dsCreateInfo);
 
         const auto& defaultTex = AssetManager::RetrieveAsset<TextureAsset>("engine/DefaultTexture.png", true)->GetTexture();
         m_MaterialData.SetHasAlbedo(BindTextureToIndex(defaultTex, set, GetAlbedoTexture(), 0));
@@ -57,6 +57,6 @@ namespace Heart
         m_MaterialData.SetHasOcclusion(BindTextureToIndex(defaultTex, set, GetOcclusionTexture(), 4));
 
         set->FlushBindings();
-        m_DescriptorSet = set;
+        m_ResourceSet = set;
     }
 }

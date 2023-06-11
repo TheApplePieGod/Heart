@@ -13,7 +13,7 @@ namespace Flourish
     class Framebuffer;
     class RenderPass;
     class CommandBuffer;
-    class DescriptorSet;
+    class ResourceSet;
 }
 
 namespace Heart
@@ -45,7 +45,7 @@ namespace Heart
             Ref<Flourish::Framebuffer> Framebuffer;
             Ref<Flourish::Texture> Texture;
             Ref<Flourish::CommandBuffer> CommandBuffer; // One for each face
-            Ref<Flourish::DescriptorSet> DescriptorSet;
+            Ref<Flourish::ResourceSet> ResourceSet;
         };
 
     private:
