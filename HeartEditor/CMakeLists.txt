@@ -1,5 +1,9 @@
 project(Editor)
 
+# Build dependencies
+set(IMGUI_NODE_EDITOR_IMGUI_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/Heart/lib/imgui")
+add_subdirectory("lib/imgui-node-editor")
+
 # Copy editor resources
 add_custom_target(CopyEditorResources ALL
   COMMAND ${CMAKE_COMMAND} -E make_directory ${OUTPUT_DIRECTORY}/resources
@@ -25,7 +29,10 @@ target_include_directories(
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>"
 )
 
-target_link_libraries(Editor Engine)
+target_link_libraries(Editor
+    Engine
+    imgui-node-editor
+)
 
 set_target_properties(Editor PROPERTIES WIN32_EXECUTABLE true)
 
