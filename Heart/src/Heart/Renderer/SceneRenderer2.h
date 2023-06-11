@@ -52,6 +52,7 @@ namespace Heart
 
         void OnEvent(Event& event) override;
 
+        void RebuildGraph();
         TaskGroup Render(const SceneRenderData& data);
 
         template<typename Plugin, typename ... Args>
@@ -62,18 +63,20 @@ namespace Heart
             return plugin;
         }
 
-        inline const RenderPlugin* GetPlugin(const HString8& name) const
+        inline const RenderPlugin* GetPlugin(const HStringView8& name) const
         {
             return m_Plugins.at(name).get();
         }
 
         template<typename Plugin>
-        inline const Plugin* GetPlugin(const HString8& name) const
+        inline const Plugin* GetPlugin(const HStringView8& name) const
         {
             return static_cast<Plugin*>(m_Plugins.at(name).get());
         }
 
         inline const auto& GetPlugins() const { return m_Plugins; }
+        inline const auto& GetPluginLeaves() const { return m_PluginLeaves; }
+        inline u32 GetMaxDepth() const { return m_MaxDepth; }
         inline u32 GetRenderWidth() const { return m_RenderWidth; }
         inline u32 GetRenderHeight() const { return m_RenderHeight; }
         inline Ref<Flourish::Texture>& GetRenderTexture() { return m_RenderTexture; }
@@ -86,10 +89,11 @@ namespace Heart
         void Resize();
 
     private:
-        HVector<HString8> m_PluginLeaves;
+        HVector<Ref<RenderPlugin>> m_PluginLeaves;
         std::unordered_map<HString8, Ref<RenderPlugin>> m_Plugins;
         u32 m_RenderWidth, m_RenderHeight;
         bool m_ShouldResize = false;
+        u32 m_MaxDepth = 0;
 
         Ref<Flourish::Texture> m_RenderTexture;
         Ref<Flourish::Texture> m_OutputTexture;

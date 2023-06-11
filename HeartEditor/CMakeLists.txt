@@ -27,6 +27,7 @@ target_include_directories(
   Editor
   PUBLIC
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>"
+  "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/imgui-node-editor>"
 )
 
 target_link_libraries(Editor
