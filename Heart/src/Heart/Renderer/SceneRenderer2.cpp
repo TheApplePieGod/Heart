@@ -41,15 +41,19 @@ namespace Heart
         RBMATCamCreateInfo.FrameDataPluginName = FrameData->GetName();
         RBMATCamCreateInfo.LightingDataPluginName = LightingData->GetName();
         RBMATCamCreateInfo.MaterialBatchesPluginName = CBMATCam->GetName();
-        RBMATCamCreateInfo.RenderMeshBatchesPluginName = RBMESHCam->GetName();
         auto RBMATCam = RegisterPlugin<RenderPlugins::RenderMaterialBatches>("RBMATCam", RBMATCamCreateInfo);
         RBMATCam->AddDependency(CBMATCam);
-        RBMATCam->AddDependency(RBMESHCam);
+
+        RenderPlugins::RenderEnvironmentMapCreateInfo ENVMAPCreateInfo;
+        ENVMAPCreateInfo.FrameDataPluginName = FrameData->GetName();
+        auto ENVMAP = RegisterPlugin<RenderPlugins::RenderEnvironmentMap>("ENVMAP", ENVMAPCreateInfo);
         
         //m_PluginLeaves.Add(RBMESHCam->GetName());
         m_PluginLeaves.Add(FrameData->GetName());
         m_PluginLeaves.Add(LightingData->GetName());
+        m_PluginLeaves.Add(RBMESHCam->GetName());
         m_PluginLeaves.Add(RBMATCam->GetName());
+        m_PluginLeaves.Add(ENVMAP->GetName());
     }
 
     SceneRenderer2::~SceneRenderer2()

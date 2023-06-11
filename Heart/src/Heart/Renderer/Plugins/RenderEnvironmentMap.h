@@ -9,29 +9,23 @@ namespace Flourish
     class RenderPass;
     class Framebuffer;
     class DescriptorSet;
-    class Buffer;
 }
 
 namespace Heart::RenderPlugins
 {
-    struct RenderMaterialBatchesCreateInfo
+    struct RenderEnvironmentMapCreateInfo
     {
-        HString8 MaterialBatchesPluginName;
         HString8 FrameDataPluginName;
-        HString8 LightingDataPluginName;
-        bool CanOutputEntityIds;
     };
 
-    class RenderMaterialBatches : public RenderPlugin
+    class RenderEnvironmentMap : public RenderPlugin
     {
     public:
-        RenderMaterialBatches(SceneRenderer2* renderer, HStringView8 name, const RenderMaterialBatchesCreateInfo& createInfo)
+        RenderEnvironmentMap (SceneRenderer2* renderer, HStringView8 name, const RenderEnvironmentMapCreateInfo& createInfo)
             : RenderPlugin(renderer, name), m_Info(createInfo)
         { Initialize(); }
 
         inline Flourish::CommandBuffer* GetCommandBuffer() const { return m_CommandBuffer.get(); }
-        inline const Flourish::Texture* GetEntityIdsTexture() const { return m_EntityIdsTexture.get(); }
-        inline const Flourish::Buffer* GetEntityIdsBuffer() const { return m_EntityIdsBuffer.get(); }
 
     protected:
         void RenderInternal(const SceneRenderData& data) override;
@@ -41,14 +35,11 @@ namespace Heart::RenderPlugins
         void Initialize();
 
     private:
-        RenderMaterialBatchesCreateInfo m_Info;
+        RenderEnvironmentMapCreateInfo m_Info;
 
         Ref<Flourish::CommandBuffer> m_CommandBuffer;
         Ref<Flourish::DescriptorSet> m_DescriptorSet;
         Ref<Flourish::RenderPass> m_RenderPass;
         Ref<Flourish::Framebuffer> m_Framebuffer;
-        Ref<Flourish::Texture> m_EntityIdsTexture;
-        Ref<Flourish::Texture> m_DefaultEnvironmentMap;
-        Ref<Flourish::Buffer> m_EntityIdsBuffer;
     };
 }

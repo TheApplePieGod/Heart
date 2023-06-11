@@ -8,3 +8,4 @@
 #include "RenderMeshBatches.h"
 #include "ComputeMaterialBatches.h"
 #include "RenderMaterialBatches.h"
+#include "RenderEnvironmentMap.h"

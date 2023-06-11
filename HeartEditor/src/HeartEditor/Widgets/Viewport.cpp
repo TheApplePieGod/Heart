@@ -67,6 +67,9 @@ namespace Widgets
             renderSettings2
         });
         EditorApp::Get().GetWindow().PushDependencyBuffers(
+            {{ m_SceneRenderer2->GetPlugin<Heart::RenderPlugins::RenderEnvironmentMap>("ENVMAP")->GetCommandBuffer() }}
+        );
+        EditorApp::Get().GetWindow().PushDependencyBuffers(
             {{ m_SceneRenderer2->GetPlugin<Heart::RenderPlugins::RenderMeshBatches>("RBMESHCam")->GetCommandBuffer() }}
         );
         EditorApp::Get().GetWindow().PushDependencyBuffers(

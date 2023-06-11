@@ -54,8 +54,14 @@ namespace Heart::RenderPlugins
 
         Flourish::RenderPassCreateInfo rpCreateInfo;
         rpCreateInfo.SampleCount = Flourish::MsaaSampleCount::None;
-        rpCreateInfo.DepthAttachments.push_back({ m_Renderer->GetDepthTexture()->GetColorFormat(), Flourish::AttachmentInitialization::Preserve });
-        rpCreateInfo.ColorAttachments.push_back({ m_Renderer->GetRenderTexture()->GetColorFormat() });
+        rpCreateInfo.DepthAttachments.push_back({
+            m_Renderer->GetDepthTexture()->GetColorFormat(),
+            Flourish::AttachmentInitialization::Preserve
+        });
+        rpCreateInfo.ColorAttachments.push_back({
+            m_Renderer->GetRenderTexture()->GetColorFormat(),
+            Flourish::AttachmentInitialization::Preserve
+        });
         if (m_Info.CanOutputEntityIds)
         {
             rpCreateInfo.ColorAttachments.push_back({ m_EntityIdsTexture->GetColorFormat() });
@@ -137,7 +143,6 @@ namespace Heart::RenderPlugins
         auto frameDataPlugin = m_Renderer->GetPlugin<RenderPlugins::FrameData>(m_Info.FrameDataPluginName);
         auto lightingDataPlugin = m_Renderer->GetPlugin<RenderPlugins::LightingData>(m_Info.LightingDataPluginName);
         auto batchesPlugin = m_Renderer->GetPlugin<RenderPlugins::ComputeMaterialBatches>(m_Info.MaterialBatchesPluginName);
-        auto renderMeshPlugin = m_Renderer->GetPlugin<RenderPlugins::RenderMeshBatches>(m_Info.RenderMeshBatchesPluginName);
         auto frameDataBuffer = frameDataPlugin->GetBuffer();
         auto lightingDataBuffer = lightingDataPlugin->GetBuffer();
         const auto& batchData = batchesPlugin->GetBatchData();
