@@ -79,13 +79,14 @@ namespace Heart
             // Run BFS from all roots to compute max depth
             if (pair.second->m_Dependencies.IsEmpty())
             {
-                HVector<std::pair<RenderPlugin*, u32>> searching = { { pair.second.get(), 0 } };
-                while (!searching.IsEmpty())
+                std::queue<std::pair<RenderPlugin*, u32>> searching;
+                searching.emplace(pair.second.get(), 0);
+                while (!searching.empty())
                 {
-                    auto pair = searching.Front();
-                    searching.Remove(0);
+                    auto pair = searching.front();
+                    searching.pop();
                     for (const auto& dep : pair.first->m_Dependents)
-                        searching.AddInPlace(m_Plugins[dep].get(), pair.second + 1);
+                        searching.emplace(m_Plugins[dep].get(), pair.second + 1);
                     pair.first->m_MaxDepth = pair.second;
                     if (pair.second > m_MaxDepth)
                         m_MaxDepth = pair.second;
