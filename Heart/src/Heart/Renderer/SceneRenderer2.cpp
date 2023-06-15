@@ -3,8 +3,10 @@
 
 #include "Heart/Renderer/Plugins/AllPlugins.h"
 #include "Heart/Core/Window.h"
+#include "Heart/Task/TaskManager.h"
 #include "Heart/Events/WindowEvents.h"
 #include "Flourish/Api/Texture.h"
+#include "Flourish/Api/RenderGraph.h"
 
 namespace Heart
 {
@@ -14,6 +16,10 @@ namespace Heart
 
         m_RenderWidth = Window::GetMainWindow().GetWidth();
         m_RenderHeight = Window::GetMainWindow().GetHeight();
+
+        Flourish::RenderGraphCreateInfo rgCreateInfo;
+        rgCreateInfo.Usage = Flourish::RenderGraphUsageType::PerFrame;
+        m_RenderGraph = Flourish::RenderGraph::Create(rgCreateInfo);
 
         CreateTextures();
 
@@ -28,12 +34,16 @@ namespace Heart
         RBMESHCamCreateInfo.FrameDataPluginName = FrameData->GetName();
         RBMESHCamCreateInfo.MeshBatchesPluginName = CBMESHCam->GetName();
         auto RBMESHCam = RegisterPlugin<RenderPlugins::RenderMeshBatches>("RBMESHCam", RBMESHCamCreateInfo);
-        RBMESHCam->AddDependency(CBMESHCam);
+        RBMESHCam->AddDependency(CBMESHCam->GetName(), GraphDependencyType::CPU);
 
         RenderPlugins::ComputeMaterialBatchesCreateInfo CBMATCamCreateInfo;
         CBMATCamCreateInfo.MeshBatchesPluginName = CBMESHCam->GetName();
         auto CBMATCam = RegisterPlugin<RenderPlugins::ComputeMaterialBatches>("CBMATCam", CBMATCamCreateInfo);
-        CBMATCam->AddDependency(CBMESHCam);
+        CBMATCam->AddDependency(CBMESHCam->GetName(), GraphDependencyType::CPU);
+
+        RenderPlugins::RenderEnvironmentMapCreateInfo ENVMAPCreateInfo;
+        ENVMAPCreateInfo.FrameDataPluginName = FrameData->GetName();
+        auto ENVMAP = RegisterPlugin<RenderPlugins::RenderEnvironmentMap>("ENVMAP", ENVMAPCreateInfo);
 
         RenderPlugins::RenderMaterialBatchesCreateInfo RBMATCamCreateInfo;
         // TODO: parameterize. will need to add support for specialization constants to do this
@@ -42,12 +52,10 @@ namespace Heart
         RBMATCamCreateInfo.LightingDataPluginName = LightingData->GetName();
         RBMATCamCreateInfo.MaterialBatchesPluginName = CBMATCam->GetName();
         auto RBMATCam = RegisterPlugin<RenderPlugins::RenderMaterialBatches>("RBMATCam", RBMATCamCreateInfo);
-        RBMATCam->AddDependency(CBMATCam);
+        RBMATCam->AddDependency(CBMATCam->GetName(), GraphDependencyType::CPU);
+        RBMATCam->AddDependency(RBMESHCam->GetName(), GraphDependencyType::GPU);
+        RBMATCam->AddDependency(ENVMAP->GetName(), GraphDependencyType::GPU);
 
-        RenderPlugins::RenderEnvironmentMapCreateInfo ENVMAPCreateInfo;
-        ENVMAPCreateInfo.FrameDataPluginName = FrameData->GetName();
-        auto ENVMAP = RegisterPlugin<RenderPlugins::RenderEnvironmentMap>("ENVMAP", ENVMAPCreateInfo);
-        
         RebuildGraph();
     }
 
@@ -58,41 +66,21 @@ namespace Heart
 
     void SceneRenderer2::RebuildGraph()
     {
-        m_PluginLeaves.Clear();
-        m_MaxDepth = 0;
+        RebuildGraphInternal(GraphDependencyType::CPU);
+        RebuildGraphInternal(GraphDependencyType::GPU);
 
-        // Clear dependents
+        m_RenderGraph->Clear();
+
+        // Add all buffers as nodes
         for (const auto& pair : m_Plugins)
-            pair.second->m_Dependents.Clear();
+            if (pair.second->GetCommandBuffer())
+                m_RenderGraph->AddCommandBuffer(pair.second->GetCommandBuffer());
 
-        // Populate dependents
+        // Define dependencies
         for (const auto& pair : m_Plugins)
-            for (const auto& dep : pair.second->m_Dependencies)
-                dep->m_Dependents.AddInPlace(pair.first);
-
-        for (const auto& pair : m_Plugins)
-        {
-            // Populate leaves
-            if (pair.second->m_Dependents.IsEmpty())
-                m_PluginLeaves.AddInPlace(pair.second);
-
-            // Run BFS from all roots to compute max depth
-            if (pair.second->m_Dependencies.IsEmpty())
-            {
-                std::queue<std::pair<RenderPlugin*, u32>> searching;
-                searching.emplace(pair.second.get(), 0);
-                while (!searching.empty())
-                {
-                    auto pair = searching.front();
-                    searching.pop();
-                    for (const auto& dep : pair.first->m_Dependents)
-                        searching.emplace(m_Plugins[dep].get(), pair.second + 1);
-                    pair.first->m_MaxDepth = pair.second;
-                    if (pair.second > m_MaxDepth)
-                        m_MaxDepth = pair.second;
-                }
-            }
-        }
+            if (pair.second->GetCommandBuffer())
+                for (const auto& dep : pair.second->GetGraphData(GraphDependencyType::GPU).Dependencies)
+                    m_RenderGraph->AddCommandBuffer(pair.second->GetCommandBuffer(), m_Plugins[dep]->GetCommandBuffer());
     }
 
     TaskGroup SceneRenderer2::Render(const SceneRenderData& data)
@@ -104,13 +92,48 @@ namespace Heart
         }
 
         TaskGroup group;
-        for (const auto& leaf : m_PluginLeaves)
+        for (const auto& leaf : m_CPUGraphData.Leaves)
         {
-            leaf->Render(data);
-            group.AddTask(leaf->GetTask());
+            auto& plugin = m_Plugins[leaf];
+            plugin->Render(data);
+            group.AddTask(plugin->GetTask());
+        }
+
+        /*
+        Task finalTask = TaskManager::Schedule(
+            [this, data](){ RenderInternal(data); },
+            Task::Priority::High,
+            m_DependencyTasks
+        );
+        */
+        group.Wait();
+
+        if (!m_RenderGraph->IsBuild())
+        {
+            /*
+            auto cb1 = GetPlugin<Heart::RenderPlugins::RenderEnvironmentMap>("ENVMAP")->GetCommandBuffer();
+            auto cb2 = GetPlugin<Heart::RenderPlugins::RenderMeshBatches>("RBMESHCam")->GetCommandBuffer();
+            auto cb3 = GetPlugin<Heart::RenderPlugins::RenderMaterialBatches>("RBMATCam")->GetCommandBuffer();
+
+            m_RenderGraph->AddCommandBuffer(cb1);
+            m_RenderGraph->AddCommandBuffer(cb2);
+            m_RenderGraph->AddCommandBuffer(cb3, cb1);
+            m_RenderGraph->AddCommandBuffer(cb3, cb2);
+            */
+
+            m_RenderGraph->Build();
         }
 
         return group;
+    }
+
+    SceneRenderer2::GraphData& SceneRenderer2::GetGraphData(GraphDependencyType depType)
+    {
+        switch (depType) {
+            default: return m_CPUGraphData;
+            case GraphDependencyType::CPU: return m_CPUGraphData;
+            case GraphDependencyType::GPU: return m_GPUGraphData;
+        }
     }
 
     void SceneRenderer2::Resize()
@@ -118,8 +141,48 @@ namespace Heart
         CreateTextures();
 
         // Resize topologically in case of size dependencies
-        for (const auto& leaf : m_PluginLeaves)
-            leaf->Resize();
+        for (const auto& leaf : m_CPUGraphData.Leaves)
+            m_Plugins[leaf]->Resize();
+    }
+
+    void SceneRenderer2::RebuildGraphInternal(GraphDependencyType depType)
+    {
+        GraphData& graphData = GetGraphData(depType);
+        graphData.Leaves.Clear();
+        graphData.MaxDepth = 0;
+
+        // Clear dependents
+        for (const auto& pair : m_Plugins)
+            pair.second->GetGraphData(depType).Dependents.Clear();
+
+        // Populate dependents
+        for (const auto& pair : m_Plugins)
+            for (const auto& dep : pair.second->GetGraphData(depType).Dependencies)
+                m_Plugins[dep]->GetGraphData(depType).Dependents.AddInPlace(pair.first);
+
+        for (const auto& pair : m_Plugins)
+        {
+            // Populate leaves
+            if (pair.second->GetGraphData(depType).Dependents.IsEmpty())
+                graphData.Leaves.AddInPlace(pair.first);
+
+            // Run BFS from all roots to compute max depth
+            if (pair.second->GetGraphData(depType).Dependencies.empty())
+            {
+                std::queue<std::pair<RenderPlugin*, u32>> searching;
+                searching.emplace(pair.second.get(), 0);
+                while (!searching.empty())
+                {
+                    auto pair = searching.front();
+                    searching.pop();
+                    for (const auto& dep : pair.first->GetGraphData(depType).Dependents)
+                        searching.emplace(m_Plugins[dep].get(), pair.second + 1);
+                    pair.first->GetGraphData(depType).MaxDepth = pair.second;
+                    if (pair.second > graphData.MaxDepth)
+                        graphData.MaxDepth = pair.second;
+                }
+            }
+        }
     }
 
     void SceneRenderer2::CreateTextures()

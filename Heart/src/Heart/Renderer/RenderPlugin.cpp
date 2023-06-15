@@ -14,8 +14,9 @@ namespace Heart
         m_LastRenderFrame = App::Get().GetFrameCount();
         
         m_DependencyTasks.Clear();
-        for (const auto& dep : m_Dependencies)
+        for (const auto& depName : m_CPUGraphData.Dependencies)
         {
+            auto dep = m_Renderer->GetPlugin(depName);
             dep->Render(data);
             m_DependencyTasks.Add(dep->GetTask());
         }
@@ -29,9 +30,22 @@ namespace Heart
 
     void RenderPlugin::Resize()
     {
-        for (const auto& dep : m_Dependencies)
-            dep->Resize();
+        for (const auto& depName : m_CPUGraphData.Dependencies)
+            m_Renderer->GetPlugin(depName)->Resize();
 
         ResizeInternal();
+    }
+
+    void RenderPlugin::AddDependency(const HString8& name, GraphDependencyType depType)
+    {
+        GetGraphData(depType).Dependencies.insert(name);
+    }
+
+    RenderPlugin::GraphData& RenderPlugin::GetGraphData(GraphDependencyType depType)
+    {
+        switch (depType) {
+            case GraphDependencyType::CPU: return m_CPUGraphData;
+            case GraphDependencyType::GPU: return m_GPUGraphData;
+        }
     }
 }

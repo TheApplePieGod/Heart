@@ -37,7 +37,6 @@ namespace Heart::RenderPlugins
     private:
         RenderEnvironmentMapCreateInfo m_Info;
 
-        Ref<Flourish::CommandBuffer> m_CommandBuffer;
         Ref<Flourish::ResourceSet> m_ResourceSet;
         Ref<Flourish::RenderPass> m_RenderPass;
         Ref<Flourish::Framebuffer> m_Framebuffer;

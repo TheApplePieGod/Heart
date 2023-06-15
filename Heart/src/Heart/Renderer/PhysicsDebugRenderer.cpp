@@ -57,7 +57,6 @@ namespace Heart
         m_CameraDataBuffer = Flourish::Buffer::Create(bufCreateInfo);
         
         Flourish::CommandBufferCreateInfo cbCreateInfo;
-        cbCreateInfo.MaxEncoders = 1;
         m_MainCommandBuffer = Flourish::CommandBuffer::Create(cbCreateInfo);
      
         Resize(width, height);

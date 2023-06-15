@@ -20,6 +20,7 @@
 #include "Flourish/Api/GraphicsPipeline.h"
 #include "Flourish/Api/Buffer.h"
 #include "Flourish/Api/ResourceSet.h"
+#include "Flourish/Api/RenderGraph.h"
 
 namespace Heart
 {
@@ -60,13 +61,17 @@ namespace Heart
 
         // Create the command buffers
         Flourish::CommandBufferCreateInfo cmdCreateInfo;
-        cmdCreateInfo.MaxEncoders = 2;
         cmdCreateInfo.FrameRestricted = false;
         m_BRDFTexture.CommandBuffer = Flourish::CommandBuffer::Create(cmdCreateInfo);
         m_EnvironmentMap.CommandBuffer = Flourish::CommandBuffer::Create(cmdCreateInfo);
         m_IrradianceMap.CommandBuffer = Flourish::CommandBuffer::Create(cmdCreateInfo);
         for (u32 i = 0; i < m_PrefilterMaps.Count(); i++)
             m_PrefilterMaps[i].CommandBuffer = Flourish::CommandBuffer::Create(cmdCreateInfo);
+
+        // Create the render graph
+        Flourish::RenderGraphCreateInfo rgCreateInfo;
+        rgCreateInfo.Usage = Flourish::RenderGraphUsageType::Once;
+        m_RenderGraph = Flourish::RenderGraph::Create(rgCreateInfo);
 
         // Create the cubemap data buffer to hold data for each face render
         Flourish::BufferCreateInfo bufCreateInfo;
@@ -409,13 +414,16 @@ namespace Heart
 
         m_SetsWritten = true;
 
-        std::vector<std::vector<Flourish::CommandBuffer*>> submission = {
-            { m_EnvironmentMap.CommandBuffer.get() }, { m_IrradianceMap.CommandBuffer.get() }
-        };
-        for (u32 i = 0; i < m_PrefilterMaps.Count(); i++)
-            submission[1].push_back(m_PrefilterMaps[i].CommandBuffer.get());
+        if (!m_RenderGraph->IsBuild())
+        {
+            m_RenderGraph->AddCommandBuffer(m_BRDFTexture.CommandBuffer.get());
+            m_RenderGraph->AddCommandBuffer(m_EnvironmentMap.CommandBuffer.get());
+            m_RenderGraph->AddCommandBuffer(m_IrradianceMap.CommandBuffer.get(), m_EnvironmentMap.CommandBuffer.get());
+            for (u32 i = 0; i < m_PrefilterMaps.Count(); i++)
+                m_RenderGraph->AddCommandBuffer(m_PrefilterMaps[i].CommandBuffer.get(), m_EnvironmentMap.CommandBuffer.get());
+            m_RenderGraph->Build();
+        }
 
-        Flourish::Context::PushCommandBuffers({ { m_BRDFTexture.CommandBuffer.get() } });
-        Flourish::Context::PushCommandBuffers(submission);
+        Flourish::Context::PushRenderGraph(m_RenderGraph.get());
     }
 }

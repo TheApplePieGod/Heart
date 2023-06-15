@@ -17,7 +17,7 @@ namespace Widgets
         void OnImGuiRender() override;
 
     private:
-        void RenderNode(Heart::Ref<Heart::RenderPlugin> plugin, float yPos);
+        void RenderNode(const Heart::HString8& pluginName, float yPos, Heart::GraphDependencyType depType);
 
     private:
         ax::NodeEditor::EditorContext* m_EditorContext;

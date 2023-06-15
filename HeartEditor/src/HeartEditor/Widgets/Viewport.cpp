@@ -56,6 +56,12 @@ namespace Widgets
         );
         EditorApp::Get().GetWindow().PushDependencyBuffers(m_SceneRenderer->GetRenderBuffers());
         */
+
+
+
+        // TODO: move eid transfer into own cmdbuf
+        // Need to have a clear plugin
+
         
         auto renderSettings2 = Heart::SceneRenderSettings2();
         renderSettings2.CopyEntityIdsTextureToCPU = true;
@@ -66,16 +72,9 @@ namespace Widgets
             m_ActiveCameraPos,
             renderSettings2
         });
-        EditorApp::Get().GetWindow().PushDependencyBuffers(
-            {{ m_SceneRenderer2->GetPlugin<Heart::RenderPlugins::RenderEnvironmentMap>("ENVMAP")->GetCommandBuffer() }}
-        );
-        EditorApp::Get().GetWindow().PushDependencyBuffers(
-            {{ m_SceneRenderer2->GetPlugin<Heart::RenderPlugins::RenderMeshBatches>("RBMESHCam")->GetCommandBuffer() }}
-        );
-        EditorApp::Get().GetWindow().PushDependencyBuffers(
-            {{ m_SceneRenderer2->GetPlugin<Heart::RenderPlugins::RenderMaterialBatches>("RBMATCam")->GetCommandBuffer() }}
-        );
         render2group.Wait();
+
+        Flourish::Context::PushFrameRenderGraph(m_SceneRenderer2->GetRenderGraph());
         
         // calculate viewport bounds & aspect ratio
         ImVec2 viewportMin = ImGui::GetWindowContentRegionMin();

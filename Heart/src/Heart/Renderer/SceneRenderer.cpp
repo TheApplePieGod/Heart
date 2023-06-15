@@ -90,16 +90,9 @@ namespace Heart
 
         // Create command buffers
         Flourish::CommandBufferCreateInfo cbCreateInfo;
-        cbCreateInfo.MaxEncoders = 5;
         m_MainCommandBuffer = Flourish::CommandBuffer::Create(cbCreateInfo);
-
-        cbCreateInfo.MaxEncoders = m_MaxBloomMipCount * 2; 
         m_BloomCommandBuffer = Flourish::CommandBuffer::Create(cbCreateInfo);
-
-        cbCreateInfo.MaxEncoders = 1; 
         m_FinalCommandBuffer = Flourish::CommandBuffer::Create(cbCreateInfo);
-
-        cbCreateInfo.MaxEncoders = 1; 
         m_SSAOCommandBuffer = Flourish::CommandBuffer::Create(cbCreateInfo);
     }
 

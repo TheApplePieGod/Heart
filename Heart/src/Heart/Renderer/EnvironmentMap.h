@@ -14,6 +14,7 @@ namespace Flourish
     class RenderPass;
     class CommandBuffer;
     class ResourceSet;
+    class RenderGraph;
 }
 
 namespace Heart
@@ -65,5 +66,7 @@ namespace Heart
 
         Ref<Flourish::Buffer> m_CubemapDataBuffer;
         Ref<Flourish::Buffer> m_FrameDataBuffer;
+
+        Ref<Flourish::RenderGraph> m_RenderGraph;
     };
 }

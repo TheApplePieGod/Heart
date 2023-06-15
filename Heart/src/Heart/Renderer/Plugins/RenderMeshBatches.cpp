@@ -79,7 +79,6 @@ namespace Heart::RenderPlugins
 
         Flourish::CommandBufferCreateInfo cbCreateInfo;
         cbCreateInfo.FrameRestricted = true;
-        cbCreateInfo.MaxEncoders = 1;
         m_CommandBuffer = Flourish::CommandBuffer::Create(cbCreateInfo);
 
         Flourish::ResourceSetCreateInfo dsCreateInfo;

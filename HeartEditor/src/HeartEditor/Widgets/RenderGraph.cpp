@@ -48,9 +48,9 @@ namespace Widgets
 
         // Create a node for each plugin
         float yPos = 0.f;
-        for (const auto& leaf : renderer.GetPluginLeaves())
+        for (const auto& leaf : renderer.GetGraphData(Heart::GraphDependencyType::GPU).Leaves)
         {
-            RenderNode(leaf, yPos);
+            RenderNode(leaf, yPos, Heart::GraphDependencyType::GPU);
             yPos += 75.f;
         }
         NodeEditor::End();
@@ -62,23 +62,24 @@ namespace Widgets
         m_FirstRender = false;
     }
 
-    void RenderGraph::RenderNode(Heart::Ref<Heart::RenderPlugin> plugin, float yPos)
+    void RenderGraph::RenderNode(const Heart::HString8& pluginName, float yPos, Heart::GraphDependencyType depType)
     {
-        const auto& plugins = m_RendererContext->GetPlugins();
+        auto plugin = m_RendererContext->GetPlugin(pluginName);
+        const auto& graphData = plugin->GetGraphData(depType);
 
         NodeEditor::BeginNode((u64)plugin->GetUUID());
 
         const float nodeWidth = 200.f;
         ImVec2 horizLayoutSize = { nodeWidth, 0.f };
 
-        ImGui::Text(plugin->GetName().Data());
+        ImGui::Text(pluginName.Data());
         ImGui::BeginHorizontal(plugin->GetName().Data(), horizLayoutSize);
 
         // Add dependencies as incoming pins
         // Should have no issue with unique ids here
         u64 idCounter = plugin->GetUUID();
         ImGui::BeginVertical("in");
-        for (const auto& dep : plugin->GetDependencies())
+        for (const auto& dep : graphData.Dependencies)
         {
             NodeEditor::BeginPin(++idCounter, NodeEditor::PinKind::Input);
             ImGui::Text(">");
@@ -89,14 +90,18 @@ namespace Widgets
         ImGui::Spring(1.0f, 0);
 
         ImGui::BeginVertical("out");
-        for (const auto& depName : plugin->GetDependents())
+        for (const auto& depName : graphData.Dependents)
         {
             // Find index of this node
             u32 idx = 0;
             const auto& dep = m_RendererContext->GetPlugin(depName);
-            for (; idx < dep->GetDependencies().Count(); idx++)
-                if (dep->GetDependencies()[idx].get() == plugin.get())
+            const auto& dependencies = dep->GetGraphData(depType).Dependencies;
+            for (auto& name : dependencies)
+            {
+                if (name == pluginName)
                     break;
+                idx++;
+            }
 
             NodeEditor::BeginPin(++idCounter, NodeEditor::PinKind::Output);
             ImGui::Text(">");
@@ -112,13 +117,13 @@ namespace Widgets
 
         // Set x position based on computed depth
         float xOffset = 75.f;
-        float xPos = plugin->GetMaxDepth() * (nodeWidth + xOffset);
+        float xPos = graphData.MaxDepth * (nodeWidth + xOffset);
         if (m_FirstRender)
             NodeEditor::SetNodePosition((u64)plugin->GetUUID(), { xPos, yPos });
 
         // Recurse
-        for (const auto& dep : plugin->GetDependencies())
-            RenderNode(dep, yPos);
+        for (const auto& dep : graphData.Dependencies)
+            RenderNode(dep, yPos, depType);
     }
 }
 }

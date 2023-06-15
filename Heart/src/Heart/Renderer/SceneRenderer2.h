@@ -8,11 +8,7 @@
 #include "Heart/Scene/RenderScene.h"
 #include "Heart/Core/Camera.h"
 #include "Heart/Renderer/EnvironmentMap.h"
-
-namespace Flourish
-{
-
-}
+#include "Heart/Renderer/RenderPlugin.h"
 
 namespace Heart
 {
@@ -42,10 +38,16 @@ namespace Heart
         SceneRenderSettings2 Settings;
     };
     
-    class RenderPlugin;
     class WindowResizeEvent;
     class SceneRenderer2 : public EventListener
     {
+    public:
+        struct GraphData
+        {
+            HVector<HString8> Leaves;
+            u32 MaxDepth = 0;
+        };
+
     public:
         SceneRenderer2();
         ~SceneRenderer2();
@@ -55,6 +57,8 @@ namespace Heart
         void RebuildGraph();
         TaskGroup Render(const SceneRenderData& data);
 
+        GraphData& GetGraphData(GraphDependencyType depType);
+
         template<typename Plugin, typename ... Args>
         Ref<Plugin> RegisterPlugin(Args&& ... args)
         {
@@ -63,7 +67,7 @@ namespace Heart
             return plugin;
         }
 
-        inline const RenderPlugin* GetPlugin(const HStringView8& name) const
+        inline RenderPlugin* GetPlugin(const HStringView8& name) const
         {
             return m_Plugins.at(name).get();
         }
@@ -75,28 +79,30 @@ namespace Heart
         }
 
         inline const auto& GetPlugins() const { return m_Plugins; }
-        inline const auto& GetPluginLeaves() const { return m_PluginLeaves; }
-        inline u32 GetMaxDepth() const { return m_MaxDepth; }
         inline u32 GetRenderWidth() const { return m_RenderWidth; }
         inline u32 GetRenderHeight() const { return m_RenderHeight; }
         inline Ref<Flourish::Texture>& GetRenderTexture() { return m_RenderTexture; }
         inline Ref<Flourish::Texture>& GetOutputTexture() { return m_OutputTexture; }
         inline Ref<Flourish::Texture>& GetDepthTexture() { return m_DepthTexture; }
+        inline Flourish::RenderGraph* GetRenderGraph() { return m_RenderGraph.get(); }
     
     private:
         bool OnWindowResize(WindowResizeEvent& event);
         void CreateTextures();
         void Resize();
+        void RebuildGraphInternal(GraphDependencyType depType);
 
     private:
-        HVector<Ref<RenderPlugin>> m_PluginLeaves;
         std::unordered_map<HString8, Ref<RenderPlugin>> m_Plugins;
         u32 m_RenderWidth, m_RenderHeight;
         bool m_ShouldResize = false;
-        u32 m_MaxDepth = 0;
+        GraphData m_CPUGraphData;
+        GraphData m_GPUGraphData;
 
         Ref<Flourish::Texture> m_RenderTexture;
         Ref<Flourish::Texture> m_OutputTexture;
         Ref<Flourish::Texture> m_DepthTexture;
+
+        Ref<Flourish::RenderGraph> m_RenderGraph;
     };
 }
