@@ -4,7 +4,6 @@
 
 namespace Flourish
 {
-    class CommandBuffer;
     class Texture;
     class RenderPass;
     class Framebuffer;
@@ -27,7 +26,6 @@ namespace Heart::RenderPlugins
             : RenderPlugin(renderer, name), m_Info(createInfo)
         { Initialize(); }
 
-        inline Flourish::CommandBuffer* GetCommandBuffer() const { return m_CommandBuffer.get(); }
         inline Flourish::Texture* GetNormalsTexture() const { return m_NormalsTexture.get(); }
 
     protected:

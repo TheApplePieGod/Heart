@@ -20,12 +20,9 @@ namespace Heart::RenderPlugins
             glm::mat4 View;
             glm::mat4 InvViewProj;
             glm::vec4 CameraPos;
+            glm::vec2 ClipPlanes;
             glm::vec2 ScreenSize;
             u32 ReverseDepth;
-            u32 CullEnable;
-            u32 BloomEnable;
-            u32 SSAOEnable;
-            u32 PhysicsDebugEnable;
             float Padding;
         };
 

@@ -45,6 +45,11 @@ namespace Heart
         ENVMAPCreateInfo.FrameDataPluginName = FrameData->GetName();
         auto ENVMAP = RegisterPlugin<RenderPlugins::RenderEnvironmentMap>("ENVMAP", ENVMAPCreateInfo);
 
+        RenderPlugins::InfiniteGridCreateInfo GRIDCreateInfo;
+        GRIDCreateInfo.FrameDataPluginName = FrameData->GetName();
+        auto GRID = RegisterPlugin<RenderPlugins::InfiniteGrid>("GRID", GRIDCreateInfo);
+        GRID->AddDependency(ENVMAP->GetName(), GraphDependencyType::GPU);
+
         RenderPlugins::RenderMaterialBatchesCreateInfo RBMATCamCreateInfo;
         // TODO: parameterize. will need to add support for specialization constants to do this
         RBMATCamCreateInfo.CanOutputEntityIds = true; 
@@ -54,7 +59,7 @@ namespace Heart
         auto RBMATCam = RegisterPlugin<RenderPlugins::RenderMaterialBatches>("RBMATCam", RBMATCamCreateInfo);
         RBMATCam->AddDependency(CBMATCam->GetName(), GraphDependencyType::CPU);
         RBMATCam->AddDependency(RBMESHCam->GetName(), GraphDependencyType::GPU);
-        RBMATCam->AddDependency(ENVMAP->GetName(), GraphDependencyType::GPU);
+        RBMATCam->AddDependency(GRID->GetName(), GraphDependencyType::GPU);
 
         RebuildGraph();
     }

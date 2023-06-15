@@ -9,3 +9,4 @@
 #include "ComputeMaterialBatches.h"
 #include "RenderMaterialBatches.h"
 #include "RenderEnvironmentMap.h"
+#include "InfiniteGrid.h"

@@ -4,7 +4,6 @@
 
 namespace Flourish
 {
-    class Texture;
     class RenderPass;
     class Framebuffer;
     class ResourceSet;
@@ -12,15 +11,15 @@ namespace Flourish
 
 namespace Heart::RenderPlugins
 {
-    struct RenderEnvironmentMapCreateInfo
+    struct InfiniteGridCreateInfo
     {
         HString8 FrameDataPluginName;
     };
 
-    class RenderEnvironmentMap : public RenderPlugin
+    class InfiniteGrid : public RenderPlugin
     {
     public:
-        RenderEnvironmentMap (SceneRenderer2* renderer, HStringView8 name, const RenderEnvironmentMapCreateInfo& createInfo)
+        InfiniteGrid(SceneRenderer2* renderer, HStringView8 name, const InfiniteGridCreateInfo& createInfo)
             : RenderPlugin(renderer, name), m_Info(createInfo)
         { Initialize(); }
 
@@ -32,7 +31,7 @@ namespace Heart::RenderPlugins
         void Initialize();
 
     private:
-        RenderEnvironmentMapCreateInfo m_Info;
+        InfiniteGridCreateInfo m_Info;
 
         Ref<Flourish::ResourceSet> m_ResourceSet;
         Ref<Flourish::RenderPass> m_RenderPass;

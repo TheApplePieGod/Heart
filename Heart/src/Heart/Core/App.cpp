@@ -102,7 +102,7 @@ namespace Heart
         initInfo.ApplicationName = "Heart";
         initInfo.Backend = Flourish::BackendType::Vulkan;
         initInfo.FrameBufferCount = 3;
-        initInfo.UseReversedZBuffer = true;
+        initInfo.UseReversedZBuffer = false;
         initInfo.RequestedFeatures.IndependentBlend = true;
         initInfo.RequestedFeatures.WideLines = true;
         initInfo.RequestedFeatures.SamplerAnisotropy = true;

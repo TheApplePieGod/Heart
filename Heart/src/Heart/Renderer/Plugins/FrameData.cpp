@@ -13,14 +13,11 @@ namespace Heart::RenderPlugins
         BufferData bufData = {
             data.Camera->GetProjectionMatrix(),
             data.Camera->GetViewMatrix(),
-            glm::inverse(data.Camera->GetProjectionMatrix()/* * camera.GetViewMatrix()*/),
+            glm::inverse(data.Camera->GetProjectionMatrix() * data.Camera->GetViewMatrix()),
             glm::vec4(data.CameraPos, 1.f),
+            glm::vec2(data.Camera->GetNearClip(), data.Camera->GetFarClip()),
             { m_Renderer->GetRenderWidth(), m_Renderer->GetRenderHeight() },
             Flourish::Context::ReversedZBuffer(),
-            data.Settings.CullEnable,
-            data.Settings.BloomEnable,
-            data.Settings.SSAOEnable,
-            data.Settings.RenderPhysicsVolumes
         };
         m_Buffer->SetElements(&bufData, 1, 0);
     }
