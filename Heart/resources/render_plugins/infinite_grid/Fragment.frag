@@ -9,7 +9,7 @@ layout(location = 1) in vec3 farPoint;
 
 const float SCALE = 10;
 const float SCALE_LOG = log(SCALE);
-const float VIEW_CELLS = 12;
+const float VIEW_CELLS = 15;
 
 vec4 grid(vec3 fragPos, float offset, int falloff) {
     // Compute grid scale level based on camera y pos

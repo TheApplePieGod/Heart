@@ -35,7 +35,9 @@ namespace Heart::RenderPlugins
         pipelineCreateInfo.FragmentShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/infinite_grid/Fragment.frag", true)->GetShader();
         pipelineCreateInfo.VertexShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/infinite_grid/Vertex.vert", true)->GetShader();
         pipelineCreateInfo.VertexInput = false;
-        pipelineCreateInfo.BlendStates = { { false } };
+        pipelineCreateInfo.BlendStates = {
+            { true, Flourish::BlendFactor::SrcAlpha, Flourish::BlendFactor::OneMinusSrcAlpha, Flourish::BlendFactor::One, Flourish::BlendFactor::OneMinusSrcAlpha }
+        };
         pipelineCreateInfo.DepthConfig.DepthTest = false;
         pipelineCreateInfo.DepthConfig.DepthWrite = true;
         pipelineCreateInfo.CullMode = Flourish::CullMode::None;

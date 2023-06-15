@@ -104,7 +104,6 @@ namespace Heart
         initInfo.FrameBufferCount = 3;
         initInfo.UseReversedZBuffer = false;
         initInfo.RequestedFeatures.IndependentBlend = true;
-        initInfo.RequestedFeatures.WideLines = true;
         initInfo.RequestedFeatures.SamplerAnisotropy = true;
         Flourish::Context::Initialize(initInfo);
 
