@@ -12,6 +12,9 @@ void main() {
     vec4 worldPos = objectBuffer.objects[objectId].model * vec4(inPosition, 1.0);
     vec4 viewPos = frameBuffer.data.view * worldPos;
     gl_Position = frameBuffer.data.proj * viewPos;
+
+    // Offset to fix depth test precision issues
+    gl_Position.z += (1 - 2 * int(frameBuffer.data.reverseDepth)) * 0.00001;
     
     viewNormal = normalize((
         frameBuffer.data.proj * frameBuffer.data.view * vec4(mat3(objectBuffer.objects[objectId].model) * inNormal, 1.0)

@@ -94,7 +94,7 @@ namespace Heart::RenderPlugins
             pipelineCreateInfo.BlendStates.push_back({ false });
         pipelineCreateInfo.DepthConfig.DepthTest = true;
         pipelineCreateInfo.DepthConfig.DepthWrite = false;
-        pipelineCreateInfo.DepthConfig.CompareOperation = Flourish::DepthComparison::Equal;
+        pipelineCreateInfo.DepthConfig.CompareOperation = Flourish::DepthComparison::Auto;
         pipelineCreateInfo.CullMode = Flourish::CullMode::Backface;
         pipelineCreateInfo.WindingOrder = Flourish::WindingOrder::Clockwise;
         //pipelineCreateInfo.CompatibleSubpasses = { 2 };
