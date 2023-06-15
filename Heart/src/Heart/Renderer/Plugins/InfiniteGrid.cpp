@@ -25,9 +25,14 @@ namespace Heart::RenderPlugins
             m_Renderer->GetRenderTexture()->GetColorFormat(),
             Flourish::AttachmentInitialization::Preserve
         });
+        // TODO: clear plugin
+        rpCreateInfo.DepthAttachments.push_back({
+            m_Renderer->GetDepthTexture()->GetColorFormat(),
+            //Flourish::AttachmentInitialization::Preserve
+        });
         rpCreateInfo.Subpasses.push_back({
             {},
-            { { Flourish::SubpassAttachmentType::Color, 0 } }
+            { { Flourish::SubpassAttachmentType::Depth, 0 }, { Flourish::SubpassAttachmentType::Color, 0 } }
         });
         m_RenderPass = Flourish::RenderPass::Create(rpCreateInfo);
 
@@ -38,7 +43,8 @@ namespace Heart::RenderPlugins
         pipelineCreateInfo.BlendStates = {
             { true, Flourish::BlendFactor::SrcAlpha, Flourish::BlendFactor::OneMinusSrcAlpha, Flourish::BlendFactor::One, Flourish::BlendFactor::OneMinusSrcAlpha }
         };
-        pipelineCreateInfo.DepthConfig.DepthTest = false;
+        // Test must also be true in order for gl_FragDepth to work
+        pipelineCreateInfo.DepthConfig.DepthTest = true;
         pipelineCreateInfo.DepthConfig.DepthWrite = true;
         pipelineCreateInfo.CullMode = Flourish::CullMode::None;
         pipelineCreateInfo.WindingOrder = Flourish::WindingOrder::Clockwise;
@@ -49,6 +55,7 @@ namespace Heart::RenderPlugins
         fbCreateInfo.Width = m_Renderer->GetRenderWidth();
         fbCreateInfo.Height = m_Renderer->GetRenderHeight();
         fbCreateInfo.ColorAttachments.push_back({ { 0.f, 0.f, 0.f, 0.f }, m_Renderer->GetRenderTexture() });
+        fbCreateInfo.DepthAttachments.push_back({ m_Renderer->GetDepthTexture() });
         m_Framebuffer = Flourish::Framebuffer::Create(fbCreateInfo);
 
         Flourish::CommandBufferCreateInfo cbCreateInfo;

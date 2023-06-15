@@ -35,7 +35,10 @@ namespace Heart::RenderPlugins
 
         Flourish::RenderPassCreateInfo rpCreateInfo;
         rpCreateInfo.SampleCount = Flourish::MsaaSampleCount::None;
-        rpCreateInfo.DepthAttachments.push_back({ m_Renderer->GetDepthTexture()->GetColorFormat() });
+        rpCreateInfo.DepthAttachments.push_back({
+            m_Renderer->GetDepthTexture()->GetColorFormat(),
+            Flourish::AttachmentInitialization::Preserve
+        });
         if (m_Info.WriteNormals)
         {
             rpCreateInfo.ColorAttachments.push_back({ m_NormalsTexture->GetColorFormat() });

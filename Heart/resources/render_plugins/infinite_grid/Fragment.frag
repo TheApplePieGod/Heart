@@ -54,10 +54,18 @@ vec4 grid(vec3 fragPos, float offset, int falloff) {
     return color;
 }
 
+float computeDepth(vec3 fragPos) {
+    vec4 clipPos = frameBuffer.data.proj * frameBuffer.data.view * vec4(fragPos, 1.0);
+    return (clipPos.z / clipPos.w);
+}
+
 void main() {
     // Render when line is on y = 0
     float t = -nearPoint.y / (farPoint.y - nearPoint.y);
     vec3 pos = nearPoint + t * (farPoint - nearPoint);
+
+    // Output depth manually
+    gl_FragDepth = computeDepth(pos);
 
     // Render two subdivisions of the grid
     vec4 finalColor = grid(pos, 0, 0);
