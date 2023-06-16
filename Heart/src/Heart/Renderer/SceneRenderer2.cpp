@@ -68,6 +68,14 @@ namespace Heart
 
         Transparency->AddDependency(GRID->GetName(), GraphDependencyType::GPU);
 
+        RenderPlugins::BloomCreateInfo BloomCreateInfo;
+        auto Bloom = RegisterPlugin<RenderPlugins::Bloom>("Bloom", BloomCreateInfo);
+        Bloom->AddDependency(Transparency->GetName(), GraphDependencyType::GPU);
+
+        RenderPlugins::ColorGradingCreateInfo GRADINGCreateInfo;
+        auto GRADING = RegisterPlugin<RenderPlugins::ColorGrading>("GRADING", GRADINGCreateInfo);
+        GRADING->AddDependency(Bloom->GetName(), GraphDependencyType::GPU);
+
         RebuildGraph();
     }
 

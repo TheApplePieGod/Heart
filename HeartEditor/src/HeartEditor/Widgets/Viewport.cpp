@@ -92,9 +92,7 @@ namespace Widgets
         // draw the rendered texture
         const Flourish::Texture* outputTex = nullptr;
         switch (m_SelectedOutput){
-            //default: outputTex = m_SceneRenderer->GetFinalTexture(); break;
-            default: outputTex = m_SceneRenderer2->GetRenderTexture().get(); break;
-            //default: outputTex = m_SceneRenderer2->GetPlugin<Heart::RenderPlugins::RenderMeshBatches>("RBMESHCam")->GetNormalsTexture(); break;
+            default: outputTex = m_SceneRenderer2->GetOutputTexture().get(); break;
             case 1: outputTex = m_SceneRenderer->GetRenderOutputTexture(); break;
             case 2: outputTex = m_SceneRenderer->GetEntityIdsTexture(); break;
             case 3: outputTex = m_SceneRenderer->GetDepthTexture(); break;

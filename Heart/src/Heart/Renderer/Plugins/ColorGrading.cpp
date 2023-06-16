@@ -1,5 +1,5 @@
 #include "hepch.h"
-#include "TransparencyComposite.h"
+#include "ColorGrading.h"
 
 #include "Heart/Renderer/Plugins/FrameData.h"
 #include "Heart/Renderer/SceneRenderer2.h"
@@ -17,26 +17,13 @@
 
 namespace Heart::RenderPlugins
 {
-    void TransparencyComposite::Initialize()
+    void ColorGrading::Initialize()
     {
-        Flourish::TextureCreateInfo texCreateInfo;
-        texCreateInfo.Width = m_Renderer->GetRenderWidth();
-        texCreateInfo.Height = m_Renderer->GetRenderHeight();
-        texCreateInfo.ArrayCount = 1;
-        texCreateInfo.MipCount = 1;
-        texCreateInfo.Usage = Flourish::TextureUsageType::RenderTarget;
-        texCreateInfo.Writability = Flourish::TextureWritability::PerFrame;
-        texCreateInfo.SamplerState.UVWWrap = { Flourish::SamplerWrapMode::ClampToBorder, Flourish::SamplerWrapMode::ClampToBorder, Flourish::SamplerWrapMode::ClampToBorder };
-        texCreateInfo.Format = Flourish::ColorFormat::RGBA16_FLOAT;
-        m_AccumTexture = Flourish::Texture::Create(texCreateInfo);
-        texCreateInfo.Format = Flourish::ColorFormat::R16_FLOAT;
-        m_RevealTexture = Flourish::Texture::Create(texCreateInfo);
-
         Flourish::RenderPassCreateInfo rpCreateInfo;
         rpCreateInfo.SampleCount = Flourish::MsaaSampleCount::None;
         rpCreateInfo.ColorAttachments.push_back({
-            m_Renderer->GetRenderTexture()->GetColorFormat(),
-            Flourish::AttachmentInitialization::Preserve
+            m_Renderer->GetOutputTexture()->GetColorFormat(),
+            Flourish::AttachmentInitialization::Clear
         });
         rpCreateInfo.Subpasses.push_back({
             {},
@@ -45,11 +32,11 @@ namespace Heart::RenderPlugins
         m_RenderPass = Flourish::RenderPass::Create(rpCreateInfo);
 
         Flourish::GraphicsPipelineCreateInfo pipelineCreateInfo;
-        pipelineCreateInfo.FragmentShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/transparency_composite/Fragment.frag", true)->GetShader();
+        pipelineCreateInfo.FragmentShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/color_grading/Composite.frag", true)->GetShader();
         pipelineCreateInfo.VertexShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/FullscreenTriangle.vert", true)->GetShader();
         pipelineCreateInfo.VertexInput = false;
         pipelineCreateInfo.BlendStates = {
-            { true, Flourish::BlendFactor::OneMinusSrcAlpha, Flourish::BlendFactor::SrcAlpha, Flourish::BlendFactor::SrcAlpha, Flourish::BlendFactor::OneMinusSrcAlpha }
+            { true, Flourish::BlendFactor::SrcAlpha, Flourish::BlendFactor::DstAlpha, Flourish::BlendFactor::One, Flourish::BlendFactor::Zero }
         };
         pipelineCreateInfo.DepthConfig.DepthTest = false;
         pipelineCreateInfo.DepthConfig.DepthWrite = false;
@@ -61,7 +48,7 @@ namespace Heart::RenderPlugins
         fbCreateInfo.RenderPass = m_RenderPass;
         fbCreateInfo.Width = m_Renderer->GetRenderWidth();
         fbCreateInfo.Height = m_Renderer->GetRenderHeight();
-        fbCreateInfo.ColorAttachments.push_back({ { 0.f, 0.f, 0.f, 0.f }, m_Renderer->GetRenderTexture() });
+        fbCreateInfo.ColorAttachments.push_back({ { 0.f, 0.f, 0.f, 0.f }, m_Renderer->GetOutputTexture() });
         m_Framebuffer = Flourish::Framebuffer::Create(fbCreateInfo);
 
         Flourish::CommandBufferCreateInfo cbCreateInfo;
@@ -73,19 +60,18 @@ namespace Heart::RenderPlugins
         m_ResourceSet = pipeline->CreateResourceSet(0, dsCreateInfo);
     }
 
-    void TransparencyComposite::ResizeInternal()
+    void ColorGrading::ResizeInternal()
     {
 
     }
 
-    void TransparencyComposite::RenderInternal(const SceneRenderData& data)
+    void ColorGrading::RenderInternal(const SceneRenderData& data)
     {
         HE_PROFILE_FUNCTION();
-        auto timer = AggregateTimer("RenderPlugins::TransparencyComposite");
+        auto timer = AggregateTimer("RenderPlugins::ColorGrading");
 
         // TODO: this could probably be static
-        m_ResourceSet->BindTexture(0, m_AccumTexture.get());
-        m_ResourceSet->BindTexture(1, m_RevealTexture.get());
+        m_ResourceSet->BindTexture(0, m_Renderer->GetRenderTexture().get());
         m_ResourceSet->FlushBindings();
         
         auto encoder = m_CommandBuffer->EncodeRenderCommands(m_Framebuffer.get());

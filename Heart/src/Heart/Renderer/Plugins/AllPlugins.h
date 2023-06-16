@@ -11,3 +11,5 @@
 #include "RenderEnvironmentMap.h"
 #include "InfiniteGrid.h"
 #include "TransparencyComposite.h"
+#include "Bloom.h"
+#include "ColorGrading.h"
