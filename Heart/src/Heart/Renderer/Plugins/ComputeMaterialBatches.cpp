@@ -28,16 +28,17 @@ namespace Heart::RenderPlugins
         const auto& computedBatchData = batchesPlugin->GetBatchData();
         
         // Clear previous data
-        newBatchData.Batches.Clear();
+        newBatchData.OpaqueBatches.Clear();
+        newBatchData.AlphaBatches.Clear();
         newBatchData.TotalInstanceCount = 0;
+        newBatchData.OpaqueInstanceCount = 0;
+        newBatchData.AlphaInstanceCount = 0;
 
         u32 commandIndex = 0;
         u32 objectId = 0;
         u32 objectIdStart = 0;
-        auto addIndirectCommand = [](BatchData& batchData, u32& commandIndex, u32 objectId)
+        auto addIndirectCommand = [](BatchData& batchData, u32& commandIndex, u32 objectId, MaterialBatch& batch)
         {
-            auto& batch = batchData.Batches.Back();
-            
             // Update the draw command index
             batch.First = commandIndex;
 
@@ -58,6 +59,7 @@ namespace Heart::RenderPlugins
         // Using the previously computed mesh batches, compute new batches that group by material. Since we do not do a full recomputation,
         // each batch is subdivided first by mesh and then by material.
         u32 pairIndex = 0;
+        HVector<MaterialBatch>* oldBatches = nullptr;
         for (auto& pair : computedBatchData.Batches)
         {
             // Should always be loaded & valid since CMB checks
@@ -83,11 +85,21 @@ namespace Heart::RenderPlugins
                         selectedMaterial = &materialAsset->GetMaterial();
                 }
 
-                if (entityListIndex == 0 || newBatchData.Batches.Back().Material != selectedMaterial)
+                bool isAlpha = selectedMaterial->GetTransparencyMode() == TransparencyMode::AlphaBlend;
+                auto& batches = isAlpha ? newBatchData.AlphaBatches : newBatchData.OpaqueBatches;
+
+                bool batchSwitch = oldBatches != &batches;
+                bool materialSwitch = !batchSwitch && batches.Back().Material != selectedMaterial;
+                if (batchSwitch || materialSwitch)
                 {
-                    if (!newBatchData.Batches.IsEmpty())
+                    if (batchSwitch && oldBatches && !oldBatches->IsEmpty())
                     {
-                        addIndirectCommand(newBatchData, commandIndex, objectIdStart);
+                        addIndirectCommand(newBatchData, commandIndex, objectIdStart, oldBatches->Back());
+                        objectIdStart = objectId;
+                    }
+                    if (materialSwitch && !batches.IsEmpty())
+                    {
+                        addIndirectCommand(newBatchData, commandIndex, objectIdStart, batches.Back());
                         objectIdStart = objectId;
                     }
 
@@ -101,11 +113,14 @@ namespace Heart::RenderPlugins
                         0
                     };
 
-                    newBatchData.Batches.AddInPlace(batch);
+                    batches.AddInPlace(batch);
                 }
 
-                newBatchData.Batches.Back().Count++;
-                newBatchData.TotalInstanceCount++;
+                batches.Back().Count++;
+                if (isAlpha)
+                    newBatchData.AlphaInstanceCount++;
+                else
+                    newBatchData.OpaqueInstanceCount++;
 
                 // Object data
                 ObjectData objectData = {
@@ -115,23 +130,28 @@ namespace Heart::RenderPlugins
                 newBatchData.ObjectDataBuffer->SetElements(&objectData, 1, objectId);
 
                 objectId++;
+                oldBatches = &batches;
             }
 
             // Always add on the last elem of the last mesh
             if (pairIndex == computedBatchData.Batches.size() - 1)
-                addIndirectCommand(newBatchData, commandIndex, objectIdStart);
+                addIndirectCommand(newBatchData, commandIndex, objectIdStart, oldBatches->Back());
 
             pairIndex++;
         }
+
+        newBatchData.TotalInstanceCount = newBatchData.OpaqueInstanceCount + newBatchData.AlphaInstanceCount;
 
         m_Stats["Instance Count"] = {
             StatType::Int,
             (int)newBatchData.TotalInstanceCount
         };
+        /*
         m_Stats["Batch Count"] = {
             StatType::Int,
             (int)newBatchData.Batches.Count()
         };
+        */
     }
     
     void ComputeMaterialBatches::Initialize()

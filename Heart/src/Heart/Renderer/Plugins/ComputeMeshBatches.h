@@ -34,7 +34,7 @@ namespace Heart::RenderPlugins
 
         struct MeshBatch
         {
-            Mesh* Mesh;
+            Mesh* Mesh = nullptr;
             u32 First = 0;
             u32 Count = 0;
             u32 EntityListIndex = 0;
@@ -51,6 +51,7 @@ namespace Heart::RenderPlugins
         {
             u32 EntityIndex;
             u32 MeshIndex;
+            bool IncludeInPrepass;
         };
 
         struct BatchData

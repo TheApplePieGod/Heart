@@ -54,13 +54,16 @@ namespace Heart::RenderPlugins
 
         struct BatchData
         {
-            HVector<MaterialBatch> Batches;
+            HVector<MaterialBatch> OpaqueBatches;
+            HVector<MaterialBatch> AlphaBatches;
 
             Ref<Flourish::Buffer> IndirectBuffer;
             Ref<Flourish::Buffer> ObjectDataBuffer;
             Ref<Flourish::Buffer> MaterialDataBuffer;
 
             u32 TotalInstanceCount;
+            u32 OpaqueInstanceCount;
+            u32 AlphaInstanceCount;
         };
 
     public:

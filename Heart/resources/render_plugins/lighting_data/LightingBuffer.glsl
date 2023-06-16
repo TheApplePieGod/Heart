@@ -8,6 +8,9 @@ struct LightData {
     float quadraticAttenuation;
 };
 
+#define DIRECTIONAL 1
+#define POINT 2
+
 layout(binding = 3) readonly buffer LightingBuffer {
     LightData lights[];
 } lightingBuffer;

@@ -1,18 +1,6 @@
-#version 460
-
 #include "../frame_data/FrameBuffer.glsl"
 #include "../compute_material_batches/MaterialBuffer.glsl"
 #include "../lighting_data/LightingBuffer.glsl"
-
-struct Light {
-    vec4 position;
-    vec4 direction;
-    vec4 color;
-    uint lightType;
-    float constantAttenuation;
-    float linearAttenuation;
-    float quadraticAttenuation;
-};
 
 layout(location = 0) in vec2 texCoord;
 layout(location = 1) in flat int entityId;
@@ -35,12 +23,7 @@ layout(binding = 6) uniform samplerCube prefilterMap;
 layout(binding = 7) uniform sampler2D brdfLUT;
 layout(binding = 8) uniform sampler2D ssaoTex;
 
-layout(location = 0) out vec4 outHDRColor;
-layout(location = 1) out float outEntityId;
-
 #define PI 3.1415926
-#define DIRECTIONAL 1
-#define POINT 2
 
 // adapted from https://learnopengl.com/PBR/Lighting
 vec3 FresnelSchlick(float cosTheta, vec3 F0)
@@ -235,7 +218,3 @@ vec4 GetFinalColor()
     return vec4(finalColor + emissive, baseColor.a);
 }
 
-void main() {
-    outHDRColor = GetFinalColor();
-    outEntityId = float(entityId);
-}

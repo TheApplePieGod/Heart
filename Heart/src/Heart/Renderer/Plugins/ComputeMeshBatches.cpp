@@ -66,7 +66,7 @@ namespace Heart::RenderPlugins
                 auto& batch = batchData.Batches[hash];
 
                 // Update the batch information if this is the first entity being added to it
-                if (batch.Count == 0)
+                if (!batch.Mesh)
                 {
                     // Retrieve a vector from the pool
                     batch.EntityListIndex = batchIndex;
@@ -81,13 +81,27 @@ namespace Heart::RenderPlugins
                     batchIndex++;
                 }
                 
-                batch.Count++;
-                batchData.TotalInstanceCount++;
+                // Need to check if the entity supports depth prepass before adding
+                auto selectedMaterial = &meshAsset->GetDefaultMaterials()[meshData.GetMaterialIndex()];
+                if (meshData.GetMaterialIndex() < meshComp.Data.Materials.Count())
+                {
+                    auto materialAsset = AssetManager::RetrieveAsset<MaterialAsset>(meshComp.Data.Materials[meshData.GetMaterialIndex()]);
+                    if (materialAsset && materialAsset->IsValid())
+                        selectedMaterial = &materialAsset->GetMaterial();
+                }
+                bool usePrepass = selectedMaterial->GetTransparencyMode() != TransparencyMode::AlphaBlend;
+
+                if (usePrepass)
+                {
+                    batch.Count++;
+                    batchData.TotalInstanceCount++;
+                }
 
                 // Push the associated entity to the associated vector from the pool
                 batchData.EntityListPool[batch.EntityListIndex].AddInPlace(EntityListEntry {
                     static_cast<u32>(meshComp.EntityIndex),
-                    meshCompIndex
+                    meshCompIndex,
+                    usePrepass
                 });
             }
         }
@@ -114,6 +128,8 @@ namespace Heart::RenderPlugins
             auto& entityList = batchData.EntityListPool[pair.second.EntityListIndex];
             for (auto& entity : entityList)
             {
+                if (!entity.IncludeInPrepass) continue;
+
                 const auto& entityData = data.Scene->GetEntityData()[entity.EntityIndex];
 
                 // Object data

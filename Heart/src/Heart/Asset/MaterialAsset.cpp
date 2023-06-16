@@ -82,8 +82,8 @@ namespace Heart
         // parse metadata
         {
             auto& field = j["metadata"];
-            if (field.contains("translucent"))
-                material.m_Translucent = field["translucent"];
+            if (field.contains("transparencyMode"))
+                material.m_TransparencyMode = field["transparencyMode"];
         }
 
         // parse texture data
@@ -124,7 +124,7 @@ namespace Heart
         // metadata
         {
             auto& field = j["metadata"];
-            field["translucent"] = material.m_Translucent;
+            field["transparencyMode"] = material.m_TransparencyMode;
         }
 
         // texture data

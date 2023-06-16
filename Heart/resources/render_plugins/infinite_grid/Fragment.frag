@@ -1,8 +1,10 @@
 #version 460
 
 #include "../frame_data/FrameBuffer.glsl"
+#include "../transparency_composite/Util.glsl"
 
-layout(location = 0) out vec4 outHDRColor;
+layout(location = 0) out vec4 outAccumColor;
+layout(location = 1) out float outRevealColor;
 
 layout(location = 0) in vec3 nearPoint;
 layout(location = 1) in vec3 farPoint;
@@ -65,12 +67,16 @@ void main() {
     vec3 pos = nearPoint + t * (farPoint - nearPoint);
 
     // Output depth manually
-    gl_FragDepth = computeDepth(pos);
+    float depth = computeDepth(pos);
+    gl_FragDepth = depth;
 
     // Render two subdivisions of the grid
     vec4 finalColor = grid(pos, 0, 0);
     finalColor += grid(pos, -1, 0);
     finalColor += grid(pos, -2, 1);
-    outHDRColor = finalColor * float(t > 0);
-    outHDRColor.a *= 0.5;
+    finalColor *= float(t > 0);
+    finalColor.a *= 0.5;
+
+    outAccumColor = computeAccumColor(finalColor, depth);
+    outRevealColor = computeRevealColor(finalColor);
 }

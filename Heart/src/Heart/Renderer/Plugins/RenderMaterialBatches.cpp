@@ -4,7 +4,7 @@
 #include "Heart/Renderer/Plugins/FrameData.h"
 #include "Heart/Renderer/Plugins/LightingData.h"
 #include "Heart/Renderer/Plugins/ComputeMaterialBatches.h"
-#include "Heart/Renderer/Plugins/RenderMeshBatches.h"
+#include "Heart/Renderer/Plugins/TransparencyComposite.h"
 #include "Heart/Renderer/SceneRenderer2.h"
 #include "Heart/Renderer/Mesh.h"
 #include "Heart/Renderer/Material.h"
@@ -52,6 +52,8 @@ namespace Heart::RenderPlugins
             m_EntityIdsTexture = Flourish::Texture::Create(texCreateInfo);
         }
 
+        auto tpPlugin = m_Renderer->GetPlugin<RenderPlugins::TransparencyComposite>(m_Info.TransparencyCompositePluginName);
+
         Flourish::RenderPassCreateInfo rpCreateInfo;
         rpCreateInfo.SampleCount = Flourish::MsaaSampleCount::None;
         rpCreateInfo.DepthAttachments.push_back({
@@ -62,34 +64,37 @@ namespace Heart::RenderPlugins
             m_Renderer->GetRenderTexture()->GetColorFormat(),
             Flourish::AttachmentInitialization::Preserve
         });
+        rpCreateInfo.ColorAttachments.push_back({
+            tpPlugin->GetAccumTexture()->GetColorFormat(),
+            Flourish::AttachmentInitialization::Clear
+        });
+        rpCreateInfo.ColorAttachments.push_back({
+            tpPlugin->GetRevealTexture()->GetColorFormat(),
+            Flourish::AttachmentInitialization::Clear
+        });
+        rpCreateInfo.Subpasses.push_back({
+            {},
+            {
+                { Flourish::SubpassAttachmentType::Depth, 0 },
+                { Flourish::SubpassAttachmentType::Color, 0 },
+                { Flourish::SubpassAttachmentType::Color, 1 },
+                { Flourish::SubpassAttachmentType::Color, 2 }
+            }
+        });
         if (m_Info.CanOutputEntityIds)
         {
             rpCreateInfo.ColorAttachments.push_back({ m_EntityIdsTexture->GetColorFormat() });
-            rpCreateInfo.Subpasses.push_back({
-                {},
-                {
-                    { Flourish::SubpassAttachmentType::Depth, 0 },
-                    { Flourish::SubpassAttachmentType::Color, 0 },
-                    { Flourish::SubpassAttachmentType::Color, 1 }
-                }
-            });
-        }
-        else
-        {
-            rpCreateInfo.Subpasses.push_back({
-                {},
-                { { Flourish::SubpassAttachmentType::Depth, 0 }, { Flourish::SubpassAttachmentType::Color, 0 } }
-            });
+            rpCreateInfo.Subpasses.back().OutputAttachments.push_back({ Flourish::SubpassAttachmentType::Color, 3 });
         }
         m_RenderPass = Flourish::RenderPass::Create(rpCreateInfo);
 
         Flourish::GraphicsPipelineCreateInfo pipelineCreateInfo;
         pipelineCreateInfo.VertexShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/render_material_batches/Vertex.vert", true)->GetShader();
-        pipelineCreateInfo.FragmentShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/render_material_batches/Fragment.frag", true)->GetShader();
+        pipelineCreateInfo.FragmentShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/render_material_batches/Opaque.frag", true)->GetShader();
         pipelineCreateInfo.VertexTopology = Flourish::VertexTopology::TriangleList;
         pipelineCreateInfo.VertexLayout = Mesh::GetVertexLayout();
         pipelineCreateInfo.VertexInput = true;
-        pipelineCreateInfo.BlendStates = { { false } };
+        pipelineCreateInfo.BlendStates = {{ false }, { false }, { false }};
         if (m_Info.CanOutputEntityIds)
             pipelineCreateInfo.BlendStates.push_back({ false });
         pipelineCreateInfo.DepthConfig.DepthTest = true;
@@ -97,14 +102,25 @@ namespace Heart::RenderPlugins
         pipelineCreateInfo.DepthConfig.CompareOperation = Flourish::DepthComparison::Auto;
         pipelineCreateInfo.CullMode = Flourish::CullMode::Backface;
         pipelineCreateInfo.WindingOrder = Flourish::WindingOrder::Clockwise;
-        //pipelineCreateInfo.CompatibleSubpasses = { 2 };
-        auto pipeline = m_RenderPass->CreatePipeline("main", pipelineCreateInfo);
+        auto pipeline = m_RenderPass->CreatePipeline("opaque", pipelineCreateInfo);
+
+        pipelineCreateInfo.FragmentShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/render_material_batches/Transparent.frag", true)->GetShader();
+        pipelineCreateInfo.BlendStates = {
+            { false },
+            { true, Flourish::BlendFactor::One, Flourish::BlendFactor::One, Flourish::BlendFactor::One, Flourish::BlendFactor::One },
+            { true, Flourish::BlendFactor::Zero, Flourish::BlendFactor::OneMinusSrcColor, Flourish::BlendFactor::Zero, Flourish::BlendFactor::OneMinusSrcAlpha }
+        };
+        if (m_Info.CanOutputEntityIds)
+            pipelineCreateInfo.BlendStates.push_back({ false });
+        m_RenderPass->CreatePipeline("alpha", pipelineCreateInfo);
 
         Flourish::FramebufferCreateInfo fbCreateInfo;
         fbCreateInfo.RenderPass = m_RenderPass;
         fbCreateInfo.Width = m_Renderer->GetRenderWidth();
         fbCreateInfo.Height = m_Renderer->GetRenderHeight();
         fbCreateInfo.ColorAttachments.push_back({ { 0.f, 0.f, 0.f, 0.f }, m_Renderer->GetRenderTexture() });
+        fbCreateInfo.ColorAttachments.push_back({ { 0.f, 0.f, 0.f, 0.f }, tpPlugin->GetAccumTexture() });
+        fbCreateInfo.ColorAttachments.push_back({ { 1.f }, tpPlugin->GetRevealTexture() });
         if (m_Info.CanOutputEntityIds)
             fbCreateInfo.ColorAttachments.push_back({ { -1.f, 0.f, 0.f, 0.f }, m_EntityIdsTexture });
         fbCreateInfo.DepthAttachments.push_back({ m_Renderer->GetDepthTexture() });
@@ -166,37 +182,46 @@ namespace Heart::RenderPlugins
         m_ResourceSet->BindTextureLayer(8, m_DefaultEnvironmentMap.get(), 0, 0);
         m_ResourceSet->FlushBindings();
 
+        auto renderBatches = [&batchData](Flourish::RenderCommandEncoder* encoder, bool opaque)
+        {
+            auto& batches = opaque ? batchData.OpaqueBatches : batchData.AlphaBatches;
+            Mesh* lastMesh = nullptr;
+            for (auto& batch : batches)
+            {
+                // Bind material
+                encoder->BindResourceSet(batch.Material->GetResourceSet(), 1);
+                encoder->FlushResourceSet(1);
+
+                // Bind mesh
+                if (lastMesh != batch.Mesh)
+                {
+                    encoder->BindVertexBuffer(batch.Mesh->GetVertexBuffer());
+                    encoder->BindIndexBuffer(batch.Mesh->GetIndexBuffer());
+
+                    lastMesh = batch.Mesh;
+                }
+
+                // Draw
+                encoder->DrawIndexedIndirect(
+                    batchData.IndirectBuffer.get(), batch.First, batch.Count
+                );
+            }
+        };
+
         auto encoder = m_CommandBuffer->EncodeRenderCommands(m_Framebuffer.get());
-        encoder->BindPipeline("main");
-        encoder->BindResourceSet(m_ResourceSet.get(), 0);
-        encoder->FlushResourceSet(0);
 
         // Initial (opaque) batches pass
-        Mesh* lastMesh = nullptr;
-        for (auto& batch : batchData.Batches)
-        {
-            //if (batch.Material->IsTranslucent())
-            //    continue;
+        encoder->BindPipeline("opaque");
+        encoder->BindResourceSet(m_ResourceSet.get(), 0);
+        encoder->FlushResourceSet(0);
+        renderBatches(encoder, true);
 
-            // Bind material
-            encoder->BindResourceSet(batch.Material->GetResourceSet(), 1);
-            encoder->FlushResourceSet(1);
+        // Final alpha batches pass
+        encoder->BindPipeline("alpha");
+        encoder->BindResourceSet(m_ResourceSet.get(), 0);
+        encoder->FlushResourceSet(0);
+        renderBatches(encoder, false);
 
-            // Bind mesh
-            if (lastMesh != batch.Mesh)
-            {
-                encoder->BindVertexBuffer(batch.Mesh->GetVertexBuffer());
-                encoder->BindIndexBuffer(batch.Mesh->GetIndexBuffer());
-
-                lastMesh = batch.Mesh;
-            }
-
-            // Draw
-            encoder->DrawIndexedIndirect(
-                batchData.IndirectBuffer.get(), batch.First, batch.Count
-            );
-        }
-        
         encoder->EndEncoding();
 
         if (m_Info.CanOutputEntityIds && data.Settings.CopyEntityIdsTextureToCPU)

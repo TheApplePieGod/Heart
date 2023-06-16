@@ -4,6 +4,7 @@
 
 namespace Flourish
 {
+    class Texture;
     class RenderPass;
     class Framebuffer;
     class ResourceSet;
@@ -11,18 +12,20 @@ namespace Flourish
 
 namespace Heart::RenderPlugins
 {
-    struct InfiniteGridCreateInfo
+    struct TransparencyCompositeCreateInfo
     {
         HString8 FrameDataPluginName;
-        HString8 TransparencyCompositePluginName;
     };
 
-    class InfiniteGrid : public RenderPlugin
+    class TransparencyComposite : public RenderPlugin
     {
     public:
-        InfiniteGrid(SceneRenderer2* renderer, HStringView8 name, const InfiniteGridCreateInfo& createInfo)
+        TransparencyComposite(SceneRenderer2* renderer, HStringView8 name, const TransparencyCompositeCreateInfo& createInfo)
             : RenderPlugin(renderer, name), m_Info(createInfo)
         { Initialize(); }
+
+        inline const Ref<Flourish::Texture> GetAccumTexture() const { return m_AccumTexture; }
+        inline const Ref<Flourish::Texture> GetRevealTexture() const { return m_RevealTexture; }
 
     protected:
         void RenderInternal(const SceneRenderData& data) override;
@@ -32,8 +35,10 @@ namespace Heart::RenderPlugins
         void Initialize();
 
     private:
-        InfiniteGridCreateInfo m_Info;
+        TransparencyCompositeCreateInfo m_Info;
 
+        Ref<Flourish::Texture> m_AccumTexture;
+        Ref<Flourish::Texture> m_RevealTexture;
         Ref<Flourish::ResourceSet> m_ResourceSet;
         Ref<Flourish::RenderPass> m_RenderPass;
         Ref<Flourish::Framebuffer> m_Framebuffer;

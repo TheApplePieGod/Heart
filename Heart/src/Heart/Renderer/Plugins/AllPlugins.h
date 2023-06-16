@@ -10,3 +10,4 @@
 #include "RenderMaterialBatches.h"
 #include "RenderEnvironmentMap.h"
 #include "InfiniteGrid.h"
+#include "TransparencyComposite.h"

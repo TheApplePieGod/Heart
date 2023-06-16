@@ -200,6 +200,7 @@ namespace Widgets
             ImGui::SameLine();
             if (ImGui::DragFloat("##ACThreshold", &materialData.Scalars.z, 0.01f, 0.f, 1.f))
                 m_Dirty = true;
+            /*
             bool isTranslucent = editingMaterial.IsTranslucent();
             ImGui::Text("Is Translucent");
             ImGui::SameLine();
@@ -208,6 +209,7 @@ namespace Widgets
                 editingMaterial.SetTranslucent(isTranslucent);
                 m_Dirty = true;
             }
+            */
 
             float previewSize = 128.f;
             ImGui::Dummy({ 0.f, 5.f });

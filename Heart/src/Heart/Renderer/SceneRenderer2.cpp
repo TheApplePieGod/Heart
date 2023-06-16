@@ -45,10 +45,8 @@ namespace Heart
         ENVMAPCreateInfo.FrameDataPluginName = FrameData->GetName();
         auto ENVMAP = RegisterPlugin<RenderPlugins::RenderEnvironmentMap>("ENVMAP", ENVMAPCreateInfo);
 
-        RenderPlugins::InfiniteGridCreateInfo GRIDCreateInfo;
-        GRIDCreateInfo.FrameDataPluginName = FrameData->GetName();
-        auto GRID = RegisterPlugin<RenderPlugins::InfiniteGrid>("GRID", GRIDCreateInfo);
-        GRID->AddDependency(ENVMAP->GetName(), GraphDependencyType::GPU);
+        RenderPlugins::TransparencyCompositeCreateInfo TransparencyCreateInfo;
+        auto Transparency = RegisterPlugin<RenderPlugins::TransparencyComposite>("Transparency", TransparencyCreateInfo);
 
         RenderPlugins::RenderMaterialBatchesCreateInfo RBMATCamCreateInfo;
         // TODO: parameterize. will need to add support for specialization constants to do this
@@ -56,10 +54,19 @@ namespace Heart
         RBMATCamCreateInfo.FrameDataPluginName = FrameData->GetName();
         RBMATCamCreateInfo.LightingDataPluginName = LightingData->GetName();
         RBMATCamCreateInfo.MaterialBatchesPluginName = CBMATCam->GetName();
+        RBMATCamCreateInfo.TransparencyCompositePluginName = Transparency->GetName();
         auto RBMATCam = RegisterPlugin<RenderPlugins::RenderMaterialBatches>("RBMATCam", RBMATCamCreateInfo);
         RBMATCam->AddDependency(CBMATCam->GetName(), GraphDependencyType::CPU);
         RBMATCam->AddDependency(RBMESHCam->GetName(), GraphDependencyType::GPU);
-        RBMATCam->AddDependency(GRID->GetName(), GraphDependencyType::GPU);
+        RBMATCam->AddDependency(ENVMAP->GetName(), GraphDependencyType::GPU);
+
+        RenderPlugins::InfiniteGridCreateInfo GRIDCreateInfo;
+        GRIDCreateInfo.FrameDataPluginName = FrameData->GetName();
+        GRIDCreateInfo.TransparencyCompositePluginName = Transparency->GetName();
+        auto GRID = RegisterPlugin<RenderPlugins::InfiniteGrid>("GRID", GRIDCreateInfo);
+        GRID->AddDependency(RBMATCam->GetName(), GraphDependencyType::GPU);
+
+        Transparency->AddDependency(GRID->GetName(), GraphDependencyType::GPU);
 
         RebuildGraph();
     }
