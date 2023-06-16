@@ -13,3 +13,4 @@
 #include "TransparencyComposite.h"
 #include "Bloom.h"
 #include "ColorGrading.h"
+#include "SSAO.h"

@@ -28,6 +28,8 @@ namespace Heart::RenderPlugins
             texCreateInfo.MipCount = 1;
             texCreateInfo.Usage = Flourish::TextureUsageType::RenderTarget;
             texCreateInfo.Writability = Flourish::TextureWritability::PerFrame;
+            texCreateInfo.SamplerState.MinFilter = Flourish::SamplerFilter::Nearest;
+            texCreateInfo.SamplerState.MagFilter = Flourish::SamplerFilter::Nearest;
             texCreateInfo.SamplerState.UVWWrap = { Flourish::SamplerWrapMode::ClampToBorder, Flourish::SamplerWrapMode::ClampToBorder, Flourish::SamplerWrapMode::ClampToBorder };
             texCreateInfo.Format = Flourish::ColorFormat::RGBA16_FLOAT;
             m_NormalsTexture = Flourish::Texture::Create(texCreateInfo);
@@ -67,7 +69,7 @@ namespace Heart::RenderPlugins
         pipelineCreateInfo.DepthConfig.DepthTest = true;
         pipelineCreateInfo.DepthConfig.DepthWrite = true;
         pipelineCreateInfo.DepthConfig.CompareOperation = Flourish::DepthComparison::Auto;
-        pipelineCreateInfo.CullMode = Flourish::CullMode::None;
+        pipelineCreateInfo.CullMode = Flourish::CullMode::Backface;
         pipelineCreateInfo.WindingOrder = Flourish::WindingOrder::Clockwise;
         auto pipeline = m_RenderPass->CreatePipeline("main", pipelineCreateInfo);
 

@@ -1,6 +1,7 @@
 struct FrameData {
     mat4 proj;
     mat4 view;
+    mat4 invProj;
     mat4 invViewProj;
     vec4 cameraPos;
     vec2 clipPlanes;

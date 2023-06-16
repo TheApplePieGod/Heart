@@ -17,6 +17,7 @@ namespace Heart::RenderPlugins
     {
         HString8 MaterialBatchesPluginName;
         HString8 TransparencyCompositePluginName;
+        HString8 SSAOPluginName;
         HString8 FrameDataPluginName;
         HString8 LightingDataPluginName;
         bool CanOutputEntityIds;

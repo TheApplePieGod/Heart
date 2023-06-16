@@ -6,6 +6,6 @@ layout(location = 0) out vec4 outHDRColor;
 layout(location = 3) out float outEntityId;
 
 void main() {
-    outHDRColor = GetFinalColor();
+    outHDRColor = vec4(GetFinalColor().rgb, 1.0);
     outEntityId = float(entityId);
 }

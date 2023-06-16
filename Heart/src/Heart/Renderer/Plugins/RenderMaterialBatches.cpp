@@ -5,6 +5,7 @@
 #include "Heart/Renderer/Plugins/LightingData.h"
 #include "Heart/Renderer/Plugins/ComputeMaterialBatches.h"
 #include "Heart/Renderer/Plugins/TransparencyComposite.h"
+#include "Heart/Renderer/Plugins/SSAO.h"
 #include "Heart/Renderer/SceneRenderer2.h"
 #include "Heart/Renderer/Mesh.h"
 #include "Heart/Renderer/Material.h"
@@ -158,6 +159,7 @@ namespace Heart::RenderPlugins
         auto frameDataPlugin = m_Renderer->GetPlugin<RenderPlugins::FrameData>(m_Info.FrameDataPluginName);
         auto lightingDataPlugin = m_Renderer->GetPlugin<RenderPlugins::LightingData>(m_Info.LightingDataPluginName);
         auto batchesPlugin = m_Renderer->GetPlugin<RenderPlugins::ComputeMaterialBatches>(m_Info.MaterialBatchesPluginName);
+        auto ssaoPlugin = m_Renderer->GetPlugin<RenderPlugins::SSAO>(m_Info.SSAOPluginName);
         auto frameDataBuffer = frameDataPlugin->GetBuffer();
         auto lightingDataBuffer = lightingDataPlugin->GetBuffer();
         const auto& batchData = batchesPlugin->GetBatchData();
@@ -179,7 +181,7 @@ namespace Heart::RenderPlugins
             m_ResourceSet->BindTexture(6, m_DefaultEnvironmentMap.get());
             m_ResourceSet->BindTextureLayer(7, m_DefaultEnvironmentMap.get(), 0, 0);
         }
-        m_ResourceSet->BindTextureLayer(8, m_DefaultEnvironmentMap.get(), 0, 0);
+        m_ResourceSet->BindTextureLayer(8, ssaoPlugin->GetOutputTexture(), 0, 0);
         m_ResourceSet->FlushBindings();
 
         auto renderBatches = [&batchData](Flourish::RenderCommandEncoder* encoder, bool opaque)
@@ -223,6 +225,8 @@ namespace Heart::RenderPlugins
         renderBatches(encoder, false);
 
         encoder->EndEncoding();
+
+        return;
 
         if (m_Info.CanOutputEntityIds && data.Settings.CopyEntityIdsTextureToCPU)
         {

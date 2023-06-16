@@ -198,15 +198,11 @@ vec4 GetFinalColor()
     vec3 irradiance = texture(irradianceMap, N).rgb;
     vec3 diffuse = irradiance * baseColor.rgb;
     
-    /*
-    if (frameBuffer.data.ssaoEnable)
-    {
-        vec4 fragPos = frameBuffer.data.proj * viewPos;
-        fragPos.xyz /= fragPos.w;
-        fragPos.xyz = fragPos.xyz * 0.5 + 0.5;
-        occlusion *= texture(ssaoTex, fragPos.xy).r; 
-    }
-    */
+    //if (frameBuffer.data.ssaoEnable)
+    //{
+        vec2 coord = gl_FragCoord.xy / frameBuffer.data.screenSize;
+        occlusion *= texture(ssaoTex, coord).r; 
+    //}
     
     vec3 prefilteredColor = textureLod(prefilterMap, R, filteredRoughness * MAX_REFLECTION_LOD).rgb;   
     vec2 envBRDF = texture(brdfLUT, vec2(max(dot(N, V), 0.0), filteredRoughness)).rg;

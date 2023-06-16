@@ -213,7 +213,13 @@ namespace Widgets
 
                                     Heart::HString8 path = Heart::FilesystemUtils::SaveAsDialog(Heart::AssetManager::GetAssetsDirectory(), "Export Material", "Material", "hemat");
                                     if (!path.IsEmpty())
+                                    {
                                         Heart::MaterialAsset::SerializeMaterial(path, *exportingMaterial);
+                                        Heart::AssetManager::RegisterAsset(
+                                            Heart::Asset::Type::Material,
+                                            Heart::AssetManager::GetRelativePath(path)
+                                        );
+                                    }
                                 }
                             },
                             [&materialId](Heart::UUID selected) { materialId = selected; }

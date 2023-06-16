@@ -41,6 +41,12 @@ namespace Heart
         auto CBMATCam = RegisterPlugin<RenderPlugins::ComputeMaterialBatches>("CBMATCam", CBMATCamCreateInfo);
         CBMATCam->AddDependency(CBMESHCam->GetName(), GraphDependencyType::CPU);
 
+        RenderPlugins::SSAOCreateInfo SSAOCreateInfo;
+        SSAOCreateInfo.FrameDataPluginName = FrameData->GetName();
+        SSAOCreateInfo.RenderMeshBatchesPluginName = RBMESHCam->GetName();
+        auto SSAO = RegisterPlugin<RenderPlugins::SSAO>("SSAO", SSAOCreateInfo);
+        SSAO->AddDependency(RBMESHCam->GetName(), GraphDependencyType::GPU);
+
         RenderPlugins::RenderEnvironmentMapCreateInfo ENVMAPCreateInfo;
         ENVMAPCreateInfo.FrameDataPluginName = FrameData->GetName();
         auto ENVMAP = RegisterPlugin<RenderPlugins::RenderEnvironmentMap>("ENVMAP", ENVMAPCreateInfo);
@@ -53,11 +59,12 @@ namespace Heart
         RBMATCamCreateInfo.CanOutputEntityIds = true; 
         RBMATCamCreateInfo.FrameDataPluginName = FrameData->GetName();
         RBMATCamCreateInfo.LightingDataPluginName = LightingData->GetName();
+        RBMATCamCreateInfo.SSAOPluginName = SSAO->GetName();
         RBMATCamCreateInfo.MaterialBatchesPluginName = CBMATCam->GetName();
         RBMATCamCreateInfo.TransparencyCompositePluginName = Transparency->GetName();
         auto RBMATCam = RegisterPlugin<RenderPlugins::RenderMaterialBatches>("RBMATCam", RBMATCamCreateInfo);
         RBMATCam->AddDependency(CBMATCam->GetName(), GraphDependencyType::CPU);
-        RBMATCam->AddDependency(RBMESHCam->GetName(), GraphDependencyType::GPU);
+        RBMATCam->AddDependency(SSAO->GetName(), GraphDependencyType::GPU);
         RBMATCam->AddDependency(ENVMAP->GetName(), GraphDependencyType::GPU);
 
         RenderPlugins::InfiniteGridCreateInfo GRIDCreateInfo;

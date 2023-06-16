@@ -17,6 +17,7 @@ void main() {
     gl_Position.z += (1 - 2 * int(frameBuffer.data.reverseDepth)) * 0.00001;
     
     viewNormal = normalize((
-        frameBuffer.data.proj * frameBuffer.data.view * vec4(mat3(objectBuffer.objects[objectId].model) * inNormal, 1.0)
+        mat3(frameBuffer.data.view * objectBuffer.objects[objectId].model) * inNormal
     ).xyz);
+    viewNormal.y *= -1; // Flip y to conform with view space
 }
