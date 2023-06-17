@@ -26,7 +26,7 @@ namespace Heart::RenderPlugins
     class RenderMaterialBatches : public RenderPlugin
     {
     public:
-        RenderMaterialBatches(SceneRenderer2* renderer, HStringView8 name, const RenderMaterialBatchesCreateInfo& createInfo)
+        RenderMaterialBatches(SceneRenderer* renderer, HStringView8 name, const RenderMaterialBatchesCreateInfo& createInfo)
             : RenderPlugin(renderer, name), m_Info(createInfo)
         { Initialize(); }
 

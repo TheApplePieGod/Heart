@@ -37,7 +37,7 @@ namespace Heart::RenderPlugins
         };
 
     public:
-        Bloom(SceneRenderer2* renderer, HStringView8 name, const BloomCreateInfo& createInfo)
+        Bloom(SceneRenderer* renderer, HStringView8 name, const BloomCreateInfo& createInfo)
             : RenderPlugin(renderer, name), m_Info(createInfo)
         { Initialize(); }
 

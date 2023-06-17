@@ -2,7 +2,7 @@
 #include "Bloom.h"
 
 #include "Heart/Renderer/Plugins/TransparencyComposite.h"
-#include "Heart/Renderer/SceneRenderer2.h"
+#include "Heart/Renderer/SceneRenderer.h"
 #include "Heart/Core/Timing.h"
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/ShaderAsset.h"

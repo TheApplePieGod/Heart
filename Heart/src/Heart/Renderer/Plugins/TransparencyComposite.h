@@ -20,7 +20,7 @@ namespace Heart::RenderPlugins
     class TransparencyComposite : public RenderPlugin
     {
     public:
-        TransparencyComposite(SceneRenderer2* renderer, HStringView8 name, const TransparencyCompositeCreateInfo& createInfo)
+        TransparencyComposite(SceneRenderer* renderer, HStringView8 name, const TransparencyCompositeCreateInfo& createInfo)
             : RenderPlugin(renderer, name), m_Info(createInfo)
         { Initialize(); }
 

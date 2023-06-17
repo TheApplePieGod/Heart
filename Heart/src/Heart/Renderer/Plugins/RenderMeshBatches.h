@@ -22,7 +22,7 @@ namespace Heart::RenderPlugins
     class RenderMeshBatches : public RenderPlugin
     {
     public:
-        RenderMeshBatches(SceneRenderer2* renderer, HStringView8 name, const RenderMeshBatchesCreateInfo& createInfo)
+        RenderMeshBatches(SceneRenderer* renderer, HStringView8 name, const RenderMeshBatchesCreateInfo& createInfo)
             : RenderPlugin(renderer, name), m_Info(createInfo)
         { Initialize(); }
 

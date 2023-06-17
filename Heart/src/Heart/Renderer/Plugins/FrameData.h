@@ -28,7 +28,7 @@ namespace Heart::RenderPlugins
         };
 
     public:
-        FrameData(SceneRenderer2* renderer, HStringView8 name)
+        FrameData(SceneRenderer* renderer, HStringView8 name)
             : RenderPlugin(renderer, name)
         { Initialize(); }
 

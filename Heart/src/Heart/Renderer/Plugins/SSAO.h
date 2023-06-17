@@ -35,7 +35,7 @@ namespace Heart::RenderPlugins
         };
 
     public:
-        SSAO(SceneRenderer2* renderer, HStringView8 name, const SSAOCreateInfo& createInfo)
+        SSAO(SceneRenderer* renderer, HStringView8 name, const SSAOCreateInfo& createInfo)
             : RenderPlugin(renderer, name), m_Info(createInfo)
         { Initialize(); }
 

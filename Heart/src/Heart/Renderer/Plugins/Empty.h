@@ -7,7 +7,7 @@ namespace Heart::RenderPlugins
     class Empty : public RenderPlugin
     {
     public:
-        Empty(SceneRenderer2* renderer, HStringView8 name)
+        Empty(SceneRenderer* renderer, HStringView8 name)
             : RenderPlugin(renderer, name)
         { m_Active = false; }
 

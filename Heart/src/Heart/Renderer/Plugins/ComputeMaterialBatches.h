@@ -67,7 +67,7 @@ namespace Heart::RenderPlugins
         };
 
     public:
-        ComputeMaterialBatches(SceneRenderer2* renderer, HStringView8 name, const ComputeMaterialBatchesCreateInfo& createInfo)
+        ComputeMaterialBatches(SceneRenderer* renderer, HStringView8 name, const ComputeMaterialBatchesCreateInfo& createInfo)
             : RenderPlugin(renderer, name), m_Info(createInfo)
         { Initialize(); }
 

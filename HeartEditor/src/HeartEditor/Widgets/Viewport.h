@@ -10,7 +10,6 @@
 namespace Heart
 {
     class SceneRenderer;
-    class SceneRenderer2;
     class Camera;
 }
 
@@ -44,7 +43,6 @@ namespace Widgets
         inline glm::vec2 GetRelativeMousePos() const { return m_ViewportMousePos; }
         inline glm::vec2 GetSize() const { return m_ViewportSize; }
         inline Heart::SceneRenderer& GetSceneRenderer() { return *m_SceneRenderer; }
-        inline Heart::SceneRenderer2& GetSceneRenderer2() { return *m_SceneRenderer2; }
         inline Heart::Camera& GetActiveCamera() { return *m_ActiveCamera; }
         inline glm::vec3 GetActiveCameraPosition() const { return m_ActiveCameraPos; }
         inline glm::vec3 GetActiveCameraRotation() const { return m_ActiveCameraRot; }
@@ -53,7 +51,6 @@ namespace Widgets
 
     private:
         Heart::Ref<Heart::SceneRenderer> m_SceneRenderer;
-        Heart::Ref<Heart::SceneRenderer2> m_SceneRenderer2;
         Heart::Task m_SceneRendererUpdateTask;
         Heart::Ref<Heart::Camera> m_ActiveCamera;
         Heart::Ref<EditorCamera> m_EditorCamera;

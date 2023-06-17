@@ -20,7 +20,7 @@ namespace Heart::RenderPlugins
     class ColorGrading : public RenderPlugin
     {
     public:
-        ColorGrading(SceneRenderer2* renderer, HStringView8 name, const ColorGradingCreateInfo& createInfo)
+        ColorGrading(SceneRenderer* renderer, HStringView8 name, const ColorGradingCreateInfo& createInfo)
             : RenderPlugin(renderer, name), m_Info(createInfo)
         { Initialize(); }
 

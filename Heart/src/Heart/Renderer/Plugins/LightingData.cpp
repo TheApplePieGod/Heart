@@ -3,7 +3,7 @@
 
 #include "Flourish/Api/Context.h"
 #include "Flourish/Api/Buffer.h"
-#include "Heart/Renderer/SceneRenderer2.h"
+#include "Heart/Renderer/SceneRenderer.h"
 
 namespace Heart::RenderPlugins
 {

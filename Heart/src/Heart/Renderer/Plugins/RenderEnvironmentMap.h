@@ -20,7 +20,7 @@ namespace Heart::RenderPlugins
     class RenderEnvironmentMap : public RenderPlugin
     {
     public:
-        RenderEnvironmentMap (SceneRenderer2* renderer, HStringView8 name, const RenderEnvironmentMapCreateInfo& createInfo)
+        RenderEnvironmentMap (SceneRenderer* renderer, HStringView8 name, const RenderEnvironmentMapCreateInfo& createInfo)
             : RenderPlugin(renderer, name), m_Info(createInfo)
         { Initialize(); }
 

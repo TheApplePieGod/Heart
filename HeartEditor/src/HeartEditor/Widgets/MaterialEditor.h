@@ -32,6 +32,7 @@ namespace Widgets
     private:
         void RenderSidebar();
         void RenderViewport(bool shouldRender);
+        void RecomputeMaterial();
 
     private:
         Heart::UUID m_MaterialAsset = 0;
@@ -49,6 +50,7 @@ namespace Widgets
         Heart::UUID m_LastMaterial = 0;
         Heart::UUID m_SelectedMaterial = 0;
         ImGuiTextFilter m_TextureTextFilter;
+        bool m_ShouldRecompute = false;
     };
 }
 }

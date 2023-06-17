@@ -1,7 +1,7 @@
 #include "hepch.h"
 #include "ComputeMeshBatches.h"
 
-#include "Heart/Renderer/SceneRenderer2.h"
+#include "Heart/Renderer/SceneRenderer.h"
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/MeshAsset.h"
 #include "Heart/Asset/MaterialAsset.h"

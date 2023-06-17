@@ -42,7 +42,7 @@ namespace Widgets
         NodeEditor::Begin("RGEditor");
 
         auto& viewport = (Widgets::Viewport&)Editor::GetWindow("Viewport");
-        auto& renderer = viewport.GetSceneRenderer2();
+        auto& renderer = viewport.GetSceneRenderer();
         m_RendererContext = &renderer;
         m_IdCounter = 0;
 

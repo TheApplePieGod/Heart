@@ -1,7 +1,7 @@
 #pragma once
 
 #include "HeartEditor/Widgets/Widget.h"
-#include "Heart/Renderer/SceneRenderer2.h"
+#include "Heart/Renderer/SceneRenderer.h"
 #include "imgui_node_editor.h"
 
 namespace HeartEditor
@@ -22,7 +22,7 @@ namespace Widgets
     private:
         ax::NodeEditor::EditorContext* m_EditorContext;
 
-        Heart::SceneRenderer2* m_RendererContext;
+        Heart::SceneRenderer* m_RendererContext;
         u64 m_IdCounter = 0;
         bool m_FirstRender = true;
     };

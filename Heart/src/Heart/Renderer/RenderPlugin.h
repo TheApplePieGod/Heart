@@ -15,7 +15,7 @@ namespace Heart
     };
 
     struct SceneRenderData;
-    class SceneRenderer2;
+    class SceneRenderer;
     class RenderPlugin
     {
     public:
@@ -47,7 +47,7 @@ namespace Heart
         };
 
     public:
-        RenderPlugin(SceneRenderer2* renderer, HStringView8 name)
+        RenderPlugin(SceneRenderer* renderer, HStringView8 name)
             : m_Renderer(renderer), m_Name(name)
         {}
 
@@ -78,11 +78,11 @@ namespace Heart
         u64 m_LastRenderFrame = 0;
         HVector<Task> m_DependencyTasks;
         std::map<HString8, Stat> m_Stats;
-        SceneRenderer2* m_Renderer;
+        SceneRenderer* m_Renderer;
         Ref<Flourish::CommandBuffer> m_CommandBuffer;
         GraphData m_CPUGraphData;
         GraphData m_GPUGraphData;
 
-        friend class SceneRenderer2;
+        friend class SceneRenderer;
     };
 }

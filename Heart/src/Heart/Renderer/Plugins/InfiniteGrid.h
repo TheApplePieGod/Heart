@@ -20,7 +20,7 @@ namespace Heart::RenderPlugins
     class InfiniteGrid : public RenderPlugin
     {
     public:
-        InfiniteGrid(SceneRenderer2* renderer, HStringView8 name, const InfiniteGridCreateInfo& createInfo)
+        InfiniteGrid(SceneRenderer* renderer, HStringView8 name, const InfiniteGridCreateInfo& createInfo)
             : RenderPlugin(renderer, name), m_Info(createInfo)
         { Initialize(); }
 

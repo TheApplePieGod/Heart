@@ -7,7 +7,7 @@
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/MeshAsset.h"
 #include "Heart/Asset/MaterialAsset.h"
-#include "Heart/Renderer/SceneRenderer2.h"
+#include "Heart/Renderer/SceneRenderer.h"
 #include "Heart/Renderer/Plugins/ComputeMeshBatches.h"
 
 namespace Heart::RenderPlugins

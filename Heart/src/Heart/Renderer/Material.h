@@ -13,11 +13,18 @@ namespace Flourish
 
 namespace Heart
 {
-    enum class TransparencyMode
+    enum class TransparencyMode : u8
     {
         Opaque = 0,
         AlphaClip,
         AlphaBlend
+    };
+
+    inline static std::array<const char*, 3> TransparencyModeStrings =
+    {
+        "Opaque",
+        "Alpha Clip",
+        "Alpha Blend"
     };
 
     struct MaterialData

@@ -2,6 +2,8 @@
 
 layout(location = 0) out vec2 texCoord;
 
+// Counterclockwise winding order
+
 // 0---^-----------2
 // |   |   |     /
 // <---.---|---/---> x+

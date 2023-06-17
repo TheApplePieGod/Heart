@@ -2,7 +2,7 @@
 #include "ColorGrading.h"
 
 #include "Heart/Renderer/Plugins/FrameData.h"
-#include "Heart/Renderer/SceneRenderer2.h"
+#include "Heart/Renderer/SceneRenderer.h"
 #include "Heart/Renderer/Mesh.h"
 #include "Heart/Core/Timing.h"
 #include "Heart/Asset/AssetManager.h"
@@ -20,7 +20,7 @@ namespace Heart::RenderPlugins
     void ColorGrading::Initialize()
     {
         Flourish::RenderPassCreateInfo rpCreateInfo;
-        rpCreateInfo.SampleCount = Flourish::MsaaSampleCount::None;
+        rpCreateInfo.SampleCount = Flourish::MsaaSampleCount::Four;
         rpCreateInfo.ColorAttachments.push_back({
             m_Renderer->GetOutputTexture()->GetColorFormat(),
             Flourish::AttachmentInitialization::Clear

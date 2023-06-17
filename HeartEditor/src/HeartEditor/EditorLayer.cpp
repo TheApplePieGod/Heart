@@ -7,7 +7,7 @@
 #include "HeartEditor/Project.h"
 #include "Heart/Core/Window.h"
 #include "Heart/Task/TaskManager.h"
-#include "Heart/Renderer/SceneRenderer2.h"
+#include "Heart/Renderer/SceneRenderer.h"
 #include "Heart/Renderer/Plugins/RenderMaterialBatches.h"
 #include "Flourish/Api/Texture.h"
 #include "Heart/Scene/Entity.h"
@@ -151,7 +151,7 @@ namespace HeartEditor
             glm::vec2 size = viewport.GetSize();
 
             // TODO: generic way in scenerenderer to retrieve these common plugins or constant name or something
-            auto plugin = viewport.GetSceneRenderer2().GetPlugin<Heart::RenderPlugins::RenderMaterialBatches>("RBMATCam");
+            auto plugin = viewport.GetSceneRenderer().GetPlugin<Heart::RenderPlugins::RenderMaterialBatches>("RBMATCam");
             
             // the image is scaled down in the viewport, so we need to adjust what pixel we are sampling from
             u32 width = plugin->GetEntityIdsTexture()->GetWidth();

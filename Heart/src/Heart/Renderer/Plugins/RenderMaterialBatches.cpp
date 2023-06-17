@@ -6,7 +6,7 @@
 #include "Heart/Renderer/Plugins/ComputeMaterialBatches.h"
 #include "Heart/Renderer/Plugins/TransparencyComposite.h"
 #include "Heart/Renderer/Plugins/SSAO.h"
-#include "Heart/Renderer/SceneRenderer2.h"
+#include "Heart/Renderer/SceneRenderer.h"
 #include "Heart/Renderer/Mesh.h"
 #include "Heart/Renderer/Material.h"
 #include "Heart/Renderer/EnvironmentMap.h"

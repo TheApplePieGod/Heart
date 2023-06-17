@@ -2,7 +2,7 @@
 #include "TransparencyComposite.h"
 
 #include "Heart/Renderer/Plugins/FrameData.h"
-#include "Heart/Renderer/SceneRenderer2.h"
+#include "Heart/Renderer/SceneRenderer.h"
 #include "Heart/Renderer/Mesh.h"
 #include "Heart/Core/Timing.h"
 #include "Heart/Asset/AssetManager.h"

@@ -6,7 +6,7 @@
 #include "HeartEditor/EditorCamera.h"
 #include "Heart/Input/Input.h"
 #include "Heart/Core/Timing.h"
-#include "Heart/Renderer/SceneRenderer2.h"
+#include "Heart/Renderer/SceneRenderer.h"
 #include "Heart/Renderer/RenderPlugin.h"
 #include "imgui/imgui.h"
 
@@ -71,7 +71,7 @@ namespace Widgets
         ImGui::Text("Render Statistics:");
         ImGui::Indent();
         ImGui::Text("Plugins:");
-        for (const auto& pair : viewport.GetSceneRenderer2().GetPlugins())
+        for (const auto& pair : viewport.GetSceneRenderer().GetPlugins())
         {
             if (pair.second->GetStats().empty())
                 continue;

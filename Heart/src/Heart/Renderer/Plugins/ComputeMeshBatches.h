@@ -66,7 +66,7 @@ namespace Heart::RenderPlugins
         };
 
     public:
-        ComputeMeshBatches(SceneRenderer2* renderer, HStringView8 name)
+        ComputeMeshBatches(SceneRenderer* renderer, HStringView8 name)
             : RenderPlugin(renderer, name)
         { Initialize(); }
 
