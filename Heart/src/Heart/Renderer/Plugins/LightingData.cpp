@@ -7,6 +7,16 @@
 
 namespace Heart::RenderPlugins
 {
+    void LightingData::Initialize()
+    {
+        Flourish::BufferCreateInfo bufCreateInfo;
+        bufCreateInfo.Usage = Flourish::BufferUsageType::Dynamic;
+        bufCreateInfo.Type = Flourish::BufferType::Storage;
+        bufCreateInfo.Stride = sizeof(LightData);
+        bufCreateInfo.ElementCount = m_MaxLights;
+        m_Buffer = Flourish::Buffer::Create(bufCreateInfo);
+    }
+
     void LightingData::RenderInternal(const SceneRenderData& data)
     {
         HE_PROFILE_FUNCTION();
@@ -45,15 +55,5 @@ namespace Heart::RenderPlugins
         // Update the first element of the light buffer to contain the number of lights
         float lightCount = static_cast<float>(lightIndex - 1);
         m_Buffer->SetBytes(&lightCount, sizeof(float), 0);
-    }
-    
-    void LightingData::Initialize()
-    {
-        Flourish::BufferCreateInfo bufCreateInfo;
-        bufCreateInfo.Usage = Flourish::BufferUsageType::Dynamic;
-        bufCreateInfo.Type = Flourish::BufferType::Storage;
-        bufCreateInfo.Stride = sizeof(LightData);
-        bufCreateInfo.ElementCount = m_MaxLights;
-        m_Buffer = Flourish::Buffer::Create(bufCreateInfo);
     }
 }

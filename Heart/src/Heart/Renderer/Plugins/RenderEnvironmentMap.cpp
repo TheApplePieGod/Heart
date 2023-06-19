@@ -44,13 +44,6 @@ namespace Heart::RenderPlugins
         pipelineCreateInfo.WindingOrder = Flourish::WindingOrder::Clockwise;
         auto pipeline = m_RenderPass->CreatePipeline("main", pipelineCreateInfo);
 
-        Flourish::FramebufferCreateInfo fbCreateInfo;
-        fbCreateInfo.RenderPass = m_RenderPass;
-        fbCreateInfo.Width = m_Renderer->GetRenderWidth();
-        fbCreateInfo.Height = m_Renderer->GetRenderHeight();
-        fbCreateInfo.ColorAttachments.push_back({ { 0.f, 0.f, 0.f, 0.f }, m_Renderer->GetRenderTexture() });
-        m_Framebuffer = Flourish::Framebuffer::Create(fbCreateInfo);
-
         Flourish::CommandBufferCreateInfo cbCreateInfo;
         cbCreateInfo.FrameRestricted = true;
         m_CommandBuffer = Flourish::CommandBuffer::Create(cbCreateInfo);
@@ -58,11 +51,23 @@ namespace Heart::RenderPlugins
         Flourish::ResourceSetCreateInfo dsCreateInfo;
         dsCreateInfo.Writability = Flourish::ResourceSetWritability::PerFrame;
         m_ResourceSet = pipeline->CreateResourceSet(0, dsCreateInfo);
+
+        ResizeInternal();
     }
 
     void RenderEnvironmentMap::ResizeInternal()
     {
+        Flourish::FramebufferCreateInfo fbCreateInfo;
+        fbCreateInfo.RenderPass = m_RenderPass;
+        fbCreateInfo.Width = m_Renderer->GetRenderWidth();
+        fbCreateInfo.Height = m_Renderer->GetRenderHeight();
+        fbCreateInfo.ColorAttachments.push_back({ { 0.f, 0.f, 0.f, 0.f }, m_Renderer->GetRenderTexture() });
+        m_Framebuffer = Flourish::Framebuffer::Create(fbCreateInfo);
 
+        m_GPUGraphNodeBuilder.Reset()
+            .SetCommandBuffer(m_CommandBuffer.get())
+            .AddEncoderNode(Flourish::GPUWorkloadType::Graphics)
+            .EncoderAddFramebuffer(m_Framebuffer.get());
     }
 
     void RenderEnvironmentMap::RenderInternal(const SceneRenderData& data)

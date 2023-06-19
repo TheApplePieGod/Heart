@@ -8,6 +8,16 @@
 
 namespace Heart::RenderPlugins
 {
+    void FrameData::Initialize()
+    {
+        Flourish::BufferCreateInfo bufCreateInfo;
+        bufCreateInfo.Usage = Flourish::BufferUsageType::Dynamic;
+        bufCreateInfo.Type = Flourish::BufferType::Uniform;
+        bufCreateInfo.Stride = sizeof(BufferData);
+        bufCreateInfo.ElementCount = 1;
+        m_Buffer = Flourish::Buffer::Create(bufCreateInfo);
+    }
+
     void FrameData::RenderInternal(const SceneRenderData& data)
     {
         BufferData bufData = {
@@ -21,15 +31,5 @@ namespace Heart::RenderPlugins
             Flourish::Context::ReversedZBuffer(),
         };
         m_Buffer->SetElements(&bufData, 1, 0);
-    }
-    
-    void FrameData::Initialize()
-    {
-        Flourish::BufferCreateInfo bufCreateInfo;
-        bufCreateInfo.Usage = Flourish::BufferUsageType::Dynamic;
-        bufCreateInfo.Type = Flourish::BufferType::Uniform;
-        bufCreateInfo.Stride = sizeof(BufferData);
-        bufCreateInfo.ElementCount = 1;
-        m_Buffer = Flourish::Buffer::Create(bufCreateInfo);
     }
 }

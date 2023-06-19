@@ -45,16 +45,14 @@ namespace Widgets
 
         ImGui::Begin(m_Name.Data(), &m_Open);
 
-        auto renderSettings2 = Heart::SceneRenderSettings();
-        renderSettings2.CopyEntityIdsTextureToCPU = true;
-        auto render2group = m_SceneRenderer->Render({
+        auto renderGroup = m_SceneRenderer->Render({
             &Editor::GetRenderScene(),
             Editor::GetActiveScene().GetEnvironmentMap(),
             m_ActiveCamera.get(),
             m_ActiveCameraPos,
-            renderSettings2
+            Editor::GetState().RenderSettings
         });
-        render2group.Wait();
+        renderGroup.Wait();
 
         Flourish::Context::PushFrameRenderGraph(m_SceneRenderer->GetRenderGraph());
         

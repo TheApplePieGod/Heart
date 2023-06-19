@@ -15,25 +15,16 @@
 #include "Flourish/Api/ResourceSet.h"
 #include "Flourish/Api/Buffer.h"
 
+const auto OUTPUT_FORMAT = Flourish::ColorFormat::R16_FLOAT;
+
 namespace Heart::RenderPlugins
 {
     void SSAO::Initialize()
     {
-        Flourish::TextureCreateInfo texCreateInfo;
-        texCreateInfo.Width = m_Renderer->GetRenderWidth();
-        texCreateInfo.Height = m_Renderer->GetRenderHeight();
-        texCreateInfo.Writability = Flourish::TextureWritability::PerFrame;
-        texCreateInfo.ArrayCount = 1;
-        texCreateInfo.MipCount = 1;
-        texCreateInfo.Format = Flourish::ColorFormat::R16_FLOAT;
-        texCreateInfo.Usage = Flourish::TextureUsageType::RenderTarget;
-        texCreateInfo.SamplerState.UVWWrap = { Flourish::SamplerWrapMode::ClampToEdge, Flourish::SamplerWrapMode::ClampToEdge, Flourish::SamplerWrapMode::ClampToEdge };
-        m_OutputTexture = Flourish::Texture::Create(texCreateInfo);
-
         Flourish::RenderPassCreateInfo rpCreateInfo;
         rpCreateInfo.SampleCount = Flourish::MsaaSampleCount::None;
         rpCreateInfo.ColorAttachments.push_back({
-            m_OutputTexture->GetColorFormat(),
+            OUTPUT_FORMAT,
             Flourish::AttachmentInitialization::Clear
         });
         rpCreateInfo.Subpasses.push_back({
@@ -52,13 +43,6 @@ namespace Heart::RenderPlugins
         pipelineCreateInfo.CullMode = Flourish::CullMode::Backface;
         pipelineCreateInfo.WindingOrder = Flourish::WindingOrder::CounterClockwise;
         auto pipeline = m_RenderPass->CreatePipeline("main", pipelineCreateInfo);
-
-        Flourish::FramebufferCreateInfo fbCreateInfo;
-        fbCreateInfo.RenderPass = m_RenderPass;
-        fbCreateInfo.Width = m_OutputTexture->GetWidth();
-        fbCreateInfo.Height = m_OutputTexture->GetHeight();
-        fbCreateInfo.ColorAttachments.push_back({ { 1.f }, m_OutputTexture });
-        m_Framebuffer = Flourish::Framebuffer::Create(fbCreateInfo);
 
         Flourish::CommandBufferCreateInfo cbCreateInfo;
         cbCreateInfo.FrameRestricted = true;
@@ -108,6 +92,7 @@ namespace Heart::RenderPlugins
         }
 
         // Create a texture from the random noise for later sampling
+        Flourish::TextureCreateInfo texCreateInfo;
         texCreateInfo.Width = 4;
         texCreateInfo.Height = 4;
         texCreateInfo.Writability = Flourish::TextureWritability::Once;
@@ -123,11 +108,37 @@ namespace Heart::RenderPlugins
             Flourish::SamplerWrapMode::Repeat, Flourish::SamplerWrapMode::Repeat, Flourish::SamplerWrapMode::Repeat
         };
         m_NoiseTexture = Flourish::Texture::Create(texCreateInfo);
+
+        ResizeInternal();
     }
 
     void SSAO::ResizeInternal()
     {
+        Flourish::TextureCreateInfo texCreateInfo;
+        texCreateInfo.Width = m_Renderer->GetRenderWidth();
+        texCreateInfo.Height = m_Renderer->GetRenderHeight();
+        texCreateInfo.Writability = Flourish::TextureWritability::PerFrame;
+        texCreateInfo.ArrayCount = 1;
+        texCreateInfo.MipCount = 1;
+        texCreateInfo.Format = OUTPUT_FORMAT;
+        texCreateInfo.Usage = Flourish::TextureUsageType::RenderTarget;
+        texCreateInfo.SamplerState.UVWWrap = { Flourish::SamplerWrapMode::ClampToEdge, Flourish::SamplerWrapMode::ClampToEdge, Flourish::SamplerWrapMode::ClampToEdge };
+        m_OutputTexture = Flourish::Texture::Create(texCreateInfo);
 
+        Flourish::FramebufferCreateInfo fbCreateInfo;
+        fbCreateInfo.RenderPass = m_RenderPass;
+        fbCreateInfo.Width = m_OutputTexture->GetWidth();
+        fbCreateInfo.Height = m_OutputTexture->GetHeight();
+        fbCreateInfo.ColorAttachments.push_back({ { 1.f }, m_OutputTexture });
+        m_Framebuffer = Flourish::Framebuffer::Create(fbCreateInfo);
+
+        auto meshPlugin = m_Renderer->GetPlugin<RenderPlugins::RenderMeshBatches>(m_Info.RenderMeshBatchesPluginName);
+        m_GPUGraphNodeBuilder.Reset()
+            .SetCommandBuffer(m_CommandBuffer.get())
+            .AddEncoderNode(Flourish::GPUWorkloadType::Graphics)
+            .EncoderAddFramebuffer(m_Framebuffer.get())
+            .EncoderAddTextureRead(m_Renderer->GetDepthTexture().get())
+            .EncoderAddTextureRead(meshPlugin->GetNormalsTexture());
     }
 
     void SSAO::RenderInternal(const SceneRenderData& data)

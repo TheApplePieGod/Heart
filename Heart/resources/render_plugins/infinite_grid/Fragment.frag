@@ -15,7 +15,7 @@ const float VIEW_CELLS = 15;
 
 vec4 grid(vec3 fragPos, float offset, int falloff) {
     // Compute grid scale level based on camera y pos
-    float level = log(max(1, abs(frameBuffer.data.cameraPos.y)))/SCALE_LOG + offset;
+    float level = log(max(0.0001, abs(frameBuffer.data.cameraPos.y)))/SCALE_LOG + offset;
     float levelf = fract(level);
     float leveli = ceil(level);
 

@@ -24,6 +24,8 @@ namespace Heart
         CreateTextures();
 
         // Register plugins
+        // TODO: parallel init? could do parallel init phase followed by gpunodebuilder
+        // phase
 
         auto FrameData = RegisterPlugin<RenderPlugins::FrameData>("FrameData");
         auto LightingData = RegisterPlugin<RenderPlugins::LightingData>("LightingData");
@@ -100,14 +102,16 @@ namespace Heart
 
         // Add all buffers as nodes
         for (const auto& pair : m_Plugins)
-            if (pair.second->GetCommandBuffer())
-                m_RenderGraph->AddCommandBuffer(pair.second->GetCommandBuffer());
+            if (pair.second->GetGraphNodeBuilder().GetNodeData().Buffer)
+                pair.second->GetGraphNodeBuilder().AddToGraph(m_RenderGraph.get());
 
         // Define dependencies
         for (const auto& pair : m_Plugins)
             if (pair.second->GetCommandBuffer())
                 for (const auto& dep : pair.second->GetGraphData(GraphDependencyType::GPU).Dependencies)
-                    m_RenderGraph->AddCommandBuffer(pair.second->GetCommandBuffer(), m_Plugins[dep]->GetCommandBuffer());
+                    m_RenderGraph->AddExecutionDependency(pair.second->GetCommandBuffer(), m_Plugins[dep]->GetCommandBuffer());
+
+        m_RenderGraph->Build();
     }
 
     TaskGroup SceneRenderer::Render(const SceneRenderData& data)
@@ -124,31 +128,6 @@ namespace Heart
             auto& plugin = m_Plugins[leaf];
             plugin->Render(data);
             group.AddTask(plugin->GetTask());
-        }
-
-        /*
-        Task finalTask = TaskManager::Schedule(
-            [this, data](){ RenderInternal(data); },
-            Task::Priority::High,
-            m_DependencyTasks
-        );
-        */
-        group.Wait();
-
-        if (!m_RenderGraph->IsBuild())
-        {
-            /*
-            auto cb1 = GetPlugin<Heart::RenderPlugins::RenderEnvironmentMap>("ENVMAP")->GetCommandBuffer();
-            auto cb2 = GetPlugin<Heart::RenderPlugins::RenderMeshBatches>("RBMESHCam")->GetCommandBuffer();
-            auto cb3 = GetPlugin<Heart::RenderPlugins::RenderMaterialBatches>("RBMATCam")->GetCommandBuffer();
-
-            m_RenderGraph->AddCommandBuffer(cb1);
-            m_RenderGraph->AddCommandBuffer(cb2);
-            m_RenderGraph->AddCommandBuffer(cb3, cb1);
-            m_RenderGraph->AddCommandBuffer(cb3, cb2);
-            */
-
-            m_RenderGraph->Build();
         }
 
         return group;
@@ -170,6 +149,8 @@ namespace Heart
         // Resize topologically in case of size dependencies
         for (const auto& leaf : m_CPUGraphData.Leaves)
             m_Plugins[leaf]->Resize();
+
+        RebuildGraph();
     }
 
     void SceneRenderer::RebuildGraphInternal(GraphDependencyType depType)

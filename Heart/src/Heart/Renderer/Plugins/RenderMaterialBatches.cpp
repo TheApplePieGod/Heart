@@ -21,6 +21,8 @@
 #include "Flourish/Api/Texture.h"
 #include "Flourish/Api/ResourceSet.h"
 
+const auto ENTITY_IDS_FORMAT = Flourish::ColorFormat::R32_FLOAT;
+
 namespace Heart::RenderPlugins
 {
     void RenderMaterialBatches::Initialize()
@@ -39,20 +41,6 @@ namespace Heart::RenderPlugins
             m_DefaultEnvironmentMap = Flourish::Texture::Create(envTexCreateInfo);
         }
 
-        if (m_Info.CanOutputEntityIds)
-        {
-            Flourish::TextureCreateInfo texCreateInfo;
-            texCreateInfo.Width = m_Renderer->GetRenderWidth();
-            texCreateInfo.Height = m_Renderer->GetRenderHeight();
-            texCreateInfo.ArrayCount = 1;
-            texCreateInfo.MipCount = 1;
-            texCreateInfo.Usage = Flourish::TextureUsageType::RenderTarget;
-            texCreateInfo.Writability = Flourish::TextureWritability::PerFrame;
-            texCreateInfo.SamplerState.UVWWrap = { Flourish::SamplerWrapMode::ClampToBorder, Flourish::SamplerWrapMode::ClampToBorder, Flourish::SamplerWrapMode::ClampToBorder };
-            texCreateInfo.Format = Flourish::ColorFormat::R32_FLOAT;
-            m_EntityIdsTexture = Flourish::Texture::Create(texCreateInfo);
-        }
-
         auto tpPlugin = m_Renderer->GetPlugin<RenderPlugins::TransparencyComposite>(m_Info.TransparencyCompositePluginName);
 
         Flourish::RenderPassCreateInfo rpCreateInfo;
@@ -67,11 +55,11 @@ namespace Heart::RenderPlugins
         });
         rpCreateInfo.ColorAttachments.push_back({
             tpPlugin->GetAccumTexture()->GetColorFormat(),
-            Flourish::AttachmentInitialization::Clear
+            Flourish::AttachmentInitialization::None
         });
         rpCreateInfo.ColorAttachments.push_back({
             tpPlugin->GetRevealTexture()->GetColorFormat(),
-            Flourish::AttachmentInitialization::Clear
+            Flourish::AttachmentInitialization::None
         });
         rpCreateInfo.Subpasses.push_back({
             {},
@@ -84,7 +72,7 @@ namespace Heart::RenderPlugins
         });
         if (m_Info.CanOutputEntityIds)
         {
-            rpCreateInfo.ColorAttachments.push_back({ m_EntityIdsTexture->GetColorFormat() });
+            rpCreateInfo.ColorAttachments.push_back({ ENTITY_IDS_FORMAT });
             rpCreateInfo.Subpasses.back().OutputAttachments.push_back({ Flourish::SubpassAttachmentType::Color, 3 });
         }
         m_RenderPass = Flourish::RenderPass::Create(rpCreateInfo);
@@ -115,6 +103,42 @@ namespace Heart::RenderPlugins
             pipelineCreateInfo.BlendStates.push_back({ false });
         m_RenderPass->CreatePipeline("alpha", pipelineCreateInfo);
 
+        Flourish::CommandBufferCreateInfo cbCreateInfo;
+        cbCreateInfo.FrameRestricted = true;
+        m_CommandBuffer = Flourish::CommandBuffer::Create(cbCreateInfo);
+
+        Flourish::ResourceSetCreateInfo dsCreateInfo;
+        dsCreateInfo.Writability = Flourish::ResourceSetWritability::PerFrame;
+        m_ResourceSet = pipeline->CreateResourceSet(0, dsCreateInfo);
+
+        ResizeInternal();
+    }
+
+    void RenderMaterialBatches::ResizeInternal()
+    {
+        if (m_Info.CanOutputEntityIds)
+        {
+            Flourish::TextureCreateInfo texCreateInfo;
+            texCreateInfo.Width = m_Renderer->GetRenderWidth();
+            texCreateInfo.Height = m_Renderer->GetRenderHeight();
+            texCreateInfo.ArrayCount = 1;
+            texCreateInfo.MipCount = 1;
+            texCreateInfo.Usage = Flourish::TextureUsageType::RenderTarget;
+            texCreateInfo.Writability = Flourish::TextureWritability::PerFrame;
+            texCreateInfo.SamplerState.UVWWrap = { Flourish::SamplerWrapMode::ClampToBorder, Flourish::SamplerWrapMode::ClampToBorder, Flourish::SamplerWrapMode::ClampToBorder };
+            texCreateInfo.Format = ENTITY_IDS_FORMAT;
+            m_EntityIdsTexture = Flourish::Texture::Create(texCreateInfo);
+
+            Flourish::BufferCreateInfo bufCreateInfo;
+            bufCreateInfo.Usage = Flourish::BufferUsageType::Dynamic;
+            bufCreateInfo.Type = Flourish::BufferType::Pixel;
+            bufCreateInfo.Stride = sizeof(float);
+            bufCreateInfo.ElementCount = m_Renderer->GetRenderWidth() * m_Renderer->GetRenderHeight();
+            m_EntityIdsBuffer = Flourish::Buffer::Create(bufCreateInfo);
+        }
+
+        auto tpPlugin = m_Renderer->GetPlugin<RenderPlugins::TransparencyComposite>(m_Info.TransparencyCompositePluginName);
+
         Flourish::FramebufferCreateInfo fbCreateInfo;
         fbCreateInfo.RenderPass = m_RenderPass;
         fbCreateInfo.Width = m_Renderer->GetRenderWidth();
@@ -127,28 +151,19 @@ namespace Heart::RenderPlugins
         fbCreateInfo.DepthAttachments.push_back({ m_Renderer->GetDepthTexture() });
         m_Framebuffer = Flourish::Framebuffer::Create(fbCreateInfo);
 
-        Flourish::CommandBufferCreateInfo cbCreateInfo;
-        cbCreateInfo.FrameRestricted = true;
-        m_CommandBuffer = Flourish::CommandBuffer::Create(cbCreateInfo);
-
-        Flourish::ResourceSetCreateInfo dsCreateInfo;
-        dsCreateInfo.Writability = Flourish::ResourceSetWritability::PerFrame;
-        m_ResourceSet = pipeline->CreateResourceSet(0, dsCreateInfo);
+        auto ssaoPlugin = m_Renderer->GetPlugin<RenderPlugins::SSAO>(m_Info.SSAOPluginName);
+        m_GPUGraphNodeBuilder.Reset()
+            .SetCommandBuffer(m_CommandBuffer.get())
+            .AddEncoderNode(Flourish::GPUWorkloadType::Graphics)
+            .EncoderAddFramebuffer(m_Framebuffer.get())
+            .EncoderAddTextureRead(ssaoPlugin->GetOutputTexture());
 
         if (m_Info.CanOutputEntityIds)
         {
-            Flourish::BufferCreateInfo bufCreateInfo;
-            bufCreateInfo.Usage = Flourish::BufferUsageType::Dynamic;
-            bufCreateInfo.Type = Flourish::BufferType::Pixel;
-            bufCreateInfo.Stride = sizeof(float);
-            bufCreateInfo.ElementCount = m_Renderer->GetRenderWidth() * m_Renderer->GetRenderHeight();
-            m_EntityIdsBuffer = Flourish::Buffer::Create(bufCreateInfo);
+            m_GPUGraphNodeBuilder.AddEncoderNode(Flourish::GPUWorkloadType::Transfer)
+                .EncoderAddBufferWrite(m_EntityIdsBuffer.get())
+                .EncoderAddTextureRead(m_EntityIdsTexture.get());
         }
-    }
-
-    void RenderMaterialBatches::ResizeInternal()
-    {
-
     }
 
     void RenderMaterialBatches::RenderInternal(const SceneRenderData& data)
@@ -222,21 +237,23 @@ namespace Heart::RenderPlugins
         encoder->BindPipeline("alpha");
         encoder->BindResourceSet(m_ResourceSet.get(), 0);
         encoder->FlushResourceSet(0);
+        encoder->ClearColorAttachment(1);
+        encoder->ClearColorAttachment(2);
         renderBatches(encoder, false);
 
         encoder->EndEncoding();
 
-        return;
-
-        if (m_Info.CanOutputEntityIds && data.Settings.CopyEntityIdsTextureToCPU)
+        if (m_Info.CanOutputEntityIds)
         {
             auto encoder = m_CommandBuffer->EncodeTransferCommands();
-            encoder->CopyTextureToBuffer(m_EntityIdsTexture.get(), m_EntityIdsBuffer.get());
-            //encoder->FlushBuffer(m_EntityIdsBuffer.get());
-            encoder->EndEncoding();
+            if (data.Settings.CopyEntityIdsTextureToCPU)
+            {
+                encoder->CopyTextureToBuffer(m_EntityIdsTexture.get(), m_EntityIdsBuffer.get());
 
-            // Lazy flushing because we don't care about immediate / accurate results
-            m_EntityIdsBuffer->Flush();
+                // Lazy flushing because we don't care about immediate / accurate results
+                m_EntityIdsBuffer->Flush();
+            }
+            encoder->EndEncoding();
         }
     }
 }

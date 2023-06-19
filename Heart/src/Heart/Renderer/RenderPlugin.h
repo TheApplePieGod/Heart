@@ -5,6 +5,7 @@
 #include "Heart/Container/HVector.hpp"
 #include "Heart/Core/UUID.h"
 #include "Flourish/Api/CommandBuffer.h"
+#include "Flourish/Api/RenderGraph.h"
 
 namespace Heart
 {
@@ -65,6 +66,7 @@ namespace Heart
         inline const auto& GetStats() const { return m_Stats; }
         inline UUID GetUUID() const { return m_UUID; }
         inline Flourish::CommandBuffer* GetCommandBuffer() const { return m_CommandBuffer.get(); }
+        inline const auto& GetGraphNodeBuilder() const { return m_GPUGraphNodeBuilder; }
     
     protected:
         virtual void RenderInternal(const SceneRenderData& data) = 0;
@@ -82,6 +84,7 @@ namespace Heart
         Ref<Flourish::CommandBuffer> m_CommandBuffer;
         GraphData m_CPUGraphData;
         GraphData m_GPUGraphData;
+        Flourish::RenderGraphNodeBuilder m_GPUGraphNodeBuilder;
 
         friend class SceneRenderer;
     };

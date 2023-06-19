@@ -416,11 +416,30 @@ namespace Heart
 
         if (!m_RenderGraph->IsBuild())
         {
-            m_RenderGraph->AddCommandBuffer(m_BRDFTexture.CommandBuffer.get());
-            m_RenderGraph->AddCommandBuffer(m_EnvironmentMap.CommandBuffer.get());
-            m_RenderGraph->AddCommandBuffer(m_IrradianceMap.CommandBuffer.get(), m_EnvironmentMap.CommandBuffer.get());
+            m_RenderGraph->ConstructNewNode(m_EnvironmentMap.CommandBuffer.get())
+                .AddEncoderNode(Flourish::GPUWorkloadType::Graphics)
+                .EncoderAddTextureWrite(m_EnvironmentMap.Texture.get())
+                .AddEncoderNode(Flourish::GPUWorkloadType::Graphics)
+                .EncoderAddTextureRead(m_EnvironmentMap.Texture.get())
+                .EncoderAddTextureWrite(m_EnvironmentMap.Texture.get())
+                .AddToGraph();
+            m_RenderGraph->ConstructNewNode(m_BRDFTexture.CommandBuffer.get())
+                .AddEncoderNode(Flourish::GPUWorkloadType::Graphics)
+                .EncoderAddTextureWrite(m_BRDFTexture.Texture.get())
+                .AddToGraph();
+            m_RenderGraph->ConstructNewNode(m_IrradianceMap.CommandBuffer.get())
+                .AddEncoderNode(Flourish::GPUWorkloadType::Graphics)
+                .EncoderAddTextureWrite(m_IrradianceMap.Texture.get())
+                .AddToGraph();
             for (u32 i = 0; i < m_PrefilterMaps.Count(); i++)
-                m_RenderGraph->AddCommandBuffer(m_PrefilterMaps[i].CommandBuffer.get(), m_EnvironmentMap.CommandBuffer.get());
+            {
+                m_RenderGraph->ConstructNewNode(m_PrefilterMaps[i].CommandBuffer.get())
+                    .AddExecutionDependency(m_EnvironmentMap.CommandBuffer.get())
+                    .AddEncoderNode(Flourish::GPUWorkloadType::Graphics)
+                    .EncoderAddTextureWrite(m_PrefilterMaps[0].Texture.get())
+                    .EncoderAddTextureRead(m_EnvironmentMap.Texture.get())
+                    .AddToGraph();
+            }
             m_RenderGraph->Build();
         }
 

@@ -45,6 +45,28 @@ namespace Heart::RenderPlugins
         pipelineCreateInfo.WindingOrder = Flourish::WindingOrder::CounterClockwise;
         auto pipeline = m_RenderPass->CreatePipeline("main", pipelineCreateInfo);
 
+        Flourish::ComputePipelineCreateInfo compCreateInfo;
+        compCreateInfo.ComputeShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/bloom/Downsample.comp", true)->GetShader();
+        m_DownsamplePipeline = Flourish::ComputePipeline::Create(compCreateInfo);
+        compCreateInfo.ComputeShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/bloom/Upsample.comp", true)->GetShader();
+        m_UpsamplePipeline = Flourish::ComputePipeline::Create(compCreateInfo);
+
+        Flourish::CommandBufferCreateInfo cbCreateInfo;
+        cbCreateInfo.FrameRestricted = true;
+        m_CommandBuffer = Flourish::CommandBuffer::Create(cbCreateInfo);
+
+        Flourish::ResourceSetCreateInfo dsCreateInfo;
+        dsCreateInfo.Writability = Flourish::ResourceSetWritability::MultiPerFrame;
+        m_DownsampleResourceSet = m_DownsamplePipeline->CreateResourceSet(0, dsCreateInfo);
+        m_UpsampleResourceSet = m_UpsamplePipeline->CreateResourceSet(0, dsCreateInfo);
+        dsCreateInfo.Writability = Flourish::ResourceSetWritability::PerFrame;
+        m_CompositeResourceSet = pipeline->CreateResourceSet(0, dsCreateInfo);
+
+        ResizeInternal();
+    }
+
+    void Bloom::ResizeInternal()
+    {
         Flourish::FramebufferCreateInfo fbCreateInfo;
         fbCreateInfo.RenderPass = m_RenderPass;
         fbCreateInfo.Width = m_Renderer->GetRenderWidth();
@@ -73,26 +95,26 @@ namespace Heart::RenderPlugins
         bufCreateInfo.ElementCount = m_MipCount * 2;
         m_DataBuffer = Flourish::Buffer::Create(bufCreateInfo);
 
-        Flourish::ComputePipelineCreateInfo compCreateInfo;
-        compCreateInfo.ComputeShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/bloom/Downsample.comp", true)->GetShader();
-        m_DownsamplePipeline = Flourish::ComputePipeline::Create(compCreateInfo);
-        compCreateInfo.ComputeShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/bloom/Upsample.comp", true)->GetShader();
-        m_UpsamplePipeline = Flourish::ComputePipeline::Create(compCreateInfo);
-
-        Flourish::CommandBufferCreateInfo cbCreateInfo;
-        cbCreateInfo.FrameRestricted = true;
-        m_CommandBuffer = Flourish::CommandBuffer::Create(cbCreateInfo);
-
-        Flourish::ResourceSetCreateInfo dsCreateInfo;
-        dsCreateInfo.Writability = Flourish::ResourceSetWritability::MultiPerFrame;
-        m_DownsampleResourceSet = m_DownsamplePipeline->CreateResourceSet(0, dsCreateInfo);
-        m_UpsampleResourceSet = m_UpsamplePipeline->CreateResourceSet(0, dsCreateInfo);
-        dsCreateInfo.Writability = Flourish::ResourceSetWritability::PerFrame;
-        m_CompositeResourceSet = pipeline->CreateResourceSet(0, dsCreateInfo);
-    }
-
-    void Bloom::ResizeInternal()
-    {
+        m_GPUGraphNodeBuilder.Reset()
+            .SetCommandBuffer(m_CommandBuffer.get());
+        for (u32 i = 1; i < m_MipCount; i++)
+        {
+            m_GPUGraphNodeBuilder.AddEncoderNode(Flourish::GPUWorkloadType::Compute)
+                .EncoderAddTextureRead(m_DownsampleTexture.get())
+                .EncoderAddTextureWrite(m_DownsampleTexture.get());
+            if (i == 1)
+                m_GPUGraphNodeBuilder.EncoderAddTextureRead(m_Renderer->GetRenderTexture().get());
+        }
+        for (u32 i = m_MipCount - 2; i > 0; i--)
+        {
+            m_GPUGraphNodeBuilder.AddEncoderNode(Flourish::GPUWorkloadType::Compute)
+                .EncoderAddTextureRead(m_DownsampleTexture.get())
+                .EncoderAddTextureRead(m_UpsampleTexture.get())
+                .EncoderAddTextureWrite(m_UpsampleTexture.get());
+        }
+        m_GPUGraphNodeBuilder.AddEncoderNode(Flourish::GPUWorkloadType::Graphics)
+            .EncoderAddFramebuffer(m_Framebuffer.get())
+            .EncoderAddTextureRead(m_UpsampleTexture.get());
 
     }
 

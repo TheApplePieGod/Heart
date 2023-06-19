@@ -61,6 +61,21 @@ namespace Heart::RenderPlugins
         pipelineCreateInfo.WindingOrder = Flourish::WindingOrder::Clockwise;
         auto pipeline = m_RenderPass->CreatePipeline("main", pipelineCreateInfo);
 
+        Flourish::CommandBufferCreateInfo cbCreateInfo;
+        cbCreateInfo.FrameRestricted = true;
+        m_CommandBuffer = Flourish::CommandBuffer::Create(cbCreateInfo);
+
+        Flourish::ResourceSetCreateInfo dsCreateInfo;
+        dsCreateInfo.Writability = Flourish::ResourceSetWritability::PerFrame;
+        m_ResourceSet = pipeline->CreateResourceSet(0, dsCreateInfo);
+
+        ResizeInternal();
+    }
+
+    void InfiniteGrid::ResizeInternal()
+    {
+        auto tpPlugin = m_Renderer->GetPlugin<RenderPlugins::TransparencyComposite>(m_Info.TransparencyCompositePluginName);
+
         Flourish::FramebufferCreateInfo fbCreateInfo;
         fbCreateInfo.RenderPass = m_RenderPass;
         fbCreateInfo.Width = m_Renderer->GetRenderWidth();
@@ -70,18 +85,10 @@ namespace Heart::RenderPlugins
         fbCreateInfo.DepthAttachments.push_back({ m_Renderer->GetDepthTexture() });
         m_Framebuffer = Flourish::Framebuffer::Create(fbCreateInfo);
 
-        Flourish::CommandBufferCreateInfo cbCreateInfo;
-        cbCreateInfo.FrameRestricted = true;
-        m_CommandBuffer = Flourish::CommandBuffer::Create(cbCreateInfo);
-
-        Flourish::ResourceSetCreateInfo dsCreateInfo;
-        dsCreateInfo.Writability = Flourish::ResourceSetWritability::PerFrame;
-        m_ResourceSet = pipeline->CreateResourceSet(0, dsCreateInfo);
-    }
-
-    void InfiniteGrid::ResizeInternal()
-    {
-
+        m_GPUGraphNodeBuilder.Reset()
+            .SetCommandBuffer(m_CommandBuffer.get())
+            .AddEncoderNode(Flourish::GPUWorkloadType::Graphics)
+            .EncoderAddFramebuffer(m_Framebuffer.get());
     }
 
     void InfiniteGrid::RenderInternal(const SceneRenderData& data)

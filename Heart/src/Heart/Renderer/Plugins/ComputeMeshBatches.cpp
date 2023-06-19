@@ -10,6 +10,26 @@
 
 namespace Heart::RenderPlugins
 {
+    void ComputeMeshBatches::Initialize()
+    {
+        Flourish::BufferCreateInfo bufCreateInfo;
+
+        for (u32 i = 0; i < Flourish::Context::FrameBufferCount(); i++)
+        {
+            bufCreateInfo.Usage = Flourish::BufferUsageType::DynamicOneFrame;
+            bufCreateInfo.Type = Flourish::BufferType::Storage;
+            bufCreateInfo.Stride = sizeof(ObjectData);
+            bufCreateInfo.ElementCount = m_MaxObjects;
+            m_BatchData[i].ObjectDataBuffer = Flourish::Buffer::Create(bufCreateInfo);
+
+            bufCreateInfo.Usage = Flourish::BufferUsageType::DynamicOneFrame;
+            bufCreateInfo.Type = Flourish::BufferType::Indirect;
+            bufCreateInfo.Stride = sizeof(IndexedIndirectCommand);
+            bufCreateInfo.ElementCount = m_MaxObjects;
+            m_BatchData[i].IndirectBuffer = Flourish::Buffer::Create(bufCreateInfo);
+        }
+    }
+
     void ComputeMeshBatches::RenderInternal(const SceneRenderData& data)
     {
         HE_PROFILE_FUNCTION();
@@ -153,26 +173,6 @@ namespace Heart::RenderPlugins
             StatType::Int,
             (int)batchData.Batches.size()
         };
-    }
-
-    void ComputeMeshBatches::Initialize()
-    {
-        Flourish::BufferCreateInfo bufCreateInfo;
-
-        for (u32 i = 0; i < Flourish::Context::FrameBufferCount(); i++)
-        {
-            bufCreateInfo.Usage = Flourish::BufferUsageType::DynamicOneFrame;
-            bufCreateInfo.Type = Flourish::BufferType::Storage;
-            bufCreateInfo.Stride = sizeof(ObjectData);
-            bufCreateInfo.ElementCount = m_MaxObjects;
-            m_BatchData[i].ObjectDataBuffer = Flourish::Buffer::Create(bufCreateInfo);
-
-            bufCreateInfo.Usage = Flourish::BufferUsageType::DynamicOneFrame;
-            bufCreateInfo.Type = Flourish::BufferType::Indirect;
-            bufCreateInfo.Stride = sizeof(IndexedIndirectCommand);
-            bufCreateInfo.ElementCount = m_MaxObjects;
-            m_BatchData[i].IndirectBuffer = Flourish::Buffer::Create(bufCreateInfo);
-        }
     }
 
     bool ComputeMeshBatches::FrustumCull(const SceneRenderData& data, glm::vec4 boundingSphere, const glm::mat4& transform)

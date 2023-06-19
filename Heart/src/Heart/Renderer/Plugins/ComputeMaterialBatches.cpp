@@ -12,6 +12,32 @@
 
 namespace Heart::RenderPlugins
 {
+    void ComputeMaterialBatches::Initialize()
+    {
+        Flourish::BufferCreateInfo bufCreateInfo;
+
+        for (u32 i = 0; i < Flourish::Context::FrameBufferCount(); i++)
+        {
+            bufCreateInfo.Usage = Flourish::BufferUsageType::DynamicOneFrame;
+            bufCreateInfo.Type = Flourish::BufferType::Storage;
+            bufCreateInfo.Stride = sizeof(ObjectData);
+            bufCreateInfo.ElementCount = m_MaxObjects;
+            m_BatchData[i].ObjectDataBuffer = Flourish::Buffer::Create(bufCreateInfo);
+
+            bufCreateInfo.Usage = Flourish::BufferUsageType::DynamicOneFrame;
+            bufCreateInfo.Type = Flourish::BufferType::Storage;
+            bufCreateInfo.Stride = sizeof(MaterialData);
+            bufCreateInfo.ElementCount = m_MaxMaterials;
+            m_BatchData[i].MaterialDataBuffer = Flourish::Buffer::Create(bufCreateInfo);
+
+            bufCreateInfo.Usage = Flourish::BufferUsageType::DynamicOneFrame;
+            bufCreateInfo.Type = Flourish::BufferType::Indirect;
+            bufCreateInfo.Stride = sizeof(IndexedIndirectCommand);
+            bufCreateInfo.ElementCount = m_MaxObjects;
+            m_BatchData[i].IndirectBuffer = Flourish::Buffer::Create(bufCreateInfo);
+        }
+    }
+
     void ComputeMaterialBatches::RenderInternal(const SceneRenderData& data)
     {
         HE_PROFILE_FUNCTION();
@@ -152,31 +178,5 @@ namespace Heart::RenderPlugins
             (int)newBatchData.Batches.Count()
         };
         */
-    }
-    
-    void ComputeMaterialBatches::Initialize()
-    {
-        Flourish::BufferCreateInfo bufCreateInfo;
-
-        for (u32 i = 0; i < Flourish::Context::FrameBufferCount(); i++)
-        {
-            bufCreateInfo.Usage = Flourish::BufferUsageType::DynamicOneFrame;
-            bufCreateInfo.Type = Flourish::BufferType::Storage;
-            bufCreateInfo.Stride = sizeof(ObjectData);
-            bufCreateInfo.ElementCount = m_MaxObjects;
-            m_BatchData[i].ObjectDataBuffer = Flourish::Buffer::Create(bufCreateInfo);
-
-            bufCreateInfo.Usage = Flourish::BufferUsageType::DynamicOneFrame;
-            bufCreateInfo.Type = Flourish::BufferType::Storage;
-            bufCreateInfo.Stride = sizeof(MaterialData);
-            bufCreateInfo.ElementCount = m_MaxMaterials;
-            m_BatchData[i].MaterialDataBuffer = Flourish::Buffer::Create(bufCreateInfo);
-
-            bufCreateInfo.Usage = Flourish::BufferUsageType::DynamicOneFrame;
-            bufCreateInfo.Type = Flourish::BufferType::Indirect;
-            bufCreateInfo.Stride = sizeof(IndexedIndirectCommand);
-            bufCreateInfo.ElementCount = m_MaxObjects;
-            m_BatchData[i].IndirectBuffer = Flourish::Buffer::Create(bufCreateInfo);
-        }
     }
 }

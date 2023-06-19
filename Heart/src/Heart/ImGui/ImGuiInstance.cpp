@@ -212,6 +212,7 @@ namespace Heart
             {
 				auto encoder = (Flourish::Vulkan::RenderCommandEncoder*)App::Get().GetWindow().GetRenderContext()->EncodeRenderCommands();
 				ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), encoder->GetCommandBuffer());
+                encoder->MarkManuallyRecorded();
 				encoder->EndEncoding();
 			} break;
 		}

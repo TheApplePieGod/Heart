@@ -14,6 +14,7 @@
 #include "Heart/Task/JobManager.h"
 #include "Heart/Util/PlatformUtils.h"
 #include "Flourish/Api/Context.h"
+#include "Flourish/Api/RenderContext.h"
 #include "Flourish/Core/Log.h"
 
 namespace Heart
@@ -203,7 +204,7 @@ namespace Heart
             m_Window->PollEvents();
             timer.Finish();
 
-            if (!m_Minimized)
+            if (!m_Minimized && m_Window->GetRenderContext()->Validate())
             {
                 // Begin frame
                 timer = AggregateTimer("App::Run - Begin frame");
