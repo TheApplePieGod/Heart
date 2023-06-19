@@ -49,10 +49,8 @@ namespace Heart::RenderPlugins
         for (auto& list : batchData.EntityListPool)
             list.Clear();
         
-        // TODO: check for transparent/translucent stuff
-        
-        // Loop over each mesh component / submesh, hash the mesh & material, and place the entity in a batch
-        // associated with the mesh & material. At this stage, Batch.First is unused and Batch.Count indicates
+        // Loop over each mesh component / submesh, hash the mesh, and place the entity in a batch
+        // associated with the mesh. At this stage, Batch.First is unused and Batch.Count indicates
         // how many instances there are
         u32 batchIndex = 0;
         for (u32 meshCompIndex = 0; meshCompIndex < data.Scene->GetMeshComponents().Count(); meshCompIndex++)

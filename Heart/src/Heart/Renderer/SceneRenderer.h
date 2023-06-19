@@ -67,15 +67,15 @@ namespace Heart
             return plugin;
         }
 
-        inline RenderPlugin* GetPlugin(const HStringView8& name) const
+        inline RenderPlugin* GetPlugin(const HString8& name)
         {
-            return m_Plugins.at(name).get();
+            return m_Plugins[name].get();
         }
 
         template<typename Plugin>
-        inline const Plugin* GetPlugin(const HStringView8& name) const
+        inline Plugin* GetPlugin(const HString8& name)
         {
-            return static_cast<Plugin*>(m_Plugins.at(name).get());
+            return static_cast<Plugin*>(m_Plugins[name].get());
         }
 
         inline const auto& GetPlugins() const { return m_Plugins; }
@@ -84,11 +84,13 @@ namespace Heart
         inline Ref<Flourish::Texture>& GetRenderTexture() { return m_RenderTexture; }
         inline Ref<Flourish::Texture>& GetOutputTexture() { return m_OutputTexture; }
         inline Ref<Flourish::Texture>& GetDepthTexture() { return m_DepthTexture; }
+        inline Flourish::Texture* GetDefaultEnvironmentMap() { return m_DefaultEnvironmentMap.get(); }
         inline Flourish::RenderGraph* GetRenderGraph() { return m_RenderGraph.get(); }
     
     private:
         bool OnWindowResize(WindowResizeEvent& event);
         void CreateTextures();
+        void CreateDefaultResources();
         void Resize();
         void RebuildGraphInternal(GraphDependencyType depType);
 
@@ -102,6 +104,9 @@ namespace Heart
         Ref<Flourish::Texture> m_RenderTexture;
         Ref<Flourish::Texture> m_OutputTexture;
         Ref<Flourish::Texture> m_DepthTexture;
+
+        // TODO: move this out further
+        Ref<Flourish::Texture> m_DefaultEnvironmentMap;
 
         Ref<Flourish::RenderGraph> m_RenderGraph;
     };

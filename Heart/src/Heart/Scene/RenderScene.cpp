@@ -73,13 +73,12 @@ namespace Heart
                     // Update original text component with new data so that we can cache the computed result
                     u32 entityHandle = m_EntityData[textComp.EntityIndex].Id;
                     auto& ogTextComp = scene->GetRegistry().get<TextComponent>((entt::entity)entityHandle);
-                    ogTextComp.ComputedVertices = textComp.Data.ComputedVertices;
-                    ogTextComp.ComputedIndices = textComp.Data.ComputedIndices;
+                    ogTextComp.ComputedMesh = textComp.Data.ComputedMesh;
                 },
                 [this](size_t index)
                 {
                     const auto& comp = m_TextComponents[index];
-                    return comp.Data.Font && !comp.Data.Text.IsEmpty() && (!comp.Data.ComputedVertices || !comp.Data.ComputedIndices);
+                    return comp.Data.Font && !comp.Data.Text.IsEmpty() && !comp.Data.ComputedMesh.GetVertexBuffer();
                 }
             );
 

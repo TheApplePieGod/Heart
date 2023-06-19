@@ -12,6 +12,12 @@
 
 namespace Heart::RenderPlugins
 {
+    void ComputeMaterialBatches::BatchData::Clear()
+    {
+        Batches.Clear();
+        TotalInstanceCount = 0;
+    }
+
     void ComputeMaterialBatches::Initialize()
     {
         Flourish::BufferCreateInfo bufCreateInfo;
@@ -22,22 +28,23 @@ namespace Heart::RenderPlugins
             bufCreateInfo.Type = Flourish::BufferType::Storage;
             bufCreateInfo.Stride = sizeof(ObjectData);
             bufCreateInfo.ElementCount = m_MaxObjects;
-            m_BatchData[i].ObjectDataBuffer = Flourish::Buffer::Create(bufCreateInfo);
+            m_ComputedData[i].ObjectDataBuffer = Flourish::Buffer::Create(bufCreateInfo);
 
             bufCreateInfo.Usage = Flourish::BufferUsageType::DynamicOneFrame;
             bufCreateInfo.Type = Flourish::BufferType::Storage;
             bufCreateInfo.Stride = sizeof(MaterialData);
             bufCreateInfo.ElementCount = m_MaxMaterials;
-            m_BatchData[i].MaterialDataBuffer = Flourish::Buffer::Create(bufCreateInfo);
+            m_ComputedData[i].MaterialDataBuffer = Flourish::Buffer::Create(bufCreateInfo);
 
             bufCreateInfo.Usage = Flourish::BufferUsageType::DynamicOneFrame;
             bufCreateInfo.Type = Flourish::BufferType::Indirect;
             bufCreateInfo.Stride = sizeof(IndexedIndirectCommand);
             bufCreateInfo.ElementCount = m_MaxObjects;
-            m_BatchData[i].IndirectBuffer = Flourish::Buffer::Create(bufCreateInfo);
+            m_ComputedData[i].IndirectBuffer = Flourish::Buffer::Create(bufCreateInfo);
         }
     }
 
+    // TODO: this could be potentially split up into multiple modules
     void ComputeMaterialBatches::RenderInternal(const SceneRenderData& data)
     {
         HE_PROFILE_FUNCTION();
@@ -49,21 +56,19 @@ namespace Heart::RenderPlugins
         m_RenderFrameIndex = m_UpdateFrameIndex;//(App::Get().GetFrameCount() - 1) % Flourish::Context::FrameBufferCount();
 
         bool async = data.Settings.AsyncAssetLoading;
-        auto& newBatchData = m_BatchData[m_UpdateFrameIndex];
+        auto& newComputedData = m_ComputedData[m_UpdateFrameIndex];
         auto batchesPlugin = m_Renderer->GetPlugin<RenderPlugins::ComputeMeshBatches>(m_Info.MeshBatchesPluginName);
         const auto& computedBatchData = batchesPlugin->GetBatchData();
         
         // Clear previous data
-        newBatchData.OpaqueBatches.Clear();
-        newBatchData.AlphaBatches.Clear();
-        newBatchData.TotalInstanceCount = 0;
-        newBatchData.OpaqueInstanceCount = 0;
-        newBatchData.AlphaInstanceCount = 0;
+        for (auto& batch : newComputedData.BatchTypes)
+            batch.Clear();
 
         u32 commandIndex = 0;
+        u32 materialIndex = 0;
         u32 objectId = 0;
         u32 objectIdStart = 0;
-        auto addIndirectCommand = [](BatchData& batchData, u32& commandIndex, u32 objectId, MaterialBatch& batch)
+        auto addIndirectCommand = [](ComputedData& computedData, u32& commandIndex, u32 objectId, MaterialBatch& batch)
         {
             // Update the draw command index
             batch.First = commandIndex;
@@ -74,7 +79,7 @@ namespace Heart::RenderPlugins
                 batch.Count,
                 0, 0, objectId
             };
-            batchData.IndirectBuffer->SetElements(&command, 1, commandIndex);
+            computedData.IndirectBuffer->SetElements(&command, 1, commandIndex);
 
             // Change the count to represent the number of draw commands
             batch.Count = 1;
@@ -112,25 +117,26 @@ namespace Heart::RenderPlugins
                 }
 
                 bool isAlpha = selectedMaterial->GetTransparencyMode() == TransparencyMode::AlphaBlend;
-                auto& batches = isAlpha ? newBatchData.AlphaBatches : newBatchData.OpaqueBatches;
+                auto& batchData = newComputedData.BatchTypes[(u32)(isAlpha ? BatchType::Alpha : BatchType::Opaque)];
 
-                bool batchSwitch = oldBatches != &batches;
-                bool materialSwitch = !batchSwitch && batches.Back().Material != selectedMaterial;
+                bool batchSwitch = oldBatches != &batchData.Batches;
+                bool materialSwitch = !batchSwitch && batchData.Batches.Back().Material != selectedMaterial;
                 if (batchSwitch || materialSwitch)
                 {
                     if (batchSwitch && oldBatches && !oldBatches->IsEmpty())
                     {
-                        addIndirectCommand(newBatchData, commandIndex, objectIdStart, oldBatches->Back());
+                        addIndirectCommand(newComputedData, commandIndex, objectIdStart, oldBatches->Back());
                         objectIdStart = objectId;
                     }
-                    if (materialSwitch && !batches.IsEmpty())
+                    if (materialSwitch && !batchData.Batches.IsEmpty())
                     {
-                        addIndirectCommand(newBatchData, commandIndex, objectIdStart, batches.Back());
+                        addIndirectCommand(newComputedData, commandIndex, objectIdStart, batchData.Batches.Back());
                         objectIdStart = objectId;
                     }
 
                     // Populate the material buffer
-                    newBatchData.MaterialDataBuffer->SetElements(&selectedMaterial->GetMaterialData(), 1, commandIndex);
+                    materialIndex++;
+                    newComputedData.MaterialDataBuffer->SetElements(&selectedMaterial->GetMaterialData(), 1, materialIndex);
                     
                     MaterialBatch batch = {
                         pair.second.Mesh,
@@ -139,43 +145,42 @@ namespace Heart::RenderPlugins
                         0
                     };
 
-                    batches.AddInPlace(batch);
+                    batchData.Batches.AddInPlace(batch);
                 }
 
-                batches.Back().Count++;
-                if (isAlpha)
-                    newBatchData.AlphaInstanceCount++;
-                else
-                    newBatchData.OpaqueInstanceCount++;
+                batchData.Batches.Back().Count++;
+                batchData.TotalInstanceCount++;
 
                 // Object data
                 ObjectData objectData = {
                     entityData.Transform,
-                    { entityData.Id, commandIndex, 0.f, 0.f }
+                    { entityData.Id, materialIndex, 0.f, 0.f }
                 };
-                newBatchData.ObjectDataBuffer->SetElements(&objectData, 1, objectId);
+                newComputedData.ObjectDataBuffer->SetElements(&objectData, 1, objectId);
 
                 objectId++;
-                oldBatches = &batches;
+                oldBatches = &batchData.Batches;
             }
 
             // Always add on the last elem of the last mesh
             if (pairIndex == computedBatchData.Batches.size() - 1)
-                addIndirectCommand(newBatchData, commandIndex, objectIdStart, oldBatches->Back());
+                addIndirectCommand(newComputedData, commandIndex, objectIdStart, oldBatches->Back());
 
             pairIndex++;
         }
 
-        newBatchData.TotalInstanceCount = newBatchData.OpaqueInstanceCount + newBatchData.AlphaInstanceCount;
+        newComputedData.TotalInstanceCount = 0;
+        for (auto& batch : newComputedData.BatchTypes)
+            newComputedData.TotalInstanceCount += batch.TotalInstanceCount;
 
         m_Stats["Instance Count"] = {
             StatType::Int,
-            (int)newBatchData.TotalInstanceCount
+            (int)newComputedData.TotalInstanceCount
         };
         /*
         m_Stats["Batch Count"] = {
             StatType::Int,
-            (int)newBatchData.Batches.Count()
+            (int)newComputedData.Batches.Count()
         };
         */
     }

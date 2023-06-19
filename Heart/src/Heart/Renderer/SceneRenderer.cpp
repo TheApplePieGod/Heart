@@ -22,6 +22,7 @@ namespace Heart
         m_RenderGraph = Flourish::RenderGraph::Create(rgCreateInfo);
 
         CreateTextures();
+        CreateDefaultResources();
 
         // Register plugins
         // TODO: parallel init? could do parallel init phase followed by gpunodebuilder
@@ -30,6 +31,7 @@ namespace Heart
         auto FrameData = RegisterPlugin<RenderPlugins::FrameData>("FrameData");
         auto LightingData = RegisterPlugin<RenderPlugins::LightingData>("LightingData");
         auto CBMESHCam = RegisterPlugin<RenderPlugins::ComputeMeshBatches>("CBMESHCam");
+        auto EntityIds = RegisterPlugin<RenderPlugins::EntityIds>("EntityIds");
 
         RenderPlugins::RenderMeshBatchesCreateInfo RBMESHCamCreateInfo;
         RBMESHCamCreateInfo.WriteNormals = true;
@@ -37,6 +39,9 @@ namespace Heart
         RBMESHCamCreateInfo.MeshBatchesPluginName = CBMESHCam->GetName();
         auto RBMESHCam = RegisterPlugin<RenderPlugins::RenderMeshBatches>("RBMESHCam", RBMESHCamCreateInfo);
         RBMESHCam->AddDependency(CBMESHCam->GetName(), GraphDependencyType::CPU);
+
+        RenderPlugins::ComputeTextBatchesCreateInfo CBTEXTCamCreateInfo;
+        auto CBTEXTCam = RegisterPlugin<RenderPlugins::ComputeTextBatches>("CBTEXTCam", CBTEXTCamCreateInfo);
 
         RenderPlugins::ComputeMaterialBatchesCreateInfo CBMATCamCreateInfo;
         CBMATCamCreateInfo.MeshBatchesPluginName = CBMESHCam->GetName();
@@ -56,9 +61,19 @@ namespace Heart
         RenderPlugins::TransparencyCompositeCreateInfo TransparencyCreateInfo;
         auto Transparency = RegisterPlugin<RenderPlugins::TransparencyComposite>("Transparency", TransparencyCreateInfo);
 
+        RenderPlugins::RenderTextBatchesCreateInfo RBTEXTCamCreateInfo;
+        RBTEXTCamCreateInfo.EntityIdsPluginName = EntityIds->GetName();
+        RBTEXTCamCreateInfo.FrameDataPluginName = FrameData->GetName();
+        RBTEXTCamCreateInfo.LightingDataPluginName = LightingData->GetName();
+        RBTEXTCamCreateInfo.TextBatchesPluginName = CBTEXTCam->GetName();
+        auto RBTEXTCam = RegisterPlugin<RenderPlugins::RenderTextBatches>("RBTEXTCam", RBTEXTCamCreateInfo);
+        RBTEXTCam->AddDependency(CBTEXTCam->GetName(), GraphDependencyType::CPU);
+        RBTEXTCam->AddDependency(ENVMAP->GetName(), GraphDependencyType::GPU);
+        RBTEXTCam->AddDependency(RBMESHCam->GetName(), GraphDependencyType::GPU);
+
         RenderPlugins::RenderMaterialBatchesCreateInfo RBMATCamCreateInfo;
         // TODO: parameterize. will need to add support for specialization constants to do this
-        RBMATCamCreateInfo.CanOutputEntityIds = true; 
+        RBMATCamCreateInfo.EntityIdsPluginName = EntityIds->GetName();
         RBMATCamCreateInfo.FrameDataPluginName = FrameData->GetName();
         RBMATCamCreateInfo.LightingDataPluginName = LightingData->GetName();
         RBMATCamCreateInfo.SSAOPluginName = SSAO->GetName();
@@ -67,7 +82,9 @@ namespace Heart
         auto RBMATCam = RegisterPlugin<RenderPlugins::RenderMaterialBatches>("RBMATCam", RBMATCamCreateInfo);
         RBMATCam->AddDependency(CBMATCam->GetName(), GraphDependencyType::CPU);
         RBMATCam->AddDependency(SSAO->GetName(), GraphDependencyType::GPU);
-        RBMATCam->AddDependency(ENVMAP->GetName(), GraphDependencyType::GPU);
+        RBMATCam->AddDependency(RBTEXTCam->GetName(), GraphDependencyType::GPU);
+
+        EntityIds->AddDependency(RBMATCam->GetName(), GraphDependencyType::GPU);
 
         RenderPlugins::InfiniteGridCreateInfo GRIDCreateInfo;
         GRIDCreateInfo.FrameDataPluginName = FrameData->GetName();
@@ -209,6 +226,19 @@ namespace Heart
         m_OutputTexture = Flourish::Texture::Create(texCreateInfo);
         texCreateInfo.Format = Flourish::ColorFormat::Depth;
         m_DepthTexture = Flourish::Texture::Create(texCreateInfo);
+    }
+
+    void SceneRenderer::CreateDefaultResources()
+    {
+        Flourish::TextureCreateInfo envTexCreateInfo;
+        envTexCreateInfo.Width = 256;
+        envTexCreateInfo.Height = 256;
+        envTexCreateInfo.Format = Flourish::ColorFormat::RGBA8_UNORM;
+        envTexCreateInfo.Usage = Flourish::TextureUsageType::Readonly;
+        envTexCreateInfo.Writability = Flourish::TextureWritability::Once;
+        envTexCreateInfo.ArrayCount = 6;
+        envTexCreateInfo.MipCount = 1;
+        m_DefaultEnvironmentMap = Flourish::Texture::Create(envTexCreateInfo);
     }
 
     void SceneRenderer::OnEvent(Event& event)

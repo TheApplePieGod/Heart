@@ -63,6 +63,7 @@ namespace Heart::RenderPlugins
 
         Flourish::CommandBufferCreateInfo cbCreateInfo;
         cbCreateInfo.FrameRestricted = true;
+        cbCreateInfo.DebugName = m_Name.Data();
         m_CommandBuffer = Flourish::CommandBuffer::Create(cbCreateInfo);
 
         Flourish::ResourceSetCreateInfo dsCreateInfo;

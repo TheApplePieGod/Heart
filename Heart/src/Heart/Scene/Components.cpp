@@ -4,14 +4,14 @@
 #include "Heart/Renderer/Mesh.h"
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/FontAsset.h"
+#include "Heart/Asset/MeshAsset.h"
 #include "Flourish/Api/Buffer.h"
 
 namespace Heart
 {
     void TextComponent::ClearRenderData()
     {
-        ComputedVertices.reset();
-        ComputedIndices.reset();
+        ComputedMesh = Mesh();
     }
 
     void TextComponent::RecomputeRenderData()
@@ -22,7 +22,7 @@ namespace Heart
         
         auto fontAsset = AssetManager::RetrieveAsset<FontAsset>(Font, true);
         if (!fontAsset || !fontAsset->IsValid()) return;
-        
+
         HVector<Mesh::Vertex> vertices;
         HVector<u32> indices;
         vertices.Reserve(Text.Count() * 4);
@@ -96,23 +96,9 @@ namespace Heart
             
             vertexOffset += 4;
         }
-        
-        Flourish::BufferCreateInfo bufCreateInfo;
-        bufCreateInfo.Type = Flourish::BufferType::Vertex;
-        bufCreateInfo.Usage = Flourish::BufferUsageType::Static;
-        bufCreateInfo.Layout = Mesh::GetVertexLayout();
-        bufCreateInfo.ElementCount = vertices.Count();
-        bufCreateInfo.InitialData = vertices.Data();
-        bufCreateInfo.InitialDataSize = sizeof(Mesh::Vertex) * vertices.Count();
-        ComputedVertices = Flourish::Buffer::Create(bufCreateInfo);
 
-        bufCreateInfo.Type = Flourish::BufferType::Index;
-        bufCreateInfo.Layout = Mesh::GetIndexLayout();
-        bufCreateInfo.ElementCount = indices.Count();
-        bufCreateInfo.InitialData = indices.Data();
-        bufCreateInfo.InitialDataSize = sizeof(u32) * indices.Count();
-        ComputedIndices = Flourish::Buffer::Create(bufCreateInfo);
-        
+        ComputedMesh = Mesh(vertices, indices, 0);
+
         Recomputing = false;
     }
 }

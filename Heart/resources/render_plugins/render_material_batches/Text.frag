@@ -2,7 +2,7 @@
 
 #include "PBR.glsl"
 
-layout(binding = 16) uniform sampler2D atlasTex;
+layout(binding = 0, set = 2) uniform sampler2D atlasTex;
 
 layout(location = 0) out vec4 outHDRColor;
 layout(location = 1) out float outEntityId;

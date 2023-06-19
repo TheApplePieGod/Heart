@@ -13,20 +13,18 @@ namespace Flourish
 
 namespace Heart::RenderPlugins
 {
-    struct RenderMaterialBatchesCreateInfo
+    struct RenderTextBatchesCreateInfo
     {
-        HString8 MaterialBatchesPluginName;
-        HString8 TransparencyCompositePluginName;
-        HString8 SSAOPluginName;
+        HString8 TextBatchesPluginName;
         HString8 FrameDataPluginName;
         HString8 LightingDataPluginName;
         HString8 EntityIdsPluginName; // Optional
     };
 
-    class RenderMaterialBatches : public RenderPlugin
+    class RenderTextBatches : public RenderPlugin
     {
     public:
-        RenderMaterialBatches(SceneRenderer* renderer, HStringView8 name, const RenderMaterialBatchesCreateInfo& createInfo)
+        RenderTextBatches(SceneRenderer* renderer, HStringView8 name, const RenderTextBatchesCreateInfo& createInfo)
             : RenderPlugin(renderer, name), m_Info(createInfo)
         { Initialize(); }
 
@@ -38,9 +36,10 @@ namespace Heart::RenderPlugins
         void Initialize();
 
     private:
-        RenderMaterialBatchesCreateInfo m_Info;
+        RenderTextBatchesCreateInfo m_Info;
 
         Ref<Flourish::ResourceSet> m_ResourceSet;
+        Ref<Flourish::ResourceSet> m_TextResourceSet;
         Ref<Flourish::RenderPass> m_RenderPass;
         Ref<Flourish::Framebuffer> m_Framebuffer;
     };

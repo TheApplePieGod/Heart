@@ -14,3 +14,6 @@
 #include "Bloom.h"
 #include "ColorGrading.h"
 #include "SSAO.h"
+#include "EntityIds.h"
+#include "ComputeTextBatches.h"
+#include "RenderTextBatches.h"

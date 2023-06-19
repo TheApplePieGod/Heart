@@ -8,6 +8,7 @@
 namespace Flourish
 {
     class Buffer;
+    class Texture;
 }
 
 namespace Heart
@@ -18,12 +19,12 @@ namespace Heart
 
 namespace Heart::RenderPlugins
 {
-    struct ComputeMaterialBatchesCreateInfo
+    struct ComputeTextBatchesCreateInfo
     {
-        HString8 MeshBatchesPluginName;
+
     };
 
-    class ComputeMaterialBatches : public RenderPlugin
+    class ComputeTextBatches : public RenderPlugin
     {
     public:
         enum class BatchType : u8
@@ -44,10 +45,11 @@ namespace Heart::RenderPlugins
             glm::vec2 padding2;
         };
 
-        struct MaterialBatch
+        struct TextBatch
         {
             Mesh* Mesh = nullptr;
             Material* Material = nullptr;
+            Flourish::Texture* FontAtlas = nullptr;
             u32 First = 0;
             u32 Count = 0;
         };
@@ -58,17 +60,9 @@ namespace Heart::RenderPlugins
             glm::vec4 Data;
         };
 
-        struct BatchData
-        {
-            HVector<MaterialBatch> Batches;
-            u32 TotalInstanceCount;
-
-            void Clear();
-        };
-
         struct ComputedData
         {
-            std::array<BatchData, 3> BatchTypes;
+            HVector<TextBatch> Batches;
 
             Ref<Flourish::Buffer> IndirectBuffer;
             Ref<Flourish::Buffer> ObjectDataBuffer;
@@ -78,7 +72,7 @@ namespace Heart::RenderPlugins
         };
 
     public:
-        ComputeMaterialBatches(SceneRenderer* renderer, HStringView8 name, const ComputeMaterialBatchesCreateInfo& createInfo)
+        ComputeTextBatches(SceneRenderer* renderer, HStringView8 name, const ComputeTextBatchesCreateInfo& createInfo)
             : RenderPlugin(renderer, name), m_Info(createInfo)
         { Initialize(); }
 
@@ -93,11 +87,11 @@ namespace Heart::RenderPlugins
         void Initialize();
 
     private:
-        ComputeMaterialBatchesCreateInfo m_Info;
+        ComputeTextBatchesCreateInfo m_Info;
         std::array<ComputedData, Flourish::Context::MaxFrameBufferCount> m_ComputedData;
         u32 m_UpdateFrameIndex = 0;
         u32 m_RenderFrameIndex = 0;
-        u32 m_MaxObjects = 10000; // TODO: parameterize
-        u32 m_MaxMaterials = 10000;
+        u32 m_MaxObjects = 3000; // TODO: parameterize
+        u32 m_MaxMaterials = 3000;
     };
 }

@@ -185,10 +185,10 @@ namespace Heart
                     comp.Text = compEntry["text"];
                     comp.FontSize = compEntry["fontSize"];
                     comp.LineHeight = compEntry["lineHeight"];
-                    comp.BaseColor = { compEntry["baseColor"][0], compEntry["baseColor"][1], compEntry["baseColor"][2] };
-                    comp.EmissiveFactor = { compEntry["emissiveFactor"][0], compEntry["emissiveFactor"][1], compEntry["emissiveFactor"][2] };
-                    comp.Metalness = compEntry["metalness"];
-                    comp.Roughness = compEntry["roughness"];
+                    //comp.BaseColor = { compEntry["baseColor"][0], compEntry["baseColor"][1], compEntry["baseColor"][2] };
+                    //comp.EmissiveFactor = { compEntry["emissiveFactor"][0], compEntry["emissiveFactor"][1], compEntry["emissiveFactor"][2] };
+                    //comp.Metalness = compEntry["metalness"];
+                    //comp.Roughness = compEntry["roughness"];
                     
                     entity.AddComponent<TextComponent>(comp);
                 }
@@ -391,10 +391,10 @@ namespace Heart
                     compEntry["text"] = comp.Text;
                     compEntry["fontSize"] = comp.FontSize;
                     compEntry["lineHeight"] = comp.LineHeight;
-                    compEntry["baseColor"] = nlohmann::json::array({ comp.BaseColor.x, comp.BaseColor.y, comp.BaseColor.z });
-                    compEntry["emissiveFactor"] = nlohmann::json::array({ comp.EmissiveFactor.x, comp.EmissiveFactor.y, comp.EmissiveFactor.z });
-                    compEntry["metalness"] = comp.Metalness;
-                    compEntry["roughness"] = comp.Roughness;
+                    //compEntry["baseColor"] = nlohmann::json::array({ comp.BaseColor.x, comp.BaseColor.y, comp.BaseColor.z });
+                    //compEntry["emissiveFactor"] = nlohmann::json::array({ comp.EmissiveFactor.x, comp.EmissiveFactor.y, comp.EmissiveFactor.z });
+                    //compEntry["metalness"] = comp.Metalness;
+                    //compEntry["roughness"] = comp.Roughness;
                 }
 
                 field[index++] = entry;

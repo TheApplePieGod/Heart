@@ -572,31 +572,44 @@ namespace Widgets
                 if (Heart::ImGuiUtils::InputText("##Text", textComp.Text, true))
                     textComp.ClearRenderData();
                 
-                ImGui::Text("Font Size");
+                ImGui::Text("Font Size:");
                 ImGui::SameLine();
                 if (ImGui::DragFloat("##fontsize", &textComp.FontSize, 0.1f, 0.f, 100.f))
                     textComp.ClearRenderData();
                 
-                ImGui::Text("Line Height");
+                ImGui::Text("Line Height:");
                 ImGui::SameLine();
                 if (ImGui::DragFloat("##linheig", &textComp.LineHeight, 0.1f, 0.f, 100.f))
                     textComp.ClearRenderData();
                 
-                ImGui::Text("Base Color");
+                // Material picker
+                ImGui::Text("Material:");
                 ImGui::SameLine();
-                ImGui::ColorEdit3("##textcol", (float*)&textComp.BaseColor);
-                
-                ImGui::Text("Emissive Factor");
-                ImGui::SameLine();
-                ImGui::ColorEdit3("##textemis", (float*)&textComp.EmissiveFactor);
-                
-                ImGui::Text("Metalness");
-                ImGui::SameLine();
-                ImGui::DragFloat("##textmet", &textComp.Metalness, 0.05f, 0.f, 1.f);
-                    
-                ImGui::Text("Roughness");
-                ImGui::SameLine();
-                ImGui::DragFloat("##textrough", &textComp.Roughness, 0.05f, 0.f, 1.f);
+                Heart::ImGuiUtils::AssetPicker(
+                    Heart::Asset::Type::Material,
+                    textComp.Material,
+                    "DEFAULT",
+                    "texMat",
+                    m_MaterialTextFilter,
+                    [&textComp]()
+                    {
+                        // Context menu per material
+                        if (textComp.Material)
+                        {
+                            if (ImGui::MenuItem("Clear"))
+                                textComp.Material = 0;
+                            if (ImGui::MenuItem("Open in Editor"))
+                                ((Widgets::MaterialEditor&)Editor::GetWindow("Material Editor")).SetSelectedMaterial(textComp.Material);
+                        }
+                    },
+                    [&textComp](Heart::UUID selected) { textComp.Material = selected; }
+                );
+
+                // Assign material on drop
+                Heart::ImGuiUtils::AssetDropTarget(
+                    Heart::Asset::Type::Material,
+                    [&textComp](const Heart::HStringView8& path) { textComp.Material = Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Material, path); }
+                );
                 
                 ImGui::Unindent();
             }
