@@ -2,12 +2,30 @@
 #include "Mesh.h"
 
 #include "glm/glm.hpp"
+#include "Flourish/Api/RayTracing/AccelerationStructure.h"
 
 namespace Heart
 {
     Mesh::Mesh(const HVector<Vertex>& vertices, const HVector<u32>& indices, u32 materialIndex)
         : m_Vertices(vertices), m_Indices(indices), m_MaterialIndex(materialIndex)
     {
+        auto createAccel = [this]()
+        {
+            if (++m_BufferReadyCount != 2)
+                return;
+
+            Flourish::AccelerationStructureCreateInfo asCreateInfo;
+            asCreateInfo.Type = Flourish::AccelerationStructureType::Node;
+            asCreateInfo.AllowUpdating = false;
+            m_AccelStructure = Flourish::AccelerationStructure::Create(asCreateInfo);
+
+            Flourish::AccelerationStructureNodeBuildInfo buildInfo;
+            buildInfo.VertexBuffer = m_VertexBuffer.get();
+            buildInfo.IndexBuffer = m_IndexBuffer.get();
+            buildInfo.AsyncCompletion = true;
+            m_AccelStructure->RebuildNode(buildInfo);
+        };
+
         Flourish::BufferCreateInfo bufCreateInfo;
         bufCreateInfo.Type = Flourish::BufferType::Vertex;
         bufCreateInfo.Usage = Flourish::BufferUsageType::Static;
@@ -15,6 +33,9 @@ namespace Heart
         bufCreateInfo.ElementCount = vertices.Count();
         bufCreateInfo.InitialData = vertices.Data();
         bufCreateInfo.InitialDataSize = sizeof(Vertex) * vertices.Count();
+        bufCreateInfo.CanCreateAccelerationStructure = true;
+        bufCreateInfo.AsyncUpload = true;
+        bufCreateInfo.UploadedCallback = createAccel;
         m_VertexBuffer = Flourish::Buffer::Create(bufCreateInfo);
 
         bufCreateInfo.Type = Flourish::BufferType::Index;
@@ -23,7 +44,7 @@ namespace Heart
         bufCreateInfo.InitialData = indices.Data();
         bufCreateInfo.InitialDataSize = sizeof(u32) * indices.Count();
         m_IndexBuffer = Flourish::Buffer::Create(bufCreateInfo);
-        
+
         CalculateBounds();
     }
 

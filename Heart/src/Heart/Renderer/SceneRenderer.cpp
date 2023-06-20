@@ -32,6 +32,7 @@ namespace Heart
         auto LightingData = RegisterPlugin<RenderPlugins::LightingData>("LightingData");
         auto CBMESHCam = RegisterPlugin<RenderPlugins::ComputeMeshBatches>("CBMESHCam");
         auto EntityIds = RegisterPlugin<RenderPlugins::EntityIds>("EntityIds");
+        auto TLAS = RegisterPlugin<RenderPlugins::TLAS>("TLAS");
 
         RenderPlugins::RenderMeshBatchesCreateInfo RBMESHCamCreateInfo;
         RBMESHCamCreateInfo.WriteNormals = true;

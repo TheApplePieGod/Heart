@@ -17,3 +17,4 @@
 #include "EntityIds.h"
 #include "ComputeTextBatches.h"
 #include "RenderTextBatches.h"
+#include "TLAS.h"

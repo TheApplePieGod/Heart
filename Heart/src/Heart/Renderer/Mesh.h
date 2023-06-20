@@ -6,6 +6,11 @@
 #include "Heart/Container/HVector.hpp"
 #include "Flourish/Api/Buffer.h"
 
+namespace Flourish
+{
+    class AccelerationStructure;
+};
+
 namespace Heart
 {
     struct AABB
@@ -32,6 +37,7 @@ namespace Heart
         const HVector<Vertex>& GetVertices() const { return m_Vertices; }
         const Flourish::Buffer* GetVertexBuffer() const { return m_VertexBuffer.get(); }
         const Flourish::Buffer* GetIndexBuffer() const { return m_IndexBuffer.get(); }
+        const Flourish::AccelerationStructure* GetAccelStructure() const { return m_AccelStructure.get(); }
         u32 GetMaterialIndex() const { return m_MaterialIndex; }
         const AABB& GetBoundingBox() const { return m_BoundingBox; }
         glm::vec4 GetBoundingSphere() const { return m_BoundingSphere; }
@@ -55,11 +61,13 @@ namespace Heart
         void CalculateBounds();
 
     private:
+        u32 m_BufferReadyCount = 0;
         HVector<Vertex> m_Vertices;
         HVector<u32> m_Indices;
         u32 m_MaterialIndex;
         Ref<Flourish::Buffer> m_VertexBuffer;
         Ref<Flourish::Buffer> m_IndexBuffer;
+        Ref<Flourish::AccelerationStructure> m_AccelStructure;
         AABB m_BoundingBox;
         glm::vec4 m_BoundingSphere; // xyz: center, w: radius
     };

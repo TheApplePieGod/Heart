@@ -6,7 +6,7 @@
 
 namespace Flourish
 {
-    class Buffer;
+    class AccelerationStructure;
 }
 
 namespace Heart

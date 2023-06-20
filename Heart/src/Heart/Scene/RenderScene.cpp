@@ -59,7 +59,7 @@ namespace Heart
                 cachedData.ForwardVec
             );
         });
-        
+
         // Spawn jobs to recompute text data
         if (m_TextComponents.Count() > 0)
         {
