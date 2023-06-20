@@ -21,6 +21,10 @@
 #include "glm/gtc/type_ptr.hpp"
 #include "glm/gtx/matrix_decompose.hpp"
 
+// TESTING
+#include "Heart/Renderer/SceneRenderer.h"
+#include "Heart/Renderer/Plugins/AllPlugins.h"
+
 namespace HeartEditor
 {
 namespace Widgets
@@ -41,14 +45,16 @@ namespace Widgets
 
         ImGui::Begin(m_Name.Data(), &m_Open);
 
-        m_SceneRendererUpdateTask = m_SceneRenderer->Render(
+        auto renderGroup = m_SceneRenderer->Render({
             &Editor::GetRenderScene(),
             Editor::GetActiveScene().GetEnvironmentMap(),
-            *m_ActiveCamera,
+            m_ActiveCamera.get(),
             m_ActiveCameraPos,
             Editor::GetState().RenderSettings
-        );
-        EditorApp::Get().GetWindow().PushDependencyBuffers(m_SceneRenderer->GetRenderBuffers());
+        });
+        renderGroup.Wait();
+
+        Flourish::Context::PushFrameRenderGraph(m_SceneRenderer->GetRenderGraph());
         
         // calculate viewport bounds & aspect ratio
         ImVec2 viewportMin = ImGui::GetWindowContentRegionMin();
@@ -64,15 +70,12 @@ namespace Widgets
         ImGui::GetWindowDrawList()->AddRectFilled({ viewportStart.x, viewportStart.y }, { viewportEnd.x, viewportEnd.y }, IM_COL32( 0, 0, 0, 255 )); // viewport background
 
         // draw the rendered texture
-        Flourish::Texture* outputTex = nullptr;
+        // todo: add more views
+        const Flourish::Texture* outputTex = nullptr;
         switch (m_SelectedOutput){
-            default: outputTex = m_SceneRenderer->GetFinalTexture(); break;
-            case 1: outputTex = m_SceneRenderer->GetRenderOutputTexture(); break;
-            case 2: outputTex = m_SceneRenderer->GetEntityIdsTexture(); break;
-            case 3: outputTex = m_SceneRenderer->GetDepthTexture(); break;
-            case 4: outputTex = m_SceneRenderer->GetSSAOTexture(); break;
-            case 5: outputTex = m_SceneRenderer->GetBloomDownsampleTexture(); break;
-            case 6: outputTex = m_SceneRenderer->GetBloomUpsampleTexture(); break;
+            default: outputTex = m_SceneRenderer->GetOutputTexture().get(); break;
+            case 1: outputTex = m_SceneRenderer->GetRenderTexture().get(); break;
+            case 2: outputTex = m_SceneRenderer->GetDepthTexture().get(); break;
         }
         ImGui::Image(
             outputTex->GetImGuiHandle(0, m_SelectedOutputMip),
@@ -190,33 +193,10 @@ namespace Widgets
                     m_SelectedOutput = 1;
                     m_SelectedOutputMip = 0;
                 }
-                if (ImGui::MenuItem("Entity ids", nullptr, m_SelectedOutput == 2))
+                if (ImGui::MenuItem("Depth", nullptr, m_SelectedOutput == 2))
                 {
                     m_SelectedOutput = 2;
                     m_SelectedOutputMip = 0;
-                }
-                if (ImGui::MenuItem("Depth", nullptr, m_SelectedOutput == 3))
-                {
-                    m_SelectedOutput = 3;
-                    m_SelectedOutputMip = 0;
-                }
-                if (ImGui::MenuItem("SSAO", nullptr, m_SelectedOutput == 4))
-                {
-                    m_SelectedOutput = 4;
-                    m_SelectedOutputMip = 0;
-                }
-
-                if (ImGui::BeginMenu("Bloom downsample"))
-                {
-                    if (ImGui::DragInt("Mip", &m_SelectedOutputMip, 1.0, 0, m_SceneRenderer->GetBloomMipCount() - 1))
-                        m_SelectedOutput = 5;
-                    ImGui::EndMenu();
-                }
-                if (ImGui::BeginMenu("Bloom upsample"))
-                {
-                    if (ImGui::DragInt("Mip", &m_SelectedOutputMip, 1.0, 0, m_SceneRenderer->GetBloomMipCount() - 1))
-                        m_SelectedOutput = 6;
-                    ImGui::EndMenu();
                 }
 
                 ImGui::EndPopup();
@@ -306,7 +286,7 @@ namespace Widgets
 
     void Viewport::Reset()
     {
-        m_SceneRenderer->ClearRenderData();
+
     }
 
     void Viewport::UpdateCamera()

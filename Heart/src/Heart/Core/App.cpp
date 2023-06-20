@@ -8,11 +8,13 @@
 #include "Heart/Physics/PhysicsWorld.h"
 #include "Heart/Events/WindowEvents.h"
 #include "Heart/Asset/AssetManager.h"
+#include "Heart/Renderer/Material.h"
 #include "Heart/Scripting/ScriptingEngine.h"
 #include "Heart/Task/TaskManager.h"
 #include "Heart/Task/JobManager.h"
 #include "Heart/Util/PlatformUtils.h"
 #include "Flourish/Api/Context.h"
+#include "Flourish/Api/RenderContext.h"
 #include "Flourish/Core/Log.h"
 
 namespace Heart
@@ -40,21 +42,22 @@ namespace Heart
         InitializeGraphicsApi(windowCreateInfo);
         HE_ENGINE_LOG_DEBUG("Graphics ready");
 
-        PhysicsWorld::Initialize();
-
         // Init services
-        auto assetTask = TaskManager::Schedule([]()
-        {
-            AssetManager::Initialize();
-            HE_ENGINE_LOG_DEBUG("Asset manager ready");
-        }, Task::Priority::High, "AssetManager Init");
-        auto scriptsTask = TaskManager::Schedule([]()
-        {
-            ScriptingEngine::Initialize();
-            HE_ENGINE_LOG_DEBUG("Scripts ready");
-        }, Task::Priority::High, "Scripts Init");
+        TaskGroup initServices;
+        initServices.AddTask(TaskManager::Schedule(
+            [](){ PhysicsWorld::Initialize(); },
+            Task::Priority::High, "PhysicsWorld Init")
+        );
+        initServices.AddTask(TaskManager::Schedule(
+            [](){ AssetManager::Initialize(); },
+            Task::Priority::High, "AssetManager Init")
+        );
+        initServices.AddTask(TaskManager::Schedule(
+            [](){ ScriptingEngine::Initialize(); },
+            Task::Priority::High, "Scripts Init")
+        );
         
-        TaskGroup({ assetTask, scriptsTask }).Wait();
+        initServices.Wait();
 
         HE_ENGINE_LOG_INFO("App initialized");
     }
@@ -102,7 +105,6 @@ namespace Heart
         initInfo.FrameBufferCount = 3;
         initInfo.UseReversedZBuffer = true;
         initInfo.RequestedFeatures.IndependentBlend = true;
-        initInfo.RequestedFeatures.WideLines = true;
         initInfo.RequestedFeatures.SamplerAnisotropy = true;
         Flourish::Context::Initialize(initInfo);
 
@@ -111,11 +113,15 @@ namespace Heart
         Window::SetMainWindow(m_Window);
 
         m_ImGuiInstance = CreateRef<ImGuiInstance>(m_Window);
+
+        Material::Initialize();
     }
 
     void App::ShutdownGraphicsApi()
     {
         UnsubscribeFromEmitter(&GetWindow());
+
+        Material::Shutdown();
 
         Flourish::Context::Shutdown([this]()
         {
@@ -198,30 +204,31 @@ namespace Heart
             m_Window->PollEvents();
             timer.Finish();
 
-            if (m_Minimized)
-                continue;
+            if (!m_Minimized && m_Window->GetRenderContext()->Validate())
+            {
+                // Begin frame
+                timer = AggregateTimer("App::Run - Begin frame");
+                Flourish::Context::BeginFrame();
+                AssetManager::OnUpdate();
+                m_Window->BeginFrame();
+                m_ImGuiInstance->BeginFrame();
+                timer.Finish();
 
-            // Begin frame
-            timer = AggregateTimer("App::Run - Begin frame");
-            Flourish::Context::BeginFrame();
-            AssetManager::OnUpdate();
-            m_Window->BeginFrame();
-            m_ImGuiInstance->BeginFrame();
-            timer.Finish();
+                // Layer update
+                for (auto layer : m_Layers)
+                    layer->OnUpdate(m_LastTimestep);
 
-            // Layer update
-            for (auto layer : m_Layers)
-                layer->OnUpdate(m_LastTimestep);
+                // End frame
+                timer = AggregateTimer("App::Run - End frame");
+                m_ImGuiInstance->EndFrame();
+                m_Window->EndFrame();
+                Flourish::Context::EndFrame();
+                m_FrameCount++;
+                timer.Finish();
 
-            // End frame
-            timer = AggregateTimer("App::Run - End frame");
-            m_ImGuiInstance->EndFrame();
-            m_Window->EndFrame();
-            Flourish::Context::EndFrame();
-            m_FrameCount++;
-            timer.Finish();
+                CheckForAssetsDirectorySwitch();
+            }
 
-            CheckForAssetsDirectorySwitch();
             AggregateTimer::EndFrame();
         }
     }

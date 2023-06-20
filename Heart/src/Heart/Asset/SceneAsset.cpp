@@ -181,14 +181,21 @@ namespace Heart
                 {
                     auto& compEntry = loaded["textComponent"];
                     TextComponent comp;
-                    comp.Font = AssetManager::RegisterAsset(Asset::Type::Mesh, compEntry["font"]["path"], false, compEntry["font"]["engineResource"]);
+                    comp.Font = AssetManager::RegisterAsset(
+                        Asset::Type::Font,
+                        compEntry["font"]["path"],
+                        false,
+                        compEntry["font"]["engineResource"]
+                    );
+                    comp.Material = AssetManager::RegisterAsset(
+                        Asset::Type::Material,
+                        compEntry["material"]["path"],
+                        false,
+                        compEntry["material"]["engineResource"]
+                    );
                     comp.Text = compEntry["text"];
                     comp.FontSize = compEntry["fontSize"];
                     comp.LineHeight = compEntry["lineHeight"];
-                    comp.BaseColor = { compEntry["baseColor"][0], compEntry["baseColor"][1], compEntry["baseColor"][2] };
-                    comp.EmissiveFactor = { compEntry["emissiveFactor"][0], compEntry["emissiveFactor"][1], compEntry["emissiveFactor"][2] };
-                    comp.Metalness = compEntry["metalness"];
-                    comp.Roughness = compEntry["roughness"];
                     
                     entity.AddComponent<TextComponent>(comp);
                 }
@@ -388,13 +395,11 @@ namespace Heart
                     auto& comp = entity.GetComponent<TextComponent>();
                     compEntry["font"]["path"] = AssetManager::GetPathFromUUID(comp.Font);
                     compEntry["font"]["engineResource"] = AssetManager::IsAssetAResource(comp.Font);
+                    compEntry["material"]["path"] = AssetManager::GetPathFromUUID(comp.Material);
+                    compEntry["material"]["engineResource"] = AssetManager::IsAssetAResource(comp.Material);
                     compEntry["text"] = comp.Text;
                     compEntry["fontSize"] = comp.FontSize;
                     compEntry["lineHeight"] = comp.LineHeight;
-                    compEntry["baseColor"] = nlohmann::json::array({ comp.BaseColor.x, comp.BaseColor.y, comp.BaseColor.z });
-                    compEntry["emissiveFactor"] = nlohmann::json::array({ comp.EmissiveFactor.x, comp.EmissiveFactor.y, comp.EmissiveFactor.z });
-                    compEntry["metalness"] = comp.Metalness;
-                    compEntry["roughness"] = comp.Roughness;
                 }
 
                 field[index++] = entry;

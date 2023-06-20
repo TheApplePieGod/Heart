@@ -158,8 +158,7 @@ namespace Heart
     void Window::EndFrame()
     {
         Input::ClearDeltas();
-        m_RenderContext->Present(m_DependencyBuffers);
-        m_DependencyBuffers.clear();
+        Flourish::Context::PushFrameRenderContext(m_RenderContext.get());
     }
 
     void Window::DisableCursor()

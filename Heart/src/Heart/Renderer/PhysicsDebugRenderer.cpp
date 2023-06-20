@@ -36,8 +36,8 @@ namespace Heart
         pipelineCreateInfo.VertexLayout = { Flourish::BufferDataType::Float3, Flourish::BufferDataType::Float3 };
         pipelineCreateInfo.VertexInput = true;
         pipelineCreateInfo.BlendStates = { { false } };
-        pipelineCreateInfo.DepthTest = false;
-        pipelineCreateInfo.DepthWrite = false;
+        pipelineCreateInfo.DepthConfig.DepthTest = false;
+        pipelineCreateInfo.DepthConfig.DepthWrite = false;
         pipelineCreateInfo.CullMode = Flourish::CullMode::None;
         pipelineCreateInfo.WindingOrder = Flourish::WindingOrder::Clockwise;
         m_MainRenderPass->CreatePipeline("main", pipelineCreateInfo);
@@ -57,7 +57,6 @@ namespace Heart
         m_CameraDataBuffer = Flourish::Buffer::Create(bufCreateInfo);
         
         Flourish::CommandBufferCreateInfo cbCreateInfo;
-        cbCreateInfo.MaxEncoders = 1;
         m_MainCommandBuffer = Flourish::CommandBuffer::Create(cbCreateInfo);
      
         Resize(width, height);
@@ -77,6 +76,7 @@ namespace Heart
         };
         m_CameraDataBuffer->SetElements(&camData, 1, 0);
         
+        /*
         auto encoder = m_MainCommandBuffer->EncodeRenderCommands(m_MainFramebuffer.get());
         encoder->BindPipeline("main");
         encoder->BindPipelineBufferResource(0, m_CameraDataBuffer.get(), 0, 0, 1);
@@ -85,6 +85,7 @@ namespace Heart
         encoder->BindVertexBuffer(m_VertexBuffer.get());
         encoder->Draw(m_VertexCount, 0, 1, 0);
         encoder->EndEncoding();
+        */
         
         m_VertexCount = 0;
     }

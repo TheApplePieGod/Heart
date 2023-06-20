@@ -147,6 +147,8 @@ namespace Heart
 
         bool res = initFunc(PlatformUtils::GetCurrentModuleHandle(), &s_CoreCallbacks);
         HE_ENGINE_ASSERT(res, "Failed to initialize core scripts");
+
+        HE_ENGINE_LOG_DEBUG("Scripts ready");
     }
 
     void ScriptingEngine::Shutdown()

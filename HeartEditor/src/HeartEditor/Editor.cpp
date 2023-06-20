@@ -20,6 +20,7 @@
 #include "HeartEditor/Widgets/RenderSettings.h"
 #include "HeartEditor/Widgets/AssetRegistry.h"
 #include "HeartEditor/Widgets/LogList.h"
+#include "HeartEditor/Widgets/RenderGraph.h"
 
 #include "msdf-atlas-gen/msdf-atlas-gen.h"
 
@@ -90,6 +91,10 @@ namespace HeartEditor
         PushWindow(
             "Log List",
             Heart::CreateRef<Widgets::LogList>("Log List", false)
+        );
+        PushWindow(
+            "Render Graph",
+            Heart::CreateRef<Widgets::RenderGraph>("Render Graph", false)
         );
     }
 

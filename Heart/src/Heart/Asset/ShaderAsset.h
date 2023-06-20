@@ -24,6 +24,6 @@ namespace Heart
 
     private:
         Ref<Flourish::Shader> m_Shader;
-        Flourish::ShaderType m_ShaderType = Flourish::ShaderType::None;
+        Flourish::ShaderType m_ShaderType = Flourish::ShaderTypeFlags::None;
     };
 }

@@ -5,8 +5,28 @@
 #include "glm/vec3.hpp"
 #include "glm/vec4.hpp"
 
+namespace Flourish
+{
+    class ResourceSet;
+    class ResourceSetAllocator;
+}
+
 namespace Heart
 {
+    enum class TransparencyMode : u8
+    {
+        Opaque = 0,
+        AlphaClip,
+        AlphaBlend
+    };
+
+    inline static std::array<const char*, 3> TransparencyModeStrings =
+    {
+        "Opaque",
+        "Alpha Clip",
+        "Alpha Blend"
+    };
+
     struct MaterialData
     {
         inline void SetBaseColor(glm::vec4 color) { BaseColor = color; }
@@ -46,21 +66,30 @@ namespace Heart
     class Material
     {
     public:
-    
+        void RecomputeResourceSet();
+
+        inline const Flourish::ResourceSet* GetResourceSet() const { return m_ResourceSet.get(); }
         inline MaterialData& GetMaterialData() { return m_MaterialData; }
         inline UUID GetAlbedoTexture() const { return m_AlbedoTextureAsset; }
         inline UUID GetMetallicRoughnessTexture() const { return m_MetallicRoughnessTextureAsset; }
         inline UUID GetNormalTexture() const { return m_NormalTextureAsset; }
         inline UUID GetEmissiveTexture() const { return m_EmissiveTextureAsset; }
         inline UUID GetOcclusionTexture() const { return m_OcclusionTextureAsset; }
-        inline bool IsTranslucent() const { return m_Translucent; }
+        inline TransparencyMode GetTransparencyMode() const { return m_TransparencyMode; }
 
         inline void SetAlbedoTexture(UUID texture) { m_AlbedoTextureAsset = texture; }
         inline void SetMetallicRoughnessTexture(UUID texture) { m_MetallicRoughnessTextureAsset = texture; }
         inline void SetNormalTexture(UUID texture) { m_NormalTextureAsset = texture; }
         inline void SetEmissiveTexture(UUID texture) { m_EmissiveTextureAsset = texture; }
         inline void SetOcclusionTexture(UUID texture) { m_OcclusionTextureAsset = texture; }
-        inline void SetTranslucent(bool translucent) { m_Translucent = translucent; }
+        inline void SetTransparencyMode(TransparencyMode mode) { m_TransparencyMode = mode; }
+
+    public:
+        static void Initialize();
+        static void Shutdown();
+    
+    private:
+        inline static Ref<Flourish::ResourceSetAllocator> s_ResourceSetAllocator = nullptr;
 
     private:
         MaterialData m_MaterialData;
@@ -69,7 +98,9 @@ namespace Heart
         UUID m_NormalTextureAsset = 0;
         UUID m_EmissiveTextureAsset = 0;
         UUID m_OcclusionTextureAsset = 0;
-        bool m_Translucent = false;
+        TransparencyMode m_TransparencyMode = TransparencyMode::Opaque;
+
+        Ref<Flourish::ResourceSet> m_ResourceSet;
 
         friend class MaterialAsset;
         friend class MeshAsset;

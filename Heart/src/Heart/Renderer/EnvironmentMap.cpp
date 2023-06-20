@@ -19,6 +19,8 @@
 #include "Flourish/Api/RenderCommandEncoder.h"
 #include "Flourish/Api/GraphicsPipeline.h"
 #include "Flourish/Api/Buffer.h"
+#include "Flourish/Api/ResourceSet.h"
+#include "Flourish/Api/RenderGraph.h"
 
 namespace Heart
 {
@@ -59,7 +61,6 @@ namespace Heart
 
         // Create the command buffers
         Flourish::CommandBufferCreateInfo cmdCreateInfo;
-        cmdCreateInfo.MaxEncoders = 2;
         cmdCreateInfo.FrameRestricted = false;
         m_BRDFTexture.CommandBuffer = Flourish::CommandBuffer::Create(cmdCreateInfo);
         m_EnvironmentMap.CommandBuffer = Flourish::CommandBuffer::Create(cmdCreateInfo);
@@ -67,10 +68,15 @@ namespace Heart
         for (u32 i = 0; i < m_PrefilterMaps.Count(); i++)
             m_PrefilterMaps[i].CommandBuffer = Flourish::CommandBuffer::Create(cmdCreateInfo);
 
+        // Create the render graph
+        Flourish::RenderGraphCreateInfo rgCreateInfo;
+        rgCreateInfo.Usage = Flourish::RenderGraphUsageType::Once;
+        m_RenderGraph = Flourish::RenderGraph::Create(rgCreateInfo);
+
         // Create the cubemap data buffer to hold data for each face render
         Flourish::BufferCreateInfo bufCreateInfo;
         bufCreateInfo.Type = Flourish::BufferType::Storage;
-        bufCreateInfo.Usage = Flourish::BufferUsageType::Dynamic;
+        bufCreateInfo.Usage = Flourish::BufferUsageType::DynamicOneFrame;
         bufCreateInfo.Layout = {
             { Flourish::BufferDataType::Mat4 },
             { Flourish::BufferDataType::Mat4 },
@@ -115,12 +121,16 @@ namespace Heart
             pipelineCreateInfo.VertexTopology = Flourish::VertexTopology::TriangleList;
             pipelineCreateInfo.VertexLayout = Heart::Mesh::GetVertexLayout();
             pipelineCreateInfo.BlendStates = { { false } };
-            pipelineCreateInfo.DepthTest = false;
-            pipelineCreateInfo.DepthWrite = false;
+            pipelineCreateInfo.DepthConfig.DepthTest = false;
+            pipelineCreateInfo.DepthConfig.DepthWrite = false;
             pipelineCreateInfo.CullMode = Flourish::CullMode::Frontface;
             pipelineCreateInfo.WindingOrder = Flourish::WindingOrder::Clockwise;
 
-            m_RenderPass->CreatePipeline("cubemap", pipelineCreateInfo);
+            auto pipeline = m_RenderPass->CreatePipeline("cubemap", pipelineCreateInfo);
+
+            Flourish::ResourceSetCreateInfo dsCreateInfo;
+            dsCreateInfo.Writability = Flourish::ResourceSetWritability::OnceStaticData;
+            m_EnvironmentMap.ResourceSet = pipeline->CreateResourceSet(0, dsCreateInfo);
         }
 
         // -----------------------------------------------------------------------------------------
@@ -142,12 +152,16 @@ namespace Heart
             pipelineCreateInfo.VertexTopology = Flourish::VertexTopology::TriangleList;
             pipelineCreateInfo.VertexLayout = Heart::Mesh::GetVertexLayout();
             pipelineCreateInfo.BlendStates = { { false } };
-            pipelineCreateInfo.DepthTest = false;
-            pipelineCreateInfo.DepthWrite = false;
+            pipelineCreateInfo.DepthConfig.DepthTest = false;
+            pipelineCreateInfo.DepthConfig.DepthWrite = false;
             pipelineCreateInfo.CullMode = Flourish::CullMode::Frontface;
             pipelineCreateInfo.WindingOrder = Flourish::WindingOrder::Clockwise;
 
-            m_RenderPass->CreatePipeline("irradiance", pipelineCreateInfo);
+            auto pipeline = m_RenderPass->CreatePipeline("irradiance", pipelineCreateInfo);
+
+            Flourish::ResourceSetCreateInfo dsCreateInfo;
+            dsCreateInfo.Writability = Flourish::ResourceSetWritability::OnceStaticData;
+            m_IrradianceMap.ResourceSet = pipeline->CreateResourceSet(0, dsCreateInfo);
         }
 
         // -----------------------------------------------------------------------------------------------------------------------
@@ -174,12 +188,16 @@ namespace Heart
             pipelineCreateInfo.VertexTopology = Flourish::VertexTopology::TriangleList;
             pipelineCreateInfo.VertexLayout = Heart::Mesh::GetVertexLayout();
             pipelineCreateInfo.BlendStates = { { false } };
-            pipelineCreateInfo.DepthTest = false;
-            pipelineCreateInfo.DepthWrite = false;
+            pipelineCreateInfo.DepthConfig.DepthTest = false;
+            pipelineCreateInfo.DepthConfig.DepthWrite = false;
             pipelineCreateInfo.CullMode = Flourish::CullMode::Frontface;
             pipelineCreateInfo.WindingOrder = Flourish::WindingOrder::Clockwise;
 
-            m_RenderPass->CreatePipeline("prefilter", pipelineCreateInfo);
+            auto pipeline = m_RenderPass->CreatePipeline("prefilter", pipelineCreateInfo);
+
+            Flourish::ResourceSetCreateInfo dsCreateInfo;
+            dsCreateInfo.Writability = Flourish::ResourceSetWritability::OnceStaticData;
+            m_PrefilterMaps[0].ResourceSet = pipeline->CreateResourceSet(0, dsCreateInfo);
         }
 
         // -----------------------------------------------------------------------------------------------------------------------
@@ -198,12 +216,16 @@ namespace Heart
             pipelineCreateInfo.FragmentShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/CalcBRDF.frag", true)->GetShader();
             pipelineCreateInfo.VertexInput = false;
             pipelineCreateInfo.BlendStates = { { false } };
-            pipelineCreateInfo.DepthTest = false;
-            pipelineCreateInfo.DepthWrite = false;
+            pipelineCreateInfo.DepthConfig.DepthTest = false;
+            pipelineCreateInfo.DepthConfig.DepthWrite = false;
             pipelineCreateInfo.CullMode = Flourish::CullMode::None;
             pipelineCreateInfo.WindingOrder = Flourish::WindingOrder::Clockwise;
 
-            m_BRDFRenderPass->CreatePipeline("brdf", pipelineCreateInfo);
+            auto pipeline = m_BRDFRenderPass->CreatePipeline("brdf", pipelineCreateInfo);
+
+            Flourish::ResourceSetCreateInfo dsCreateInfo;
+            dsCreateInfo.Writability = Flourish::ResourceSetWritability::OnceStaticData;
+            m_BRDFTexture.ResourceSet = pipeline->CreateResourceSet(0, dsCreateInfo);
         }
     }
 
@@ -243,21 +265,28 @@ namespace Heart
         // Render equirectangular map to cubemap
         // ------------------------------------------------------------------
         {
+            if (!m_SetsWritten)
+            {
+                m_EnvironmentMap.ResourceSet->BindBuffer(0, m_CubemapDataBuffer.get(), 0, 1);
+                m_EnvironmentMap.ResourceSet->BindTexture(1, mapAsset->GetTexture());
+                m_EnvironmentMap.ResourceSet->FlushBindings();
+            }
+
             auto rcEncoder = m_EnvironmentMap.CommandBuffer->EncodeRenderCommands(m_EnvironmentMap.Framebuffer.get());
             for (u32 i = 0; i < 6; i++)
             {
                 if (i != 0)
                     rcEncoder->StartNextSubpass();
 
-                rcEncoder->BindPipeline("cubemap");  
-
                 cubemapCam.UpdateViewMatrix(glm::vec3(0.f), rotations[i]);
 
                 CubemapData mapData = { cubemapCam.GetProjectionMatrix(), cubemapCam.GetViewMatrix(), glm::vec4(0.f) };
                 m_CubemapDataBuffer->SetElements(&mapData, 1, cubeDataIndex);
-                rcEncoder->BindPipelineBufferResource(0, m_CubemapDataBuffer.get(), 0, i, 1);
-                rcEncoder->BindPipelineTextureResource(1, mapAsset->GetTexture());
-                rcEncoder->FlushPipelineBindings();
+
+                rcEncoder->BindPipeline("cubemap");  
+                rcEncoder->BindResourceSet(m_EnvironmentMap.ResourceSet.get(), 0);
+                rcEncoder->UpdateDynamicOffset(0, 0, i * sizeof(CubemapData));
+                rcEncoder->FlushResourceSet(0);
 
                 rcEncoder->BindVertexBuffer(meshData.GetVertexBuffer());
                 rcEncoder->BindIndexBuffer(meshData.GetIndexBuffer());
@@ -279,6 +308,13 @@ namespace Heart
         // Precalculate environment irradiance
         // ------------------------------------------------------------------
         {
+            if (!m_SetsWritten)
+            {
+                m_IrradianceMap.ResourceSet->BindBuffer(0, m_CubemapDataBuffer.get(), 0, 1);
+                m_IrradianceMap.ResourceSet->BindTexture(1, m_EnvironmentMap.Texture.get());
+                m_IrradianceMap.ResourceSet->FlushBindings();
+            }
+
             auto rcEncoder = m_IrradianceMap.CommandBuffer->EncodeRenderCommands(m_IrradianceMap.Framebuffer.get());
             for (u32 i = 0; i < 6; i++)
             {
@@ -286,9 +322,9 @@ namespace Heart
                     rcEncoder->StartNextSubpass();
 
                 rcEncoder->BindPipeline("irradiance");  
-                rcEncoder->BindPipelineBufferResource(0, m_CubemapDataBuffer.get(), 0, i, 1);
-                rcEncoder->BindPipelineTextureResource(1, m_EnvironmentMap.Texture.get());
-                rcEncoder->FlushPipelineBindings();
+                rcEncoder->BindResourceSet(m_IrradianceMap.ResourceSet.get(), 0);
+                rcEncoder->UpdateDynamicOffset(0, 0, i * sizeof(CubemapData));
+                rcEncoder->FlushResourceSet(0);
 
                 rcEncoder->BindVertexBuffer(meshData.GetVertexBuffer());
                 rcEncoder->BindIndexBuffer(meshData.GetIndexBuffer());
@@ -303,10 +339,16 @@ namespace Heart
         // ------------------------------------------------------------------
         // Prefilter the environment map based on roughness
         // ------------------------------------------------------------------
+        if (!m_SetsWritten)
+        {
+            m_PrefilterMaps[0].ResourceSet->BindBuffer(0, m_CubemapDataBuffer.get(), 0, 1);
+            m_PrefilterMaps[0].ResourceSet->BindTexture(1, m_EnvironmentMap.Texture.get());
+            m_PrefilterMaps[0].ResourceSet->FlushBindings();
+        }
+
         for (u32 i = 0; i < m_PrefilterMaps.Count(); i++)
         {
             auto rcEncoder = m_PrefilterMaps[i].CommandBuffer->EncodeRenderCommands(m_PrefilterMaps[i].Framebuffer.get());
-
             float roughness = static_cast<float>(i) / 4;
             for (u32 j = 0; j < 6; j++) // each face
             {
@@ -323,9 +365,9 @@ namespace Heart
                     glm::vec4(roughness, m_EnvironmentMap.Texture->GetWidth(), 0.f, 0.f)
                 };
                 m_CubemapDataBuffer->SetElements(&mapData, 1, cubeDataIndex);
-                rcEncoder->BindPipelineBufferResource(0, m_CubemapDataBuffer.get(), 0, cubeDataIndex, 1);
-                rcEncoder->BindPipelineTextureResource(1, m_EnvironmentMap.Texture.get());
-                rcEncoder->FlushPipelineBindings();
+                rcEncoder->BindResourceSet(m_PrefilterMaps[0].ResourceSet.get(), 0);
+                rcEncoder->UpdateDynamicOffset(0, 0, cubeDataIndex * sizeof(CubemapData));
+                rcEncoder->FlushResourceSet(0);
 
                 rcEncoder->BindVertexBuffer(meshData.GetVertexBuffer());
                 rcEncoder->BindIndexBuffer(meshData.GetIndexBuffer());
@@ -344,6 +386,12 @@ namespace Heart
         // Precalculate the BRDF texture
         // ------------------------------------------------------------------
         {
+            if (!m_SetsWritten)
+            {
+                m_BRDFTexture.ResourceSet->BindBuffer(0, m_CubemapDataBuffer.get(), cubeDataIndex, 1);
+                m_BRDFTexture.ResourceSet->FlushBindings();
+            }
+
             auto rcEncoder = m_BRDFTexture.CommandBuffer->EncodeRenderCommands(m_BRDFTexture.Framebuffer.get());
 
             rcEncoder->BindPipeline("brdf");  
@@ -354,8 +402,8 @@ namespace Heart
                 glm::vec4(Flourish::Context::ReversedZBuffer(), 0.f, 0.f, 0.f)
             };
             m_CubemapDataBuffer->SetElements(&mapData, 1, cubeDataIndex);
-            rcEncoder->BindPipelineBufferResource(0, m_CubemapDataBuffer.get(), 0, cubeDataIndex, 1);
-            rcEncoder->FlushPipelineBindings();
+            rcEncoder->BindResourceSet(m_BRDFTexture.ResourceSet.get(), 0);
+            rcEncoder->FlushResourceSet(0);
 
             rcEncoder->Draw(3, 0, 1, 0);
 
@@ -364,13 +412,37 @@ namespace Heart
             cubeDataIndex++;
         }
 
-        std::vector<std::vector<Flourish::CommandBuffer*>> submission = {
-            { m_EnvironmentMap.CommandBuffer.get() }, { m_IrradianceMap.CommandBuffer.get() }
-        };
-        for (u32 i = 0; i < m_PrefilterMaps.Count(); i++)
-            submission[1].push_back(m_PrefilterMaps[i].CommandBuffer.get());
+        m_SetsWritten = true;
 
-        Flourish::Context::PushCommandBuffers({ { m_BRDFTexture.CommandBuffer.get() } });
-        Flourish::Context::PushCommandBuffers(submission);
+        if (!m_RenderGraph->IsBuild())
+        {
+            m_RenderGraph->ConstructNewNode(m_EnvironmentMap.CommandBuffer.get())
+                .AddEncoderNode(Flourish::GPUWorkloadType::Graphics)
+                .EncoderAddTextureWrite(m_EnvironmentMap.Texture.get())
+                .AddEncoderNode(Flourish::GPUWorkloadType::Graphics)
+                .EncoderAddTextureRead(m_EnvironmentMap.Texture.get())
+                .EncoderAddTextureWrite(m_EnvironmentMap.Texture.get())
+                .AddToGraph();
+            m_RenderGraph->ConstructNewNode(m_BRDFTexture.CommandBuffer.get())
+                .AddEncoderNode(Flourish::GPUWorkloadType::Graphics)
+                .EncoderAddTextureWrite(m_BRDFTexture.Texture.get())
+                .AddToGraph();
+            m_RenderGraph->ConstructNewNode(m_IrradianceMap.CommandBuffer.get())
+                .AddEncoderNode(Flourish::GPUWorkloadType::Graphics)
+                .EncoderAddTextureWrite(m_IrradianceMap.Texture.get())
+                .AddToGraph();
+            for (u32 i = 0; i < m_PrefilterMaps.Count(); i++)
+            {
+                m_RenderGraph->ConstructNewNode(m_PrefilterMaps[i].CommandBuffer.get())
+                    .AddExecutionDependency(m_EnvironmentMap.CommandBuffer.get())
+                    .AddEncoderNode(Flourish::GPUWorkloadType::Graphics)
+                    .EncoderAddTextureWrite(m_PrefilterMaps[0].Texture.get())
+                    .EncoderAddTextureRead(m_EnvironmentMap.Texture.get())
+                    .AddToGraph();
+            }
+            m_RenderGraph->Build();
+        }
+
+        Flourish::Context::PushRenderGraph(m_RenderGraph.get());
     }
 }

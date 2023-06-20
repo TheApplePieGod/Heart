@@ -6,36 +6,43 @@
 
 int Main(int argc, char** argv)
 {
-    // Init platform
-    Heart::PlatformUtils::InitializePlatform();
-
-    // Locate project folder
-    auto projectFolderPath = std::filesystem::path("project");
-    if (!std::filesystem::exists(projectFolderPath))
+    try
     {
-        HE_LOG_ERROR("Unable to locate project folder");
-        throw std::exception();
-    }
+        // Init platform
+        Heart::PlatformUtils::InitializePlatform();
 
-    // Locate project
-    auto projectPath = std::filesystem::path();
-    for (const auto& entry : std::filesystem::directory_iterator(projectFolderPath))
-    {
-        if (!entry.is_directory() && entry.path().extension() == ".heproj")
+        // Locate project folder
+        auto projectFolderPath = std::filesystem::path("project");
+        if (!std::filesystem::exists(projectFolderPath))
         {
-            projectPath = entry.path();
-            break;
+            HE_LOG_ERROR("Unable to locate project folder");
+            throw std::exception();
         }
-    }
-    if (projectPath.empty())
-    {
-        HE_LOG_ERROR("Unable to locate project file");
-        throw std::exception();
-    }
 
-    HeartRuntime::RuntimeApp* app = new HeartRuntime::RuntimeApp(projectPath);
-    app->Run();
-    delete app;
+        // Locate project
+        auto projectPath = std::filesystem::path();
+        for (const auto& entry : std::filesystem::directory_iterator(projectFolderPath))
+        {
+            if (!entry.is_directory() && entry.path().extension() == ".heproj")
+            {
+                projectPath = entry.path();
+                break;
+            }
+        }
+        if (projectPath.empty())
+        {
+            HE_LOG_ERROR("Unable to locate project file");
+            throw std::exception();
+        }
+
+        HeartRuntime::RuntimeApp* app = new HeartRuntime::RuntimeApp(projectPath);
+        app->Run();
+        delete app;
+    }
+    catch (std::exception& e)
+    {
+        HE_LOG_ERROR("Crashed: {0}", e.what());
+    }
     
     return 0;
 }

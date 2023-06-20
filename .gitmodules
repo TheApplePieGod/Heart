@@ -14,9 +14,9 @@
 	path = Heart/lib/glm
 	url = https://github.com/g-truc/glm.git
 	branch = master
-[submodule "Heart/lib/optick"]
-	path = Heart/lib/optick
-	url = https://github.com/bombomby/optick.git
+[submodule "Heart/lib/tracy"]
+	path = Heart/lib/tracy
+	url = https://github.com/wolfpld/tracy.git
 	branch = master
 [submodule "Heart/lib/entt"]
 	path = Heart/lib/entt
@@ -42,6 +42,12 @@
 	path = Heart/lib/FreeType
 	url = https://gitlab.freedesktop.org/freetype/freetype.git
 	branch = master
+
+[submodule "HeartEditor/lib/imgui-node-editor"]
+	path = HeartEditor/lib/imgui-node-editor
+	url = https://github.com/TheApplePieGod/imgui-node-editor.git
+	branch = master
+
 [submodule "HeartTesting/lib/doctest"]
 	path = HeartTesting/lib/doctest
 	url = https://github.com/doctest/doctest.git

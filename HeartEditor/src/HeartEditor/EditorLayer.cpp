@@ -8,6 +8,7 @@
 #include "Heart/Core/Window.h"
 #include "Heart/Task/TaskManager.h"
 #include "Heart/Renderer/SceneRenderer.h"
+#include "Heart/Renderer/Plugins/EntityIds.h"
 #include "Flourish/Api/Texture.h"
 #include "Heart/Scene/Entity.h"
 #include "Heart/Input/Input.h"
@@ -149,14 +150,17 @@ namespace HeartEditor
             glm::vec2 mousePos = viewport.GetRelativeMousePos();
             glm::vec2 size = viewport.GetSize();
 
+            // TODO: generic way in scenerenderer to retrieve these common plugins or constant name or something
+            auto plugin = viewport.GetSceneRenderer().GetPlugin<Heart::RenderPlugins::EntityIds>("EntityIds");
+            
             // the image is scaled down in the viewport, so we need to adjust what pixel we are sampling from
-            u32 width = viewport.GetSceneRenderer().GetEntityIdsTexture()->GetWidth();
-            u32 height = viewport.GetSceneRenderer().GetEntityIdsTexture()->GetHeight();
+            u32 width = plugin->GetTexture()->GetWidth();
+            u32 height = plugin->GetTexture()->GetHeight();
             u32 sampleX = static_cast<u32>(mousePos.x / size.x * width);
             u32 sampleY = static_cast<u32>(mousePos.y / size.y * height);
 
             float entityId;
-            viewport.GetSceneRenderer().GetEntityIdsPixelBuffer()->ReadBytes(&entityId, 4, (sampleX + sampleY * width) * 4);
+            plugin->GetBuffer()->ReadBytes(&entityId, 4, (sampleX + sampleY * width) * 4);
             Editor::GetState().SelectedEntity = entityId == -1.f ? Heart::Entity() : Heart::Entity(&Editor::GetActiveScene(), static_cast<u32>(entityId));
         }
 

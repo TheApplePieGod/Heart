@@ -48,7 +48,6 @@ endif()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-
 # Macos intel testing
 # if (APPLE)
 #     set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64")

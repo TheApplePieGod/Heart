@@ -32,6 +32,7 @@ namespace Heart
          * @return A reference to the submesh. 
          */
         inline Mesh& GetSubmesh(u32 index) { return m_Submeshes[index]; }
+        inline auto& GetSubmeshes() { return m_Submeshes; }
 
         /*! @brief Get the total number of submeshes of the loaded mesh. */
         inline u32 GetSubmeshCount() const { return static_cast<u32>(m_Submeshes.Count()); }

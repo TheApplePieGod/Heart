@@ -93,14 +93,15 @@ namespace Widgets
             m_DemoEntity.GetComponent<Heart::MeshComponent>().Materials[0] = m_EditingMaterialAsset;
             m_SceneCamera.UpdateAspectRatio(m_WindowSizes.y / ImGui::GetContentRegionMax().y); // update aspect using estimated size
             m_RenderScene.CopyFromScene(m_Scene.get());
-            m_SceneRenderer->Render(
+            m_SceneRenderer->Render({
                 &m_RenderScene,
                 m_Scene->GetEnvironmentMap(),
-                m_SceneCamera,
+                &m_SceneCamera,
                 m_SceneCameraPosition,
                 renderSettings
-            );
-            EditorApp::Get().GetWindow().PushDependencyBuffers(m_SceneRenderer->GetRenderBuffers());
+            }).Wait();
+
+            Flourish::Context::PushFrameRenderGraph(m_SceneRenderer->GetRenderGraph());
         }
 
         Heart::ImGuiUtils::ResizableWindowSplitter(
@@ -128,6 +129,14 @@ namespace Widgets
     {
         // Register an in-memory asset for the in-progress material
         m_EditingMaterialAsset = Heart::AssetManager::RegisterInMemoryAsset(Heart::Asset::Type::Material);
+
+        // Need to compute initial resource set since we override the loading process
+        RecomputeMaterial();
+    }
+
+    void MaterialEditor::RecomputeMaterial()
+    {
+        Heart::AssetManager::RetrieveAsset<Heart::MaterialAsset>(m_EditingMaterialAsset)->GetMaterial().RecomputeResourceSet();
     }
 
     void MaterialEditor::RenderSidebar()
@@ -198,13 +207,24 @@ namespace Widgets
             ImGui::SameLine();
             if (ImGui::DragFloat("##ACThreshold", &materialData.Scalars.z, 0.01f, 0.f, 1.f))
                 m_Dirty = true;
-            bool isTranslucent = editingMaterial.IsTranslucent();
-            ImGui::Text("Is Translucent");
+
+            ImGui::Text("Transparency Mode:");
             ImGui::SameLine();
-            if (ImGui::Checkbox("##Translucent", &isTranslucent))
+            bool popupOpened = ImGui::Button(Heart::TransparencyModeStrings[(u8)editingMaterial.GetTransparencyMode()]);
+            if (popupOpened)
+                ImGui::OpenPopup("tpModeSelect");
+        
+            if (ImGui::BeginPopup("tpModeSelect"))
             {
-                editingMaterial.SetTranslucent(isTranslucent);
-                m_Dirty = true;
+                for (u32 i = 0; i < Heart::TransparencyModeStrings.size(); i++)
+                {
+                    if (ImGui::MenuItem(Heart::TransparencyModeStrings[i]))
+                    {
+                        editingMaterial.SetTransparencyMode((Heart::TransparencyMode)i);
+                        m_Dirty = true;
+                    }
+                }
+                ImGui::EndPopup();
             }
 
             float previewSize = 128.f;
@@ -229,9 +249,15 @@ namespace Widgets
                     {
                         editingMaterial.SetAlbedoTexture(0);
                         m_Dirty = true;
+                        m_ShouldRecompute = true;
                     }
                 },
-                [&](Heart::UUID selected) { editingMaterial.SetAlbedoTexture(selected); m_Dirty = true; }
+                [&](Heart::UUID selected)
+                {
+                    editingMaterial.SetAlbedoTexture(selected);
+                    m_Dirty = true;
+                    m_ShouldRecompute = true;
+                }
             );
             auto albedoAsset = Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>(editingMaterial.GetAlbedoTexture());
             if (albedoAsset && albedoAsset->IsValid())
@@ -256,9 +282,15 @@ namespace Widgets
                     {
                         editingMaterial.SetMetallicRoughnessTexture(0);
                         m_Dirty = true;
+                        m_ShouldRecompute = true;
                     }
                 },
-                [&](Heart::UUID selected) { editingMaterial.SetMetallicRoughnessTexture(selected); m_Dirty = true; }
+                [&](Heart::UUID selected)
+                {
+                    editingMaterial.SetMetallicRoughnessTexture(selected);
+                    m_Dirty = true;
+                    m_ShouldRecompute = true;
+                }
             );
             auto mrAsset = Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>(editingMaterial.GetMetallicRoughnessTexture());
             if (mrAsset && mrAsset->IsValid())
@@ -283,9 +315,15 @@ namespace Widgets
                     {
                         editingMaterial.SetNormalTexture(0);
                         m_Dirty = true;
+                        m_ShouldRecompute = true;
                     }
                 },
-                [&](Heart::UUID selected) { editingMaterial.SetNormalTexture(selected); m_Dirty = true; }
+                [&](Heart::UUID selected)
+                {
+                    editingMaterial.SetNormalTexture(selected);
+                    m_Dirty = true;
+                    m_ShouldRecompute = true;
+                }
             );
             auto normalAsset = Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>(editingMaterial.GetNormalTexture());
             if (normalAsset && normalAsset->IsValid())
@@ -310,9 +348,15 @@ namespace Widgets
                     {
                         editingMaterial.SetEmissiveTexture(0);
                         m_Dirty = true;
+                        m_ShouldRecompute = true;
                     }
                 },
-                [&](Heart::UUID selected) { editingMaterial.SetEmissiveTexture(selected); m_Dirty = true; }
+                [&](Heart::UUID selected)
+                {
+                    editingMaterial.SetEmissiveTexture(selected);
+                    m_Dirty = true;
+                    m_ShouldRecompute = true;
+                }
             );
             auto emAsset = Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>(editingMaterial.GetEmissiveTexture());
             if (emAsset && emAsset->IsValid())
@@ -337,9 +381,15 @@ namespace Widgets
                     {
                         editingMaterial.SetOcclusionTexture(0);
                         m_Dirty = true;
+                        m_ShouldRecompute = true;
                     }
                 },
-                [&](Heart::UUID selected) { editingMaterial.SetOcclusionTexture(selected); m_Dirty = true; }
+                [&](Heart::UUID selected)
+                {
+                    editingMaterial.SetOcclusionTexture(selected);
+                    m_Dirty = true;
+                    m_ShouldRecompute = true;
+                }
             );
             auto ocAsset = Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>(editingMaterial.GetOcclusionTexture());
             if (ocAsset && ocAsset->IsValid())
@@ -347,6 +397,10 @@ namespace Widgets
         }
         else
             ImGui::TextColored({ 0.9f, 0.1f, 0.1f, 1.f }, "Invalid Material");
+
+        if (m_ShouldRecompute)
+            RecomputeMaterial();
+        m_ShouldRecompute = false;
     }
 
     void MaterialEditor::RenderViewport(bool shouldRender)
@@ -366,8 +420,7 @@ namespace Widgets
 
         // Draw the rendered texture
         ImGui::Image(
-            //m_SceneRenderer->GetFinalFramebuffer().GetColorAttachmentImGuiHandle(0),
-            m_SceneRenderer->GetFinalTexture()->GetImGuiHandle(),
+            m_SceneRenderer->GetOutputTexture()->GetImGuiHandle(),
             { viewportSize.x, viewportSize.y }
         );
 

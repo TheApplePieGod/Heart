@@ -4,6 +4,7 @@
 #include "Heart/Container/HVector.hpp"
 #include "Heart/Container/HString.h"
 #include "Heart/Core/UUID.h"
+#include "Heart/Renderer/Mesh.h"
 #include "glm/vec3.hpp"
 #include "glm/vec4.hpp"
 #include "glm/mat4x4.hpp"
@@ -121,19 +122,17 @@ namespace Heart
     struct DestroyedComponent
     {};
 
+    // TODO: make mesh an asset
+    // hard right now before asset system refactor
     struct TextComponent
     {
         UUID Font = 0;
         HString Text = "Text";
         float FontSize = 1.f;
         float LineHeight = 0.f;
-        glm::vec3 BaseColor = { 1.f, 1.f, 1.f };
-        glm::vec3 EmissiveFactor = { 0.f, 0.f, 0.f };
-        float Metalness = 0.f;
-        float Roughness = 1.f;
+        UUID Material = 0;
         
-        Ref<Flourish::Buffer> ComputedVertices;
-        Ref<Flourish::Buffer> ComputedIndices;
+        Mesh ComputedMesh;
         bool Recomputing = false;
         
         void ClearRenderData();
