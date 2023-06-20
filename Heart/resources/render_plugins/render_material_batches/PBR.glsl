@@ -1,6 +1,7 @@
 #include "../frame_data/FrameBuffer.glsl"
 #include "../compute_material_batches/MaterialBuffer.glsl"
 #include "../lighting_data/LightingBuffer.glsl"
+#include "PBRConfigBuffer.glsl"
 
 layout(location = 0) in vec2 texCoord;
 layout(location = 1) in flat int entityId;
@@ -198,11 +199,11 @@ vec4 GetFinalColor()
     vec3 irradiance = texture(irradianceMap, N).rgb;
     vec3 diffuse = irradiance * baseColor.rgb;
     
-    //if (frameBuffer.data.ssaoEnable)
-    //{
+    if (pbrConfigBuffer.data.ssaoEnable == 1)
+    {
         vec2 coord = gl_FragCoord.xy / frameBuffer.data.screenSize;
         occlusion *= texture(ssaoTex, coord).r; 
-    //}
+    }
     
     vec3 prefilteredColor = textureLod(prefilterMap, R, filteredRoughness * MAX_REFLECTION_LOD).rgb;   
     vec2 envBRDF = texture(brdfLUT, vec2(max(dot(N, V), 0.0), filteredRoughness)).rg;

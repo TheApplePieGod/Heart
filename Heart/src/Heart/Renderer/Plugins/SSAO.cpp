@@ -147,6 +147,13 @@ namespace Heart::RenderPlugins
         HE_PROFILE_FUNCTION();
         auto timer = AggregateTimer("RenderPlugins::SSAO");
 
+        if (!data.Settings.SSAOEnable)
+        {
+            auto encoder = m_CommandBuffer->EncodeRenderCommands(m_Framebuffer.get());
+            encoder->EndEncoding();
+            return;
+        }
+
         auto frameDataPlugin = m_Renderer->GetPlugin<RenderPlugins::FrameData>(m_Info.FrameDataPluginName);
         auto frameDataBuffer = frameDataPlugin->GetBuffer();
         auto meshPlugin = m_Renderer->GetPlugin<RenderPlugins::RenderMeshBatches>(m_Info.RenderMeshBatchesPluginName);

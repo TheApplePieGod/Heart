@@ -1,5 +1,6 @@
 #pragma once
 
+#include "glm/vec3.hpp"
 #include "Heart/Renderer/RenderPlugin.h"
 
 namespace Flourish
@@ -26,6 +27,13 @@ namespace Heart::RenderPlugins
     class RenderMaterialBatches : public RenderPlugin
     {
     public:
+        struct PBRConfigData
+        {
+            u32 SSAOEnable = true;
+            glm::vec3 Padding;
+        };
+
+    public:
         RenderMaterialBatches(SceneRenderer* renderer, HStringView8 name, const RenderMaterialBatchesCreateInfo& createInfo)
             : RenderPlugin(renderer, name), m_Info(createInfo)
         { Initialize(); }
@@ -43,5 +51,6 @@ namespace Heart::RenderPlugins
         Ref<Flourish::ResourceSet> m_ResourceSet;
         Ref<Flourish::RenderPass> m_RenderPass;
         Ref<Flourish::Framebuffer> m_Framebuffer;
+        Ref<Flourish::Buffer> m_DataBuffer;
     };
 }

@@ -4,6 +4,7 @@
 #include "Heart/Renderer/Plugins/FrameData.h"
 #include "Heart/Renderer/Plugins/LightingData.h"
 #include "Heart/Renderer/Plugins/ComputeTextBatches.h"
+#include "Heart/Renderer/Plugins/RenderMaterialBatches.h"
 #include "Heart/Renderer/Plugins/EntityIds.h"
 #include "Heart/Renderer/SceneRenderer.h"
 #include "Heart/Renderer/Mesh.h"
@@ -78,6 +79,17 @@ namespace Heart::RenderPlugins
         dsCreateInfo.Writability = Flourish::ResourceSetWritability::MultiPerFrame;
         m_TextResourceSet = pipeline->CreateResourceSet(2, dsCreateInfo);
 
+        RenderMaterialBatches::PBRConfigData initialConfig;
+        initialConfig.SSAOEnable = false;
+        Flourish::BufferCreateInfo bufCreateInfo;
+        bufCreateInfo.Usage = Flourish::BufferUsageType::Static;
+        bufCreateInfo.Type = Flourish::BufferType::Uniform;
+        bufCreateInfo.Stride = sizeof(RenderMaterialBatches::PBRConfigData);
+        bufCreateInfo.ElementCount = 1;
+        bufCreateInfo.InitialData = &initialConfig;
+        bufCreateInfo.InitialDataSize = sizeof(initialConfig);
+        m_DataBuffer = Flourish::Buffer::Create(bufCreateInfo);
+
         ResizeInternal();
     }
 
@@ -118,6 +130,7 @@ namespace Heart::RenderPlugins
         m_ResourceSet->BindBuffer(1, computedData.ObjectDataBuffer.get(), 0, computedData.ObjectDataBuffer->GetAllocatedCount());
         m_ResourceSet->BindBuffer(2, computedData.MaterialDataBuffer.get(), 0, computedData.MaterialDataBuffer->GetAllocatedCount());
         m_ResourceSet->BindBuffer(3, lightingDataBuffer, 0, lightingDataBuffer->GetAllocatedCount());
+        m_ResourceSet->BindBuffer(4, m_DataBuffer.get(), 0, 1);
         if (data.EnvMap)
         {
             m_ResourceSet->BindTexture(5, data.EnvMap->GetIrradianceCubemap());

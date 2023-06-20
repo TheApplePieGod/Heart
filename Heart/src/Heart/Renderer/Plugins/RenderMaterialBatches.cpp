@@ -98,6 +98,13 @@ namespace Heart::RenderPlugins
         dsCreateInfo.Writability = Flourish::ResourceSetWritability::PerFrame;
         m_ResourceSet = pipeline->CreateResourceSet(0, dsCreateInfo);
 
+        Flourish::BufferCreateInfo bufCreateInfo;
+        bufCreateInfo.Usage = Flourish::BufferUsageType::Dynamic;
+        bufCreateInfo.Type = Flourish::BufferType::Uniform;
+        bufCreateInfo.Stride = sizeof(PBRConfigData);
+        bufCreateInfo.ElementCount = 1;
+        m_DataBuffer = Flourish::Buffer::Create(bufCreateInfo);
+
         ResizeInternal();
     }
 
@@ -139,11 +146,17 @@ namespace Heart::RenderPlugins
         auto lightingDataBuffer = lightingDataPlugin->GetBuffer();
         const auto& computedData = batchesPlugin->GetComputedData();
 
+        PBRConfigData bufData = {
+            data.Settings.SSAOEnable
+        };
+        m_DataBuffer->SetElements(&bufData, 1, 0);
+
         // TODO: this could probably be static
         m_ResourceSet->BindBuffer(0, frameDataBuffer, 0, 1);
         m_ResourceSet->BindBuffer(1, computedData.ObjectDataBuffer.get(), 0, computedData.ObjectDataBuffer->GetAllocatedCount());
         m_ResourceSet->BindBuffer(2, computedData.MaterialDataBuffer.get(), 0, computedData.MaterialDataBuffer->GetAllocatedCount());
         m_ResourceSet->BindBuffer(3, lightingDataBuffer, 0, lightingDataBuffer->GetAllocatedCount());
+        m_ResourceSet->BindBuffer(4, m_DataBuffer.get(), 0, 1);
         if (data.EnvMap)
         {
             m_ResourceSet->BindTexture(5, data.EnvMap->GetIrradianceCubemap());

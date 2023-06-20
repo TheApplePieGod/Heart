@@ -42,5 +42,6 @@ namespace Heart::RenderPlugins
         Ref<Flourish::ResourceSet> m_TextResourceSet;
         Ref<Flourish::RenderPass> m_RenderPass;
         Ref<Flourish::Framebuffer> m_Framebuffer;
+        Ref<Flourish::Buffer> m_DataBuffer;
     };
 }
