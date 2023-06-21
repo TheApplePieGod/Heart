@@ -3,7 +3,9 @@
 
 layout(location = 0) rayPayloadInEXT vec3 hitValue;
 
+layout(binding = 2, set = 1) uniform samplerCube environmentMap;
+
 void main()
 {
-    hitValue = vec3(0.0, 0.1, 0.3);
+    hitValue = textureLod(environmentMap, gl_WorldRayDirectionEXT, 0.0).rgb;
 }

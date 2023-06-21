@@ -113,6 +113,10 @@ namespace Heart::RenderPlugins
 
         m_ResourceSet1->BindBuffer(0, tlasPlugin->GetObjectBuffer(), 0, tlasPlugin->GetObjectBuffer()->GetAllocatedCount());
         m_ResourceSet1->BindBuffer(1, tlasPlugin->GetMaterialBuffer(), 0, tlasPlugin->GetMaterialBuffer()->GetAllocatedCount());
+        if (data.EnvMap)
+            m_ResourceSet1->BindTexture(2, data.EnvMap->GetEnvironmentCubemap());
+        else
+            m_ResourceSet1->BindTexture(2, m_Renderer->GetDefaultEnvironmentMap());
         m_ResourceSet1->FlushBindings();
 
         m_GroupTable->BindRayGenGroup(0);
