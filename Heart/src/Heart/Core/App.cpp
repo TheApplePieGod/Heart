@@ -107,6 +107,7 @@ namespace Heart
         initInfo.RequestedFeatures.IndependentBlend = true;
         initInfo.RequestedFeatures.SamplerAnisotropy = true;
         initInfo.RequestedFeatures.RayTracing = true;
+        initInfo.RequestedFeatures.PartiallyBoundResourceSets = true;
         Flourish::Context::Initialize(initInfo);
 
         m_Window = Window::Create(windowCreateInfo);

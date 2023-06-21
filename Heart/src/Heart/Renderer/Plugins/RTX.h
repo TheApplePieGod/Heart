@@ -26,6 +26,8 @@ namespace Heart::RenderPlugins
             : RenderPlugin(renderer, name), m_Info(createInfo)
         { Initialize(); }
 
+        inline Flourish::Texture* GetOutputTexture() const { return m_Output.get(); }
+
     protected:
         void RenderInternal(const SceneRenderData& data) override;
         void ResizeInternal() override;
@@ -36,7 +38,8 @@ namespace Heart::RenderPlugins
     private:
         RTXCreateInfo m_Info;
 
-        Ref<Flourish::ResourceSet> m_ResourceSet;
+        Ref<Flourish::ResourceSet> m_ResourceSet0;
+        Ref<Flourish::ResourceSet> m_ResourceSet1;
         Ref<Flourish::Texture> m_Output;
         Ref<Flourish::RayTracingPipeline> m_Pipeline;
         Ref<Flourish::RayTracingGroupTable> m_GroupTable;

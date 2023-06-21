@@ -65,7 +65,8 @@ namespace Heart::RenderPlugins
 
         Flourish::ResourceSetCreateInfo dsCreateInfo;
         dsCreateInfo.Writability = Flourish::ResourceSetWritability::PerFrame;
-        m_ResourceSet = m_Pipeline->CreateResourceSet(0, dsCreateInfo);
+        m_ResourceSet0 = m_Pipeline->CreateResourceSet(0, dsCreateInfo);
+        m_ResourceSet1 = m_Pipeline->CreateResourceSet(1, dsCreateInfo);
 
         ResizeInternal();
     }
@@ -105,10 +106,14 @@ namespace Heart::RenderPlugins
             return;
         }
 
-        m_ResourceSet->BindBuffer(0, frameDataBuffer, 0, 1);
-        m_ResourceSet->BindAccelerationStructure(1, tlasPlugin->GetAccelStructure());
-        m_ResourceSet->BindTexture(2, m_Output.get());
-        m_ResourceSet->FlushBindings();
+        m_ResourceSet0->BindBuffer(0, frameDataBuffer, 0, 1);
+        m_ResourceSet0->BindAccelerationStructure(1, tlasPlugin->GetAccelStructure());
+        m_ResourceSet0->BindTexture(2, m_Output.get());
+        m_ResourceSet0->FlushBindings();
+
+        m_ResourceSet1->BindBuffer(0, tlasPlugin->GetObjectBuffer(), 0, tlasPlugin->GetObjectBuffer()->GetAllocatedCount());
+        m_ResourceSet1->BindBuffer(1, tlasPlugin->GetMaterialBuffer(), 0, tlasPlugin->GetMaterialBuffer()->GetAllocatedCount());
+        m_ResourceSet1->FlushBindings();
 
         m_GroupTable->BindRayGenGroup(0);
         m_GroupTable->BindMissGroup(1, 0);
@@ -116,8 +121,12 @@ namespace Heart::RenderPlugins
 
         auto encoder = m_CommandBuffer->EncodeComputeCommands();
         encoder->BindRayTracingPipeline(m_Pipeline.get());
-        encoder->BindResourceSet(m_ResourceSet.get(), 0);
+        encoder->BindResourceSet(m_ResourceSet0.get(), 0);
         encoder->FlushResourceSet(0);
+        encoder->BindResourceSet(m_ResourceSet1.get(), 1);
+        encoder->FlushResourceSet(1);
+        encoder->BindResourceSet(tlasPlugin->GetTexturesSet(), 2);
+        encoder->FlushResourceSet(2);
         encoder->TraceRays(
             m_GroupTable.get(),
             m_Renderer->GetRenderWidth(),
