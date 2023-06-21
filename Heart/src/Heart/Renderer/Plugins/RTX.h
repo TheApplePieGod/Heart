@@ -15,6 +15,7 @@ namespace Heart::RenderPlugins
 {
     struct RTXCreateInfo
     {
+        HString8 FrameDataPluginName;
         HString8 TLASPluginName;
     };
 

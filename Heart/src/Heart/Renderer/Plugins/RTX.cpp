@@ -12,6 +12,7 @@
 #include "Heart/Asset/ShaderAsset.h"
 #include "Heart/Renderer/SceneRenderer.h"
 #include "Heart/Renderer/Plugins/TLAS.h"
+#include "Heart/Renderer/Plugins/FrameData.h"
 
 namespace Heart::RenderPlugins
 {
@@ -94,6 +95,8 @@ namespace Heart::RenderPlugins
         auto timer = AggregateTimer("RenderPlugins::RTX");
 
         auto tlasPlugin = m_Renderer->GetPlugin<RenderPlugins::TLAS>(m_Info.TLASPluginName);
+        auto frameDataPlugin = m_Renderer->GetPlugin<RenderPlugins::FrameData>(m_Info.FrameDataPluginName);
+        auto frameDataBuffer = frameDataPlugin->GetBuffer();
         
         if (!tlasPlugin->GetAccelStructure()->IsBuilt())
         {
@@ -102,9 +105,9 @@ namespace Heart::RenderPlugins
             return;
         }
 
-        // TODO: this could probably be static
-        m_ResourceSet->BindAccelerationStructure(0, tlasPlugin->GetAccelStructure());
-        m_ResourceSet->BindTexture(1, m_Output.get());
+        m_ResourceSet->BindBuffer(0, frameDataBuffer, 0, 1);
+        m_ResourceSet->BindAccelerationStructure(1, tlasPlugin->GetAccelStructure());
+        m_ResourceSet->BindTexture(2, m_Output.get());
         m_ResourceSet->FlushBindings();
 
         m_GroupTable->BindRayGenGroup(0);

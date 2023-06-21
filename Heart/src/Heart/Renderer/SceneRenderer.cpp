@@ -104,6 +104,7 @@ namespace Heart
         GRADING->AddDependency(Bloom->GetName(), GraphDependencyType::GPU);
 
         RenderPlugins::RTXCreateInfo rtxCreateInfo;
+        rtxCreateInfo.FrameDataPluginName = FrameData->GetName();
         rtxCreateInfo.TLASPluginName = TLAS->GetName();
         auto RTX = RegisterPlugin<RenderPlugins::RTX>("RTX", rtxCreateInfo);
         RTX->AddDependency(TLAS->GetName(), GraphDependencyType::CPU);
