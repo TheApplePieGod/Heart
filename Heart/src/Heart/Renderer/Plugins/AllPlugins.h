@@ -18,3 +18,4 @@
 #include "ComputeTextBatches.h"
 #include "RenderTextBatches.h"
 #include "TLAS.h"
+#include "RTX.h"

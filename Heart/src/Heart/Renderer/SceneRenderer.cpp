@@ -103,6 +103,12 @@ namespace Heart
         auto GRADING = RegisterPlugin<RenderPlugins::ColorGrading>("GRADING", GRADINGCreateInfo);
         GRADING->AddDependency(Bloom->GetName(), GraphDependencyType::GPU);
 
+        RenderPlugins::RTXCreateInfo rtxCreateInfo;
+        rtxCreateInfo.TLASPluginName = TLAS->GetName();
+        auto RTX = RegisterPlugin<RenderPlugins::RTX>("RTX", rtxCreateInfo);
+        RTX->AddDependency(TLAS->GetName(), GraphDependencyType::CPU);
+        RTX->AddDependency(TLAS->GetName(), GraphDependencyType::GPU);
+
         RebuildGraph();
     }
 

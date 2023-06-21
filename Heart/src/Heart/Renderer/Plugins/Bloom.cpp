@@ -143,7 +143,7 @@ namespace Heart::RenderPlugins
 
             // TODO: shouldn't force all bindings to be rewritten?
             auto encoder = m_CommandBuffer->EncodeComputeCommands();
-            encoder->BindPipeline(m_DownsamplePipeline.get());
+            encoder->BindComputePipeline(m_DownsamplePipeline.get());
             if (i == 1)
             {
                 m_DownsampleResourceSet->BindBuffer(0, m_DataBuffer.get(), 0, 1);
@@ -179,7 +179,7 @@ namespace Heart::RenderPlugins
             m_DataBuffer->SetElements(&bloomData, 1, i + m_MipCount);
 
             auto encoder = m_CommandBuffer->EncodeComputeCommands();
-            encoder->BindPipeline(m_UpsamplePipeline.get());
+            encoder->BindComputePipeline(m_UpsamplePipeline.get());
             if (i == m_MipCount - 2)
             {
                 m_UpsampleResourceSet->BindBuffer(0, m_DataBuffer.get(), 0, 1);

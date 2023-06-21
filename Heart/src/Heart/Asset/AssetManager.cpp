@@ -261,7 +261,8 @@ namespace Heart
             type = Asset::Type::Texture;
         else if (extension == ".gltf")
             type = Asset::Type::Mesh;
-        else if (extension == ".vert" || extension == ".frag" || extension == ".comp")
+        else if (extension == ".vert" || extension == ".frag" || extension == ".comp" ||
+                 extension == ".rgen" || extension == ".rmiss" || extension == ".rchit")
             type = Asset::Type::Shader;
         else if (extension == ".hemat")
             type = Asset::Type::Material;
