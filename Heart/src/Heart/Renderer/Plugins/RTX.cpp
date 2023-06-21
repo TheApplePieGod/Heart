@@ -13,6 +13,7 @@
 #include "Heart/Renderer/SceneRenderer.h"
 #include "Heart/Renderer/Plugins/TLAS.h"
 #include "Heart/Renderer/Plugins/FrameData.h"
+#include "Heart/Renderer/Plugins/LightingData.h"
 
 namespace Heart::RenderPlugins
 {
@@ -98,6 +99,8 @@ namespace Heart::RenderPlugins
         auto tlasPlugin = m_Renderer->GetPlugin<RenderPlugins::TLAS>(m_Info.TLASPluginName);
         auto frameDataPlugin = m_Renderer->GetPlugin<RenderPlugins::FrameData>(m_Info.FrameDataPluginName);
         auto frameDataBuffer = frameDataPlugin->GetBuffer();
+        auto lightingDataPlugin = m_Renderer->GetPlugin<RenderPlugins::LightingData>(m_Info.LightingDataPluginName);
+        auto lightingDataBuffer = lightingDataPlugin->GetBuffer();
         
         if (!tlasPlugin->GetAccelStructure()->IsBuilt())
         {
@@ -114,9 +117,20 @@ namespace Heart::RenderPlugins
         m_ResourceSet1->BindBuffer(0, tlasPlugin->GetObjectBuffer(), 0, tlasPlugin->GetObjectBuffer()->GetAllocatedCount());
         m_ResourceSet1->BindBuffer(1, tlasPlugin->GetMaterialBuffer(), 0, tlasPlugin->GetMaterialBuffer()->GetAllocatedCount());
         if (data.EnvMap)
+        {
             m_ResourceSet1->BindTexture(2, data.EnvMap->GetEnvironmentCubemap());
+            m_ResourceSet1->BindTexture(3, data.EnvMap->GetIrradianceCubemap());
+            m_ResourceSet1->BindTexture(4, data.EnvMap->GetPrefilterCubemap());
+            m_ResourceSet1->BindTexture(5, data.EnvMap->GetBRDFTexture());
+        }
         else
+        {
             m_ResourceSet1->BindTexture(2, m_Renderer->GetDefaultEnvironmentMap());
+            m_ResourceSet1->BindTexture(3, m_Renderer->GetDefaultEnvironmentMap());
+            m_ResourceSet1->BindTexture(4, m_Renderer->GetDefaultEnvironmentMap());
+            m_ResourceSet1->BindTextureLayer(5, m_Renderer->GetDefaultEnvironmentMap(), 0, 0);
+        }
+        m_ResourceSet1->BindBuffer(6, lightingDataBuffer, 0, lightingDataBuffer->GetAllocatedCount());
         m_ResourceSet1->FlushBindings();
 
         m_GroupTable->BindRayGenGroup(0);

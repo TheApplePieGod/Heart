@@ -17,6 +17,7 @@ namespace Heart::RenderPlugins
     {
         HString8 FrameDataPluginName;
         HString8 TLASPluginName;
+        HString8 LightingDataPluginName;
     };
 
     class RTX : public RenderPlugin

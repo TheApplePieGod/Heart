@@ -4,6 +4,7 @@
 #extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
 #extension GL_EXT_buffer_reference2 : require
 
+#include "../frame_data/FrameBuffer.glsl"
 #include "../../VertexLayout.glsl"
 #include "Common.glsl"
 
@@ -22,6 +23,18 @@ struct MaterialData {
     vec4 scalars; // [0]: metalness, [1]: roughness, [2]: alphaClipThreshold
 };
 
+struct LightData {
+    vec4 position;
+    vec4 direction;
+    vec4 color;
+    uint lightType;
+    float constantAttenuation;
+    float linearAttenuation;
+    float quadraticAttenuation;
+};
+
+#define DIRECTIONAL 1
+#define POINT 2
 
 layout(binding = 0, set = 1) readonly buffer ObjectBuffer {
     ObjectData data[];
@@ -29,6 +42,9 @@ layout(binding = 0, set = 1) readonly buffer ObjectBuffer {
 layout(binding = 1, set = 1) readonly buffer MaterialBuffer {
     MaterialData materials[];
 } materialBuffer;
+layout(binding = 6, set = 1) readonly buffer LightingBuffer {
+    LightData lights[];
+} lightingBuffer;
 
 layout(buffer_reference, scalar) readonly buffer VertexBuffer {
     Vertex data[];
@@ -38,6 +54,8 @@ layout(buffer_reference, scalar) readonly buffer IndexBuffer {
 };
 
 layout(binding = 0, set = 2) uniform sampler2D textures[5000];
+
+#include "PBR.glsl"
 
 layout(location = 0) rayPayloadInEXT HitPayload prd;
 hitAttributeEXT vec3 attribs;
@@ -59,19 +77,24 @@ void main()
     //prd.hitValue = vec3(1.0, 0.0, 0.0);
 
     // Computing hit position data
-    const vec3 barycentrics = vec3(1.0 - attribs.x - attribs.y, attribs.x, attribs.y);
-    const vec3 pos = v0.position * barycentrics.x + v1.position * barycentrics.y + v2.position * barycentrics.z;
-    const vec3 worldPos = vec3(gl_ObjectToWorldEXT * vec4(pos, 1.0));
-    const vec3 nrm = v0.normal * barycentrics.x + v1.normal * barycentrics.y + v2.normal * barycentrics.z;
-    const vec3 worldNrm = normalize(vec3(nrm * gl_WorldToObjectEXT));
+    vec3 barycentrics = vec3(1.0 - attribs.x - attribs.y, attribs.x, attribs.y);
+    vec3 pos = v0.position * barycentrics.x + v1.position * barycentrics.y + v2.position * barycentrics.z;
+    vec3 worldPos = vec3(gl_ObjectToWorldEXT * vec4(pos, 1.0));
     vec2 texCoord = v0.texCoord * barycentrics.x + v1.texCoord * barycentrics.y + v2.texCoord * barycentrics.z;
+    vec3 inNormal = v0.normal * barycentrics.x + v1.normal * barycentrics.y + v2.normal * barycentrics.z;
+    vec3 normal = normalize(vec3(inNormal * gl_WorldToObjectEXT));
+    vec4 inTangent = v0.tangent * barycentrics.x + v1.tangent * barycentrics.y + v2.tangent * barycentrics.z;
+    vec3 tangent = normalize(vec3(inTangent.xyz * gl_WorldToObjectEXT));
+    vec3 bitangent = cross(tangent, normal) * inTangent.w;
 
-    MaterialData material = materialBuffer.materials[gl_InstanceID];
-
-    vec3 L = normalize(vec3(0.5, 0.5, 0.5));
-    float intensity = clamp(dot(worldNrm, L), 0.05, 1.0);
-    vec3 diffuse = texture(textures[gl_InstanceID * 5], texCoord).rgb;
-    //vec3 diffuse = vec3(1.0, 0.0, 0.0);
+    vec4 finalColor = GetFinalColor(
+        gl_InstanceID,
+        texCoord,
+        worldPos,
+        normal,
+        tangent,
+        bitangent
+    );
     
-    prd.hitValue = diffuse * intensity * material.baseColor.rgb;
+    prd.hitValue = finalColor.rgb;
 }

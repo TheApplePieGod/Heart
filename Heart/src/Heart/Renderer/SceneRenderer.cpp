@@ -106,6 +106,7 @@ namespace Heart
         RenderPlugins::RTXCreateInfo rtxCreateInfo;
         rtxCreateInfo.FrameDataPluginName = FrameData->GetName();
         rtxCreateInfo.TLASPluginName = TLAS->GetName();
+        rtxCreateInfo.LightingDataPluginName = LightingData->GetName();
         auto RTX = RegisterPlugin<RenderPlugins::RTX>("RTX", rtxCreateInfo);
         RTX->AddDependency(TLAS->GetName(), GraphDependencyType::CPU);
         RTX->AddDependency(TLAS->GetName(), GraphDependencyType::GPU);
