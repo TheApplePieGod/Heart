@@ -20,11 +20,12 @@ namespace Heart::RenderPlugins
     void RTX::Initialize()
     {
         Flourish::RayTracingPipelineCreateInfo pipelineCreateInfo;
-        pipelineCreateInfo.MaxRayRecursionDepth = 1;
+        pipelineCreateInfo.MaxRayRecursionDepth = 2;
         pipelineCreateInfo.Shaders = {
             AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/rtx/RayGen.rgen", true)->GetShader(),
             AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/rtx/Miss.rmiss", true)->GetShader(),
-            AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/rtx/Hit.rchit", true)->GetShader()
+            AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/rtx/Hit.rchit", true)->GetShader(),
+            AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/rtx/Shadow.rmiss", true)->GetShader()
         };
         
         // RayGen
@@ -45,6 +46,13 @@ namespace Heart::RenderPlugins
         {
             Flourish::RayTracingShaderGroup group;
             group.ClosestHitShader = 2;
+            pipelineCreateInfo.Groups.emplace_back(group);
+        }
+
+        // Shadow
+        {
+            Flourish::RayTracingShaderGroup group;
+            group.GeneralShader = 3;
             pipelineCreateInfo.Groups.emplace_back(group);
         }
 
@@ -136,6 +144,7 @@ namespace Heart::RenderPlugins
         m_GroupTable->BindRayGenGroup(0);
         m_GroupTable->BindMissGroup(1, 0);
         m_GroupTable->BindHitGroup(2, 0);
+        m_GroupTable->BindMissGroup(3, 1);
 
         auto encoder = m_CommandBuffer->EncodeComputeCommands();
         encoder->BindRayTracingPipeline(m_Pipeline.get());

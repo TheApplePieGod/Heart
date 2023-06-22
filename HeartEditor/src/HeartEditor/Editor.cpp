@@ -22,8 +22,6 @@
 #include "HeartEditor/Widgets/LogList.h"
 #include "HeartEditor/Widgets/RenderGraph.h"
 
-#include "msdf-atlas-gen/msdf-atlas-gen.h"
-
 namespace HeartEditor
 {
     void Editor::Initialize()

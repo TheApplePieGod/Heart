@@ -67,7 +67,7 @@ namespace Heart
         u32 m_MaterialIndex;
         Ref<Flourish::Buffer> m_VertexBuffer;
         Ref<Flourish::Buffer> m_IndexBuffer;
-        Ref<Flourish::AccelerationStructure> m_AccelStructure;
+        Ref<Flourish::AccelerationStructure> m_AccelStructure = nullptr;
         AABB m_BoundingBox;
         glm::vec4 m_BoundingSphere; // xyz: center, w: radius
     };

@@ -36,6 +36,8 @@ struct LightData {
 #define DIRECTIONAL 1
 #define POINT 2
 
+layout(binding = 1) uniform accelerationStructureEXT tlas;
+
 layout(binding = 0, set = 1) readonly buffer ObjectBuffer {
     ObjectData data[];
 } objectBuffer;
@@ -55,10 +57,11 @@ layout(buffer_reference, scalar) readonly buffer IndexBuffer {
 
 layout(binding = 0, set = 2) uniform sampler2D textures[5000];
 
-#include "PBR.glsl"
-
 layout(location = 0) rayPayloadInEXT HitPayload prd;
+layout(location = 1) rayPayloadEXT bool isShadowed;
 hitAttributeEXT vec3 attribs;
+
+#include "PBR.glsl"
 
 void main()
 {
@@ -86,6 +89,8 @@ void main()
     vec4 inTangent = v0.tangent * barycentrics.x + v1.tangent * barycentrics.y + v2.tangent * barycentrics.z;
     vec3 tangent = normalize(vec3(inTangent.xyz * gl_WorldToObjectEXT));
     vec3 bitangent = cross(tangent, normal) * inTangent.w;
+
+    
 
     vec4 finalColor = GetFinalColor(
         gl_InstanceID,

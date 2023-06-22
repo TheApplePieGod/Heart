@@ -51,6 +51,8 @@ float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
 
 vec4 SampleTexture(uint materialId, uint offset, vec2 texCoord)
 {
+    return vec4((materialBuffer.materials[materialId].texCoordTransform.zw)
+           * materialBuffer.materials[materialId].texCoordTransform.xy, 1.f, 1.f);
     return texture(
         textures[materialId * 5 + offset],
         (texCoord + materialBuffer.materials[materialId].texCoordTransform.zw)
@@ -106,6 +108,7 @@ bool Clip(float alpha, uint materialId)
 vec4 GetFinalColor(uint materialId, vec2 texCoord, vec3 pos, vec3 normal, vec3 tangent, vec3 bitangent)
 {
     vec4 baseColor = GetAlbedo(materialId, texCoord);
+    return baseColor;
     baseColor.rgb = pow(baseColor.rgb, vec3(2.2)); // compensate for gamma correction
 
     if (Clip(baseColor.a, materialId))

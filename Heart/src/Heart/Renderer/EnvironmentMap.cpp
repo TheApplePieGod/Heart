@@ -414,7 +414,7 @@ namespace Heart
 
         m_SetsWritten = true;
 
-        if (!m_RenderGraph->IsBuild())
+        if (!m_RenderGraph->IsBuilt())
         {
             m_RenderGraph->ConstructNewNode(m_EnvironmentMap.CommandBuffer.get())
                 .AddEncoderNode(Flourish::GPUWorkloadType::Graphics)

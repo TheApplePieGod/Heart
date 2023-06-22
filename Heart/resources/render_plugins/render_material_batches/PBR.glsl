@@ -133,7 +133,7 @@ vec4 GetFinalColor()
     vec3 nb = normalize(bitangent);
     vec3 nn = normalize(normal);
 
-    mat3x3 tbn = mat3x3(nb, nt, nn);
+    mat3x3 tbn = mat3x3(nt, nb, nn);
 
     vec3 N = nn;
     if (materialBuffer.materials[materialId].hasTextures[0] == 1.f) // has normal

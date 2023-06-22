@@ -76,11 +76,14 @@ namespace Heart::RenderPlugins
         HE_PROFILE_FUNCTION();
         auto timer = AggregateTimer("RenderPlugins::RenderEnvironmentMap");
 
-        // TODO: maybe we want to make the plugins dyanmic rather than rely on config inside
-        // individual plugins themselves
         if (!data.EnvMap)
+        {
+            auto encoder = m_CommandBuffer->EncodeRenderCommands(m_Framebuffer.get());
+            encoder->ClearColorAttachment(0);
+            encoder->EndEncoding();
             return;
-        
+        }
+
         auto frameDataPlugin = m_Renderer->GetPlugin<RenderPlugins::FrameData>(m_Info.FrameDataPluginName);
         auto frameDataBuffer = frameDataPlugin->GetBuffer();
 

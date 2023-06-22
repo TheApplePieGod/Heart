@@ -81,6 +81,9 @@ namespace Heart::RenderPlugins
                 m_TexturesSet->BindTexture(0, defaultTex, arrayIndex);
         };
 
+        auto dma = AssetManager::RetrieveAsset<MeshAsset>("engine/DefaultCube.gltf", true, true);
+        auto& dmadata = dma->GetSubmesh(0);
+
         Flourish::AccelerationStructureInstance instance;
         for (auto& meshComp : data.Scene->GetMeshComponents())
         {
@@ -92,11 +95,11 @@ namespace Heart::RenderPlugins
             for (u32 i = 0; i < meshAsset->GetSubmeshCount(); i++)
             {
                 auto& meshData = meshAsset->GetSubmesh(i);
-                if (!meshData.GetAccelStructure()) continue;
+                if (!dmadata.GetAccelStructure()) continue;
 
                 ObjectData objectData {
-                    meshData.GetVertexBuffer()->GetBufferGPUAddress(),
-                    meshData.GetIndexBuffer()->GetBufferGPUAddress(),
+                    dmadata.GetVertexBuffer()->GetBufferGPUAddress(),
+                    dmadata.GetIndexBuffer()->GetBufferGPUAddress(),
                 };
                 m_ObjectBuffer->SetElements(&objectData, 1, m_Instances.Count());
 
@@ -116,7 +119,7 @@ namespace Heart::RenderPlugins
                 bindTex(selectedMaterial->GetEmissiveTexture(), baseIndex + 3);
                 bindTex(selectedMaterial->GetOcclusionTexture(), baseIndex + 4);
 
-                instance.Parent = meshData.GetAccelStructure();
+                instance.Parent = dmadata.GetAccelStructure();
                 instance.TransformMatrix = glm::value_ptr(entityData.Transform);
                 m_Instances.AddInPlace(instance);
             }
