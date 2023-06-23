@@ -63,6 +63,28 @@ hitAttributeEXT vec3 attribs;
 
 #include "PBR.glsl"
 
+vec4 UVDerivsFromRayCone(
+    vec3 vRayDir, vec3 vWorldNormal, float vRayConeWidth, vec2 aUV[3], vec3 aPos[3], mat3x3 matWorld
+)
+{
+    vec2 vUV10 = aUV[1]-aUV [0];
+    vec2 vUV20 = aUV[2]-aUV [0];
+    float fQuadUVArea = abs(vUV10.x*vUV20.y - vUV20.x*vUV10.y);
+
+    vec3 vEdge10 = (aPos[1]-aPos[0]) * matWorld;
+    vec3 vEdge20 = (aPos[2]-aPos[0]) * matWorld;
+    vec3 vFaceNrm = cross(vEdge10 , vEdge20);
+    float fQuadArea = length(vFaceNrm);
+
+    float fNormalTerm = abs(dot(vRayDir ,vWorldNormal));
+    float fPrjConeWidth = vRayConeWidth/fNormalTerm;
+    float fVisibleAreaRatio = (fPrjConeWidth*fPrjConeWidth)/fQuadArea;
+
+    float fVisibleUVArea = fQuadUVArea*fVisibleAreaRatio;
+    float fULength = sqrt(fVisibleUVArea);
+    return vec4(fULength ,0,0, fULength);
+}
+
 void main()
 {
     ObjectData objData = objectBuffer.data[gl_InstanceID];
@@ -90,13 +112,32 @@ void main()
     vec3 tangent = normalize(vec3(inTangent.xyz * gl_WorldToObjectEXT));
     vec3 bitangent = cross(tangent, normal) * inTangent.w;
 
+    float initSpreadAngle = atan((2.0f*tan(70*0.5f))/frameBuffer.data.screenSize.y);
+    vec2 rayConeAtOrigin = vec2(0, initSpreadAngle);
+	vec2 rayConeAtHit = rayConeAtOrigin + vec2(
+		//rayConeAtOrigin.y * length(worldPos - frameBuffer.data.cameraPos.xyz),
+		2 * tan(rayConeAtOrigin.y * 0.5) * length(worldPos - frameBuffer.data.cameraPos.xyz),
+		initSpreadAngle
+    );
+
+    //mat3x3 matWorld = mat3x3(vec3(1,0,0), vec3(0,1,0), vec3(0,0,1));
+    vec4 mipDerivs = UVDerivsFromRayCone(
+        gl_WorldRayDirectionEXT,
+        normal,
+        rayConeAtHit.x,
+        vec2[3]( v0.texCoord, v1.texCoord, v2.texCoord ),
+        vec3[3]( v0.position, v1.position, v2.position ),
+        mat3x3(gl_ObjectToWorldEXT)
+    );
+
     vec4 finalColor = GetFinalColor(
         gl_InstanceID,
         texCoord,
         worldPos,
         normal,
         tangent,
-        bitangent
+        bitangent,
+        mipDerivs
     );
     
     prd.hitValue = finalColor.rgb;
