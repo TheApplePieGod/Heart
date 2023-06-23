@@ -8,8 +8,7 @@ struct FrameData {
     vec2 clipPlanes;
     vec2 screenSize;
     bool reverseDepth;
-    float padding;
-    vec2 padding2;
+    uint padding;
 };
 
 layout(binding = 0) readonly uniform FrameBuffer {

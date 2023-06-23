@@ -15,6 +15,8 @@
 #include "Heart/Renderer/SceneRenderer.h"
 #include "glm/gtc/type_ptr.hpp"
 
+#include "Flourish/Backends/Vulkan/Buffer.h"
+
 namespace Heart::RenderPlugins
 {
     void TLAS::Initialize()
@@ -22,6 +24,7 @@ namespace Heart::RenderPlugins
         Flourish::AccelerationStructureCreateInfo accelCreateInfo;
         accelCreateInfo.Type = Flourish::AccelerationStructureType::Scene;
         accelCreateInfo.PerformancePreference = Flourish::AccelerationStructurePerformanceType::FasterRuntime;
+        accelCreateInfo.BuildFrequency = Flourish::AccelerationStructureBuildFrequency::PerFrame;
         accelCreateInfo.AllowUpdating = false;
         m_AccelStructure = Flourish::AccelerationStructure::Create(accelCreateInfo);
 
@@ -81,9 +84,6 @@ namespace Heart::RenderPlugins
                 m_TexturesSet->BindTexture(0, defaultTex, arrayIndex);
         };
 
-        auto dma = AssetManager::RetrieveAsset<MeshAsset>("engine/DefaultCube.gltf", true, true);
-        auto& dmadata = dma->GetSubmesh(0);
-
         Flourish::AccelerationStructureInstance instance;
         for (auto& meshComp : data.Scene->GetMeshComponents())
         {
@@ -95,11 +95,11 @@ namespace Heart::RenderPlugins
             for (u32 i = 0; i < meshAsset->GetSubmeshCount(); i++)
             {
                 auto& meshData = meshAsset->GetSubmesh(i);
-                if (!dmadata.GetAccelStructure()) continue;
+                if (!meshData.GetAccelStructure()) continue;
 
                 ObjectData objectData {
-                    dmadata.GetVertexBuffer()->GetBufferGPUAddress(),
-                    dmadata.GetIndexBuffer()->GetBufferGPUAddress(),
+                    meshData.GetVertexBuffer()->GetBufferGPUAddress(),
+                    meshData.GetIndexBuffer()->GetBufferGPUAddress(),
                 };
                 m_ObjectBuffer->SetElements(&objectData, 1, m_Instances.Count());
 
@@ -119,8 +119,9 @@ namespace Heart::RenderPlugins
                 bindTex(selectedMaterial->GetEmissiveTexture(), baseIndex + 3);
                 bindTex(selectedMaterial->GetOcclusionTexture(), baseIndex + 4);
 
-                instance.Parent = dmadata.GetAccelStructure();
+                instance.Parent = meshData.GetAccelStructure();
                 instance.TransformMatrix = glm::value_ptr(entityData.Transform);
+                instance.CustomIndex = Flourish::Context::FrameCount();
                 m_Instances.AddInPlace(instance);
             }
         }
@@ -128,14 +129,10 @@ namespace Heart::RenderPlugins
         m_TexturesSet->FlushBindings();
 
         auto encoder = m_CommandBuffer->EncodeComputeCommands();
-        if (m_Instances.Count() > 0)
-        {
-            Flourish::AccelerationStructureSceneBuildInfo buildInfo;
-            buildInfo.Instances = m_Instances.Data();
-            buildInfo.InstanceCount = m_Instances.Count();
-
-            encoder->RebuildAccelerationStructureScene(m_AccelStructure.get(), buildInfo);
-        }
+        Flourish::AccelerationStructureSceneBuildInfo buildInfo;
+        buildInfo.Instances = m_Instances.Data();
+        buildInfo.InstanceCount = m_Instances.Count();
+        encoder->RebuildAccelerationStructureScene(m_AccelStructure.get(), buildInfo);
         encoder->EndEncoding();
     }
 }

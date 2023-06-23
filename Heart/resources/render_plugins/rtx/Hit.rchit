@@ -90,8 +90,6 @@ void main()
     vec3 tangent = normalize(vec3(inTangent.xyz * gl_WorldToObjectEXT));
     vec3 bitangent = cross(tangent, normal) * inTangent.w;
 
-    
-
     vec4 finalColor = GetFinalColor(
         gl_InstanceID,
         texCoord,
