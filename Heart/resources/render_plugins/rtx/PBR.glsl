@@ -160,6 +160,7 @@ vec4 GetFinalColor(uint materialId, vec2 texCoord, vec3 pos, vec3 normal, vec3 t
 
         // Trace shadow ray
         uint flags = gl_RayFlagsTerminateOnFirstHitEXT | gl_RayFlagsOpaqueEXT | gl_RayFlagsSkipClosestHitShaderEXT;
+        vec3 shadowOrigin = pos + normal * 0.01;
         isShadowed = true;
         traceRayEXT(
             tlas,        // acceleration structure
@@ -168,7 +169,7 @@ vec4 GetFinalColor(uint materialId, vec2 texCoord, vec3 pos, vec3 normal, vec3 t
             0,           // sbtRecordOffset
             0,           // sbtRecordStride
             1,           // missIndex
-            pos,         // ray origin
+            shadowOrigin,         // ray origin
             tMin,        // ray min range
             L,           // ray direction
             tMax,        // ray max range
