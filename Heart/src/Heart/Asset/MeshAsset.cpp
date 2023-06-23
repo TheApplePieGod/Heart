@@ -73,6 +73,11 @@ namespace Heart
                 u32 fileLength;
                 HString8 binPath = std::filesystem::path(m_AbsolutePath.Data()).parent_path().append(uri.Data()).generic_u8string();
                 unsigned char* bin = FilesystemUtils::ReadFile(binPath, fileLength);
+                if (!bin)
+                {
+                    HE_ENGINE_LOG_ERROR("GLTF mesh missing .bin file");
+                    throw std::exception();
+                }
                 buffers.AddInPlace();
                 buffers.Back().CopyFrom(bin, bin + fileLength);
                 delete[] bin;

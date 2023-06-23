@@ -45,6 +45,10 @@ add_subdirectory("lib/FreeType")
 add_library(Freetype::Freetype ALIAS freetype-interface) # Add alias so msdf can find
 set (MSDF_ATLAS_GEN_BUILD_STANDALONE OFF)
 add_subdirectory("lib/msdf")
+set(TinyTIFF_BUILD_SHARED_LIBS OFF)
+set(TinyTIFF_BUILD_STATIC_LIBS ON)
+set(TinyTIFF_BUILD_EXAMPLES OFF)
+add_subdirectory("lib/tinytiff")
 
 # Include other dependency sources that need to be built
 set(DEPENDENCY_SOURCES
@@ -91,9 +95,10 @@ target_include_directories(
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/imguizmo>"
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/json/include>"
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/utf-cpp/include>"
-  "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/Flourish/Flourish/src>"
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/bullet3/src>"
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/msdf>"
+  "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/tinytiff/src>"
+  "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/Flourish/Flourish/src>"
   "$<BUILD_INTERFACE:${DOTNET_RUNTIME_DIR}>"
 
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
@@ -108,6 +113,7 @@ target_include_directories(
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/utf-cpp/include>"
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/lib/bullet3/src>"
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/lib/msdf>"
+  "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/lib/tinytiff/src>"
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/Flourish/Flourish/src>"
   "$<INSTALL_INTERFACE:${DOTNET_RUNTIME_DIR}>"
 )
@@ -116,7 +122,7 @@ target_include_directories(
 set(LINK_LIBS
   glfw glm imgui spdlog glad imguizmo nlohmann_json FlourishCore
   BulletDynamics BulletCollision LinearMath
-  freetype msdf-atlas-gen
+  freetype msdf-atlas-gen TinyTIFF
 )
 target_link_libraries(Engine
   PUBLIC

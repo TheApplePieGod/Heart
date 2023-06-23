@@ -257,7 +257,8 @@ namespace Heart
         std::transform(extension.begin(), extension.end(), extension.begin(), [](unsigned char c) { return std::tolower(c); });
         
         Asset::Type type = Asset::Type::None;
-        if (extension == ".png" || extension == ".jpg" || extension == ".bmp" || extension == ".hdr") // textures
+        if (extension == ".png" || extension == ".jpg" || extension == ".bmp" ||
+            extension == ".hdr" || extension == ".tiff" || extension == ".tif") // textures
             type = Asset::Type::Texture;
         else if (extension == ".gltf")
             type = Asset::Type::Mesh;
