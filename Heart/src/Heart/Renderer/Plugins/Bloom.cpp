@@ -24,7 +24,8 @@ namespace Heart::RenderPlugins
         rpCreateInfo.SampleCount = Flourish::MsaaSampleCount::None;
         rpCreateInfo.ColorAttachments.push_back({
             m_Renderer->GetRenderTexture()->GetColorFormat(),
-            Flourish::AttachmentInitialization::Preserve
+            Flourish::AttachmentInitialization::Preserve,
+            true
         });
         rpCreateInfo.Subpasses.push_back({
             {},
@@ -82,7 +83,7 @@ namespace Heart::RenderPlugins
         texCreateInfo.ArrayCount = 1;
         texCreateInfo.MipCount = 7; // TODO: parameterize?
         texCreateInfo.Format = Flourish::ColorFormat::RGBA16_FLOAT;
-        texCreateInfo.Usage = Flourish::TextureUsageType::ComputeTarget;
+        texCreateInfo.Usage = Flourish::TextureUsageFlags::Compute;
         texCreateInfo.SamplerState.UVWWrap = { Flourish::SamplerWrapMode::ClampToEdge, Flourish::SamplerWrapMode::ClampToEdge, Flourish::SamplerWrapMode::ClampToEdge };
         m_DownsampleTexture = Flourish::Texture::Create(texCreateInfo);
         m_UpsampleTexture = Flourish::Texture::Create(texCreateInfo);
@@ -116,7 +117,6 @@ namespace Heart::RenderPlugins
         m_GPUGraphNodeBuilder.AddEncoderNode(Flourish::GPUWorkloadType::Graphics)
             .EncoderAddFramebuffer(m_Framebuffer.get())
             .EncoderAddTextureRead(m_UpsampleTexture.get());
-
     }
 
     // TODO: resource sets could definitely be static
@@ -124,6 +124,16 @@ namespace Heart::RenderPlugins
     {
         HE_PROFILE_FUNCTION();
         auto timer = AggregateTimer("RenderPlugins::Bloom");
+
+        if (!data.Settings.BloomEnable)
+        {
+            for (u32 i = 1; i < m_MipCount; i++)
+                m_CommandBuffer->EncodeComputeCommands()->EndEncoding();
+            for (u32 i = m_MipCount - 2; i > 0; i--)
+                m_CommandBuffer->EncodeComputeCommands()->EndEncoding();
+            m_CommandBuffer->EncodeRenderCommands(m_Framebuffer.get())->EndEncoding();
+            return;
+        }
 
         // Downsample
         for (u32 i = 1; i < m_MipCount; i++)

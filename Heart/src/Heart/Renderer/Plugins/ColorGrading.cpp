@@ -69,7 +69,7 @@ namespace Heart::RenderPlugins
             .SetCommandBuffer(m_CommandBuffer.get())
             .AddEncoderNode(Flourish::GPUWorkloadType::Graphics)
             .EncoderAddTextureRead(m_Renderer->GetRenderTexture().get())
-            .EncoderAddTextureWrite(m_Renderer->GetOutputTexture().get());
+            .EncoderAddFramebuffer(m_Framebuffer.get());
 
     }
 

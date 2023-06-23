@@ -30,10 +30,11 @@ namespace Heart
 
         auto FrameData = RegisterPlugin<RenderPlugins::FrameData>("FrameData");
         auto LightingData = RegisterPlugin<RenderPlugins::LightingData>("LightingData");
-        auto CBMESHCam = RegisterPlugin<RenderPlugins::ComputeMeshBatches>("CBMESHCam");
+        //auto CBMESHCam = RegisterPlugin<RenderPlugins::ComputeMeshBatches>("CBMESHCam");
         auto EntityIds = RegisterPlugin<RenderPlugins::EntityIds>("EntityIds");
         auto TLAS = RegisterPlugin<RenderPlugins::TLAS>("TLAS");
 
+        /*
         RenderPlugins::RenderMeshBatchesCreateInfo RBMESHCamCreateInfo;
         RBMESHCamCreateInfo.WriteNormals = true;
         RBMESHCamCreateInfo.FrameDataPluginName = FrameData->GetName();
@@ -102,6 +103,7 @@ namespace Heart
         RenderPlugins::ColorGradingCreateInfo GRADINGCreateInfo;
         auto GRADING = RegisterPlugin<RenderPlugins::ColorGrading>("GRADING", GRADINGCreateInfo);
         GRADING->AddDependency(Bloom->GetName(), GraphDependencyType::GPU);
+        */
 
         RenderPlugins::RTXCreateInfo rtxCreateInfo;
         rtxCreateInfo.FrameDataPluginName = FrameData->GetName();
@@ -110,6 +112,14 @@ namespace Heart
         auto RTX = RegisterPlugin<RenderPlugins::RTX>("RTX", rtxCreateInfo);
         RTX->AddDependency(TLAS->GetName(), GraphDependencyType::CPU);
         RTX->AddDependency(TLAS->GetName(), GraphDependencyType::GPU);
+
+        RenderPlugins::BloomCreateInfo BloomCreateInfo;
+        auto Bloom = RegisterPlugin<RenderPlugins::Bloom>("Bloom", BloomCreateInfo);
+        Bloom->AddDependency(RTX->GetName(), GraphDependencyType::GPU);
+
+        RenderPlugins::ColorGradingCreateInfo GRADINGCreateInfo;
+        auto GRADING = RegisterPlugin<RenderPlugins::ColorGrading>("GRADING", GRADINGCreateInfo);
+        GRADING->AddDependency(Bloom->GetName(), GraphDependencyType::GPU);
 
         RebuildGraph();
     }
@@ -226,12 +236,13 @@ namespace Heart
         texCreateInfo.Height = m_RenderHeight;
         texCreateInfo.ArrayCount = 1;
         texCreateInfo.MipCount = 1;
-        texCreateInfo.Usage = Flourish::TextureUsageType::RenderTarget;
+        texCreateInfo.Usage = Flourish::TextureUsageFlags::Graphics | Flourish::TextureUsageFlags::Compute;
         texCreateInfo.Writability = Flourish::TextureWritability::PerFrame;
         texCreateInfo.SamplerState.UVWWrap = { Flourish::SamplerWrapMode::ClampToBorder, Flourish::SamplerWrapMode::ClampToBorder, Flourish::SamplerWrapMode::ClampToBorder };
         texCreateInfo.Format = Flourish::ColorFormat::RGBA16_FLOAT;
         m_RenderTexture = Flourish::Texture::Create(texCreateInfo);
         texCreateInfo.Format = Flourish::ColorFormat::RGBA8_UNORM;
+        texCreateInfo.Usage = Flourish::TextureUsageFlags::Graphics;
         m_OutputTexture = Flourish::Texture::Create(texCreateInfo);
         texCreateInfo.Format = Flourish::ColorFormat::Depth;
         m_DepthTexture = Flourish::Texture::Create(texCreateInfo);
@@ -243,7 +254,7 @@ namespace Heart
         envTexCreateInfo.Width = 256;
         envTexCreateInfo.Height = 256;
         envTexCreateInfo.Format = Flourish::ColorFormat::RGBA8_UNORM;
-        envTexCreateInfo.Usage = Flourish::TextureUsageType::Readonly;
+        envTexCreateInfo.Usage = Flourish::TextureUsageFlags::Readonly;
         envTexCreateInfo.Writability = Flourish::TextureWritability::Once;
         envTexCreateInfo.ArrayCount = 6;
         envTexCreateInfo.MipCount = 1;

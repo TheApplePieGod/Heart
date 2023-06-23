@@ -82,20 +82,22 @@ namespace Heart::RenderPlugins
 
     void RTX::ResizeInternal()
     {
+        /*
         Flourish::TextureCreateInfo texCreateInfo;
         texCreateInfo.Width = m_Renderer->GetRenderWidth();
         texCreateInfo.Height = m_Renderer->GetRenderHeight();
         texCreateInfo.ArrayCount = 1;
         texCreateInfo.MipCount = 1;
-        texCreateInfo.Usage = Flourish::TextureUsageType::ComputeTarget;
+        texCreateInfo.Usage = Flourish::TextureUsageFlags::RenderAndComputeTarget;
         texCreateInfo.Writability = Flourish::TextureWritability::PerFrame;
         texCreateInfo.Format = Flourish::ColorFormat::RGBA16_FLOAT;
         m_Output = Flourish::Texture::Create(texCreateInfo);
+        */
 
         m_GPUGraphNodeBuilder.Reset()
             .SetCommandBuffer(m_CommandBuffer.get())
             .AddEncoderNode(Flourish::GPUWorkloadType::Compute)
-            .EncoderAddTextureWrite(m_Output.get());
+            .EncoderAddTextureWrite(m_Renderer->GetRenderTexture().get());
             // .AccelStructure ???
     }
 
@@ -119,7 +121,7 @@ namespace Heart::RenderPlugins
 
         m_ResourceSet0->BindBuffer(0, frameDataBuffer, 0, 1);
         m_ResourceSet0->BindAccelerationStructure(1, tlasPlugin->GetAccelStructure());
-        m_ResourceSet0->BindTexture(2, m_Output.get());
+        m_ResourceSet0->BindTexture(2, m_Renderer->GetRenderTexture().get());
         m_ResourceSet0->FlushBindings();
 
         m_ResourceSet1->BindBuffer(0, tlasPlugin->GetObjectBuffer(), 0, tlasPlugin->GetObjectBuffer()->GetAllocatedCount());

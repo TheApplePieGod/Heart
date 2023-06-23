@@ -88,7 +88,7 @@ namespace Heart
             static_cast<u32>(width),
             static_cast<u32>(height),
             Flourish::ColorFormat::RGBA8_UNORM,
-            Flourish::TextureUsageType::Readonly,
+            Flourish::TextureUsageFlags::Readonly,
             Flourish::TextureWritability::Once,
             1, 1,
             Flourish::TextureSamplerState(),

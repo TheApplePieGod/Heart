@@ -27,7 +27,7 @@ namespace Heart::RenderPlugins
         texCreateInfo.Height = m_Renderer->GetRenderHeight();
         texCreateInfo.ArrayCount = 1;
         texCreateInfo.MipCount = 1;
-        texCreateInfo.Usage = Flourish::TextureUsageType::RenderTarget;
+        texCreateInfo.Usage = Flourish::TextureUsageFlags::Graphics | Flourish::TextureUsageFlags::Transfer;
         texCreateInfo.Writability = Flourish::TextureWritability::PerFrame;
         texCreateInfo.SamplerState.UVWWrap = { Flourish::SamplerWrapMode::ClampToBorder, Flourish::SamplerWrapMode::ClampToBorder, Flourish::SamplerWrapMode::ClampToBorder };
         texCreateInfo.Format = Flourish::ColorFormat::R32_FLOAT;

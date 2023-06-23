@@ -23,7 +23,8 @@ namespace Heart::RenderPlugins
         rpCreateInfo.SampleCount = Flourish::MsaaSampleCount::None;
         rpCreateInfo.ColorAttachments.push_back({
             m_Renderer->GetRenderTexture()->GetColorFormat(),
-            Flourish::AttachmentInitialization::Preserve
+            Flourish::AttachmentInitialization::Preserve,
+            true
         });
         rpCreateInfo.Subpasses.push_back({
             {},

@@ -80,7 +80,7 @@ namespace Heart::RenderPlugins
             texCreateInfo.Height = m_Renderer->GetRenderHeight();
             texCreateInfo.ArrayCount = 1;
             texCreateInfo.MipCount = 1;
-            texCreateInfo.Usage = Flourish::TextureUsageType::RenderTarget;
+            texCreateInfo.Usage = Flourish::TextureUsageFlags::Graphics;
             texCreateInfo.Writability = Flourish::TextureWritability::PerFrame;
             texCreateInfo.SamplerState.MinFilter = Flourish::SamplerFilter::Nearest;
             texCreateInfo.SamplerState.MagFilter = Flourish::SamplerFilter::Nearest;

@@ -98,7 +98,7 @@ namespace Heart::RenderPlugins
         texCreateInfo.Height = 4;
         texCreateInfo.Writability = Flourish::TextureWritability::Once;
         texCreateInfo.Format = Flourish::ColorFormat::RGBA32_FLOAT;
-        texCreateInfo.Usage = Flourish::TextureUsageType::Readonly;
+        texCreateInfo.Usage = Flourish::TextureUsageFlags::Readonly;
         texCreateInfo.ArrayCount = 1;
         texCreateInfo.MipCount = 1;
         texCreateInfo.InitialData = noise.data();
@@ -122,7 +122,7 @@ namespace Heart::RenderPlugins
         texCreateInfo.ArrayCount = 1;
         texCreateInfo.MipCount = 1;
         texCreateInfo.Format = OUTPUT_FORMAT;
-        texCreateInfo.Usage = Flourish::TextureUsageType::RenderTarget;
+        texCreateInfo.Usage = Flourish::TextureUsageFlags::Graphics;
         texCreateInfo.SamplerState.UVWWrap = { Flourish::SamplerWrapMode::ClampToEdge, Flourish::SamplerWrapMode::ClampToEdge, Flourish::SamplerWrapMode::ClampToEdge };
         m_OutputTexture = Flourish::Texture::Create(texCreateInfo);
 

@@ -131,7 +131,7 @@ namespace Heart
         texCreateInfo.Width = m_RenderWidth;
         texCreateInfo.Height = m_RenderHeight;
         texCreateInfo.Format = Flourish::ColorFormat::RGBA8_UNORM;
-        texCreateInfo.Usage = Flourish::TextureUsageType::RenderTarget;
+        texCreateInfo.Usage = Flourish::TextureUsageFlags::Graphics;
         texCreateInfo.Writability = Flourish::TextureWritability::PerFrame;
         texCreateInfo.ArrayCount = 1;
         texCreateInfo.MipCount = 1;
