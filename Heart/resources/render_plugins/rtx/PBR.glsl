@@ -51,7 +51,7 @@ float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
 
 vec4 SampleTexture(uint materialId, uint offset, vec2 texCoord, vec4 mipDerivs)
 {
-    return textureLod(
+    return textureGrad(
         textures[materialId * 5 + offset],
         (texCoord + materialBuffer.materials[materialId].texCoordTransform.zw)
            * materialBuffer.materials[materialId].texCoordTransform.xy,

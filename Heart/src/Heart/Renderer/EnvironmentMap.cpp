@@ -70,7 +70,7 @@ namespace Heart
 
         // Create the render graph
         Flourish::RenderGraphCreateInfo rgCreateInfo;
-        rgCreateInfo.Usage = Flourish::RenderGraphUsageType::Once;
+        rgCreateInfo.Usage = Flourish::RenderGraphUsageType::PerFrame;
         m_RenderGraph = Flourish::RenderGraph::Create(rgCreateInfo);
 
         // Create the cubemap data buffer to hold data for each face render
@@ -129,7 +129,7 @@ namespace Heart
             auto pipeline = m_RenderPass->CreatePipeline("cubemap", pipelineCreateInfo);
 
             Flourish::ResourceSetCreateInfo dsCreateInfo;
-            dsCreateInfo.Writability = Flourish::ResourceSetWritability::OnceStaticData;
+            dsCreateInfo.Writability = Flourish::ResourceSetWritability::PerFrame;
             m_EnvironmentMap.ResourceSet = pipeline->CreateResourceSet(0, dsCreateInfo);
         }
 
@@ -265,12 +265,9 @@ namespace Heart
         // Render equirectangular map to cubemap
         // ------------------------------------------------------------------
         {
-            if (!m_SetsWritten)
-            {
-                m_EnvironmentMap.ResourceSet->BindBuffer(0, m_CubemapDataBuffer.get(), 0, 1);
-                m_EnvironmentMap.ResourceSet->BindTexture(1, mapAsset->GetTexture());
-                m_EnvironmentMap.ResourceSet->FlushBindings();
-            }
+            m_EnvironmentMap.ResourceSet->BindBuffer(0, m_CubemapDataBuffer.get(), 0, 1);
+            m_EnvironmentMap.ResourceSet->BindTexture(1, mapAsset->GetTexture());
+            m_EnvironmentMap.ResourceSet->FlushBindings();
 
             auto rcEncoder = m_EnvironmentMap.CommandBuffer->EncodeRenderCommands(m_EnvironmentMap.Framebuffer.get());
             for (u32 i = 0; i < 6; i++)
