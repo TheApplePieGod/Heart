@@ -135,6 +135,7 @@ vec4 GetFinalColor(uint materialId, vec2 texCoord, vec3 pos, vec3 normal, vec3 t
     // contribution from all lights
     vec3 finalContribution = vec3(0.0);
     int lightCount = int(lightingBuffer.lights[0].position.x);
+    float refl = 0.0;
     for (int i = 1; i <= lightCount; i++)
     {
         float tMin = 0.001;
@@ -160,7 +161,7 @@ vec4 GetFinalColor(uint materialId, vec2 texCoord, vec3 pos, vec3 normal, vec3 t
 
         // Trace shadow ray
         uint flags = gl_RayFlagsTerminateOnFirstHitEXT | gl_RayFlagsOpaqueEXT | gl_RayFlagsSkipClosestHitShaderEXT;
-        vec3 shadowOrigin = pos + normal * 0.01;
+        vec3 shadowOrigin = pos + N * 0.01;
         isShadowed = true;
         traceRayEXT(
             tlas,        // acceleration structure
@@ -197,9 +198,23 @@ vec4 GetFinalColor(uint materialId, vec2 texCoord, vec3 pos, vec3 normal, vec3 t
         kD *= 1.0 - metalness;
 
         finalContribution += (kD * baseColor.rgb / PI + specular) * radiance * NdotL;
+
+        //refl = max(refl, length(F) * occlusion);
     }
+
+    vec3 finalColor = finalContribution;
+    vec3 ambient = vec3(0.01) * baseColor.rgb * occlusion;
+    finalColor += ambient;
+    //refl = max(refl, length(ambient));
+    refl = length(FresnelSchlick(nDotV, F0));
+
+    prd.done = 0;
+    prd.rayOrigin = pos + N * 0.01;
+    prd.rayDir = reflect(gl_WorldRayDirectionEXT, N);
+    prd.attenuation = refl;
     
     // ambient lighting
+    /*
     vec3 F = FresnelSchlickRoughness(nDotV, F0, filteredRoughness);
     vec3 kS = F;
     vec3 kD = 1.0 - kS;
@@ -212,8 +227,9 @@ vec4 GetFinalColor(uint materialId, vec2 texCoord, vec3 pos, vec3 normal, vec3 t
     vec2 envBRDF = texture(brdfLUT, vec2(nDotV, filteredRoughness)).rg;
     vec3 specular = min(vec3(1.f), prefilteredColor * (F * envBRDF.x + envBRDF.y)); // limit specular intensity for bloom
     vec3 ambient = (kD * diffuse + specular) * occlusion;
+    */
 
-    vec3 finalColor = ambient + finalContribution;
+    //vec3 finalColor = /ambient + finalContribution;
 
     return vec4(finalColor + emissive, baseColor.a);
 }
