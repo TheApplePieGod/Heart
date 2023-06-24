@@ -96,7 +96,8 @@ namespace Heart::RenderPlugins
             // Should always be loaded & valid since CMB checks
             auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>(
                 data.Scene->GetMeshComponents()[pair.second.MeshIndex].Data.Mesh,
-                true, async
+                true,
+                async
             );
             auto& meshData = meshAsset->GetSubmesh(pair.second.SubmeshIndex);
 
@@ -111,7 +112,11 @@ namespace Heart::RenderPlugins
                 auto selectedMaterial = &meshAsset->GetDefaultMaterials()[meshData.GetMaterialIndex()]; // default material
                 if (meshData.GetMaterialIndex() < materials.Count()) // This check may not be necessary if data is saved correctly
                 {
-                    auto materialAsset = AssetManager::RetrieveAsset<MaterialAsset>(materials[meshData.GetMaterialIndex()]);
+                    auto materialAsset = AssetManager::RetrieveAsset<MaterialAsset>(
+                        materials[meshData.GetMaterialIndex()],
+                        true,
+                        async
+                    );
                     if (materialAsset && materialAsset->IsValid())
                         selectedMaterial = &materialAsset->GetMaterial();
                 }

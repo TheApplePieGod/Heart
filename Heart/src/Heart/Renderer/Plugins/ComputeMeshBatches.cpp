@@ -64,7 +64,11 @@ namespace Heart::RenderPlugins
             float maxScale = std::max(std::max(scale.x, scale.y), scale.z);
 
             // Skip invalid meshes
-            auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>(meshComp.Data.Mesh, true, async);
+            auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>(
+                meshComp.Data.Mesh,
+                true,
+                async
+            );
             if (!meshAsset || !meshAsset->IsValid()) continue;
 
             for (u32 i = 0; i < meshAsset->GetSubmeshCount(); i++)
@@ -103,7 +107,11 @@ namespace Heart::RenderPlugins
                 auto selectedMaterial = &meshAsset->GetDefaultMaterials()[meshData.GetMaterialIndex()];
                 if (meshData.GetMaterialIndex() < meshComp.Data.Materials.Count())
                 {
-                    auto materialAsset = AssetManager::RetrieveAsset<MaterialAsset>(meshComp.Data.Materials[meshData.GetMaterialIndex()]);
+                    auto materialAsset = AssetManager::RetrieveAsset<MaterialAsset>(
+                        meshComp.Data.Materials[meshData.GetMaterialIndex()],
+                        true,
+                        async
+                    );
                     if (materialAsset && materialAsset->IsValid())
                         selectedMaterial = &materialAsset->GetMaterial();
                 }
