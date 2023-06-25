@@ -75,8 +75,8 @@ namespace Heart
         s_EngineLogger = CreateRef<spdlog::logger>("ENGINE", logSinks.Begin(), logSinks.End());
         spdlog::register_logger(s_EngineLogger);
         #ifdef HE_DEBUG
-            s_EngineLogger->set_level(spdlog::level::debug);
-            s_EngineLogger->flush_on(spdlog::level::debug);
+            s_EngineLogger->set_level(spdlog::level::trace);
+            s_EngineLogger->flush_on(spdlog::level::trace);
         #else
             s_EngineLogger->set_level(spdlog::level::info);
             s_EngineLogger->flush_on(spdlog::level::info);

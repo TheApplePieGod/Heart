@@ -120,6 +120,7 @@ namespace Heart
         bool m_Valid = false;
         Type m_Type = Type::None;
 
+
     protected:
         static inline const HString8 s_Base64Chars =
             "ABCDEFGHIJKLMNOPQRSTUVWXYZ"

@@ -30,6 +30,7 @@ namespace Heart::RenderPlugins
             glm::vec2(data.Camera->GetNearClip(), data.Camera->GetFarClip()),
             { m_Renderer->GetRenderWidth(), m_Renderer->GetRenderHeight() },
             Flourish::Context::ReversedZBuffer(),
+            (u32)Flourish::Context::FrameCount()
         };
         m_Buffer->SetElements(&bufData, 1, 0);
     }

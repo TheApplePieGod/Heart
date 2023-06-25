@@ -25,7 +25,7 @@ namespace Heart::RenderPlugins
             glm::vec2 ClipPlanes;
             glm::vec2 ScreenSize;
             u32 ReverseDepth;
-            u32 Padding;
+            u32 FrameCount;
         };
 
     public:

@@ -14,6 +14,8 @@ namespace Heart
         if (m_Loaded || m_Loading) return;
         m_Loading = true;
 
+        HE_LOG_WARN("Loading {0}", m_Filename);
+
         bool floatComponents = false;
         if (m_Extension == ".hdr") // environment map: use float components and flip on load
         {
