@@ -15,8 +15,6 @@
 #include "Heart/Renderer/SceneRenderer.h"
 #include "glm/gtc/type_ptr.hpp"
 
-#include "Flourish/Backends/Vulkan/Buffer.h"
-
 namespace Heart::RenderPlugins
 {
     void TLAS::Initialize()
@@ -129,7 +127,6 @@ namespace Heart::RenderPlugins
 
                 instance.Parent = meshData.GetAccelStructure();
                 instance.TransformMatrix = glm::value_ptr(entityData.Transform);
-                instance.CustomIndex = Flourish::Context::FrameCount();
                 m_Instances.AddInPlace(instance);
             }
         }

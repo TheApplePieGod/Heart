@@ -12,21 +12,23 @@ namespace Flourish
 
 namespace Heart::RenderPlugins
 {
-    struct RenderMeshBatchesCreateInfo
+    struct GBufferCreateInfo
     {
-        bool WriteNormals;
         HString8 MeshBatchesPluginName;
+        HString8 CollectMaterialsPluginName;
         HString8 FrameDataPluginName;
+        HString8 EntityIdsPluginName; // Optional
     };
 
-    class RenderMeshBatches : public RenderPlugin
+    class GBuffer : public RenderPlugin
     {
     public:
-        RenderMeshBatches(SceneRenderer* renderer, HStringView8 name, const RenderMeshBatchesCreateInfo& createInfo)
+        GBuffer(SceneRenderer* renderer, HStringView8 name, const GBufferCreateInfo& createInfo)
             : RenderPlugin(renderer, name), m_Info(createInfo)
         { Initialize(); }
 
-        inline Flourish::Texture* GetNormalsTexture() const { return m_NormalsTexture.get(); }
+        inline Flourish::Texture* GetGBuffer1() const { return m_GBuffer1.get(); }
+        inline Flourish::Texture* GetGBuffer2() const { return m_GBuffer2.get(); }
 
     protected:
         void RenderInternal(const SceneRenderData& data) override;
@@ -36,11 +38,12 @@ namespace Heart::RenderPlugins
         void Initialize();
 
     private:
-        RenderMeshBatchesCreateInfo m_Info;
+        GBufferCreateInfo m_Info;
 
         Ref<Flourish::ResourceSet> m_ResourceSet;
         Ref<Flourish::RenderPass> m_RenderPass;
         Ref<Flourish::Framebuffer> m_Framebuffer;
-        Ref<Flourish::Texture> m_NormalsTexture;
+        Ref<Flourish::Texture> m_GBuffer1;
+        Ref<Flourish::Texture> m_GBuffer2;
     };
 }

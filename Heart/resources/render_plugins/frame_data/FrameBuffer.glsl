@@ -1,3 +1,6 @@
+#ifndef FRAME_BUFFER
+#define FRAME_BUFFER
+
 struct FrameData {
     mat4 proj;
     mat4 view;
@@ -11,6 +14,11 @@ struct FrameData {
     uint frameCount;
 };
 
-layout(binding = 0) readonly uniform FrameBuffer {
+layout(
+    binding = FRAME_BUFFER_BINDING,
+    set = FRAME_BUFFER_SET
+) readonly uniform FrameBuffer {
     FrameData data;
 } frameBuffer;
+
+#endif

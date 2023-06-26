@@ -17,6 +17,11 @@ namespace Heart
 
 namespace Heart::RenderPlugins
 {
+    struct ComputeMeshBatchesCreateInfo
+    {
+        HString8 CollectMaterialsPluginName;
+    };
+
     class ComputeMeshBatches : public RenderPlugin
     {
     public:
@@ -42,15 +47,18 @@ namespace Heart::RenderPlugins
             u32 SubmeshIndex = 0;
         };
 
-        struct ObjectData
+        struct alignas(16) ObjectData
         {
             glm::mat4 Model;
+            u32 MaterialId;
+            u32 EntityId;
         };
 
         struct EntityListEntry
         {
             u32 EntityIndex;
             u32 MeshIndex;
+            u32 MaterialIndex;
             bool IncludeInPrepass;
         };
 
@@ -66,8 +74,8 @@ namespace Heart::RenderPlugins
         };
 
     public:
-        ComputeMeshBatches(SceneRenderer* renderer, HStringView8 name)
-            : RenderPlugin(renderer, name)
+        ComputeMeshBatches(SceneRenderer* renderer, HStringView8 name, const ComputeMeshBatchesCreateInfo& createInfo)
+            : RenderPlugin(renderer, name), m_Info(createInfo)
         { Initialize(); }
 
         inline u32 GetMaxObjects() const { return m_MaxObjects; }
@@ -82,6 +90,8 @@ namespace Heart::RenderPlugins
         bool FrustumCull(const SceneRenderData& data, glm::vec4 boundingSphere, const glm::mat4& transform); // True if visible
 
     private:
+        ComputeMeshBatchesCreateInfo m_Info;
+
         std::array<BatchData, Flourish::Context::MaxFrameBufferCount> m_BatchData;
         u32 m_UpdateFrameIndex = 0;
         u32 m_RenderFrameIndex = 0;

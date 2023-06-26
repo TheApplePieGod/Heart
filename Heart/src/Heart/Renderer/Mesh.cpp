@@ -24,8 +24,12 @@ namespace Heart
         bufCreateInfo.ElementCount = vertices.Count();
         bufCreateInfo.InitialData = vertices.Data();
         bufCreateInfo.InitialDataSize = sizeof(Vertex) * vertices.Count();
-        bufCreateInfo.CanCreateAccelerationStructure = true;
         bufCreateInfo.UploadEncoder = uploadEncoder;
+        if (Flourish::Context::FeatureTable().RayTracing)
+        {
+            bufCreateInfo.CanCreateAccelerationStructure = true;
+            bufCreateInfo.ExposeGPUAddress = true;
+        }
         m_VertexBuffer = Flourish::Buffer::Create(bufCreateInfo);
 
         bufCreateInfo.Type = Flourish::BufferType::Index;
@@ -33,35 +37,44 @@ namespace Heart
         bufCreateInfo.ElementCount = indices.Count();
         bufCreateInfo.InitialData = indices.Data();
         bufCreateInfo.InitialDataSize = sizeof(u32) * indices.Count();
-        bufCreateInfo.UploadEncoder = uploadEncoder;
         m_IndexBuffer = Flourish::Buffer::Create(bufCreateInfo);
         uploadEncoder->EndEncoding();
 
-        Flourish::AccelerationStructureCreateInfo asCreateInfo;
-        asCreateInfo.Type = Flourish::AccelerationStructureType::Node;
-        asCreateInfo.AllowUpdating = false;
-        auto accelStruct = Flourish::AccelerationStructure::Create(asCreateInfo);
-
-        auto buildEncoder = uploadBuf->EncodeComputeCommands();
-        Flourish::AccelerationStructureNodeBuildInfo buildInfo;
-        buildInfo.VertexBuffer = m_VertexBuffer.get();
-        buildInfo.IndexBuffer = m_IndexBuffer.get();
-        buildEncoder->RebuildAccelerationStructureNode(accelStruct.get(), buildInfo);
-        buildEncoder->EndEncoding();
-
         Ref<Flourish::RenderGraph> graph = Flourish::RenderGraph::Create({ Flourish::RenderGraphUsageType::Once });
-        graph->ConstructNewNode(uploadBuf.get())
-            .AddEncoderNode(Flourish::GPUWorkloadType::Transfer)
+        auto builder = graph->ConstructNewNode(uploadBuf.get());
+        builder.AddEncoderNode(Flourish::GPUWorkloadType::Transfer)
             .EncoderAddBufferWrite(m_VertexBuffer.get())
-            .EncoderAddBufferWrite(m_IndexBuffer.get())
-            .AddEncoderNode(Flourish::GPUWorkloadType::Compute)
-            .EncoderAddBufferRead(m_VertexBuffer.get())
-            .EncoderAddBufferRead(m_IndexBuffer.get())
-            .AddToGraph();
+            .EncoderAddBufferWrite(m_IndexBuffer.get());
+        if (Flourish::Context::FeatureTable().RayTracing)
+        {
+            builder.AddEncoderNode(Flourish::GPUWorkloadType::Compute)
+                .EncoderAddBufferRead(m_VertexBuffer.get())
+                .EncoderAddBufferRead(m_IndexBuffer.get());
+        }
+        builder.AddToGraph();
         graph->Build();
-        Flourish::Context::ExecuteRenderGraph(graph.get());
 
-        m_AccelStructure = accelStruct;
+        if (Flourish::Context::FeatureTable().RayTracing)
+        {
+            Flourish::AccelerationStructureCreateInfo asCreateInfo;
+            asCreateInfo.Type = Flourish::AccelerationStructureType::Node;
+            asCreateInfo.AllowUpdating = false;
+            auto accelStruct = Flourish::AccelerationStructure::Create(asCreateInfo);
+
+            auto buildEncoder = uploadBuf->EncodeComputeCommands();
+            Flourish::AccelerationStructureNodeBuildInfo buildInfo;
+            buildInfo.VertexBuffer = m_VertexBuffer.get();
+            buildInfo.IndexBuffer = m_IndexBuffer.get();
+            buildEncoder->RebuildAccelerationStructureNode(accelStruct.get(), buildInfo);
+            buildEncoder->EndEncoding();
+
+            // TODO: push?
+            Flourish::Context::ExecuteRenderGraph(graph.get());
+
+            m_AccelStructure = accelStruct;
+        }
+        else
+            Flourish::Context::PushRenderGraph(graph.get());
 
         CalculateBounds();
     }

@@ -112,6 +112,7 @@ vec2 ImportanceSampleGGX(vec2 rand, float roughness)
     return vec2(phi, theta);
 }
 
+// TODO: https://github.com/diharaw/hybrid-rendering/blob/master/src/shaders/reflections/reflections_ray_trace.rgen
 vec3 test(vec3 pos, vec3 N, float roughness)
 {
     vec3 V = normalize(gl_WorldRayOriginEXT - pos);

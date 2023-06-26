@@ -20,6 +20,7 @@
 #include "glm/vec4.hpp"
 #include "glm/gtc/type_ptr.hpp"
 #include "glm/gtx/matrix_decompose.hpp"
+#include "Heart/Renderer/Plugins/AllPlugins.h"
 
 namespace HeartEditor
 {
@@ -69,8 +70,8 @@ namespace Widgets
         // todo: add more views
         const Flourish::Texture* outputTex = nullptr;
         switch (m_SelectedOutput){
-            default: outputTex = m_SceneRenderer->GetOutputTexture().get(); break;
-            //default: outputTex = m_SceneRenderer->GetPlugin<Heart::RenderPlugins::RTX>("RTX")->GetOutputTexture(); break;
+            //default: outputTex = m_SceneRenderer->GetOutputTexture().get(); break;
+            default: outputTex = m_SceneRenderer->GetPlugin<Heart::RenderPlugins::GBuffer>("GBuffer")->GetGBuffer1(); break;
             case 1: outputTex = m_SceneRenderer->GetRenderTexture().get(); break;
             case 2: outputTex = m_SceneRenderer->GetDepthTexture().get(); break;
         }

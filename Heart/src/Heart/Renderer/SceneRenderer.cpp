@@ -28,13 +28,13 @@ namespace Heart
         // TODO: parallel init? could do parallel init phase followed by gpunodebuilder
         // phase
 
+        /*
         auto FrameData = RegisterPlugin<RenderPlugins::FrameData>("FrameData");
         auto LightingData = RegisterPlugin<RenderPlugins::LightingData>("LightingData");
-        //auto CBMESHCam = RegisterPlugin<RenderPlugins::ComputeMeshBatches>("CBMESHCam");
+        auto CBMESHCam = RegisterPlugin<RenderPlugins::ComputeMeshBatches>("CBMESHCam");
         auto EntityIds = RegisterPlugin<RenderPlugins::EntityIds>("EntityIds");
         auto TLAS = RegisterPlugin<RenderPlugins::TLAS>("TLAS");
 
-        /*
         RenderPlugins::RenderMeshBatchesCreateInfo RBMESHCamCreateInfo;
         RBMESHCamCreateInfo.WriteNormals = true;
         RBMESHCamCreateInfo.FrameDataPluginName = FrameData->GetName();
@@ -105,6 +105,26 @@ namespace Heart
         GRADING->AddDependency(Bloom->GetName(), GraphDependencyType::GPU);
         */
 
+        auto frameData = RegisterPlugin<RenderPlugins::FrameData>("FrameData");
+        auto entityIds = RegisterPlugin<RenderPlugins::EntityIds>("EntityIds");
+
+        RenderPlugins::CollectMaterialsCreateInfo collectMatCreateInfo;
+        auto collectMaterials = RegisterPlugin<RenderPlugins::CollectMaterials>("CollectMaterials", collectMatCreateInfo);
+
+        RenderPlugins::ComputeMeshBatchesCreateInfo cbmeshcamCreateInfo;
+        cbmeshcamCreateInfo.CollectMaterialsPluginName = collectMaterials->GetName();
+        auto CBMESHCam = RegisterPlugin<RenderPlugins::ComputeMeshBatches>("CBMESHCam", cbmeshcamCreateInfo);
+        CBMESHCam->AddDependency(collectMaterials->GetName(), GraphDependencyType::CPU);
+
+        RenderPlugins::GBufferCreateInfo gBufferCreateInfo;
+        gBufferCreateInfo.FrameDataPluginName = frameData->GetName();
+        gBufferCreateInfo.MeshBatchesPluginName = CBMESHCam->GetName();
+        gBufferCreateInfo.CollectMaterialsPluginName = collectMaterials->GetName();
+        gBufferCreateInfo.EntityIdsPluginName = entityIds->GetName();
+        auto gBuffer = RegisterPlugin<RenderPlugins::GBuffer>("GBuffer", gBufferCreateInfo);
+        gBuffer->AddDependency(CBMESHCam->GetName(), GraphDependencyType::CPU);
+
+        /*
         RenderPlugins::RTXCreateInfo rtxCreateInfo;
         rtxCreateInfo.FrameDataPluginName = FrameData->GetName();
         rtxCreateInfo.TLASPluginName = TLAS->GetName();
@@ -120,6 +140,7 @@ namespace Heart
         RenderPlugins::ColorGradingCreateInfo GRADINGCreateInfo;
         auto GRADING = RegisterPlugin<RenderPlugins::ColorGrading>("GRADING", GRADINGCreateInfo);
         GRADING->AddDependency(Bloom->GetName(), GraphDependencyType::GPU);
+        */
 
         RebuildGraph();
     }

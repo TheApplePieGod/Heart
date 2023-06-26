@@ -1,5 +1,5 @@
-#ifndef UTIL_PBR
-#define UTIL_PBR
+#ifndef UTIL_BRDF
+#define UTIL_BRDF
 
 #include "Constants.glsl"
 

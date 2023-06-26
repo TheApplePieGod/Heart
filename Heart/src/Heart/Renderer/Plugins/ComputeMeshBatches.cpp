@@ -1,6 +1,7 @@
 #include "hepch.h"
 #include "ComputeMeshBatches.h"
 
+#include "Heart/Renderer/Plugins/CollectMaterials.h"
 #include "Heart/Renderer/SceneRenderer.h"
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/MeshAsset.h"
@@ -34,6 +35,9 @@ namespace Heart::RenderPlugins
     {
         HE_PROFILE_FUNCTION();
         auto timer = AggregateTimer("RenderPlugins::ComputeMeshBatches");
+
+        auto materialsPlugin = m_Renderer->GetPlugin<RenderPlugins::CollectMaterials>(m_Info.CollectMaterialsPluginName);
+        const auto& materialMap = materialsPlugin->GetMaterialMap();
         
         // TODO: revisit this. Disabling previous-frame batch rendering for now because there is a lot of nuance in terms of
         // ghosting, culling, etc. that really isn't worth it right now
@@ -112,7 +116,14 @@ namespace Heart::RenderPlugins
                         true,
                         async
                     );
-                    if (materialAsset && materialAsset->IsValid())
+
+                    // Check to be sure the material (which was potentially just loaded) exists
+                    // in the material map. If not, default to whatever it was going to be before
+                    // which will definitely exist
+                    if (materialAsset &&
+                        materialAsset->IsValid() &&
+                        materialMap.find((u64)&materialAsset->GetMaterial()) != materialMap.end()
+                    )
                         selectedMaterial = &materialAsset->GetMaterial();
                 }
                 bool usePrepass = selectedMaterial->GetTransparencyMode() != TransparencyMode::AlphaBlend;
@@ -127,6 +138,7 @@ namespace Heart::RenderPlugins
                 batchData.EntityListPool[batch.EntityListIndex].AddInPlace(EntityListEntry {
                     static_cast<u32>(meshComp.EntityIndex),
                     meshCompIndex,
+                    materialMap.at((u64)selectedMaterial),
                     usePrepass
                 });
             }
@@ -159,7 +171,12 @@ namespace Heart::RenderPlugins
                 const auto& entityData = data.Scene->GetEntityData()[entity.EntityIndex];
 
                 // Object data
-                batchData.ObjectDataBuffer->SetElements(&entityData.Transform, 1, objectId);
+                ObjectData objectData = {
+                    entityData.Transform,
+                    entity.MaterialIndex,
+                    entityData.Id
+                };
+                batchData.ObjectDataBuffer->SetElements(&objectData, 1, objectId);
 
                 objectId++;
             }

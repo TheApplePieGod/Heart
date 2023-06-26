@@ -1,8 +1,10 @@
 #include "hepch.h"
-#include "RenderMeshBatches.h"
+#include "GBuffer.h"
 
 #include "Heart/Renderer/Plugins/FrameData.h"
 #include "Heart/Renderer/Plugins/ComputeMeshBatches.h"
+#include "Heart/Renderer/Plugins/EntityIds.h"
+#include "Heart/Renderer/Plugins/CollectMaterials.h"
 #include "Heart/Renderer/SceneRenderer.h"
 #include "Heart/Renderer/Mesh.h"
 #include "Heart/Core/Timing.h"
@@ -15,43 +17,53 @@
 #include "Flourish/Api/Texture.h"
 #include "Flourish/Api/ResourceSet.h"
 
-const auto NORMALS_FORMAT = Flourish::ColorFormat::RGBA16_FLOAT;
+const auto GBUFFER_FORMAT = Flourish::ColorFormat::RGBA16_FLOAT;
 
 namespace Heart::RenderPlugins
 {
-    void RenderMeshBatches::Initialize()
+    void GBuffer::Initialize()
     {
+        auto eidPlugin = m_Renderer->GetPlugin<RenderPlugins::EntityIds>(m_Info.EntityIdsPluginName);
+
         Flourish::RenderPassCreateInfo rpCreateInfo;
         rpCreateInfo.SampleCount = Flourish::MsaaSampleCount::None;
         rpCreateInfo.DepthAttachments.push_back({
             m_Renderer->GetDepthTexture()->GetColorFormat(),
-            Flourish::AttachmentInitialization::None
+            Flourish::AttachmentInitialization::Clear
         });
-        if (m_Info.WriteNormals)
+        rpCreateInfo.ColorAttachments.push_back({
+            GBUFFER_FORMAT,
+            Flourish::AttachmentInitialization::Clear
+        });
+        rpCreateInfo.ColorAttachments.push_back({
+            GBUFFER_FORMAT,
+            Flourish::AttachmentInitialization::Clear
+        });
+        rpCreateInfo.Subpasses.push_back({
+            {},
+            {
+                { Flourish::SubpassAttachmentType::Depth, 0 },
+                { Flourish::SubpassAttachmentType::Color, 0 },
+                { Flourish::SubpassAttachmentType::Color, 1 }
+            }
+        });
+        if (eidPlugin)
         {
-            rpCreateInfo.ColorAttachments.push_back({ NORMALS_FORMAT });
-            rpCreateInfo.Subpasses.push_back({
-                {},
-                { { Flourish::SubpassAttachmentType::Depth, 0 }, { Flourish::SubpassAttachmentType::Color, 0 } }
-            });
+            rpCreateInfo.ColorAttachments.push_back({ eidPlugin->GetTexture()->GetColorFormat() });
+            rpCreateInfo.Subpasses.back().OutputAttachments.push_back({ Flourish::SubpassAttachmentType::Color, 2 });
         }
-        else
-        {
-            rpCreateInfo.Subpasses.push_back({
-                {},
-                { { Flourish::SubpassAttachmentType::Depth, 0 } }
-            });
-        }
+
         m_RenderPass = Flourish::RenderPass::Create(rpCreateInfo);
 
         Flourish::GraphicsPipelineCreateInfo pipelineCreateInfo;
-        if (m_Info.WriteNormals)
-            pipelineCreateInfo.FragmentShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/render_mesh_batches/Normals.frag", true)->GetShader();
-        pipelineCreateInfo.VertexShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/render_mesh_batches/Vertex.vert", true)->GetShader();
+        pipelineCreateInfo.FragmentShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/gbuffer/Fragment.frag", true)->GetShader();
+        pipelineCreateInfo.VertexShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/gbuffer/Vertex.vert", true)->GetShader();
         pipelineCreateInfo.VertexTopology = Flourish::VertexTopology::TriangleList;
         pipelineCreateInfo.VertexLayout = Mesh::GetVertexLayout();
         pipelineCreateInfo.VertexInput = true;
-        pipelineCreateInfo.BlendStates = { { false } };
+        pipelineCreateInfo.BlendStates = { { false }, { false } };
+        if (eidPlugin)
+            pipelineCreateInfo.BlendStates.push_back({ false });
         pipelineCreateInfo.DepthConfig.DepthTest = true;
         pipelineCreateInfo.DepthConfig.DepthWrite = true;
         pipelineCreateInfo.DepthConfig.CompareOperation = Flourish::DepthComparison::Auto;
@@ -71,30 +83,32 @@ namespace Heart::RenderPlugins
         ResizeInternal();
     }
 
-    void RenderMeshBatches::ResizeInternal()
+    void GBuffer::ResizeInternal()
     {
-        if (m_Info.WriteNormals)
-        {
-            Flourish::TextureCreateInfo texCreateInfo;
-            texCreateInfo.Width = m_Renderer->GetRenderWidth();
-            texCreateInfo.Height = m_Renderer->GetRenderHeight();
-            texCreateInfo.ArrayCount = 1;
-            texCreateInfo.MipCount = 1;
-            texCreateInfo.Usage = Flourish::TextureUsageFlags::Graphics;
-            texCreateInfo.Writability = Flourish::TextureWritability::PerFrame;
-            texCreateInfo.SamplerState.MinFilter = Flourish::SamplerFilter::Nearest;
-            texCreateInfo.SamplerState.MagFilter = Flourish::SamplerFilter::Nearest;
-            texCreateInfo.SamplerState.UVWWrap = { Flourish::SamplerWrapMode::ClampToBorder, Flourish::SamplerWrapMode::ClampToBorder, Flourish::SamplerWrapMode::ClampToBorder };
-            texCreateInfo.Format = NORMALS_FORMAT;
-            m_NormalsTexture = Flourish::Texture::Create(texCreateInfo);
-        }
+        auto eidPlugin = m_Renderer->GetPlugin<RenderPlugins::EntityIds>(m_Info.EntityIdsPluginName);
+
+        Flourish::TextureCreateInfo texCreateInfo;
+        texCreateInfo.Width = m_Renderer->GetRenderWidth();
+        texCreateInfo.Height = m_Renderer->GetRenderHeight();
+        texCreateInfo.ArrayCount = 1;
+        texCreateInfo.MipCount = 1;
+        texCreateInfo.Usage = Flourish::TextureUsageFlags::Graphics;
+        texCreateInfo.Writability = Flourish::TextureWritability::PerFrame;
+        texCreateInfo.SamplerState.MinFilter = Flourish::SamplerFilter::Nearest;
+        texCreateInfo.SamplerState.MagFilter = Flourish::SamplerFilter::Nearest;
+        texCreateInfo.SamplerState.UVWWrap = { Flourish::SamplerWrapMode::ClampToBorder, Flourish::SamplerWrapMode::ClampToBorder, Flourish::SamplerWrapMode::ClampToBorder };
+        texCreateInfo.Format = GBUFFER_FORMAT;
+        m_GBuffer1 = Flourish::Texture::Create(texCreateInfo);
+        m_GBuffer2 = Flourish::Texture::Create(texCreateInfo);
 
         Flourish::FramebufferCreateInfo fbCreateInfo;
         fbCreateInfo.RenderPass = m_RenderPass;
         fbCreateInfo.Width = m_Renderer->GetRenderWidth();
         fbCreateInfo.Height = m_Renderer->GetRenderHeight();
-        if (m_Info.WriteNormals)
-            fbCreateInfo.ColorAttachments.push_back({ { 0.f, 0.f, 0.f, 0.f }, m_NormalsTexture });
+        fbCreateInfo.ColorAttachments.push_back({ { 0.f, 0.f, 0.f, 0.f }, m_GBuffer1 });
+        fbCreateInfo.ColorAttachments.push_back({ { 0.f, 0.f, 0.f, 0.f }, m_GBuffer2 });
+        if (eidPlugin)
+            fbCreateInfo.ColorAttachments.push_back({ { -1.f, 0.f, 0.f, 0.f }, eidPlugin->GetTexture() });
         fbCreateInfo.DepthAttachments.push_back({ m_Renderer->GetDepthTexture() });
         m_Framebuffer = Flourish::Framebuffer::Create(fbCreateInfo);
 
@@ -104,26 +118,30 @@ namespace Heart::RenderPlugins
             .EncoderAddFramebuffer(m_Framebuffer.get());
     }
 
-    void RenderMeshBatches::RenderInternal(const SceneRenderData& data)
+    void GBuffer::RenderInternal(const SceneRenderData& data)
     {
         HE_PROFILE_FUNCTION();
-        auto timer = AggregateTimer("RenderPlugins::RenderMeshBatches");
+        auto timer = AggregateTimer("RenderPlugins::GBuffer");
         
         auto frameDataPlugin = m_Renderer->GetPlugin<RenderPlugins::FrameData>(m_Info.FrameDataPluginName);
-        auto batchesPlugin = m_Renderer->GetPlugin<RenderPlugins::ComputeMeshBatches>(m_Info.MeshBatchesPluginName);
         auto frameDataBuffer = frameDataPlugin->GetBuffer();
+        auto materialsPlugin = m_Renderer->GetPlugin<RenderPlugins::CollectMaterials>(m_Info.CollectMaterialsPluginName);
+        auto materialBuffer = materialsPlugin->GetMaterialBuffer();
+        auto batchesPlugin = m_Renderer->GetPlugin<RenderPlugins::ComputeMeshBatches>(m_Info.MeshBatchesPluginName);
         const auto& batchData = batchesPlugin->GetBatchData();
 
         // TODO: this could probably be static
         m_ResourceSet->BindBuffer(0, frameDataBuffer, 0, 1);
         m_ResourceSet->BindBuffer(1, batchData.ObjectDataBuffer.get(), 0, batchData.ObjectDataBuffer->GetAllocatedCount());
+        m_ResourceSet->BindBuffer(2, materialBuffer, 0, materialBuffer->GetAllocatedCount());
         m_ResourceSet->FlushBindings();
         
         auto encoder = m_CommandBuffer->EncodeRenderCommands(m_Framebuffer.get());
         encoder->BindPipeline("main");
         encoder->BindResourceSet(m_ResourceSet.get(), 0);
         encoder->FlushResourceSet(0);
-        encoder->ClearDepthAttachment();
+        encoder->BindResourceSet(materialsPlugin->GetTexturesSet(), 1);
+        encoder->FlushResourceSet(1);
 
         for (auto& pair : batchData.Batches)
         {
