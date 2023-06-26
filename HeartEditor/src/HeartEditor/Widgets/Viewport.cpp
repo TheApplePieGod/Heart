@@ -71,8 +71,9 @@ namespace Widgets
         const Flourish::Texture* outputTex = nullptr;
         switch (m_SelectedOutput){
             //default: outputTex = m_SceneRenderer->GetOutputTexture().get(); break;
-            default: outputTex = m_SceneRenderer->GetPlugin<Heart::RenderPlugins::GBuffer>("GBuffer")->GetGBuffer1(); break;
-            case 1: outputTex = m_SceneRenderer->GetRenderTexture().get(); break;
+            default: outputTex = m_SceneRenderer->GetPlugin<Heart::RenderPlugins::RayReflections>("RayReflections")->GetOutputTexture(); break;
+            case 1: outputTex = m_SceneRenderer->GetPlugin<Heart::RenderPlugins::GBuffer>("GBuffer")->GetGBuffer1(); break;
+            //case 1: outputTex = m_SceneRenderer->GetRenderTexture().get(); break;
             case 2: outputTex = m_SceneRenderer->GetDepthTexture().get(); break;
         }
         ImGui::Image(

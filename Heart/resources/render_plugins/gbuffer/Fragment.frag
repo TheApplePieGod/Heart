@@ -26,11 +26,11 @@ void main() {
 
     // Compensate for gamma correction
     // TODO: fix? this is probably because textures are unorm
-    albedo.rgb = pow(albedo.rgb, vec3(2.2)); 
+    outGBuffer1.rgb = pow(albedo.rgb, vec3(2.2)); 
 
     outGBuffer2.rgb = GetNormal(inTangent, inBitangent, inNormal, inMaterialId, inTexCoord);
 
-    outGBuffer1.a = GetMetalness(inMaterialId, inTexCoord);
+    outGBuffer1.a = 1.0;//GetMetalness(inMaterialId, inTexCoord);
     outGBuffer2.a = GetRoughness(inMaterialId, inTexCoord);
 
     // TODO: revisit this. Potentially might just have to store materialId

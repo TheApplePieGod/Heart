@@ -79,21 +79,18 @@ namespace Heart::RenderPlugins
                         true,
                         data.Settings.AsyncAssetLoading
                     );
-
-                    // Check to be sure the material (which was potentially just loaded) exists
-                    // in the material map. If not, default to whatever it was going to be before
-                    // which will definitely exist
-                    if (materialAsset &&
-                        materialAsset->IsValid() &&
-                        materialMap.find((u64)&materialAsset->GetMaterial()) != materialMap.end()
-                    )
+                    if (materialAsset && materialAsset->IsValid())
                         selectedMaterial = &materialAsset->GetMaterial();
                 }
+
+                u64 materialId = (u64)selectedMaterial;
+                if (materialMap.find(materialId) == materialMap.end())
+                    materialId = 0; // Default material
 
                 ObjectData objectData {
                     meshData.GetVertexBuffer()->GetBufferGPUAddress(),
                     meshData.GetIndexBuffer()->GetBufferGPUAddress(),
-                    //materialMap.at((u64)selectedMaterial)
+                    glm::vec4(materialMap.at(materialId))
                 };
                 m_ObjectBuffer->SetElements(&objectData, 1, m_Instances.Count());
 

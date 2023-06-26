@@ -89,8 +89,8 @@ namespace Heart::RenderPlugins
         auto gBufferPlugin = m_Renderer->GetPlugin<RenderPlugins::GBuffer>(m_Info.CollectMaterialsPluginName);
 
         Flourish::TextureCreateInfo texCreateInfo;
-        texCreateInfo.Width = m_Renderer->GetRenderWidth() / 2;
-        texCreateInfo.Height = m_Renderer->GetRenderHeight() / 2;
+        texCreateInfo.Width = m_Renderer->GetRenderWidth();
+        texCreateInfo.Height = m_Renderer->GetRenderHeight();
         texCreateInfo.ArrayCount = 1;
         texCreateInfo.MipCount = 1;
         texCreateInfo.Usage = Flourish::TextureUsageFlags::Compute;
@@ -145,6 +145,7 @@ namespace Heart::RenderPlugins
             m_ResourceSet1->BindTexture(3, data.EnvMap->GetEnvironmentCubemap());
         else
             m_ResourceSet1->BindTexture(3, m_Renderer->GetDefaultEnvironmentMap());
+        m_ResourceSet1->FlushBindings();
 
         m_GroupTable->BindRayGenGroup(0);
         m_GroupTable->BindMissGroup(1, 0);
@@ -161,8 +162,8 @@ namespace Heart::RenderPlugins
         encoder->FlushResourceSet(2);
         encoder->TraceRays(
             m_GroupTable.get(),
-            m_Renderer->GetRenderWidth() / 2,
-            m_Renderer->GetRenderHeight() / 2,
+            m_Renderer->GetRenderWidth(),
+            m_Renderer->GetRenderHeight(),
             1
         );
         encoder->EndEncoding();

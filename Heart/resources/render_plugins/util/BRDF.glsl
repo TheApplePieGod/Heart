@@ -53,8 +53,8 @@ vec4 ImportanceSampleGGXPDF(vec2 rand, vec3 N, float roughness)
     // Spherical -> cartesian
     vec3 offset = vec3(
         sinTheta * cos(phi),
-        cosTheta,
-        sinTheta * sin(phi)
+        sinTheta * sin(phi),
+        cosTheta
     );
     
     float d = cosTheta2 * (a2 - 1) + 1;
@@ -62,7 +62,7 @@ vec4 ImportanceSampleGGXPDF(vec2 rand, vec3 N, float roughness)
     float PDF = D * cosTheta;
 
     // Convert to N space
-    vec3 up = vec3(0.0, 1.0, 0.0);
+    vec3 up = vec3(0.0, 0.0, 1.0);
     vec3 tangent = cross(up, N);
     vec3 converted = normalize(tangent * offset.x + up * offset.y + N * offset.z);
 
@@ -71,12 +71,12 @@ vec4 ImportanceSampleGGXPDF(vec2 rand, vec3 N, float roughness)
 
 vec3 FresnelSchlick(float cosTheta, vec3 F0)
 {
-    return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
+    return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
 }
 
 vec3 FresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
 {
-    return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
+    return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(1.0 - cosTheta, 5.0);
 }   
 
 float GeometrySchlickGGX(float NdotV, float roughness)

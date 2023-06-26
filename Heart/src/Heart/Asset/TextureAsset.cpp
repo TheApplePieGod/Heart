@@ -14,8 +14,6 @@ namespace Heart
         if (m_Loaded || m_Loading) return;
         m_Loading = true;
 
-        HE_LOG_WARN("Loading {0}", m_Filename.Data());
-
         bool floatComponents = false;
         if (m_Extension == ".hdr") // environment map: use float components and flip on load
         {
@@ -81,7 +79,7 @@ namespace Heart
             pixels,
             static_cast<u32>(width * height * m_DesiredChannelCount) * (floatComponents ? 4 : 1),
             async,
-            [this, pixels, floatComponents]()
+            [this, async, pixels, floatComponents]()
             {
                 if (!AssetManager::IsInitialized()) return;
                 if (floatComponents)
@@ -89,12 +87,22 @@ namespace Heart
                 else
                     delete[] (unsigned char*)pixels;
 
-                m_Loaded = true;
-                m_Loading = false;
-                m_Valid = true;
+                if (async)
+                {
+                    m_Loaded = true;
+                    m_Loading = false;
+                    m_Valid = true;
+                }
             }
         };
         m_Texture = Flourish::Texture::Create(createInfo);
+        
+        if (!async)
+        {
+            m_Loaded = true;
+            m_Loading = false;
+            m_Valid = true;
+        }
     }
 
     void TextureAsset::Unload()

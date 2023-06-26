@@ -34,24 +34,24 @@ namespace Heart
         return Schedule(std::move(task), priority, nullptr, 0, name);
     }
 
-    Task TaskManager::Schedule(std::function<void()>&& task, Task::Priority priority, const Task& dependency)
+    Task TaskManager::Schedule(std::function<void()>&& task, Task::Priority priority, const Task& dependency, HStringView8 name)
     {
-        return Schedule(std::move(task), priority, &dependency, 1, "");
+        return Schedule(std::move(task), priority, &dependency, 1, name);
     }
 
-    Task TaskManager::Schedule(std::function<void()>&& task, Task::Priority priority, const TaskGroup& dependencies)
+    Task TaskManager::Schedule(std::function<void()>&& task, Task::Priority priority, const TaskGroup& dependencies, HStringView8 name)
     {
-        return Schedule(std::move(task), priority, dependencies.GetTasks().Data(), dependencies.GetTasks().Count(), "");
+        return Schedule(std::move(task), priority, dependencies.GetTasks().Data(), dependencies.GetTasks().Count(), name);
     }
 
-    Task TaskManager::Schedule(std::function<void()>&& task, Task::Priority priority, std::initializer_list<Task> dependencies)
+    Task TaskManager::Schedule(std::function<void()>&& task, Task::Priority priority, std::initializer_list<Task> dependencies, HStringView8 name)
     {
-        return Schedule(std::move(task), priority, dependencies.begin(), dependencies.size(), "");
+        return Schedule(std::move(task), priority, dependencies.begin(), dependencies.size(), name);
     }
 
-    Task TaskManager::Schedule(std::function<void()>&& task, Task::Priority priority, const HVector<Task>& dependencies)
+    Task TaskManager::Schedule(std::function<void()>&& task, Task::Priority priority, const HVector<Task>& dependencies, HStringView8 name)
     {
-        return Schedule(std::move(task), priority, dependencies.Data(), dependencies.Count(), "");
+        return Schedule(std::move(task), priority, dependencies.Data(), dependencies.Count(), name);
     }
 
     Task TaskManager::Schedule(std::function<void()>&& task, Task::Priority priority, const Task* dependencies, u32 dependencyCount, HStringView8 name)

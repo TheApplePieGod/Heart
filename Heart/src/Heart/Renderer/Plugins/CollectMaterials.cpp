@@ -59,7 +59,15 @@ namespace Heart::RenderPlugins
             }
         };
 
-        u32 materialIndex = 0;
+        // Bind default material (don't bother with textures)
+        {
+            auto defMat = AssetManager::RetrieveAsset<MaterialAsset>("engine/DefaultMaterial.hemat", true);
+            MaterialInfo matInfo = { defMat->GetMaterial().GetMaterialData() };
+            m_MaterialBuffer->SetElements(&matInfo, 1, 0);
+            m_MaterialMap.insert({ 0, 0 });
+        }
+
+        u32 materialIndex = 1;
         for (auto& meshComp : data.Scene->GetMeshComponents())
         {
             auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>(

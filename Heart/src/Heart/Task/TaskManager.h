@@ -21,12 +21,42 @@ namespace Heart
             return group;
         }
         
-        static Task Schedule(std::function<void()>&& task, Task::Priority priority, HStringView8 name);
-        static Task Schedule(std::function<void()>&& task, Task::Priority priority, const Task& dependency);
-        static Task Schedule(std::function<void()>&& task, Task::Priority priority, const TaskGroup& dependencies);
-        static Task Schedule(std::function<void()>&& task, Task::Priority priority, std::initializer_list<Task> dependencies);
-        static Task Schedule(std::function<void()>&& task, Task::Priority priority, const HVector<Task>& dependencies);
-        static Task Schedule(std::function<void()>&& task, Task::Priority priority, const Task* dependencies, u32 dependencyCount, HStringView8 name);
+        static Task Schedule(
+            std::function<void()>&& task,
+            Task::Priority priority,
+            HStringView8 name = ""
+        );
+        static Task Schedule(
+            std::function<void()>&& task,
+            Task::Priority priority,
+            const Task& dependency,
+            HStringView8 name = ""
+        );
+        static Task Schedule(
+            std::function<void()>&& task,
+            Task::Priority priority,
+            const TaskGroup& dependencies,
+            HStringView8 name = ""
+        );
+        static Task Schedule(
+            std::function<void()>&& task,
+            Task::Priority priority,
+            std::initializer_list<Task> dependencies,
+            HStringView8 name = ""
+        );
+        static Task Schedule(
+            std::function<void()>&& task,
+            Task::Priority priority,
+            const HVector<Task>& dependencies,
+            HStringView8 name = ""
+        );
+        static Task Schedule(
+            std::function<void()>&& task,
+            Task::Priority priority,
+            const Task* dependencies,
+            u32 dependencyCount,
+            HStringView8 name = ""
+        );
         
         static bool Wait(const Task& task, u32 timeout); // milliseconds
         

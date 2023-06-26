@@ -117,16 +117,14 @@ namespace Heart::RenderPlugins
                         async
                     );
 
-                    // Check to be sure the material (which was potentially just loaded) exists
-                    // in the material map. If not, default to whatever it was going to be before
-                    // which will definitely exist
-                    if (materialAsset &&
-                        materialAsset->IsValid() &&
-                        materialMap.find((u64)&materialAsset->GetMaterial()) != materialMap.end()
-                    )
+                    if (materialAsset && materialAsset->IsValid())
                         selectedMaterial = &materialAsset->GetMaterial();
                 }
                 bool usePrepass = selectedMaterial->GetTransparencyMode() != TransparencyMode::AlphaBlend;
+
+                u64 materialId = (u64)selectedMaterial;
+                if (materialMap.find(materialId) == materialMap.end())
+                    materialId = 0; // Default material
 
                 if (usePrepass)
                 {
@@ -138,7 +136,7 @@ namespace Heart::RenderPlugins
                 batchData.EntityListPool[batch.EntityListIndex].AddInPlace(EntityListEntry {
                     static_cast<u32>(meshComp.EntityIndex),
                     meshCompIndex,
-                    materialMap.at((u64)selectedMaterial),
+                    materialMap.at(materialId),
                     usePrepass
                 });
             }

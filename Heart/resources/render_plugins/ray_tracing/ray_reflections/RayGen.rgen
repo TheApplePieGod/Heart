@@ -46,30 +46,31 @@ void main()
 
     // Skybox - don't trace ray
     float depth = texelFetch(gBufferDepth, currentCoord, 0).r;
-    if (depth == float(frameBuffer.data.reverseDepth))
+    if (depth == 1.0 - float(frameBuffer.data.reverseDepth))
     {
         imageStore(outImage, currentCoord, vec4(0.f));
         return;
     }
 
     float roughness = texelFetch(gBuffer2, currentCoord, 0).a; 
-    vec3 P = ComputePositionFromDepth(texCoord, depth, frameBuffer.data.invViewProj);
+    vec3 P = ComputeWorldPositionFromDepth(texCoord, depth, frameBuffer.data.invViewProj);
     vec3 N = texelFetch(gBuffer2, currentCoord, 0).rgb;
-    vec3 V = normalize(P - frameBuffer.data.cameraPos.xyz);
+    vec3 V = normalize(frameBuffer.data.cameraPos.xyz - P);
 
     // Mirror reflections by default
-    vec3 rayDir = reflect(V, N);
+    vec3 rayDir = reflect(-V, N);
     if (roughness > MIN_ROUGHNESS_THRESHOLD)
     {
         vec4 perturbed = PerturbNormal(roughness, N);
-        rayDir = reflect(V, perturbed.xyz);
+        rayDir = reflect(-V, perturbed.xyz);
     }
 
     uint rayFlags = gl_RayFlagsOpaqueEXT;
     uint cullMask = 0xff;
     float tMin = frameBuffer.data.clipPlanes.x;
     float tMax = frameBuffer.data.clipPlanes.y;
-    traceRayEXT(tlas, rayFlags, cullMask, 0, 0, 0, P, tMin, rayDir, tMax, 0);
+    vec3 rayOrigin = P;//+ N * 0.001; // Self-intersection bias
+    traceRayEXT(tlas, rayFlags, cullMask, 0, 0, 0, rayOrigin, tMin, rayDir, tMax, 0);
 
     imageStore(outImage, currentCoord, vec4(payload.hitValue, 1.0));
 }

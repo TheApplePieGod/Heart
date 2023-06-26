@@ -2,6 +2,7 @@
 
 #include "Heart/Renderer/RenderPlugin.h"
 #include "Flourish/Api/RayTracing/AccelerationStructure.h"
+#include "glm/vec4.hpp"
 
 namespace Flourish
 {
@@ -22,6 +23,7 @@ namespace Heart::RenderPlugins
         {
             void* VertexBufferAddress;
             void* IndexBufferAddress;
+            glm::vec4 Data; // R: MaterialId
         };
 
     public:

@@ -6,6 +6,7 @@
 struct ObjectData {
     uint64_t vertexAddress;
     uint64_t indexAddress;
+    vec4 data; // R: materialId
 };
 
 layout(

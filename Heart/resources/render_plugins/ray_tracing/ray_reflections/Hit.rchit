@@ -42,29 +42,23 @@ hitAttributeEXT vec3 hitAttributes;
 void main()
 {
     uint objectId = gl_InstanceID;
-    /*
-    VertexBuffer vertexBuffer = VertexBuffer(GET_OBJECT(0).vertexAddress);
-    IndexBuffer indexBuffer = IndexBuffer(GET_OBJECT(0).indexAddress);
-    //uint materialId = GET_OBJECT(objectId).materialId;
+    VertexBuffer vertexBuffer = VertexBuffer(GET_OBJECT(objectId).vertexAddress);
+    IndexBuffer indexBuffer = IndexBuffer(GET_OBJECT(objectId).indexAddress);
+    uint materialId = uint(GET_OBJECT(objectId).data.r);
   
     // Hit triangle
-    uvec3 ind = indexBuffer.data[0];
+    uvec3 ind = indexBuffer.data[gl_PrimitiveID];
     Vertex v0 = vertexBuffer.data[ind.x];
     Vertex v1 = vertexBuffer.data[ind.y];
     Vertex v2 = vertexBuffer.data[ind.z];
-    */
 
-    //payload.hitValue = v0.position;
-    payload.hitValue = vec3(float(GET_OBJECT(objectId).vertexAddress));
-
-    /*
     vec3 bary = GetBarycentricCoordinates(hitAttributes);
     vec2 texCoord = GetTexCoord(v0, v1, v2, bary);
     vec3 P = GetWorldPosition(v0, v1, v2, bary);
     vec4 T = GetWorldTangent(v0, v1, v2, bary);
     vec3 N = GetWorldNormal(v0, v1, v2, bary);
     vec3 B = cross(T.xyz, N) * T.w;
-    vec3 V = normalize(P - frameBuffer.data.cameraPos.xyz);
+    vec3 V = normalize(frameBuffer.data.cameraPos.xyz - P);
 
     vec4 albedo = GetAlbedo(materialId, texCoord);
     albedo.rgb = pow(albedo.rgb, vec3(2.2)); 
@@ -87,5 +81,4 @@ void main()
     vec3 finalColor = finalContribution + ambient;
 
     payload.hitValue = finalColor.rgb;
-    */
 }

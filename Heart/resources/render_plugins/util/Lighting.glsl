@@ -28,7 +28,7 @@ vec3 EvaluatePointLightBRDF(Light light, vec3 P, vec3 N, vec3 V, vec3 F0, vec3 d
 
 vec3 EvaluateDirectionalLightBRDF(Light light, vec3 P, vec3 N, vec3 V, vec3 F0, vec3 diffuse, float roughness)
 {
-    vec3 L = normalize(light.direction.xyz);
+    vec3 L = -normalize(light.direction.xyz);
     float NdotL = max(dot(N, L), 0.0);
     if (NdotL == 0)
         return vec3(0.0);
