@@ -5,7 +5,7 @@
 
 layout(location = 0) rayPayloadInEXT HitPayload prd;
 
-layout(binding = 2, set = 1) uniform samplerCube environmentMap;
+layout(binding = 3, set = 1) uniform samplerCube environmentMap;
 
 void main()
 {

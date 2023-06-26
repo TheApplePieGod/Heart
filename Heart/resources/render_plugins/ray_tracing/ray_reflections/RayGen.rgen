@@ -1,0 +1,75 @@
+#version 460
+#extension GL_EXT_ray_tracing : require
+
+#define FRAME_BUFFER_BINDING 0
+#define FRAME_BUFFER_SET 0
+#include "../../frame_data/FrameBuffer.glsl"
+
+#include "Common.glsl"
+#include "../../util/BRDF.glsl"
+#include "../../util/Halton.glsl"
+#include "../../util/Misc.glsl"
+
+layout(binding = 1) uniform accelerationStructureEXT tlas;
+layout(binding = 2, rgba16f) uniform writeonly image2D outImage;
+layout(binding = 3) uniform sampler2D gBuffer1;
+layout(binding = 4) uniform sampler2D gBuffer2;
+layout(binding = 5) uniform sampler2D gBufferDepth;
+
+layout(location = 0) rayPayloadEXT HitPayload payload;
+
+// TODO: push constants
+#define MIN_ROUGHNESS_THRESHOLD 0.05
+
+vec4 PerturbNormal(float roughness, vec3 N)
+{
+    HaltonState hstate;
+    HaltonInit(
+        hstate,
+        gl_LaunchIDEXT.xy,
+        frameBuffer.data.screenSize,
+        frameBuffer.data.frameCount
+    );
+
+    return ImportanceSampleGGXPDF(
+        vec2(fract(HaltonNext(hstate)), fract(HaltonNext(hstate))),
+        N,
+        roughness
+    );
+}
+
+void main() 
+{
+    ivec2 currentCoord = ivec2(gl_LaunchIDEXT.xy);
+    vec2 pixelCenter = vec2(currentCoord) + vec2(0.5);
+    vec2 texCoord = pixelCenter / vec2(gl_LaunchSizeEXT.xy);
+
+    // Skybox - don't trace ray
+    float depth = texelFetch(gBufferDepth, currentCoord, 0).r;
+    if (depth == float(frameBuffer.data.reverseDepth))
+    {
+        imageStore(outImage, currentCoord, vec4(0.f));
+        return;
+    }
+
+    float roughness = texelFetch(gBuffer2, currentCoord, 0).a; 
+    vec3 P = ComputePositionFromDepth(texCoord, depth, frameBuffer.data.invViewProj);
+    vec3 N = texelFetch(gBuffer2, currentCoord, 0).rgb;
+    vec3 V = normalize(P - frameBuffer.data.cameraPos.xyz);
+
+    // Mirror reflections by default
+    vec3 rayDir = reflect(V, N);
+    if (roughness > MIN_ROUGHNESS_THRESHOLD)
+    {
+        vec4 perturbed = PerturbNormal(roughness, N);
+        rayDir = reflect(V, perturbed.xyz);
+    }
+
+    uint rayFlags = gl_RayFlagsOpaqueEXT;
+    uint cullMask = 0xff;
+    float tMin = frameBuffer.data.clipPlanes.x;
+    float tMax = frameBuffer.data.clipPlanes.y;
+    traceRayEXT(tlas, rayFlags, cullMask, 0, 0, 0, P, tMin, rayDir, tMax, 0);
+
+    imageStore(outImage, currentCoord, vec4(payload.hitValue, 1.0));
+}

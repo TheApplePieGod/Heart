@@ -69,6 +69,9 @@ namespace Heart::RenderPlugins
         pipelineCreateInfo.DepthConfig.CompareOperation = Flourish::DepthComparison::Auto;
         pipelineCreateInfo.CullMode = Flourish::CullMode::Backface;
         pipelineCreateInfo.WindingOrder = Flourish::WindingOrder::Clockwise;
+        pipelineCreateInfo.AccessOverrides = {
+            { 1, 0, Flourish::ShaderTypeFlags::All }
+        };
         auto pipeline = m_RenderPass->CreatePipeline("main", pipelineCreateInfo);
 
         Flourish::CommandBufferCreateInfo cbCreateInfo;

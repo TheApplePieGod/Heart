@@ -49,10 +49,10 @@ uint HaltonIndex(uvec2 pixel, vec2 screenSize, uint seed)
         Halton3Inverse(pixel.y % 256, 6) * 110080) % increment) + seed * increment;
 }
 
-void HaltonInit(inout HaltonState state, uvec2 pixel, uint seed)
+void HaltonInit(inout HaltonState state, uvec2 pixel, vec2 screenSize, uint seed)
 {
     state.dimension = 2;
-    state.sequenceIndex = HaltonIndex(pixel, seed);
+    state.sequenceIndex = HaltonIndex(pixel, screenSize, seed);
 }
 
 float HaltonSample(uint dimension, uint index)

@@ -20,15 +20,15 @@ layout(location = 2) out float outEntityId;
 void main() {
     outEntityId = float(inEntityId);
 
-    vec4 baseColor = GetAlbedo(inMaterialId, inTexCoord);
-    if (AlphaClip(inMaterialId, baseColor.a))
+    vec4 albedo = GetAlbedo(inMaterialId, inTexCoord);
+    if (AlphaClip(inMaterialId, albedo.a))
         discard;
 
     // Compensate for gamma correction
     // TODO: fix? this is probably because textures are unorm
-    outGBuffer1.rgb = pow(baseColor.rgb, vec3(2.2)); 
+    albedo.rgb = pow(albedo.rgb, vec3(2.2)); 
 
-    outGBuffer2.rgb = GetNormal(inNormal, inTangent, inBitangent, inMaterialId, inTexCoord);
+    outGBuffer2.rgb = GetNormal(inTangent, inBitangent, inNormal, inMaterialId, inTexCoord);
 
     outGBuffer1.a = GetMetalness(inMaterialId, inTexCoord);
     outGBuffer2.a = GetRoughness(inMaterialId, inTexCoord);

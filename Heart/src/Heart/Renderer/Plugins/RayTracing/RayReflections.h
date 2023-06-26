@@ -13,17 +13,19 @@ namespace Flourish
 
 namespace Heart::RenderPlugins
 {
-    struct RTXCreateInfo
+    struct RayReflectionsCreateInfo
     {
         HString8 FrameDataPluginName;
         HString8 TLASPluginName;
         HString8 LightingDataPluginName;
+        HString8 GBufferPluginName;
+        HString8 CollectMaterialsPluginName;
     };
 
-    class RTX : public RenderPlugin
+    class RayReflections : public RenderPlugin
     {
     public:
-        RTX(SceneRenderer* renderer, HStringView8 name, const RTXCreateInfo& createInfo)
+        RayReflections(SceneRenderer* renderer, HStringView8 name, const RayReflectionsCreateInfo& createInfo)
             : RenderPlugin(renderer, name), m_Info(createInfo)
         { Initialize(); }
 
@@ -37,7 +39,7 @@ namespace Heart::RenderPlugins
         void Initialize();
 
     private:
-        RTXCreateInfo m_Info;
+        RayReflectionsCreateInfo m_Info;
 
         Ref<Flourish::ResourceSet> m_ResourceSet0;
         Ref<Flourish::ResourceSet> m_ResourceSet1;

@@ -24,12 +24,12 @@ namespace Heart::RenderPlugins
         m_MaterialBuffer = Flourish::Buffer::Create(bufCreateInfo);
 
         Flourish::ResourceSetAllocatorCreateInfo setAllocCreateInfo;
-        setAllocCreateInfo.Compatability = Flourish::ResourceSetPipelineCompatabilityFlags::Graphics;
+        setAllocCreateInfo.Compatability = Flourish::ResourceSetPipelineCompatabilityFlags::All;
         setAllocCreateInfo.Layout = {
             {
                 0,
                 Flourish::ShaderResourceType::Texture,
-                Flourish::ShaderTypeFlags::Fragment,
+                Flourish::ShaderTypeFlags::All,
                 m_MaxMaterials
             }
         };

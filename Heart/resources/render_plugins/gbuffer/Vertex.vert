@@ -1,5 +1,6 @@
 #version 460
 
+#define INCLUDE_VERTEX_LAYOUT_INPUT
 #include "../../VertexLayout.glsl"
 
 #define FRAME_BUFFER_BINDING 0

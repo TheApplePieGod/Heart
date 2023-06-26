@@ -106,6 +106,7 @@ namespace Heart
         */
 
         auto frameData = RegisterPlugin<RenderPlugins::FrameData>("FrameData");
+        auto lightingData = RegisterPlugin<RenderPlugins::LightingData>("LightingData");
         auto entityIds = RegisterPlugin<RenderPlugins::EntityIds>("EntityIds");
 
         RenderPlugins::CollectMaterialsCreateInfo collectMatCreateInfo;
@@ -116,6 +117,11 @@ namespace Heart
         auto CBMESHCam = RegisterPlugin<RenderPlugins::ComputeMeshBatches>("CBMESHCam", cbmeshcamCreateInfo);
         CBMESHCam->AddDependency(collectMaterials->GetName(), GraphDependencyType::CPU);
 
+        RenderPlugins::TLASCreateInfo tlasCreateInfo;
+        tlasCreateInfo.CollectMaterialsPluginName = collectMaterials->GetName();
+        auto tlas = RegisterPlugin<RenderPlugins::TLAS>("TLAS", tlasCreateInfo);
+        tlas->AddDependency(collectMaterials->GetName(), GraphDependencyType::CPU);
+
         RenderPlugins::GBufferCreateInfo gBufferCreateInfo;
         gBufferCreateInfo.FrameDataPluginName = frameData->GetName();
         gBufferCreateInfo.MeshBatchesPluginName = CBMESHCam->GetName();
@@ -123,6 +129,18 @@ namespace Heart
         gBufferCreateInfo.EntityIdsPluginName = entityIds->GetName();
         auto gBuffer = RegisterPlugin<RenderPlugins::GBuffer>("GBuffer", gBufferCreateInfo);
         gBuffer->AddDependency(CBMESHCam->GetName(), GraphDependencyType::CPU);
+
+        RenderPlugins::RayReflectionsCreateInfo rayReflCreateInfo;
+        rayReflCreateInfo.FrameDataPluginName = frameData->GetName();
+        rayReflCreateInfo.TLASPluginName = tlas->GetName();
+        rayReflCreateInfo.LightingDataPluginName = lightingData->GetName();
+        rayReflCreateInfo.CollectMaterialsPluginName = collectMaterials->GetName();
+        rayReflCreateInfo.GBufferPluginName = gBuffer->GetName();
+        auto rayReflections = RegisterPlugin<RenderPlugins::RayReflections>("RayReflections", rayReflCreateInfo);
+        rayReflections->AddDependency(collectMaterials->GetName(), GraphDependencyType::CPU);
+        rayReflections->AddDependency(tlas->GetName(), GraphDependencyType::CPU);
+        rayReflections->AddDependency(tlas->GetName(), GraphDependencyType::GPU);
+        rayReflections->AddDependency(gBuffer->GetName(), GraphDependencyType::GPU);
 
         /*
         RenderPlugins::RTXCreateInfo rtxCreateInfo;

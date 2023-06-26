@@ -84,16 +84,16 @@ float GetOcclusion(uint materialId, vec2 texCoord)
     return occlusion;
 }
 
-vec3 GetNormal(vec3 wsNormal, vec3 wsTangent, vec3 wsBitangent, uint materialId, vec2 texCoord)
+vec3 GetNormal(vec3 tangent, vec3 bitangent, vec3 normal, uint materialId, vec2 texCoord)
 {
     if (GET_MATERIAL(materialId).normalIndex != -1)
     {
-        mat3 tbn = mat3(normalize(wsNormal), normalize(wsBitangent), normalize(wsTangent));
+        mat3 tbn = mat3(normalize(tangent), normalize(bitangent), normalize(normal));
         return normalize(tbn * (
             SampleMaterialTexture(GET_MATERIAL(materialId).normalIndex, materialId, texCoord).xyz * 2.0 - 1.0
         ));
     }
-    return wsNormal;
+    return normalize(normal);
 }
 
 bool AlphaClip(uint materialId, float alpha)
