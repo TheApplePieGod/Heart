@@ -23,6 +23,7 @@ namespace Heart::RenderPlugins
         BufferData bufData = {
             data.Camera->GetProjectionMatrix(),
             data.Camera->GetViewMatrix(),
+            m_PrevViewProj,
             glm::inverse(data.Camera->GetProjectionMatrix()),
             glm::inverse(data.Camera->GetViewMatrix()),
             glm::inverse(data.Camera->GetProjectionMatrix() * data.Camera->GetViewMatrix()),
@@ -33,5 +34,7 @@ namespace Heart::RenderPlugins
             (u32)Flourish::Context::FrameCount()
         };
         m_Buffer->SetElements(&bufData, 1, 0);
+
+        m_PrevViewProj = bufData.Proj * bufData.View;
     }
 }

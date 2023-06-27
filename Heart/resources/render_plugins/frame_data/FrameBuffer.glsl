@@ -4,6 +4,7 @@
 struct FrameData {
     mat4 proj;
     mat4 view;
+    mat4 prevViewProj;
     mat4 invProj;
     mat4 invView;
     mat4 invViewProj;

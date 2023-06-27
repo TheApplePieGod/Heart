@@ -18,6 +18,7 @@ namespace Heart::RenderPlugins
         {
             glm::mat4 Proj;
             glm::mat4 View;
+            glm::mat4 PrevViewProj;
             glm::mat4 InvProj;
             glm::mat4 InvView;
             glm::mat4 InvViewProj;
@@ -44,5 +45,6 @@ namespace Heart::RenderPlugins
 
     private:
         Ref<Flourish::Buffer> m_Buffer;
+        glm::mat4 m_PrevViewProj;
     };
 }

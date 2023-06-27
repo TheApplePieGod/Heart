@@ -1,0 +1,141 @@
+#version 450
+
+#define FRAME_BUFFER_BINDING 0
+#define FRAME_BUFFER_SET 0
+#include "../../frame_data/FrameBuffer.glsl"
+
+#include "../../util/Misc.glsl"
+
+#define MAX_NORMAL_DISTANCE 0.1f
+#define MAX_PLANE_DISTANCE 5.0f
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout(binding = 0) uniform sampler2D prevGBuffer2;
+layout(binding = 1) uniform sampler2D prevGBuffer3;
+layout(binding = 2) uniform sampler2D prevGBufferDepth;
+layout(binding = 3) uniform sampler2D newGBuffer2;
+layout(binding = 4) uniform sampler2D newGBuffer3;
+layout(binding = 5) uniform sampler2D newGBufferDepth;
+layout(binding = 6) uniform sampler2D prevColors;
+layout(binding = 7) uniform sampler2D prevMoments;
+
+const ivec2 twoTapOffsets[4] = {
+    ivec2(0, 0),
+    ivec2(1, 0),
+    ivec2(0, 1),
+    ivec2(1, 1)
+}
+
+vec2 SurfacePointReprojection(ivec2 coord, vec2 motionVector)
+{
+    return vec2(coord) + motionVector * frameBuffer.data.screenSize.xy;
+}
+
+vec2 ProjectCoord(ivec2 coord, vec2 motionVector)
+{
+    return SurfacePointReprojection(coord, motionVector);
+}
+
+bool ReprojectionCheckPlaneDistance(vec3 newPos, vec3 prevPos, vec3 newNormal)
+{
+    float dist = abs(dot(newPos - prevPos, newNormal));
+    return dist > MAX_PLANE_DISTANCE;
+}
+
+bool ReprojectionCheckOutOfFrame(ivec2 prevCoord)
+{
+    return (
+        any(lessThan(prevCoord, ivec2(0, 0))) ||
+        any(greaterThan(prevCoord, ivec2(frameBuffer.data.screenSize.xy) - ivec2(1, 1)))
+    );
+}
+
+bool ReprojectionCheckNormals(vec3 newNormal, vec3 prevNormal)
+{
+    return pow(abs(dot(newNormal, prevNormal)), 2) <= MAX_NORMAL_DISTANCE;
+}
+
+bool IsReprojectionValid(ivec2 prevCoord, vec3 newPos, vec3 prevPos, vec3 newNormal, vec3 prevNormal)
+{
+    if (ReprojectionCheckOutOfFrame(prevCoord))
+        return false;
+    if (ReprojectionCheckPlaneDistance(newPos, prevPos, newNormal))
+        return false;
+    if (ReprojectionCheckNormals(newNormal, prevNormal))
+        return false;
+    return true;
+}
+
+void main()
+{
+    ivec2 coord = ivec2(gl_GlobalInvocationID.xy);
+    if (coord.x >= frameBuffer.data.screenSize.x || coord.y >= frameBuffer.data.screenSize.y)
+        return;
+
+    vec2 motionVector = texelFetch(gBuffer3, coord, 0).rg;
+    vec2 texCoord = (vec2(coord) + vec2(0.5)) / frameBuffer.data.screenSize.xy;
+    vec2 prevTexCoord = texCoord + motionVector;
+    vec2 prevCoord = ProjectCoord(coord, motionVector);
+
+    vec3 newNormal = texelFetch(newGBuffer2, coord, 0).xyz;
+    float newDepth = texelFetch(newGBufferDepth, coord, 0).r;
+    vec3 newPos = ComputeWorldPositionFromDepth(
+        texCoord,
+        newDepth,
+        frameBuffer.data.invViewProj
+    );
+
+    vec3 historyColor = vec3(0.f);
+    vec3 historyMoments = vec2(0.f);
+    float historyLength = 0.f;
+
+    // Bilinear weights
+    float x = fract(prevCoord.x);
+    float y = fract(prevCoord.y);
+    float weights[4] = {
+        (1 - x) * (1 - y),
+        x * (1 - y),
+        (1 - x) * y,
+        x * y
+    }; 
+    
+    // 2x2-tap bilinear filter - check for reprojection validity
+    float weightSum = 0.f; 
+    for (uint i = 0; i < 4; i++)
+    {
+        ivec2 sampleCoord = ivec2(prevCoord) + twoTapOffsets[i];
+
+        vec3 prevNormal = texelFetch(prevGBuffer2, sampleCoord, 0).xyz;
+        float prevDepth = texelFetch(prevGBufferDepth, sampleCoord, 0).r;
+        vec3 prevPos = ComputeWorldPositionFromDepth(
+            prevTexCoord,
+            prevDepth,
+            frameBuffer.data.invViewProj
+        );
+
+        bool valid = IsReprojectionValid(
+            prevCoord,
+            newPos,
+            prevPos,
+            newNormal,
+            prevNormal
+        );
+
+        if (valid)
+        {
+            weightSum += weights[i];
+            historyColor += weights[i] * texelFetch(prevColors, sampleCoord, 0).rgb;
+            historyMoments += weights[i] * texelFetch(prevMoments, sampleCoord, 0).rg;
+        }
+    }
+    
+    // Any valid samples
+    if (weightSum > 0.f)
+    {
+        historyLength = texelFetch(prevMoments, sampleCoord, 0).b;
+        historyLength = min(32.f, historyLength + 1);
+    }
+    
+    imageStore(dstTex, coord, vec4(downsample, 1.f));
+}

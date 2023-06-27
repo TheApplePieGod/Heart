@@ -17,6 +17,8 @@ layout(location = 2) out vec3 outTangent;
 layout(location = 3) out vec3 outBitangent;
 layout(location = 4) out uint outMaterialId;
 layout(location = 5) out uint outEntityId;
+layout(location = 6) out vec4 outClipPos;
+layout(location = 7) out vec4 outPrevClipPos;
 
 void main() {
     int objectId = gl_InstanceIndex;
@@ -24,6 +26,11 @@ void main() {
     vec4 worldPos = GET_OBJECT(objectId).model * vec4(inPosition, 1.0);
     vec4 viewPos = frameBuffer.data.view * worldPos;
     gl_Position = frameBuffer.data.proj * viewPos;
+
+    // TODO: prev pos should consider the previous model matrix
+    // Could store an old index and bind the old object buffer
+    outClipPos = gl_Position;
+    outPrevClipPos = frameBuffer.data.prevViewProj * worldPos;
     
     outTexCoord = inTexCoord;
     outEntityId = GET_OBJECT(objectId).entityId;

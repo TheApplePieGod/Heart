@@ -39,18 +39,23 @@ namespace Heart::RenderPlugins
             GBUFFER_FORMAT,
             Flourish::AttachmentInitialization::Clear
         });
+        rpCreateInfo.ColorAttachments.push_back({
+            GBUFFER_FORMAT,
+            Flourish::AttachmentInitialization::Clear
+        });
         rpCreateInfo.Subpasses.push_back({
             {},
             {
                 { Flourish::SubpassAttachmentType::Depth, 0 },
                 { Flourish::SubpassAttachmentType::Color, 0 },
-                { Flourish::SubpassAttachmentType::Color, 1 }
+                { Flourish::SubpassAttachmentType::Color, 1 },
+                { Flourish::SubpassAttachmentType::Color, 2 }
             }
         });
         if (eidPlugin)
         {
             rpCreateInfo.ColorAttachments.push_back({ eidPlugin->GetTexture()->GetColorFormat() });
-            rpCreateInfo.Subpasses.back().OutputAttachments.push_back({ Flourish::SubpassAttachmentType::Color, 2 });
+            rpCreateInfo.Subpasses.back().OutputAttachments.push_back({ Flourish::SubpassAttachmentType::Color, 3 });
         }
 
         m_RenderPass = Flourish::RenderPass::Create(rpCreateInfo);
@@ -61,7 +66,7 @@ namespace Heart::RenderPlugins
         pipelineCreateInfo.VertexTopology = Flourish::VertexTopology::TriangleList;
         pipelineCreateInfo.VertexLayout = Mesh::GetVertexLayout();
         pipelineCreateInfo.VertexInput = true;
-        pipelineCreateInfo.BlendStates = { { false }, { false } };
+        pipelineCreateInfo.BlendStates = { { false }, { false }, { false } };
         if (eidPlugin)
             pipelineCreateInfo.BlendStates.push_back({ false });
         pipelineCreateInfo.DepthConfig.DepthTest = true;
@@ -90,19 +95,21 @@ namespace Heart::RenderPlugins
     {
         auto eidPlugin = m_Renderer->GetPlugin<RenderPlugins::EntityIds>(m_Info.EntityIdsPluginName);
 
+        // TODO: need to revisit writability
         Flourish::TextureCreateInfo texCreateInfo;
         texCreateInfo.Width = m_Renderer->GetRenderWidth();
         texCreateInfo.Height = m_Renderer->GetRenderHeight();
-        texCreateInfo.ArrayCount = 1;
+        texCreateInfo.ArrayCount = Flourish::Context::FrameBufferCount();
         texCreateInfo.MipCount = 1;
         texCreateInfo.Usage = Flourish::TextureUsageFlags::Graphics;
-        texCreateInfo.Writability = Flourish::TextureWritability::PerFrame;
+        texCreateInfo.Writability = Flourish::TextureWritability::Once;
         texCreateInfo.SamplerState.MinFilter = Flourish::SamplerFilter::Nearest;
         texCreateInfo.SamplerState.MagFilter = Flourish::SamplerFilter::Nearest;
         texCreateInfo.SamplerState.UVWWrap = { Flourish::SamplerWrapMode::ClampToBorder, Flourish::SamplerWrapMode::ClampToBorder, Flourish::SamplerWrapMode::ClampToBorder };
         texCreateInfo.Format = GBUFFER_FORMAT;
         m_GBuffer1 = Flourish::Texture::Create(texCreateInfo);
         m_GBuffer2 = Flourish::Texture::Create(texCreateInfo);
+        m_GBuffer3 = Flourish::Texture::Create(texCreateInfo);
 
         Flourish::FramebufferCreateInfo fbCreateInfo;
         fbCreateInfo.RenderPass = m_RenderPass;
@@ -110,6 +117,7 @@ namespace Heart::RenderPlugins
         fbCreateInfo.Height = m_Renderer->GetRenderHeight();
         fbCreateInfo.ColorAttachments.push_back({ { 0.f, 0.f, 0.f, 0.f }, m_GBuffer1 });
         fbCreateInfo.ColorAttachments.push_back({ { 0.f, 0.f, 0.f, 0.f }, m_GBuffer2 });
+        fbCreateInfo.ColorAttachments.push_back({ { 0.f, 0.f, 0.f, 0.f }, m_GBuffer3 });
         if (eidPlugin)
             fbCreateInfo.ColorAttachments.push_back({ { -1.f, 0.f, 0.f, 0.f }, eidPlugin->GetTexture() });
         fbCreateInfo.DepthAttachments.push_back({ m_Renderer->GetDepthTexture() });

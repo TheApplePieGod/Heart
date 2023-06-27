@@ -29,6 +29,7 @@ namespace Heart::RenderPlugins
 
         inline Flourish::Texture* GetGBuffer1() const { return m_GBuffer1.get(); }
         inline Flourish::Texture* GetGBuffer2() const { return m_GBuffer2.get(); }
+        inline Flourish::Texture* GetGBuffer3() const { return m_GBuffer3.get(); }
 
     protected:
         void RenderInternal(const SceneRenderData& data) override;
@@ -45,5 +46,6 @@ namespace Heart::RenderPlugins
         Ref<Flourish::Framebuffer> m_Framebuffer;
         Ref<Flourish::Texture> m_GBuffer1;
         Ref<Flourish::Texture> m_GBuffer2;
+        Ref<Flourish::Texture> m_GBuffer3;
     };
 }
