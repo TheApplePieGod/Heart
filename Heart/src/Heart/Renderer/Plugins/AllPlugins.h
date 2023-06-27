@@ -18,6 +18,7 @@
 #include "EntityIds.h"
 #include "ComputeTextBatches.h"
 #include "RenderTextBatches.h"
+#include "PBRComposite.h"
 
 #include "RayTracing/TLAS.h"
 #include "RayTracing/RayReflections.h"

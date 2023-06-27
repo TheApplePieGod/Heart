@@ -47,8 +47,7 @@ vec4 PerturbNormal(float roughness, vec3 N)
 void main() 
 {
     ivec2 currentCoord = ivec2(gl_LaunchIDEXT.xy);
-    vec2 pixelCenter = vec2(currentCoord) + vec2(0.5);
-    vec2 texCoord = pixelCenter / vec2(gl_LaunchSizeEXT.xy);
+    vec2 texCoord = (vec2(currentCoord) + vec2(0.5)) / vec2(gl_LaunchSizeEXT.xy);
 
     // Skybox - don't trace ray
     float depth = texelFetch(gBufferDepth, currentCoord, 0).r;

@@ -4,38 +4,41 @@
 #include "Constants.glsl"
 #include "BRDF.glsl"
 
+struct LightEvalData
+{
+    vec3 l;
+    float nDotL;
+    vec3 radiance;
+};
+
 vec3 GetLightRadiance(Light light, float attenuation)
 {
     return light.color.rgb * light.color.a * attenuation;
 }
 
-vec3 EvaluatePointLightBRDF(Light light, vec3 P, vec3 N, vec3 V, vec3 F0, vec3 diffuse, float roughness)
+void GetPointLightEvalData(inout LightEvalData data, Light light, vec3 P, vec3 N)
 {
     float dist = length(light.position.xyz - P);
     float attenuation = 1.f / (
         light.constantAttenuation + light.linearAttenuation * dist + light.quadraticAttenuation * dist * dist
     );
-
-    vec3 L = normalize(light.position.xyz - P);
-    float NdotL = max(dot(N, L), 0.0);
-    if (NdotL == 0)
-        return vec3(0.0);
-
-    vec3 H = normalize(V + L);
-    vec3 BRDF = ComputeBRDF(diffuse, roughness, F0, N, V, H, L);
-    return BRDF * GetLightRadiance(light, attenuation) * NdotL;
+    data.radiance = GetLightRadiance(light, attenuation);
+    data.l = normalize(light.position.xyz - P);
+    data.nDotL = max(dot(N, data.l), 0.0);
 }
 
-vec3 EvaluateDirectionalLightBRDF(Light light, vec3 P, vec3 N, vec3 V, vec3 F0, vec3 diffuse, float roughness)
+void GetDirectionalLightEvalData(inout LightEvalData data, Light light, vec3 N)
 {
-    vec3 L = -normalize(light.direction.xyz);
-    float NdotL = max(dot(N, L), 0.0);
-    if (NdotL == 0)
-        return vec3(0.0);
+    data.radiance = GetLightRadiance(light, 1.0);
+    data.l = normalize(light.direction.xyz);
+    data.nDotL = max(dot(N, data.l), 0.0);
+}
 
-    vec3 H = normalize(V + L);
-    vec3 BRDF = ComputeBRDF(diffuse, roughness, F0, N, V, H, L);
-    return BRDF * GetLightRadiance(light, 1.0) * NdotL;
+vec3 EvaluateLightBRDF(inout LightEvalData evalData, vec3 N, vec3 V, vec3 F0, vec3 diffuse, float roughness)
+{
+    vec3 H = normalize(V + evalData.l);
+    vec3 BRDF = ComputeBRDF(diffuse, roughness, evalData.nDotL, F0, N, V, H);
+    return BRDF * evalData.radiance * evalData.nDotL;
 }
 
 #endif

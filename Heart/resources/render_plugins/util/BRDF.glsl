@@ -111,9 +111,8 @@ vec3 ComputeDiffuseBRDF(vec3 diffuse)
     return diffuse / PI;
 }
 
-vec3 ComputeBRDF(vec3 diffuse, float roughness, vec3 F0, vec3 N, vec3 V, vec3 H, vec3 L)
+vec3 ComputeBRDF(vec3 diffuse, float roughness, float NdotL, vec3 F0, vec3 N, vec3 V, vec3 H)
 {
-    float NdotL = max(dot(N, L), 0.0);
     float NdotV = max(dot(N, V), 0.0);
     float NdotH = max(dot(N, H), 0.0);
     float VdotH = max(dot(V, H), 0.0);

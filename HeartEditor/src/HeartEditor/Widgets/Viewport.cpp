@@ -71,17 +71,11 @@ namespace Widgets
         const Flourish::Texture* outputTex = nullptr;
         u32 outputLayer = 0;
         switch (m_SelectedOutput){
-            //default: outputTex = m_SceneRenderer->GetOutputTexture().get(); break;
-            default: outputTex = m_SceneRenderer->GetPlugin<Heart::RenderPlugins::RayReflections>("RayReflections")->GetOutputTexture().get(); break;
-            case 1: outputTex = m_SceneRenderer->GetPlugin<Heart::RenderPlugins::GBuffer>("GBuffer")->GetGBuffer1(); break;
-            case 2:
-            {
-                auto plugin = m_SceneRenderer->GetPlugin<Heart::RenderPlugins::SVGF>("SVGF");
-                outputTex = plugin->GetOutput();
-                outputLayer = plugin->GetArrayIndex();
-            } break;
-            //case 1: outputTex = m_SceneRenderer->GetRenderTexture().get(); break;
-            //case 2: outputTex = m_SceneRenderer->GetDepthTexture().get(); break;
+            default: outputTex = m_SceneRenderer->GetOutputTexture().get(); break;
+            case 1: outputTex = m_SceneRenderer->GetRenderTexture().get(); break;
+            case 2: outputTex = m_SceneRenderer->GetDepthTexture().get(); break;
+            case 3: outputTex = m_SceneRenderer->GetPlugin<Heart::RenderPlugins::RayReflections>("RayReflections")->GetOutputTexture().get(); break;
+            case 4: outputTex = m_SceneRenderer->GetPlugin<Heart::RenderPlugins::SVGF>("SVGF")->GetOutput().get(); break;
         }
         ImGui::Image(
             outputTex->GetImGuiHandle(outputLayer, m_SelectedOutputMip),
@@ -202,6 +196,16 @@ namespace Widgets
                 if (ImGui::MenuItem("Depth", nullptr, m_SelectedOutput == 2))
                 {
                     m_SelectedOutput = 2;
+                    m_SelectedOutputMip = 0;
+                }
+                if (ImGui::MenuItem("Reflections - Pre", nullptr, m_SelectedOutput == 3))
+                {
+                    m_SelectedOutput = 3;
+                    m_SelectedOutputMip = 0;
+                }
+                if (ImGui::MenuItem("Reflections - Post", nullptr, m_SelectedOutput == 4))
+                {
+                    m_SelectedOutput = 4;
                     m_SelectedOutputMip = 0;
                 }
 

@@ -143,13 +143,6 @@ namespace Heart::RenderPlugins
         auto materialPlugin = m_Renderer->GetPlugin<RenderPlugins::CollectMaterials>(m_Info.CollectMaterialsPluginName);
         auto materialBuffer = materialPlugin->GetMaterialBuffer();
         auto gBufferPlugin = m_Renderer->GetPlugin<RenderPlugins::GBuffer>(m_Info.GBufferPluginName);
-        
-        if (!tlasPlugin->GetAccelStructure()->IsBuilt())
-        {
-            auto encoder = m_CommandBuffer->EncodeComputeCommands();
-            encoder->EndEncoding();
-            return;
-        }
 
         u32 arrayIndex = gBufferPlugin->GetArrayIndex();
         m_ResourceSet0->BindBuffer(0, frameDataBuffer, 0, 1);

@@ -61,10 +61,12 @@ namespace Heart::RenderPlugins
         texCreateInfo.Format = Flourish::ColorFormat::RGBA16_FLOAT;
         texCreateInfo.Usage = Flourish::TextureUsageFlags::Compute;
         texCreateInfo.SamplerState.UVWWrap = { Flourish::SamplerWrapMode::ClampToEdge, Flourish::SamplerWrapMode::ClampToEdge, Flourish::SamplerWrapMode::ClampToEdge };
-        m_Output = Flourish::Texture::Create(texCreateInfo);
         m_ColorHistory = Flourish::Texture::Create(texCreateInfo);
         m_MomentsHistory = Flourish::Texture::Create(texCreateInfo);
         m_TempTexture = Flourish::Texture::Create(texCreateInfo);
+        texCreateInfo.Writability = Flourish::TextureWritability::PerFrame;
+        texCreateInfo.ArrayCount = 1;
+        m_Output = Flourish::Texture::Create(texCreateInfo);
 
         m_GPUGraphNodeBuilder.Reset()
             .SetCommandBuffer(m_CommandBuffer.get())
@@ -139,7 +141,7 @@ namespace Heart::RenderPlugins
             else
                 m_ATrousResourceSet->BindTextureLayer(4, m_TempTexture.get(), i % 2, 0);
             if (i == m_ATrousIterations - 1)
-                m_ATrousResourceSet->BindTextureLayer(5, m_Output.get(), GetArrayIndex(), 0);
+                m_ATrousResourceSet->BindTexture(5, m_Output.get());
             else
                 m_ATrousResourceSet->BindTextureLayer(5, m_TempTexture.get(), (i + 1) % 2, 0);
             m_ATrousResourceSet->FlushBindings();

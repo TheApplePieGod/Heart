@@ -30,7 +30,7 @@ namespace Heart::RenderPlugins
         u32 GetArrayIndex() const;
         u32 GetPrevArrayIndex() const;
 
-        inline Flourish::Texture* GetOutput() const { return m_Output.get(); }
+        inline const Ref<Flourish::Texture>& GetOutput() const { return m_Output; }
         inline Flourish::Texture* GetColorHistory() const { return m_ColorHistory.get(); }
 
     protected:

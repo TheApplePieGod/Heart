@@ -34,10 +34,23 @@ layout(buffer_reference, scalar) readonly buffer IndexBuffer {
     uvec3 data[];
 };
 
+layout(binding = 1) uniform accelerationStructureEXT tlas;
+
 layout(location = 0) rayPayloadInEXT HitPayload payload;
-//layout(location = 1) rayPayloadEXT bool isShadowed;
+layout(location = 1) rayPayloadEXT bool isShadowed;
 
 hitAttributeEXT vec3 hitAttributes;
+
+bool CheckShadowed(inout LightEvalData lightData, vec3 P, vec3 N)
+{
+    float tMin = 0.01;
+    float tMax = frameBuffer.data.clipPlanes.y;
+    uint flags = gl_RayFlagsTerminateOnFirstHitEXT | gl_RayFlagsOpaqueEXT | gl_RayFlagsSkipClosestHitShaderEXT;
+    vec3 shadowOrigin = P + N * 0.01;
+    isShadowed = true;
+    traceRayEXT(tlas, flags, 0xFF, 0, 0, 1, shadowOrigin, tMin, lightData.l, tMax, 1);
+    return isShadowed;
+}
 
 void main()
 {
@@ -66,15 +79,25 @@ void main()
     float metalness = GetMetalness(materialId, texCoord);
     float roughness = GetRoughness(materialId, texCoord);
     vec3 F0 = mix(vec3(0.04), albedo.rgb, metalness);
+    vec3 diffuse = mix(albedo.rgb * (vec3(1.0) - F0), vec3(0.0), metalness);
 
     vec3 finalContribution = vec3(0.0);
     int lightCount = int(GET_LIGHT(0).position.x);
     for (int i = 1; i <= lightCount; i++)
     {
+        LightEvalData data;
         if (GET_LIGHT(i).lightType == LIGHT_POINT)
-            finalContribution += EvaluatePointLightBRDF(GET_LIGHT(i), P, N, V, F0, albedo.rgb, roughness);
+            GetPointLightEvalData(data, GET_LIGHT(i), P, N);
         else if (GET_LIGHT(i).lightType == LIGHT_DIRECTIONAL)
-            finalContribution += EvaluateDirectionalLightBRDF(GET_LIGHT(i), P, N, V, F0, albedo.rgb, roughness);
+            GetDirectionalLightEvalData(data, GET_LIGHT(i), N);
+
+        if (data.nDotL <= 0)
+            continue;
+
+        if (CheckShadowed(data, P, N))
+            continue;
+
+        finalContribution += EvaluateLightBRDF(data, N, V, F0, diffuse, roughness);
     }
 
     vec3 ambient = vec3(0.01);
