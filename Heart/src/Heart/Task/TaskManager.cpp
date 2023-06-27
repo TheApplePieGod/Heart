@@ -81,23 +81,22 @@ namespace Heart
         data.RefCount = 2;
         data.Mutex.unlock();
         
-        bool executeNow = false;
-        // No dependencies so it can be executed whenever
-        if (dependencyCount == 0)
-            executeNow = true;
-        // Otherwise we must add this to the dependents list of the dependencies unless it is already
-        // completed
-        else
+        // Cancel immediate execution if dependencies are not completed
+        bool executeNow = true;
+        if (dependencyCount > 0)
         {
             for (u32 i = 0; i < dependencyCount; i++)
             {
                 if (dependencies[i].GetHandle() == Task::InvalidHandle) continue;
                 TaskData& dependencyData = s_TaskList[dependencies[i].GetHandle()];
                 dependencyData.Mutex.lock();
-                if (dependencyData.Complete)
-                    executeNow = true;
-                else
+                if (!dependencyData.Complete)
+                {
+                    executeNow = false;
                     dependencyData.Dependents.Add(handle);
+                }
+                else
+                    data.DependencyCount--;
                 dependencyData.Mutex.unlock();
             }
         }
