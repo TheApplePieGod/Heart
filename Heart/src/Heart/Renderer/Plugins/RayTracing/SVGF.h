@@ -52,6 +52,6 @@ namespace Heart::RenderPlugins
         Ref<Flourish::Texture> m_MomentsHistory;
         Ref<Flourish::Texture> m_TempTexture;
 
-        u32 m_ATrousIterations = 2;
+        u32 m_ATrousIterations = 3;
     };
 }

@@ -19,6 +19,16 @@
 
 namespace Heart::RenderPlugins
 {
+    std::pair<int, int> Euclid(int a, int b)
+    {
+        if (!b)
+            return { 1, 0 };
+        int q = a / b;
+        int r = a % b;
+        auto st = Euclid(b, r);
+        return { st.second, st.first - q * st.second };
+    }
+
     void RayReflections::Initialize()
     {
         Flourish::RayTracingPipelineCreateInfo pipelineCreateInfo;
@@ -98,6 +108,17 @@ namespace Heart::RenderPlugins
         texCreateInfo.Format = Flourish::ColorFormat::RGBA16_FLOAT;
         m_Output = Flourish::Texture::Create(texCreateInfo);
 
+        m_HaltonData.p2 = ceil(log2(m_Renderer->GetRenderWidth()));
+        m_HaltonData.p3 = ceil(log2(m_Renderer->GetRenderHeight())/log2(3));
+        int w = pow(2, m_HaltonData.p2);
+        int h = pow(3, m_HaltonData.p3);
+        m_HaltonData.w = w;
+        m_HaltonData.h = h;
+
+        auto inv = Euclid(h, w);
+        m_HaltonData.mX = h * ((inv.first < 0) ? (inv.first + w) : (inv.first % w));
+        m_HaltonData.mY = w * ((inv.second < 0) ? (inv.second + h) : (inv.second % h));
+
         m_GPUGraphNodeBuilder.Reset()
             .SetCommandBuffer(m_CommandBuffer.get())
             .AddEncoderNode(Flourish::GPUWorkloadType::Compute)
@@ -161,6 +182,7 @@ namespace Heart::RenderPlugins
         encoder->FlushResourceSet(1);
         encoder->BindResourceSet(materialPlugin->GetTexturesSet(), 2);
         encoder->FlushResourceSet(2);
+        encoder->PushConstants(0, sizeof(HaltonData), &m_HaltonData);
         encoder->TraceRays(
             m_GroupTable.get(),
             m_Renderer->GetRenderWidth(),

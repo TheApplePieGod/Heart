@@ -18,6 +18,12 @@ layout(binding = 5) uniform sampler2D gBufferDepth;
 
 layout(location = 0) rayPayloadEXT HitPayload payload;
 
+layout(push_constant) uniform PushConstants
+{
+    HaltonData haltonData;
+    vec2 padding;
+} constants;
+
 // TODO: push constants
 #define MIN_ROUGHNESS_THRESHOLD 0.05
 
@@ -27,7 +33,7 @@ vec4 PerturbNormal(float roughness, vec3 N)
     HaltonInit(
         hstate,
         gl_LaunchIDEXT.xy,
-        frameBuffer.data.screenSize,
+        constants.haltonData,
         frameBuffer.data.frameCount
     );
 
@@ -61,7 +67,6 @@ void main()
     vec3 rayDir = reflect(-V, N);
     if (roughness > MIN_ROUGHNESS_THRESHOLD)
     {
-        roughness = 0.15;
         vec4 perturbed = PerturbNormal(roughness, N);
         rayDir = reflect(-V, perturbed.xyz);
     }
@@ -70,8 +75,10 @@ void main()
     uint cullMask = 0xff;
     float tMin = frameBuffer.data.clipPlanes.x;
     float tMax = frameBuffer.data.clipPlanes.y;
-    vec3 rayOrigin = P;//+ N * 0.001; // Self-intersection bias
+    vec3 rayOrigin = P + N * 0.001; // Self-intersection bias
     traceRayEXT(tlas, rayFlags, cullMask, 0, 0, 0, rayOrigin, tMin, rayDir, tMax, 0);
 
-    imageStore(outImage, currentCoord, vec4(payload.hitValue, 1.0));
+    // Clamp final color to prevent small pixels with super bright values
+    vec3 finalColor = min(payload.hitValue, vec3(1.f));
+    imageStore(outImage, currentCoord, vec4(finalColor, 1.0));
 }

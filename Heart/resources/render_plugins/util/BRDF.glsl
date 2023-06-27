@@ -103,7 +103,7 @@ vec3 ComputeSpecularBRDF(float roughness, vec3 F, float NdotV, float NdotL, floa
     float NDF = DistributionGGX(NdotH, roughness);
     float G = GeometrySmith(NdotV, NdotL, roughness);
     float denominator = 4.0 * NdotV * NdotL + 0.0001;
-    return (NDF * G * F) / denominator;
+    return min(vec3(1.f), (NDF * G * F) / denominator);
 }
 
 vec3 ComputeDiffuseBRDF(vec3 diffuse)

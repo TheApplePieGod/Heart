@@ -14,6 +14,16 @@ struct HaltonState
     uint sequenceIndex;
 };
 
+struct HaltonData
+{
+    uint p2;
+    uint p3;
+    uint w;
+    uint h;
+    uint mX;
+    uint mY;
+};
+
 uint Halton3Inverse(uint index, uint digits)
 {
     uint result = 0;
@@ -37,22 +47,17 @@ uint Halton2Inverse(uint index, uint digits)
 
 // https://github.com/lgruen/halton/blob/main/halton_enum.h#L122
 // TODO: implement full alg on CPU side beforehand
-uint HaltonIndex(uvec2 pixel, vec2 screenSize, uint seed)
+uint HaltonIndex(uvec2 pixel, HaltonData data, uint seed)
 {
-    uint p2 = uint(ceil(log2(screenSize.x)));
-    uint w = uint(pow(2, p2));
-    uint p3 = uint(ceil(log2(screenSize.y)/log2(3)));
-    uint h = uint(pow(3, p3));
-
-    uint increment = 256*256;
-    return ((Halton2Inverse(pixel.x % 256, 8) * 76545 +
-        Halton3Inverse(pixel.y % 256, 6) * 110080) % increment) + seed * increment;
+    uint increment = data.w * data.h;
+    return ((Halton2Inverse(pixel.x, data.p2) * data.mX  +
+        Halton3Inverse(pixel.y, data.p3) * data.mY) % increment) + seed * increment;
 }
 
-void HaltonInit(inout HaltonState state, uvec2 pixel, vec2 screenSize, uint seed)
+void HaltonInit(inout HaltonState state, uvec2 pixel, HaltonData data, uint seed)
 {
     state.dimension = 2;
-    state.sequenceIndex = HaltonIndex(pixel, screenSize, seed);
+    state.sequenceIndex = HaltonIndex(pixel, data, seed);
 }
 
 float HaltonSample(uint dimension, uint index)

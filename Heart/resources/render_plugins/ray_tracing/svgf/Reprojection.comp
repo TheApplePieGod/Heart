@@ -22,7 +22,6 @@ layout(binding = 8) uniform sampler2D prevMoments;
 layout(binding = 9) uniform sampler2D filterInput;
 layout(binding = 10, rgba16f) uniform writeonly image2D outColors;
 layout(binding = 11, rgba16f) uniform writeonly image2D outMoments;
-layout(binding = 12, rgba16f) uniform writeonly image2D outDebug;
 
 const ivec2 twoTapOffsets[4] = {
     ivec2(0, 0),
@@ -133,6 +132,7 @@ void main()
     }
 
     vec4 filterColor = texelFetch(filterInput, coord, 0);
+    float filterLuminance = Luminance(filterColor.rgb);
     vec2 motionVector = texelFetch(newGBuffer3, coord, 0).rg;
     vec2 prevTexCoord = texCoord + motionVector;
     vec2 prevCoord = ProjectCoord(coord, motionVector);
@@ -180,7 +180,6 @@ void main()
             historyColor += weights[i] * texelFetch(prevColors, p, 0).rgb;
             historyMoments += weights[i] * prevMoments.rg;
             historyLength += weights[i] * prevMoments.b;
-            valid = true;
         }
     }
 
@@ -253,8 +252,7 @@ void main()
         vec3 radianceMax = mean + dev;
         historyColor.rgb = ClipAABB(radianceMin, radianceMax, historyColor.rgb);
 
-        vec2 moments = vec2(Luminance(filterColor.rgb), 0.f);
-        moments.g = moments.r * moments.r;
+        vec2 moments = vec2(filterLuminance, filterLuminance * filterLuminance);
 
         // Moments integration
         moments = mix(historyMoments, moments, momentsAlpha);
@@ -266,12 +264,19 @@ void main()
 
         imageStore(outColors, coord, vec4(color, variance));
         imageStore(outMoments, coord, vec4(moments, historyLength, 0.f));
-        imageStore(outDebug, coord, vec4(color, 1.0));
 
         return;
     }
 
-    imageStore(outColors, coord, vec4(0.f));
-    imageStore(outMoments, coord, vec4(0.f));
-    imageStore(outDebug, coord, vec4(0.f));
+    // No valid history
+    imageStore(
+        outColors,
+        coord,
+        vec4(filterColor.rgb, 100.0)
+    );
+    imageStore(
+        outMoments,
+        coord,
+        vec4(filterLuminance, filterLuminance * filterLuminance, 1.0, 0.0)
+    );
 }
