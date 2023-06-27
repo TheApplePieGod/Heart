@@ -29,7 +29,7 @@ namespace Heart::RenderPlugins
             : RenderPlugin(renderer, name), m_Info(createInfo)
         { Initialize(); }
 
-        inline Flourish::Texture* GetOutputTexture() const { return m_Output.get(); }
+        inline const Ref<Flourish::Texture>& GetOutputTexture() const { return m_Output; }
 
     protected:
         void RenderInternal(const SceneRenderData& data) override;

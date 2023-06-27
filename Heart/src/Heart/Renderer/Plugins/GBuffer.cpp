@@ -21,6 +21,16 @@ const auto GBUFFER_FORMAT = Flourish::ColorFormat::RGBA16_FLOAT;
 
 namespace Heart::RenderPlugins
 {
+    u32 GBuffer::GetArrayIndex() const
+    {
+        return Flourish::Context::FrameCount() % 2;
+    }
+
+    u32 GBuffer::GetPrevArrayIndex() const
+    {
+        return (Flourish::Context::FrameCount() - 1) % 2;
+    }
+
     void GBuffer::Initialize()
     {
         auto eidPlugin = m_Renderer->GetPlugin<RenderPlugins::EntityIds>(m_Info.EntityIdsPluginName);
@@ -28,7 +38,7 @@ namespace Heart::RenderPlugins
         Flourish::RenderPassCreateInfo rpCreateInfo;
         rpCreateInfo.SampleCount = Flourish::MsaaSampleCount::None;
         rpCreateInfo.DepthAttachments.push_back({
-            m_Renderer->GetDepthTexture()->GetColorFormat(),
+            Flourish::ColorFormat::Depth,
             Flourish::AttachmentInitialization::Clear
         });
         rpCreateInfo.ColorAttachments.push_back({
@@ -99,7 +109,7 @@ namespace Heart::RenderPlugins
         Flourish::TextureCreateInfo texCreateInfo;
         texCreateInfo.Width = m_Renderer->GetRenderWidth();
         texCreateInfo.Height = m_Renderer->GetRenderHeight();
-        texCreateInfo.ArrayCount = Flourish::Context::FrameBufferCount();
+        texCreateInfo.ArrayCount = 2;
         texCreateInfo.MipCount = 1;
         texCreateInfo.Usage = Flourish::TextureUsageFlags::Graphics;
         texCreateInfo.Writability = Flourish::TextureWritability::Once;
@@ -110,23 +120,30 @@ namespace Heart::RenderPlugins
         m_GBuffer1 = Flourish::Texture::Create(texCreateInfo);
         m_GBuffer2 = Flourish::Texture::Create(texCreateInfo);
         m_GBuffer3 = Flourish::Texture::Create(texCreateInfo);
+        texCreateInfo.Format = Flourish::ColorFormat::Depth;
+        m_GBufferDepth = Flourish::Texture::Create(texCreateInfo);
 
         Flourish::FramebufferCreateInfo fbCreateInfo;
         fbCreateInfo.RenderPass = m_RenderPass;
         fbCreateInfo.Width = m_Renderer->GetRenderWidth();
         fbCreateInfo.Height = m_Renderer->GetRenderHeight();
-        fbCreateInfo.ColorAttachments.push_back({ { 0.f, 0.f, 0.f, 0.f }, m_GBuffer1 });
-        fbCreateInfo.ColorAttachments.push_back({ { 0.f, 0.f, 0.f, 0.f }, m_GBuffer2 });
-        fbCreateInfo.ColorAttachments.push_back({ { 0.f, 0.f, 0.f, 0.f }, m_GBuffer3 });
-        if (eidPlugin)
-            fbCreateInfo.ColorAttachments.push_back({ { -1.f, 0.f, 0.f, 0.f }, eidPlugin->GetTexture() });
-        fbCreateInfo.DepthAttachments.push_back({ m_Renderer->GetDepthTexture() });
-        m_Framebuffer = Flourish::Framebuffer::Create(fbCreateInfo);
+        for (u32 i = 0; i < 2; i++)
+        {
+            fbCreateInfo.ColorAttachments.clear();
+            fbCreateInfo.DepthAttachments.clear();
+            fbCreateInfo.ColorAttachments.push_back({ { 0.f, 0.f, 0.f, 0.f }, m_GBuffer1, i });
+            fbCreateInfo.ColorAttachments.push_back({ { 0.f, 0.f, 0.f, 0.f }, m_GBuffer2, i });
+            fbCreateInfo.ColorAttachments.push_back({ { 0.f, 0.f, 0.f, 0.f }, m_GBuffer3, i });
+            if (eidPlugin)
+                fbCreateInfo.ColorAttachments.push_back({ { -1.f, 0.f, 0.f, 0.f }, eidPlugin->GetTexture() });
+            fbCreateInfo.DepthAttachments.push_back({ m_GBufferDepth, i });
+            m_Framebuffers[i] = Flourish::Framebuffer::Create(fbCreateInfo);
+        }
 
         m_GPUGraphNodeBuilder.Reset()
             .SetCommandBuffer(m_CommandBuffer.get())
             .AddEncoderNode(Flourish::GPUWorkloadType::Graphics)
-            .EncoderAddFramebuffer(m_Framebuffer.get());
+            .EncoderAddFramebuffer(m_Framebuffers[0].get());
     }
 
     void GBuffer::RenderInternal(const SceneRenderData& data)
@@ -147,7 +164,7 @@ namespace Heart::RenderPlugins
         m_ResourceSet->BindBuffer(2, materialBuffer, 0, materialBuffer->GetAllocatedCount());
         m_ResourceSet->FlushBindings();
         
-        auto encoder = m_CommandBuffer->EncodeRenderCommands(m_Framebuffer.get());
+        auto encoder = m_CommandBuffer->EncodeRenderCommands(m_Framebuffers[GetArrayIndex()].get());
         encoder->BindPipeline("main");
         encoder->BindResourceSet(m_ResourceSet.get(), 0);
         encoder->FlushResourceSet(0);

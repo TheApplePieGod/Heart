@@ -61,6 +61,7 @@ void main()
     vec3 rayDir = reflect(-V, N);
     if (roughness > MIN_ROUGHNESS_THRESHOLD)
     {
+        roughness = 0.15;
         vec4 perturbed = PerturbNormal(roughness, N);
         rayDir = reflect(-V, perturbed.xyz);
     }

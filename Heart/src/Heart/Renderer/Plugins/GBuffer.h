@@ -27,9 +27,13 @@ namespace Heart::RenderPlugins
             : RenderPlugin(renderer, name), m_Info(createInfo)
         { Initialize(); }
 
+        u32 GetArrayIndex() const;
+        u32 GetPrevArrayIndex() const;
+
         inline Flourish::Texture* GetGBuffer1() const { return m_GBuffer1.get(); }
         inline Flourish::Texture* GetGBuffer2() const { return m_GBuffer2.get(); }
         inline Flourish::Texture* GetGBuffer3() const { return m_GBuffer3.get(); }
+        inline Flourish::Texture* GetGBufferDepth() const { return m_GBufferDepth.get(); }
 
     protected:
         void RenderInternal(const SceneRenderData& data) override;
@@ -43,9 +47,10 @@ namespace Heart::RenderPlugins
 
         Ref<Flourish::ResourceSet> m_ResourceSet;
         Ref<Flourish::RenderPass> m_RenderPass;
-        Ref<Flourish::Framebuffer> m_Framebuffer;
+        std::array<Ref<Flourish::Framebuffer>, 2> m_Framebuffers;
         Ref<Flourish::Texture> m_GBuffer1;
         Ref<Flourish::Texture> m_GBuffer2;
         Ref<Flourish::Texture> m_GBuffer3;
+        Ref<Flourish::Texture> m_GBufferDepth;
     };
 }

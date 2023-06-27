@@ -19,4 +19,9 @@ vec3 ComputeViewPositionFromDepth(vec2 uv, float depth, mat4 invProj)
     return positionV.xyz / positionV.w;
 }
 
+float Luminance(vec3 rgb)
+{
+    return max(dot(rgb, vec3(0.299, 0.587, 0.114)), 0.0001);
+}
+
 #endif

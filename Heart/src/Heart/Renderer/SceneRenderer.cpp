@@ -142,6 +142,14 @@ namespace Heart
         rayReflections->AddDependency(tlas->GetName(), GraphDependencyType::GPU);
         rayReflections->AddDependency(gBuffer->GetName(), GraphDependencyType::GPU);
 
+        // TODO: downscaled version
+        RenderPlugins::SVGFCreateInfo svgfCreateInfo;
+        svgfCreateInfo.InputTexture = rayReflections->GetOutputTexture();
+        svgfCreateInfo.FrameDataPluginName = frameData->GetName();
+        svgfCreateInfo.GBufferPluginName = gBuffer->GetName();
+        auto svgf = RegisterPlugin<RenderPlugins::SVGF>("SVGF", svgfCreateInfo);
+        svgf->AddDependency(rayReflections->GetName(), GraphDependencyType::GPU);
+
         /*
         RenderPlugins::RTXCreateInfo rtxCreateInfo;
         rtxCreateInfo.FrameDataPluginName = FrameData->GetName();

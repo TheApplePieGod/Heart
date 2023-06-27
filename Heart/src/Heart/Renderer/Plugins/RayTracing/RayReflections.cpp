@@ -86,7 +86,7 @@ namespace Heart::RenderPlugins
 
     void RayReflections::ResizeInternal()
     {
-        auto gBufferPlugin = m_Renderer->GetPlugin<RenderPlugins::GBuffer>(m_Info.CollectMaterialsPluginName);
+        auto gBufferPlugin = m_Renderer->GetPlugin<RenderPlugins::GBuffer>(m_Info.GBufferPluginName);
 
         Flourish::TextureCreateInfo texCreateInfo;
         texCreateInfo.Width = m_Renderer->GetRenderWidth();
@@ -104,7 +104,7 @@ namespace Heart::RenderPlugins
             .EncoderAddTextureWrite(m_Output.get())
             .EncoderAddTextureRead(gBufferPlugin->GetGBuffer1())
             .EncoderAddTextureRead(gBufferPlugin->GetGBuffer2())
-            .EncoderAddTextureRead(m_Renderer->GetDepthTexture().get());
+            .EncoderAddTextureRead(gBufferPlugin->GetGBufferDepth());
             // .AccelStructure ???
     }
 
@@ -130,12 +130,13 @@ namespace Heart::RenderPlugins
             return;
         }
 
+        u32 arrayIndex = gBufferPlugin->GetArrayIndex();
         m_ResourceSet0->BindBuffer(0, frameDataBuffer, 0, 1);
         m_ResourceSet0->BindAccelerationStructure(1, tlasPlugin->GetAccelStructure());
         m_ResourceSet0->BindTexture(2, m_Output.get());
-        m_ResourceSet0->BindTexture(3, gBufferPlugin->GetGBuffer1());
-        m_ResourceSet0->BindTexture(4, gBufferPlugin->GetGBuffer2());
-        m_ResourceSet0->BindTexture(5, m_Renderer->GetDepthTexture().get());
+        m_ResourceSet0->BindTextureLayer(3, gBufferPlugin->GetGBuffer1(), arrayIndex, 0);
+        m_ResourceSet0->BindTextureLayer(4, gBufferPlugin->GetGBuffer2(), arrayIndex, 0);
+        m_ResourceSet0->BindTextureLayer(5, gBufferPlugin->GetGBufferDepth(), arrayIndex, 0);
         m_ResourceSet0->FlushBindings();
 
         m_ResourceSet1->BindBuffer(0, lightingDataBuffer, 0, lightingDataBuffer->GetAllocatedCount());

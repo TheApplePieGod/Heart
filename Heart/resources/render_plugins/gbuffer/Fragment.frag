@@ -49,7 +49,9 @@ void main() {
     outGBuffer1.a = 1.0;//GetMetalness(inMaterialId, inTexCoord);
     outGBuffer2.a = GetRoughness(inMaterialId, inTexCoord);
 
+    float linearZ = gl_FragCoord.z / gl_FragCoord.w;
     outGBuffer3.rg = ComputeMotionVector(inPrevClipPos, inClipPos);
+    outGBuffer3.b = linearZ;
     outGBuffer3.a = 1.0;
 
     // TODO: revisit this. Potentially might just have to store materialId
