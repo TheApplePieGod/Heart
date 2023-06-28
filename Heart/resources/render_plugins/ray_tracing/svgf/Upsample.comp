@@ -1,0 +1,64 @@
+#version 450
+
+#include "../../util/Misc.glsl"
+#include "EdgeStopping.glsl"
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout(binding = 0) uniform sampler2D srcGBuffer2;
+layout(binding = 1) uniform sampler2D srcGBuffer3;
+layout(binding = 2) uniform sampler2D dstGBuffer2;
+layout(binding = 3) uniform sampler2D dstGBuffer3;
+layout(binding = 4) uniform sampler2D filterInput;
+layout(binding = 5, rgba16f) uniform writeonly image2D outColor;
+
+const vec2 KERNEL_WEIGHTS[4] = vec2[](
+    vec2(0.0f, 1.0f),
+    vec2(1.0f, 0.0f),
+    vec2(-1.0f, 0.0f),
+    vec2(0.0, -1.0f)
+);
+
+void main()
+{
+    ivec2 size = textureSize(dstGBuffer2, 0);
+    ivec2 coord = ivec2(gl_GlobalInvocationID.xy);
+    if (coord.x >= size.x || coord.y >= size.y)
+        return;
+
+    vec2 texCoord = (vec2(coord) + vec2(0.5)) / size;
+    float dstDepth = texelFetch(dstGBuffer3, coord, 0).r;
+
+    // Nothing there
+    if (dstDepth == -1.f)
+    {
+        imageStore(outColor, coord, vec4(0.f));
+        return;
+    }
+
+    vec2 texelStep = vec2(1.0) / vec2(textureSize(srcGBuffer2, 0));
+    vec3 dstNormal = texelFetch(dstGBuffer2, coord, 0).rgb;
+    vec4 totalColor = vec4(0.0);
+    float weightSum = 0.0;
+    for (uint i = 0; i < 4; i++)
+    {
+        vec2 srcTexCoord = texCoord + KERNEL_WEIGHTS[i] * texelStep;
+        float srcDepth = textureLod(srcGBuffer3, srcTexCoord, 0).b;
+
+        // Nothing there
+        if (srcDepth == -1.f)
+            continue;
+
+        vec3 srcNormal = textureLod(srcGBuffer2, srcTexCoord, 0).rgb;
+        float wZ = EdgeStoppingWeightDepth(dstDepth, srcDepth, 1.0);
+        float wN = EdgeStoppingWeightNormal(dstNormal, srcNormal, 32.0);
+        float w = EdgeStoppingWeight(wZ, wN, 0);
+
+        totalColor += textureLod(filterInput, srcTexCoord, 0) * w;
+        weightSum += w;
+    }
+
+    totalColor /= max(weightSum, 0.0001);
+
+    imageStore(outColor, coord, totalColor);
+}

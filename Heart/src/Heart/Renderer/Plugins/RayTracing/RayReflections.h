@@ -43,6 +43,11 @@ namespace Heart::RenderPlugins
             u32 h;
             u32 mX;
             u32 mY;
+        };
+
+        struct PushData
+        {
+            HaltonData HaltonData;
             glm::vec2 Padding;
         };
 
@@ -57,6 +62,7 @@ namespace Heart::RenderPlugins
         Ref<Flourish::RayTracingPipeline> m_Pipeline;
         Ref<Flourish::RayTracingGroupTable> m_GroupTable;
 
-        HaltonData m_HaltonData;
+        PushData m_PushData;
+        u32 m_GBufferMip = 0;
     };
 }

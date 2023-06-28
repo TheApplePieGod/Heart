@@ -11,6 +11,7 @@
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/ShaderAsset.h"
 #include "Flourish/Api/RenderCommandEncoder.h"
+#include "Flourish/Api/GraphicsCommandEncoder.h"
 #include "Flourish/Api/CommandBuffer.h"
 #include "Flourish/Api/RenderPass.h"
 #include "Flourish/Api/Framebuffer.h"
@@ -110,7 +111,7 @@ namespace Heart::RenderPlugins
         texCreateInfo.Width = m_Renderer->GetRenderWidth();
         texCreateInfo.Height = m_Renderer->GetRenderHeight();
         texCreateInfo.ArrayCount = 2;
-        texCreateInfo.MipCount = 1;
+        texCreateInfo.MipCount = 3;
         texCreateInfo.Usage = Flourish::TextureUsageFlags::Graphics;
         texCreateInfo.Writability = Flourish::TextureWritability::Once;
         texCreateInfo.SamplerState.MinFilter = Flourish::SamplerFilter::Nearest;
@@ -133,7 +134,7 @@ namespace Heart::RenderPlugins
             fbCreateInfo.DepthAttachments.clear();
             fbCreateInfo.ColorAttachments.push_back({ { 0.f, 0.f, 0.f, 0.f }, m_GBuffer1, i });
             fbCreateInfo.ColorAttachments.push_back({ { 0.f, 0.f, 0.f, 0.f }, m_GBuffer2, i });
-            fbCreateInfo.ColorAttachments.push_back({ { 0.f, 0.f, 0.f, 0.f }, m_GBuffer3, i });
+            fbCreateInfo.ColorAttachments.push_back({ { 0.f, 0.f, -1.f, 0.f }, m_GBuffer3, i });
             if (eidPlugin)
                 fbCreateInfo.ColorAttachments.push_back({ { -1.f, 0.f, 0.f, 0.f }, eidPlugin->GetTexture() });
             fbCreateInfo.DepthAttachments.push_back({ m_GBufferDepth, i });
@@ -143,7 +144,16 @@ namespace Heart::RenderPlugins
         m_GPUGraphNodeBuilder.Reset()
             .SetCommandBuffer(m_CommandBuffer.get())
             .AddEncoderNode(Flourish::GPUWorkloadType::Graphics)
-            .EncoderAddFramebuffer(m_Framebuffers[0].get());
+            .EncoderAddFramebuffer(m_Framebuffers[0].get())
+            .AddEncoderNode(Flourish::GPUWorkloadType::Graphics)
+            .EncoderAddTextureRead(m_GBuffer1.get())
+            .EncoderAddTextureRead(m_GBuffer2.get())
+            .EncoderAddTextureRead(m_GBuffer3.get())
+            .EncoderAddTextureRead(m_GBufferDepth.get())
+            .EncoderAddTextureWrite(m_GBuffer1.get())
+            .EncoderAddTextureWrite(m_GBuffer2.get())
+            .EncoderAddTextureWrite(m_GBuffer3.get())
+            .EncoderAddTextureWrite(m_GBufferDepth.get());
     }
 
     void GBuffer::RenderInternal(const SceneRenderData& data)
@@ -185,5 +195,12 @@ namespace Heart::RenderPlugins
         }
         
         encoder->EndEncoding();
+
+        auto mipEncoder = m_CommandBuffer->EncodeGraphicsCommands();
+        mipEncoder->GenerateMipMaps(m_GBuffer1.get(), Flourish::SamplerFilter::Nearest);
+        mipEncoder->GenerateMipMaps(m_GBuffer2.get(), Flourish::SamplerFilter::Nearest);
+        mipEncoder->GenerateMipMaps(m_GBuffer3.get(), Flourish::SamplerFilter::Nearest);
+        mipEncoder->GenerateMipMaps(m_GBufferDepth.get(), Flourish::SamplerFilter::Nearest);
+        mipEncoder->EndEncoding();
     }
 }

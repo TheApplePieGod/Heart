@@ -9,6 +9,7 @@
 #include "../../util/BRDF.glsl"
 #include "../../util/Halton.glsl"
 #include "../../util/Misc.glsl"
+#include "../util/RayCone.glsl"
 
 layout(binding = 1) uniform accelerationStructureEXT tlas;
 layout(binding = 2, rgba16f) uniform writeonly image2D outImage;
@@ -69,6 +70,10 @@ void main()
         vec4 perturbed = PerturbNormal(roughness, N);
         rayDir = reflect(-V, perturbed.xyz);
     }
+
+    // Initial raycone for texture filtering
+    float initSpreadAngle = atan((2.0f*tan(70*0.5f))/gl_LaunchSizeEXT.y);
+    payload.rayCone = vec2(0.0, initSpreadAngle);
 
     uint rayFlags = gl_RayFlagsOpaqueEXT;
     uint cullMask = 0xff;

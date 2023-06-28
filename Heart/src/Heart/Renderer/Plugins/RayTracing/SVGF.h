@@ -37,6 +37,17 @@ namespace Heart::RenderPlugins
         void ResizeInternal() override;
 
     private:
+        struct TemporalPushData
+        {
+            u32 ShouldReset = 0;
+        };
+
+        struct ATrousPushData
+        {
+            u32 Iteration = 0;
+        };
+
+    private:
         void Initialize();
 
     private:
@@ -44,13 +55,17 @@ namespace Heart::RenderPlugins
 
         Ref<Flourish::ResourceSet> m_TemporalResourceSet;
         Ref<Flourish::ResourceSet> m_ATrousResourceSet;
+        Ref<Flourish::ResourceSet> m_UpsampleResourceSet;
         Ref<Flourish::ComputePipeline> m_TemporalPipeline;
         Ref<Flourish::ComputePipeline> m_ATrousPipeline;
+        Ref<Flourish::ComputePipeline> m_UpsamplePipeline;
         Ref<Flourish::Texture> m_ColorHistory;
         Ref<Flourish::Texture> m_MomentsHistory;
         Ref<Flourish::Texture> m_TempTexture;
 
-        u32 m_ATrousIterations = 1;
-        u32 m_ShouldReset = false;
+        u32 m_ATrousIterations = 4;
+        u32 m_GBufferMip = 0;
+        TemporalPushData m_TemporalPushData;
+        ATrousPushData m_ATrousPushData;
     };
 }

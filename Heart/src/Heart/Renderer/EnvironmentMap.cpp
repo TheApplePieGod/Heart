@@ -297,7 +297,7 @@ namespace Heart
             rcEncoder->EndEncoding();
 
             auto gEncoder = m_EnvironmentMap.CommandBuffer->EncodeGraphicsCommands();
-            gEncoder->GenerateMipMaps(m_EnvironmentMap.Texture.get());
+            gEncoder->GenerateMipMaps(m_EnvironmentMap.Texture.get(), Flourish::SamplerFilter::Linear);
             gEncoder->EndEncoding();
         }
 

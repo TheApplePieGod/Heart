@@ -36,7 +36,7 @@ vec2 ComputeMotionVector(vec4 prevPos, vec4 newPos)
 void main() {
     outEntityId = float(inEntityId);
 
-    vec4 albedo = GetAlbedo(inMaterialId, inTexCoord);
+    vec4 albedo = GetAlbedo(inMaterialId, inTexCoord, vec4(0.f));
     if (AlphaClip(inMaterialId, albedo.a))
         discard;
 
@@ -44,10 +44,10 @@ void main() {
     // TODO: fix? this is probably because textures are unorm
     outGBuffer1.rgb = pow(albedo.rgb, vec3(2.2)); 
 
-    outGBuffer2.rgb = GetNormal(inTangent, inBitangent, inNormal, inMaterialId, inTexCoord);
+    outGBuffer2.rgb = normalize(inNormal);//GetNormal(inTangent, inBitangent, inNormal, inMaterialId, inTexCoord, vec4(0.f));
 
     outGBuffer1.a = 1.0;//GetMetalness(inMaterialId, inTexCoord);
-    outGBuffer2.a = GetRoughness(inMaterialId, inTexCoord);
+    outGBuffer2.a = GetRoughness(inMaterialId, inTexCoord, vec4(0.f));
 
     float linearZ = gl_FragCoord.z / gl_FragCoord.w;
     outGBuffer3.rg = ComputeMotionVector(inPrevClipPos, inClipPos);

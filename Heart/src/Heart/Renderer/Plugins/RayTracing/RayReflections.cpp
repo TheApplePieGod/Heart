@@ -99,8 +99,8 @@ namespace Heart::RenderPlugins
         auto gBufferPlugin = m_Renderer->GetPlugin<RenderPlugins::GBuffer>(m_Info.GBufferPluginName);
 
         Flourish::TextureCreateInfo texCreateInfo;
-        texCreateInfo.Width = m_Renderer->GetRenderWidth();
-        texCreateInfo.Height = m_Renderer->GetRenderHeight();
+        texCreateInfo.Width = m_Renderer->GetRenderWidth() / 2;
+        texCreateInfo.Height = m_Renderer->GetRenderHeight() / 2;
         texCreateInfo.ArrayCount = 1;
         texCreateInfo.MipCount = 1;
         texCreateInfo.Usage = Flourish::TextureUsageFlags::Compute;
@@ -108,16 +108,19 @@ namespace Heart::RenderPlugins
         texCreateInfo.Format = Flourish::ColorFormat::RGBA16_FLOAT;
         m_OutputTexture = Flourish::Texture::Create(texCreateInfo);
 
-        m_HaltonData.p2 = ceil(log2(m_Renderer->GetRenderWidth()));
-        m_HaltonData.p3 = ceil(log2(m_Renderer->GetRenderHeight())/log2(3));
-        int w = pow(2, m_HaltonData.p2);
-        int h = pow(3, m_HaltonData.p3);
-        m_HaltonData.w = w;
-        m_HaltonData.h = h;
+        // Half resolution
+        m_GBufferMip = 1;
+
+        m_PushData.HaltonData.p2 = ceil(log2(m_OutputTexture->GetWidth()));
+        m_PushData.HaltonData.p3 = ceil(log2(m_OutputTexture->GetHeight())/log2(3));
+        int w = pow(2, m_PushData.HaltonData.p2);
+        int h = pow(3, m_PushData.HaltonData.p3);
+        m_PushData.HaltonData.w = w;
+        m_PushData.HaltonData.h = h;
 
         auto inv = Euclid(h, w);
-        m_HaltonData.mX = h * ((inv.first < 0) ? (inv.first + w) : (inv.first % w));
-        m_HaltonData.mY = w * ((inv.second < 0) ? (inv.second + h) : (inv.second % h));
+        m_PushData.HaltonData.mX = h * ((inv.first < 0) ? (inv.first + w) : (inv.first % w));
+        m_PushData.HaltonData.mY = w * ((inv.second < 0) ? (inv.second + h) : (inv.second % h));
 
         m_GPUGraphNodeBuilder.Reset()
             .SetCommandBuffer(m_CommandBuffer.get())
@@ -148,9 +151,9 @@ namespace Heart::RenderPlugins
         m_ResourceSet0->BindBuffer(0, frameDataBuffer, 0, 1);
         m_ResourceSet0->BindAccelerationStructure(1, tlasPlugin->GetAccelStructure());
         m_ResourceSet0->BindTexture(2, m_OutputTexture.get());
-        m_ResourceSet0->BindTextureLayer(3, gBufferPlugin->GetGBuffer1(), arrayIndex, 0);
-        m_ResourceSet0->BindTextureLayer(4, gBufferPlugin->GetGBuffer2(), arrayIndex, 0);
-        m_ResourceSet0->BindTextureLayer(5, gBufferPlugin->GetGBufferDepth(), arrayIndex, 0);
+        m_ResourceSet0->BindTextureLayer(3, gBufferPlugin->GetGBuffer1(), arrayIndex, m_GBufferMip);
+        m_ResourceSet0->BindTextureLayer(4, gBufferPlugin->GetGBuffer2(), arrayIndex, m_GBufferMip);
+        m_ResourceSet0->BindTextureLayer(5, gBufferPlugin->GetGBufferDepth(), arrayIndex, m_GBufferMip);
         m_ResourceSet0->FlushBindings();
 
         m_ResourceSet1->BindBuffer(0, lightingDataBuffer, 0, lightingDataBuffer->GetAllocatedCount());
@@ -175,11 +178,11 @@ namespace Heart::RenderPlugins
         encoder->FlushResourceSet(1);
         encoder->BindResourceSet(materialPlugin->GetTexturesSet(), 2);
         encoder->FlushResourceSet(2);
-        encoder->PushConstants(0, sizeof(HaltonData), &m_HaltonData);
+        encoder->PushConstants(0, sizeof(PushData), &m_PushData);
         encoder->TraceRays(
             m_GroupTable.get(),
-            m_Renderer->GetRenderWidth(),
-            m_Renderer->GetRenderHeight(),
+            m_OutputTexture->GetWidth(),
+            m_OutputTexture->GetHeight(),
             1
         );
         encoder->EndEncoding();

@@ -5,9 +5,7 @@
 #include "../../frame_data/FrameBuffer.glsl"
 
 #include "../../util/Misc.glsl"
-
-#define MAX_NORMAL_DISTANCE 0.1f
-#define MAX_PLANE_DISTANCE 5.0f
+#include "EdgeStopping.glsl"
 
 layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
@@ -29,21 +27,6 @@ const float GAUSSIAN_KERNEL_WEIGHTS[2][2] = {
     { 1.0 / 4.0, 1.0 / 8.0 },
     { 1.0 / 8.0, 1.0 / 16.0 }
 };
-
-float EdgeStoppingWeightNormal(vec3 centerNormal, vec3 sampleNormal, float sigma)
-{
-    return pow(clamp(dot(centerNormal, sampleNormal), 0.0f, 1.0f), sigma);
-}
-
-float EdgeStoppingWeightDepth(float centerDepth, float sampleDepth, float sigma)
-{
-    return -abs(centerDepth - sampleDepth) / sigma;
-}
-
-float EdgeStoppingWeightLuminance(float centerLuminance, float sampleLuminance, float phi)
-{
-    return -abs(centerLuminance - sampleLuminance) / phi;
-}
 
 float GetBlurredVariance(ivec2 coord)
 {
@@ -70,12 +53,13 @@ float GetBlurredVariance(ivec2 coord)
 
 void main()
 {
-    ivec2 coord = ivec2(gl_GlobalInvocationID.xy);
-    if (coord.x >= frameBuffer.data.screenSize.x || coord.y >= frameBuffer.data.screenSize.y)
+    const ivec2 size = textureSize(filterInput, 0);
+    const ivec2 coord = ivec2(gl_GlobalInvocationID.xy);
+    if (coord.x >= size.x || coord.y >= size.y)
         return;
 
-    vec3 normal = texelFetch(newGBuffer2, coord, 0).xyz;
-    float depth = texelFetch(newGBufferDepth, coord, 0).r;
+    const vec3 normal = texelFetch(newGBuffer2, coord, 0).xyz;
+    const float depth = texelFetch(newGBufferDepth, coord, 0).r;
 
     if (depth == 1.0 - float(frameBuffer.data.reverseDepth))
     {
@@ -83,11 +67,11 @@ void main()
         return;
     }
 
-    vec4 centerColor = texelFetch(filterInput, coord, 0);
-    float centerLuminance = Luminance(centerColor.rgb);
-    vec3 centerNormal = texelFetch(newGBuffer2, coord, 0).xyz;
-    float centerDepth = texelFetch(newGBuffer3, coord, 0).b;
-    float variance = GetBlurredVariance(coord);
+    const vec4 centerColor = texelFetch(filterInput, coord, 0);
+    const float centerLuminance = Luminance(centerColor.rgb);
+    const vec3 centerNormal = texelFetch(newGBuffer2, coord, 0).xyz;
+    const float centerDepth = texelFetch(newGBuffer3, coord, 0).b;
+    const float variance = GetBlurredVariance(coord);
 
     vec3 colorSum = centerColor.rgb;
     float varianceSum = centerColor.a;
@@ -105,7 +89,7 @@ void main()
         {
             const ivec2 p = coord + ivec2(x, y) * stepSize;
             const bool inside = all(greaterThanEqual(p, ivec2(0, 0))) &&
-                                all(lessThan(p, ivec2(frameBuffer.data.screenSize.xy)));
+                                all(lessThan(p, size));
             const float kernel = ATROUS_KERNEL_WEIGHTS[abs(x)] * ATROUS_KERNEL_WEIGHTS[abs(y)];
 
             if (inside && (x != 0 || y != 0)) // Skip center pixel
@@ -113,13 +97,13 @@ void main()
                 const vec4 sampleColor = texelFetch(filterInput, p, 0);
                 const float sampleLuminance = Luminance(sampleColor.rgb);
 
-                vec3 sampleNormal = texelFetch(newGBuffer2, p, 0).rgb;
-                float sampleDepth = texelFetch(newGBuffer3, p, 0).b;
+                const vec3 sampleNormal = texelFetch(newGBuffer2, p, 0).rgb;
+                const float sampleDepth = texelFetch(newGBuffer3, p, 0).b;
 
                 float wZ = EdgeStoppingWeightDepth(centerDepth, sampleDepth, sigmaDepth);
                 float wN = EdgeStoppingWeightNormal(centerNormal, sampleNormal, sigmaNormal);
                 float wL = EdgeStoppingWeightLuminance(centerLuminance, sampleLuminance, phi);
-                float w = kernel * exp(wL + wZ) * wN;
+                float w = kernel * EdgeStoppingWeight(wZ, wN, wL);
 
                 weightsSum += w;
                 weightsSquareSum += w * w;

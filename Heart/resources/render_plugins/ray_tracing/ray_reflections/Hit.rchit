@@ -19,12 +19,14 @@
 #define MATERIAL_BUFFER_SET 1
 #define MATERIAL_TEXTURES_BINDING 0
 #define MATERIAL_TEXTURES_SET 2
+#define MATERIAL_EXPLICIT_LOD
 #include "../../collect_materials/MaterialBuffer.glsl"
 
 #include "Common.glsl"
 #include "../../../VertexLayout.glsl"
 #include "../../util/Lighting.glsl"
 #include "../util/Barycentrics.glsl"
+#include "../util/RayCone.glsl"
 
 layout(buffer_reference, scalar) readonly buffer VertexBuffer {
     Vertex data[];
@@ -73,11 +75,25 @@ void main()
     vec3 B = cross(T.xyz, N) * T.w;
     vec3 V = normalize(frameBuffer.data.cameraPos.xyz - P);
 
-    vec4 albedo = GetAlbedo(materialId, texCoord);
+    // Update raycone with hit
+    payload.rayCone += vec2(
+        2 * tan(payload.rayCone.y * 0.5) * length(P - frameBuffer.data.cameraPos.xyz),
+        payload.rayCone.y // TODO: this won't work for multiple iterations
+    );
+    vec4 mip = UVDerivsFromRayCone(
+        gl_WorldRayDirectionEXT,
+        N,
+        payload.rayCone.x,
+        vec2[3](v0.texCoord, v1.texCoord, v2.texCoord),
+        vec3[3](v0.position, v1.position, v2.position),
+        mat3x3(gl_ObjectToWorldEXT)
+    );
+
+    vec4 albedo = GetAlbedo(materialId, texCoord, mip);
     albedo.rgb = pow(albedo.rgb, vec3(2.2)); 
-    N = GetNormal(T.xyz, B, N, materialId, texCoord);
-    float metalness = GetMetalness(materialId, texCoord);
-    float roughness = GetRoughness(materialId, texCoord);
+    N = GetNormal(T.xyz, B, N, materialId, texCoord, mip);
+    float metalness = GetMetalness(materialId, texCoord, mip);
+    float roughness = GetRoughness(materialId, texCoord, mip);
     vec3 F0 = mix(vec3(0.04), albedo.rgb, metalness);
     vec3 diffuse = mix(albedo.rgb * (vec3(1.0) - F0), vec3(0.0), metalness);
 
