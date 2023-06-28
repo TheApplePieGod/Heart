@@ -150,6 +150,10 @@ namespace Heart
         auto svgf = RegisterPlugin<RenderPlugins::SVGF>("SVGF", svgfCreateInfo);
         svgf->AddDependency(rayReflections->GetName(), GraphDependencyType::GPU);
 
+        RenderPlugins::RenderEnvironmentMapCreateInfo envMapCreateInfo;
+        envMapCreateInfo.FrameDataPluginName = frameData->GetName();
+        auto envMap = RegisterPlugin<RenderPlugins::RenderEnvironmentMap>("EnvMap", envMapCreateInfo);
+
         RenderPlugins::PBRCompositeCreateInfo pbrCompCreateInfo;
         pbrCompCreateInfo.InputReflections = svgf->GetOutput();
         pbrCompCreateInfo.FrameDataPluginName = frameData->GetName();
@@ -157,16 +161,17 @@ namespace Heart
         pbrCompCreateInfo.GBufferPluginName = gBuffer->GetName();
         pbrCompCreateInfo.TLASPluginName = tlas->GetName();
         auto pbrComposite = RegisterPlugin<RenderPlugins::PBRComposite>("PBRComposite", pbrCompCreateInfo);
+        pbrComposite->AddDependency(envMap->GetName(), GraphDependencyType::GPU);
         pbrComposite->AddDependency(svgf->GetName(), GraphDependencyType::GPU);
         pbrComposite->AddDependency(tlas->GetName(), GraphDependencyType::CPU);
 
         RenderPlugins::BloomCreateInfo BloomCreateInfo;
-        auto Bloom = RegisterPlugin<RenderPlugins::Bloom>("Bloom", BloomCreateInfo);
-        Bloom->AddDependency(pbrComposite->GetName(), GraphDependencyType::GPU);
+        auto bloom = RegisterPlugin<RenderPlugins::Bloom>("Bloom", BloomCreateInfo);
+        bloom->AddDependency(pbrComposite->GetName(), GraphDependencyType::GPU);
 
         RenderPlugins::ColorGradingCreateInfo GRADINGCreateInfo;
         auto GRADING = RegisterPlugin<RenderPlugins::ColorGrading>("GRADING", GRADINGCreateInfo);
-        GRADING->AddDependency(Bloom->GetName(), GraphDependencyType::GPU);
+        GRADING->AddDependency(bloom->GetName(), GraphDependencyType::GPU);
 
         RebuildGraph();
     }

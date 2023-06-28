@@ -9,6 +9,7 @@ struct LightEvalData
     vec3 l;
     float nDotL;
     vec3 radiance;
+    float dist;
 };
 
 vec3 GetLightRadiance(Light light, float attenuation)
@@ -22,6 +23,7 @@ void GetPointLightEvalData(inout LightEvalData data, Light light, vec3 P, vec3 N
     float attenuation = 1.f / (
         light.constantAttenuation + light.linearAttenuation * dist + light.quadraticAttenuation * dist * dist
     );
+    data.dist = dist;
     data.radiance = GetLightRadiance(light, attenuation);
     data.l = normalize(light.position.xyz - P);
     data.nDotL = max(dot(N, data.l), 0.0);
@@ -29,6 +31,7 @@ void GetPointLightEvalData(inout LightEvalData data, Light light, vec3 P, vec3 N
 
 void GetDirectionalLightEvalData(inout LightEvalData data, Light light, vec3 N)
 {
+    data.dist = 10000;
     data.radiance = GetLightRadiance(light, 1.0);
     data.l = normalize(light.direction.xyz);
     data.nDotL = max(dot(N, data.l), 0.0);

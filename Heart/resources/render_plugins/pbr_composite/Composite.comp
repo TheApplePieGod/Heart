@@ -32,11 +32,15 @@ void main()
     if (coord.x >= frameBuffer.data.screenSize.x || coord.y >= frameBuffer.data.screenSize.y)
         return;
 
+    // Skybox
+    float depth = texelFetch(newGBufferDepth, coord, 0).r;
+    if (depth == 1.0 - float(frameBuffer.data.reverseDepth))
+        return;
+
     vec2 texCoord = (vec2(coord) + vec2(0.5)) / frameBuffer.data.screenSize.xy;
     vec4 gbuf1 = texelFetch(newGBuffer1, coord, 0);
     vec4 gbuf2 = texelFetch(newGBuffer2, coord, 0);
     vec4 gbuf3 = texelFetch(newGBuffer3, coord, 0);
-    float depth = texelFetch(newGBufferDepth, coord, 0).r;
 
     vec3 P = ComputeWorldPositionFromDepth(texCoord, depth, frameBuffer.data.invViewProj);
     vec3 N = gbuf2.rgb;
@@ -66,7 +70,7 @@ void main()
             continue;
 
         if (!QueryVisibility(
-            tlas, shadowOrigin, data.l, frameBuffer.data.clipPlanes.y, shadowFlags, 0xFF
+            tlas, shadowOrigin, data.l, data.dist, shadowFlags, 0xFF
         ))
             continue;
 
