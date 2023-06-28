@@ -165,15 +165,13 @@ namespace Heart
         pbrComposite->AddDependency(svgf->GetName(), GraphDependencyType::GPU);
         pbrComposite->AddDependency(tlas->GetName(), GraphDependencyType::CPU);
 
-        /*
         RenderPlugins::BloomCreateInfo BloomCreateInfo;
         auto bloom = RegisterPlugin<RenderPlugins::Bloom>("Bloom", BloomCreateInfo);
         bloom->AddDependency(pbrComposite->GetName(), GraphDependencyType::GPU);
-        */
 
         RenderPlugins::ColorGradingCreateInfo gradingCreateInfo;
         auto grading = RegisterPlugin<RenderPlugins::ColorGrading>("Grading", gradingCreateInfo);
-        grading->AddDependency(pbrComposite->GetName(), GraphDependencyType::GPU);
+        grading->AddDependency(bloom->GetName(), GraphDependencyType::GPU);
 
         RebuildGraph();
     }

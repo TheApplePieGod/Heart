@@ -73,15 +73,14 @@ namespace Heart::RenderPlugins
         m_ResourceSet->BindBuffer(1, lightingDataBuffer, 0, lightingDataBuffer->GetAllocatedCount());
         m_ResourceSet->BindTextureLayer(2, gBufferPlugin->GetGBuffer1(), arrayIndex, 0);
         m_ResourceSet->BindTextureLayer(3, gBufferPlugin->GetGBuffer2(), arrayIndex, 0);
-        m_ResourceSet->BindTextureLayer(4, gBufferPlugin->GetGBuffer3(), arrayIndex, 0);
-        m_ResourceSet->BindTextureLayer(5, gBufferPlugin->GetGBufferDepth(), arrayIndex, 0);
+        m_ResourceSet->BindTextureLayer(4, gBufferPlugin->GetGBufferDepth(), arrayIndex, 0);
         if (data.EnvMap)
-            m_ResourceSet->BindTexture(6, data.EnvMap->GetBRDFTexture());
+            m_ResourceSet->BindTexture(5, data.EnvMap->GetBRDFTexture());
         else
-            m_ResourceSet->BindTextureLayer(6, m_Renderer->GetDefaultEnvironmentMap(), 0, 0);
-        m_ResourceSet->BindTexture(7, reflPlugin->GetOutputTexture().get());
-        m_ResourceSet->BindTexture(8, m_Renderer->GetRenderTexture().get());
-        m_ResourceSet->BindAccelerationStructure(9, tlasPlugin->GetAccelStructure());
+            m_ResourceSet->BindTextureLayer(5, m_Renderer->GetDefaultEnvironmentMap(), 0, 0);
+        m_ResourceSet->BindTexture(6, reflPlugin->GetOutputTexture().get());
+        m_ResourceSet->BindTexture(7, m_Renderer->GetRenderTexture().get());
+        m_ResourceSet->BindAccelerationStructure(8, tlasPlugin->GetAccelStructure());
         m_ResourceSet->FlushBindings();
 
         auto encoder = m_CommandBuffer->EncodeComputeCommands();

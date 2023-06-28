@@ -115,8 +115,20 @@ void main()
         finalContribution += EvaluateLightBRDF(data, N, V, F0, diffuse, roughness);
     }
 
-    vec3 ambient = vec3(0.01);
-    vec3 finalColor = finalContribution + ambient;
+    // Indirect
+    // TODO: generalize
+    {
+        vec3 F = FresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness);
 
-    payload.hitValue = finalColor.rgb;
+        vec3 kS = F;
+        vec3 kD = 1.0 - kS;
+        kD *= 1.0 - metalness;
+
+        vec3 irradiance = vec3(0.015);
+        vec3 diffuse = irradiance * albedo.rgb;
+        
+        finalContribution += (kD * diffuse);
+    }
+
+    payload.hitValue = finalContribution.rgb;
 }

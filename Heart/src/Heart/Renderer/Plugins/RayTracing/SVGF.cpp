@@ -127,7 +127,7 @@ namespace Heart::RenderPlugins
         u32 prevArrayIndex = gBufferPlugin->GetPrevArrayIndex();
         m_TemporalResourceSet->BindBuffer(0, frameDataBuffer, 0, 1);
         m_TemporalResourceSet->BindTextureLayer(1, gBufferPlugin->GetGBuffer2(), prevArrayIndex, m_GBufferMip);
-        m_TemporalResourceSet->BindTextureLayer(2, gBufferPlugin->GetGBuffer3(), prevArrayIndex, m_GBufferMip);
+        //m_TemporalResourceSet->BindTextureLayer(2, gBufferPlugin->GetGBuffer3(), prevArrayIndex, m_GBufferMip);
         m_TemporalResourceSet->BindTextureLayer(3, gBufferPlugin->GetGBufferDepth(), prevArrayIndex, m_GBufferMip);
         m_TemporalResourceSet->BindTextureLayer(4, gBufferPlugin->GetGBuffer2(), arrayIndex, m_GBufferMip);
         m_TemporalResourceSet->BindTextureLayer(5, gBufferPlugin->GetGBuffer3(), arrayIndex, m_GBufferMip);
