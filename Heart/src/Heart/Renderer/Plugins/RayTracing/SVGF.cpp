@@ -51,6 +51,7 @@ namespace Heart::RenderPlugins
     void SVGF::ResizeInternal()
     {
         auto gBufferPlugin = m_Renderer->GetPlugin<RenderPlugins::GBuffer>(m_Info.GBufferPluginName);
+        auto inputPlugin = m_Renderer->GetPlugin(m_Info.InputPluginName);
 
         Flourish::TextureCreateInfo texCreateInfo;
         texCreateInfo.Width = m_Renderer->GetRenderWidth();
@@ -66,12 +67,15 @@ namespace Heart::RenderPlugins
         m_TempTexture = Flourish::Texture::Create(texCreateInfo);
         texCreateInfo.Writability = Flourish::TextureWritability::PerFrame;
         texCreateInfo.ArrayCount = 1;
-        m_Output = Flourish::Texture::Create(texCreateInfo);
+        m_OutputTexture = Flourish::Texture::Create(texCreateInfo);
+
+        // Force temporal refresh
+        m_ShouldReset = true;
 
         m_GPUGraphNodeBuilder.Reset()
             .SetCommandBuffer(m_CommandBuffer.get())
             .AddEncoderNode(Flourish::GPUWorkloadType::Compute)
-            .EncoderAddTextureRead(m_Info.InputTexture.get())
+            .EncoderAddTextureRead(inputPlugin->GetOutputTexture().get())
             .EncoderAddTextureRead(gBufferPlugin->GetGBuffer2())
             .EncoderAddTextureRead(gBufferPlugin->GetGBuffer3())
             .EncoderAddTextureRead(gBufferPlugin->GetGBufferDepth())
@@ -92,7 +96,7 @@ namespace Heart::RenderPlugins
 
             Flourish::Texture* write = m_TempTexture.get();
             if (i == m_ATrousIterations - 1)
-                write = m_Output.get();
+                write = m_OutputTexture.get();
             m_GPUGraphNodeBuilder.EncoderAddTextureWrite(write);
         }
     }
@@ -106,6 +110,7 @@ namespace Heart::RenderPlugins
         auto frameDataPlugin = m_Renderer->GetPlugin<RenderPlugins::FrameData>(m_Info.FrameDataPluginName);
         auto frameDataBuffer = frameDataPlugin->GetBuffer();
         auto gBufferPlugin = m_Renderer->GetPlugin<RenderPlugins::GBuffer>(m_Info.GBufferPluginName);
+        auto inputPlugin = m_Renderer->GetPlugin(m_Info.InputPluginName);
 
         u32 arrayIndex = gBufferPlugin->GetArrayIndex();
         u32 prevArrayIndex = gBufferPlugin->GetPrevArrayIndex();
@@ -118,7 +123,7 @@ namespace Heart::RenderPlugins
         m_TemporalResourceSet->BindTextureLayer(6, gBufferPlugin->GetGBufferDepth(), arrayIndex, 0);
         m_TemporalResourceSet->BindTextureLayer(7, m_ColorHistory.get(), GetPrevArrayIndex(), 0);
         m_TemporalResourceSet->BindTextureLayer(8, m_MomentsHistory.get(), GetPrevArrayIndex(), 0);
-        m_TemporalResourceSet->BindTexture(9, m_Info.InputTexture.get());
+        m_TemporalResourceSet->BindTexture(9, inputPlugin->GetOutputTexture().get());
         m_TemporalResourceSet->BindTextureLayer(10, m_ColorHistory.get(), GetArrayIndex(), 0);
         m_TemporalResourceSet->BindTextureLayer(11, m_MomentsHistory.get(), GetArrayIndex(), 0);
         m_TemporalResourceSet->FlushBindings();
@@ -127,7 +132,8 @@ namespace Heart::RenderPlugins
         encoder->BindComputePipeline(m_TemporalPipeline.get());
         encoder->BindResourceSet(m_TemporalResourceSet.get(), 0);
         encoder->FlushResourceSet(0);
-        encoder->Dispatch((m_Output->GetWidth() / 16) + 1, (m_Output->GetHeight() / 16) + 1, 1);
+        encoder->PushConstants(0, sizeof(u32), &m_ShouldReset);
+        encoder->Dispatch((m_OutputTexture->GetWidth() / 16) + 1, (m_OutputTexture->GetHeight() / 16) + 1, 1);
         encoder->EndEncoding();
 
         for (u32 i = 0; i < m_ATrousIterations; i++)
@@ -141,7 +147,7 @@ namespace Heart::RenderPlugins
             else
                 m_ATrousResourceSet->BindTextureLayer(4, m_TempTexture.get(), i % 2, 0);
             if (i == m_ATrousIterations - 1)
-                m_ATrousResourceSet->BindTexture(5, m_Output.get());
+                m_ATrousResourceSet->BindTexture(5, m_OutputTexture.get());
             else
                 m_ATrousResourceSet->BindTextureLayer(5, m_TempTexture.get(), (i + 1) % 2, 0);
             m_ATrousResourceSet->FlushBindings();
@@ -150,8 +156,10 @@ namespace Heart::RenderPlugins
             encoder->BindResourceSet(m_ATrousResourceSet.get(), 0);
             encoder->FlushResourceSet(0);
             encoder->PushConstants(0, sizeof(u32), &i);
-            encoder->Dispatch((m_Output->GetWidth() / 16) + 1, (m_Output->GetHeight() / 16) + 1, 1);
+            encoder->Dispatch((m_OutputTexture->GetWidth() / 16) + 1, (m_OutputTexture->GetHeight() / 16) + 1, 1);
             encoder->EndEncoding();
         }
+
+        m_ShouldReset = false;
     }
 }

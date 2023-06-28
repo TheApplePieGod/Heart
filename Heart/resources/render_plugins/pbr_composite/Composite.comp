@@ -88,7 +88,7 @@ void main()
         vec2 brdf = texture(brdfTex, vec2(max(dot(N, V), 0.0), roughness)).rg;
         vec3 specular = prefilteredColor * (F * brdf.x + brdf.y) * 2.0;
 
-        finalContribution += specular;
+        finalContribution += specular + vec3(0.005);
     }
 
     imageStore(outColor, coord, vec4(finalContribution, 1.f));

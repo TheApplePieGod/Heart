@@ -23,6 +23,13 @@ layout(binding = 9) uniform sampler2D filterInput;
 layout(binding = 10, rgba16f) uniform writeonly image2D outColors;
 layout(binding = 11, rgba16f) uniform writeonly image2D outMoments;
 
+layout(push_constant) uniform PushConstants
+{
+    uint reset;
+    uint padding;
+    vec2 padding2;
+} constants;
+
 const ivec2 twoTapOffsets[4] = {
     ivec2(0, 0),
     ivec2(1, 0),
@@ -137,135 +144,138 @@ void main()
     vec2 prevTexCoord = texCoord + motionVector;
     vec2 prevCoord = ProjectCoord(coord, motionVector);
 
-    vec3 historyColor = vec3(0.f);
-    vec2 historyMoments = vec2(0.f);
-    float historyLength = 0.f;
-
-    // Bilinear weights
-    float x = fract(prevCoord.x);
-    float y = fract(prevCoord.y);
-    float weights[4] = {
-        (1 - x) * (1 - y),
-        x * (1 - y),
-        (1 - x) * y,
-        x * y
-    };
-    
-    // 2x2-tap bilinear filter - check for reprojection validity
-    float weightSum = 0.f; 
-    for (uint i = 0; i < 4; i++)
+    if (constants.reset == 0)
     {
-        ivec2 p = ivec2(prevCoord) + twoTapOffsets[i];
+        vec3 historyColor = vec3(0.f);
+        vec2 historyMoments = vec2(0.f);
+        float historyLength = 0.f;
 
-        vec3 prevNormal = texelFetch(prevGBuffer2, p, 0).xyz;
-        float prevDepth = texelFetch(prevGBufferDepth, p, 0).r;
-        vec3 prevPos = ComputeWorldPositionFromDepth(
-            prevTexCoord,
-            prevDepth,
-            frameBuffer.data.invViewProj
-        );
-
-        bool valid = IsReprojectionValid(
-            ivec2(prevCoord),
-            newPos,
-            prevPos,
-            newNormal,
-            prevNormal
-        );
-
-        if (valid)
+        // Bilinear weights
+        float x = fract(prevCoord.x);
+        float y = fract(prevCoord.y);
+        float weights[4] = {
+            (1 - x) * (1 - y),
+            x * (1 - y),
+            (1 - x) * y,
+            x * y
+        };
+        
+        // 2x2-tap bilinear filter - check for reprojection validity
+        float weightSum = 0.f; 
+        for (uint i = 0; i < 4; i++)
         {
-            vec4 prevMoments = texelFetch(prevMoments, p, 0);
-            weightSum += weights[i];
-            historyColor += weights[i] * texelFetch(prevColors, p, 0).rgb;
-            historyMoments += weights[i] * prevMoments.rg;
-            historyLength += weights[i] * prevMoments.b;
-        }
-    }
+            ivec2 p = ivec2(prevCoord) + twoTapOffsets[i];
 
-    bool valid = false;
-    if (weightSum > 0.01)
-    {
-        historyColor /= weightSum;
-        historyMoments /= weightSum;
-        historyLength /= weightSum;
-        valid = true;
-    }
-    else
-    {
-        float count = 0.0;
+            vec3 prevNormal = texelFetch(prevGBuffer2, p, 0).xyz;
+            float prevDepth = texelFetch(prevGBufferDepth, p, 0).r;
+            vec3 prevPos = ComputeWorldPositionFromDepth(
+                prevTexCoord,
+                prevDepth,
+                frameBuffer.data.invViewProj
+            );
 
-        const int radius = 1;
-        for (int y = -radius; y <= radius; y++)
-        {
-            for (int x = -radius; x <= radius; x++)
+            bool valid = IsReprojectionValid(
+                ivec2(prevCoord),
+                newPos,
+                prevPos,
+                newNormal,
+                prevNormal
+            );
+
+            if (valid)
             {
-                ivec2 p = ivec2(prevCoord) + ivec2(x, y);
-
-                vec3 prevNormal = texelFetch(prevGBuffer2, p, 0).xyz;
-                float prevDepth = texelFetch(prevGBufferDepth, p, 0).r;
-                vec3 prevPos = ComputeWorldPositionFromDepth(
-                    prevTexCoord,
-                    prevDepth,
-                    frameBuffer.data.invViewProj
-                );
-
-                bool valid = IsReprojectionValid(
-                    ivec2(prevCoord),
-                    newPos,
-                    prevPos,
-                    newNormal,
-                    prevNormal
-                );
-
-                if (valid)
-                {
-                    historyColor += texelFetch(prevColors, p, 0).rgb;
-                    historyMoments += texelFetch(prevMoments, p, 0).rg;
-                    count += 1.0;
-                }
+                vec4 prevMoments = texelFetch(prevMoments, p, 0);
+                weightSum += weights[i];
+                historyColor += weights[i] * texelFetch(prevColors, p, 0).rgb;
+                historyMoments += weights[i] * prevMoments.rg;
+                historyLength += weights[i] * prevMoments.b;
             }
         }
 
-        if (count > 0)
+        bool valid = false;
+        if (weightSum > 0.01)
         {
+            historyColor /= weightSum;
+            historyMoments /= weightSum;
+            historyLength /= weightSum;
             valid = true;
-            historyColor /= count;
-            historyMoments /= count;
-            historyLength /= count;
         }
-    }
-    
-    if (valid)
-    {
-        historyLength = texelFetch(prevMoments, coord, 0).b;
-        historyLength = historyLength + 1;//min(32.f, historyLength + 1);
+        else
+        {
+            float count = 0.0;
 
-        float colorAlpha = max(1.f / float(historyLength), 0.2);
-        float momentsAlpha = max(1.f / float(historyLength), 0.2);
+            const int radius = 1;
+            for (int y = -radius; y <= radius; y++)
+            {
+                for (int x = -radius; x <= radius; x++)
+                {
+                    ivec2 p = ivec2(prevCoord) + ivec2(x, y);
 
-        vec3 dev;
-        vec3 mean;
-        NeighborhoodStandardDeviation(coord, mean, dev);
+                    vec3 prevNormal = texelFetch(prevGBuffer2, p, 0).xyz;
+                    float prevDepth = texelFetch(prevGBufferDepth, p, 0).r;
+                    vec3 prevPos = ComputeWorldPositionFromDepth(
+                        prevTexCoord,
+                        prevDepth,
+                        frameBuffer.data.invViewProj
+                    );
 
-        vec3 radianceMin = mean - dev;
-        vec3 radianceMax = mean + dev;
-        historyColor.rgb = ClipAABB(radianceMin, radianceMax, historyColor.rgb);
+                    bool valid = IsReprojectionValid(
+                        ivec2(prevCoord),
+                        newPos,
+                        prevPos,
+                        newNormal,
+                        prevNormal
+                    );
 
-        vec2 moments = vec2(filterLuminance, filterLuminance * filterLuminance);
+                    if (valid)
+                    {
+                        historyColor += texelFetch(prevColors, p, 0).rgb;
+                        historyMoments += texelFetch(prevMoments, p, 0).rg;
+                        count += 1.0;
+                    }
+                }
+            }
 
-        // Moments integration
-        moments = mix(historyMoments, moments, momentsAlpha);
+            if (count > 0)
+            {
+                valid = true;
+                historyColor /= count;
+                historyMoments /= count;
+                historyLength /= count;
+            }
+        }
+        
+        if (valid)
+        {
+            historyLength = texelFetch(prevMoments, coord, 0).b;
+            historyLength = historyLength + 1;//min(32.f, historyLength + 1);
 
-        float variance = max(0.f, moments.g - moments.r * moments.r);
+            float colorAlpha = max(1.f / float(historyLength), 0.2);
+            float momentsAlpha = max(1.f / float(historyLength), 0.2);
 
-        // Radiance integration
-        vec3 color = mix(historyColor, filterColor.rgb, colorAlpha);
+            vec3 dev;
+            vec3 mean;
+            NeighborhoodStandardDeviation(coord, mean, dev);
 
-        imageStore(outColors, coord, vec4(color, variance));
-        imageStore(outMoments, coord, vec4(moments, historyLength, 0.f));
+            vec3 radianceMin = mean - dev;
+            vec3 radianceMax = mean + dev;
+            historyColor.rgb = ClipAABB(radianceMin, radianceMax, historyColor.rgb);
 
-        return;
+            vec2 moments = vec2(filterLuminance, filterLuminance * filterLuminance);
+
+            // Moments integration
+            moments = mix(historyMoments, moments, momentsAlpha);
+
+            float variance = max(0.f, moments.g - moments.r * moments.r);
+
+            // Radiance integration
+            vec3 color = mix(historyColor, filterColor.rgb, colorAlpha);
+
+            imageStore(outColors, coord, vec4(color, variance));
+            imageStore(outMoments, coord, vec4(moments, historyLength, 0.f));
+
+            return;
+        }
     }
 
     // No valid history

@@ -39,7 +39,7 @@ namespace Heart::RenderPlugins
         rpCreateInfo.SampleCount = Flourish::MsaaSampleCount::None;
         rpCreateInfo.DepthAttachments.push_back({
             Flourish::ColorFormat::Depth,
-            Flourish::AttachmentInitialization::Clear
+            Flourish::AttachmentInitialization::None // Cleared manually
         });
         rpCreateInfo.ColorAttachments.push_back({
             GBUFFER_FORMAT,
@@ -170,6 +170,7 @@ namespace Heart::RenderPlugins
         encoder->FlushResourceSet(0);
         encoder->BindResourceSet(materialsPlugin->GetTexturesSet(), 1);
         encoder->FlushResourceSet(1);
+        encoder->ClearDepthAttachment();
 
         for (auto& pair : batchData.Batches)
         {

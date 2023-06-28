@@ -39,16 +39,19 @@ namespace Heart::RenderPlugins
     void PBRComposite::ResizeInternal()
     {
         auto gBufferPlugin = m_Renderer->GetPlugin<RenderPlugins::GBuffer>(m_Info.GBufferPluginName);
+        auto reflPlugin = m_Renderer->GetPlugin(m_Info.ReflectionsInputPluginName);
 
         m_GPUGraphNodeBuilder.Reset()
             .SetCommandBuffer(m_CommandBuffer.get())
             .AddEncoderNode(Flourish::GPUWorkloadType::Compute)
-            .EncoderAddTextureRead(m_Info.InputReflections.get())
+            .EncoderAddTextureRead(reflPlugin->GetOutputTexture().get())
             .EncoderAddTextureRead(gBufferPlugin->GetGBuffer1())
             .EncoderAddTextureRead(gBufferPlugin->GetGBuffer2())
             .EncoderAddTextureRead(gBufferPlugin->GetGBuffer3())
             .EncoderAddTextureRead(gBufferPlugin->GetGBufferDepth())
-            .EncoderAddTextureWrite(m_Renderer->GetRenderTexture().get());
+            .EncoderAddTextureWrite(m_Renderer->GetRenderTexture().get())
+            // Need a read here because we need to ensure current contents are synced
+            .EncoderAddTextureRead(m_Renderer->GetRenderTexture().get());
     }
 
     // TODO: resource sets could definitely be static
@@ -63,6 +66,7 @@ namespace Heart::RenderPlugins
         auto lightingDataBuffer = lightingDataPlugin->GetBuffer();
         auto gBufferPlugin = m_Renderer->GetPlugin<RenderPlugins::GBuffer>(m_Info.GBufferPluginName);
         auto tlasPlugin = m_Renderer->GetPlugin<RenderPlugins::TLAS>(m_Info.TLASPluginName);
+        auto reflPlugin = m_Renderer->GetPlugin(m_Info.ReflectionsInputPluginName);
 
         u32 arrayIndex = gBufferPlugin->GetArrayIndex();
         m_ResourceSet->BindBuffer(0, frameDataBuffer, 0, 1);
@@ -75,7 +79,7 @@ namespace Heart::RenderPlugins
             m_ResourceSet->BindTexture(6, data.EnvMap->GetBRDFTexture());
         else
             m_ResourceSet->BindTextureLayer(6, m_Renderer->GetDefaultEnvironmentMap(), 0, 0);
-        m_ResourceSet->BindTexture(7, m_Info.InputReflections.get());
+        m_ResourceSet->BindTexture(7, reflPlugin->GetOutputTexture().get());
         m_ResourceSet->BindTexture(8, m_Renderer->GetRenderTexture().get());
         m_ResourceSet->BindAccelerationStructure(9, tlasPlugin->GetAccelStructure());
         m_ResourceSet->FlushBindings();

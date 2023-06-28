@@ -15,7 +15,7 @@ namespace Heart::RenderPlugins
 {
     struct SVGFCreateInfo
     {
-        Ref<Flourish::Texture> InputTexture;
+        HString8 InputPluginName;
         HString8 FrameDataPluginName;
         HString8 GBufferPluginName;
     };
@@ -30,7 +30,6 @@ namespace Heart::RenderPlugins
         u32 GetArrayIndex() const;
         u32 GetPrevArrayIndex() const;
 
-        inline const Ref<Flourish::Texture>& GetOutput() const { return m_Output; }
         inline Flourish::Texture* GetColorHistory() const { return m_ColorHistory.get(); }
 
     protected:
@@ -47,11 +46,11 @@ namespace Heart::RenderPlugins
         Ref<Flourish::ResourceSet> m_ATrousResourceSet;
         Ref<Flourish::ComputePipeline> m_TemporalPipeline;
         Ref<Flourish::ComputePipeline> m_ATrousPipeline;
-        Ref<Flourish::Texture> m_Output;
         Ref<Flourish::Texture> m_ColorHistory;
         Ref<Flourish::Texture> m_MomentsHistory;
         Ref<Flourish::Texture> m_TempTexture;
 
-        u32 m_ATrousIterations = 3;
+        u32 m_ATrousIterations = 1;
+        u32 m_ShouldReset = false;
     };
 }

@@ -74,8 +74,8 @@ namespace Widgets
             default: outputTex = m_SceneRenderer->GetOutputTexture().get(); break;
             case 1: outputTex = m_SceneRenderer->GetRenderTexture().get(); break;
             case 2: outputTex = m_SceneRenderer->GetDepthTexture().get(); break;
-            case 3: outputTex = m_SceneRenderer->GetPlugin<Heart::RenderPlugins::RayReflections>("RayReflections")->GetOutputTexture().get(); break;
-            case 4: outputTex = m_SceneRenderer->GetPlugin<Heart::RenderPlugins::SVGF>("SVGF")->GetOutput().get(); break;
+            case 3: outputTex = m_SceneRenderer->GetPlugin("RayReflections")->GetOutputTexture().get(); break;
+            case 4: outputTex = m_SceneRenderer->GetPlugin("SVGF")->GetOutputTexture().get(); break;
         }
         ImGui::Image(
             outputTex->GetImGuiHandle(outputLayer, m_SelectedOutputMip),

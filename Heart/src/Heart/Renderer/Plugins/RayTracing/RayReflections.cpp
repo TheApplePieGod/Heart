@@ -106,7 +106,7 @@ namespace Heart::RenderPlugins
         texCreateInfo.Usage = Flourish::TextureUsageFlags::Compute;
         texCreateInfo.Writability = Flourish::TextureWritability::PerFrame;
         texCreateInfo.Format = Flourish::ColorFormat::RGBA16_FLOAT;
-        m_Output = Flourish::Texture::Create(texCreateInfo);
+        m_OutputTexture = Flourish::Texture::Create(texCreateInfo);
 
         m_HaltonData.p2 = ceil(log2(m_Renderer->GetRenderWidth()));
         m_HaltonData.p3 = ceil(log2(m_Renderer->GetRenderHeight())/log2(3));
@@ -122,7 +122,7 @@ namespace Heart::RenderPlugins
         m_GPUGraphNodeBuilder.Reset()
             .SetCommandBuffer(m_CommandBuffer.get())
             .AddEncoderNode(Flourish::GPUWorkloadType::Compute)
-            .EncoderAddTextureWrite(m_Output.get())
+            .EncoderAddTextureWrite(m_OutputTexture.get())
             .EncoderAddTextureRead(gBufferPlugin->GetGBuffer1())
             .EncoderAddTextureRead(gBufferPlugin->GetGBuffer2())
             .EncoderAddTextureRead(gBufferPlugin->GetGBufferDepth());
@@ -147,7 +147,7 @@ namespace Heart::RenderPlugins
         u32 arrayIndex = gBufferPlugin->GetArrayIndex();
         m_ResourceSet0->BindBuffer(0, frameDataBuffer, 0, 1);
         m_ResourceSet0->BindAccelerationStructure(1, tlasPlugin->GetAccelStructure());
-        m_ResourceSet0->BindTexture(2, m_Output.get());
+        m_ResourceSet0->BindTexture(2, m_OutputTexture.get());
         m_ResourceSet0->BindTextureLayer(3, gBufferPlugin->GetGBuffer1(), arrayIndex, 0);
         m_ResourceSet0->BindTextureLayer(4, gBufferPlugin->GetGBuffer2(), arrayIndex, 0);
         m_ResourceSet0->BindTextureLayer(5, gBufferPlugin->GetGBufferDepth(), arrayIndex, 0);
