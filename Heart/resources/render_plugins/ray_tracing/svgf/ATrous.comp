@@ -82,7 +82,7 @@ void main()
     const float sigmaDepth = 1;
     const float sigmaNormal = 128;
     const float sigmaLuminance = 4;
-    const float phi = sigmaLuminance * sqrt(variance + 1e-10);
+    const float phi = sigmaLuminance * sqrt(variance) + 1e-6;
     for (int y = -radius; y <= radius; y++)
     {
         for (int x = -radius; x <= radius; x++)

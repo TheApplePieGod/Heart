@@ -44,9 +44,9 @@ void main() {
     // TODO: fix? this is probably because textures are unorm
     outGBuffer1.rgb = pow(albedo.rgb, vec3(2.2)); 
 
-    outGBuffer2.rgb = normalize(inNormal);//GetNormal(inTangent, inBitangent, inNormal, inMaterialId, inTexCoord, vec4(0.f));
+    outGBuffer2.rgb = GetNormal(inTangent, inBitangent, inNormal, inMaterialId, inTexCoord, vec4(0.f));
 
-    outGBuffer1.a = 1.0;//GetMetalness(inMaterialId, inTexCoord);
+    outGBuffer1.a = GetMetalness(inMaterialId, inTexCoord, vec4(0.f));
     outGBuffer2.a = GetRoughness(inMaterialId, inTexCoord, vec4(0.f));
 
     float linearZ = gl_FragCoord.z / gl_FragCoord.w;

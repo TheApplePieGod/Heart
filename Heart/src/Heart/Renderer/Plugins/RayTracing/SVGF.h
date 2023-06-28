@@ -30,7 +30,7 @@ namespace Heart::RenderPlugins
         u32 GetArrayIndex() const;
         u32 GetPrevArrayIndex() const;
 
-        inline Flourish::Texture* GetColorHistory() const { return m_ColorHistory.get(); }
+        inline Flourish::Texture* GetDebugTexture() const { return m_DebugTexture.get(); }
 
     protected:
         void RenderInternal(const SceneRenderData& data) override;
@@ -62,6 +62,7 @@ namespace Heart::RenderPlugins
         Ref<Flourish::Texture> m_ColorHistory;
         Ref<Flourish::Texture> m_MomentsHistory;
         Ref<Flourish::Texture> m_TempTexture;
+        Ref<Flourish::Texture> m_DebugTexture;
 
         u32 m_ATrousIterations = 4;
         u32 m_GBufferMip = 0;

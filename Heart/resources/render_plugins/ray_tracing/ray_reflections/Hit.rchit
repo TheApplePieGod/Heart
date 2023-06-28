@@ -46,11 +46,10 @@ hitAttributeEXT vec3 hitAttributes;
 bool CheckShadowed(inout LightEvalData lightData, vec3 P, vec3 N)
 {
     float tMin = 0.01;
-    float tMax = frameBuffer.data.clipPlanes.y;
     uint flags = gl_RayFlagsTerminateOnFirstHitEXT | gl_RayFlagsOpaqueEXT | gl_RayFlagsSkipClosestHitShaderEXT;
     vec3 shadowOrigin = P + N * 0.01;
     isShadowed = true;
-    traceRayEXT(tlas, flags, 0xFF, 0, 0, 1, shadowOrigin, tMin, lightData.l, tMax, 1);
+    traceRayEXT(tlas, flags, 0xFF, 0, 0, 1, shadowOrigin, tMin, lightData.l, lightData.dist, 1);
     return isShadowed;
 }
 

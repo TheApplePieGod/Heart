@@ -75,7 +75,8 @@ namespace Widgets
             case 1: outputTex = m_SceneRenderer->GetRenderTexture().get(); break;
             case 2: outputTex = m_SceneRenderer->GetDepthTexture().get(); break;
             case 3: outputTex = m_SceneRenderer->GetPlugin("RayReflections")->GetOutputTexture().get(); break;
-            case 4: outputTex = m_SceneRenderer->GetPlugin("SVGF")->GetOutputTexture().get(); break;
+            case 4: outputTex = m_SceneRenderer->GetPlugin<Heart::RenderPlugins::SVGF>("SVGF")->GetDebugTexture(); break;
+            //case 5: outputTex = m_SceneRenderer->GetPlugin("SVGF")->GetOutputTexture().get(); break;
         }
         ImGui::Image(
             outputTex->GetImGuiHandle(outputLayer, m_SelectedOutputMip),
@@ -198,12 +199,12 @@ namespace Widgets
                     m_SelectedOutput = 2;
                     m_SelectedOutputMip = 0;
                 }
-                if (ImGui::MenuItem("Reflections - Pre", nullptr, m_SelectedOutput == 3))
+                if (ImGui::MenuItem("Reflections - Raw", nullptr, m_SelectedOutput == 3))
                 {
                     m_SelectedOutput = 3;
                     m_SelectedOutputMip = 0;
                 }
-                if (ImGui::MenuItem("Reflections - Post", nullptr, m_SelectedOutput == 4))
+                if (ImGui::MenuItem("Reflections - Post Temporal", nullptr, m_SelectedOutput == 4))
                 {
                     m_SelectedOutput = 4;
                     m_SelectedOutputMip = 0;

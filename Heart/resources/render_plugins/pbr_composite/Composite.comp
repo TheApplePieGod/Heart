@@ -91,5 +91,7 @@ void main()
         finalContribution += specular + vec3(0.005);
     }
 
+    //finalContribution = textureLod(reflectionsTex, texCoord, 0.0f).rgb;
+
     imageStore(outColor, coord, vec4(finalContribution, 1.f));
 }

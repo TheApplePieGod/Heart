@@ -65,10 +65,12 @@ void main()
 
     // Mirror reflections by default
     vec3 rayDir = reflect(-V, N);
+    float pdf = 1.0;
     if (roughness > MIN_ROUGHNESS_THRESHOLD)
     {
         vec4 perturbed = PerturbNormal(roughness, N);
         rayDir = reflect(-V, perturbed.xyz);
+        pdf = perturbed.w;
     }
 
     // Initial raycone for texture filtering
@@ -84,5 +86,5 @@ void main()
 
     // Clamp final color to prevent small pixels with super bright values
     vec3 finalColor = min(payload.hitValue, vec3(1.f));
-    imageStore(outImage, currentCoord, vec4(finalColor, 1.0));
+    imageStore(outImage, currentCoord, vec4(finalColor, pdf));
 }

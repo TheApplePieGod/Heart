@@ -68,6 +68,7 @@ namespace Heart::RenderPlugins
         m_ColorHistory = Flourish::Texture::Create(texCreateInfo);
         m_MomentsHistory = Flourish::Texture::Create(texCreateInfo);
         m_TempTexture = Flourish::Texture::Create(texCreateInfo);
+        m_DebugTexture = Flourish::Texture::Create(texCreateInfo);
         texCreateInfo.Width = m_Renderer->GetRenderWidth();
         texCreateInfo.Height = m_Renderer->GetRenderHeight();
         texCreateInfo.Writability = Flourish::TextureWritability::PerFrame;
@@ -136,6 +137,7 @@ namespace Heart::RenderPlugins
         m_TemporalResourceSet->BindTexture(9, inputPlugin->GetOutputTexture().get());
         m_TemporalResourceSet->BindTextureLayer(10, m_ColorHistory.get(), GetArrayIndex(), 0);
         m_TemporalResourceSet->BindTextureLayer(11, m_MomentsHistory.get(), GetArrayIndex(), 0);
+        m_TemporalResourceSet->BindTextureLayer(12, m_DebugTexture.get(), GetArrayIndex(), 0);
         m_TemporalResourceSet->FlushBindings();
 
         auto encoder = m_CommandBuffer->EncodeComputeCommands();
