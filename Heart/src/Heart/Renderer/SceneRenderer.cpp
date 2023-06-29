@@ -245,6 +245,7 @@ namespace Heart
     {
         GraphData& graphData = GetGraphData(depType);
         graphData.Leaves.Clear();
+        graphData.Roots.Clear();
         graphData.MaxDepth = 0;
 
         // Clear dependents
@@ -265,6 +266,8 @@ namespace Heart
             // Run BFS from all roots to compute max depth
             if (pair.second->GetGraphData(depType).Dependencies.empty())
             {
+                graphData.Roots.AddInPlace(pair.first);
+
                 std::queue<std::pair<RenderPlugin*, u32>> searching;
                 searching.emplace(pair.second.get(), 0);
                 while (!searching.empty())

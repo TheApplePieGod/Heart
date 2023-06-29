@@ -48,9 +48,37 @@ namespace Widgets
         m_RendererContext = &renderer;
         m_IdCounter = 0;
 
-        // Create a node for each plugin
-        for (const auto& leaf : renderer.GetGraphData(m_ViewType).Leaves)
-            RenderNode(leaf, m_ViewType);
+        // Render a node for each plugin in order of depth
+        for (u32 i = 0; i <= renderer.GetGraphData(m_ViewType).MaxDepth; i++)
+        {
+            m_DepthOffsets.Add({ 0.f, 0.f });
+            for (auto& pair : renderer.GetPlugins())
+                if (pair.second->GetGraphData(m_ViewType).MaxDepth == i)
+                    RenderNode(pair.first, m_ViewType);
+        }
+
+        // Render links once all nodes have been drawn
+        for (auto& pair : renderer.GetPlugins())
+        {
+            auto& graphData = pair.second->GetGraphData(m_ViewType);
+            for (u32 i = 0; i < graphData.Dependents.Count(); i++)
+            {
+                // Find index of this node
+                u32 idx = 0;
+                const auto& dep = m_RendererContext->GetPlugin(graphData.Dependents[i]);
+                const auto& dependencies = dep->GetGraphData(m_ViewType).Dependencies;
+                for (auto& name : dependencies)
+                {
+                    if (name == pair.first)
+                        break;
+                    idx++;
+                }
+
+                u64 outputId = pair.second->GetUUID() + i + graphData.Dependencies.size() + 1;
+                NodeEditor::Link(++m_IdCounter, outputId, dep->GetUUID() + idx + 1);
+                //NodeEditor::Flow(m_IdCounter, NodeEditor::FlowDirection::Forward);
+            }
+        }
 
         NodeEditor::End();
         NodeEditor::SetCurrentEditor(nullptr);
@@ -64,7 +92,7 @@ namespace Widgets
         {
             m_ViewType = m_ViewType == Heart::GraphDependencyType::CPU ? Heart::GraphDependencyType::GPU : Heart::GraphDependencyType::CPU;
             m_FirstRender = true;
-            m_DepthOffsets.clear();
+            m_DepthOffsets.Clear();
         }
         
         ImGui::End();
@@ -78,8 +106,8 @@ namespace Widgets
 
         NodeEditor::BeginNode((u64)plugin->GetUUID());
 
-        float nodeWidth = 200.f;
-        ImVec2 horizLayoutSize = { nodeWidth, 0.f };
+        Flourish::Texture* tex = plugin->GetOutputTexture().get();
+        ImVec2 horizLayoutSize = { tex ? 0.f : 200.f , 0.f };
 
         ImGui::Text(pluginName.Data());
         ImGui::BeginHorizontal(plugin->GetName().Data(), horizLayoutSize);
@@ -96,38 +124,23 @@ namespace Widgets
         }
         ImGui::EndVertical();
 
-        Flourish::Texture* tex = plugin->GetOutputTexture().get();
-        if (tex && false)
+        if (tex)
         {
+            float aspect = (float)tex->GetWidth() / (float)tex->GetHeight();
             ImGui::Image(
                 tex->GetImGuiHandle(),
-                { (float)std::max(150U, tex->GetWidth() / 2), (float)std::max(150U, tex->GetHeight() / 2) }
+                { 500.f, std::max(150.f, 500.f / aspect) }
             );
-            nodeWidth = ImGui::GetItemRectSize().x;
         }
         else
             ImGui::Spring(1.0f, 0);
 
         ImGui::BeginVertical("out");
-        for (const auto& depName : graphData.Dependents)
+        for (u32 i = 0; i < graphData.Dependents.Count(); i++)
         {
-            // Find index of this node
-            u32 idx = 0;
-            const auto& dep = m_RendererContext->GetPlugin(depName);
-            const auto& dependencies = dep->GetGraphData(depType).Dependencies;
-            for (auto& name : dependencies)
-            {
-                if (name == pluginName)
-                    break;
-                idx++;
-            }
-
             NodeEditor::BeginPin(++idCounter, NodeEditor::PinKind::Output);
             ImGui::Text(">");
             NodeEditor::EndPin();
-
-            NodeEditor::Link(++m_IdCounter, idCounter, dep->GetUUID() + idx + 1);
-            //NodeEditor::Flow(m_IdCounter, NodeEditor::FlowDirection::Forward);
         }
         ImGui::EndVertical();
 
@@ -135,19 +148,22 @@ namespace Widgets
         NodeEditor::EndNode();
 
         // Set x position based on computed depth
-        float xOffset = 75.f;
-        float xPos = graphData.MaxDepth * (nodeWidth + xOffset);
         if (m_FirstRender)
-            NodeEditor::SetNodePosition((u64)plugin->GetUUID(), { xPos, m_DepthOffsets[graphData.MaxDepth] });
+        {
+            ImVec2 size = ImGui::GetItemRectSize();
+            ImVec2 curOffset = m_DepthOffsets[graphData.MaxDepth];
+            float xOffset = 75.f;
+            float yOffset = 50.f;
+            float xPos = graphData.MaxDepth == 0 ? 0.f : m_DepthOffsets[graphData.MaxDepth - 1].x;
 
-        // Update y offsets
-        float height = ImGui::GetItemRectSize().y;
-        m_DepthOffsets[graphData.MaxDepth] += height + 25.f;
+            NodeEditor::SetNodePosition((u64)plugin->GetUUID(), { xPos, curOffset.y });
 
-
-        // Recurse
-        for (const auto& dep : graphData.Dependencies)
-            RenderNode(dep, depType);
+            // Update offsets
+            m_DepthOffsets[graphData.MaxDepth] = {
+                std::max(xPos + size.x + xOffset, curOffset.x),
+                curOffset.y + size.y + yOffset
+            };
+        }
     }
 }
 }

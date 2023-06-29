@@ -45,6 +45,7 @@ namespace Heart
         struct GraphData
         {
             HVector<HString8> Leaves;
+            HVector<HString8> Roots;
             u32 MaxDepth = 0;
         };
 

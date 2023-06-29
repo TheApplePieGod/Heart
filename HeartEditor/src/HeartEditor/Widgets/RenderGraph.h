@@ -26,7 +26,7 @@ namespace Widgets
         Heart::GraphDependencyType m_ViewType = Heart::GraphDependencyType::CPU;
         u64 m_IdCounter = 0;
         bool m_FirstRender = true;
-        std::unordered_map<u32, float> m_DepthOffsets;
+        Heart::HVector<ImVec2> m_DepthOffsets;
     };
 }
 }
