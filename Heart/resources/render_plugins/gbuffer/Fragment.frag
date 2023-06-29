@@ -20,6 +20,9 @@ layout(location = 1) out vec4 outGBuffer2; // RGB: WSNormal, A: Roughness
 layout(location = 2) out vec4 outGBuffer3; // RG: Motion Vector
 layout(location = 3) out float outEntityId;
 
+#define MIN_ROUGHNESS 0.001
+#define MAX_ROUGHNESS 0.75
+
 vec2 ComputeMotionVector(vec4 prevPos, vec4 newPos)
 {
     // Normalize
@@ -47,7 +50,7 @@ void main() {
     outGBuffer2.rgb = GetNormal(inTangent, inBitangent, inNormal, inMaterialId, inTexCoord, vec4(0.f));
 
     outGBuffer1.a = GetMetalness(inMaterialId, inTexCoord, vec4(0.f));
-    outGBuffer2.a = GetRoughness(inMaterialId, inTexCoord, vec4(0.f));
+    outGBuffer2.a = clamp(GetRoughness(inMaterialId, inTexCoord, vec4(0.f)), MIN_ROUGHNESS, MAX_ROUGHNESS);
 
     float linearZ = gl_FragCoord.z / gl_FragCoord.w;
     outGBuffer3.rg = ComputeMotionVector(inPrevClipPos, inClipPos);

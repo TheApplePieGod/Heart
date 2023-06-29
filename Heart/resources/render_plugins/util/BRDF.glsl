@@ -28,15 +28,26 @@ float DistributionGGX(float NdotH, float roughness)
  * https://developer.nvidia.com/gpugems/gpugems3/part-iii-rendering/chapter-20-gpu-based-importance-sampling
  * https://blog.tobias-franke.eu/2014/03/30/notes_on_importance_sampling.html
  */
-vec2 ImportanceSampleGGX(vec2 rand, float roughness)
+vec3 ImportanceSampleGGX(vec2 rand, vec3 N, float roughness)
 {
     float a = roughness * roughness;
     float phi = 2.0f * PI * rand.x;
-    float theta = acos(
-        sqrt((1.0f - rand.y) / ((a*a - 1.0f) * rand.y + 1.0f))
+    float cosTheta = sqrt((1.0f - rand.y) / ((a*a - 1.0f) * rand.y + 1.0f));
+    float sinTheta = sqrt(1.0f - cosTheta * cosTheta);
+
+    // Spherical -> cartesian
+    vec3 offset = vec3(
+        sinTheta * cos(phi),
+        sinTheta * sin(phi),
+        cosTheta
     );
 
-    return vec2(phi, theta);
+    // Convert to N space, be careful about axes
+    vec3 up = abs(N.z) < 0.999f ? vec3(0.0, 0.0, 1.0) : vec3(1.0, 0.0, 0.0);
+    vec3 tangent = cross(up, N);
+    vec3 converted = normalize(tangent * offset.x + up * offset.y + N * offset.z);
+
+    return converted;
 }
 
 // Combines DistributionGGX with ImportanceSampleGGX and returns a rough N

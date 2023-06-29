@@ -36,6 +36,10 @@ void main()
         return;
     }
 
+    vec4 col = textureLod(filterInput, texCoord, 0);
+    imageStore(outColor, coord, col);
+    return;
+
     vec2 texelStep = vec2(1.0) / vec2(textureSize(srcGBuffer2, 0));
     vec3 dstNormal = texelFetch(dstGBuffer2, coord, 0).rgb;
     vec4 totalColor = vec4(0.0);

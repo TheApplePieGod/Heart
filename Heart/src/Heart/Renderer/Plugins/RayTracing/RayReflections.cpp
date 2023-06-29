@@ -169,6 +169,11 @@ namespace Heart::RenderPlugins
         m_GroupTable->BindHitGroup(2, 0);
         m_GroupTable->BindMissGroup(3, 1);
 
+        // Set raycone spread angle based on camera FOV
+        m_PushData.MipSpreadAngle = atanf(
+            (2.f * tanf(data.Camera->GetFOV() * 0.5f)) / m_Renderer->GetRenderHeight()
+        );
+        
         auto encoder = m_CommandBuffer->EncodeComputeCommands();
         encoder->BindRayTracingPipeline(m_Pipeline.get());
         encoder->BindResourceSet(m_ResourceSet0.get(), 0);

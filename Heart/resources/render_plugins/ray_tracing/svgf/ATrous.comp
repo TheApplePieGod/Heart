@@ -58,7 +58,18 @@ void main()
     if (coord.x >= size.x || coord.y >= size.y)
         return;
 
-    const vec3 normal = texelFetch(newGBuffer2, coord, 0).xyz;
+    const vec4 gbuf2 = texelFetch(newGBuffer2, coord, 0);
+    const vec4 centerColor = texelFetch(filterInput, coord, 0);
+
+    // Check roughness. We do not need to denoise mirror reflections.
+    // TODO: could split up image into tiles and have less invocations
+    if (gbuf2.a <= 0.05)
+    {
+        imageStore(outColor, coord, centerColor);
+        return;
+    }
+
+    const vec3 normal = gbuf2.xyz;
     const float depth = texelFetch(newGBufferDepth, coord, 0).r;
 
     if (depth == 1.0 - float(frameBuffer.data.reverseDepth))
@@ -67,7 +78,6 @@ void main()
         return;
     }
 
-    const vec4 centerColor = texelFetch(filterInput, coord, 0);
     const float centerLuminance = Luminance(centerColor.rgb);
     const vec3 centerNormal = texelFetch(newGBuffer2, coord, 0).xyz;
     const float centerDepth = texelFetch(newGBuffer3, coord, 0).b;

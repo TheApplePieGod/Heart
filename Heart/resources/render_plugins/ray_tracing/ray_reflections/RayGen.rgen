@@ -7,7 +7,6 @@
 
 #include "Common.glsl"
 #include "../../util/BRDF.glsl"
-#include "../../util/Halton.glsl"
 #include "../../util/Misc.glsl"
 #include "../util/RayCone.glsl"
 
@@ -18,16 +17,10 @@ layout(binding = 4) uniform sampler2D gBufferDepth;
 
 layout(location = 0) rayPayloadEXT HitPayload payload;
 
-layout(push_constant) uniform PushConstants
-{
-    HaltonData haltonData;
-    vec2 padding;
-} constants;
-
-// TODO: push constants
+// TODO: parameterize
 #define MIN_ROUGHNESS_THRESHOLD 0.05
 
-vec4 PerturbNormal(float roughness, vec3 N)
+vec3 PerturbNormal(float roughness, vec3 N)
 {
     HaltonState hstate;
     HaltonInit(
@@ -37,7 +30,7 @@ vec4 PerturbNormal(float roughness, vec3 N)
         frameBuffer.data.frameCount
     );
 
-    return ImportanceSampleGGXPDF(
+    return ImportanceSampleGGX(
         vec2(fract(HaltonNext(hstate)), fract(HaltonNext(hstate))),
         N,
         roughness
@@ -64,17 +57,18 @@ void main()
 
     // Mirror reflections by default
     vec3 rayDir = reflect(-V, N);
-    float pdf = 1.0;
     if (roughness > MIN_ROUGHNESS_THRESHOLD)
     {
-        vec4 perturbed = PerturbNormal(roughness, N);
-        rayDir = reflect(-V, perturbed.xyz);
-        pdf = perturbed.w;
+        vec3 perturbed = PerturbNormal(roughness, N);
+        rayDir = reflect(-V, perturbed);
     }
 
     // Initial raycone for texture filtering
-    float initSpreadAngle = atan((2.0f*tan(70*0.5f))/gl_LaunchSizeEXT.y);
-    payload.rayCone = vec2(0.0, initSpreadAngle);
+    // Simulates a hit at this point
+    payload.rayCone = vec2(
+        constants.mipSpreadAngle * length(P - frameBuffer.data.cameraPos.xyz),
+        constants.mipSpreadAngle * 2
+    );
 
     uint rayFlags = gl_RayFlagsOpaqueEXT;
     uint cullMask = 0xff;
@@ -85,5 +79,5 @@ void main()
 
     // Clamp final color to prevent small pixels with super bright values
     vec3 finalColor = min(payload.hitValue, vec3(1.f));
-    imageStore(outImage, currentCoord, vec4(finalColor, pdf));
+    imageStore(outImage, currentCoord, vec4(finalColor, 1.0));
 }

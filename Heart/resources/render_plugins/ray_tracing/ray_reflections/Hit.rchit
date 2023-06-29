@@ -72,12 +72,12 @@ void main()
     vec4 T = GetWorldTangent(v0, v1, v2, bary);
     vec3 N = GetWorldNormal(v0, v1, v2, bary);
     vec3 B = cross(T.xyz, N) * T.w;
-    vec3 V = normalize(frameBuffer.data.cameraPos.xyz - P);
+    vec3 V = normalize(gl_WorldRayOriginEXT - P);
 
     // Update raycone with hit
     payload.rayCone += vec2(
-        2 * tan(payload.rayCone.y * 0.5) * length(P - frameBuffer.data.cameraPos.xyz),
-        payload.rayCone.y // TODO: this won't work for multiple iterations
+        payload.rayCone.y * length(P - gl_WorldRayOriginEXT),
+        constants.mipSpreadAngle
     );
     vec4 mip = UVDerivsFromRayCone(
         gl_WorldRayDirectionEXT,

@@ -22,6 +22,7 @@ struct HaltonData
     uint h;
     uint mX;
     uint mY;
+    vec2 padding;
 };
 
 uint Halton3Inverse(uint index, uint digits)

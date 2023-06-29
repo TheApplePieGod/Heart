@@ -43,12 +43,13 @@ namespace Heart::RenderPlugins
             u32 h;
             u32 mX;
             u32 mY;
+            glm::vec2 padding;
         };
 
         struct PushData
         {
             HaltonData HaltonData;
-            glm::vec2 Padding;
+            float MipSpreadAngle;
         };
 
     private:

@@ -65,6 +65,7 @@ namespace Heart::RenderPlugins
         texCreateInfo.Format = Flourish::ColorFormat::RGBA16_FLOAT;
         texCreateInfo.Usage = Flourish::TextureUsageFlags::Compute;
         texCreateInfo.SamplerState.UVWWrap = { Flourish::SamplerWrapMode::ClampToEdge, Flourish::SamplerWrapMode::ClampToEdge, Flourish::SamplerWrapMode::ClampToEdge };
+        texCreateInfo.SamplerState.AnisotropyEnable = true;
         m_ColorHistory = Flourish::Texture::Create(texCreateInfo);
         m_MomentsHistory = Flourish::Texture::Create(texCreateInfo);
         m_TempTexture = Flourish::Texture::Create(texCreateInfo);
@@ -145,7 +146,7 @@ namespace Heart::RenderPlugins
         encoder->BindResourceSet(m_TemporalResourceSet.get(), 0);
         encoder->FlushResourceSet(0);
         encoder->PushConstants(0, sizeof(TemporalPushData), &m_TemporalPushData);
-        encoder->Dispatch((m_OutputTexture->GetWidth() / 16) + 1, (m_OutputTexture->GetHeight() / 16) + 1, 1);
+        encoder->Dispatch((m_ColorHistory->GetWidth() / 16) + 1, (m_ColorHistory->GetHeight() / 16) + 1, 1);
         encoder->EndEncoding();
 
         for (u32 i = 0; i < m_ATrousIterations; i++)

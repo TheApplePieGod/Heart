@@ -163,6 +163,7 @@ namespace Heart
 
         inline f32 GetNearClip() const { return m_NearClip; }
         inline f32 GetFarClip() const { return m_FarClip; }
+        inline f32 GetFOV() const { return m_FOV; }
 
         /**
          * @brief Get the camera's 8 world space frustum corners.
