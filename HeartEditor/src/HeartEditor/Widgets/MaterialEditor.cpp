@@ -129,14 +129,6 @@ namespace Widgets
     {
         // Register an in-memory asset for the in-progress material
         m_EditingMaterialAsset = Heart::AssetManager::RegisterInMemoryAsset(Heart::Asset::Type::Material);
-
-        // Need to compute initial resource set since we override the loading process
-        RecomputeMaterial();
-    }
-
-    void MaterialEditor::RecomputeMaterial()
-    {
-        Heart::AssetManager::RetrieveAsset<Heart::MaterialAsset>(m_EditingMaterialAsset)->GetMaterial().RecomputeResourceSet();
     }
 
     void MaterialEditor::RenderSidebar()
@@ -249,14 +241,12 @@ namespace Widgets
                     {
                         editingMaterial.SetAlbedoTexture(0);
                         m_Dirty = true;
-                        m_ShouldRecompute = true;
                     }
                 },
                 [&](Heart::UUID selected)
                 {
                     editingMaterial.SetAlbedoTexture(selected);
                     m_Dirty = true;
-                    m_ShouldRecompute = true;
                 }
             );
             auto albedoAsset = Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>(editingMaterial.GetAlbedoTexture());
@@ -282,14 +272,12 @@ namespace Widgets
                     {
                         editingMaterial.SetMetallicRoughnessTexture(0);
                         m_Dirty = true;
-                        m_ShouldRecompute = true;
                     }
                 },
                 [&](Heart::UUID selected)
                 {
                     editingMaterial.SetMetallicRoughnessTexture(selected);
                     m_Dirty = true;
-                    m_ShouldRecompute = true;
                 }
             );
             auto mrAsset = Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>(editingMaterial.GetMetallicRoughnessTexture());
@@ -315,14 +303,12 @@ namespace Widgets
                     {
                         editingMaterial.SetNormalTexture(0);
                         m_Dirty = true;
-                        m_ShouldRecompute = true;
                     }
                 },
                 [&](Heart::UUID selected)
                 {
                     editingMaterial.SetNormalTexture(selected);
                     m_Dirty = true;
-                    m_ShouldRecompute = true;
                 }
             );
             auto normalAsset = Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>(editingMaterial.GetNormalTexture());
@@ -348,14 +334,12 @@ namespace Widgets
                     {
                         editingMaterial.SetEmissiveTexture(0);
                         m_Dirty = true;
-                        m_ShouldRecompute = true;
                     }
                 },
                 [&](Heart::UUID selected)
                 {
                     editingMaterial.SetEmissiveTexture(selected);
                     m_Dirty = true;
-                    m_ShouldRecompute = true;
                 }
             );
             auto emAsset = Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>(editingMaterial.GetEmissiveTexture());
@@ -381,14 +365,12 @@ namespace Widgets
                     {
                         editingMaterial.SetOcclusionTexture(0);
                         m_Dirty = true;
-                        m_ShouldRecompute = true;
                     }
                 },
                 [&](Heart::UUID selected)
                 {
                     editingMaterial.SetOcclusionTexture(selected);
                     m_Dirty = true;
-                    m_ShouldRecompute = true;
                 }
             );
             auto ocAsset = Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>(editingMaterial.GetOcclusionTexture());
@@ -397,10 +379,6 @@ namespace Widgets
         }
         else
             ImGui::TextColored({ 0.9f, 0.1f, 0.1f, 1.f }, "Invalid Material");
-
-        if (m_ShouldRecompute)
-            RecomputeMaterial();
-        m_ShouldRecompute = false;
     }
 
     void MaterialEditor::RenderViewport(bool shouldRender)

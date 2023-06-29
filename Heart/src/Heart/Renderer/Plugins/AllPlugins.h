@@ -7,8 +7,6 @@
 #include "ComputeMeshBatches.h"
 #include "CollectMaterials.h"
 #include "GBuffer.h"
-#include "ComputeMaterialBatches.h"
-#include "RenderMaterialBatches.h"
 #include "RenderEnvironmentMap.h"
 #include "InfiniteGrid.h"
 #include "TransparencyComposite.h"

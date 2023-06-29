@@ -48,9 +48,9 @@ namespace Heart::RenderPlugins
 
         int arrayIndex = 0;
         auto& texturesSet = m_TexturesSet;
-        auto bindTex = [&arrayIndex, &texturesSet](UUID texId, int& outIndex)
+        auto bindTex = [&arrayIndex, &texturesSet, &data](UUID texId, int& outIndex)
         {
-            auto texAsset = AssetManager::RetrieveAsset<TextureAsset>(texId);
+            auto texAsset = AssetManager::RetrieveAsset<TextureAsset>(texId, true, data.Settings.AsyncAssetLoading);
             bool valid = texAsset && texAsset->IsValid();
             if (valid)
             {

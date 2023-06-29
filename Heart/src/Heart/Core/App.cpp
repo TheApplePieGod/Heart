@@ -115,15 +115,11 @@ namespace Heart
         Window::SetMainWindow(m_Window);
 
         m_ImGuiInstance = CreateRef<ImGuiInstance>(m_Window);
-
-        Material::Initialize();
     }
 
     void App::ShutdownGraphicsApi()
     {
         UnsubscribeFromEmitter(&GetWindow());
-
-        Material::Shutdown();
 
         Flourish::Context::Shutdown([this]()
         {
