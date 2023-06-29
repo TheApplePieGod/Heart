@@ -79,7 +79,6 @@ namespace Heart
         // by an additional one because we want to ensure the task doesn't get completed and the refcount go to zero before
         // the task object gets constructed because that would cause the refcount to go to zero twice
         data.RefCount = 2;
-        data.Mutex.unlock();
         
         // Cancel immediate execution if dependencies are not completed
         bool executeNow = true;
@@ -100,8 +99,11 @@ namespace Heart
                 dependencyData.Mutex.unlock();
             }
         }
+
+        // Unlock after to ensure only dependencies can signal completion
+        data.Mutex.unlock();
         
-        if (executeNow || data.DependencyCount == 0)
+        if (executeNow)
             PushHandleToQueue(handle);
         
         return Task(handle, false);

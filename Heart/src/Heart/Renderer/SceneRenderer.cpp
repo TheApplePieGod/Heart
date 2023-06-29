@@ -273,7 +273,8 @@ namespace Heart
                     searching.pop();
                     for (const auto& dep : pair.first->GetGraphData(depType).Dependents)
                         searching.emplace(m_Plugins[dep].get(), pair.second + 1);
-                    pair.first->GetGraphData(depType).MaxDepth = pair.second;
+                    if (pair.second > pair.first->GetGraphData(depType).MaxDepth)
+                        pair.first->GetGraphData(depType).MaxDepth = pair.second;
                     if (pair.second > graphData.MaxDepth)
                         graphData.MaxDepth = pair.second;
                 }

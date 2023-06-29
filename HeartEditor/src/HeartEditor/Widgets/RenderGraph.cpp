@@ -38,6 +38,8 @@ namespace Widgets
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 5.0f));
         ImGui::Begin(m_Name.Data(), &m_Open);
 
+        ImVec2 startPos = ImGui::GetCursorPos();
+        ImGui::SetNextItemAllowOverlap();
         NodeEditor::SetCurrentEditor(m_EditorContext);
         NodeEditor::Begin("RGEditor");
 
@@ -47,29 +49,36 @@ namespace Widgets
         m_IdCounter = 0;
 
         // Create a node for each plugin
-        float yPos = 0.f;
-        for (const auto& leaf : renderer.GetGraphData(Heart::GraphDependencyType::GPU).Leaves)
-        {
-            RenderNode(leaf, yPos, Heart::GraphDependencyType::GPU);
-            yPos += 75.f;
-        }
+        for (const auto& leaf : renderer.GetGraphData(m_ViewType).Leaves)
+            RenderNode(leaf, m_ViewType);
+
         NodeEditor::End();
         NodeEditor::SetCurrentEditor(nullptr);
+
+        m_FirstRender = false;
+
+        // Need to do explicit hover check because overlapping is strange
+        ImGui::SetCursorPos(startPos);
+        ImGui::Button(m_ViewType == Heart::GraphDependencyType::CPU ? "CPU View" : "GPU View");
+        if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+        {
+            m_ViewType = m_ViewType == Heart::GraphDependencyType::CPU ? Heart::GraphDependencyType::GPU : Heart::GraphDependencyType::CPU;
+            m_FirstRender = true;
+            m_DepthOffsets.clear();
+        }
         
         ImGui::End();
         ImGui::PopStyleVar();
-
-        m_FirstRender = false;
     }
 
-    void RenderGraph::RenderNode(const Heart::HString8& pluginName, float yPos, Heart::GraphDependencyType depType)
+    void RenderGraph::RenderNode(const Heart::HString8& pluginName, Heart::GraphDependencyType depType)
     {
         auto plugin = m_RendererContext->GetPlugin(pluginName);
         const auto& graphData = plugin->GetGraphData(depType);
 
         NodeEditor::BeginNode((u64)plugin->GetUUID());
 
-        const float nodeWidth = 200.f;
+        float nodeWidth = 200.f;
         ImVec2 horizLayoutSize = { nodeWidth, 0.f };
 
         ImGui::Text(pluginName.Data());
@@ -87,7 +96,17 @@ namespace Widgets
         }
         ImGui::EndVertical();
 
-        ImGui::Spring(1.0f, 0);
+        Flourish::Texture* tex = plugin->GetOutputTexture().get();
+        if (tex && false)
+        {
+            ImGui::Image(
+                tex->GetImGuiHandle(),
+                { (float)std::max(150U, tex->GetWidth() / 2), (float)std::max(150U, tex->GetHeight() / 2) }
+            );
+            nodeWidth = ImGui::GetItemRectSize().x;
+        }
+        else
+            ImGui::Spring(1.0f, 0);
 
         ImGui::BeginVertical("out");
         for (const auto& depName : graphData.Dependents)
@@ -108,7 +127,7 @@ namespace Widgets
             NodeEditor::EndPin();
 
             NodeEditor::Link(++m_IdCounter, idCounter, dep->GetUUID() + idx + 1);
-            NodeEditor::Flow(m_IdCounter, NodeEditor::FlowDirection::Forward);
+            //NodeEditor::Flow(m_IdCounter, NodeEditor::FlowDirection::Forward);
         }
         ImGui::EndVertical();
 
@@ -119,11 +138,16 @@ namespace Widgets
         float xOffset = 75.f;
         float xPos = graphData.MaxDepth * (nodeWidth + xOffset);
         if (m_FirstRender)
-            NodeEditor::SetNodePosition((u64)plugin->GetUUID(), { xPos, yPos });
+            NodeEditor::SetNodePosition((u64)plugin->GetUUID(), { xPos, m_DepthOffsets[graphData.MaxDepth] });
+
+        // Update y offsets
+        float height = ImGui::GetItemRectSize().y;
+        m_DepthOffsets[graphData.MaxDepth] += height + 25.f;
+
 
         // Recurse
         for (const auto& dep : graphData.Dependencies)
-            RenderNode(dep, yPos, depType);
+            RenderNode(dep, depType);
     }
 }
 }

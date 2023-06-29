@@ -66,18 +66,27 @@ namespace Widgets
         // draw the viewport background
         ImGui::GetWindowDrawList()->AddRectFilled({ viewportStart.x, viewportStart.y }, { viewportEnd.x, viewportEnd.y }, IM_COL32( 0, 0, 0, 255 )); // viewport background
 
-        // draw the rendered texture
-        // todo: add more views
+        auto& plugins = m_SceneRenderer->GetPlugins();
         const Flourish::Texture* outputTex = nullptr;
         u32 outputLayer = 0;
-        switch (m_SelectedOutput){
-            default: outputTex = m_SceneRenderer->GetOutputTexture().get(); break;
-            case 1: outputTex = m_SceneRenderer->GetRenderTexture().get(); break;
-            case 2: outputTex = m_SceneRenderer->GetDepthTexture().get(); break;
-            case 3: outputTex = m_SceneRenderer->GetPlugin("RayReflections")->GetOutputTexture().get(); break;
-            case 4: outputTex = m_SceneRenderer->GetPlugin<Heart::RenderPlugins::SVGF>("SVGF")->GetDebugTexture(); break;
-            //case 5: outputTex = m_SceneRenderer->GetPlugin("SVGF")->GetOutputTexture().get(); break;
+        if (m_SelectedOutput == "Primary")
+            outputTex = m_SceneRenderer->GetOutputTexture().get();
+        else if (m_SelectedOutput == "Before Postprocessing")
+            outputTex = m_SceneRenderer->GetRenderTexture().get();
+        else if (m_SelectedOutput == "Primary Depth")
+            outputTex = m_SceneRenderer->GetDepthTexture().get();
+        else
+        {
+            for (auto& pair : plugins)
+            {
+                if (pair.second->GetOutputTexture() && pair.second->GetName() == m_SelectedOutput)
+                {
+                    outputTex = pair.second->GetOutputTexture().get();
+                    break;
+                }
+            }
         }
+
         ImGui::Image(
             outputTex->GetImGuiHandle(outputLayer, m_SelectedOutputMip),
             { m_ViewportSize.x, m_ViewportSize.y }
@@ -184,31 +193,16 @@ namespace Widgets
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.f, 5.f));
             if (ImGui::BeginPopup("OutSel"))
             {
-                if (ImGui::MenuItem("Final output", nullptr, m_SelectedOutput == 0))
-                {
-                    m_SelectedOutput = 0;
-                    m_SelectedOutputMip = 0;
-                }
-                if (ImGui::MenuItem("Render output", nullptr, m_SelectedOutput == 1))
-                {
-                    m_SelectedOutput = 1;
-                    m_SelectedOutputMip = 0;
-                }
-                if (ImGui::MenuItem("Depth", nullptr, m_SelectedOutput == 2))
-                {
-                    m_SelectedOutput = 2;
-                    m_SelectedOutputMip = 0;
-                }
-                if (ImGui::MenuItem("Reflections - Raw", nullptr, m_SelectedOutput == 3))
-                {
-                    m_SelectedOutput = 3;
-                    m_SelectedOutputMip = 0;
-                }
-                if (ImGui::MenuItem("Reflections - Post Temporal", nullptr, m_SelectedOutput == 4))
-                {
-                    m_SelectedOutput = 4;
-                    m_SelectedOutputMip = 0;
-                }
+                if (ImGui::MenuItem("Primary", nullptr, m_SelectedOutput == "Primary"))
+                    m_SelectedOutput = "Primary";
+                if (ImGui::MenuItem("Before Postprocessing", nullptr, m_SelectedOutput == "Before Postprocessing"))
+                    m_SelectedOutput = "Before Postprocessing";
+                if (ImGui::MenuItem("Primary Depth", nullptr, m_SelectedOutput == "Primary Depth"))
+                    m_SelectedOutput = "Primary Depth";
+                for (auto& pair : plugins)
+                    if (pair.second->GetOutputTexture())
+                        if (ImGui::MenuItem(pair.first.Data(), nullptr, m_SelectedOutput == pair.first))
+                            m_SelectedOutput = pair.first;
 
                 ImGui::EndPopup();
             }

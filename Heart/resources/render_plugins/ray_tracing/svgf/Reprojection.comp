@@ -269,8 +269,10 @@ void main()
         {
             historyLength = historyLength + 1;//min(32.f, historyLength + 1);
 
-            float colorAlpha = max(1.f / float(historyLength), 0.003);
-            float momentsAlpha = max(1.f / float(historyLength), 0.003);
+            float colorAlpha = max(newRoughness / float(historyLength), 0.003);
+            float momentsAlpha = max(newRoughness / float(historyLength), 0.003);
+            //float colorAlpha = 0.003;
+            //float momentsAlpha = 0.003;
             float rough2 = newRoughness * newRoughness;
             colorAlpha = clamp(colorAlpha / rough2, 0.02, 0.4);
             momentsAlpha = clamp(momentsAlpha / rough2, 0.02, 0.4);
