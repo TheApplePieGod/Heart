@@ -22,7 +22,7 @@ namespace Heart::RenderPlugins
         Flourish::AccelerationStructureCreateInfo accelCreateInfo;
         accelCreateInfo.Type = Flourish::AccelerationStructureType::Scene;
         accelCreateInfo.PerformancePreference = Flourish::AccelerationStructurePerformanceType::FasterRuntime;
-        accelCreateInfo.BuildFrequency = Flourish::AccelerationStructureBuildFrequency::PerFrame;
+        accelCreateInfo.BuildFrequency = Flourish::AccelerationStructureBuildFrequency::Often;
         accelCreateInfo.AllowUpdating = false;
         m_AccelStructure = Flourish::AccelerationStructure::Create(accelCreateInfo);
 

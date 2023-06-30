@@ -10,6 +10,8 @@ namespace Heart
     void TextureAsset::Load(bool async)
     {
         HE_PROFILE_FUNCTION();
+
+        const std::lock_guard<std::mutex> lock(m_LoadLock);
         
         if (m_Loaded || m_Loading) return;
         m_Loading = true;
@@ -74,7 +76,7 @@ namespace Heart
             format,
             Flourish::TextureUsageFlags::Readonly,
             Flourish::TextureWritability::Once,
-            1, 0,
+            1, 6,
             samp,
             pixels,
             static_cast<u32>(width * height * m_DesiredChannelCount) * (floatComponents ? 4 : 1),

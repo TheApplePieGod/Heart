@@ -21,6 +21,8 @@ namespace HeartEditor
 {
     void EditorLayer::OnAttach()
     {
+        HE_PROFILE_FUNCTION();
+
         SubscribeToEmitter(&EditorApp::Get().GetWindow());
 
         Editor::Initialize();

@@ -6,6 +6,7 @@
 #include "Heart/Core/Timing.h"
 #include "Heart/Asset/SceneAsset.h"
 #include "Heart/Asset/AssetManager.h"
+#include "Heart/Task/TaskManager.h"
 #include "Heart/Renderer/SceneRenderer.h"
 #include "imgui/imgui.h"
 
@@ -26,6 +27,8 @@ namespace HeartEditor
 {
     void Editor::Initialize()
     {
+        HE_PROFILE_FUNCTION();
+
         s_EditorScene = Heart::CreateRef<Heart::Scene>();
         s_ActiveScene = s_EditorScene;
 
@@ -46,54 +49,22 @@ namespace HeartEditor
 
     void Editor::CreateWindows()
     {
-        PushWindow(
-            "Viewport",
-            Heart::CreateRef<Widgets::Viewport>("Viewport", true)
-        );
-        PushWindow(
-            "Content Browser",
-            Heart::CreateRef<Widgets::ContentBrowser>("Content Browser", true)
-        );
-        PushWindow(
-            "Scene Hierarchy",
-            Heart::CreateRef<Widgets::SceneHierarchyPanel>("Scene Hierarchy", true)
-        );
-        PushWindow(
-            "Properties Panel",
-            Heart::CreateRef<Widgets::PropertiesPanel>("Properties Panel", true)
-        );
-        PushWindow(
-            "Material Editor",
-            Heart::CreateRef<Widgets::MaterialEditor>("Material Editor", false)
-        );
-        PushWindow(
-            "Debug Info",
-            Heart::CreateRef<Widgets::DebugInfo>("Debug Info", true)
-        );
-        PushWindow(
-            "Project Settings",
-            Heart::CreateRef<Widgets::ProjectSettings>("Project Settings", true)
-        );
-        PushWindow(
-            "Scene Settings",
-            Heart::CreateRef<Widgets::SceneSettings>("Scene Settings", true)
-        );
-        PushWindow(
-            "Render Settings",
-            Heart::CreateRef<Widgets::RenderSettings>("Render Settings", true)
-        );
-        PushWindow(
-            "Asset Registry",
-            Heart::CreateRef<Widgets::AssetRegistry>("Asset Registry", false)
-        );
-        PushWindow(
-            "Log List",
-            Heart::CreateRef<Widgets::LogList>("Log List", false)
-        );
-        PushWindow(
-            "Render Graph",
-            Heart::CreateRef<Widgets::RenderGraph>("Render Graph", false)
-        );
+        Heart::TaskGroup taskGroup;
+
+        taskGroup.AddTask(PushWindow<Widgets::Viewport>("Viewport", true));
+        taskGroup.AddTask(PushWindow<Widgets::ContentBrowser>("Content Browser", true));
+        taskGroup.AddTask(PushWindow<Widgets::SceneHierarchyPanel>("Scene Hierarchy", true));
+        taskGroup.AddTask(PushWindow<Widgets::PropertiesPanel>("Properties Panel", true));
+        taskGroup.AddTask(PushWindow<Widgets::MaterialEditor>("Material Editor", false));
+        taskGroup.AddTask(PushWindow<Widgets::DebugInfo>("Debug Info", true));
+        taskGroup.AddTask(PushWindow<Widgets::ProjectSettings>("Project Settings", true));
+        taskGroup.AddTask(PushWindow<Widgets::SceneSettings>("Scene Settings", true));
+        taskGroup.AddTask(PushWindow<Widgets::RenderSettings>("Render Settings", true));
+        taskGroup.AddTask(PushWindow<Widgets::AssetRegistry>("Asset Registry", false));
+        taskGroup.AddTask(PushWindow<Widgets::LogList>("Log List", false));
+        taskGroup.AddTask(PushWindow<Widgets::RenderGraph>("Render Graph", false));
+
+        taskGroup.Wait();
     }
 
     void Editor::DestroyWindows()

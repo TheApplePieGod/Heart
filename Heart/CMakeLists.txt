@@ -50,7 +50,7 @@ set (MSDF_ATLAS_GEN_BUILD_STANDALONE OFF)
 add_subdirectory("lib/msdf")
 set(TinyTIFF_BUILD_SHARED_LIBS OFF)
 set(TinyTIFF_BUILD_STATIC_LIBS ON)
-set(TinyTIFF_BUILD_EXAMPLES OFF)
+set(TinyTIFF_BUILD_TESTS OFF)
 add_subdirectory("lib/tinytiff")
 
 # Include other dependency sources that need to be built

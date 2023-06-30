@@ -4,7 +4,7 @@
 #include "Heart/Scene/RenderScene.h"
 #include "Heart/Renderer/SceneRenderer.h"
 #include "Heart/Container/HString8.h"
-#include "Heart/Task/Task.h"
+#include "Heart/Task/TaskManager.h"
 
 namespace HeartEditor
 {
@@ -41,8 +41,6 @@ namespace HeartEditor
 
         static bool IsDirty();
 
-        inline static void PushWindow(const Heart::HStringView8& name, const Heart::Ref<Widget>& window) { s_Windows[name] = window; }
-
         inline static EditorState& GetState() { return s_EditorState; }
         inline static SceneState GetSceneState() { return s_SceneState; }
         inline static Heart::Scene& GetActiveScene() { return *s_ActiveScene; }
@@ -55,6 +53,21 @@ namespace HeartEditor
         inline static const Heart::Task& GetSceneUpdateTask() { return s_SceneUpdateTask; }
         inline static void SetSceneUpdateTask(const Heart::Task& task) { s_SceneUpdateTask = task; }
 
+        template<typename W, typename ... Args>
+        static Heart::Task PushWindow(Args&& ... args)
+        {
+            return Heart::TaskManager::Schedule(
+                [&args ...]()
+                {
+                    auto widget = Heart::CreateRef<W>(std::forward<Args>(args)...);
+                    s_WindowsLock.lock();
+                    s_Windows[widget->GetName()] = widget;
+                    s_WindowsLock.unlock();
+                },
+                Heart::Task::Priority::High
+            );
+        }
+
     private:
         inline static EditorState s_EditorState;
         inline static Heart::Ref<Heart::Scene> s_ActiveScene, s_EditorScene;
@@ -62,6 +75,7 @@ namespace HeartEditor
         inline static Heart::Task s_SceneUpdateTask;
         inline static Heart::UUID s_EditorSceneAsset;
         inline static std::unordered_map<Heart::HString8, Heart::Ref<Widget>> s_Windows;
+        inline static std::mutex s_WindowsLock;
         inline static bool s_ImGuiDemoOpen;
         inline static SceneState s_SceneState;
 

@@ -8,6 +8,8 @@ namespace Heart
     void FontAsset::Load(bool async)
     {
         HE_PROFILE_FUNCTION();
+
+        const std::lock_guard<std::mutex> lock(m_LoadLock);
         
         if (m_Loaded || m_Loading) return;
         m_Loading = true;
