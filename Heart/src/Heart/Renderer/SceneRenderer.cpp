@@ -105,6 +105,8 @@ namespace Heart
         GRADING->AddDependency(Bloom->GetName(), GraphDependencyType::GPU);
         */
 
+        // TODO: need to add grid and basic transparency back (?)
+
         auto frameData = RegisterPlugin<RenderPlugins::FrameData>("FrameData");
         auto lightingData = RegisterPlugin<RenderPlugins::LightingData>("LightingData");
         auto entityIds = RegisterPlugin<RenderPlugins::EntityIds>("EntityIds");
@@ -117,11 +119,6 @@ namespace Heart
         auto CBMESHCam = RegisterPlugin<RenderPlugins::ComputeMeshBatches>("CBMESHCam", cbmeshcamCreateInfo);
         CBMESHCam->AddDependency(collectMaterials->GetName(), GraphDependencyType::CPU);
 
-        RenderPlugins::TLASCreateInfo tlasCreateInfo;
-        tlasCreateInfo.CollectMaterialsPluginName = collectMaterials->GetName();
-        auto tlas = RegisterPlugin<RenderPlugins::TLAS>("TLAS", tlasCreateInfo);
-        tlas->AddDependency(collectMaterials->GetName(), GraphDependencyType::CPU);
-
         RenderPlugins::GBufferCreateInfo gBufferCreateInfo;
         gBufferCreateInfo.FrameDataPluginName = frameData->GetName();
         gBufferCreateInfo.MeshBatchesPluginName = CBMESHCam->GetName();
@@ -130,40 +127,58 @@ namespace Heart
         auto gBuffer = RegisterPlugin<RenderPlugins::GBuffer>("GBuffer", gBufferCreateInfo);
         gBuffer->AddDependency(CBMESHCam->GetName(), GraphDependencyType::CPU);
 
-        RenderPlugins::RayReflectionsCreateInfo rayReflCreateInfo;
-        rayReflCreateInfo.FrameDataPluginName = frameData->GetName();
-        rayReflCreateInfo.TLASPluginName = tlas->GetName();
-        rayReflCreateInfo.LightingDataPluginName = lightingData->GetName();
-        rayReflCreateInfo.CollectMaterialsPluginName = collectMaterials->GetName();
-        rayReflCreateInfo.GBufferPluginName = gBuffer->GetName();
-        auto rayReflections = RegisterPlugin<RenderPlugins::RayReflections>("RayReflections", rayReflCreateInfo);
-        rayReflections->AddDependency(collectMaterials->GetName(), GraphDependencyType::CPU);
-        rayReflections->AddDependency(tlas->GetName(), GraphDependencyType::CPU);
-        rayReflections->AddDependency(tlas->GetName(), GraphDependencyType::GPU);
-        rayReflections->AddDependency(gBuffer->GetName(), GraphDependencyType::GPU);
-
-        // TODO: downscaled version
-        RenderPlugins::SVGFCreateInfo svgfCreateInfo;
-        svgfCreateInfo.InputPluginName = rayReflections->GetName();
-        svgfCreateInfo.FrameDataPluginName = frameData->GetName();
-        svgfCreateInfo.GBufferPluginName = gBuffer->GetName();
-        auto svgf = RegisterPlugin<RenderPlugins::SVGF>("SVGF", svgfCreateInfo);
-        svgf->AddDependency(rayReflections->GetName(), GraphDependencyType::GPU);
-
         RenderPlugins::RenderEnvironmentMapCreateInfo envMapCreateInfo;
         envMapCreateInfo.FrameDataPluginName = frameData->GetName();
         auto envMap = RegisterPlugin<RenderPlugins::RenderEnvironmentMap>("EnvMap", envMapCreateInfo);
 
-        RenderPlugins::PBRCompositeCreateInfo pbrCompCreateInfo;
-        pbrCompCreateInfo.ReflectionsInputPluginName = svgf->GetName();
-        pbrCompCreateInfo.FrameDataPluginName = frameData->GetName();
-        pbrCompCreateInfo.LightingDataPluginName = lightingData->GetName();
-        pbrCompCreateInfo.GBufferPluginName = gBuffer->GetName();
-        pbrCompCreateInfo.TLASPluginName = tlas->GetName();
-        auto pbrComposite = RegisterPlugin<RenderPlugins::PBRComposite>("PBRComposite", pbrCompCreateInfo);
-        pbrComposite->AddDependency(envMap->GetName(), GraphDependencyType::GPU);
-        pbrComposite->AddDependency(svgf->GetName(), GraphDependencyType::GPU);
-        pbrComposite->AddDependency(tlas->GetName(), GraphDependencyType::CPU);
+        Ref<RenderPlugins::PBRComposite> pbrComposite;
+        if (Flourish::Context::FeatureTable().RayTracing)
+        {
+            RenderPlugins::TLASCreateInfo tlasCreateInfo;
+            tlasCreateInfo.CollectMaterialsPluginName = collectMaterials->GetName();
+            auto tlas = RegisterPlugin<RenderPlugins::TLAS>("TLAS", tlasCreateInfo);
+            tlas->AddDependency(collectMaterials->GetName(), GraphDependencyType::CPU);
+
+            RenderPlugins::RayReflectionsCreateInfo rayReflCreateInfo;
+            rayReflCreateInfo.FrameDataPluginName = frameData->GetName();
+            rayReflCreateInfo.TLASPluginName = tlas->GetName();
+            rayReflCreateInfo.LightingDataPluginName = lightingData->GetName();
+            rayReflCreateInfo.CollectMaterialsPluginName = collectMaterials->GetName();
+            rayReflCreateInfo.GBufferPluginName = gBuffer->GetName();
+            auto rayReflections = RegisterPlugin<RenderPlugins::RayReflections>("RayReflections", rayReflCreateInfo);
+            rayReflections->AddDependency(collectMaterials->GetName(), GraphDependencyType::CPU);
+            rayReflections->AddDependency(tlas->GetName(), GraphDependencyType::CPU);
+            rayReflections->AddDependency(tlas->GetName(), GraphDependencyType::GPU);
+            rayReflections->AddDependency(gBuffer->GetName(), GraphDependencyType::GPU);
+
+            // TODO: downscaled version
+            RenderPlugins::SVGFCreateInfo svgfCreateInfo;
+            svgfCreateInfo.InputPluginName = rayReflections->GetName();
+            svgfCreateInfo.FrameDataPluginName = frameData->GetName();
+            svgfCreateInfo.GBufferPluginName = gBuffer->GetName();
+            auto svgf = RegisterPlugin<RenderPlugins::SVGF>("SVGF", svgfCreateInfo);
+            svgf->AddDependency(rayReflections->GetName(), GraphDependencyType::GPU);
+
+            RenderPlugins::PBRCompositeCreateInfo pbrCompCreateInfo;
+            pbrCompCreateInfo.ReflectionsInputPluginName = svgf->GetName();
+            pbrCompCreateInfo.FrameDataPluginName = frameData->GetName();
+            pbrCompCreateInfo.LightingDataPluginName = lightingData->GetName();
+            pbrCompCreateInfo.GBufferPluginName = gBuffer->GetName();
+            pbrCompCreateInfo.TLASPluginName = tlas->GetName();
+            pbrComposite = RegisterPlugin<RenderPlugins::PBRComposite>("PBRComposite", pbrCompCreateInfo);
+            pbrComposite->AddDependency(envMap->GetName(), GraphDependencyType::GPU);
+            pbrComposite->AddDependency(svgf->GetName(), GraphDependencyType::GPU);
+            pbrComposite->AddDependency(tlas->GetName(), GraphDependencyType::CPU);
+        }
+        else
+        {
+            RenderPlugins::PBRCompositeCreateInfo pbrCompCreateInfo;
+            pbrCompCreateInfo.FrameDataPluginName = frameData->GetName();
+            pbrCompCreateInfo.LightingDataPluginName = lightingData->GetName();
+            pbrCompCreateInfo.GBufferPluginName = gBuffer->GetName();
+            pbrComposite = RegisterPlugin<RenderPlugins::PBRComposite>("PBRComposite", pbrCompCreateInfo);
+            pbrComposite->AddDependency(envMap->GetName(), GraphDependencyType::GPU);
+        }
 
         RenderPlugins::BloomCreateInfo BloomCreateInfo;
         auto bloom = RegisterPlugin<RenderPlugins::Bloom>("Bloom", BloomCreateInfo);
