@@ -30,8 +30,8 @@ namespace Heart
         m_MainRenderPass = Flourish::RenderPass::Create(rpCreateInfo);
 
         Flourish::GraphicsPipelineCreateInfo pipelineCreateInfo;
-        pipelineCreateInfo.VertexShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/DebugLine.vert", true)->GetShader();
-        pipelineCreateInfo.FragmentShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/DebugLine.frag", true)->GetShader();
+        pipelineCreateInfo.VertexShader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/DebugLine.vert", true)->GetShader() };
+        pipelineCreateInfo.FragmentShader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/DebugLine.frag", true)->GetShader() };
         pipelineCreateInfo.VertexTopology = Flourish::VertexTopology::LineList;
         pipelineCreateInfo.VertexLayout = { Flourish::BufferDataType::Float3, Flourish::BufferDataType::Float3 };
         pipelineCreateInfo.VertexInput = true;

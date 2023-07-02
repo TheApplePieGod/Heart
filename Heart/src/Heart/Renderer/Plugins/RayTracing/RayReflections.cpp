@@ -34,10 +34,10 @@ namespace Heart::RenderPlugins
         Flourish::RayTracingPipelineCreateInfo pipelineCreateInfo;
         pipelineCreateInfo.MaxRayRecursionDepth = 2;
         pipelineCreateInfo.Shaders = {
-            AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/ray_tracing/ray_reflections/RayGen.rgen", true)->GetShader(),
-            AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/ray_tracing/ray_reflections/Miss.rmiss", true)->GetShader(),
-            AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/ray_tracing/ray_reflections/Hit.rchit", true)->GetShader(),
-            AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/ray_tracing/ray_reflections/Shadow.rmiss", true)->GetShader()
+            { AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/ray_tracing/ray_reflections/RayGen.rgen", true)->GetShader() },
+            { AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/ray_tracing/ray_reflections/Miss.rmiss", true)->GetShader() },
+            { AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/ray_tracing/ray_reflections/Hit.rchit", true)->GetShader() },
+            { AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/ray_tracing/ray_reflections/Shadow.rmiss", true)->GetShader() }
         };
         pipelineCreateInfo.AccessOverrides = {
             { 2, 0, Flourish::ShaderTypeFlags::All }

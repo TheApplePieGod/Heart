@@ -29,11 +29,11 @@ namespace Heart::RenderPlugins
     void SVGF::Initialize()
     {
         Flourish::ComputePipelineCreateInfo compCreateInfo;
-        compCreateInfo.ComputeShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/ray_tracing/svgf/Reprojection.comp", true)->GetShader();
+        compCreateInfo.Shader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/ray_tracing/svgf/Reprojection.comp", true)->GetShader() };
         m_TemporalPipeline = Flourish::ComputePipeline::Create(compCreateInfo);
-        compCreateInfo.ComputeShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/ray_tracing/svgf/ATrous.comp", true)->GetShader();
+        compCreateInfo.Shader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/ray_tracing/svgf/ATrous.comp", true)->GetShader() };
         m_ATrousPipeline = Flourish::ComputePipeline::Create(compCreateInfo);
-        compCreateInfo.ComputeShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/ray_tracing/svgf/Upsample.comp", true)->GetShader();
+        compCreateInfo.Shader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/ray_tracing/svgf/Upsample.comp", true)->GetShader() };
         m_UpsamplePipeline = Flourish::ComputePipeline::Create(compCreateInfo);
 
         Flourish::CommandBufferCreateInfo cbCreateInfo;

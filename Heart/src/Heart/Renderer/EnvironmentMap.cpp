@@ -116,8 +116,8 @@ namespace Heart
             m_EnvironmentMap.Framebuffer = Flourish::Framebuffer::Create(fbCreateInfo);
 
             Flourish::GraphicsPipelineCreateInfo pipelineCreateInfo;
-            pipelineCreateInfo.VertexShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/EnvironmentMap.vert", true)->GetShader();
-            pipelineCreateInfo.FragmentShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/CalcEnvironmentMap.frag", true)->GetShader();
+            pipelineCreateInfo.VertexShader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/EnvironmentMap.vert", true)->GetShader() };
+            pipelineCreateInfo.FragmentShader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/CalcEnvironmentMap.frag", true)->GetShader() };
             pipelineCreateInfo.VertexInput = true;
             pipelineCreateInfo.VertexTopology = Flourish::VertexTopology::TriangleList;
             pipelineCreateInfo.VertexLayout = Heart::Mesh::GetVertexLayout();
@@ -147,8 +147,8 @@ namespace Heart
             m_IrradianceMap.Framebuffer = Flourish::Framebuffer::Create(fbCreateInfo);
 
             Flourish::GraphicsPipelineCreateInfo pipelineCreateInfo;
-            pipelineCreateInfo.VertexShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/EnvironmentMap.vert", true)->GetShader();
-            pipelineCreateInfo.FragmentShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/CalcIrradianceMap.frag", true)->GetShader();
+            pipelineCreateInfo.VertexShader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/EnvironmentMap.vert", true)->GetShader() };
+            pipelineCreateInfo.FragmentShader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/CalcIrradianceMap.frag", true)->GetShader() };
             pipelineCreateInfo.VertexInput = true;
             pipelineCreateInfo.VertexTopology = Flourish::VertexTopology::TriangleList;
             pipelineCreateInfo.VertexLayout = Heart::Mesh::GetVertexLayout();
@@ -183,8 +183,8 @@ namespace Heart
             }
 
             Flourish::GraphicsPipelineCreateInfo pipelineCreateInfo;
-            pipelineCreateInfo.VertexShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/EnvironmentMap.vert", true)->GetShader();
-            pipelineCreateInfo.FragmentShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/CalcPrefilterMap.frag", true)->GetShader();
+            pipelineCreateInfo.VertexShader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/EnvironmentMap.vert", true)->GetShader() };
+            pipelineCreateInfo.FragmentShader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/CalcPrefilterMap.frag", true)->GetShader() };
             pipelineCreateInfo.VertexInput = true;
             pipelineCreateInfo.VertexTopology = Flourish::VertexTopology::TriangleList;
             pipelineCreateInfo.VertexLayout = Heart::Mesh::GetVertexLayout();
@@ -213,8 +213,8 @@ namespace Heart
             m_BRDFTexture.Framebuffer = Flourish::Framebuffer::Create(fbCreateInfo);
 
             Flourish::GraphicsPipelineCreateInfo pipelineCreateInfo;
-            pipelineCreateInfo.VertexShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/BRDFQuad.vert", true)->GetShader();
-            pipelineCreateInfo.FragmentShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/CalcBRDF.frag", true)->GetShader();
+            pipelineCreateInfo.VertexShader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/BRDFQuad.vert", true)->GetShader() };
+            pipelineCreateInfo.FragmentShader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/CalcBRDF.frag", true)->GetShader() };
             pipelineCreateInfo.VertexInput = false;
             pipelineCreateInfo.BlendStates = { { false } };
             pipelineCreateInfo.DepthConfig.DepthTest = false;
