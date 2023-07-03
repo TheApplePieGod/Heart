@@ -21,9 +21,12 @@ layout(binding = 2) uniform sampler2D newGBuffer1;
 layout(binding = 3) uniform sampler2D newGBuffer2;
 layout(binding = 4) uniform sampler2D newGBufferDepth;
 layout(binding = 5) uniform sampler2D brdfTex;
-layout(binding = 6) uniform sampler2D reflectionsTex;
-layout(binding = 7, rgba16f) uniform writeonly image2D outColor;
+layout(binding = 6, rgba16f) uniform writeonly image2D outColor;
+
+#ifdef FLOURISH_RAY_TRACING
+layout(binding = 7) uniform sampler2D reflectionsTex;
 layout(binding = 8) uniform accelerationStructureEXT tlas;
+#endif
 
 void main()
 {
@@ -67,10 +70,12 @@ void main()
         if (data.nDotL <= 0)
             continue;
 
-        if (!QueryVisibility(
-            tlas, shadowOrigin, data.l, data.dist, shadowFlags, 0xFF
-        ))
-            continue;
+        #ifdef FLOURISH_RAY_TRACING
+            if (!QueryVisibility(
+                tlas, shadowOrigin, data.l, data.dist, shadowFlags, 0xFF
+            ))
+                continue;
+        #endif
 
         finalContribution += EvaluateLightBRDF(data, N, V, F0, diffuse, roughness);
     }
@@ -88,7 +93,12 @@ void main()
         vec3 irradiance = vec3(0.015);
         vec3 diffuse = irradiance * albedo;
 
-        vec3 prefilteredColor = textureLod(reflectionsTex, texCoord, 0.0f).rgb;
+        #ifdef FLOURISH_RAY_TRACING
+            vec3 prefilteredColor = textureLod(reflectionsTex, texCoord, 0.0f).rgb;
+        #else
+            vec3 prefilteredColor = vec3(0.f);
+        #endif
+
         vec2 brdf = texture(brdfTex, vec2(max(dot(N, V), 0.0), roughness)).rg;
         vec3 specular = prefilteredColor * (F * brdf.x + brdf.y) * 2.0;
 

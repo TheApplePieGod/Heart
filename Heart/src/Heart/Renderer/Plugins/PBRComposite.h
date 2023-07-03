@@ -38,5 +38,7 @@ namespace Heart::RenderPlugins
 
         Ref<Flourish::ResourceSet> m_ResourceSet;
         Ref<Flourish::ComputePipeline> m_Pipeline;
+
+        bool m_UseRayTracing;
     };
 }

@@ -26,14 +26,14 @@ layout(location = 3) out float outEntityId;
 vec2 ComputeMotionVector(vec4 prevPos, vec4 newPos)
 {
     // Normalize
-    vec2 new = (newPos.xy / newPos.w);
-    vec2 prev = (prevPos.xy / prevPos.w);
+    vec2 new2d = (newPos.xy / newPos.w);
+    vec2 prev2d = (prevPos.xy / prevPos.w);
 
     // Remap to [0, 1]
-    new = new * 0.5 + 0.5;
-    prev = prev * 0.5 + 0.5;
+    new2d = new2d * 0.5 + 0.5;
+    prev2d = prev2d * 0.5 + 0.5;
 
-    return prev - new;
+    return prev2d - new2d;
 }
 
 void main() {

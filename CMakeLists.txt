@@ -53,6 +53,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 #     set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64")
 #     set(CMAKE_OSX_DEPLOYMENT_TARGET "10.15")
 # endif()
+set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0")
 
 # Configure & locate dotnet hostfxr
 find_package(Python3 COMPONENTS Interpreter)

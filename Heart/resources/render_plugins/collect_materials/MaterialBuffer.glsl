@@ -27,7 +27,7 @@ layout(
     MaterialInfo data[];
 } materialBuffer;
 
-#define MAX_MATERIAL_TEXTURES 5000
+#define MAX_MATERIAL_TEXTURES 1024
 layout(
     binding = MATERIAL_TEXTURES_BINDING,
     set = MATERIAL_TEXTURES_SET

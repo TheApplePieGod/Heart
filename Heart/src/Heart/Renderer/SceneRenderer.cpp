@@ -177,6 +177,7 @@ namespace Heart
             pbrCompCreateInfo.LightingDataPluginName = lightingData->GetName();
             pbrCompCreateInfo.GBufferPluginName = gBuffer->GetName();
             pbrComposite = RegisterPlugin<RenderPlugins::PBRComposite>("PBRComposite", pbrCompCreateInfo);
+            pbrComposite->AddDependency(gBuffer->GetName(), GraphDependencyType::GPU);
             pbrComposite->AddDependency(envMap->GetName(), GraphDependencyType::GPU);
         }
 

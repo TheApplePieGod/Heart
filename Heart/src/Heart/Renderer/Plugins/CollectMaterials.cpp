@@ -30,7 +30,7 @@ namespace Heart::RenderPlugins
                 0,
                 Flourish::ShaderResourceType::Texture,
                 Flourish::ShaderTypeFlags::All,
-                m_MaxMaterials
+                m_MaxTextures
             }
         };
         auto setAllocator = Flourish::ResourceSetAllocator::Create(setAllocCreateInfo);

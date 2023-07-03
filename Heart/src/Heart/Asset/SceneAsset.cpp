@@ -189,12 +189,15 @@ namespace Heart
                         false,
                         compEntry["font"]["engineResource"]
                     );
-                    comp.Material = AssetManager::RegisterAsset(
-                        Asset::Type::Material,
-                        compEntry["material"]["path"],
-                        false,
-                        compEntry["material"]["engineResource"]
-                    );
+                    if (compEntry.contains("material"))
+                    {
+                        comp.Material = AssetManager::RegisterAsset(
+                            Asset::Type::Material,
+                            compEntry["material"]["path"],
+                            false,
+                            compEntry["material"]["engineResource"]
+                        );
+                    }
                     comp.Text = compEntry["text"];
                     comp.FontSize = compEntry["fontSize"];
                     comp.LineHeight = compEntry["lineHeight"];

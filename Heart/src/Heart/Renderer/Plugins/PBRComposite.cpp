@@ -20,6 +20,10 @@ namespace Heart::RenderPlugins
 {
     void PBRComposite::Initialize()
     {
+        m_UseRayTracing = Flourish::Context::FeatureTable().RayTracing &&
+                          !m_Info.TLASPluginName.IsEmpty() &&
+                          !m_Info.ReflectionsInputPluginName.IsEmpty();
+
         Flourish::ComputePipelineCreateInfo compCreateInfo;
         compCreateInfo.Shader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/pbr_composite/Composite.comp", true)->GetShader() };
         m_Pipeline = Flourish::ComputePipeline::Create(compCreateInfo);
@@ -39,12 +43,10 @@ namespace Heart::RenderPlugins
     void PBRComposite::ResizeInternal()
     {
         auto gBufferPlugin = m_Renderer->GetPlugin<RenderPlugins::GBuffer>(m_Info.GBufferPluginName);
-        auto reflPlugin = m_Renderer->GetPlugin(m_Info.ReflectionsInputPluginName);
 
         m_GPUGraphNodeBuilder.Reset()
             .SetCommandBuffer(m_CommandBuffer.get())
             .AddEncoderNode(Flourish::GPUWorkloadType::Compute)
-            .EncoderAddTextureRead(reflPlugin->GetOutputTexture().get())
             .EncoderAddTextureRead(gBufferPlugin->GetGBuffer1())
             .EncoderAddTextureRead(gBufferPlugin->GetGBuffer2())
             .EncoderAddTextureRead(gBufferPlugin->GetGBuffer3())
@@ -52,6 +54,12 @@ namespace Heart::RenderPlugins
             .EncoderAddTextureWrite(m_Renderer->GetRenderTexture().get())
             // Need a read here because we need to ensure current contents are synced
             .EncoderAddTextureRead(m_Renderer->GetRenderTexture().get());
+
+        if (m_UseRayTracing)
+        {
+            auto reflPlugin = m_Renderer->GetPlugin(m_Info.ReflectionsInputPluginName);
+            m_GPUGraphNodeBuilder.EncoderAddTextureRead(reflPlugin->GetOutputTexture().get());
+        }
     }
 
     // TODO: resource sets could definitely be static
@@ -65,8 +73,6 @@ namespace Heart::RenderPlugins
         auto lightingDataPlugin = m_Renderer->GetPlugin<RenderPlugins::LightingData>(m_Info.LightingDataPluginName);
         auto lightingDataBuffer = lightingDataPlugin->GetBuffer();
         auto gBufferPlugin = m_Renderer->GetPlugin<RenderPlugins::GBuffer>(m_Info.GBufferPluginName);
-        auto tlasPlugin = m_Renderer->GetPlugin<RenderPlugins::TLAS>(m_Info.TLASPluginName);
-        auto reflPlugin = m_Renderer->GetPlugin(m_Info.ReflectionsInputPluginName);
 
         u32 arrayIndex = gBufferPlugin->GetArrayIndex();
         m_ResourceSet->BindBuffer(0, frameDataBuffer, 0, 1);
@@ -78,9 +84,16 @@ namespace Heart::RenderPlugins
             m_ResourceSet->BindTexture(5, data.EnvMap->GetBRDFTexture());
         else
             m_ResourceSet->BindTextureLayer(5, m_Renderer->GetDefaultEnvironmentMap(), 0, 0);
-        m_ResourceSet->BindTexture(6, reflPlugin->GetOutputTexture().get());
-        m_ResourceSet->BindTexture(7, m_Renderer->GetRenderTexture().get());
-        m_ResourceSet->BindAccelerationStructure(8, tlasPlugin->GetAccelStructure());
+        m_ResourceSet->BindTexture(6, m_Renderer->GetRenderTexture().get());
+
+        if (m_UseRayTracing)
+        {
+            auto tlasPlugin = m_Renderer->GetPlugin<RenderPlugins::TLAS>(m_Info.TLASPluginName);
+            auto reflPlugin = m_Renderer->GetPlugin(m_Info.ReflectionsInputPluginName);
+            m_ResourceSet->BindTexture(7, reflPlugin->GetOutputTexture().get());
+            m_ResourceSet->BindAccelerationStructure(8, tlasPlugin->GetAccelStructure());
+        }
+
         m_ResourceSet->FlushBindings();
 
         auto encoder = m_CommandBuffer->EncodeComputeCommands();
