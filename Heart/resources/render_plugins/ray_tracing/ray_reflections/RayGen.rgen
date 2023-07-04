@@ -78,6 +78,7 @@ void main()
     traceRayEXT(tlas, rayFlags, cullMask, 0, 0, 0, rayOrigin, tMin, rayDir, tMax, 0);
 
     // Clamp final color to prevent small pixels with super bright values
-    vec3 finalColor = min(payload.hitValue, vec3(1.f));
-    imageStore(outImage, currentCoord, vec4(finalColor, 1.0));
+    vec3 finalColor = min(payload.hitValue.rgb, vec3(1.f));
+    float rayLength = payload.hitValue.a;
+    imageStore(outImage, currentCoord, vec4(finalColor, rayLength));
 }

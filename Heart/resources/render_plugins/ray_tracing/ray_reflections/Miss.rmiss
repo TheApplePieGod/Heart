@@ -9,5 +9,5 @@ layout(binding = 3, set = 1) uniform samplerCube environmentMap;
 
 void main()
 {
-    prd.hitValue = textureLod(environmentMap, gl_WorldRayDirectionEXT, 0.0).rgb;
+    prd.hitValue = textureLod(environmentMap, gl_WorldRayDirectionEXT, 0.0);
 }

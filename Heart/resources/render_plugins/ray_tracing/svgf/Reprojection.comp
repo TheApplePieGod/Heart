@@ -44,9 +44,34 @@ vec2 SurfacePointReprojection(ivec2 coord, vec2 motionVector, ivec2 size)
     return vec2(coord) + motionVector * size;
 }
 
-vec2 ProjectCoord(ivec2 coord, vec2 motionVector, ivec2 size)
+vec2 VirtualPointReprojection(ivec2 coord, float newDepth, float rayLength, ivec2 size)
 {
-    return SurfacePointReprojection(coord, motionVector, size);
+    // Need to recompute position here because it is not offset like the other world 
+    // position being computed
+    vec2 texCoord = coord / vec2(size);
+    const vec3 newPos = ComputeWorldPositionFromDepth(
+        texCoord,
+        newDepth,
+        frameBuffer.data.invViewProj
+    );
+
+    vec3 C = newPos - frameBuffer.data.cameraPos.xyz;
+    float lenC = length(C);
+    C = normalize(C);
+
+    vec3 parallaxHit = frameBuffer.data.cameraPos.xyz + C * (lenC + rayLength);
+    vec4 reprojected = frameBuffer.data.prevViewProj * vec4(parallaxHit, 1.f);
+    reprojected.xy /= reprojected.w;
+    
+    return (reprojected.xy * 0.5f + 0.5f) * size;
+}
+
+vec2 ProjectCoord(ivec2 coord, float newDepth, vec2 motionVector, float rayLength, ivec2 size)
+{
+    return VirtualPointReprojection(coord, newDepth, rayLength, size);
+
+    // TODO: check curvature for surface point reprojection
+    //return SurfacePointReprojection(coord, motionVector, size);
 }
 
 bool ReprojectionCheckPlaneDistance(vec3 newPos, vec3 prevPos, vec3 newNormal)
@@ -155,9 +180,10 @@ void main()
     const float filterLuminance = Luminance(filterColor.rgb);
     const float newRoughness = max(texelFetch(newGBuffer2, coord, 0).a, 0.01);
 
+    float rayLength = filterColor.a;
     const vec2 motionVector = texelFetch(newGBuffer3, coord, 0).rg;
     const vec2 prevTexCoord = texCoord + motionVector;
-    const vec2 prevCoord = ProjectCoord(coord, motionVector, size);
+    const vec2 prevCoord = ProjectCoord(coord, newDepth, motionVector, rayLength, size);
 
     if (constants.reset == 0)
     {

@@ -130,5 +130,6 @@ void main()
         finalContribution += (kD * diffuse);
     }
 
-    payload.hitValue = finalContribution.rgb;
+    payload.hitValue.rgb = finalContribution.rgb;
+    payload.hitValue.a = gl_RayTminEXT + gl_HitTEXT;
 }

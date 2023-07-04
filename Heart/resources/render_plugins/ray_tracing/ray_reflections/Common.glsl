@@ -8,6 +8,6 @@ layout(push_constant) uniform PushConstants
 
 struct HitPayload
 {
-    vec3 hitValue;
+    vec4 hitValue;
     vec2 rayCone;
 };
