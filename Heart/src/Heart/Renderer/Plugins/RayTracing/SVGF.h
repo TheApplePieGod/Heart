@@ -66,7 +66,7 @@ namespace Heart::RenderPlugins
 
         Ref<Flourish::Texture> m_DebugTexture;
 
-        u32 m_ATrousIterations = 3;
+        u32 m_ATrousIterations = 4;
         u32 m_GBufferMip = 0;
         TemporalPushData m_TemporalPushData;
         ATrousPushData m_ATrousPushData;

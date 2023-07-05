@@ -87,11 +87,11 @@ void main()
     float varianceSum = centerColor.a;
     float weightsSum = 1.0;
     float weightsSquareSum = 1.0;
-    const int radius = 5;
+    const int radius = 2;
     const int stepSize = 1 << constants.iteration;
     const float sigmaDepth = 1;
     const float sigmaNormal = 128;
-    const float sigmaLuminance = 4;
+    const float sigmaLuminance = 8;
     const float phi = sigmaLuminance * sqrt(variance) + 1e-6;
     for (int y = -radius; y <= radius; y++)
     {
