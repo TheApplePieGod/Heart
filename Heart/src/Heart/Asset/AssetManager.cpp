@@ -48,6 +48,8 @@ namespace Heart
     // TODO: this could probably be a task
     void AssetManager::OnUpdate()
     {
+        HE_PROFILE_FUNCTION();
+
         // Check to see if assets should be unloaded
         for (auto& pair : s_UUIDs)
         {

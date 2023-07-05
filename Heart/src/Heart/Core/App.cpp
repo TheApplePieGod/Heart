@@ -213,8 +213,10 @@ namespace Heart
                 timer.Finish();
 
                 // Layer update
+                timer = AggregateTimer("App::Run - Layer update");
                 for (auto layer : m_Layers)
                     layer->OnUpdate(m_LastTimestep);
+                timer.Finish();
 
                 // End frame
                 timer = AggregateTimer("App::Run - End frame");
