@@ -67,13 +67,15 @@ void main()
     // Simulates a hit at this point
     payload.rayCone = vec2(
         constants.mipSpreadAngle * length(P - frameBuffer.data.cameraPos.xyz),
-        constants.mipSpreadAngle * 2
+        constants.mipSpreadAngle
     );
+    UpdateRayConeSpreadAngle(payload.rayCone, roughness, constants.mipSpreadAngle);
 
+    // Decrease max distance as a function of roughness
+    float tMin = frameBuffer.data.clipPlanes.x;
+    float tMax = 300.f * pow((1 - roughness) * 0.9 + 0.1, 4.0);
     uint rayFlags = gl_RayFlagsOpaqueEXT;
     uint cullMask = 0xff;
-    float tMin = frameBuffer.data.clipPlanes.x;
-    float tMax = frameBuffer.data.clipPlanes.y;
     vec3 rayOrigin = P + N * 0.001; // Self-intersection bias
     traceRayEXT(tlas, rayFlags, cullMask, 0, 0, 0, rayOrigin, tMin, rayDir, tMax, 0);
 

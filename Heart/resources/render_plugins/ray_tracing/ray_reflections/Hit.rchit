@@ -74,11 +74,9 @@ void main()
     vec3 B = cross(T.xyz, N) * T.w;
     vec3 V = normalize(gl_WorldRayOriginEXT - P);
 
-    // Update raycone with hit
-    payload.rayCone += vec2(
-        payload.rayCone.y * length(P - gl_WorldRayOriginEXT),
-        constants.mipSpreadAngle
-    );
+    // Update raycone width with hit. NOTE: subsequent rays would require an update
+    // to the spread angle (rayCone.y)
+    payload.rayCone.x += payload.rayCone.y * length(P - gl_WorldRayOriginEXT);
     vec4 mip = UVDerivsFromRayCone(
         gl_WorldRayDirectionEXT,
         N,

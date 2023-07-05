@@ -44,4 +44,12 @@ float UVAreaToTexLOD(ivec2 vTexSize, vec3 vUVAreaInfo)
 	return vUVAreaInfo.x + 0.5f*log2(vTexSize.x * vTexSize.y * vUVAreaInfo.y);
 }
 
+// https://www.jcgt.org/published/0010/01/01/paper-lowres.pdf
+void UpdateRayConeSpreadAngle(inout vec2 cone, float roughness, float initSpreadAngle)
+{
+    float r2 = min(roughness * roughness, 0.95);
+    float sigma = sqrt(0.5 * (r2 / (1 - r2)));
+    cone.y += initSpreadAngle + sigma * 0.25;
+}
+
 #endif
