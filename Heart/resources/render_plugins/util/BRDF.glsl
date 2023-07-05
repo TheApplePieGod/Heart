@@ -72,12 +72,52 @@ vec4 ImportanceSampleGGXPDF(vec2 rand, vec3 N, float roughness)
     float D = a2 / (PI * d * d);
     float PDF = D * cosTheta;
 
-    // Convert to N space
-    vec3 up = vec3(0.0, 0.0, 1.0);
+    // Convert to N space, be careful about axes
+    vec3 up = abs(N.z) < 0.999f ? vec3(0.0, 0.0, 1.0) : vec3(1.0, 0.0, 0.0);
     vec3 tangent = cross(up, N);
     vec3 converted = normalize(tangent * offset.x + up * offset.y + N * offset.z);
 
     return vec4(converted, PDF);
+}
+
+// https://jcgt.org/published/0007/04/01/paper.pdf
+// https://github.com/NVIDIAGameWorks/Falcor/blob/47f4fbf4fc3cedb329e1a452a58d9d8f42acef69/Source/Falcor/Experimental/Scene/Material/Microfacet.slang
+vec3 ImportanceSampleGGXVNDF(vec2 rand, vec3 N, vec3 V, float roughness)
+{
+    float a = roughness * roughness;
+
+    // Orthonormal N basis
+    mat3 TBN;
+    TBN[0] = normalize(V - N * dot(N, V));
+    TBN[1] = cross(N, TBN[0]);
+    TBN[2] = N;
+
+    // Convert V to tangent space
+    V = V * TBN;
+    
+    // Transform the view vector to the hemisphere configuration
+    vec3 Vh = normalize(vec3(a * V.x, a * V.y, V.z));
+
+    // Construct orthonormal basis (Vh,T1,T2).
+    vec3 T1 = (Vh.z < 0.9999f) ? normalize(cross(vec3(0, 0, 1), Vh)) : vec3(1, 0, 0);
+    vec3 T2 = cross(Vh, T1);
+
+    // Parameterization of the projected area of the hemisphere.
+    float r = sqrt(rand.x);
+    float phi = (2.f * PI) * rand.y;
+    float t1 = r * cos(phi);
+    float t2 = r * sin(phi);
+    float s = 0.5f * (1.f + Vh.z);
+    t2 = (1.f - s) * sqrt(1.f - t1 * t1) + s * t2;
+
+    // Reproject onto hemisphere.
+    vec3 Nh = t1 * T1 + t2 * T2 + sqrt(max(0.f, 1.f - t1 * t1 - t2 * t2)) * Vh;
+
+    // Transform the normal back to the ellipsoid configuration. This is our half vector.
+    vec3 h = normalize(vec3(a * Nh.x, a * Nh.y, max(0.f, Nh.z)));
+
+    // Convert out of tangent space
+    return TBN[0] * h.x + TBN[1] * h.y + TBN[2] * h.z;
 }
 
 vec3 FresnelSchlick(float cosTheta, vec3 F0)

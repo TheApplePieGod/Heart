@@ -20,7 +20,7 @@ layout(location = 0) rayPayloadEXT HitPayload payload;
 // TODO: parameterize
 #define MIN_ROUGHNESS_THRESHOLD 0.05
 
-vec3 PerturbNormal(float roughness, vec3 N)
+vec3 PerturbNormal(float roughness, vec3 V, vec3 N)
 {
     HaltonState hstate;
     HaltonInit(
@@ -30,9 +30,16 @@ vec3 PerturbNormal(float roughness, vec3 N)
         frameBuffer.data.frameCount
     );
 
+    /*
     return ImportanceSampleGGX(
         vec2(fract(HaltonNext(hstate)), fract(HaltonNext(hstate))),
         N,
+        roughness
+    );
+    */
+    return ImportanceSampleGGXVNDF(
+        vec2(fract(HaltonNext(hstate)), fract(HaltonNext(hstate))),
+        N, V,
         roughness
     );
 }
@@ -59,7 +66,7 @@ void main()
     vec3 rayDir = reflect(-V, N);
     if (roughness > MIN_ROUGHNESS_THRESHOLD)
     {
-        vec3 perturbed = PerturbNormal(roughness, N);
+        vec3 perturbed = PerturbNormal(roughness, V, N);
         rayDir = reflect(-V, perturbed);
     }
 
