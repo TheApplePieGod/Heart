@@ -68,10 +68,11 @@ namespace Heart
         data.Mutex.lock();
         data.Complete = false;
         data.Success = false;
-        data.ShouldExecute = true;
         data.Dependents.Clear();
         data.Task = std::move(task);
-        data.DependencyCount = dependencyCount;
+        // Start with one implicit dependency that is itself so that we can always rely on the atomic decrement
+        // to determine whether or not we should execute in this function or at a later point
+        data.DependencyCount = dependencyCount + 1;
         data.Name = name;
         data.Priority = priority;
         // Increase the initial refcount by one because we'll consider a task before it is completed as having a reference to
@@ -79,9 +80,9 @@ namespace Heart
         // by an additional one because we want to ensure the task doesn't get completed and the refcount go to zero before
         // the task object gets constructed because that would cause the refcount to go to zero twice
         data.RefCount = 2;
+        data.Mutex.unlock();
         
         // Cancel immediate execution if dependencies are not completed
-        bool executeNow = true;
         if (dependencyCount > 0)
         {
             for (u32 i = 0; i < dependencyCount; i++)
@@ -90,20 +91,14 @@ namespace Heart
                 TaskData& dependencyData = s_TaskList[dependencies[i].GetHandle()];
                 dependencyData.Mutex.lock();
                 if (!dependencyData.Complete)
-                {
-                    executeNow = false;
                     dependencyData.Dependents.Add(handle);
-                }
                 else
                     data.DependencyCount--;
                 dependencyData.Mutex.unlock();
             }
         }
 
-        // Unlock after to ensure only dependencies can signal completion
-        data.Mutex.unlock();
-        
-        if (executeNow)
+        if (--data.DependencyCount == 0)
             PushHandleToQueue(handle);
         
         return Task(handle, false);
