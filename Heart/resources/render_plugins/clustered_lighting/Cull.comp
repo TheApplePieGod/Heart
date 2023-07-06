@@ -1,4 +1,4 @@
-#version 450
+#version 460
 
 #define FRAME_BUFFER_BINDING 0
 #define FRAME_BUFFER_SET 0
@@ -26,9 +26,7 @@ layout(binding = 5) buffer BuildData {
 
 shared Light lights[GROUP_SIZE];
 
-// TODO: I wish this could be higher, but for some reason the driver crashes
-// if ray tracing is disabled and this value gets much higher ???
-#define MAX_LIGHTS_PER_CLUSTER 50
+#define MAX_LIGHTS_PER_CLUSTER 100
 
 bool LightIntersectsCluster(inout Light light, inout Cluster cluster)
 {

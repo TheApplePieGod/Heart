@@ -19,6 +19,7 @@ struct ClusterData {
     float clusterBias;
 };
 
+#ifdef CLUSTER_BUFFER_BINDING
 layout(
     std430,
     binding = CLUSTER_BUFFER_BINDING,
@@ -30,6 +31,9 @@ readonly
 buffer ClusterBuffer {
     Cluster data[];
 } clusterBuffer;
+
+#define GET_CLUSTER(index) clusterBuffer.data[index]
+#endif
 
 #ifdef CLUSTER_LIGHT_INDICES_BINDING
 layout(
@@ -72,8 +76,6 @@ layout(
 
 #define GET_CLUSTER_DATA() clusterData.data
 #endif
-
-#define GET_CLUSTER(index) clusterBuffer.data[index]
 
 uint GetClusterZIndex(float screenDepth, float nearPlane, float farPlane, float scale, float bias)
 {

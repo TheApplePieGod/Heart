@@ -83,25 +83,24 @@ namespace Heart::RenderPlugins
         u32 arrayIndex = gBufferPlugin->GetArrayIndex();
         m_ResourceSet->BindBuffer(0, frameDataBuffer, 0, 1);
         m_ResourceSet->BindBuffer(1, lightingDataBuffer, 0, lightingDataBuffer->GetAllocatedCount());
-        m_ResourceSet->BindBuffer(2, clusterPlugin->GetClusterBuffer(), 0, clusterPlugin->GetClusterBuffer()->GetAllocatedCount());
-        m_ResourceSet->BindBuffer(3, clusterPlugin->GetLightIndicesBuffer(), 0, clusterPlugin->GetLightIndicesBuffer()->GetAllocatedCount());
-        m_ResourceSet->BindBuffer(4, clusterPlugin->GetLightGridBuffer(), 0, clusterPlugin->GetLightGridBuffer()->GetAllocatedCount());
-        m_ResourceSet->BindBuffer(5, clusterPlugin->GetClusterDataBuffer(), 0, clusterPlugin->GetClusterDataBuffer()->GetAllocatedCount());
-        m_ResourceSet->BindTextureLayer(6, gBufferPlugin->GetGBuffer1(), arrayIndex, 0);
-        m_ResourceSet->BindTextureLayer(7, gBufferPlugin->GetGBuffer2(), arrayIndex, 0);
-        m_ResourceSet->BindTextureLayer(8, gBufferPlugin->GetGBufferDepth(), arrayIndex, 0);
+        m_ResourceSet->BindBuffer(2, clusterPlugin->GetLightIndicesBuffer(), 0, clusterPlugin->GetLightIndicesBuffer()->GetAllocatedCount());
+        m_ResourceSet->BindBuffer(3, clusterPlugin->GetLightGridBuffer(), 0, clusterPlugin->GetLightGridBuffer()->GetAllocatedCount());
+        m_ResourceSet->BindBuffer(4, clusterPlugin->GetClusterDataBuffer(), 0, clusterPlugin->GetClusterDataBuffer()->GetAllocatedCount());
+        m_ResourceSet->BindTextureLayer(5, gBufferPlugin->GetGBuffer1(), arrayIndex, 0);
+        m_ResourceSet->BindTextureLayer(6, gBufferPlugin->GetGBuffer2(), arrayIndex, 0);
+        m_ResourceSet->BindTextureLayer(7, gBufferPlugin->GetGBufferDepth(), arrayIndex, 0);
         if (data.EnvMap)
-            m_ResourceSet->BindTexture(9, data.EnvMap->GetBRDFTexture());
+            m_ResourceSet->BindTexture(8, data.EnvMap->GetBRDFTexture());
         else
-            m_ResourceSet->BindTextureLayer(9, m_Renderer->GetDefaultEnvironmentMap(), 0, 0);
-        m_ResourceSet->BindTexture(10, m_Renderer->GetRenderTexture().get());
+            m_ResourceSet->BindTextureLayer(8, m_Renderer->GetDefaultEnvironmentMap(), 0, 0);
+        m_ResourceSet->BindTexture(9, m_Renderer->GetRenderTexture().get());
 
         if (m_UseRayTracing)
         {
             auto tlasPlugin = m_Renderer->GetPlugin<RenderPlugins::TLAS>(m_Info.TLASPluginName);
             auto reflPlugin = m_Renderer->GetPlugin(m_Info.ReflectionsInputPluginName);
-            m_ResourceSet->BindTexture(11, reflPlugin->GetOutputTexture().get());
-            m_ResourceSet->BindAccelerationStructure(12, tlasPlugin->GetAccelStructure());
+            m_ResourceSet->BindTexture(10, reflPlugin->GetOutputTexture().get());
+            m_ResourceSet->BindAccelerationStructure(11, tlasPlugin->GetAccelStructure());
         }
 
         m_ResourceSet->FlushBindings();

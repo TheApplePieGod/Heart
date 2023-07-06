@@ -121,7 +121,6 @@ namespace Heart::RenderPlugins
         encoder->BindComputePipeline(m_CullPipeline.get());
         encoder->BindResourceSet(m_CullResourceSet.get(), 0);
         encoder->FlushResourceSet(0);
-        encoder->PushConstants(0, sizeof(PushData), &m_PushData);
         encoder->Dispatch(
             m_PushData.ClusterDims.x / 16,
             m_PushData.ClusterDims.y / 8,

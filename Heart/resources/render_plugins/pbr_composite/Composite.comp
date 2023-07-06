@@ -1,6 +1,9 @@
 #version 460
+
+#ifdef FLOURISH_RAY_TRACING
 #extension GL_EXT_ray_tracing : enable
 #extension GL_EXT_ray_query : enable
+#endif
 
 #define FRAME_BUFFER_BINDING 0
 #define FRAME_BUFFER_SET 0
@@ -10,10 +13,9 @@
 #define LIGHT_BUFFER_SET 0
 #include "../lighting_data/LightingBuffer.glsl"
 
-#define CLUSTER_BUFFER_BINDING 2
-#define CLUSTER_LIGHT_INDICES_BINDING 3
-#define CLUSTER_LIGHT_GRID_BINDING 4
-#define CLUSTER_DATA_BINDING 5
+#define CLUSTER_LIGHT_INDICES_BINDING 2
+#define CLUSTER_LIGHT_GRID_BINDING 3
+#define CLUSTER_DATA_BINDING 4
 #define CLUSTER_BUFFER_SET 0
 #include "../clustered_lighting/ClusterBuffer.glsl"
 
@@ -21,19 +23,22 @@
 #include "../util/Colormap.glsl"
 #include "../util/Lighting.glsl"
 #include "../util/BRDF.glsl"
+
+#ifdef FLOURISH_RAY_TRACING
 #include "../ray_tracing/util/Query.glsl"
+#endif
 
 layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
-layout(binding = 6) uniform sampler2D newGBuffer1;
-layout(binding = 7) uniform sampler2D newGBuffer2;
-layout(binding = 8) uniform sampler2D newGBufferDepth;
-layout(binding = 9) uniform sampler2D brdfTex;
-layout(binding = 10, rgba16f) uniform writeonly image2D outColor;
+layout(binding = 5) uniform sampler2D newGBuffer1;
+layout(binding = 6) uniform sampler2D newGBuffer2;
+layout(binding = 7) uniform sampler2D newGBufferDepth;
+layout(binding = 8) uniform sampler2D brdfTex;
+layout(binding = 9, rgba16f) uniform writeonly image2D outColor;
 
 #ifdef FLOURISH_RAY_TRACING
-layout(binding = 11) uniform sampler2D reflectionsTex;
-layout(binding = 12) uniform accelerationStructureEXT tlas;
+layout(binding = 10) uniform sampler2D reflectionsTex;
+layout(binding = 11) uniform accelerationStructureEXT tlas;
 #endif
 
 void main()
