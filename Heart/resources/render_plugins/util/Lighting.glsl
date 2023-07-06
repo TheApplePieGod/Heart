@@ -12,6 +12,12 @@ struct LightEvalData
     float dist;
 };
 
+float SmoothAttenuation(float distance, float radius)
+{
+    float nom = clamp(1.0 - pow(distance / radius, 4.0), 0.0, 1.0);
+    return nom * nom * (1.0 / max(distance * distance, 0.01 * 0.01));
+}
+
 vec3 GetLightRadiance(Light light, float attenuation)
 {
     return light.color.rgb * light.color.a * attenuation;
@@ -20,9 +26,7 @@ vec3 GetLightRadiance(Light light, float attenuation)
 void GetPointLightEvalData(inout LightEvalData data, Light light, vec3 P, vec3 N)
 {
     float dist = length(light.position.xyz - P);
-    float attenuation = 1.f / (
-        light.constantAttenuation + light.linearAttenuation * dist + light.quadraticAttenuation * dist * dist
-    );
+    float attenuation = SmoothAttenuation(dist, light.radius);
     data.dist = dist;
     data.radiance = GetLightRadiance(light, attenuation);
     data.l = normalize(light.position.xyz - P);

@@ -17,6 +17,7 @@
 #include "ComputeTextBatches.h"
 #include "RenderTextBatches.h"
 #include "PBRComposite.h"
+#include "ClusteredLighting.h"
 
 #include "RayTracing/TLAS.h"
 #include "RayTracing/RayReflections.h"

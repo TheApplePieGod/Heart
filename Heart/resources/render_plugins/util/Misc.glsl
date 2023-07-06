@@ -13,7 +13,7 @@ vec3 ComputeWorldPositionFromDepth(vec2 uv, float depth, mat4 invViewProj)
 vec3 ComputeViewPositionFromDepth(vec2 uv, float depth, mat4 invProj)
 {
     float x = uv.x * 2.0f - 1.0f;
-    float y = (1.0 - uv.y) * 2.0f - 1.0f;
+    float y = (uv.y) * 2.0f - 1.0f;
     vec4 positionS = vec4(x, y, depth, 1.0f);
     vec4 positionV = invProj * positionS;
     return positionV.xyz / positionV.w;

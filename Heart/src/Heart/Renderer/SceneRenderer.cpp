@@ -114,6 +114,11 @@ namespace Heart
         RenderPlugins::CollectMaterialsCreateInfo collectMatCreateInfo;
         auto collectMaterials = RegisterPlugin<RenderPlugins::CollectMaterials>("CollectMaterials", collectMatCreateInfo);
 
+        RenderPlugins::ClusteredLightingCreateInfo clusteredCreateInfo;
+        clusteredCreateInfo.FrameDataPluginName = frameData->GetName();
+        clusteredCreateInfo.LightingDataPluginName = lightingData->GetName();
+        auto clusteredLighting = RegisterPlugin<RenderPlugins::ClusteredLighting>("ClusteredLighting", clusteredCreateInfo);
+
         RenderPlugins::ComputeMeshBatchesCreateInfo cbmeshcamCreateInfo;
         cbmeshcamCreateInfo.CollectMaterialsPluginName = collectMaterials->GetName();
         auto CBMESHCam = RegisterPlugin<RenderPlugins::ComputeMeshBatches>("CBMESHCam", cbmeshcamCreateInfo);
@@ -165,10 +170,13 @@ namespace Heart
             pbrCompCreateInfo.LightingDataPluginName = lightingData->GetName();
             pbrCompCreateInfo.GBufferPluginName = gBuffer->GetName();
             pbrCompCreateInfo.TLASPluginName = tlas->GetName();
+            pbrCompCreateInfo.ClusteredLightingPluginName = clusteredLighting->GetName();
             pbrComposite = RegisterPlugin<RenderPlugins::PBRComposite>("PBRComposite", pbrCompCreateInfo);
             pbrComposite->AddDependency(envMap->GetName(), GraphDependencyType::GPU);
             pbrComposite->AddDependency(svgf->GetName(), GraphDependencyType::GPU);
             pbrComposite->AddDependency(tlas->GetName(), GraphDependencyType::CPU);
+            pbrComposite->AddDependency(clusteredLighting->GetName(), GraphDependencyType::CPU);
+            pbrComposite->AddDependency(clusteredLighting->GetName(), GraphDependencyType::GPU);
         }
         else
         {
@@ -176,9 +184,12 @@ namespace Heart
             pbrCompCreateInfo.FrameDataPluginName = frameData->GetName();
             pbrCompCreateInfo.LightingDataPluginName = lightingData->GetName();
             pbrCompCreateInfo.GBufferPluginName = gBuffer->GetName();
+            pbrCompCreateInfo.ClusteredLightingPluginName = clusteredLighting->GetName();
             pbrComposite = RegisterPlugin<RenderPlugins::PBRComposite>("PBRComposite", pbrCompCreateInfo);
             pbrComposite->AddDependency(gBuffer->GetName(), GraphDependencyType::GPU);
             pbrComposite->AddDependency(envMap->GetName(), GraphDependencyType::GPU);
+            pbrComposite->AddDependency(clusteredLighting->GetName(), GraphDependencyType::CPU);
+            pbrComposite->AddDependency(clusteredLighting->GetName(), GraphDependencyType::GPU);
         }
 
         RenderPlugins::BloomCreateInfo BloomCreateInfo;

@@ -6,9 +6,8 @@ struct Light {
     vec4 direction;
     vec4 color; // RGB: color, A: intensity
     uint lightType;
-    float constantAttenuation;
-    float linearAttenuation;
-    float quadraticAttenuation;
+    float radius;
+    vec2 padding;
 };
 
 #define LIGHT_DIRECTIONAL 1
@@ -23,5 +22,6 @@ layout(
 } lightingBuffer;
 
 #define GET_LIGHT(index) lightingBuffer.data[index]
+#define GET_LIGHT_COUNT() uint(GET_LIGHT(0).position.x)
 
 #endif

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Heart/Renderer/RenderPlugin.h"
+#include "glm/vec4.hpp"
 
 namespace Flourish
 {
@@ -16,6 +17,7 @@ namespace Heart::RenderPlugins
         HString8 FrameDataPluginName;
         HString8 LightingDataPluginName;
         HString8 GBufferPluginName;
+        HString8 ClusteredLightingPluginName;
         HString8 TLASPluginName;
     };
 

@@ -279,20 +279,9 @@ namespace Widgets
                 ImGui::SameLine();
                 ImGui::DragFloat("##Intensity", &lightComp.Color.a, 0.5f, 0.f, 100.f);
 
-                ImGui::Text("Attenuation");
-                ImGui::Separator();
-
-                ImGui::Text("Constant");
+                ImGui::Text("Max Radius");
                 ImGui::SameLine();
-                ImGui::DragFloat("##ConstantAtten", &lightComp.ConstantAttenuation, 0.005f, 0.f, 2.f);
-
-                ImGui::Text("Linear");
-                ImGui::SameLine();
-                ImGui::DragFloat("##LinearAtten", &lightComp.LinearAttenuation, 0.005f, 0.f, 2.f);
-
-                ImGui::Text("Quadratic");
-                ImGui::SameLine();
-                ImGui::DragFloat("##QuadAtten", &lightComp.QuadraticAttenuation, 0.005f, 0.f, 2.f);
+                ImGui::DragFloat("##Rad", &lightComp.Radius, 0.25f, 0.f, 100.f);
 
                 ImGui::Unindent();
             }

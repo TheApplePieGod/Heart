@@ -91,9 +91,7 @@ namespace Heart
         // TODO: ambient & specular colors
         glm::vec4 Color = { 1.f, 1.f, 1.f, 1.f }; // intensity is stored in the alpha component of the color
         Type LightType = Type::Point;
-        float ConstantAttenuation = 1.0f;
-        float LinearAttenuation = 0.7f;
-        float QuadraticAttenuation = 1.8f;
+        float Radius = 5.0f;
     };
 
     struct ScriptComponent

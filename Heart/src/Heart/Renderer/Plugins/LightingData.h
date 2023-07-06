@@ -19,9 +19,8 @@ namespace Heart::RenderPlugins
             glm::vec4 Direction;
             glm::vec4 Color;
             u32 LightType;
-            float ConstantAttenuation;
-            float LinearAttenuation;
-            float QuadraticAttenuation;
+            float Radius;
+            glm::vec2 Padding;
         };
 
     public:

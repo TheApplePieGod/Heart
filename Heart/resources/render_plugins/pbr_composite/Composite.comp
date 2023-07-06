@@ -10,22 +10,30 @@
 #define LIGHT_BUFFER_SET 0
 #include "../lighting_data/LightingBuffer.glsl"
 
+#define CLUSTER_BUFFER_BINDING 2
+#define CLUSTER_LIGHT_INDICES_BINDING 3
+#define CLUSTER_LIGHT_GRID_BINDING 4
+#define CLUSTER_DATA_BINDING 5
+#define CLUSTER_BUFFER_SET 0
+#include "../clustered_lighting/ClusterBuffer.glsl"
+
 #include "../util/Misc.glsl"
+#include "../util/Colormap.glsl"
 #include "../util/Lighting.glsl"
 #include "../util/BRDF.glsl"
 #include "../ray_tracing/util/Query.glsl"
 
 layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
-layout(binding = 2) uniform sampler2D newGBuffer1;
-layout(binding = 3) uniform sampler2D newGBuffer2;
-layout(binding = 4) uniform sampler2D newGBufferDepth;
-layout(binding = 5) uniform sampler2D brdfTex;
-layout(binding = 6, rgba16f) uniform writeonly image2D outColor;
+layout(binding = 6) uniform sampler2D newGBuffer1;
+layout(binding = 7) uniform sampler2D newGBuffer2;
+layout(binding = 8) uniform sampler2D newGBufferDepth;
+layout(binding = 9) uniform sampler2D brdfTex;
+layout(binding = 10, rgba16f) uniform writeonly image2D outColor;
 
 #ifdef FLOURISH_RAY_TRACING
-layout(binding = 7) uniform sampler2D reflectionsTex;
-layout(binding = 8) uniform accelerationStructureEXT tlas;
+layout(binding = 11) uniform sampler2D reflectionsTex;
+layout(binding = 12) uniform accelerationStructureEXT tlas;
 #endif
 
 void main()
@@ -57,15 +65,33 @@ void main()
     vec3 shadowOrigin = P + N * 0.01;
 
     // Direct lighitng
+
+    // Compute cluster indices
+    // Flip the depth when appropriate so the close value is always zero
+    uint clusterZ = GetClusterZIndex(
+        frameBuffer.data.reverseDepth ? 1 - depth : depth,
+        frameBuffer.data.clipPlanes.x,
+        frameBuffer.data.clipPlanes.y,
+        GET_CLUSTER_DATA().clusterScale,
+        GET_CLUSTER_DATA().clusterBias
+    );
+    uint clusterIdx = GetClusterIndex(
+        vec2(coord),
+        frameBuffer.data.screenSize.xy,
+        GET_CLUSTER_DATA().clusterDims,
+        clusterZ
+    );
+    LightGrid grid = GetLightGrid(clusterIdx);
     vec3 finalContribution = vec3(0.f);
-    int lightCount = int(GET_LIGHT(0).position.x);
-    for (int i = 1; i <= lightCount; i++)
+    for (uint i = 0; i < grid.lightCount; i++)
     {
+        uint lightIndex = GetGridLightIndex(grid.offset, i) + 1;
+
         LightEvalData data;
-        if (GET_LIGHT(i).lightType == LIGHT_POINT)
-            GetPointLightEvalData(data, GET_LIGHT(i), P, N);
-        else if (GET_LIGHT(i).lightType == LIGHT_DIRECTIONAL)
-            GetDirectionalLightEvalData(data, GET_LIGHT(i), N);
+        if (GET_LIGHT(lightIndex).lightType == LIGHT_POINT)
+            GetPointLightEvalData(data, GET_LIGHT(lightIndex), P, N);
+        else if (GET_LIGHT(lightIndex).lightType == LIGHT_DIRECTIONAL)
+            GetDirectionalLightEvalData(data, GET_LIGHT(lightIndex), N);
 
         if (data.nDotL <= 0)
             continue;
@@ -107,6 +133,7 @@ void main()
     }
 
     //finalContribution = textureLod(reflectionsTex, texCoord, 0.0f).rgb;
+    //finalContribution = TurboColormap(float(grid.lightCount) / 100);
 
     imageStore(outColor, coord, vec4(finalContribution, 1.f));
 }

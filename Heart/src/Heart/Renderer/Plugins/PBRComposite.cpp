@@ -6,6 +6,7 @@
 #include "Heart/Renderer/Plugins/FrameData.h"
 #include "Heart/Renderer/Plugins/LightingData.h"
 #include "Heart/Renderer/Plugins/RayTracing/TLAS.h"
+#include "Heart/Renderer/Plugins/ClusteredLighting.h"
 #include "Heart/Core/Timing.h"
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/ShaderAsset.h"
@@ -43,10 +44,14 @@ namespace Heart::RenderPlugins
     void PBRComposite::ResizeInternal()
     {
         auto gBufferPlugin = m_Renderer->GetPlugin<RenderPlugins::GBuffer>(m_Info.GBufferPluginName);
+        auto clusterPlugin = m_Renderer->GetPlugin<RenderPlugins::ClusteredLighting>(m_Info.ClusteredLightingPluginName);
 
         m_GPUGraphNodeBuilder.Reset()
             .SetCommandBuffer(m_CommandBuffer.get())
             .AddEncoderNode(Flourish::GPUWorkloadType::Compute)
+            .EncoderAddBufferRead(clusterPlugin->GetClusterBuffer())
+            .EncoderAddBufferRead(clusterPlugin->GetLightIndicesBuffer())
+            .EncoderAddBufferRead(clusterPlugin->GetLightGridBuffer())
             .EncoderAddTextureRead(gBufferPlugin->GetGBuffer1())
             .EncoderAddTextureRead(gBufferPlugin->GetGBuffer2())
             .EncoderAddTextureRead(gBufferPlugin->GetGBuffer3())
@@ -73,25 +78,30 @@ namespace Heart::RenderPlugins
         auto lightingDataPlugin = m_Renderer->GetPlugin<RenderPlugins::LightingData>(m_Info.LightingDataPluginName);
         auto lightingDataBuffer = lightingDataPlugin->GetBuffer();
         auto gBufferPlugin = m_Renderer->GetPlugin<RenderPlugins::GBuffer>(m_Info.GBufferPluginName);
+        auto clusterPlugin = m_Renderer->GetPlugin<RenderPlugins::ClusteredLighting>(m_Info.ClusteredLightingPluginName);
 
         u32 arrayIndex = gBufferPlugin->GetArrayIndex();
         m_ResourceSet->BindBuffer(0, frameDataBuffer, 0, 1);
         m_ResourceSet->BindBuffer(1, lightingDataBuffer, 0, lightingDataBuffer->GetAllocatedCount());
-        m_ResourceSet->BindTextureLayer(2, gBufferPlugin->GetGBuffer1(), arrayIndex, 0);
-        m_ResourceSet->BindTextureLayer(3, gBufferPlugin->GetGBuffer2(), arrayIndex, 0);
-        m_ResourceSet->BindTextureLayer(4, gBufferPlugin->GetGBufferDepth(), arrayIndex, 0);
+        m_ResourceSet->BindBuffer(2, clusterPlugin->GetClusterBuffer(), 0, clusterPlugin->GetClusterBuffer()->GetAllocatedCount());
+        m_ResourceSet->BindBuffer(3, clusterPlugin->GetLightIndicesBuffer(), 0, clusterPlugin->GetLightIndicesBuffer()->GetAllocatedCount());
+        m_ResourceSet->BindBuffer(4, clusterPlugin->GetLightGridBuffer(), 0, clusterPlugin->GetLightGridBuffer()->GetAllocatedCount());
+        m_ResourceSet->BindBuffer(5, clusterPlugin->GetClusterDataBuffer(), 0, clusterPlugin->GetClusterDataBuffer()->GetAllocatedCount());
+        m_ResourceSet->BindTextureLayer(6, gBufferPlugin->GetGBuffer1(), arrayIndex, 0);
+        m_ResourceSet->BindTextureLayer(7, gBufferPlugin->GetGBuffer2(), arrayIndex, 0);
+        m_ResourceSet->BindTextureLayer(8, gBufferPlugin->GetGBufferDepth(), arrayIndex, 0);
         if (data.EnvMap)
-            m_ResourceSet->BindTexture(5, data.EnvMap->GetBRDFTexture());
+            m_ResourceSet->BindTexture(9, data.EnvMap->GetBRDFTexture());
         else
-            m_ResourceSet->BindTextureLayer(5, m_Renderer->GetDefaultEnvironmentMap(), 0, 0);
-        m_ResourceSet->BindTexture(6, m_Renderer->GetRenderTexture().get());
+            m_ResourceSet->BindTextureLayer(9, m_Renderer->GetDefaultEnvironmentMap(), 0, 0);
+        m_ResourceSet->BindTexture(10, m_Renderer->GetRenderTexture().get());
 
         if (m_UseRayTracing)
         {
             auto tlasPlugin = m_Renderer->GetPlugin<RenderPlugins::TLAS>(m_Info.TLASPluginName);
             auto reflPlugin = m_Renderer->GetPlugin(m_Info.ReflectionsInputPluginName);
-            m_ResourceSet->BindTexture(7, reflPlugin->GetOutputTexture().get());
-            m_ResourceSet->BindAccelerationStructure(8, tlasPlugin->GetAccelStructure());
+            m_ResourceSet->BindTexture(11, reflPlugin->GetOutputTexture().get());
+            m_ResourceSet->BindAccelerationStructure(12, tlasPlugin->GetAccelStructure());
         }
 
         m_ResourceSet->FlushBindings();
