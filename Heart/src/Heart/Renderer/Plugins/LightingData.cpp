@@ -24,6 +24,9 @@ namespace Heart::RenderPlugins
         bufCreateInfo.Stride = sizeof(LightData);
         bufCreateInfo.ElementCount = m_MaxLights;
         m_Buffer = Flourish::Buffer::Create(bufCreateInfo);
+        bufCreateInfo.Stride = sizeof(glm::vec4);
+        bufCreateInfo.ElementCount = m_MaxDirectionalLights / 4;
+        m_DirectionalBuffer = Flourish::Buffer::Create(bufCreateInfo);
 
         if (m_UseRayTracing)
         {
@@ -101,6 +104,7 @@ namespace Heart::RenderPlugins
         instance.Parent = m_LightBLAS.get();
 
         u32 lightIndex = 1;
+        u32 directionalIndex = 1;
         for (const auto& lightComp : data.Scene->GetLightComponents())
         {
             if (lightIndex >= m_MaxLights)
@@ -128,6 +132,13 @@ namespace Heart::RenderPlugins
             // Update the rest of the light data after the transform
             m_Buffer->SetBytes(&lightComp.Data, sizeof(lightComp.Data), offset);
 
+            // Add to the directional buffer if this light is directional
+            if (lightComp.Data.LightType == LightComponent::Type::Directional)
+            {
+                u32 dirOffset = directionalIndex++ * 4;
+                m_DirectionalBuffer->SetBytes(&lightIndex, sizeof(lightIndex), dirOffset);
+            }
+
             if (m_UseRayTracing && lightComp.Data.LightType != LightComponent::Type::Directional)
             {
                 // TODO: having to construct a transform component is mid
@@ -147,6 +158,8 @@ namespace Heart::RenderPlugins
         // Update the first element of the light buffer to contain the number of lights
         float lightCount = static_cast<float>(lightIndex - 1);
         m_Buffer->SetBytes(&lightCount, sizeof(float), 0);
+        u32 directionalCount = directionalIndex - 1;
+        m_DirectionalBuffer->SetBytes(&directionalCount, sizeof(u32), 0);
 
         // Build TLAS
         if (m_UseRayTracing)

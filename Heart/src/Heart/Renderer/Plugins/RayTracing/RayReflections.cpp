@@ -143,6 +143,7 @@ namespace Heart::RenderPlugins
         auto frameDataBuffer = frameDataPlugin->GetBuffer();
         auto lightingDataPlugin = m_Renderer->GetPlugin<RenderPlugins::LightingData>(m_Info.LightingDataPluginName);
         auto lightingDataBuffer = lightingDataPlugin->GetBuffer();
+        auto dirLightingBuffer = lightingDataPlugin->GetDirectionalBuffer();
         auto materialPlugin = m_Renderer->GetPlugin<RenderPlugins::CollectMaterials>(m_Info.CollectMaterialsPluginName);
         auto materialBuffer = materialPlugin->GetMaterialBuffer();
         auto gBufferPlugin = m_Renderer->GetPlugin<RenderPlugins::GBuffer>(m_Info.GBufferPluginName);
@@ -157,12 +158,13 @@ namespace Heart::RenderPlugins
         m_ResourceSet0->FlushBindings();
 
         m_ResourceSet1->BindBuffer(0, lightingDataBuffer, 0, lightingDataBuffer->GetAllocatedCount());
-        m_ResourceSet1->BindBuffer(1, objectDataBuffer, 0, objectDataBuffer->GetAllocatedCount());
-        m_ResourceSet1->BindBuffer(2, materialBuffer, 0, materialBuffer->GetAllocatedCount());
+        m_ResourceSet1->BindBuffer(1, dirLightingBuffer, 0, dirLightingBuffer->GetAllocatedCount());
+        m_ResourceSet1->BindBuffer(2, objectDataBuffer, 0, objectDataBuffer->GetAllocatedCount());
+        m_ResourceSet1->BindBuffer(3, materialBuffer, 0, materialBuffer->GetAllocatedCount());
         if (data.EnvMap)
-            m_ResourceSet1->BindTexture(3, data.EnvMap->GetEnvironmentCubemap());
+            m_ResourceSet1->BindTexture(4, data.EnvMap->GetEnvironmentCubemap());
         else
-            m_ResourceSet1->BindTexture(3, m_Renderer->GetDefaultEnvironmentMap());
+            m_ResourceSet1->BindTexture(4, m_Renderer->GetDefaultEnvironmentMap());
         m_ResourceSet1->FlushBindings();
 
         // Raygen

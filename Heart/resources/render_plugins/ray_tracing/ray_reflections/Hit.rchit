@@ -9,14 +9,15 @@
 #include "../../frame_data/FrameBuffer.glsl"
 
 #define LIGHT_BUFFER_BINDING 0
+#define DIRECTIONAL_LIGHT_BUFFER_BINDING 1
 #define LIGHT_BUFFER_SET 1
 #include "../../lighting_data/LightingBuffer.glsl"
 
-#define OBJECT_BUFFER_BINDING 1
+#define OBJECT_BUFFER_BINDING 2
 #define OBJECT_BUFFER_SET 1
 #include "../tlas/ObjectBuffer.glsl"
 
-#define MATERIAL_BUFFER_BINDING 2
+#define MATERIAL_BUFFER_BINDING 3
 #define MATERIAL_BUFFER_SET 1
 #define MATERIAL_TEXTURES_BINDING 0
 #define MATERIAL_TEXTURES_SET 2
@@ -96,6 +97,7 @@ void main()
     vec3 F0 = mix(vec3(0.04), albedo.rgb, metalness);
     vec3 diffuse = mix(albedo.rgb * (vec3(1.0) - F0), vec3(0.0), metalness);
 
+    // Direct lighting from local lights
     vec3 finalContribution = vec3(0.0);
     uint lightQueryFlags = gl_RayFlagsSkipClosestHitShaderEXT |
                            gl_RayFlagsOpaqueEXT |
@@ -118,10 +120,24 @@ void main()
         uint lightIndex = rayQueryGetIntersectionInstanceCustomIndexEXT(rayQuery, false);
 
         LightEvalData data;
-        if (GET_LIGHT(lightIndex).lightType == LIGHT_POINT)
-            GetPointLightEvalData(data, GET_LIGHT(lightIndex), P, N);
-        else if (GET_LIGHT(lightIndex).lightType == LIGHT_DIRECTIONAL)
-            GetDirectionalLightEvalData(data, GET_LIGHT(lightIndex), N);
+        GetPointLightEvalData(data, GET_LIGHT(lightIndex), P, N);
+
+        if (data.nDotL <= 0)
+            continue;
+
+        if (CheckShadowed(data, P, N))
+            continue;
+
+        finalContribution += EvaluateLightBRDF(data, N, V, F0, diffuse, roughness);
+    }
+
+    // Direct lighting from directional lights
+    for (uint i = 1; i <= GET_DIRECTIONAL_LIGHT_COUNT(); i++)
+    {
+        uint lightIndex = GET_DIRECTIONAL_LIGHT(i);
+
+        LightEvalData data;
+        GetDirectionalLightEvalData(data, GET_LIGHT(lightIndex), N);
 
         if (data.nDotL <= 0)
             continue;

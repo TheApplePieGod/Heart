@@ -30,6 +30,7 @@ namespace Heart::RenderPlugins
         { Initialize(); }
 
         inline const Flourish::Buffer* GetBuffer() const { return m_Buffer.get(); }
+        inline const Flourish::Buffer* GetDirectionalBuffer() const { return m_DirectionalBuffer.get(); }
         inline const Flourish::AccelerationStructure* GetLightTLAS() const { return m_LightTLAS.get(); }
 
     protected:
@@ -41,6 +42,7 @@ namespace Heart::RenderPlugins
 
     private:
         Ref<Flourish::Buffer> m_Buffer;
+        Ref<Flourish::Buffer> m_DirectionalBuffer;
         Ref<Flourish::AccelerationStructure> m_LightTLAS;
         Ref<Flourish::AccelerationStructure> m_LightBLAS;
 
@@ -48,6 +50,7 @@ namespace Heart::RenderPlugins
         HVector<glm::mat4> m_Transforms;
 
         u32 m_MaxLights = 750;
+        u32 m_MaxDirectionalLights = 64;
         bool m_UseRayTracing;
     };
 }
