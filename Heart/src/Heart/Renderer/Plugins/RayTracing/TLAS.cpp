@@ -55,12 +55,14 @@ namespace Heart::RenderPlugins
         m_Instances.Clear();
 
         Flourish::AccelerationStructureInstance instance;
-        for (auto& meshComp : data.Scene->GetMeshComponents())
+        auto meshView = data.Scene->GetRegistry().view<MeshComponent>();
+        for (entt::entity entity : meshView)
         {
-            auto& entityData = data.Scene->GetEntityData()[meshComp.EntityIndex];
+            const auto& meshComp = meshView.get<MeshComponent>(entity);
+            const auto& transformData = data.Scene->GetCachedTransforms().at(entity);
 
             auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>(
-                meshComp.Data.Mesh,
+                meshComp.Mesh,
                 true,
                 data.Settings.AsyncAssetLoading
             );
@@ -72,10 +74,10 @@ namespace Heart::RenderPlugins
                 if (!meshData.GetAccelStructure()) continue;
 
                 auto selectedMaterial = &meshAsset->GetDefaultMaterials()[meshData.GetMaterialIndex()];
-                if (meshData.GetMaterialIndex() < meshComp.Data.Materials.Count())
+                if (meshData.GetMaterialIndex() < meshComp.Materials.Count())
                 {
                     auto materialAsset = AssetManager::RetrieveAsset<MaterialAsset>(
-                        meshComp.Data.Materials[meshData.GetMaterialIndex()],
+                        meshComp.Materials[meshData.GetMaterialIndex()],
                         true,
                         data.Settings.AsyncAssetLoading
                     );
@@ -95,7 +97,7 @@ namespace Heart::RenderPlugins
                 m_ObjectBuffer->SetElements(&objectData, 1, m_Instances.Count());
 
                 instance.Parent = meshData.GetAccelStructure();
-                instance.TransformMatrix = glm::value_ptr(entityData.Transform);
+                instance.TransformMatrix = glm::value_ptr(transformData.Transform);
                 m_Instances.AddInPlace(instance);
             }
         }

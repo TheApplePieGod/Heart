@@ -62,27 +62,31 @@ namespace Heart::RenderPlugins
         u32 materialIndex = 0;
         u32 objectId = 0;
         auto& defaultMaterial = AssetManager::RetrieveAsset<MaterialAsset>("engine/DefaultMaterial.hemat", true)->GetMaterial();
-        for (u32 textCompIndex = 0; textCompIndex < data.Scene->GetTextComponents().Count(); textCompIndex++)
+        auto textView = data.Scene->GetRegistry().view<TextComponent>();
+        for (entt::entity entity : textView)
         {
-            auto& textComp = data.Scene->GetTextComponents()[textCompIndex];
-            const auto& entityData = data.Scene->GetEntityData()[textComp.EntityIndex];
+            const auto& textComp = textView.get<TextComponent>(entity);
 
-            if (!textComp.Data.ComputedMesh.GetVertexBuffer())
+            if (!textComp.ComputedMesh.GetVertexBuffer())
                 continue;
 
-            auto fontAsset = AssetManager::RetrieveAsset<FontAsset>(textComp.Data.Font);
+            const auto& transformData = data.Scene->GetCachedTransforms().at(entity);
+
+            auto fontAsset = AssetManager::RetrieveAsset<FontAsset>(textComp.Font);
             if (!fontAsset || !fontAsset->IsValid())
                 continue;
 
             Material* selectedMaterial = &defaultMaterial;
-            auto materialAsset = AssetManager::RetrieveAsset<MaterialAsset>(textComp.Data.Material);
+            auto materialAsset = AssetManager::RetrieveAsset<MaterialAsset>(textComp.Material);
             if (materialAsset && materialAsset->IsValid())
                 selectedMaterial = &materialAsset->GetMaterial();
+
+            /*
 
             // Here we assume each text component has a different mesh. This is likely the case, so
             // add a new batch each time
             TextBatch batch = {
-                &textComp.Data.ComputedMesh,
+                &textComp.ComputedMesh,
                 selectedMaterial,
                 fontAsset->GetAtlasTexture(),
                 commandIndex,
@@ -104,7 +108,7 @@ namespace Heart::RenderPlugins
             commandIndex++;
             newComputedData.TotalInstanceCount++;
 
-            bool materialSwitch = textCompIndex == 0 || newComputedData.Batches.Back().Material != selectedMaterial;
+            bool materialSwitch = objectId == 0 || newComputedData.Batches.Back().Material != selectedMaterial;
             if (materialSwitch)
             {
                 // Populate the material buffer
@@ -114,11 +118,12 @@ namespace Heart::RenderPlugins
 
             // Object data
             ObjectData objectData = {
-                entityData.Transform,
-                { entityData.Id, materialIndex, 0.f, 0.f }
+                transformData.Transform,
+                { entity, materialIndex, 0.f, 0.f }
             };
             newComputedData.ObjectDataBuffer->SetElements(&objectData, 1, objectId);
             objectId++;
+            */
         }
 
         m_Stats["Instance Count"] = {

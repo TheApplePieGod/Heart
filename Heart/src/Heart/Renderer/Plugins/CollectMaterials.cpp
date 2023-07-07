@@ -68,10 +68,13 @@ namespace Heart::RenderPlugins
         }
 
         u32 materialIndex = 1;
-        for (auto& meshComp : data.Scene->GetMeshComponents())
+        auto meshView = data.Scene->GetRegistry().view<MeshComponent>();
+        for (entt::entity entity : meshView)
         {
+            const auto& meshComp = meshView.get<MeshComponent>(entity);
+
             auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>(
-                meshComp.Data.Mesh,
+                meshComp.Mesh,
                 true,
                 data.Settings.AsyncAssetLoading
             );
@@ -82,10 +85,10 @@ namespace Heart::RenderPlugins
                 auto& meshData = meshAsset->GetSubmesh(i);
 
                 auto selectedMaterial = &meshAsset->GetDefaultMaterials()[meshData.GetMaterialIndex()];
-                if (meshData.GetMaterialIndex() < meshComp.Data.Materials.Count())
+                if (meshData.GetMaterialIndex() < meshComp.Materials.Count())
                 {
                     auto materialAsset = AssetManager::RetrieveAsset<MaterialAsset>(
-                        meshComp.Data.Materials[meshData.GetMaterialIndex()],
+                        meshComp.Materials[meshData.GetMaterialIndex()],
                         true,
                         data.Settings.AsyncAssetLoading
                     );

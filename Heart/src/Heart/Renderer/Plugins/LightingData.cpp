@@ -105,47 +105,49 @@ namespace Heart::RenderPlugins
 
         u32 lightIndex = 1;
         u32 directionalIndex = 1;
-        for (const auto& lightComp : data.Scene->GetLightComponents())
+        auto lightView = data.Scene->GetRegistry().view<LightComponent>();
+        for (entt::entity entity : lightView)
         {
             if (lightIndex >= m_MaxLights)
                 break;
 
-            const auto& entityData = data.Scene->GetEntityData()[lightComp.EntityIndex];
+            const auto& lightComp = lightView.get<LightComponent>(entity);
+            const auto& transformData = data.Scene->GetCachedTransforms().at(entity);
 
             u32 offset = lightIndex * m_Buffer->GetStride();
 
-            if (lightComp.Data.LightType == LightComponent::Type::Disabled) continue;
+            if (lightComp.LightType == LightComponent::Type::Disabled) continue;
 
             // Update the translation part of the light struct
-            m_Buffer->SetBytes(&entityData.Translation, sizeof(glm::vec3), offset);
+            m_Buffer->SetBytes(&transformData.Position, sizeof(glm::vec3), offset);
             offset += sizeof(glm::vec4);
 
             // Update the light direction if the light is not a point light
-            if (lightComp.Data.LightType != LightComponent::Type::Point)
+            if (lightComp.LightType != LightComponent::Type::Point)
             {
                 // Negate the forward vector so it points in the direction of the light's +Z
-                glm::vec3 forwardVector = -entityData.ForwardVec;
+                glm::vec3 forwardVector = -transformData.ForwardVec;
                 m_Buffer->SetBytes(&forwardVector, sizeof(forwardVector), offset);
             }
             offset += sizeof(glm::vec4);
 
             // Update the rest of the light data after the transform
-            m_Buffer->SetBytes(&lightComp.Data, sizeof(lightComp.Data), offset);
+            m_Buffer->SetBytes(&lightComp, sizeof(lightComp), offset);
 
             // Add to the directional buffer if this light is directional
-            if (lightComp.Data.LightType == LightComponent::Type::Directional)
+            if (lightComp.LightType == LightComponent::Type::Directional)
             {
                 u32 dirOffset = directionalIndex++ * 4;
                 m_DirectionalBuffer->SetBytes(&lightIndex, sizeof(lightIndex), dirOffset);
             }
 
-            if (m_UseRayTracing && lightComp.Data.LightType != LightComponent::Type::Directional)
+            if (m_UseRayTracing && lightComp.LightType != LightComponent::Type::Directional)
             {
                 // TODO: having to construct a transform component is mid
                 m_Transforms.AddInPlace(TransformComponent{
-                    entityData.Translation,
-                    entityData.Rotation,
-                    glm::vec3(lightComp.Data.Radius)
+                    transformData.Position,
+                    transformData.Rotation,
+                    glm::vec3(lightComp.Radius)
                 }.GetTransformMatrix());
                 instance.TransformMatrix = glm::value_ptr(m_Transforms.Back());
                 instance.CustomIndex = lightIndex;

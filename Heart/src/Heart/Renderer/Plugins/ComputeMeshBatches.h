@@ -56,8 +56,7 @@ namespace Heart::RenderPlugins
 
         struct EntityListEntry
         {
-            u32 EntityIndex;
-            u32 MeshIndex;
+            u32 EntityId;
             u32 MaterialIndex;
             bool IncludeInPrepass;
         };

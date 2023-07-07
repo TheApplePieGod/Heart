@@ -9,10 +9,7 @@ namespace Heart
 {
     void RenderScene::Cleanup()
     {
-        m_EntityData.Clear();
-        m_MeshComponents.Clear();
-        m_TextComponents.Clear();
-        m_LightComponents.Clear();
+        m_Registry.clear();
     }
 
     void RenderScene::CopyFromScene(Scene* scene)
@@ -21,6 +18,19 @@ namespace Heart
 
         Cleanup();
 
+        auto& srcEntity = scene->GetRegistry().storage<entt::entity>();
+        auto srcMesh = scene->GetRegistry().view<MeshComponent>();
+        auto srcLight = scene->GetRegistry().view<LightComponent>();
+
+        m_Registry.storage<entt::entity>().push(srcEntity.data(), srcEntity.data() + srcEntity.size());
+        m_Registry.insert<MeshComponent>(srcMesh.begin(), srcMesh.end(), srcMesh.storage()->begin());
+        m_Registry.insert<LightComponent>(srcLight.begin(), srcLight.end(), srcLight.storage()->begin());
+
+        m_CachedTransforms = scene->GetCachedTransforms();
+
+        //auto view = src.view<MeshComponent>();
+
+        /*
         scene->GetRegistry().each([&](auto handle)
         {
             Entity src = { scene, handle };
@@ -84,5 +94,6 @@ namespace Heart
 
             job.Wait();
         }
+        */
     }
 }

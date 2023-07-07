@@ -57,19 +57,20 @@ namespace Heart::RenderPlugins
         // associated with the mesh. At this stage, Batch.First is unused and Batch.Count indicates
         // how many instances there are
         u32 batchIndex = 0;
-        for (u32 meshCompIndex = 0; meshCompIndex < data.Scene->GetMeshComponents().Count(); meshCompIndex++)
+        auto meshView = data.Scene->GetRegistry().view<MeshComponent>();
+        for (entt::entity entity : meshView)
         {
-            const auto& meshComp = data.Scene->GetMeshComponents()[meshCompIndex];
-            const auto& entityData = data.Scene->GetEntityData()[meshComp.EntityIndex];
+            const auto& meshComp = meshView.get<MeshComponent>(entity);
+            const auto& transformData = data.Scene->GetCachedTransforms().at(entity);
 
             // Compute max scale for calculating the bounding sphere
             // TODO: scale scale by some factor or some sort of predictive culling based on camera speed
-            glm::vec3 scale = entityData.Scale;
+            glm::vec3 scale = transformData.Scale;
             float maxScale = std::max(std::max(scale.x, scale.y), scale.z);
 
             // Skip invalid meshes
             auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>(
-                meshComp.Data.Mesh,
+                meshComp.Mesh,
                 true,
                 async
             );
@@ -82,11 +83,11 @@ namespace Heart::RenderPlugins
                 glm::vec4 boundingSphere = meshData.GetBoundingSphere();
                 boundingSphere.w *= maxScale; // Extend the bounding sphere to fit the largest scale 
                 if (data.Settings.CullEnable && 
-                    !FrustumCull(data, boundingSphere, entityData.Transform))
+                    !FrustumCull(data, boundingSphere, transformData.Transform))
                     continue;
                 
                 // Create a hash based on the submesh
-                u64 hash = (meshComp.Data.Mesh + i) ^ (i * 45787893);
+                u64 hash = (meshComp.Mesh + i) ^ (i * 45787893);
 
                 // Get/create a batch associated with this hash
                 auto& batch = batchData.Batches[hash];
@@ -101,7 +102,7 @@ namespace Heart::RenderPlugins
 
                     // Set the mesh associated with this batch
                     batch.Mesh = &meshData;
-                    batch.MeshIndex = meshCompIndex;
+                    batch.MeshIndex = (u32)entity;
                     batch.SubmeshIndex = i;
 
                     batchIndex++;
@@ -109,10 +110,10 @@ namespace Heart::RenderPlugins
                 
                 // Need to check if the entity supports depth prepass before adding
                 auto selectedMaterial = &meshAsset->GetDefaultMaterials()[meshData.GetMaterialIndex()];
-                if (meshData.GetMaterialIndex() < meshComp.Data.Materials.Count())
+                if (meshData.GetMaterialIndex() < meshComp.Materials.Count())
                 {
                     auto materialAsset = AssetManager::RetrieveAsset<MaterialAsset>(
-                        meshComp.Data.Materials[meshData.GetMaterialIndex()],
+                        meshComp.Materials[meshData.GetMaterialIndex()],
                         true,
                         async
                     );
@@ -134,8 +135,7 @@ namespace Heart::RenderPlugins
 
                 // Push the associated entity to the associated vector from the pool
                 batchData.EntityListPool[batch.EntityListIndex].AddInPlace(EntityListEntry {
-                    static_cast<u32>(meshComp.EntityIndex),
-                    meshCompIndex,
+                    (u32)entity,
                     materialMap.at(materialId),
                     usePrepass
                 });
@@ -166,13 +166,13 @@ namespace Heart::RenderPlugins
             {
                 if (!entity.IncludeInPrepass) continue;
 
-                const auto& entityData = data.Scene->GetEntityData()[entity.EntityIndex];
+                const auto& transformData = data.Scene->GetCachedTransforms().at((entt::entity)entity.EntityId);
 
                 // Object data
                 ObjectData objectData = {
-                    entityData.Transform,
+                    transformData.Transform,
                     entity.MaterialIndex,
-                    entityData.Id
+                    entity.EntityId
                 };
                 batchData.ObjectDataBuffer->SetElements(&objectData, 1, objectId);
 

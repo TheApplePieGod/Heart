@@ -62,6 +62,7 @@ namespace Heart
         inline entt::registry& GetRegistry() { return m_Registry; }
         inline PhysicsWorld& GetPhysicsWorld() { return m_PhysicsWorld; }
         inline EnvironmentMap* GetEnvironmentMap() { return m_EnvironmentMap.get(); }
+        inline const auto& GetCachedTransforms() const { return m_CachedTransforms; }
         
         template<typename Component>
         void ClearComponent()
