@@ -11,9 +11,9 @@
 #include "../util/RayCone.glsl"
 
 layout(binding = 1) uniform accelerationStructureEXT tlas;
-layout(binding = 2, rgba16f) uniform writeonly image2D outImage;
-layout(binding = 3) uniform sampler2D gBuffer2;
-layout(binding = 4) uniform sampler2D gBufferDepth;
+layout(binding = 3, rgba16f) uniform writeonly image2D outImage;
+layout(binding = 4) uniform sampler2D gBuffer2;
+layout(binding = 5) uniform sampler2D gBufferDepth;
 
 layout(location = 0) rayPayloadEXT HitPayload payload;
 

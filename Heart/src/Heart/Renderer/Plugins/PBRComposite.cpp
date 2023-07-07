@@ -49,7 +49,6 @@ namespace Heart::RenderPlugins
         m_GPUGraphNodeBuilder.Reset()
             .SetCommandBuffer(m_CommandBuffer.get())
             .AddEncoderNode(Flourish::GPUWorkloadType::Compute)
-            .EncoderAddBufferRead(clusterPlugin->GetClusterBuffer())
             .EncoderAddBufferRead(clusterPlugin->GetLightIndicesBuffer())
             .EncoderAddBufferRead(clusterPlugin->GetLightGridBuffer())
             .EncoderAddTextureRead(gBufferPlugin->GetGBuffer1())

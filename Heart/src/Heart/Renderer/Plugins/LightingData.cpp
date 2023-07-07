@@ -56,7 +56,7 @@ namespace Heart::RenderPlugins
             Ref<Flourish::RenderGraph> graph = Flourish::RenderGraph::Create({ Flourish::RenderGraphUsageType::Once });
 
             // Allocate the buffer storing the unit AABB
-            std::array<float, 6> unitAABB = { -0.5, -0.5, -0.5, 0.5, 0.5, 0.5 };
+            std::array<float, 6> unitAABB = { -1.f, -1.f, -1.f, 1.f, 1.f, 1.f };
             auto uploadEncoder = uploadBuf->EncodeTransferCommands();
             Flourish::BufferCreateInfo bufCreateInfo;
             bufCreateInfo.Type = Flourish::BufferType::Storage;

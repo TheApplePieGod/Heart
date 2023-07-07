@@ -1,5 +1,6 @@
 #version 460
 #extension GL_EXT_ray_tracing : require
+#extension GL_EXT_ray_query : require
 #extension GL_EXT_scalar_block_layout : enable
 #extension GL_EXT_buffer_reference2 : require
 
@@ -37,6 +38,7 @@ layout(buffer_reference, scalar) readonly buffer IndexBuffer {
 };
 
 layout(binding = 1) uniform accelerationStructureEXT tlas;
+layout(binding = 2) uniform accelerationStructureEXT lightTlas;
 
 layout(location = 0) rayPayloadInEXT HitPayload payload;
 layout(location = 1) rayPayloadEXT bool isShadowed;
@@ -95,14 +97,31 @@ void main()
     vec3 diffuse = mix(albedo.rgb * (vec3(1.0) - F0), vec3(0.0), metalness);
 
     vec3 finalContribution = vec3(0.0);
-    int lightCount = int(GET_LIGHT(0).position.x);
-    for (int i = 1; i <= lightCount; i++)
+    uint lightQueryFlags = gl_RayFlagsSkipClosestHitShaderEXT |
+                           gl_RayFlagsOpaqueEXT |
+                           gl_RayFlagsCullBackFacingTrianglesEXT |
+                           gl_RayFlagsCullFrontFacingTrianglesEXT;
+    rayQueryEXT rayQuery;
+    rayQueryInitializeEXT(
+        rayQuery,
+        lightTlas,
+        lightQueryFlags,
+        0xFF,
+        P,
+        0.0,
+        vec3(1.0, 0.0, 0.0),
+        0.0
+    );
+
+    while (rayQueryProceedEXT(rayQuery))
     {
+        uint lightIndex = rayQueryGetIntersectionInstanceCustomIndexEXT(rayQuery, false);
+
         LightEvalData data;
-        if (GET_LIGHT(i).lightType == LIGHT_POINT)
-            GetPointLightEvalData(data, GET_LIGHT(i), P, N);
-        else if (GET_LIGHT(i).lightType == LIGHT_DIRECTIONAL)
-            GetDirectionalLightEvalData(data, GET_LIGHT(i), N);
+        if (GET_LIGHT(lightIndex).lightType == LIGHT_POINT)
+            GetPointLightEvalData(data, GET_LIGHT(lightIndex), P, N);
+        else if (GET_LIGHT(lightIndex).lightType == LIGHT_DIRECTIONAL)
+            GetDirectionalLightEvalData(data, GET_LIGHT(lightIndex), N);
 
         if (data.nDotL <= 0)
             continue;

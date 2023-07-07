@@ -150,9 +150,10 @@ namespace Heart::RenderPlugins
         u32 arrayIndex = gBufferPlugin->GetArrayIndex();
         m_ResourceSet0->BindBuffer(0, frameDataBuffer, 0, 1);
         m_ResourceSet0->BindAccelerationStructure(1, tlasPlugin->GetAccelStructure());
-        m_ResourceSet0->BindTexture(2, m_OutputTexture.get());
-        m_ResourceSet0->BindTextureLayer(3, gBufferPlugin->GetGBuffer2(), arrayIndex, m_GBufferMip);
-        m_ResourceSet0->BindTextureLayer(4, gBufferPlugin->GetGBufferDepth(), arrayIndex, m_GBufferMip);
+        m_ResourceSet0->BindAccelerationStructure(2, lightingDataPlugin->GetLightTLAS());
+        m_ResourceSet0->BindTexture(3, m_OutputTexture.get());
+        m_ResourceSet0->BindTextureLayer(4, gBufferPlugin->GetGBuffer2(), arrayIndex, m_GBufferMip);
+        m_ResourceSet0->BindTextureLayer(5, gBufferPlugin->GetGBufferDepth(), arrayIndex, m_GBufferMip);
         m_ResourceSet0->FlushBindings();
 
         m_ResourceSet1->BindBuffer(0, lightingDataBuffer, 0, lightingDataBuffer->GetAllocatedCount());

@@ -68,10 +68,10 @@ vec2 VirtualPointReprojection(ivec2 coord, float newDepth, float rayLength, ivec
 
 vec2 ProjectCoord(ivec2 coord, float newDepth, vec2 motionVector, float rayLength, ivec2 size)
 {
-    return VirtualPointReprojection(coord, newDepth, rayLength, size);
+    //return VirtualPointReprojection(coord, newDepth, rayLength, size);
 
     // TODO: check curvature for surface point reprojection
-    //return SurfacePointReprojection(coord, motionVector, size);
+    return SurfacePointReprojection(coord, motionVector, size);
 }
 
 bool ReprojectionCheckPlaneDistance(vec3 newPos, vec3 prevPos, vec3 newNormal)
@@ -154,7 +154,8 @@ void main()
     const vec4 filterColor = texelFetch(filterInput, coord, 0);
 
     // Check roughness. We do not need to accumulate mirror reflections
-    if (gbuf2.a <= 0.05)
+    const float newRoughness = max(gbuf2.a, 0.01);
+    if (newRoughness <= 0.05)
     {
         imageStore(outColors, coord, filterColor);
         imageStore(outMoments, coord, vec4(0.f));
@@ -178,7 +179,6 @@ void main()
     }
 
     const float filterLuminance = Luminance(filterColor.rgb);
-    const float newRoughness = max(texelFetch(newGBuffer2, coord, 0).a, 0.01);
 
     float rayLength = filterColor.a;
     const vec2 motionVector = texelFetch(newGBuffer3, coord, 0).rg;
