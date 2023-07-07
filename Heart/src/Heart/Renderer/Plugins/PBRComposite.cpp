@@ -101,6 +101,19 @@ namespace Heart::RenderPlugins
             m_ResourceSet->BindTexture(10, reflPlugin->GetOutputTexture().get());
             m_ResourceSet->BindAccelerationStructure(11, tlasPlugin->GetAccelStructure());
         }
+        else
+        {
+            if (data.EnvMap)
+            {
+                m_ResourceSet->BindTexture(10, data.EnvMap->GetPrefilterCubemap());
+                m_ResourceSet->BindTexture(11, data.EnvMap->GetIrradianceCubemap());
+            }
+            else
+            {
+                m_ResourceSet->BindTexture(10, m_Renderer->GetDefaultEnvironmentMap());
+                m_ResourceSet->BindTexture(11, m_Renderer->GetDefaultEnvironmentMap());
+            }
+        }
 
         m_ResourceSet->FlushBindings();
 

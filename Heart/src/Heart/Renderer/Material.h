@@ -54,7 +54,7 @@ namespace Heart
         glm::vec4 TexCoordTransform = { 1.f, 1.f, 0.f, 0.f }; // [0-1]: scale, [2-3]: offset
         glm::vec4 HasPBRTextures = { 0, 0, 0, 0 }; // [0]: hasAlbedo, [1]: hasMetallicRoughness
         glm::vec4 HasTextures = { 0, 0, 0, 0 }; // [0]: hasNormal, [1]: hasEmissive, [2]: hasOcclusion
-        glm::vec4 Scalars = { 1.f, 1.f, 0.f, 0.f }; // [0]: metalness, [1]: roughness, [2]: alphaClipThreshold
+        glm::vec4 Scalars = { 0.f, 1.f, 0.f, 0.f }; // [0]: metalness, [1]: roughness, [2]: alphaClipThreshold
     };
 
     class Material

@@ -39,6 +39,9 @@ layout(binding = 9, rgba16f) uniform writeonly image2D outColor;
 #ifdef FLOURISH_RAY_TRACING
 layout(binding = 10) uniform sampler2D reflectionsTex;
 layout(binding = 11) uniform accelerationStructureEXT tlas;
+#else
+layout(binding = 10) uniform samplerCube prefilterMap;
+layout(binding = 11) uniform samplerCube irradianceMap;
 #endif
 
 void main()
@@ -120,16 +123,16 @@ void main()
         vec3 kD = 1.0 - kS;
         kD *= 1.0 - metalness;
 
-        // TODO: env map
-        vec3 irradiance = vec3(0.015);
-        vec3 diffuse = irradiance * albedo;
-
         #ifdef FLOURISH_RAY_TRACING
+            vec3 irradiance = vec3(0.015); // TODO: GI
             vec3 prefilteredColor = textureLod(reflectionsTex, texCoord, 0.0f).rgb;
         #else
-            vec3 prefilteredColor = vec3(0.f);
+            // Fallback to IBL
+            vec3 irradiance = texture(irradianceMap, N).rgb;
+            vec3 prefilteredColor = textureLod(prefilterMap, R, roughness * 4.0).rgb;   
         #endif
 
+        vec3 diffuse = irradiance * albedo;
         vec2 brdf = texture(brdfTex, vec2(max(dot(N, V), 0.0), roughness)).rg;
         vec3 specular = prefilteredColor * (F * brdf.x + brdf.y) * 2.0;
 
