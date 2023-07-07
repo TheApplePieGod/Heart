@@ -1,5 +1,3 @@
-#version 460
-
 #define MATERIAL_BUFFER_BINDING 2
 #define MATERIAL_BUFFER_SET 0
 #define MATERIAL_TEXTURES_BINDING 0
@@ -36,21 +34,18 @@ vec2 ComputeMotionVector(vec4 prevPos, vec4 newPos)
     return prev2d - new2d;
 }
 
-void main() {
+void WriteOutputs(vec3 albedo, vec3 normal, float roughness, float metalness)
+{
     outEntityId = float(inEntityId);
-
-    vec4 albedo = GetAlbedo(inMaterialId, inTexCoord, vec4(0.f));
-    if (AlphaClip(inMaterialId, albedo.a))
-        discard;
 
     // Compensate for gamma correction
     // TODO: fix? this is probably because textures are unorm
-    outGBuffer1.rgb = pow(albedo.rgb, vec3(2.2)); 
+    outGBuffer1.rgb = pow(albedo, vec3(2.2)); 
 
-    outGBuffer2.rgb = GetNormal(inTangent, inBitangent, inNormal, inMaterialId, inTexCoord, vec4(0.f));
+    outGBuffer2.rgb = normal;
 
-    outGBuffer1.a = GetMetalness(inMaterialId, inTexCoord, vec4(0.f));
-    outGBuffer2.a = clamp(GetRoughness(inMaterialId, inTexCoord, vec4(0.f)), MIN_ROUGHNESS, MAX_ROUGHNESS);
+    outGBuffer1.a = metalness;
+    outGBuffer2.a = clamp(roughness, MIN_ROUGHNESS, MAX_ROUGHNESS);
 
     float linearZ = gl_FragCoord.z / gl_FragCoord.w;
     outGBuffer3.rg = ComputeMotionVector(inPrevClipPos, inClipPos);

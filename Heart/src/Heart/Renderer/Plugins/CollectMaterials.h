@@ -45,14 +45,20 @@ namespace Heart::RenderPlugins
 
     private:
         void Initialize();
+        int BindTexture(UUID texId, bool async);
+        void AddMaterial(Material* material, bool async);
 
     private:
         CollectMaterialsCreateInfo m_Info;
 
-        u32 m_MaxMaterials = 5000;
-        u32 m_MaxTextures = 1024;
+        u32 m_TextureIndex = 0;
+        u32 m_MaterialIndex = 0;
+
         Ref<Flourish::ResourceSet> m_TexturesSet;
         Ref<Flourish::Buffer> m_MaterialBuffer;
         std::unordered_map<u64, u32> m_MaterialMap;
+
+        u32 m_MaxMaterials = 5000;
+        u32 m_MaxTextures = 1024;
     };
 }

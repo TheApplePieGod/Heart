@@ -39,25 +39,46 @@ namespace Heart::RenderPlugins
         m_TexturesSet = setAllocator->Allocate(setCreateInfo);
     }
 
+    int CollectMaterials::BindTexture(UUID texId, bool async)
+    {
+        auto texAsset = AssetManager::RetrieveAsset<TextureAsset>(texId, true, async);
+        bool valid = texAsset && texAsset->IsValid();
+        if (valid)
+        {
+            m_TexturesSet->BindTexture(0, texAsset->GetTexture(), m_TextureIndex);
+            return m_TextureIndex++;
+        }
+
+        return -1;
+    }
+
+    void CollectMaterials::AddMaterial(Material* material, bool async)
+    {
+        // TODO: probably should use UUIDs in the map, but that won't work
+        // right now because default materials don't have ids
+        u64 matId = (u64)material;
+        if (m_MaterialMap.find(matId) != m_MaterialMap.end())
+            return;
+        m_MaterialMap.insert({ matId, m_MaterialIndex });
+
+        MaterialInfo matInfo;
+        matInfo.Data = material->GetMaterialData();
+        matInfo.AlbedoIndex = BindTexture(material->GetAlbedoTexture(), async);
+        matInfo.MetallicRoughnessIndex = BindTexture(material->GetMetallicRoughnessTexture(), async);
+        matInfo.NormalIndex = BindTexture(material->GetNormalTexture(), async);
+        matInfo.EmissiveIndex = BindTexture(material->GetEmissiveTexture(), async);
+        matInfo.OcclusionIndex = BindTexture(material->GetOcclusionTexture(), async);
+        m_MaterialBuffer->SetElements(&matInfo, 1, m_MaterialIndex++);
+    }
+
     void CollectMaterials::RenderInternal(const SceneRenderData& data)
     {
         HE_PROFILE_FUNCTION();
         auto timer = AggregateTimer("RenderPlugins::CollectMaterials");
 
         m_MaterialMap.clear();
-
-        int arrayIndex = 0;
-        auto& texturesSet = m_TexturesSet;
-        auto bindTex = [&arrayIndex, &texturesSet, &data](UUID texId, int& outIndex)
-        {
-            auto texAsset = AssetManager::RetrieveAsset<TextureAsset>(texId, true, data.Settings.AsyncAssetLoading);
-            bool valid = texAsset && texAsset->IsValid();
-            if (valid)
-            {
-                texturesSet->BindTexture(0, texAsset->GetTexture(), arrayIndex);
-                outIndex = arrayIndex++;
-            }
-        };
+        m_MaterialIndex = 0;
+        m_TextureIndex = 0;
 
         // Bind default material (don't bother with textures)
         {
@@ -65,9 +86,10 @@ namespace Heart::RenderPlugins
             MaterialInfo matInfo = { defMat->GetMaterial().GetMaterialData() };
             m_MaterialBuffer->SetElements(&matInfo, 1, 0);
             m_MaterialMap.insert({ 0, 0 });
+            m_MaterialIndex++;
         }
 
-        u32 materialIndex = 1;
+        // Add all materials from mesh components
         auto meshView = data.Scene->GetRegistry().view<MeshComponent>();
         for (entt::entity entity : meshView)
         {
@@ -84,7 +106,7 @@ namespace Heart::RenderPlugins
             {
                 auto& meshData = meshAsset->GetSubmesh(i);
 
-                auto selectedMaterial = &meshAsset->GetDefaultMaterials()[meshData.GetMaterialIndex()];
+                Material* selectedMaterial = &meshAsset->GetDefaultMaterials()[meshData.GetMaterialIndex()];
                 if (meshData.GetMaterialIndex() < meshComp.Materials.Count())
                 {
                     auto materialAsset = AssetManager::RetrieveAsset<MaterialAsset>(
@@ -96,24 +118,28 @@ namespace Heart::RenderPlugins
                         selectedMaterial = &materialAsset->GetMaterial();
                 }
 
-                // TODO: probably should use UUIDs in the map, but that won't work
-                // right now because default materials don't have ids
-                u64 matId = (u64)selectedMaterial;
-                if (m_MaterialMap.find(matId) != m_MaterialMap.end())
-                    continue;
-                m_MaterialMap.insert({ matId, materialIndex });
-
-                MaterialInfo matInfo;
-                matInfo.Data = selectedMaterial->GetMaterialData();
-                bindTex(selectedMaterial->GetAlbedoTexture(), matInfo.AlbedoIndex);
-                bindTex(selectedMaterial->GetMetallicRoughnessTexture(), matInfo.MetallicRoughnessIndex);
-                bindTex(selectedMaterial->GetNormalTexture(), matInfo.NormalIndex);
-                bindTex(selectedMaterial->GetEmissiveTexture(), matInfo.EmissiveIndex);
-                bindTex(selectedMaterial->GetOcclusionTexture(), matInfo.OcclusionIndex);
-                m_MaterialBuffer->SetElements(&matInfo, 1, materialIndex++);
+                AddMaterial(selectedMaterial, data.Settings.AsyncAssetLoading);
             }
         }
 
-        texturesSet->FlushBindings();
+        // Add all materials from text components
+        auto textView = data.Scene->GetRegistry().view<TextComponent>();
+        for (entt::entity entity : textView)
+        {
+            const auto& textComp = textView.get<TextComponent>(entity);
+
+            Material* selectedMaterial = nullptr;
+            auto materialAsset = AssetManager::RetrieveAsset<MaterialAsset>(
+                textComp.Material,
+                true,
+                data.Settings.AsyncAssetLoading
+            );
+            if (materialAsset && materialAsset->IsValid())
+                selectedMaterial = &materialAsset->GetMaterial();
+
+            AddMaterial(selectedMaterial, data.Settings.AsyncAssetLoading);
+        }
+
+        m_TexturesSet->FlushBindings();
     }
 }

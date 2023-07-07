@@ -15,6 +15,7 @@ namespace Heart::RenderPlugins
     struct GBufferCreateInfo
     {
         HString8 MeshBatchesPluginName;
+        HString8 TextBatchesPluginName;
         HString8 CollectMaterialsPluginName;
         HString8 FrameDataPluginName;
         HString8 EntityIdsPluginName; // Optional
@@ -45,7 +46,8 @@ namespace Heart::RenderPlugins
     private:
         GBufferCreateInfo m_Info;
 
-        Ref<Flourish::ResourceSet> m_ResourceSet;
+        Ref<Flourish::ResourceSet> m_StandardResourceSet;
+        Ref<Flourish::ResourceSet> m_TextResourceSet;
         Ref<Flourish::RenderPass> m_RenderPass;
         std::array<Ref<Flourish::Framebuffer>, 2> m_Framebuffers;
         Ref<Flourish::Texture> m_GBuffer1;

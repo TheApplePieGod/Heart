@@ -3,6 +3,7 @@
 
 #include "Heart/Renderer/Plugins/FrameData.h"
 #include "Heart/Renderer/Plugins/ComputeMeshBatches.h"
+#include "Heart/Renderer/Plugins/ComputeTextBatches.h"
 #include "Heart/Renderer/Plugins/EntityIds.h"
 #include "Heart/Renderer/Plugins/CollectMaterials.h"
 #include "Heart/Renderer/SceneRenderer.h"
@@ -72,7 +73,7 @@ namespace Heart::RenderPlugins
         m_RenderPass = Flourish::RenderPass::Create(rpCreateInfo);
 
         Flourish::GraphicsPipelineCreateInfo pipelineCreateInfo;
-        pipelineCreateInfo.FragmentShader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/gbuffer/Fragment.frag", true)->GetShader() };
+        pipelineCreateInfo.FragmentShader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/gbuffer/Standard.frag", true)->GetShader() };
         pipelineCreateInfo.VertexShader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/gbuffer/Vertex.vert", true)->GetShader() };
         pipelineCreateInfo.VertexTopology = Flourish::VertexTopology::TriangleList;
         pipelineCreateInfo.VertexLayout = Mesh::GetVertexLayout();
@@ -88,7 +89,10 @@ namespace Heart::RenderPlugins
         pipelineCreateInfo.AccessOverrides = {
             { 1, 0, Flourish::ShaderTypeFlags::All }
         };
-        auto pipeline = m_RenderPass->CreatePipeline("main", pipelineCreateInfo);
+        auto standardPipeline = m_RenderPass->CreatePipeline("standard", pipelineCreateInfo);
+        pipelineCreateInfo.FragmentShader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/gbuffer/Text.frag", true)->GetShader() };
+        pipelineCreateInfo.CullMode = Flourish::CullMode::None;
+        auto textPipeline = m_RenderPass->CreatePipeline("text", pipelineCreateInfo);
 
         Flourish::CommandBufferCreateInfo cbCreateInfo;
         cbCreateInfo.FrameRestricted = true;
@@ -96,8 +100,9 @@ namespace Heart::RenderPlugins
         m_CommandBuffer = Flourish::CommandBuffer::Create(cbCreateInfo);
 
         Flourish::ResourceSetCreateInfo dsCreateInfo;
-        dsCreateInfo.Writability = Flourish::ResourceSetWritability::PerFrame;
-        m_ResourceSet = pipeline->CreateResourceSet(0, dsCreateInfo);
+        dsCreateInfo.Writability = Flourish::ResourceSetWritability::MultiPerFrame;
+        m_StandardResourceSet = standardPipeline->CreateResourceSet(0, dsCreateInfo);
+        m_TextResourceSet = textPipeline->CreateResourceSet(2, dsCreateInfo);
 
         ResizeInternal();
     }
@@ -165,24 +170,22 @@ namespace Heart::RenderPlugins
         auto frameDataBuffer = frameDataPlugin->GetBuffer();
         auto materialsPlugin = m_Renderer->GetPlugin<RenderPlugins::CollectMaterials>(m_Info.CollectMaterialsPluginName);
         auto materialBuffer = materialsPlugin->GetMaterialBuffer();
-        auto batchesPlugin = m_Renderer->GetPlugin<RenderPlugins::ComputeMeshBatches>(m_Info.MeshBatchesPluginName);
-        const auto& batchData = batchesPlugin->GetBatchData();
+        const auto& meshBatchData = m_Renderer->GetPlugin<RenderPlugins::ComputeMeshBatches>(m_Info.MeshBatchesPluginName)->GetBatchData();
+        const auto& textBatchData = m_Renderer->GetPlugin<RenderPlugins::ComputeTextBatches>(m_Info.TextBatchesPluginName)->GetBatchData();
 
-        // TODO: this could probably be static
-        m_ResourceSet->BindBuffer(0, frameDataBuffer, 0, 1);
-        m_ResourceSet->BindBuffer(1, batchData.ObjectDataBuffer.get(), 0, batchData.ObjectDataBuffer->GetAllocatedCount());
-        m_ResourceSet->BindBuffer(2, materialBuffer, 0, materialBuffer->GetAllocatedCount());
-        m_ResourceSet->FlushBindings();
+        m_StandardResourceSet->BindBuffer(0, frameDataBuffer, 0, 1);
+        m_StandardResourceSet->BindBuffer(1, meshBatchData.ObjectDataBuffer.get(), 0, meshBatchData.ObjectDataBuffer->GetAllocatedCount());
+        m_StandardResourceSet->BindBuffer(2, materialBuffer, 0, materialBuffer->GetAllocatedCount());
+        m_StandardResourceSet->FlushBindings();
         
         auto encoder = m_CommandBuffer->EncodeRenderCommands(m_Framebuffers[GetArrayIndex()].get());
-        encoder->BindPipeline("main");
-        encoder->BindResourceSet(m_ResourceSet.get(), 0);
+        encoder->BindPipeline("standard");
+        encoder->BindResourceSet(m_StandardResourceSet.get(), 0);
         encoder->FlushResourceSet(0);
         encoder->BindResourceSet(materialsPlugin->GetTexturesSet(), 1);
         encoder->FlushResourceSet(1);
         encoder->ClearDepthAttachment();
-
-        for (auto& pair : batchData.Batches)
+        for (auto& pair : meshBatchData.Batches)
         {
             auto& batch = pair.second;
             
@@ -190,7 +193,32 @@ namespace Heart::RenderPlugins
             encoder->BindVertexBuffer(batch.Mesh->GetVertexBuffer());
             encoder->BindIndexBuffer(batch.Mesh->GetIndexBuffer());
             encoder->DrawIndexedIndirect(
-                batchData.IndirectBuffer.get(), batch.First, batch.Count
+                meshBatchData.IndirectBuffer.get(), batch.First, batch.Count
+            );
+        }
+
+        m_StandardResourceSet->BindBuffer(0, frameDataBuffer, 0, 1);
+        m_StandardResourceSet->BindBuffer(1, textBatchData.ObjectDataBuffer.get(), 0, textBatchData.ObjectDataBuffer->GetAllocatedCount());
+        m_StandardResourceSet->BindBuffer(2, materialBuffer, 0, materialBuffer->GetAllocatedCount());
+        m_StandardResourceSet->FlushBindings();
+
+        encoder->BindPipeline("text");
+        encoder->BindResourceSet(m_StandardResourceSet.get(), 0);
+        encoder->FlushResourceSet(0);
+        encoder->BindResourceSet(materialsPlugin->GetTexturesSet(), 1);
+        encoder->FlushResourceSet(1);
+        for (auto& batch : textBatchData.Batches)
+        {
+            m_TextResourceSet->BindTexture(0, batch.FontAtlas);
+            m_TextResourceSet->FlushBindings();
+            encoder->BindResourceSet(m_TextResourceSet.get(), 2);
+            encoder->FlushResourceSet(2);
+            
+            // Draw
+            encoder->BindVertexBuffer(batch.Mesh->GetVertexBuffer());
+            encoder->BindIndexBuffer(batch.Mesh->GetIndexBuffer());
+            encoder->DrawIndexedIndirect(
+                textBatchData.IndirectBuffer.get(), batch.First, batch.Count
             );
         }
         

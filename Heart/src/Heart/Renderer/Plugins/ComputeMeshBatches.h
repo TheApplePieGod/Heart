@@ -39,7 +39,7 @@ namespace Heart::RenderPlugins
 
         struct MeshBatch
         {
-            Mesh* Mesh = nullptr;
+            const Mesh* Mesh = nullptr;
             u32 First = 0;
             u32 Count = 0;
             u32 EntityListIndex = 0;

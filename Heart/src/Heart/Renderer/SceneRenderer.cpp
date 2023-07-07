@@ -124,13 +124,20 @@ namespace Heart
         auto CBMESHCam = RegisterPlugin<RenderPlugins::ComputeMeshBatches>("CBMESHCam", cbmeshcamCreateInfo);
         CBMESHCam->AddDependency(collectMaterials->GetName(), GraphDependencyType::CPU);
 
+        RenderPlugins::ComputeTextBatchesCreateInfo cbtextcamCreateInfo;
+        cbtextcamCreateInfo.CollectMaterialsPluginName = collectMaterials->GetName();
+        auto CBTEXTCam = RegisterPlugin<RenderPlugins::ComputeTextBatches>("CBTEXTCam", cbtextcamCreateInfo);
+        CBTEXTCam->AddDependency(collectMaterials->GetName(), GraphDependencyType::CPU);
+
         RenderPlugins::GBufferCreateInfo gBufferCreateInfo;
         gBufferCreateInfo.FrameDataPluginName = frameData->GetName();
         gBufferCreateInfo.MeshBatchesPluginName = CBMESHCam->GetName();
+        gBufferCreateInfo.TextBatchesPluginName = CBTEXTCam->GetName();
         gBufferCreateInfo.CollectMaterialsPluginName = collectMaterials->GetName();
         gBufferCreateInfo.EntityIdsPluginName = entityIds->GetName();
         auto gBuffer = RegisterPlugin<RenderPlugins::GBuffer>("GBuffer", gBufferCreateInfo);
         gBuffer->AddDependency(CBMESHCam->GetName(), GraphDependencyType::CPU);
+        gBuffer->AddDependency(CBTEXTCam->GetName(), GraphDependencyType::CPU);
 
         RenderPlugins::RenderEnvironmentMapCreateInfo envMapCreateInfo;
         envMapCreateInfo.FrameDataPluginName = frameData->GetName();
