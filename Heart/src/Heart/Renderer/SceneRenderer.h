@@ -20,9 +20,10 @@ namespace Heart
         float SSAORadius = 0.5f;
         float SSAOBias = 0.025f;
         int SSAOKernelSize = 64;
-        float BloomThreshold = 1.f;
+        float BloomThreshold = 0.f;
         float BloomKnee = 0.1f;
         float BloomSampleScale = 1.f;
+        float BloomStrength = 0.2f;
         bool CullEnable = true;
         bool AsyncAssetLoading = true;
         bool CopyEntityIdsTextureToCPU = false;

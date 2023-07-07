@@ -106,7 +106,7 @@ namespace Heart
         initInfo.UseReversedZBuffer = true;
         initInfo.RequestedFeatures.IndependentBlend = true;
         initInfo.RequestedFeatures.SamplerAnisotropy = true;
-        initInfo.RequestedFeatures.RayTracing = true;
+        initInfo.RequestedFeatures.RayTracing = false;
         initInfo.RequestedFeatures.PartiallyBoundResourceSets = true;
         Flourish::Context::Initialize(initInfo);
 

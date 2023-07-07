@@ -44,6 +44,10 @@ namespace Widgets
         ImGui::SameLine();
         ImGui::DragFloat("##BloomThresh", &Editor::GetState().RenderSettings.BloomThreshold, 0.1f, 0.f, 5.f);
 
+        ImGui::Text("Bloom Strength");
+        ImGui::SameLine();
+        ImGui::DragFloat("##BloomStrength", &Editor::GetState().RenderSettings.BloomStrength, 0.01f, 0.f, 2.f);
+
         ImGui::Text("Bloom Knee");
         ImGui::SameLine();
         ImGui::DragFloat("##BBKne", &Editor::GetState().RenderSettings.BloomKnee, 0.01f, 0.f, 1.f);

@@ -24,19 +24,6 @@ namespace Heart::RenderPlugins
     class Bloom : public RenderPlugin
     {
     public:
-        struct BloomData
-        {
-            glm::vec2 SrcResolution;
-            glm::vec2 DstResolution;
-            float Threshold;
-            float Knee;
-            float SampleScale;
-            u32 Prefilter;
-            glm::vec4 Padding1;
-            glm::vec4 Padding2;
-        };
-
-    public:
         Bloom(SceneRenderer* renderer, HStringView8 name, const BloomCreateInfo& createInfo)
             : RenderPlugin(renderer, name), m_Info(createInfo)
         { Initialize(); }
@@ -46,12 +33,22 @@ namespace Heart::RenderPlugins
         void ResizeInternal() override;
 
     private:
+        struct PushData
+        {
+            glm::vec2 SrcResolution;
+            glm::vec2 DstResolution;
+            float Threshold;
+            float Knee;
+            float SampleScale;
+            u32 Prefilter;
+        };
+
+    private:
         void Initialize();
 
     private:
         BloomCreateInfo m_Info;
 
-        Ref<Flourish::Buffer> m_DataBuffer;
         Ref<Flourish::ComputePipeline> m_UpsamplePipeline;
         Ref<Flourish::ComputePipeline> m_DownsamplePipeline;
         Ref<Flourish::Texture> m_DownsampleTexture;
@@ -63,5 +60,6 @@ namespace Heart::RenderPlugins
         Ref<Flourish::Framebuffer> m_Framebuffer;
 
         u32 m_MipCount;
+        PushData m_PushData;
     };
 }

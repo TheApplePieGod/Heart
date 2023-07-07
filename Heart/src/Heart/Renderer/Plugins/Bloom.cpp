@@ -90,13 +90,6 @@ namespace Heart::RenderPlugins
         
         m_MipCount = m_DownsampleTexture->GetMipCount();
 
-        Flourish::BufferCreateInfo bufCreateInfo;
-        bufCreateInfo.Usage = Flourish::BufferUsageType::Dynamic;
-        bufCreateInfo.Type = Flourish::BufferType::Storage;
-        bufCreateInfo.Stride = sizeof(BloomData);
-        bufCreateInfo.ElementCount = m_MipCount * 2;
-        m_DataBuffer = Flourish::Buffer::Create(bufCreateInfo);
-
         m_GPUGraphNodeBuilder.Reset()
             .SetCommandBuffer(m_CommandBuffer.get());
         for (u32 i = 1; i < m_MipCount; i++)
@@ -138,7 +131,7 @@ namespace Heart::RenderPlugins
         // Downsample
         for (u32 i = 1; i < m_MipCount; i++)
         {
-            BloomData bloomData = {
+            m_PushData = {
                 {
                     i == 1 ? m_Renderer->GetRenderWidth() : m_DownsampleTexture->GetMipWidth(i - 1),
                     i == 1 ? m_Renderer->GetRenderHeight() : m_DownsampleTexture->GetMipHeight(i - 1),
@@ -149,36 +142,27 @@ namespace Heart::RenderPlugins
                 data.Settings.BloomSampleScale,
                 i == 1
             };
-            m_DataBuffer->SetElements(&bloomData, 1, i - 1);
 
             // TODO: shouldn't force all bindings to be rewritten?
             auto encoder = m_CommandBuffer->EncodeComputeCommands();
             encoder->BindComputePipeline(m_DownsamplePipeline.get());
             if (i == 1)
-            {
-                m_DownsampleResourceSet->BindBuffer(0, m_DataBuffer.get(), 0, 1);
-                m_DownsampleResourceSet->BindTexture(1, m_Renderer->GetRenderTexture().get());
-                m_DownsampleResourceSet->BindTextureLayer(2, m_DownsampleTexture.get(), 0, i);
-                m_DownsampleResourceSet->FlushBindings();
-            }
+                m_DownsampleResourceSet->BindTexture(0, m_Renderer->GetRenderTexture().get());
             else
-            {
-                m_DownsampleResourceSet->BindBuffer(0, m_DataBuffer.get(), 0, 1);
-                m_DownsampleResourceSet->BindTextureLayer(1, m_DownsampleTexture.get(), 0, i - 1);
-                m_DownsampleResourceSet->BindTextureLayer(2, m_DownsampleTexture.get(), 0, i);
-                m_DownsampleResourceSet->FlushBindings();
-            }
+                m_DownsampleResourceSet->BindTextureLayer(0, m_DownsampleTexture.get(), 0, i - 1);
+            m_DownsampleResourceSet->BindTextureLayer(1, m_DownsampleTexture.get(), 0, i);
+            m_DownsampleResourceSet->FlushBindings();
             encoder->BindResourceSet(m_DownsampleResourceSet.get(), 0);
-            encoder->UpdateDynamicOffset(0, 0, (i - 1) * sizeof(BloomData));
             encoder->FlushResourceSet(0);
-            encoder->Dispatch((bloomData.DstResolution.x / 16) + 1, (bloomData.DstResolution.y / 16) + 1, 1);
+            encoder->PushConstants(0, sizeof(PushData), &m_PushData);
+            encoder->Dispatch((m_PushData.DstResolution.x / 16) + 1, (m_PushData.DstResolution.y / 16) + 1, 1);
             encoder->EndEncoding();
         }
         
         // Upsample
         for (u32 i = m_MipCount - 2; i > 0; i--)
         {
-            BloomData bloomData = {
+            m_PushData = {
                 { m_DownsampleTexture->GetMipWidth(i + 1), m_DownsampleTexture->GetMipHeight(i + 1) },
                 { m_UpsampleTexture->GetMipWidth(i), m_UpsampleTexture->GetMipHeight(i) },
                 data.Settings.BloomThreshold,
@@ -186,32 +170,21 @@ namespace Heart::RenderPlugins
                 data.Settings.BloomSampleScale,
                 false
             };
-            m_DataBuffer->SetElements(&bloomData, 1, i + m_MipCount);
 
             auto encoder = m_CommandBuffer->EncodeComputeCommands();
             encoder->BindComputePipeline(m_UpsamplePipeline.get());
             if (i == m_MipCount - 2)
-            {
-                m_UpsampleResourceSet->BindBuffer(0, m_DataBuffer.get(), 0, 1);
-                m_UpsampleResourceSet->BindTextureLayer(1, m_DownsampleTexture.get(), 0, i + 1);
-                m_UpsampleResourceSet->BindTextureLayer(2, m_DownsampleTexture.get(), 0, i);
-                m_UpsampleResourceSet->BindTextureLayer(3, m_UpsampleTexture.get(), 0, i);
-                m_UpsampleResourceSet->FlushBindings();
-            }
+                m_UpsampleResourceSet->BindTextureLayer(0, m_DownsampleTexture.get(), 0, i + 1);
             else
-            {
-                m_UpsampleResourceSet->BindBuffer(0, m_DataBuffer.get(), 0, 1);
-                m_UpsampleResourceSet->BindTextureLayer(1, m_UpsampleTexture.get(), 0, i + 1);
-                m_UpsampleResourceSet->BindTextureLayer(2, m_DownsampleTexture.get(), 0, i);
-                m_UpsampleResourceSet->BindTextureLayer(3, m_UpsampleTexture.get(), 0, i);
-                m_UpsampleResourceSet->FlushBindings();
-            }
+                m_UpsampleResourceSet->BindTextureLayer(0, m_UpsampleTexture.get(), 0, i + 1);
+            m_UpsampleResourceSet->BindTextureLayer(1, m_DownsampleTexture.get(), 0, i);
+            m_UpsampleResourceSet->BindTextureLayer(2, m_UpsampleTexture.get(), 0, i);
+            m_UpsampleResourceSet->FlushBindings();
 
             encoder->BindResourceSet(m_UpsampleResourceSet.get(), 0);
-            encoder->UpdateDynamicOffset(0, 0, (i + m_MipCount) * sizeof(BloomData));
             encoder->FlushResourceSet(0);
-
-            encoder->Dispatch((bloomData.DstResolution.x / 16) + 1, (bloomData.DstResolution.y / 16) + 1, 1);
+            encoder->PushConstants(0, sizeof(PushData), &m_PushData);
+            encoder->Dispatch((m_PushData.DstResolution.x / 16) + 1, (m_PushData.DstResolution.y / 16) + 1, 1);
             encoder->EndEncoding();
         }
 
@@ -222,9 +195,8 @@ namespace Heart::RenderPlugins
         encoder->BindPipeline("main");
         encoder->BindResourceSet(m_CompositeResourceSet.get(), 0);
         encoder->FlushResourceSet(0);
-
+        encoder->PushConstants(0, sizeof(float), &data.Settings.BloomStrength);
         encoder->Draw(3, 0, 1, 0);
-
         encoder->EndEncoding();
     }
 }

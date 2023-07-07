@@ -2,27 +2,27 @@
 
 layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
-#include "BloomData.glsl"
+#include "Common.glsl"
 
-layout(binding = 1) uniform sampler2D srcTex;
-layout(binding = 2) uniform sampler2D srcMix;
-layout(binding = 3, rgba16f) writeonly uniform image2D dstTex;
+layout(binding = 0) uniform sampler2D srcTex;
+layout(binding = 1) uniform sampler2D srcMix;
+layout(binding = 2, rgba16f) writeonly uniform image2D dstTex;
 
 void main()
 {
     ivec2 coord = ivec2(gl_GlobalInvocationID.xy);
     
-    if (coord.x >= dataBuffer.data.DstResolution.x || coord.y >= dataBuffer.data.DstResolution.y) return;
+    if (coord.x >= constants.dstResolution.x || coord.y >= constants.dstResolution.y) return;
     
-    vec2 texCoord = coord / dataBuffer.data.DstResolution;
-    float dx = 1.0 / dataBuffer.data.SrcResolution.x;
-    float dy = 1.0 / dataBuffer.data.SrcResolution.y;
+    vec2 texCoord = coord / constants.dstResolution;
+    float dx = 1.0 / constants.srcResolution.x;
+    float dy = 1.0 / constants.srcResolution.y;
     
     // Offset texcoord to match texel offsets
     texCoord += vec2(dx, dy) * 0.25;
 
-    dx *= dataBuffer.data.SampleScale;
-    dy *= dataBuffer.data.SampleScale;
+    dx *= constants.sampleScale;
+    dy *= constants.sampleScale;
 
     vec3 a = texture(srcTex, vec2(texCoord.x - dx, texCoord.y + dy)).rgb;
     vec3 b = texture(srcTex, vec2(texCoord.x,      texCoord.y + dy)).rgb;
