@@ -21,6 +21,10 @@ namespace Heart
             m_ShaderType = Flourish::ShaderTypeFlags::RayMiss;
         else if (m_Extension == ".rchit")
             m_ShaderType = Flourish::ShaderTypeFlags::RayClosestHit;
+        else if (m_Extension == ".rint")
+            m_ShaderType = Flourish::ShaderTypeFlags::RayIntersection;
+        else if (m_Extension == ".rahit")
+            m_ShaderType = Flourish::ShaderTypeFlags::RayAnyHit;
     }
 
     void ShaderAsset::Load(bool async)

@@ -164,9 +164,14 @@ namespace Heart::RenderPlugins
             m_ResourceSet1->BindTexture(3, m_Renderer->GetDefaultEnvironmentMap());
         m_ResourceSet1->FlushBindings();
 
+        // Raygen
         m_GroupTable->BindRayGenGroup(0);
+
+        // General intersections
         m_GroupTable->BindMissGroup(1, 0);
         m_GroupTable->BindHitGroup(2, 0);
+
+        // Shadow intersections
         m_GroupTable->BindMissGroup(3, 1);
 
         // Set raycone spread angle based on camera FOV
