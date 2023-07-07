@@ -21,79 +21,39 @@ namespace Heart
         auto& srcEntity = scene->GetRegistry().storage<entt::entity>();
         auto srcMesh = scene->GetRegistry().view<MeshComponent>();
         auto srcLight = scene->GetRegistry().view<LightComponent>();
+        auto srcText = scene->GetRegistry().view<TextComponent>();
 
         m_Registry.storage<entt::entity>().push(srcEntity.data(), srcEntity.data() + srcEntity.size());
         m_Registry.insert<MeshComponent>(srcMesh.begin(), srcMesh.end(), srcMesh.storage()->begin());
         m_Registry.insert<LightComponent>(srcLight.begin(), srcLight.end(), srcLight.storage()->begin());
+        m_Registry.insert<TextComponent>(srcText.begin(), srcText.end(), srcText.storage()->begin());
 
         m_CachedTransforms = scene->GetCachedTransforms();
 
-        //auto view = src.view<MeshComponent>();
-
-        /*
-        scene->GetRegistry().each([&](auto handle)
-        {
-            Entity src = { scene, handle };
-            
-            u32 entityIndex = m_EntityData.Count();
-            bool shouldAdd = false;
-
-            if (src.HasComponent<MeshComponent>())
-            {
-                m_MeshComponents.AddInPlace(src.GetComponent<MeshComponent>(), entityIndex);
-                shouldAdd = true;
-            }
-
-            if (src.HasComponent<TextComponent>())
-            {
-                m_TextComponents.AddInPlace(src.GetComponent<TextComponent>(), entityIndex);
-                shouldAdd = true;
-            }
-
-            if (src.HasComponent<LightComponent>())
-            {
-                m_LightComponents.AddInPlace(src.GetComponent<LightComponent>(), entityIndex);
-                shouldAdd = true;
-            }
-            
-            if (!shouldAdd)
-                return;
-            
-            const auto& cachedData = scene->GetEntityCachedData(src);
-            m_EntityData.AddInPlace(
-                (u32)handle,
-                cachedData.Transform,
-                cachedData.Position,
-                cachedData.Rotation,
-                cachedData.Scale,
-                cachedData.ForwardVec
-            );
-        });
-
         // Spawn jobs to recompute text data
-        if (m_TextComponents.Count() > 0)
+        if (srcText.size() > 0)
         {
-            auto job = JobManager::Schedule(
-                m_TextComponents.Count(),
-                [this, scene](size_t index)
+            auto dstText = m_Registry.view<TextComponent>();
+            auto job = JobManager::ScheduleIter(
+                dstText.begin(),
+                dstText.end(),
+                [dstText, scene](size_t index)
                 {
-                    auto& textComp = m_TextComponents[index];
-                    textComp.Data.RecomputeRenderData();
+                    auto& textComp = dstText.get<TextComponent>((entt::entity)index);
+                    textComp.RecomputeRenderData();
                     
                     // Update original text component with new data so that we can cache the computed result
-                    u32 entityHandle = m_EntityData[textComp.EntityIndex].Id;
-                    auto& ogTextComp = scene->GetRegistry().get<TextComponent>((entt::entity)entityHandle);
-                    ogTextComp.ComputedMesh = textComp.Data.ComputedMesh;
+                    auto& ogTextComp = scene->GetRegistry().get<TextComponent>((entt::entity)index);
+                    ogTextComp.ComputedMesh = textComp.ComputedMesh;
                 },
-                [this](size_t index)
+                [dstText](size_t index)
                 {
-                    const auto& comp = m_TextComponents[index];
-                    return comp.Data.Font && !comp.Data.Text.IsEmpty() && !comp.Data.ComputedMesh.GetVertexBuffer();
+                    const auto& textComp = dstText.get<TextComponent>((entt::entity)index);
+                    return textComp.Font && !textComp.Text.IsEmpty() && !textComp.ComputedMesh.GetVertexBuffer();
                 }
             );
 
             job.Wait();
         }
-        */
     }
 }
