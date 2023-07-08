@@ -66,7 +66,7 @@ namespace Heart
         envMapCreateInfo.FrameDataPluginName = frameData->GetName();
         auto envMap = RegisterPlugin<RenderPlugins::RenderEnvironmentMap>("EnvMap", envMapCreateInfo);
 
-        Ref<RenderPlugins::PBRComposite> pbrComposite;
+        HString8 pbrCompositeName;
         if (Flourish::Context::FeatureTable().RayTracing)
         {
             RenderPlugins::TLASCreateInfo tlasCreateInfo;
@@ -94,19 +94,22 @@ namespace Heart
             auto svgf = RegisterPlugin<RenderPlugins::SVGF>("SVGF", svgfCreateInfo);
             svgf->AddDependency(rayReflections->GetName(), GraphDependencyType::GPU);
 
-            RenderPlugins::PBRCompositeCreateInfo pbrCompCreateInfo;
+            RenderPlugins::RayPBRCompositeCreateInfo pbrCompCreateInfo;
             pbrCompCreateInfo.ReflectionsInputPluginName = svgf->GetName();
             pbrCompCreateInfo.FrameDataPluginName = frameData->GetName();
             pbrCompCreateInfo.LightingDataPluginName = lightingData->GetName();
             pbrCompCreateInfo.GBufferPluginName = gBuffer->GetName();
-            pbrCompCreateInfo.TLASPluginName = tlas->GetName();
             pbrCompCreateInfo.ClusteredLightingPluginName = clusteredLighting->GetName();
-            pbrComposite = RegisterPlugin<RenderPlugins::PBRComposite>("PBRComposite", pbrCompCreateInfo);
+            pbrCompCreateInfo.TLASPluginName = tlas->GetName();
+            pbrCompCreateInfo.CollectMaterialsPluginName = collectMaterials->GetName();
+            auto pbrComposite = RegisterPlugin<RenderPlugins::RayPBRComposite>("RayPBRComposite", pbrCompCreateInfo);
             pbrComposite->AddDependency(envMap->GetName(), GraphDependencyType::GPU);
             pbrComposite->AddDependency(svgf->GetName(), GraphDependencyType::GPU);
             pbrComposite->AddDependency(tlas->GetName(), GraphDependencyType::CPU);
             pbrComposite->AddDependency(clusteredLighting->GetName(), GraphDependencyType::CPU);
             pbrComposite->AddDependency(clusteredLighting->GetName(), GraphDependencyType::GPU);
+
+            pbrCompositeName = pbrComposite->GetName();
         }
         else
         {
@@ -115,18 +118,20 @@ namespace Heart
             pbrCompCreateInfo.LightingDataPluginName = lightingData->GetName();
             pbrCompCreateInfo.GBufferPluginName = gBuffer->GetName();
             pbrCompCreateInfo.ClusteredLightingPluginName = clusteredLighting->GetName();
-            pbrComposite = RegisterPlugin<RenderPlugins::PBRComposite>("PBRComposite", pbrCompCreateInfo);
+            auto pbrComposite = RegisterPlugin<RenderPlugins::PBRComposite>("PBRComposite", pbrCompCreateInfo);
             pbrComposite->AddDependency(gBuffer->GetName(), GraphDependencyType::GPU);
             pbrComposite->AddDependency(envMap->GetName(), GraphDependencyType::GPU);
             pbrComposite->AddDependency(clusteredLighting->GetName(), GraphDependencyType::CPU);
             pbrComposite->AddDependency(clusteredLighting->GetName(), GraphDependencyType::GPU);
+
+            pbrCompositeName = pbrComposite->GetName();
         }
 
         RenderPlugins::InfiniteGridCreateInfo gridCreateInfo;
         gridCreateInfo.FrameDataPluginName = frameData->GetName();
         gridCreateInfo.GBufferPluginName = gBuffer->GetName();
         auto grid = RegisterPlugin<RenderPlugins::InfiniteGrid>("Grid", gridCreateInfo);
-        grid->AddDependency(pbrComposite->GetName(), GraphDependencyType::GPU);
+        grid->AddDependency(pbrCompositeName, GraphDependencyType::GPU);
 
         RenderPlugins::BloomCreateInfo BloomCreateInfo;
         auto bloom = RegisterPlugin<RenderPlugins::Bloom>("Bloom", BloomCreateInfo);

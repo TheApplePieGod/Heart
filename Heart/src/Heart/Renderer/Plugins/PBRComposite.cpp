@@ -5,7 +5,6 @@
 #include "Heart/Renderer/Plugins/GBuffer.h"
 #include "Heart/Renderer/Plugins/FrameData.h"
 #include "Heart/Renderer/Plugins/LightingData.h"
-#include "Heart/Renderer/Plugins/RayTracing/TLAS.h"
 #include "Heart/Renderer/Plugins/ClusteredLighting.h"
 #include "Heart/Core/Timing.h"
 #include "Heart/Asset/AssetManager.h"
@@ -21,10 +20,6 @@ namespace Heart::RenderPlugins
 {
     void PBRComposite::Initialize()
     {
-        m_UseRayTracing = Flourish::Context::FeatureTable().RayTracing &&
-                          !m_Info.TLASPluginName.IsEmpty() &&
-                          !m_Info.ReflectionsInputPluginName.IsEmpty();
-
         Flourish::ComputePipelineCreateInfo compCreateInfo;
         compCreateInfo.Shader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/pbr_composite/Composite.comp", true)->GetShader() };
         m_Pipeline = Flourish::ComputePipeline::Create(compCreateInfo);
@@ -58,12 +53,6 @@ namespace Heart::RenderPlugins
             .EncoderAddTextureWrite(m_Renderer->GetRenderTexture().get())
             // Need a read here because we need to ensure current contents are synced
             .EncoderAddTextureRead(m_Renderer->GetRenderTexture().get());
-
-        if (m_UseRayTracing)
-        {
-            auto reflPlugin = m_Renderer->GetPlugin(m_Info.ReflectionsInputPluginName);
-            m_GPUGraphNodeBuilder.EncoderAddTextureRead(reflPlugin->GetOutputTexture().get());
-        }
     }
 
     // TODO: resource sets could definitely be static
@@ -94,25 +83,15 @@ namespace Heart::RenderPlugins
             m_ResourceSet->BindTextureLayer(8, m_Renderer->GetDefaultEnvironmentMap(), 0, 0);
         m_ResourceSet->BindTexture(9, m_Renderer->GetRenderTexture().get());
 
-        if (m_UseRayTracing)
+        if (data.EnvMap)
         {
-            auto tlasPlugin = m_Renderer->GetPlugin<RenderPlugins::TLAS>(m_Info.TLASPluginName);
-            auto reflPlugin = m_Renderer->GetPlugin(m_Info.ReflectionsInputPluginName);
-            m_ResourceSet->BindTexture(10, reflPlugin->GetOutputTexture().get());
-            m_ResourceSet->BindAccelerationStructure(11, tlasPlugin->GetAccelStructure());
+            m_ResourceSet->BindTexture(10, data.EnvMap->GetPrefilterCubemap());
+            m_ResourceSet->BindTexture(11, data.EnvMap->GetIrradianceCubemap());
         }
         else
         {
-            if (data.EnvMap)
-            {
-                m_ResourceSet->BindTexture(10, data.EnvMap->GetPrefilterCubemap());
-                m_ResourceSet->BindTexture(11, data.EnvMap->GetIrradianceCubemap());
-            }
-            else
-            {
-                m_ResourceSet->BindTexture(10, m_Renderer->GetDefaultEnvironmentMap());
-                m_ResourceSet->BindTexture(11, m_Renderer->GetDefaultEnvironmentMap());
-            }
+            m_ResourceSet->BindTexture(10, m_Renderer->GetDefaultEnvironmentMap());
+            m_ResourceSet->BindTexture(11, m_Renderer->GetDefaultEnvironmentMap());
         }
 
         m_ResourceSet->FlushBindings();

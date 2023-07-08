@@ -265,7 +265,8 @@ namespace Heart
         else if (extension == ".gltf")
             type = Asset::Type::Mesh;
         else if (extension == ".vert" || extension == ".frag" || extension == ".comp" ||
-                 extension == ".rgen" || extension == ".rmiss" || extension == ".rchit")
+                 extension == ".rgen" || extension == ".rmiss" || extension == ".rchit" ||
+                 extension == ".rint" || extension == ".rahit")
             type = Asset::Type::Shader;
         else if (extension == ".hemat")
             type = Asset::Type::Material;

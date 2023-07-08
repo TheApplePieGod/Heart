@@ -293,7 +293,7 @@ void main()
         
         if (valid)
         {
-            historyLength = historyLength + 1;//min(32.f, historyLength + 1);
+            historyLength = min(32.f, historyLength + 1);
 
             float colorAlpha = max(newRoughness / float(historyLength), 0.003);
             float momentsAlpha = max(newRoughness / float(historyLength), 0.003);

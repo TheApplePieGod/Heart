@@ -13,12 +13,10 @@ namespace Heart::RenderPlugins
 {
     struct PBRCompositeCreateInfo
     {
-        HString8 ReflectionsInputPluginName;
         HString8 FrameDataPluginName;
         HString8 LightingDataPluginName;
         HString8 GBufferPluginName;
         HString8 ClusteredLightingPluginName;
-        HString8 TLASPluginName;
     };
 
     class PBRComposite : public RenderPlugin
@@ -40,7 +38,5 @@ namespace Heart::RenderPlugins
 
         Ref<Flourish::ResourceSet> m_ResourceSet;
         Ref<Flourish::ComputePipeline> m_Pipeline;
-
-        bool m_UseRayTracing;
     };
 }

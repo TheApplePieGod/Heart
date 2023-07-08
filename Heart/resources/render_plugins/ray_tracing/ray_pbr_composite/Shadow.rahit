@@ -1,0 +1,52 @@
+#version 460
+
+#extension GL_EXT_ray_tracing : enable
+#extension GL_EXT_scalar_block_layout : enable
+#extension GL_EXT_buffer_reference2 : require
+
+#define OBJECT_BUFFER_BINDING 0
+#define OBJECT_BUFFER_SET 1
+#include "..//tlas/ObjectBuffer.glsl"
+
+#define MATERIAL_BUFFER_BINDING 1
+#define MATERIAL_BUFFER_SET 1
+#define MATERIAL_TEXTURES_BINDING 0
+#define MATERIAL_TEXTURES_SET 2
+#include "../../collect_materials/MaterialBuffer.glsl"
+
+#include "Common.glsl"
+#include "../../../VertexLayout.glsl"
+#include "../util/Barycentrics.glsl"
+
+layout(buffer_reference, scalar) readonly buffer VertexBuffer {
+    Vertex data[];
+};
+
+layout(buffer_reference, scalar) readonly buffer IndexBuffer {
+    uvec3 data[];
+};
+
+layout(location = 0) rayPayloadInEXT HitPayload prd;
+
+hitAttributeEXT vec2 hitAttributes;
+
+void main()
+{
+    uint objectId = gl_InstanceID;
+    VertexBuffer vertexBuffer = VertexBuffer(GET_OBJECT(objectId).vertexAddress);
+    IndexBuffer indexBuffer = IndexBuffer(GET_OBJECT(objectId).indexAddress);
+    uint materialId = uint(GET_OBJECT(objectId).data.r);
+  
+    // Hit triangle
+    uvec3 ind = indexBuffer.data[gl_PrimitiveID];
+    Vertex v0 = vertexBuffer.data[ind.x];
+    Vertex v1 = vertexBuffer.data[ind.y];
+    Vertex v2 = vertexBuffer.data[ind.z];
+
+    vec3 bary = GetBarycentricCoordinates(hitAttributes);
+    vec2 texCoord = GetTexCoord(v0, v1, v2, bary);
+    
+    vec4 albedo = GetAlbedo(materialId, texCoord, vec4(0.f));
+    if (AlphaClip(materialId, albedo.a))
+        ignoreIntersectionEXT;
+}

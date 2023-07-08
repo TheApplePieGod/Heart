@@ -1,0 +1,4 @@
+struct HitPayload
+{
+    bool isShadowed;
+};

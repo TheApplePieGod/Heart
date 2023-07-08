@@ -21,4 +21,5 @@
 
 #include "RayTracing/TLAS.h"
 #include "RayTracing/RayReflections.h"
+#include "RayTracing/RayPBRComposite.h"
 #include "RayTracing/SVGF.h"

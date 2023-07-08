@@ -44,8 +44,10 @@ layout(binding = 2) uniform accelerationStructureEXT lightTlas;
 layout(location = 0) rayPayloadInEXT HitPayload payload;
 layout(location = 1) rayPayloadEXT bool isShadowed;
 
-hitAttributeEXT vec3 hitAttributes;
+hitAttributeEXT vec2 hitAttributes;
 
+// Don't do explicit alpha testing in reflections
+// TODO: could do depending on roughness
 bool CheckShadowed(inout LightEvalData lightData, vec3 P, vec3 N)
 {
     float tMin = 0.01;
