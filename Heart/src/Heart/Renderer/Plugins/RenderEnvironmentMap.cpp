@@ -63,7 +63,7 @@ namespace Heart::RenderPlugins
         fbCreateInfo.RenderPass = m_RenderPass;
         fbCreateInfo.Width = m_Renderer->GetRenderWidth();
         fbCreateInfo.Height = m_Renderer->GetRenderHeight();
-        fbCreateInfo.ColorAttachments.push_back({ { 0.f, 0.f, 0.f, 0.f }, m_Renderer->GetRenderTexture() });
+        fbCreateInfo.ColorAttachments.push_back({ { 0.f, 0.f, 0.f, 1.f }, m_Renderer->GetRenderTexture() });
         m_Framebuffer = Flourish::Framebuffer::Create(fbCreateInfo);
 
         m_GPUGraphNodeBuilder.Reset()

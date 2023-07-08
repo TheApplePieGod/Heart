@@ -63,7 +63,7 @@ float GetMetalness(uint materialId, vec2 texCoord, vec4 lod)
 {
     float metalness = GET_MATERIAL(materialId).data.scalars[0];
     if (GET_MATERIAL(materialId).metallicRoughnessIndex != -1)
-        metalness = SampleMaterialTexture(GET_MATERIAL(materialId).metallicRoughnessIndex, materialId, texCoord, lod).b;
+        metalness *= SampleMaterialTexture(GET_MATERIAL(materialId).metallicRoughnessIndex, materialId, texCoord, lod).b;
     return metalness;
 }
     
@@ -71,7 +71,7 @@ float GetRoughness(uint materialId, vec2 texCoord, vec4 lod)
 {
     float roughness = GET_MATERIAL(materialId).data.scalars[1];
     if (GET_MATERIAL(materialId).metallicRoughnessIndex != -1)
-        roughness = SampleMaterialTexture(GET_MATERIAL(materialId).metallicRoughnessIndex, materialId, texCoord, lod).g;
+        roughness *= SampleMaterialTexture(GET_MATERIAL(materialId).metallicRoughnessIndex, materialId, texCoord, lod).g;
     return roughness;
 }
 

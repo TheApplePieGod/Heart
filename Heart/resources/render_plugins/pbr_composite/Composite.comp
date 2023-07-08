@@ -134,7 +134,7 @@ void main()
 
         vec3 diffuse = irradiance * albedo;
         vec2 brdf = texture(brdfTex, vec2(max(dot(N, V), 0.0), roughness)).rg;
-        vec3 specular = prefilteredColor * (F * brdf.x + brdf.y) * 2.0;
+        vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);
 
         float occlusion = 1.0;
         finalContribution += (kD * diffuse + specular) * occlusion;

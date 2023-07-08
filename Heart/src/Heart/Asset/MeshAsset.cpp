@@ -210,6 +210,9 @@ namespace Heart
                 if (material.contains("emissiveFactor"))
                     parsingMaterial.m_MaterialData.SetEmissiveFactor({ material["emissiveFactor"][0], material["emissiveFactor"][1], material["emissiveFactor"][2], 0.f });
 
+                if (material.contains("alphaCutoff"))
+                    parsingMaterial.m_MaterialData.SetAlphaClipThreshold(material["alphaCutoff"]);
+
                 m_DefaultMaterials.AddInPlace(parsingMaterial);
                 materialIndex++;
             }
