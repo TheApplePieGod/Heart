@@ -28,84 +28,7 @@ namespace Heart
         // TODO: parallel init? could do parallel init phase followed by gpunodebuilder
         // phase
 
-        /*
-        auto FrameData = RegisterPlugin<RenderPlugins::FrameData>("FrameData");
-        auto LightingData = RegisterPlugin<RenderPlugins::LightingData>("LightingData");
-        auto CBMESHCam = RegisterPlugin<RenderPlugins::ComputeMeshBatches>("CBMESHCam");
-        auto EntityIds = RegisterPlugin<RenderPlugins::EntityIds>("EntityIds");
-        auto TLAS = RegisterPlugin<RenderPlugins::TLAS>("TLAS");
-
-        RenderPlugins::RenderMeshBatchesCreateInfo RBMESHCamCreateInfo;
-        RBMESHCamCreateInfo.WriteNormals = true;
-        RBMESHCamCreateInfo.FrameDataPluginName = FrameData->GetName();
-        RBMESHCamCreateInfo.MeshBatchesPluginName = CBMESHCam->GetName();
-        auto RBMESHCam = RegisterPlugin<RenderPlugins::RenderMeshBatches>("RBMESHCam", RBMESHCamCreateInfo);
-        RBMESHCam->AddDependency(CBMESHCam->GetName(), GraphDependencyType::CPU);
-
-        RenderPlugins::ComputeTextBatchesCreateInfo CBTEXTCamCreateInfo;
-        auto CBTEXTCam = RegisterPlugin<RenderPlugins::ComputeTextBatches>("CBTEXTCam", CBTEXTCamCreateInfo);
-
-        RenderPlugins::ComputeMaterialBatchesCreateInfo CBMATCamCreateInfo;
-        CBMATCamCreateInfo.MeshBatchesPluginName = CBMESHCam->GetName();
-        auto CBMATCam = RegisterPlugin<RenderPlugins::ComputeMaterialBatches>("CBMATCam", CBMATCamCreateInfo);
-        CBMATCam->AddDependency(CBMESHCam->GetName(), GraphDependencyType::CPU);
-
-        RenderPlugins::SSAOCreateInfo SSAOCreateInfo;
-        SSAOCreateInfo.FrameDataPluginName = FrameData->GetName();
-        SSAOCreateInfo.RenderMeshBatchesPluginName = RBMESHCam->GetName();
-        auto SSAO = RegisterPlugin<RenderPlugins::SSAO>("SSAO", SSAOCreateInfo);
-        SSAO->AddDependency(RBMESHCam->GetName(), GraphDependencyType::GPU);
-
-        RenderPlugins::RenderEnvironmentMapCreateInfo ENVMAPCreateInfo;
-        ENVMAPCreateInfo.FrameDataPluginName = FrameData->GetName();
-        auto ENVMAP = RegisterPlugin<RenderPlugins::RenderEnvironmentMap>("ENVMAP", ENVMAPCreateInfo);
-
-        RenderPlugins::TransparencyCompositeCreateInfo TransparencyCreateInfo;
-        auto Transparency = RegisterPlugin<RenderPlugins::TransparencyComposite>("Transparency", TransparencyCreateInfo);
-
-        RenderPlugins::RenderTextBatchesCreateInfo RBTEXTCamCreateInfo;
-        RBTEXTCamCreateInfo.EntityIdsPluginName = EntityIds->GetName();
-        RBTEXTCamCreateInfo.FrameDataPluginName = FrameData->GetName();
-        RBTEXTCamCreateInfo.LightingDataPluginName = LightingData->GetName();
-        RBTEXTCamCreateInfo.TextBatchesPluginName = CBTEXTCam->GetName();
-        auto RBTEXTCam = RegisterPlugin<RenderPlugins::RenderTextBatches>("RBTEXTCam", RBTEXTCamCreateInfo);
-        RBTEXTCam->AddDependency(CBTEXTCam->GetName(), GraphDependencyType::CPU);
-        RBTEXTCam->AddDependency(ENVMAP->GetName(), GraphDependencyType::GPU);
-        RBTEXTCam->AddDependency(RBMESHCam->GetName(), GraphDependencyType::GPU);
-
-        RenderPlugins::RenderMaterialBatchesCreateInfo RBMATCamCreateInfo;
-        // TODO: parameterize. will need to add support for specialization constants to do this
-        RBMATCamCreateInfo.EntityIdsPluginName = EntityIds->GetName();
-        RBMATCamCreateInfo.FrameDataPluginName = FrameData->GetName();
-        RBMATCamCreateInfo.LightingDataPluginName = LightingData->GetName();
-        RBMATCamCreateInfo.SSAOPluginName = SSAO->GetName();
-        RBMATCamCreateInfo.MaterialBatchesPluginName = CBMATCam->GetName();
-        RBMATCamCreateInfo.TransparencyCompositePluginName = Transparency->GetName();
-        auto RBMATCam = RegisterPlugin<RenderPlugins::RenderMaterialBatches>("RBMATCam", RBMATCamCreateInfo);
-        RBMATCam->AddDependency(CBMATCam->GetName(), GraphDependencyType::CPU);
-        RBMATCam->AddDependency(SSAO->GetName(), GraphDependencyType::GPU);
-        RBMATCam->AddDependency(RBTEXTCam->GetName(), GraphDependencyType::GPU);
-
-        EntityIds->AddDependency(RBMATCam->GetName(), GraphDependencyType::GPU);
-
-        RenderPlugins::InfiniteGridCreateInfo GRIDCreateInfo;
-        GRIDCreateInfo.FrameDataPluginName = FrameData->GetName();
-        GRIDCreateInfo.TransparencyCompositePluginName = Transparency->GetName();
-        auto GRID = RegisterPlugin<RenderPlugins::InfiniteGrid>("GRID", GRIDCreateInfo);
-        GRID->AddDependency(RBMATCam->GetName(), GraphDependencyType::GPU);
-
-        Transparency->AddDependency(GRID->GetName(), GraphDependencyType::GPU);
-
-        RenderPlugins::BloomCreateInfo BloomCreateInfo;
-        auto Bloom = RegisterPlugin<RenderPlugins::Bloom>("Bloom", BloomCreateInfo);
-        Bloom->AddDependency(Transparency->GetName(), GraphDependencyType::GPU);
-
-        RenderPlugins::ColorGradingCreateInfo GRADINGCreateInfo;
-        auto GRADING = RegisterPlugin<RenderPlugins::ColorGrading>("GRADING", GRADINGCreateInfo);
-        GRADING->AddDependency(Bloom->GetName(), GraphDependencyType::GPU);
-        */
-
-        // TODO: need to add grid and basic transparency back (?)
+        // TODO: transparency broken (again)
 
         auto frameData = RegisterPlugin<RenderPlugins::FrameData>("FrameData");
         auto lightingData = RegisterPlugin<RenderPlugins::LightingData>("LightingData");
@@ -199,9 +122,15 @@ namespace Heart
             pbrComposite->AddDependency(clusteredLighting->GetName(), GraphDependencyType::GPU);
         }
 
+        RenderPlugins::InfiniteGridCreateInfo gridCreateInfo;
+        gridCreateInfo.FrameDataPluginName = frameData->GetName();
+        gridCreateInfo.GBufferPluginName = gBuffer->GetName();
+        auto grid = RegisterPlugin<RenderPlugins::InfiniteGrid>("Grid", gridCreateInfo);
+        grid->AddDependency(pbrComposite->GetName(), GraphDependencyType::GPU);
+
         RenderPlugins::BloomCreateInfo BloomCreateInfo;
         auto bloom = RegisterPlugin<RenderPlugins::Bloom>("Bloom", BloomCreateInfo);
-        bloom->AddDependency(pbrComposite->GetName(), GraphDependencyType::GPU);
+        bloom->AddDependency(grid->GetName(), GraphDependencyType::GPU);
 
         RenderPlugins::ColorGradingCreateInfo gradingCreateInfo;
         auto grading = RegisterPlugin<RenderPlugins::ColorGrading>("Grading", gradingCreateInfo);
@@ -335,6 +264,7 @@ namespace Heart
         texCreateInfo.Usage = Flourish::TextureUsageFlags::Graphics;
         m_OutputTexture = Flourish::Texture::Create(texCreateInfo);
         texCreateInfo.Format = Flourish::ColorFormat::Depth;
+        texCreateInfo.Usage |= Flourish::TextureUsageFlags::Transfer;
         m_DepthTexture = Flourish::Texture::Create(texCreateInfo);
     }
 

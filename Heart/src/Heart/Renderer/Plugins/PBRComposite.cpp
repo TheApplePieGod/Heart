@@ -54,7 +54,7 @@ namespace Heart::RenderPlugins
             .EncoderAddTextureRead(gBufferPlugin->GetGBuffer1())
             .EncoderAddTextureRead(gBufferPlugin->GetGBuffer2())
             .EncoderAddTextureRead(gBufferPlugin->GetGBuffer3())
-            .EncoderAddTextureRead(gBufferPlugin->GetGBufferDepth())
+            .EncoderAddTextureRead(gBufferPlugin->GetGBufferDepth().get())
             .EncoderAddTextureWrite(m_Renderer->GetRenderTexture().get())
             // Need a read here because we need to ensure current contents are synced
             .EncoderAddTextureRead(m_Renderer->GetRenderTexture().get());

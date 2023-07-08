@@ -88,7 +88,7 @@ namespace Heart::RenderPlugins
             .EncoderAddTextureRead(inputPlugin->GetOutputTexture().get())
             .EncoderAddTextureRead(gBufferPlugin->GetGBuffer2())
             .EncoderAddTextureRead(gBufferPlugin->GetGBuffer3())
-            .EncoderAddTextureRead(gBufferPlugin->GetGBufferDepth())
+            .EncoderAddTextureRead(gBufferPlugin->GetGBufferDepth().get())
             .EncoderAddTextureWrite(m_MomentsHistory.get())
             .EncoderAddTextureWrite(m_ColorHistory.get());
 
@@ -97,7 +97,7 @@ namespace Heart::RenderPlugins
             m_GPUGraphNodeBuilder.AddEncoderNode(Flourish::GPUWorkloadType::Compute)
                 .EncoderAddTextureRead(gBufferPlugin->GetGBuffer2())
                 .EncoderAddTextureRead(gBufferPlugin->GetGBuffer3())
-                .EncoderAddTextureRead(gBufferPlugin->GetGBufferDepth())
+                .EncoderAddTextureRead(gBufferPlugin->GetGBufferDepth().get())
                 .EncoderAddTextureWrite(m_TempTexture.get());
 
             Flourish::Texture* read = m_TempTexture.get();

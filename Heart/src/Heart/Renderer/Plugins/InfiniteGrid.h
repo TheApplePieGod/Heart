@@ -14,7 +14,7 @@ namespace Heart::RenderPlugins
     struct InfiniteGridCreateInfo
     {
         HString8 FrameDataPluginName;
-        HString8 TransparencyCompositePluginName;
+        HString8 GBufferPluginName;
     };
 
     class InfiniteGrid : public RenderPlugin

@@ -43,7 +43,7 @@ namespace Heart
         texCreateInfo.Width = 512;
         texCreateInfo.Height = 512;
         texCreateInfo.Format = Flourish::ColorFormat::RGBA16_FLOAT;
-        texCreateInfo.Usage = Flourish::TextureUsageFlags::Graphics;
+        texCreateInfo.Usage = Flourish::TextureUsageFlags::Graphics | Flourish::TextureUsageFlags::Transfer;
         texCreateInfo.Writability = Flourish::TextureWritability::Once;
         texCreateInfo.ArrayCount = 6;
         texCreateInfo.MipCount = 0;
@@ -51,6 +51,7 @@ namespace Heart
             Flourish::SamplerWrapMode::ClampToEdge, Flourish::SamplerWrapMode::ClampToEdge, Flourish::SamplerWrapMode::ClampToEdge
         };
         m_EnvironmentMap.Texture = Flourish::Texture::Create(texCreateInfo);
+        texCreateInfo.Usage = Flourish::TextureUsageFlags::Graphics;
         texCreateInfo.ArrayCount = 1;
         texCreateInfo.MipCount = 1;
         m_BRDFTexture.Texture = Flourish::Texture::Create(texCreateInfo);

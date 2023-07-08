@@ -13,6 +13,7 @@
 #include "Heart/Asset/ShaderAsset.h"
 #include "Flourish/Api/RenderCommandEncoder.h"
 #include "Flourish/Api/GraphicsCommandEncoder.h"
+#include "Flourish/Api/TransferCommandEncoder.h"
 #include "Flourish/Api/CommandBuffer.h"
 #include "Flourish/Api/RenderPass.h"
 #include "Flourish/Api/Framebuffer.h"
@@ -116,8 +117,8 @@ namespace Heart::RenderPlugins
         texCreateInfo.Width = m_Renderer->GetRenderWidth();
         texCreateInfo.Height = m_Renderer->GetRenderHeight();
         texCreateInfo.ArrayCount = 2;
-        texCreateInfo.MipCount = 3;
-        texCreateInfo.Usage = Flourish::TextureUsageFlags::Graphics;
+        texCreateInfo.MipCount = 2;
+        texCreateInfo.Usage = Flourish::TextureUsageFlags::Graphics | Flourish::TextureUsageFlags::Transfer;
         texCreateInfo.Writability = Flourish::TextureWritability::Once;
         texCreateInfo.SamplerState.MinFilter = Flourish::SamplerFilter::Nearest;
         texCreateInfo.SamplerState.MagFilter = Flourish::SamplerFilter::Nearest;
@@ -158,7 +159,8 @@ namespace Heart::RenderPlugins
             .EncoderAddTextureWrite(m_GBuffer1.get())
             .EncoderAddTextureWrite(m_GBuffer2.get())
             .EncoderAddTextureWrite(m_GBuffer3.get())
-            .EncoderAddTextureWrite(m_GBufferDepth.get());
+            .EncoderAddTextureWrite(m_GBufferDepth.get())
+            .EncoderAddTextureWrite(m_Renderer->GetDepthTexture().get());
     }
 
     void GBuffer::RenderInternal(const SceneRenderData& data)
@@ -224,11 +226,22 @@ namespace Heart::RenderPlugins
         
         encoder->EndEncoding();
 
-        auto mipEncoder = m_CommandBuffer->EncodeGraphicsCommands();
-        mipEncoder->GenerateMipMaps(m_GBuffer1.get(), Flourish::SamplerFilter::Nearest);
-        mipEncoder->GenerateMipMaps(m_GBuffer2.get(), Flourish::SamplerFilter::Nearest);
-        mipEncoder->GenerateMipMaps(m_GBuffer3.get(), Flourish::SamplerFilter::Nearest);
-        mipEncoder->GenerateMipMaps(m_GBufferDepth.get(), Flourish::SamplerFilter::Nearest);
-        mipEncoder->EndEncoding();
+        auto graphicsEncoder = m_CommandBuffer->EncodeGraphicsCommands();
+
+        // Generate mips for gbuffer
+        graphicsEncoder->GenerateMipMaps(m_GBuffer1.get(), Flourish::SamplerFilter::Nearest);
+        graphicsEncoder->GenerateMipMaps(m_GBuffer2.get(), Flourish::SamplerFilter::Nearest);
+        graphicsEncoder->GenerateMipMaps(m_GBuffer3.get(), Flourish::SamplerFilter::Nearest);
+        graphicsEncoder->GenerateMipMaps(m_GBufferDepth.get(), Flourish::SamplerFilter::Nearest);
+
+        // Blit depth to render depth for ease of use
+        graphicsEncoder->BlitTexture(
+            m_GBufferDepth.get(),
+            m_Renderer->GetDepthTexture().get(),
+            GetArrayIndex(), 0,
+            0, 0
+        );
+        
+        graphicsEncoder->EndEncoding();
     }
 }

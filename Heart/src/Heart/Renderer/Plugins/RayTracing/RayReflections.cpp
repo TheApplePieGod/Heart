@@ -128,7 +128,7 @@ namespace Heart::RenderPlugins
             .EncoderAddTextureWrite(m_OutputTexture.get())
             .EncoderAddTextureRead(gBufferPlugin->GetGBuffer1())
             .EncoderAddTextureRead(gBufferPlugin->GetGBuffer2())
-            .EncoderAddTextureRead(gBufferPlugin->GetGBufferDepth());
+            .EncoderAddTextureRead(gBufferPlugin->GetGBufferDepth().get());
             // .AccelStructure ???
     }
 
