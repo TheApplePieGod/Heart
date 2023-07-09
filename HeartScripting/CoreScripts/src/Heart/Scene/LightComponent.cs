@@ -13,14 +13,12 @@ namespace Heart.Scene
         Directional, Point
     }
 
-    [StructLayout(LayoutKind.Explicit, Size = 32)]
+    [StructLayout(LayoutKind.Explicit, Size = 24)]
     internal unsafe struct LightComponentInternal
     {
         [FieldOffset(0)] public Vec4Internal Color;
         [FieldOffset(16)] public uint LightType;
-        [FieldOffset(20)] public float ConstantAttenuation;
-        [FieldOffset(24)] public float LinearAttenuation;
-        [FieldOffset(28)] public float QuadraticAttenuation;
+        [FieldOffset(20)] public float Radius;
     }
 
     public class LightComponent : Component
@@ -91,54 +89,20 @@ namespace Heart.Scene
             }
         }
 
-        public unsafe float ConstantAttenuation
+        public unsafe float Radius
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
                 RefreshPtr();
-                return _internalValue->ConstantAttenuation;
+                return _internalValue->Radius;
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set
             {
                 RefreshPtr();
-                _internalValue->ConstantAttenuation = value;
-            }
-        }
-
-        public unsafe float LinearAttenuation
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get
-            {
-                RefreshPtr();
-                return _internalValue->LinearAttenuation;
-            }
-
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            set
-            {
-                RefreshPtr();
-                _internalValue->LinearAttenuation = value;
-            }
-        }
-
-        public unsafe float QuadraticAttenuation
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get
-            {
-                RefreshPtr();
-                return _internalValue->QuadraticAttenuation;
-            }
-
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            set
-            {
-                RefreshPtr();
-                _internalValue->QuadraticAttenuation = value;
+                _internalValue->Radius = value;
             }
         }
 
