@@ -44,7 +44,7 @@ namespace Heart::RenderPlugins
     private:
         TLASCreateInfo m_Info;
 
-        u32 m_MaxObjects = 5000;
+        u32 m_MaxObjects = 10000;
         HVector<Flourish::AccelerationStructureInstance> m_Instances;
         Ref<Flourish::AccelerationStructure> m_AccelStructure;
         Ref<Flourish::Buffer> m_ObjectBuffer;

@@ -39,6 +39,7 @@ bool CheckShadowed(inout LightEvalData lightData, vec3 P, vec3 N)
 {
     float tMin = 0.01;
     uint flags = gl_RayFlagsSkipClosestHitShaderEXT;
+    //uint flags = gl_RayFlagsTerminateOnFirstHitEXT | gl_RayFlagsOpaqueEXT | gl_RayFlagsSkipClosestHitShaderEXT;
     vec3 shadowOrigin = P + N * 0.01;
     prd.isShadowed = true;
     traceRayEXT(tlas, flags, 0xFF, 0, 0, 0, shadowOrigin, tMin, lightData.l, lightData.dist, 0);

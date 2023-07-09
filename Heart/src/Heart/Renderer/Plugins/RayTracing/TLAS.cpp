@@ -98,6 +98,10 @@ namespace Heart::RenderPlugins
 
                 instance.Parent = meshData.GetAccelStructure();
                 instance.TransformMatrix = glm::value_ptr(transformData.Transform);
+                instance.Settings = 0;
+                // TODO
+                //if (selectedMaterial->GetMaterialData().GetAlphaClipThreshold() > 0.0)
+                    instance.Settings = Flourish::AccelerationStructureInstanceSettingsFlags::ForceNoOpaque;
                 m_Instances.AddInPlace(instance);
             }
         }

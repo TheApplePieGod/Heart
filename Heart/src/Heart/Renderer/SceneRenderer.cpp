@@ -84,6 +84,8 @@ namespace Heart
             rayReflections->AddDependency(collectMaterials->GetName(), GraphDependencyType::CPU);
             rayReflections->AddDependency(tlas->GetName(), GraphDependencyType::CPU);
             rayReflections->AddDependency(tlas->GetName(), GraphDependencyType::GPU);
+            rayReflections->AddDependency(lightingData->GetName(), GraphDependencyType::CPU);
+            rayReflections->AddDependency(lightingData->GetName(), GraphDependencyType::GPU);
             rayReflections->AddDependency(gBuffer->GetName(), GraphDependencyType::GPU);
 
             // TODO: downscaled version

@@ -65,7 +65,7 @@ namespace Heart
             Flourish::AccelerationStructureNodeBuildInfo buildInfo;
             buildInfo.VertexBuffer = m_VertexBuffer.get();
             buildInfo.IndexBuffer = m_IndexBuffer.get();
-            buildInfo.Opaque = false;
+            buildInfo.Opaque = true;
             buildEncoder->RebuildAccelerationStructureNode(accelStruct.get(), buildInfo);
             buildEncoder->EndEncoding();
 
