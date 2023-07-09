@@ -98,9 +98,6 @@ namespace Heart
     {
         ScriptInstance Instance;
     };
-    
-    struct ParallelUpdateComponent
-    {};
 
     struct PrimaryCameraComponent
     {};

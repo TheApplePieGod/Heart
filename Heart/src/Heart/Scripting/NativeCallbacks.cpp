@@ -149,19 +149,6 @@ HE_INTEROP_EXPORT bool Native_Entity_IsValid(u32 entityHandle, Heart::Scene* sce
     return entity.IsValid();
 }
 
-HE_INTEROP_EXPORT void Native_Entity_SetParallelUpdate(u32 entityHandle, Heart::Scene* sceneHandle, bool parallel)
-{
-    Heart::Entity entity(sceneHandle, entityHandle);
-    if (parallel)
-    {
-        entity.AddComponent<Heart::ParallelUpdateComponent>();
-        return;
-    }
-    
-    if (entity.HasComponent<Heart::ParallelUpdateComponent>())
-        entity.RemoveComponent<Heart::ParallelUpdateComponent>();
-}
-
 /*
  * Asset manager functions
  */

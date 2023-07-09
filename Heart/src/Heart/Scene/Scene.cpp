@@ -476,24 +476,8 @@ namespace Heart
         runTimer.Finish();
         
         // Call OnUpdate lifecycle method
-        // TODO: replace with OnUpdateParallel method
-        runTimer = AggregateTimer("Scene::OnUpdateRuntime - Scripts (Parallel)");
-        auto parScriptView = m_Registry.view<ScriptComponent, ParallelUpdateComponent>();
-        auto parScriptJob = JobManager::ScheduleIter(
-            parScriptView.begin(),
-            parScriptView.end(),
-            [ts, &parScriptView](size_t entity)
-            {
-                auto& scriptComp = parScriptView.get<ScriptComponent>((entt::entity)entity);
-                scriptComp.Instance.OnUpdate(ts);
-            }
-        );
-        parScriptJob.Wait();
-        runTimer.Finish();
-        
-        // Call OnUpdate lifecycle method
-        runTimer = AggregateTimer("Scene::OnUpdateRuntime - Scripts (Regular)");
-        auto scriptView = m_Registry.view<ScriptComponent>(entt::exclude<ParallelUpdateComponent>);
+        runTimer = AggregateTimer("Scene::OnUpdateRuntime - Scripts");
+        auto scriptView = m_Registry.view<ScriptComponent>();
         for (auto entity : scriptView)
         {
             auto& scriptComp = scriptView.get<ScriptComponent>(entity);
