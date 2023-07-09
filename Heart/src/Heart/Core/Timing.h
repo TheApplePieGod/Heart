@@ -93,9 +93,16 @@ namespace Heart
         {
             if (m_Finished) return;
             m_Finished = true;
+
+            // For now, throw out insignificant samples. Need to figure out how
+            // to do a copy constructor without calling the destructor
+            double ms = ElapsedMilliseconds();
+            if (ms < 0.01)
+                return;
+
             std::unique_lock lock(s_CurrentMutex);
             auto& samples = s_AggregateTimes[m_Name];
-            samples.Insert(ElapsedMilliseconds(), 0);
+            samples.Insert(ms, 0);
         }
         
         inline static constexpr u32 MaxSamples = 5;
@@ -114,8 +121,12 @@ namespace Heart
             
             double average = 0.0;
             const auto& samples = s_AggregateTimes[name];
+            if (samples.IsEmpty())
+                return average;
+
             for (double val : samples)
                 average += val;
+
             return average / samples.Count();
         }
 

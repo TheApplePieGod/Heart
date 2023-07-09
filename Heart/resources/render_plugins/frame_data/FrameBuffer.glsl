@@ -1,16 +1,25 @@
+#ifndef FRAME_BUFFER
+#define FRAME_BUFFER
+
 struct FrameData {
     mat4 proj;
     mat4 view;
+    mat4 prevViewProj;
     mat4 invProj;
+    mat4 invView;
     mat4 invViewProj;
     vec4 cameraPos;
     vec2 clipPlanes;
     vec2 screenSize;
     bool reverseDepth;
-    float padding;
-    vec2 padding2;
+    uint frameCount;
 };
 
-layout(binding = 0) readonly uniform FrameBuffer {
+layout(
+    binding = FRAME_BUFFER_BINDING,
+    set = FRAME_BUFFER_SET
+) readonly uniform FrameBuffer {
     FrameData data;
 } frameBuffer;
+
+#endif

@@ -106,6 +106,8 @@ namespace Heart
         initInfo.UseReversedZBuffer = true;
         initInfo.RequestedFeatures.IndependentBlend = true;
         initInfo.RequestedFeatures.SamplerAnisotropy = true;
+        initInfo.RequestedFeatures.RayTracing = false;
+        initInfo.RequestedFeatures.PartiallyBoundResourceSets = true;
         Flourish::Context::Initialize(initInfo);
 
         m_Window = Window::Create(windowCreateInfo);
@@ -113,15 +115,11 @@ namespace Heart
         Window::SetMainWindow(m_Window);
 
         m_ImGuiInstance = CreateRef<ImGuiInstance>(m_Window);
-
-        Material::Initialize();
     }
 
     void App::ShutdownGraphicsApi()
     {
         UnsubscribeFromEmitter(&GetWindow());
-
-        Material::Shutdown();
 
         Flourish::Context::Shutdown([this]()
         {
@@ -215,8 +213,10 @@ namespace Heart
                 timer.Finish();
 
                 // Layer update
+                timer = AggregateTimer("App::Run - Layer update");
                 for (auto layer : m_Layers)
                     layer->OnUpdate(m_LastTimestep);
+                timer.Finish();
 
                 // End frame
                 timer = AggregateTimer("App::Run - End frame");

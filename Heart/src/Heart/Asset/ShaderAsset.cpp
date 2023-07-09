@@ -15,10 +15,24 @@ namespace Heart
             m_ShaderType = Flourish::ShaderTypeFlags::Fragment;
         else if (m_Extension == ".comp")
             m_ShaderType = Flourish::ShaderTypeFlags::Compute;
+        else if (m_Extension == ".rgen")
+            m_ShaderType = Flourish::ShaderTypeFlags::RayGen;
+        else if (m_Extension == ".rmiss")
+            m_ShaderType = Flourish::ShaderTypeFlags::RayMiss;
+        else if (m_Extension == ".rchit")
+            m_ShaderType = Flourish::ShaderTypeFlags::RayClosestHit;
+        else if (m_Extension == ".rint")
+            m_ShaderType = Flourish::ShaderTypeFlags::RayIntersection;
+        else if (m_Extension == ".rahit")
+            m_ShaderType = Flourish::ShaderTypeFlags::RayAnyHit;
     }
 
     void ShaderAsset::Load(bool async)
     {
+        HE_PROFILE_FUNCTION();
+
+        const std::lock_guard<std::mutex> lock(m_LoadLock);
+
         if (m_Loaded || m_Loading) return;
         m_Loading = true;
 

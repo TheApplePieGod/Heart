@@ -24,7 +24,8 @@ namespace Heart
         m_Task = TaskManager::Schedule(
             [this, data](){ RenderInternal(data); },
             Task::Priority::High,
-            m_DependencyTasks
+            m_DependencyTasks,
+            m_Name
         );
     }
 

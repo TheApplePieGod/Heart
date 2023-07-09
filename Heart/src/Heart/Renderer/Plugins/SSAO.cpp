@@ -2,7 +2,6 @@
 #include "SSAO.h"
 
 #include "Heart/Renderer/Plugins/FrameData.h"
-#include "Heart/Renderer/Plugins/RenderMeshBatches.h"
 #include "Heart/Renderer/SceneRenderer.h"
 #include "Heart/Core/Timing.h"
 #include "Heart/Asset/AssetManager.h"
@@ -34,8 +33,8 @@ namespace Heart::RenderPlugins
         m_RenderPass = Flourish::RenderPass::Create(rpCreateInfo);
 
         Flourish::GraphicsPipelineCreateInfo pipelineCreateInfo;
-        pipelineCreateInfo.FragmentShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/ssao/Fragment.frag", true)->GetShader();
-        pipelineCreateInfo.VertexShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/FullscreenTriangle.vert", true)->GetShader();
+        pipelineCreateInfo.FragmentShader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/ssao/Fragment.frag", true)->GetShader() };
+        pipelineCreateInfo.VertexShader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/FullscreenTriangle.vert", true)->GetShader() };
         pipelineCreateInfo.VertexInput = false;
         pipelineCreateInfo.BlendStates = {{ false }};
         pipelineCreateInfo.DepthConfig.DepthTest = false;
@@ -98,7 +97,7 @@ namespace Heart::RenderPlugins
         texCreateInfo.Height = 4;
         texCreateInfo.Writability = Flourish::TextureWritability::Once;
         texCreateInfo.Format = Flourish::ColorFormat::RGBA32_FLOAT;
-        texCreateInfo.Usage = Flourish::TextureUsageType::Readonly;
+        texCreateInfo.Usage = Flourish::TextureUsageFlags::Readonly;
         texCreateInfo.ArrayCount = 1;
         texCreateInfo.MipCount = 1;
         texCreateInfo.InitialData = noise.data();
@@ -122,7 +121,7 @@ namespace Heart::RenderPlugins
         texCreateInfo.ArrayCount = 1;
         texCreateInfo.MipCount = 1;
         texCreateInfo.Format = OUTPUT_FORMAT;
-        texCreateInfo.Usage = Flourish::TextureUsageType::RenderTarget;
+        texCreateInfo.Usage = Flourish::TextureUsageFlags::Graphics;
         texCreateInfo.SamplerState.UVWWrap = { Flourish::SamplerWrapMode::ClampToEdge, Flourish::SamplerWrapMode::ClampToEdge, Flourish::SamplerWrapMode::ClampToEdge };
         m_OutputTexture = Flourish::Texture::Create(texCreateInfo);
 
@@ -133,6 +132,7 @@ namespace Heart::RenderPlugins
         fbCreateInfo.ColorAttachments.push_back({ { 1.f }, m_OutputTexture });
         m_Framebuffer = Flourish::Framebuffer::Create(fbCreateInfo);
 
+        /*
         auto meshPlugin = m_Renderer->GetPlugin<RenderPlugins::RenderMeshBatches>(m_Info.RenderMeshBatchesPluginName);
         m_GPUGraphNodeBuilder.Reset()
             .SetCommandBuffer(m_CommandBuffer.get())
@@ -140,6 +140,7 @@ namespace Heart::RenderPlugins
             .EncoderAddFramebuffer(m_Framebuffer.get())
             .EncoderAddTextureRead(m_Renderer->GetDepthTexture().get())
             .EncoderAddTextureRead(meshPlugin->GetNormalsTexture());
+        */
     }
 
     void SSAO::RenderInternal(const SceneRenderData& data)
@@ -154,6 +155,7 @@ namespace Heart::RenderPlugins
             return;
         }
 
+        /*
         auto frameDataPlugin = m_Renderer->GetPlugin<RenderPlugins::FrameData>(m_Info.FrameDataPluginName);
         auto frameDataBuffer = frameDataPlugin->GetBuffer();
         auto meshPlugin = m_Renderer->GetPlugin<RenderPlugins::RenderMeshBatches>(m_Info.RenderMeshBatchesPluginName);
@@ -180,5 +182,6 @@ namespace Heart::RenderPlugins
         encoder->Draw(3, 0, 1, 0);
 
         encoder->EndEncoding();
+        */
     }
 }

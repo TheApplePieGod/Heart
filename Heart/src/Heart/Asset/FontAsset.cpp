@@ -8,6 +8,8 @@ namespace Heart
     void FontAsset::Load(bool async)
     {
         HE_PROFILE_FUNCTION();
+
+        const std::lock_guard<std::mutex> lock(m_LoadLock);
         
         if (m_Loaded || m_Loading) return;
         m_Loading = true;
@@ -88,7 +90,7 @@ namespace Heart
             static_cast<u32>(width),
             static_cast<u32>(height),
             Flourish::ColorFormat::RGBA8_UNORM,
-            Flourish::TextureUsageType::Readonly,
+            Flourish::TextureUsageFlags::Readonly,
             Flourish::TextureWritability::Once,
             1, 1,
             Flourish::TextureSamplerState(),

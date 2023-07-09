@@ -50,7 +50,6 @@ namespace Widgets
         Heart::UUID m_LastMaterial = 0;
         Heart::UUID m_SelectedMaterial = 0;
         ImGuiTextFilter m_TextureTextFilter;
-        bool m_ShouldRecompute = false;
     };
 }
 }

@@ -15,6 +15,8 @@ namespace Heart
     void MeshAsset::Load(bool async)
     {
         HE_PROFILE_FUNCTION();
+
+        const std::lock_guard<std::mutex> lock(m_LoadLock);
         
         if (m_Loaded || m_Loading) return;
         m_Loading = true;
@@ -73,6 +75,11 @@ namespace Heart
                 u32 fileLength;
                 HString8 binPath = std::filesystem::path(m_AbsolutePath.Data()).parent_path().append(uri.Data()).generic_u8string();
                 unsigned char* bin = FilesystemUtils::ReadFile(binPath, fileLength);
+                if (!bin)
+                {
+                    HE_ENGINE_LOG_ERROR("GLTF mesh missing .bin file");
+                    throw std::exception();
+                }
                 buffers.AddInPlace();
                 buffers.Back().CopyFrom(bin, bin + fileLength);
                 delete[] bin;
@@ -203,17 +210,15 @@ namespace Heart
                 if (material.contains("emissiveFactor"))
                     parsingMaterial.m_MaterialData.SetEmissiveFactor({ material["emissiveFactor"][0], material["emissiveFactor"][1], material["emissiveFactor"][2], 0.f });
 
-                parsingMaterial.RecomputeResourceSet();
+                if (material.contains("alphaCutoff"))
+                    parsingMaterial.m_MaterialData.SetAlphaClipThreshold(material["alphaCutoff"]);
 
                 m_DefaultMaterials.AddInPlace(parsingMaterial);
                 materialIndex++;
             }
         }
         else // should always have one material
-        {
             m_DefaultMaterials.AddInPlace();
-            m_DefaultMaterials.Back().RecomputeResourceSet();
-        }
 
         // parse meshes
         bool hasTangents = false;

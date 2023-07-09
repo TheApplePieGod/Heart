@@ -1,10 +1,10 @@
 #version 460
 
+#define FRAME_BUFFER_BINDING 0
+#define FRAME_BUFFER_SET 0
 #include "../frame_data/FrameBuffer.glsl"
-#include "../transparency_composite/Util.glsl"
 
-layout(location = 0) out vec4 outAccumColor;
-layout(location = 1) out float outRevealColor;
+layout(location = 0) out vec4 outColor;
 
 layout(location = 0) in vec3 nearPoint;
 layout(location = 1) in vec3 farPoint;
@@ -13,7 +13,7 @@ const float SCALE = 10;
 const float SCALE_LOG = log(SCALE);
 const float VIEW_CELLS = 15;
 
-vec4 grid(vec3 fragPos, float offset, int falloff) {
+vec4 Grid(vec3 fragPos, float offset, int falloff) {
     // Compute grid scale level based on camera y pos
     float level = log(max(0.0001, abs(frameBuffer.data.cameraPos.y)))/SCALE_LOG + offset;
     float levelf = fract(level);
@@ -57,7 +57,7 @@ vec4 grid(vec3 fragPos, float offset, int falloff) {
     return color;
 }
 
-float computeDepth(vec3 fragPos) {
+float ComputeDepth(vec3 fragPos) {
     vec4 clipPos = frameBuffer.data.proj * frameBuffer.data.view * vec4(fragPos, 1.0);
     return (clipPos.z / clipPos.w);
 }
@@ -68,16 +68,15 @@ void main() {
     vec3 pos = nearPoint + t * (farPoint - nearPoint);
 
     // Output depth manually
-    float depth = computeDepth(pos);
+    float depth = ComputeDepth(pos);
     gl_FragDepth = depth;
 
     // Render two subdivisions of the grid
-    vec4 finalColor = grid(pos, 0, 0);
-    finalColor += grid(pos, -1, 0);
-    finalColor += grid(pos, -2, 1);
+    vec4 finalColor = Grid(pos, 0, 0);
+    finalColor += Grid(pos, -1, 0);
+    finalColor += Grid(pos, -2, 1);
     finalColor *= float(t > 0) * 0.333;
     finalColor.a *= 0.7;
 
-    outAccumColor = computeAccumColor(finalColor, depth);
-    outRevealColor = computeRevealColor(finalColor);
+    outColor = finalColor;
 }

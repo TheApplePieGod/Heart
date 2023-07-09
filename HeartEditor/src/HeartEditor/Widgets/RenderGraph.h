@@ -17,14 +17,16 @@ namespace Widgets
         void OnImGuiRender() override;
 
     private:
-        void RenderNode(const Heart::HString8& pluginName, float yPos, Heart::GraphDependencyType depType);
+        void RenderNode(const Heart::HString8& pluginName, Heart::GraphDependencyType depType);
 
     private:
         ax::NodeEditor::EditorContext* m_EditorContext;
 
         Heart::SceneRenderer* m_RendererContext;
+        Heart::GraphDependencyType m_ViewType = Heart::GraphDependencyType::CPU;
         u64 m_IdCounter = 0;
         bool m_FirstRender = true;
+        Heart::HVector<ImVec2> m_DepthOffsets;
     };
 }
 }

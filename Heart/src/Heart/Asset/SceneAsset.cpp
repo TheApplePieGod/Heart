@@ -12,6 +12,8 @@ namespace Heart
     void SceneAsset::Load(bool async)
     {
         HE_PROFILE_FUNCTION();
+
+        const std::lock_guard<std::mutex> lock(m_LoadLock);
         
         if (m_Loaded || m_Loading) return;
         m_Loading = true;
@@ -107,9 +109,8 @@ namespace Heart
                     LightComponent comp;
                     comp.Color = { compEntry["color"][0], compEntry["color"][1], compEntry["color"][2], compEntry["color"][3] };
                     comp.LightType = compEntry["lightType"];
-                    comp.ConstantAttenuation = compEntry["attenuation"]["constant"];
-                    comp.LinearAttenuation = compEntry["attenuation"]["linear"];
-                    comp.QuadraticAttenuation = compEntry["attenuation"]["quadratic"];
+                    if (compEntry.contains("radius"))
+                        comp.Radius = compEntry["radius"];
                     entity.AddComponent<LightComponent>(comp);
                 }
 
@@ -187,12 +188,15 @@ namespace Heart
                         false,
                         compEntry["font"]["engineResource"]
                     );
-                    comp.Material = AssetManager::RegisterAsset(
-                        Asset::Type::Material,
-                        compEntry["material"]["path"],
-                        false,
-                        compEntry["material"]["engineResource"]
-                    );
+                    if (compEntry.contains("material"))
+                    {
+                        comp.Material = AssetManager::RegisterAsset(
+                            Asset::Type::Material,
+                            compEntry["material"]["path"],
+                            false,
+                            compEntry["material"]["engineResource"]
+                        );
+                    }
                     comp.Text = compEntry["text"];
                     comp.FontSize = compEntry["fontSize"];
                     comp.LineHeight = compEntry["lineHeight"];
@@ -328,9 +332,7 @@ namespace Heart
                     auto& comp = entity.GetComponent<LightComponent>();
                     compEntry["color"] = nlohmann::json::array({ comp.Color.r, comp.Color.g, comp.Color.b, comp.Color.a });
                     compEntry["lightType"] = comp.LightType;
-                    compEntry["attenuation"]["constant"] = comp.ConstantAttenuation;
-                    compEntry["attenuation"]["linear"] = comp.LinearAttenuation;
-                    compEntry["attenuation"]["quadratic"] = comp.QuadraticAttenuation;
+                    compEntry["radius"] = comp.Radius;
                 }
 
                 // Script component

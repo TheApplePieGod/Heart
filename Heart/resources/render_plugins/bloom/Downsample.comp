@@ -2,10 +2,10 @@
 
 layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
-#include "BloomData.glsl"
+#include "Common.glsl"
 
-layout(binding = 1) uniform sampler2D srcTex;
-layout(binding = 2, rgba16f) writeonly uniform image2D dstTex;
+layout(binding = 0) uniform sampler2D srcTex;
+layout(binding = 1, rgba16f) writeonly uniform image2D dstTex;
 
 // Quadratic color thresholding
 // curve = (threshold - knee, knee * 2, 0.25 / knee)
@@ -30,11 +30,11 @@ void main()
 {
     ivec2 coord = ivec2(gl_GlobalInvocationID.xy);
     
-    if (coord.x >= dataBuffer.data.DstResolution.x || coord.y >= dataBuffer.data.DstResolution.y) return;
+    if (coord.x >= constants.dstResolution.x || coord.y >= constants.dstResolution.y) return;
     
-    vec2 texCoord = coord / dataBuffer.data.DstResolution;
-    float dx = 1.0 / dataBuffer.data.SrcResolution.x;
-    float dy = 1.0 / dataBuffer.data.SrcResolution.y;
+    vec2 texCoord = coord / constants.dstResolution;
+    float dx = 1.0 / constants.srcResolution.x;
+    float dy = 1.0 / constants.srcResolution.y;
     
     // Offset texCoord to match central texel position in src texture
     texCoord += vec2(dx, dy);
@@ -61,12 +61,12 @@ void main()
     downsample += (b + d + f + h) * 0.0625;
     downsample += (j + k + l + m) * 0.125;
 
-    if (dataBuffer.data.Prefilter == 1)
+    if (constants.prefilter == 1)
     {
         downsample = QuadraticThreshold(
             downsample,
-            dataBuffer.data.Threshold,
-            vec3(dataBuffer.data.Threshold - dataBuffer.data.Knee, dataBuffer.data.Knee * 2.0, 0.25 / dataBuffer.data.Knee)
+            constants.threshold,
+            vec3(constants.threshold - constants.knee, constants.knee * 2.0, 0.25 / constants.knee)
         );
     }
     

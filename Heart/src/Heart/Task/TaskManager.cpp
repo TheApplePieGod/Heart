@@ -34,24 +34,24 @@ namespace Heart
         return Schedule(std::move(task), priority, nullptr, 0, name);
     }
 
-    Task TaskManager::Schedule(std::function<void()>&& task, Task::Priority priority, const Task& dependency)
+    Task TaskManager::Schedule(std::function<void()>&& task, Task::Priority priority, const Task& dependency, HStringView8 name)
     {
-        return Schedule(std::move(task), priority, &dependency, 1, "");
+        return Schedule(std::move(task), priority, &dependency, 1, name);
     }
 
-    Task TaskManager::Schedule(std::function<void()>&& task, Task::Priority priority, const TaskGroup& dependencies)
+    Task TaskManager::Schedule(std::function<void()>&& task, Task::Priority priority, const TaskGroup& dependencies, HStringView8 name)
     {
-        return Schedule(std::move(task), priority, dependencies.GetTasks().Data(), dependencies.GetTasks().Count(), "");
+        return Schedule(std::move(task), priority, dependencies.GetTasks().Data(), dependencies.GetTasks().Count(), name);
     }
 
-    Task TaskManager::Schedule(std::function<void()>&& task, Task::Priority priority, std::initializer_list<Task> dependencies)
+    Task TaskManager::Schedule(std::function<void()>&& task, Task::Priority priority, std::initializer_list<Task> dependencies, HStringView8 name)
     {
-        return Schedule(std::move(task), priority, dependencies.begin(), dependencies.size(), "");
+        return Schedule(std::move(task), priority, dependencies.begin(), dependencies.size(), name);
     }
 
-    Task TaskManager::Schedule(std::function<void()>&& task, Task::Priority priority, const HVector<Task>& dependencies)
+    Task TaskManager::Schedule(std::function<void()>&& task, Task::Priority priority, const HVector<Task>& dependencies, HStringView8 name)
     {
-        return Schedule(std::move(task), priority, dependencies.Data(), dependencies.Count(), "");
+        return Schedule(std::move(task), priority, dependencies.Data(), dependencies.Count(), name);
     }
 
     Task TaskManager::Schedule(std::function<void()>&& task, Task::Priority priority, const Task* dependencies, u32 dependencyCount, HStringView8 name)
@@ -68,10 +68,11 @@ namespace Heart
         data.Mutex.lock();
         data.Complete = false;
         data.Success = false;
-        data.ShouldExecute = true;
         data.Dependents.Clear();
         data.Task = std::move(task);
-        data.DependencyCount = dependencyCount;
+        // Start with one implicit dependency that is itself so that we can always rely on the atomic decrement
+        // to determine whether or not we should execute in this function or at a later point
+        data.DependencyCount = dependencyCount + 1;
         data.Name = name;
         data.Priority = priority;
         // Increase the initial refcount by one because we'll consider a task before it is completed as having a reference to
@@ -81,28 +82,23 @@ namespace Heart
         data.RefCount = 2;
         data.Mutex.unlock();
         
-        bool executeNow = false;
-        // No dependencies so it can be executed whenever
-        if (dependencyCount == 0)
-            executeNow = true;
-        // Otherwise we must add this to the dependents list of the dependencies unless it is already
-        // completed
-        else
+        // Cancel immediate execution if dependencies are not completed
+        if (dependencyCount > 0)
         {
             for (u32 i = 0; i < dependencyCount; i++)
             {
                 if (dependencies[i].GetHandle() == Task::InvalidHandle) continue;
                 TaskData& dependencyData = s_TaskList[dependencies[i].GetHandle()];
                 dependencyData.Mutex.lock();
-                if (dependencyData.Complete)
-                    executeNow = true;
-                else
+                if (!dependencyData.Complete)
                     dependencyData.Dependents.Add(handle);
+                else
+                    data.DependencyCount--;
                 dependencyData.Mutex.unlock();
             }
         }
-        
-        if (executeNow)
+
+        if (--data.DependencyCount == 0)
             PushHandleToQueue(handle);
         
         return Task(handle, false);

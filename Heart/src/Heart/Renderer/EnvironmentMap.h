@@ -19,13 +19,14 @@ namespace Flourish
 
 namespace Heart
 {
+    class Task;
     class EnvironmentMap
     {
     public:
         EnvironmentMap(UUID mapAsset);
         ~EnvironmentMap();
 
-        void Recalculate();
+        Task Recalculate();
         inline void UpdateMapAsset(UUID asset) { m_MapAsset = asset; }
         inline UUID GetMapAsset() const { return m_MapAsset; }
         inline const Flourish::Texture* GetEnvironmentCubemap() const { return m_EnvironmentMap.Texture.get(); }

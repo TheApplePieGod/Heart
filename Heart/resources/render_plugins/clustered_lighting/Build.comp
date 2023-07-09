@@ -1,0 +1,50 @@
+#version 450
+
+#define FRAME_BUFFER_BINDING 0
+#define FRAME_BUFFER_SET 0
+#include "../frame_data/FrameBuffer.glsl"
+
+#define CLUSTER_BUFFER_BINDING 1
+#define CLUSTER_BUFFER_SET 0
+#define CLUSTER_BUFFER_WRITE
+#include "ClusterBuffer.glsl"
+
+#include "Common.glsl"
+#include "../util/Misc.glsl"
+
+layout(local_size_x = GROUP_X, local_size_y = GROUP_Y, local_size_z = GROUP_Z) in;
+
+layout(push_constant) uniform PushConstants
+{
+    vec4 clusterDims; // XYZ: cluster dim xyz
+} constants;
+
+
+// https://github.com/pezcode/Cluster
+void main()
+{
+    uint clusterIndex = gl_GlobalInvocationID.z * gl_WorkGroupSize.x * gl_WorkGroupSize.y +
+                        gl_GlobalInvocationID.y * gl_WorkGroupSize.x +
+                        gl_GlobalInvocationID.x;
+
+    vec2 minScreen = vec2(gl_GlobalInvocationID.xy / constants.clusterDims.xy);
+    vec2 maxScreen = vec2((gl_GlobalInvocationID.xy + vec2(1, 1)) / constants.clusterDims.xy);
+    float nearDepth = float(frameBuffer.data.reverseDepth);
+    vec3 minEye = ComputeViewPositionFromDepth(minScreen, nearDepth, frameBuffer.data.invProj);
+    vec3 maxEye = ComputeViewPositionFromDepth(maxScreen, nearDepth, frameBuffer.data.invProj);
+
+    vec2 planes = frameBuffer.data.clipPlanes.xy;
+    float clusterNear = -planes.x * pow(planes.y / planes.x, gl_GlobalInvocationID.z / constants.clusterDims.z);
+    float clusterFar = -planes.x * pow(planes.y / planes.x, (gl_GlobalInvocationID.z + 1) / constants.clusterDims.z);
+
+    vec3 minNear = minEye * clusterNear / minEye.z;
+    vec3 minFar = minEye * clusterFar / minEye.z;
+    vec3 maxNear = maxEye * clusterNear / maxEye.z;
+    vec3 maxFar = maxEye * clusterFar / maxEye.z;
+
+    vec3 minBounds = min(min(minNear, minFar), min(maxNear, maxFar));
+    vec3 maxBounds = max(max(minNear, minFar), max(maxNear, maxFar));
+
+    GET_CLUSTER(clusterIndex).minBounds = vec4(minBounds, 1.0);
+    GET_CLUSTER(clusterIndex).maxBounds = vec4(maxBounds, 1.0);
+}

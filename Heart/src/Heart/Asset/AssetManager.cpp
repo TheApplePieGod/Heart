@@ -48,6 +48,8 @@ namespace Heart
     // TODO: this could probably be a task
     void AssetManager::OnUpdate()
     {
+        HE_PROFILE_FUNCTION();
+
         // Check to see if assets should be unloaded
         for (auto& pair : s_UUIDs)
         {
@@ -257,11 +259,14 @@ namespace Heart
         std::transform(extension.begin(), extension.end(), extension.begin(), [](unsigned char c) { return std::tolower(c); });
         
         Asset::Type type = Asset::Type::None;
-        if (extension == ".png" || extension == ".jpg" || extension == ".bmp" || extension == ".hdr") // textures
+        if (extension == ".png" || extension == ".jpg" || extension == ".bmp" ||
+            extension == ".hdr" || extension == ".tiff" || extension == ".tif") // textures
             type = Asset::Type::Texture;
         else if (extension == ".gltf")
             type = Asset::Type::Mesh;
-        else if (extension == ".vert" || extension == ".frag" || extension == ".comp")
+        else if (extension == ".vert" || extension == ".frag" || extension == ".comp" ||
+                 extension == ".rgen" || extension == ".rmiss" || extension == ".rchit" ||
+                 extension == ".rint" || extension == ".rahit")
             type = Asset::Type::Shader;
         else if (extension == ".hemat")
             type = Asset::Type::Material;

@@ -42,6 +42,10 @@
 	path = Heart/lib/FreeType
 	url = https://gitlab.freedesktop.org/freetype/freetype.git
 	branch = master
+[submodule "Heart/lib/tinytiff"]
+	path = Heart/lib/tinytiff
+	url = https://github.com/jkriege2/TinyTIFF.git
+	branch = master
 
 [submodule "HeartEditor/lib/imgui-node-editor"]
 	path = HeartEditor/lib/imgui-node-editor

@@ -20,6 +20,8 @@ namespace HeartEditor
 {
     Heart::Ref<Project> Project::CreateAndLoad(const Heart::HStringView8& absolutePath, const Heart::HStringView8& name)
     {
+        HE_PROFILE_FUNCTION();
+
         const char* extension = ".heproj";
         Heart::HString8 filename = name + Heart::HStringView8(extension);
 
@@ -75,6 +77,8 @@ namespace HeartEditor
 
     Heart::Ref<Project> Project::LoadFromPath(const Heart::HStringView8& absolutePath)
     {
+        HE_PROFILE_FUNCTION();
+
         Heart::Ref<Project> project = Heart::CreateRef<Project>(absolutePath);
         
         u32 fileLength;
@@ -90,10 +94,8 @@ namespace HeartEditor
             Heart::FilesystemUtils::GetParentDirectory(absolutePath)
         );
 
-        // Update widgets (TODO: inheritance)
         ((Widgets::ContentBrowser&)Editor::GetWindow("Content Browser")).Reset();
         ((Widgets::MaterialEditor&)Editor::GetWindow("Material Editor")).Reset();
-        ((Widgets::Viewport&)Editor::GetWindow("Viewport")).Reset();
         
         // Update the imgui project config
         EditorApp::Get().GetImGuiInstance().OverrideImGuiConfig(Heart::AssetManager::GetAssetsDirectory());
@@ -153,6 +155,8 @@ namespace HeartEditor
 
     void Project::LoadScriptsPlugin()
     {
+        HE_PROFILE_FUNCTION();
+
         auto assemblyPath = std::filesystem::path(Heart::AssetManager::GetAssetsDirectory().Data())
             .append("bin")
             .append("ClientScripts.dll");
@@ -204,6 +208,8 @@ namespace HeartEditor
 
     bool Project::BuildScripts(bool debug)
     {
+        HE_PROFILE_FUNCTION();
+
         auto timer = Heart::Timer("Client plugin build");
         
         #ifdef HE_PLATFORM_WINDOWS
@@ -243,6 +249,8 @@ namespace HeartEditor
     
     void Project::Export(Heart::HStringView8 absolutePath)
     {
+        HE_PROFILE_FUNCTION();
+
         if (!BuildScripts(false))
         {
             HE_ENGINE_LOG_ERROR("Failed to export project, client plugin build failed");

@@ -25,6 +25,10 @@ namespace Heart
         inline const Ref<Flourish::Texture>& GetTexture() { return m_Texture; }
 
     private:
+        void* LoadImage(int& outWidth, int& outHeight, int& outChannels);
+        void* LoadTiff(int& outWidth, int& outHeight, int& outChannels);
+
+    private:
         const int m_DesiredChannelCount = 4; // all images will load as RGBA
         Ref<Flourish::Texture> m_Texture;
     };

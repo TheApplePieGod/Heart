@@ -6,6 +6,7 @@
 #include "Heart/Events/MouseEvents.h"
 #include "Heart/Input/Input.h"
 #include "GLFW/glfw3.h"
+#include "GLFW/glfw3native.h"
 
 #include "Flourish/Api/RenderContext.h"
 

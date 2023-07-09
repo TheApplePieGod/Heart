@@ -18,13 +18,15 @@ namespace Heart::RenderPlugins
         {
             glm::mat4 Proj;
             glm::mat4 View;
+            glm::mat4 PrevViewProj;
             glm::mat4 InvProj;
+            glm::mat4 InvView;
             glm::mat4 InvViewProj;
             glm::vec4 CameraPos;
             glm::vec2 ClipPlanes;
             glm::vec2 ScreenSize;
             u32 ReverseDepth;
-            float Padding;
+            u32 FrameCount;
         };
 
     public:
@@ -43,5 +45,6 @@ namespace Heart::RenderPlugins
 
     private:
         Ref<Flourish::Buffer> m_Buffer;
+        glm::mat4 m_PrevViewProj;
     };
 }

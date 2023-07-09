@@ -119,6 +119,7 @@ namespace Heart
         bool m_Loading = false;
         bool m_Valid = false;
         Type m_Type = Type::None;
+        std::mutex m_LoadLock;
 
     protected:
         static inline const HString8 s_Base64Chars =

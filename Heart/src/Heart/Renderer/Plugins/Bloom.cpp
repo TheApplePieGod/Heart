@@ -24,7 +24,8 @@ namespace Heart::RenderPlugins
         rpCreateInfo.SampleCount = Flourish::MsaaSampleCount::None;
         rpCreateInfo.ColorAttachments.push_back({
             m_Renderer->GetRenderTexture()->GetColorFormat(),
-            Flourish::AttachmentInitialization::Preserve
+            Flourish::AttachmentInitialization::Preserve,
+            true
         });
         rpCreateInfo.Subpasses.push_back({
             {},
@@ -33,8 +34,8 @@ namespace Heart::RenderPlugins
         m_RenderPass = Flourish::RenderPass::Create(rpCreateInfo);
 
         Flourish::GraphicsPipelineCreateInfo pipelineCreateInfo;
-        pipelineCreateInfo.FragmentShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/bloom/Composite.frag", true)->GetShader();
-        pipelineCreateInfo.VertexShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/FullscreenTriangle.vert", true)->GetShader();
+        pipelineCreateInfo.FragmentShader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/bloom/Composite.frag", true)->GetShader() };
+        pipelineCreateInfo.VertexShader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/FullscreenTriangle.vert", true)->GetShader() };
         pipelineCreateInfo.VertexInput = false;
         pipelineCreateInfo.BlendStates = {
             { true, Flourish::BlendFactor::SrcAlpha, Flourish::BlendFactor::DstAlpha, Flourish::BlendFactor::One, Flourish::BlendFactor::Zero }
@@ -46,9 +47,9 @@ namespace Heart::RenderPlugins
         auto pipeline = m_RenderPass->CreatePipeline("main", pipelineCreateInfo);
 
         Flourish::ComputePipelineCreateInfo compCreateInfo;
-        compCreateInfo.ComputeShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/bloom/Downsample.comp", true)->GetShader();
+        compCreateInfo.Shader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/bloom/Downsample.comp", true)->GetShader() };
         m_DownsamplePipeline = Flourish::ComputePipeline::Create(compCreateInfo);
-        compCreateInfo.ComputeShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/bloom/Upsample.comp", true)->GetShader();
+        compCreateInfo.Shader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/bloom/Upsample.comp", true)->GetShader() };
         m_UpsamplePipeline = Flourish::ComputePipeline::Create(compCreateInfo);
 
         Flourish::CommandBufferCreateInfo cbCreateInfo;
@@ -82,19 +83,12 @@ namespace Heart::RenderPlugins
         texCreateInfo.ArrayCount = 1;
         texCreateInfo.MipCount = 7; // TODO: parameterize?
         texCreateInfo.Format = Flourish::ColorFormat::RGBA16_FLOAT;
-        texCreateInfo.Usage = Flourish::TextureUsageType::ComputeTarget;
+        texCreateInfo.Usage = Flourish::TextureUsageFlags::Compute;
         texCreateInfo.SamplerState.UVWWrap = { Flourish::SamplerWrapMode::ClampToEdge, Flourish::SamplerWrapMode::ClampToEdge, Flourish::SamplerWrapMode::ClampToEdge };
         m_DownsampleTexture = Flourish::Texture::Create(texCreateInfo);
         m_UpsampleTexture = Flourish::Texture::Create(texCreateInfo);
         
         m_MipCount = m_DownsampleTexture->GetMipCount();
-
-        Flourish::BufferCreateInfo bufCreateInfo;
-        bufCreateInfo.Usage = Flourish::BufferUsageType::Dynamic;
-        bufCreateInfo.Type = Flourish::BufferType::Storage;
-        bufCreateInfo.Stride = sizeof(BloomData);
-        bufCreateInfo.ElementCount = m_MipCount * 2;
-        m_DataBuffer = Flourish::Buffer::Create(bufCreateInfo);
 
         m_GPUGraphNodeBuilder.Reset()
             .SetCommandBuffer(m_CommandBuffer.get());
@@ -116,7 +110,6 @@ namespace Heart::RenderPlugins
         m_GPUGraphNodeBuilder.AddEncoderNode(Flourish::GPUWorkloadType::Graphics)
             .EncoderAddFramebuffer(m_Framebuffer.get())
             .EncoderAddTextureRead(m_UpsampleTexture.get());
-
     }
 
     // TODO: resource sets could definitely be static
@@ -125,10 +118,20 @@ namespace Heart::RenderPlugins
         HE_PROFILE_FUNCTION();
         auto timer = AggregateTimer("RenderPlugins::Bloom");
 
+        if (!data.Settings.BloomEnable)
+        {
+            for (u32 i = 1; i < m_MipCount; i++)
+                m_CommandBuffer->EncodeComputeCommands()->EndEncoding();
+            for (u32 i = m_MipCount - 2; i > 0; i--)
+                m_CommandBuffer->EncodeComputeCommands()->EndEncoding();
+            m_CommandBuffer->EncodeRenderCommands(m_Framebuffer.get())->EndEncoding();
+            return;
+        }
+
         // Downsample
         for (u32 i = 1; i < m_MipCount; i++)
         {
-            BloomData bloomData = {
+            m_PushData = {
                 {
                     i == 1 ? m_Renderer->GetRenderWidth() : m_DownsampleTexture->GetMipWidth(i - 1),
                     i == 1 ? m_Renderer->GetRenderHeight() : m_DownsampleTexture->GetMipHeight(i - 1),
@@ -139,36 +142,27 @@ namespace Heart::RenderPlugins
                 data.Settings.BloomSampleScale,
                 i == 1
             };
-            m_DataBuffer->SetElements(&bloomData, 1, i - 1);
 
             // TODO: shouldn't force all bindings to be rewritten?
             auto encoder = m_CommandBuffer->EncodeComputeCommands();
-            encoder->BindPipeline(m_DownsamplePipeline.get());
+            encoder->BindComputePipeline(m_DownsamplePipeline.get());
             if (i == 1)
-            {
-                m_DownsampleResourceSet->BindBuffer(0, m_DataBuffer.get(), 0, 1);
-                m_DownsampleResourceSet->BindTexture(1, m_Renderer->GetRenderTexture().get());
-                m_DownsampleResourceSet->BindTextureLayer(2, m_DownsampleTexture.get(), 0, i);
-                m_DownsampleResourceSet->FlushBindings();
-            }
+                m_DownsampleResourceSet->BindTexture(0, m_Renderer->GetRenderTexture().get());
             else
-            {
-                m_DownsampleResourceSet->BindBuffer(0, m_DataBuffer.get(), 0, 1);
-                m_DownsampleResourceSet->BindTextureLayer(1, m_DownsampleTexture.get(), 0, i - 1);
-                m_DownsampleResourceSet->BindTextureLayer(2, m_DownsampleTexture.get(), 0, i);
-                m_DownsampleResourceSet->FlushBindings();
-            }
+                m_DownsampleResourceSet->BindTextureLayer(0, m_DownsampleTexture.get(), 0, i - 1);
+            m_DownsampleResourceSet->BindTextureLayer(1, m_DownsampleTexture.get(), 0, i);
+            m_DownsampleResourceSet->FlushBindings();
             encoder->BindResourceSet(m_DownsampleResourceSet.get(), 0);
-            encoder->UpdateDynamicOffset(0, 0, (i - 1) * sizeof(BloomData));
             encoder->FlushResourceSet(0);
-            encoder->Dispatch((bloomData.DstResolution.x / 16) + 1, (bloomData.DstResolution.y / 16) + 1, 1);
+            encoder->PushConstants(0, sizeof(PushData), &m_PushData);
+            encoder->Dispatch((m_PushData.DstResolution.x / 16) + 1, (m_PushData.DstResolution.y / 16) + 1, 1);
             encoder->EndEncoding();
         }
         
         // Upsample
         for (u32 i = m_MipCount - 2; i > 0; i--)
         {
-            BloomData bloomData = {
+            m_PushData = {
                 { m_DownsampleTexture->GetMipWidth(i + 1), m_DownsampleTexture->GetMipHeight(i + 1) },
                 { m_UpsampleTexture->GetMipWidth(i), m_UpsampleTexture->GetMipHeight(i) },
                 data.Settings.BloomThreshold,
@@ -176,32 +170,21 @@ namespace Heart::RenderPlugins
                 data.Settings.BloomSampleScale,
                 false
             };
-            m_DataBuffer->SetElements(&bloomData, 1, i + m_MipCount);
 
             auto encoder = m_CommandBuffer->EncodeComputeCommands();
-            encoder->BindPipeline(m_UpsamplePipeline.get());
+            encoder->BindComputePipeline(m_UpsamplePipeline.get());
             if (i == m_MipCount - 2)
-            {
-                m_UpsampleResourceSet->BindBuffer(0, m_DataBuffer.get(), 0, 1);
-                m_UpsampleResourceSet->BindTextureLayer(1, m_DownsampleTexture.get(), 0, i + 1);
-                m_UpsampleResourceSet->BindTextureLayer(2, m_DownsampleTexture.get(), 0, i);
-                m_UpsampleResourceSet->BindTextureLayer(3, m_UpsampleTexture.get(), 0, i);
-                m_UpsampleResourceSet->FlushBindings();
-            }
+                m_UpsampleResourceSet->BindTextureLayer(0, m_DownsampleTexture.get(), 0, i + 1);
             else
-            {
-                m_UpsampleResourceSet->BindBuffer(0, m_DataBuffer.get(), 0, 1);
-                m_UpsampleResourceSet->BindTextureLayer(1, m_UpsampleTexture.get(), 0, i + 1);
-                m_UpsampleResourceSet->BindTextureLayer(2, m_DownsampleTexture.get(), 0, i);
-                m_UpsampleResourceSet->BindTextureLayer(3, m_UpsampleTexture.get(), 0, i);
-                m_UpsampleResourceSet->FlushBindings();
-            }
+                m_UpsampleResourceSet->BindTextureLayer(0, m_UpsampleTexture.get(), 0, i + 1);
+            m_UpsampleResourceSet->BindTextureLayer(1, m_DownsampleTexture.get(), 0, i);
+            m_UpsampleResourceSet->BindTextureLayer(2, m_UpsampleTexture.get(), 0, i);
+            m_UpsampleResourceSet->FlushBindings();
 
             encoder->BindResourceSet(m_UpsampleResourceSet.get(), 0);
-            encoder->UpdateDynamicOffset(0, 0, (i + m_MipCount) * sizeof(BloomData));
             encoder->FlushResourceSet(0);
-
-            encoder->Dispatch((bloomData.DstResolution.x / 16) + 1, (bloomData.DstResolution.y / 16) + 1, 1);
+            encoder->PushConstants(0, sizeof(PushData), &m_PushData);
+            encoder->Dispatch((m_PushData.DstResolution.x / 16) + 1, (m_PushData.DstResolution.y / 16) + 1, 1);
             encoder->EndEncoding();
         }
 
@@ -212,9 +195,8 @@ namespace Heart::RenderPlugins
         encoder->BindPipeline("main");
         encoder->BindResourceSet(m_CompositeResourceSet.get(), 0);
         encoder->FlushResourceSet(0);
-
+        encoder->PushConstants(0, sizeof(float), &data.Settings.BloomStrength);
         encoder->Draw(3, 0, 1, 0);
-
         encoder->EndEncoding();
     }
 }

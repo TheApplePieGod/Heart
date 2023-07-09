@@ -5,12 +5,6 @@
 #include "glm/vec3.hpp"
 #include "glm/vec4.hpp"
 
-namespace Flourish
-{
-    class ResourceSet;
-    class ResourceSetAllocator;
-}
-
 namespace Heart
 {
     enum class TransparencyMode : u8
@@ -60,15 +54,12 @@ namespace Heart
         glm::vec4 TexCoordTransform = { 1.f, 1.f, 0.f, 0.f }; // [0-1]: scale, [2-3]: offset
         glm::vec4 HasPBRTextures = { 0, 0, 0, 0 }; // [0]: hasAlbedo, [1]: hasMetallicRoughness
         glm::vec4 HasTextures = { 0, 0, 0, 0 }; // [0]: hasNormal, [1]: hasEmissive, [2]: hasOcclusion
-        glm::vec4 Scalars = { 0.f, 1.f, 0.f, 0.f }; // [0]: metalness, [1]: roughness, [2]: alphaClipThreshold
+        glm::vec4 Scalars = { 0.f, 0.f, 0.f, 0.f }; // [0]: metalness, [1]: roughness, [2]: alphaClipThreshold
     };
 
     class Material
     {
     public:
-        void RecomputeResourceSet();
-
-        inline const Flourish::ResourceSet* GetResourceSet() const { return m_ResourceSet.get(); }
         inline MaterialData& GetMaterialData() { return m_MaterialData; }
         inline UUID GetAlbedoTexture() const { return m_AlbedoTextureAsset; }
         inline UUID GetMetallicRoughnessTexture() const { return m_MetallicRoughnessTextureAsset; }
@@ -84,13 +75,6 @@ namespace Heart
         inline void SetOcclusionTexture(UUID texture) { m_OcclusionTextureAsset = texture; }
         inline void SetTransparencyMode(TransparencyMode mode) { m_TransparencyMode = mode; }
 
-    public:
-        static void Initialize();
-        static void Shutdown();
-    
-    private:
-        inline static Ref<Flourish::ResourceSetAllocator> s_ResourceSetAllocator = nullptr;
-
     private:
         MaterialData m_MaterialData;
         UUID m_AlbedoTextureAsset = 0;
@@ -99,8 +83,6 @@ namespace Heart
         UUID m_EmissiveTextureAsset = 0;
         UUID m_OcclusionTextureAsset = 0;
         TransparencyMode m_TransparencyMode = TransparencyMode::Opaque;
-
-        Ref<Flourish::ResourceSet> m_ResourceSet;
 
         friend class MaterialAsset;
         friend class MeshAsset;

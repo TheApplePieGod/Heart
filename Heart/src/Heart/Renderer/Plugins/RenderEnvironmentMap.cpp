@@ -23,7 +23,8 @@ namespace Heart::RenderPlugins
         rpCreateInfo.SampleCount = Flourish::MsaaSampleCount::None;
         rpCreateInfo.ColorAttachments.push_back({
             m_Renderer->GetRenderTexture()->GetColorFormat(),
-            Flourish::AttachmentInitialization::Preserve
+            Flourish::AttachmentInitialization::None,
+            true
         });
         rpCreateInfo.Subpasses.push_back({
             {},
@@ -32,8 +33,8 @@ namespace Heart::RenderPlugins
         m_RenderPass = Flourish::RenderPass::Create(rpCreateInfo);
 
         Flourish::GraphicsPipelineCreateInfo pipelineCreateInfo;
-        pipelineCreateInfo.FragmentShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/render_environment_map/Fragment.frag", true)->GetShader();
-        pipelineCreateInfo.VertexShader = AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/render_environment_map/Vertex.vert", true)->GetShader();
+        pipelineCreateInfo.FragmentShader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/render_environment_map/Fragment.frag", true)->GetShader() };
+        pipelineCreateInfo.VertexShader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/render_environment_map/Vertex.vert", true)->GetShader() };
         pipelineCreateInfo.VertexTopology = Flourish::VertexTopology::TriangleList;
         pipelineCreateInfo.VertexLayout = Mesh::GetVertexLayout();
         pipelineCreateInfo.VertexInput = true;
@@ -62,7 +63,7 @@ namespace Heart::RenderPlugins
         fbCreateInfo.RenderPass = m_RenderPass;
         fbCreateInfo.Width = m_Renderer->GetRenderWidth();
         fbCreateInfo.Height = m_Renderer->GetRenderHeight();
-        fbCreateInfo.ColorAttachments.push_back({ { 0.f, 0.f, 0.f, 0.f }, m_Renderer->GetRenderTexture() });
+        fbCreateInfo.ColorAttachments.push_back({ { 0.f, 0.f, 0.f, 1.f }, m_Renderer->GetRenderTexture() });
         m_Framebuffer = Flourish::Framebuffer::Create(fbCreateInfo);
 
         m_GPUGraphNodeBuilder.Reset()
@@ -76,11 +77,14 @@ namespace Heart::RenderPlugins
         HE_PROFILE_FUNCTION();
         auto timer = AggregateTimer("RenderPlugins::RenderEnvironmentMap");
 
-        // TODO: maybe we want to make the plugins dyanmic rather than rely on config inside
-        // individual plugins themselves
         if (!data.EnvMap)
+        {
+            auto encoder = m_CommandBuffer->EncodeRenderCommands(m_Framebuffer.get());
+            encoder->ClearColorAttachment(0);
+            encoder->EndEncoding();
             return;
-        
+        }
+
         auto frameDataPlugin = m_Renderer->GetPlugin<RenderPlugins::FrameData>(m_Info.FrameDataPluginName);
         auto frameDataBuffer = frameDataPlugin->GetBuffer();
 

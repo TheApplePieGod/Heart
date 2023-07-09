@@ -1,6 +1,10 @@
 #version 460
 
+#define FRAME_BUFFER_BINDING 0
+#define FRAME_BUFFER_SET 0
 #include "../frame_data/FrameBuffer.glsl"
+
+#define INCLUDE_VERTEX_LAYOUT_INPUT
 #include "../../VertexLayout.glsl"
 
 layout(location = 0) out vec3 localPos;

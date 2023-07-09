@@ -1,6 +1,7 @@
 #include "hepch.h"
 #include "RenderTextBatches.h"
 
+/*
 #include "Heart/Renderer/Plugins/FrameData.h"
 #include "Heart/Renderer/Plugins/LightingData.h"
 #include "Heart/Renderer/Plugins/ComputeTextBatches.h"
@@ -176,3 +177,4 @@ namespace Heart::RenderPlugins
         encoder->EndEncoding();
     }
 }
+*/
