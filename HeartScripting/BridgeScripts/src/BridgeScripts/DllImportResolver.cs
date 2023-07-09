@@ -2,13 +2,13 @@
 using System.Reflection;
 using System.Runtime.InteropServices;
 
-namespace Heart.NativeInterop
+namespace BridgeScripts
 {
-    public class HeartDllImportResolver
+    public class DllImportResolver
     {
         private IntPtr _nativeDllHandle;
 
-        public HeartDllImportResolver(IntPtr nativeDllHandle)
+        public DllImportResolver(IntPtr nativeDllHandle)
         {
             _nativeDllHandle = nativeDllHandle;
         }

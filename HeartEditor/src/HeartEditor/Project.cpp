@@ -178,6 +178,9 @@ namespace HeartEditor
         }
 
         // Reload
+        #ifdef HE_DEBUG
+            Heart::ScriptingEngine::ReloadCorePlugin();
+        #endif
         Heart::ScriptingEngine::LoadClientPlugin(assemblyPath.u8string());
 
         // Reinstantiate objects and load serialized properties

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Runtime.Loader;
 
-namespace Heart.Plugins
+namespace BridgeScripts.Plugins
 {
     // https://docs.microsoft.com/en-us/dotnet/standard/assembly/unloadability
     public static class PluginManager

@@ -1,15 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup Label="Globals">
+    <EnableDynamicLoading>true</EnableDynamicLoading>
     <TargetFramework>net6.0</TargetFramework>
     <LangVersion>10.0</LangVersion>
     <OutputType>Library</OutputType>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
     <OutputPath>../bin</OutputPath>
-    <AssemblyName>CoreScripts</AssemblyName>
+    <AssemblyName>BridgeScripts</AssemblyName>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
-  <ItemGroup>
-    <ProjectReference Include="../SourceGenerators/SourceGenerators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
-  </ItemGroup>
 </Project>
