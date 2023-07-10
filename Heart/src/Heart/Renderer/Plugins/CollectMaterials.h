@@ -59,6 +59,6 @@ namespace Heart::RenderPlugins
         std::unordered_map<u64, u32> m_MaterialMap;
 
         u32 m_MaxMaterials = 5000;
-        u32 m_MaxTextures = 1024;
+        u32 m_MaxTextures = 1000;
     };
 }
