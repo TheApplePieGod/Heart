@@ -42,8 +42,8 @@ using byte = unsigned char;
 #define HE_BIT(x) (1 << x)
 #define HE_PLACEMENT_NEW(ptr, type, ...) new (ptr) type(__VA_ARGS__)
 
-#define Pi32 3.14159265359f
-#define Tau32 6.28318530717958647692f
+#define Pi32 3.141592653f
+#define Tau32 6.283185302f
 #define Kilobytes(Value) ((Value)*1024LL)
 #define Megabytes(Value) (Kilobytes(Value)*1024LL)
 #define Gigabytes(Value) (Megabytes(Value)*1024LL)

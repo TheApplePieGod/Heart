@@ -12,7 +12,10 @@ namespace Heart.NativeBridge
 {
     internal static class ClientReflection
     {
+        // Complains about no assignment but we assign it cross-assembly
+#pragma warning disable CS0649
         internal static Assembly _clientAssembly;
+#pragma warning restore CS0649
 
         internal static List<string> GetInstantiableClasses()
         {

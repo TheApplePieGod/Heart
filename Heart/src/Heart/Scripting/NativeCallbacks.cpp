@@ -7,8 +7,12 @@
 #include "Heart/Scene/Entity.h"
 #include "Heart/Container/HArray.h"
 #include "Heart/Container/HString.h"
-#include "Heart/Scripting/ScriptingEngine.h"
 #include "Heart/Asset/AssetManager.h"
+#include "Heart/Task/TaskManager.h"
+#include "Heart/Task/JobManager.h"
+#include "Heart/Scripting/ScriptingEngine.h"
+#include "Heart/Scripting/ManagedIterator.h"
+#include "Heart/Scripting/EntityView.h"
 
 #define HE_INTEROP_EXPORT_BASE extern "C" [[maybe_unused]]
 #ifdef HE_PLATFORM_WINDOWS
@@ -159,6 +163,48 @@ HE_INTEROP_EXPORT void Native_AssetManager_GetAssetUUID(const char* path, bool i
 }
 
 /*
+ * Entity view functions
+ */
+HE_INTEROP_EXPORT void Native_EntityView_Init(void** outView, Heart::Scene* sceneHandle)
+{
+    auto viewHandle = new Heart::EntityView();
+    viewHandle->View.iterate(sceneHandle->GetRegistry().storage<Heart::TransformComponent>());
+    viewHandle->Current = viewHandle->View.begin();
+
+    *outView = viewHandle;
+}
+
+HE_INTEROP_EXPORT void Native_EntityView_Destroy(void* view)
+{
+    delete ((Heart::EntityView*)view);
+}
+
+HE_INTEROP_EXPORT bool Native_EntityView_GetNext(void* _view, u32* outEntityHandle)
+{
+    auto view = (Heart::EntityView*)_view;
+    if (view->Current == view->View.end())
+        return false;
+    *outEntityHandle = (u32)*(view->Current++);
+    return true;
+}
+
+/*
+ * Task functions
+ */
+
+using Native_SchedulableIter_RunFn = void (*)(size_t);
+HE_INTEROP_EXPORT void Native_SchedulableIter_Schedule(
+    Heart::ManagedIterator<size_t>::GetNextIterFn getNext,
+    Native_SchedulableIter_RunFn runFunc)
+{
+    Heart::ManagedIterator<size_t> begin(getNext);
+    Heart::ManagedIterator<size_t> end(nullptr);
+
+    Heart::Job handle = Heart::JobManager::ScheduleIter(begin, end, runFunc);
+    handle.Wait();
+}
+
+/*
  * Component Functions
  */
 
@@ -187,6 +233,7 @@ HE_INTEROP_EXPORT void Native_AssetManager_GetAssetUUID(const char* path, bool i
 #define EXPORT_COMPONENT_GET_FN(compName) \
     HE_INTEROP_EXPORT void Native_##compName##_Get(u32 entityHandle, Heart::Scene* sceneHandle, Heart::compName** outComp) \
     { \
+        HE_PROFILE_FUNCTION(); \
         ASSERT_ENTITY_IS_VALID(); \
         ASSERT_ENTITY_HAS_COMPONENT(compName); \
         Heart::Entity entity(sceneHandle, entityHandle); \
@@ -241,6 +288,7 @@ EXPORT_COMPONENT_GET_FN(TransformComponent);
 
 HE_INTEROP_EXPORT void Native_TransformComponent_SetPosition(u32 entityHandle, Heart::Scene* sceneHandle, glm::vec3 pos)
 {
+    HE_PROFILE_FUNCTION();
     ASSERT_ENTITY_IS_VALID();
     Heart::Entity entity(sceneHandle, entityHandle);
     entity.SetPosition(pos);
@@ -248,6 +296,7 @@ HE_INTEROP_EXPORT void Native_TransformComponent_SetPosition(u32 entityHandle, H
 
 HE_INTEROP_EXPORT void Native_TransformComponent_SetRotation(u32 entityHandle, Heart::Scene* sceneHandle, glm::vec3 rot)
 {
+    HE_PROFILE_FUNCTION();
     ASSERT_ENTITY_IS_VALID();
     Heart::Entity entity(sceneHandle, entityHandle);
     entity.SetRotation(rot);
@@ -255,6 +304,7 @@ HE_INTEROP_EXPORT void Native_TransformComponent_SetRotation(u32 entityHandle, H
 
 HE_INTEROP_EXPORT void Native_TransformComponent_SetScale(u32 entityHandle, Heart::Scene* sceneHandle, glm::vec3 scale)
 {
+    HE_PROFILE_FUNCTION();
     ASSERT_ENTITY_IS_VALID();
     Heart::Entity entity(sceneHandle, entityHandle);
     entity.SetScale(scale);
@@ -262,6 +312,7 @@ HE_INTEROP_EXPORT void Native_TransformComponent_SetScale(u32 entityHandle, Hear
 
 HE_INTEROP_EXPORT void Native_TransformComponent_SetTransform(u32 entityHandle, Heart::Scene* sceneHandle, glm::vec3 pos, glm::vec3 rot, glm::vec3 scale)
 {
+    HE_PROFILE_FUNCTION();
     ASSERT_ENTITY_IS_VALID();
     Heart::Entity entity(sceneHandle, entityHandle);
     entity.SetTransform(pos, rot, scale);
@@ -269,6 +320,7 @@ HE_INTEROP_EXPORT void Native_TransformComponent_SetTransform(u32 entityHandle, 
 
 HE_INTEROP_EXPORT void Native_TransformComponent_ApplyRotation(u32 entityHandle, Heart::Scene* sceneHandle, glm::vec3 rot)
 {
+    HE_PROFILE_FUNCTION();
     ASSERT_ENTITY_IS_VALID();
     Heart::Entity entity(sceneHandle, entityHandle);
     entity.ApplyRotation(rot);
@@ -277,6 +329,7 @@ HE_INTEROP_EXPORT void Native_TransformComponent_ApplyRotation(u32 entityHandle,
 // TODO: we eventually want to move this logic to c# (probably) (or something)
 HE_INTEROP_EXPORT void Native_TransformComponent_GetForwardVector(u32 entityHandle, Heart::Scene* sceneHandle, glm::vec3* outValue)
 {
+    HE_PROFILE_FUNCTION();
     ASSERT_ENTITY_IS_VALID();
     Heart::Entity entity(sceneHandle, entityHandle);
     *outValue = entity.GetForwardVector();
