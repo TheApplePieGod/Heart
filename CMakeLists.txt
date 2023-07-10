@@ -36,6 +36,10 @@ if(${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
 elseif(MSVC)
     message("Detected MSVC compiler")
     add_compile_options(/MP /INCREMENTAL)
+    # Override to only use level 1. Level 2 causes massive parallel performance issues
+    if(${CMAKE_BUILD_TYPE} MATCHES Debug)
+        add_compile_definitions(_ITERATOR_DEBUG_LEVEL=1)
+    endif()
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
 endif()
 
