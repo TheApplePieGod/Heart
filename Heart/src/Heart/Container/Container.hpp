@@ -197,7 +197,7 @@ namespace Heart
         void FreeMemory()
         {
             // Delete initial (origin) pointer
-            ::operator delete[](reinterpret_cast<ContainerInfo*>(m_Data) - 1);
+            delete[] (reinterpret_cast<ContainerInfo*>(m_Data) - 1);
         }
 
         void Cleanup()

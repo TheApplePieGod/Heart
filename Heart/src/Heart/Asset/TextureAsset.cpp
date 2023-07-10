@@ -27,15 +27,10 @@ namespace Heart
 
         void* pixels = nullptr;
         int width, height, channels;
-        if (floatComponents)
-            pixels = stbi_loadf(m_AbsolutePath.Data(), &width, &height, &channels, m_DesiredChannelCount);
+        if (m_Extension == ".tif" || m_Extension == ".tiff")
+            pixels = LoadTiff(width, height, channels);
         else
-        {
-            if (m_Extension == ".tif" || m_Extension == ".tiff")
-                pixels = LoadTiff(width, height, channels);
-            else
-                pixels = LoadImage(width, height, channels);
-        }
+            pixels = LoadImage(width, height, channels, floatComponents);
 
         if (pixels == nullptr)
         {
@@ -118,9 +113,20 @@ namespace Heart
         m_Valid = false;
     }
 
-    void* TextureAsset::LoadImage(int& outWidth, int& outHeight, int& outChannels)
+    void* TextureAsset::LoadImage(int& outWidth, int& outHeight, int& outChannels, bool floatComponents)
     {
-        return stbi_load(m_AbsolutePath.Data(), &outWidth, &outHeight, &outChannels, m_DesiredChannelCount);
+        void* pixels;
+        if (floatComponents)
+            pixels = stbi_loadf(m_AbsolutePath.Data(), &outWidth, &outHeight, &outChannels, m_DesiredChannelCount);
+        else
+            pixels = stbi_load(m_AbsolutePath.Data(), &outWidth, &outHeight, &outChannels, m_DesiredChannelCount);
+
+        // Need to manually add the alloc here since stbi malloc instead of new
+        #ifdef HE_DEBUG
+            TracyAlloc(pixels, outWidth * outHeight * outChannels * (floatComponents ? 4 : 1));
+        #endif
+
+        return pixels;
     }
 
     void* TextureAsset::LoadTiff(int& outWidth, int& outHeight, int& outChannels)

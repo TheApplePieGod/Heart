@@ -25,7 +25,7 @@ namespace Heart
         inline const Ref<Flourish::Texture>& GetTexture() { return m_Texture; }
 
     private:
-        void* LoadImage(int& outWidth, int& outHeight, int& outChannels);
+        void* LoadImage(int& outWidth, int& outHeight, int& outChannels, bool floatComponents);
         void* LoadTiff(int& outWidth, int& outHeight, int& outChannels);
 
     private:
