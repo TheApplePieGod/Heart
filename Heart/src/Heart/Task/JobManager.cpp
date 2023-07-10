@@ -39,36 +39,47 @@ namespace Heart
     {
         HE_PROFILE_FUNCTION();
 
-        u32 handle = CreateJob();
-        
-        std::uniform_int_distribution<int> distribution(0, (int)s_ExecuteQueues.Count() - 1);
-        
-        for (auto& queue : s_ExecuteQueues)
-            queue.Mutex.lock();
-        
-        size_t realCount = 0;
+        HVector<size_t> indices;
         for (size_t i = 0; i < count; i++)
         {
             if (!check(i)) continue;
-            s_ExecuteQueues[distribution(s_Generator)].Queue.emplace(handle, i);
-            realCount++;
+            indices.AddInPlace(i);
         }
+
+        u32 handle = ScheduleInternal(indices, std::move(job), std::move(check));
+        return Job(handle, false);
+    }
+
+    u32 JobManager::ScheduleInternal(const HVector<size_t>& indices, std::function<void(size_t)>&& job, std::function<bool(size_t)>&& check)
+    {
+        u32 handle = CreateJob();
 
         JobData& data = s_JobList[handle];
         data.Mutex.lock();
-        data.Complete = realCount == 0;
-        data.Remaining = realCount;
-        data.RefCount = realCount == 0 ? 1 : 2;
+        data.Complete = indices.Count() == 0;
+        data.Remaining = indices.Count();
+        data.RefCount = indices.Count() == 0 ? 1 : 2;
         data.Job = std::move(job);
         data.Mutex.unlock();
 
-        for (auto& queue : s_ExecuteQueues)
+        u32 countPerThread = indices.Count() / s_ExecuteQueues.Count();
+        for (u32 i = 0; i < s_ExecuteQueues.Count(); i++)
         {
+            auto& queue = s_ExecuteQueues[i];
+            queue.Mutex.lock();
+            auto& entry = queue.Queue.emplace();
+            entry.Handle = handle;
+            entry.Indices.CopyFrom(
+                indices.begin() + i * countPerThread,
+                i == s_ExecuteQueues.Count() - 1
+                    ? indices.end()
+                    : indices.begin() + (i + 1) * countPerThread
+            );
             queue.Mutex.unlock();
             queue.QueueCV.notify_all();
         }
-        
-        return Job(handle, false);
+
+        return handle;
     }
 
     bool JobManager::Wait(const Job& job, u32 timeout)
@@ -93,6 +104,7 @@ namespace Heart
         
         return complete;
     }
+        static void ScheduleInternal(std::function<void(size_t)>&& job, std::function<bool(size_t)>&& check);
 
     u32 JobManager::CreateJob()
     {
@@ -148,10 +160,11 @@ namespace Heart
             lock.unlock();
             
             auto& data = s_JobList[executeData.Handle];
-            data.Job(executeData.Index);
+            for (size_t val : executeData.Indices)
+                data.Job(val);
                 
             // Decrement job completion count
-            if (--data.Remaining == 0)
+            if (data.Remaining.fetch_sub(executeData.Indices.Count()) == executeData.Indices.Count())
             {
                 data.Mutex.lock();
                 data.Complete = true;

@@ -23,15 +23,29 @@ namespace Heart
         Container(const T* data, u32 dataCount)
         {
             ResizeExplicit(dataCount, GetNextPowerOfTwo(dataCount), false);
-            for (u32 i = 0; i < dataCount; i++)
-                HE_PLACEMENT_NEW(m_Data + i, T, data[i]);
+            if constexpr (m_CanMemcpy)
+            {
+                memcpy(m_Data, data, dataCount * sizeof(T));
+            }
+            else
+            {
+                for (u32 i = 0; i < dataCount; i++)
+                    HE_PLACEMENT_NEW(m_Data + i, T, data[i]);
+            }
         }
 
         Container(std::initializer_list<T> list)
         {
             ResizeExplicit(list.size(), GetNextPowerOfTwo(list.size()), false);
-            for (u32 i = 0; i < Count(); i++)
-                HE_PLACEMENT_NEW(m_Data + i, T, list.begin()[i]);
+            if constexpr (m_CanMemcpy)
+            {
+                memcpy(m_Data, list.begin(), list.size() * sizeof(T));
+            }
+            else
+            {
+                for (u32 i = 0; i < Count(); i++)
+                    HE_PLACEMENT_NEW(m_Data + i, T, list.begin()[i]);
+            }
         }
 
         ~Container()
@@ -161,6 +175,7 @@ namespace Heart
         
                 if (m_Data)
                 {
+                    // TODO: check if trivially copyable
                     memcpy(newData, m_Data, oldCount * sizeof(T));
                     FreeMemory();
                 }
@@ -207,6 +222,7 @@ namespace Heart
         inline void SetCount(u32 count) { GetInfoPtr()->ElemCount = count; }
         inline static constexpr bool m_ShouldDestruct = std::is_destructible<T>::value && !std::is_trivially_destructible<T>::value;
         inline static constexpr bool m_ShouldConstruct = std::is_default_constructible<T>::value;
+        inline static constexpr bool m_CanMemcpy = std::is_trivially_copyable<T>::value;
 
     private:
         T* m_Data = nullptr;
