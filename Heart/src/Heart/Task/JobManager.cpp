@@ -160,6 +160,14 @@ namespace Heart
             lock.unlock();
             
             auto& data = s_JobList[executeData.Handle];
+
+            // Lock and unlock the mutex to ensure job data has been written
+            // TODO: this is technically not good enough because in theory this lock could get scheduled
+            // first by the OS. However, this seems to be good enough for now because there is still
+            // a decent amount of delay between this lock and the initial lock
+            data.Mutex.lock();
+            data.Mutex.unlock();
+
             for (size_t val : executeData.Indices)
                 data.Job(val);
                 
