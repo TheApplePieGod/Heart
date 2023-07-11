@@ -29,8 +29,14 @@ namespace Heart::RenderPlugins
         return { st.second, st.first - q * st.second };
     }
 
-    void RayReflections::Initialize()
+    void RayReflections::InitializeInternal()
     {
+        // Queue shader loads 
+        AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/ray_tracing/ray_reflections/RayGen.rgen", true, true, true);
+        AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/ray_tracing/ray_reflections/Miss.rmiss", true, true, true);
+        AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/ray_tracing/ray_reflections/Hit.rchit", true, true, true);
+        AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/ray_tracing/ray_reflections/Shadow.rmiss", true, true, true);
+
         Flourish::RayTracingPipelineCreateInfo pipelineCreateInfo;
         pipelineCreateInfo.MaxRayRecursionDepth = 2;
         pipelineCreateInfo.Shaders = {

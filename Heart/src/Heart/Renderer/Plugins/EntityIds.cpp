@@ -10,7 +10,7 @@
 
 namespace Heart::RenderPlugins
 {
-    void EntityIds::Initialize()
+    void EntityIds::InitializeInternal()
     {
         Flourish::CommandBufferCreateInfo cbCreateInfo;
         cbCreateInfo.FrameRestricted = true;

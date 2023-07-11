@@ -26,9 +26,10 @@ namespace Heart::RenderPlugins
     public:
         Bloom(SceneRenderer* renderer, HStringView8 name, const BloomCreateInfo& createInfo)
             : RenderPlugin(renderer, name), m_Info(createInfo)
-        { Initialize(); }
+        {}
 
     protected:
+        void InitializeInternal() override;
         void RenderInternal(const SceneRenderData& data) override;
         void ResizeInternal() override;
 
@@ -42,9 +43,6 @@ namespace Heart::RenderPlugins
             float SampleScale;
             u32 Prefilter;
         };
-
-    private:
-        void Initialize();
 
     private:
         BloomCreateInfo m_Info;

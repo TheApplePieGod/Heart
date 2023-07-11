@@ -31,7 +31,7 @@ namespace Heart::RenderPlugins
     public:
         ClusteredLighting(SceneRenderer* renderer, HStringView8 name, const ClusteredLightingCreateInfo& createInfo)
             : RenderPlugin(renderer, name), m_Info(createInfo)
-        { Initialize(); }
+        {}
 
         inline Flourish::Buffer* GetClusterBuffer() const { return m_ClusterBuffer.get(); }
         inline Flourish::Buffer* GetLightIndicesBuffer() const { return m_LightIndicesBuffer.get(); }
@@ -39,6 +39,7 @@ namespace Heart::RenderPlugins
         inline Flourish::Buffer* GetClusterDataBuffer() const { return m_ClusterData.get(); }
 
     protected:
+        void InitializeInternal() override;
         void RenderInternal(const SceneRenderData& data) override;
         void ResizeInternal() override;
 
@@ -53,9 +54,6 @@ namespace Heart::RenderPlugins
             glm::vec4 MinBounds;
             glm::vec4 MaxBounds;
         };
-
-    private:
-        void Initialize();
 
     private:
         ClusteredLightingCreateInfo m_Info;

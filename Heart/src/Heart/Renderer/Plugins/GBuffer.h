@@ -26,7 +26,7 @@ namespace Heart::RenderPlugins
     public:
         GBuffer(SceneRenderer* renderer, HStringView8 name, const GBufferCreateInfo& createInfo)
             : RenderPlugin(renderer, name), m_Info(createInfo)
-        { Initialize(); }
+        {}
 
         u32 GetArrayIndex() const;
         u32 GetPrevArrayIndex() const;
@@ -37,11 +37,9 @@ namespace Heart::RenderPlugins
         inline Ref<Flourish::Texture>& GetGBufferDepth() { return m_GBufferDepth; }
 
     protected:
+        void InitializeInternal() override;
         void RenderInternal(const SceneRenderData& data) override;
         void ResizeInternal() override;
-
-    private:
-        void Initialize();
 
     private:
         GBufferCreateInfo m_Info;

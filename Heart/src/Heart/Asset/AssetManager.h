@@ -239,6 +239,7 @@ namespace Heart
         };
 
     private:
+        static void QueueLoad(AssetEntry& entry, bool async = false);
         static void LoadAsset(AssetEntry& entry, bool async = false);
         static void UnloadAsset(AssetEntry& entry, bool async = false);
 

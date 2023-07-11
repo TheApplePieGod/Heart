@@ -14,7 +14,7 @@
 
 namespace Heart::RenderPlugins
 {
-    void ComputeTextBatches::Initialize()
+    void ComputeTextBatches::InitializeInternal()
     {
         Flourish::BufferCreateInfo bufCreateInfo;
 

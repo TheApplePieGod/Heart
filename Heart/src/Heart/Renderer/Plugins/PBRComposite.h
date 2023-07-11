@@ -24,14 +24,12 @@ namespace Heart::RenderPlugins
     public:
         PBRComposite(SceneRenderer* renderer, HStringView8 name, const PBRCompositeCreateInfo& createInfo)
             : RenderPlugin(renderer, name), m_Info(createInfo)
-        { Initialize(); }
+        {}
 
     protected:
+        void InitializeInternal() override;
         void RenderInternal(const SceneRenderData& data) override;
         void ResizeInternal() override;
-
-    private:
-        void Initialize();
 
     private:
         PBRCompositeCreateInfo m_Info;

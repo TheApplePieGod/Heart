@@ -8,7 +8,7 @@
 
 namespace Heart::RenderPlugins
 {
-    void FrameData::Initialize()
+    void FrameData::InitializeInternal()
     {
         Flourish::BufferCreateInfo bufCreateInfo;
         bufCreateInfo.Usage = Flourish::BufferUsageType::Dynamic;

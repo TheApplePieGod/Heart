@@ -25,7 +25,7 @@ namespace Heart::RenderPlugins
     public:
         SVGF(SceneRenderer* renderer, HStringView8 name, const SVGFCreateInfo& createInfo)
             : RenderPlugin(renderer, name), m_Info(createInfo)
-        { Initialize(); }
+        {}
 
         u32 GetArrayIndex() const;
         u32 GetPrevArrayIndex() const;
@@ -33,6 +33,7 @@ namespace Heart::RenderPlugins
         inline Flourish::Texture* GetDebugTexture() const { return m_DebugTexture.get(); }
 
     protected:
+        void InitializeInternal() override;
         void RenderInternal(const SceneRenderData& data) override;
         void ResizeInternal() override;
 
@@ -46,9 +47,6 @@ namespace Heart::RenderPlugins
         {
             u32 Iteration = 0;
         };
-
-    private:
-        void Initialize();
 
     private:
         SVGFCreateInfo m_Info;

@@ -18,7 +18,7 @@
 
 namespace Heart::RenderPlugins
 {
-    void InfiniteGrid::Initialize()
+    void InfiniteGrid::InitializeInternal()
     {
         Flourish::RenderPassCreateInfo rpCreateInfo;
         rpCreateInfo.SampleCount = Flourish::MsaaSampleCount::None;

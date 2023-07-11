@@ -22,8 +22,13 @@
 
 namespace Heart::RenderPlugins
 {
-    void RayPBRComposite::Initialize()
+    void RayPBRComposite::InitializeInternal()
     {
+        // Queue shader loads 
+        AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/ray_tracing/ray_pbr_composite/RayGen.rgen", true, true, true);
+        AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/ray_tracing/ray_pbr_composite/Shadow.rahit", true, true, true);
+        AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/ray_tracing/ray_pbr_composite/Shadow.rmiss", true, true, true);
+
         Flourish::RayTracingPipelineCreateInfo pipelineCreateInfo;
         pipelineCreateInfo.MaxRayRecursionDepth = 1;
         pipelineCreateInfo.Shaders = {

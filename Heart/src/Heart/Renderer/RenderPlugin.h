@@ -53,10 +53,12 @@ namespace Heart
             : m_Renderer(renderer), m_Name(name)
         {}
 
+        void Initialize();
         void Render(const SceneRenderData& data);
         void Resize();
         
         void AddDependency(const HString8& name, GraphDependencyType depType);
+        void AddInitDependency(const HString8& name);
 
         GraphData& GetGraphData(GraphDependencyType depType);
         
@@ -69,14 +71,17 @@ namespace Heart
         inline Flourish::CommandBuffer* GetCommandBuffer() const { return m_CommandBuffer.get(); }
         inline const Ref<Flourish::Texture>& GetOutputTexture() const { return m_OutputTexture; }
         inline const auto& GetGraphNodeBuilder() const { return m_GPUGraphNodeBuilder; }
+        inline const auto& GetInitDependencies() const { return m_InitDependencies; }
     
     protected:
+        virtual void InitializeInternal() = 0;
         virtual void RenderInternal(const SceneRenderData& data) = 0;
         virtual void ResizeInternal() = 0;
 
     protected:
         Task m_Task;
         bool m_Active = true;
+        bool m_Initialized = false;
         HString8 m_Name;
         UUID m_UUID = UUID();
         u64 m_LastRenderFrame = 0;
@@ -85,6 +90,7 @@ namespace Heart
         SceneRenderer* m_Renderer;
         Ref<Flourish::CommandBuffer> m_CommandBuffer;
         Ref<Flourish::Texture> m_OutputTexture;
+        std::unordered_set<HString8> m_InitDependencies;
         GraphData m_CPUGraphData;
         GraphData m_GPUGraphData;
         Flourish::RenderGraphNodeBuilder m_GPUGraphNodeBuilder;

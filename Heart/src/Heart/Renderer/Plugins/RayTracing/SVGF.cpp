@@ -26,8 +26,13 @@ namespace Heart::RenderPlugins
         return (Flourish::Context::FrameCount() - 1) % 2;
     }
 
-    void SVGF::Initialize()
+    void SVGF::InitializeInternal()
     {
+        // Queue shader loads 
+        AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/ray_tracing/svgf/Reprojection.comp", true, true, true);
+        AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/ray_tracing/svgf/ATrous.comp", true, true, true);
+        AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/ray_tracing/svgf/Upsample.comp", true, true, true);
+
         Flourish::ComputePipelineCreateInfo compCreateInfo;
         compCreateInfo.Shader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/ray_tracing/svgf/Reprojection.comp", true)->GetShader() };
         m_TemporalPipeline = Flourish::ComputePipeline::Create(compCreateInfo);

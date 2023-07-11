@@ -32,16 +32,14 @@ namespace Heart::RenderPlugins
     public:
         FrameData(SceneRenderer* renderer, HStringView8 name)
             : RenderPlugin(renderer, name)
-        { Initialize(); }
+        {}
 
         inline const Flourish::Buffer* GetBuffer() const { return m_Buffer.get(); }
 
     protected:
+        void InitializeInternal() override;
         void RenderInternal(const SceneRenderData& data) override;
         void ResizeInternal() override {};
-
-    private:
-        void Initialize();
 
     private:
         Ref<Flourish::Buffer> m_Buffer;

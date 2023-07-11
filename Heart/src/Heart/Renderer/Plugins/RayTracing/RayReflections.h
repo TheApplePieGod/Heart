@@ -28,9 +28,10 @@ namespace Heart::RenderPlugins
     public:
         RayReflections(SceneRenderer* renderer, HStringView8 name, const RayReflectionsCreateInfo& createInfo)
             : RenderPlugin(renderer, name), m_Info(createInfo)
-        { Initialize(); }
+        {}
 
     protected:
+        void InitializeInternal() override;
         void RenderInternal(const SceneRenderData& data) override;
         void ResizeInternal() override;
 
@@ -51,9 +52,6 @@ namespace Heart::RenderPlugins
             HaltonData HaltonData;
             float MipSpreadAngle;
         };
-
-    private:
-        void Initialize();
 
     private:
         RayReflectionsCreateInfo m_Info;

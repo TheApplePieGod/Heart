@@ -29,17 +29,15 @@ namespace Heart::RenderPlugins
     public:
         TLAS(SceneRenderer* renderer, HStringView8 name, const TLASCreateInfo& createInfo)
             : RenderPlugin(renderer, name), m_Info(createInfo)
-        { Initialize(); }
+        {}
 
         inline const Flourish::AccelerationStructure* GetAccelStructure() const { return m_AccelStructure.get(); }
         inline const Flourish::Buffer* GetObjectBuffer() const { return m_ObjectBuffer.get(); }
 
     protected:
+        void InitializeInternal() override;
         void RenderInternal(const SceneRenderData& data) override;
         void ResizeInternal() override {};
-
-    private:
-        void Initialize();
 
     private:
         TLASCreateInfo m_Info;

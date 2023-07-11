@@ -25,8 +25,6 @@ namespace Heart
         CreateDefaultResources();
 
         // Register plugins
-        // TODO: parallel init? could do parallel init phase followed by gpunodebuilder
-        // phase
 
         // TODO: transparency broken (again)
 
@@ -61,6 +59,7 @@ namespace Heart
         auto gBuffer = RegisterPlugin<RenderPlugins::GBuffer>("GBuffer", gBufferCreateInfo);
         gBuffer->AddDependency(CBMESHCam->GetName(), GraphDependencyType::CPU);
         gBuffer->AddDependency(CBTEXTCam->GetName(), GraphDependencyType::CPU);
+        gBuffer->AddInitDependency(entityIds->GetName());
 
         RenderPlugins::RenderEnvironmentMapCreateInfo envMapCreateInfo;
         envMapCreateInfo.FrameDataPluginName = frameData->GetName();
@@ -87,6 +86,7 @@ namespace Heart
             rayReflections->AddDependency(lightingData->GetName(), GraphDependencyType::CPU);
             rayReflections->AddDependency(lightingData->GetName(), GraphDependencyType::GPU);
             rayReflections->AddDependency(gBuffer->GetName(), GraphDependencyType::GPU);
+            rayReflections->AddInitDependency(gBuffer->GetName());
 
             // TODO: downscaled version
             RenderPlugins::SVGFCreateInfo svgfCreateInfo;
@@ -95,6 +95,8 @@ namespace Heart
             svgfCreateInfo.GBufferPluginName = gBuffer->GetName();
             auto svgf = RegisterPlugin<RenderPlugins::SVGF>("SVGF", svgfCreateInfo);
             svgf->AddDependency(rayReflections->GetName(), GraphDependencyType::GPU);
+            svgf->AddInitDependency(rayReflections->GetName());
+            svgf->AddInitDependency(gBuffer->GetName());
 
             RenderPlugins::RayPBRCompositeCreateInfo pbrCompCreateInfo;
             pbrCompCreateInfo.ReflectionsInputPluginName = svgf->GetName();
@@ -110,6 +112,9 @@ namespace Heart
             pbrComposite->AddDependency(tlas->GetName(), GraphDependencyType::CPU);
             pbrComposite->AddDependency(clusteredLighting->GetName(), GraphDependencyType::CPU);
             pbrComposite->AddDependency(clusteredLighting->GetName(), GraphDependencyType::GPU);
+            pbrComposite->AddInitDependency(svgf->GetName());
+            pbrComposite->AddInitDependency(gBuffer->GetName());
+            pbrComposite->AddInitDependency(clusteredLighting->GetName());
 
             pbrCompositeName = pbrComposite->GetName();
         }
@@ -125,6 +130,8 @@ namespace Heart
             pbrComposite->AddDependency(envMap->GetName(), GraphDependencyType::GPU);
             pbrComposite->AddDependency(clusteredLighting->GetName(), GraphDependencyType::CPU);
             pbrComposite->AddDependency(clusteredLighting->GetName(), GraphDependencyType::GPU);
+            pbrComposite->AddInitDependency(gBuffer->GetName());
+            pbrComposite->AddInitDependency(clusteredLighting->GetName());
 
             pbrCompositeName = pbrComposite->GetName();
         }
@@ -134,6 +141,7 @@ namespace Heart
         gridCreateInfo.GBufferPluginName = gBuffer->GetName();
         auto grid = RegisterPlugin<RenderPlugins::InfiniteGrid>("Grid", gridCreateInfo);
         grid->AddDependency(pbrCompositeName, GraphDependencyType::GPU);
+        grid->AddInitDependency(gBuffer->GetName());
 
         RenderPlugins::BloomCreateInfo BloomCreateInfo;
         auto bloom = RegisterPlugin<RenderPlugins::Bloom>("Bloom", BloomCreateInfo);
@@ -142,6 +150,8 @@ namespace Heart
         RenderPlugins::ColorGradingCreateInfo gradingCreateInfo;
         auto grading = RegisterPlugin<RenderPlugins::ColorGrading>("Grading", gradingCreateInfo);
         grading->AddDependency(bloom->GetName(), GraphDependencyType::GPU);
+
+        InitializePlugins();
 
         RebuildGraph();
     }
@@ -253,6 +263,19 @@ namespace Heart
                 }
             }
         }
+    }
+
+    void SceneRenderer::InitializePlugins()
+    {
+        // TODO: only run on leaves, may not be worth the optimization
+        TaskGroup group;
+        for (const auto& pair : m_Plugins)
+        {
+            pair.second->Initialize();
+            group.AddTask(pair.second->GetTask());
+        }
+
+        group.Wait();
     }
 
     void SceneRenderer::CreateTextures()

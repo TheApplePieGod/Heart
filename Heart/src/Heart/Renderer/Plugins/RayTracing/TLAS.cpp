@@ -17,7 +17,7 @@
 
 namespace Heart::RenderPlugins
 {
-    void TLAS::Initialize()
+    void TLAS::InitializeInternal()
     {
         Flourish::AccelerationStructureCreateInfo accelCreateInfo;
         accelCreateInfo.Type = Flourish::AccelerationStructureType::Scene;

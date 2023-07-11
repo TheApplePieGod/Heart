@@ -22,14 +22,12 @@ namespace Heart::RenderPlugins
     public:
         RenderEnvironmentMap (SceneRenderer* renderer, HStringView8 name, const RenderEnvironmentMapCreateInfo& createInfo)
             : RenderPlugin(renderer, name), m_Info(createInfo)
-        { Initialize(); }
+        {}
 
     protected:
+        void InitializeInternal() override;
         void RenderInternal(const SceneRenderData& data) override;
         void ResizeInternal() override;
-
-    private:
-        void Initialize();
 
     private:
         RenderEnvironmentMapCreateInfo m_Info;

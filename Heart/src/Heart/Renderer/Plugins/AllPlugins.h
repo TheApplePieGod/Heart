@@ -15,7 +15,6 @@
 #include "SSAO.h"
 #include "EntityIds.h"
 #include "ComputeTextBatches.h"
-#include "RenderTextBatches.h"
 #include "PBRComposite.h"
 #include "ClusteredLighting.h"
 

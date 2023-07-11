@@ -37,16 +37,14 @@ namespace Heart::RenderPlugins
     public:
         SSAO(SceneRenderer* renderer, HStringView8 name, const SSAOCreateInfo& createInfo)
             : RenderPlugin(renderer, name), m_Info(createInfo)
-        { Initialize(); }
+        {}
 
         inline const Flourish::Texture* GetOutputTexture() const { return m_OutputTexture.get(); }
 
     protected:
+        void InitializeInternal() override;
         void RenderInternal(const SceneRenderData& data) override;
         void ResizeInternal() override;
-
-    private:
-        void Initialize();
 
     private:
         SSAOCreateInfo m_Info;

@@ -17,7 +17,7 @@
 
 namespace Heart::RenderPlugins
 {
-    void ColorGrading::Initialize()
+    void ColorGrading::InitializeInternal()
     {
         Flourish::RenderPassCreateInfo rpCreateInfo;
         rpCreateInfo.SampleCount = Flourish::MsaaSampleCount::Four;

@@ -11,7 +11,7 @@
 
 namespace Heart::RenderPlugins
 {
-    void ComputeMeshBatches::Initialize()
+    void ComputeMeshBatches::InitializeInternal()
     {
         Flourish::BufferCreateInfo bufCreateInfo;
 

@@ -22,14 +22,12 @@ namespace Heart::RenderPlugins
     public:
         ColorGrading(SceneRenderer* renderer, HStringView8 name, const ColorGradingCreateInfo& createInfo)
             : RenderPlugin(renderer, name), m_Info(createInfo)
-        { Initialize(); }
+        {}
 
     protected:
+        void InitializeInternal() override;
         void RenderInternal(const SceneRenderData& data) override;
         void ResizeInternal() override;
-
-    private:
-        void Initialize();
 
     private:
         ColorGradingCreateInfo m_Info;

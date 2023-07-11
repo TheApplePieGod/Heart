@@ -34,9 +34,14 @@ namespace Heart::RenderPlugins
         return (Flourish::Context::FrameCount() - 1) % 2;
     }
 
-    void GBuffer::Initialize()
+    void GBuffer::InitializeInternal()
     {
         auto eidPlugin = m_Renderer->GetPlugin<RenderPlugins::EntityIds>(m_Info.EntityIdsPluginName);
+
+        // Queue shader loads 
+        AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/gbuffer/Vertex.vert", true, true, true);
+        AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/gbuffer/Standard.frag", true, true, true);
+        AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/gbuffer/Text.frag", true, true, true);
 
         Flourish::RenderPassCreateInfo rpCreateInfo;
         rpCreateInfo.SampleCount = Flourish::MsaaSampleCount::None;
