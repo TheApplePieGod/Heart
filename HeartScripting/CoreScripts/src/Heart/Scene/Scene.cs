@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Heart.Core;
 using Heart.NativeInterop;
 using Heart.Physics;
 using Heart.Task;
@@ -62,7 +63,12 @@ namespace Heart.Scene
             var view = new EntityView(this);
             return new SchedulableIter(
                 view.Select(entity => (nuint)entity._entityHandle),
-                (nuint val) => { func(new Entity((uint)val, _internalValue)); }
+                (nuint val) =>
+                {
+                    try
+                    { func(new Entity((uint)val, _internalValue)); }
+                    catch (Exception e) { Log.Error("EntityIterator execution threw an exception: {0}", e.Message); }
+                }
             );
         }
 
