@@ -17,10 +17,8 @@ namespace Heart.NativeBridge
         [UnmanagedCallersOnly]
         internal static unsafe IntPtr InstantiateClientScriptEntity(HStringInternal* objectTypeStr, uint entityHandle, IntPtr sceneHandle)
         {
-            if (EntryPoint.ClientAssembly == null) return IntPtr.Zero;
-
             string typeStr = NativeMarshal.HStringInternalToString(*objectTypeStr);
-            Type objectType = EntryPoint.ClientAssembly.GetType(typeStr);
+            Type objectType = ClientReflection.GetClientType(typeStr);
             if (objectType == null) return IntPtr.Zero;
 
             // Instantiate uninitialized object

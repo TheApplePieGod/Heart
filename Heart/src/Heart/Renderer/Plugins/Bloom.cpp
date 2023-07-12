@@ -18,8 +18,14 @@
 
 namespace Heart::RenderPlugins
 {
-    void Bloom::Initialize()
+    void Bloom::InitializeInternal()
     {
+        // Queue shader loads 
+        AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/bloom/Composite.frag", true, true, true);
+        AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/bloom/Downsample.comp", true, true, true);
+        AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/bloom/Upsample.comp", true, true, true);
+        AssetManager::RetrieveAsset<ShaderAsset>("engine/FullscreenTriangle.vert", true, true, true);
+
         Flourish::RenderPassCreateInfo rpCreateInfo;
         rpCreateInfo.SampleCount = Flourish::MsaaSampleCount::None;
         rpCreateInfo.ColorAttachments.push_back({

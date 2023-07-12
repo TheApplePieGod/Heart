@@ -17,7 +17,7 @@
 
 namespace Heart::RenderPlugins
 {
-    void TransparencyComposite::Initialize()
+    void TransparencyComposite::InitializeInternal()
     {
         Flourish::RenderPassCreateInfo rpCreateInfo;
         rpCreateInfo.SampleCount = Flourish::MsaaSampleCount::None;

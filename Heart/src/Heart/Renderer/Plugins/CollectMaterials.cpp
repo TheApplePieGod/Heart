@@ -14,7 +14,7 @@
 
 namespace Heart::RenderPlugins
 {
-    void CollectMaterials::Initialize()
+    void CollectMaterials::InitializeInternal()
     {
         Flourish::BufferCreateInfo bufCreateInfo;
         bufCreateInfo.Usage = Flourish::BufferUsageType::Dynamic;

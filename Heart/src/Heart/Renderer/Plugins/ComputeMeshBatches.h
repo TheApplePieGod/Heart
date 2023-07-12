@@ -75,17 +75,17 @@ namespace Heart::RenderPlugins
     public:
         ComputeMeshBatches(SceneRenderer* renderer, HStringView8 name, const ComputeMeshBatchesCreateInfo& createInfo)
             : RenderPlugin(renderer, name), m_Info(createInfo)
-        { Initialize(); }
+        {}
 
         inline u32 GetMaxObjects() const { return m_MaxObjects; }
         inline const auto& GetBatchData() const { return m_BatchData[m_RenderFrameIndex]; }
 
     protected:
+        void InitializeInternal() override;
         void RenderInternal(const SceneRenderData& data) override;
         void ResizeInternal() override {};
         
     private:
-        void Initialize();
         bool FrustumCull(const SceneRenderData& data, glm::vec4 boundingSphere, const glm::mat4& transform); // True if visible
 
     private:

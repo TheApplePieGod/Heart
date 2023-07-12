@@ -91,6 +91,7 @@ namespace Heart
     
     private:
         bool OnWindowResize(WindowResizeEvent& event);
+        void InitializePlugins();
         void CreateTextures();
         void CreateDefaultResources();
         void Resize();

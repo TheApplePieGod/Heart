@@ -299,6 +299,32 @@ namespace Heart
         return s_UUIDs[uuid].IsResource;
     }
 
+    void AssetManager::QueueLoad(AssetEntry& entry, bool async)
+    {
+        // Ensure that we only load if the asset is unloaded and a task hasn't been started (i.e. when the loaded frame is this value)
+        if (entry.LoadedFrame == std::numeric_limits<u64>::max() - s_AssetFrameLimit)
+        {
+            if (async)
+            {
+                s_AsyncLoadsInProgress++;
+                TaskManager::Schedule([&entry]()
+                {
+                    LoadAsset(entry, true);
+                    s_AsyncLoadsInProgress--;
+                }, Task::Priority::Medium, "Load asset");
+            }
+            else
+                LoadAsset(entry);
+        }
+        else if (!async)
+        {
+            // Until we do the refactor, we need to wait until the asset is fully loaded
+            while (!entry.Asset->IsLoaded()) {}
+        }
+
+        entry.LoadedFrame = App::Get().GetFrameCount();
+    }
+
     Asset* AssetManager::RetrieveAsset(const HStringView8& path, bool isResource, bool load, bool async)
     {
         if (path.IsEmpty()) return nullptr;
@@ -309,7 +335,8 @@ namespace Heart
 
         auto& entry = isResource ? s_Resources[path] : s_Registry[path];
         if (load)
-            LoadAsset(entry, async);
+            QueueLoad(entry, async);
+
         return entry.Asset.get();
     }
 
@@ -324,27 +351,7 @@ namespace Heart
         auto& entry = uuidEntry.IsResource ? s_Resources[uuidEntry.Path] : s_Registry[uuidEntry.Path];
 
         if (load)
-        {
-            // Ensure that we only load if the asset is unloaded and a task hasn't been started (i.e. when the loaded frame is this value)
-            if (entry.LoadedFrame == std::numeric_limits<u64>::max() - s_AssetFrameLimit)
-            {
-                if (async)
-                {
-                    s_AsyncLoadsInProgress++;
-                    TaskManager::Schedule([uuid]()
-                    {
-                        auto& uuidEntry = s_UUIDs[uuid];
-                        auto& entry = uuidEntry.IsResource ? s_Resources[uuidEntry.Path] : s_Registry[uuidEntry.Path];
-                        LoadAsset(entry, true);
-                        s_AsyncLoadsInProgress--;
-                    }, Task::Priority::Medium, "Load asset");
-                }
-                else
-                    LoadAsset(entry);
-            }
-
-            entry.LoadedFrame = App::Get().GetFrameCount();
-        }
+            QueueLoad(entry, async);
             
         return entry.Asset.get();
     }

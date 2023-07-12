@@ -1,9 +1,11 @@
 ﻿using System;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using Heart.Container;
+using Heart.Core;
 using Heart.NativeInterop;
 using Heart.Physics;
+using Heart.Task;
 
 namespace Heart.Scene
 {
@@ -55,7 +57,21 @@ namespace Heart.Scene
             outResult = new RaycastResult(res);
             return NativeMarshal.InteropBoolToBool(success);
         }
-        
+
+        public ISchedulable CreateEntityIterator(Action<Entity> func)
+        {
+            var view = new EntityView(this);
+            return new SchedulableIter(
+                view.Select(entity => (nuint)entity._entityHandle),
+                (nuint val) =>
+                {
+                    try
+                    { func(new Entity((uint)val, _internalValue)); }
+                    catch (Exception e) { Log.Error("EntityIterator execution threw an exception: {0}", e.Message); }
+                }
+            );
+        }
+
         [DllImport("__Internal")]
         internal static extern void Native_Scene_CreateEntity(IntPtr sceneHandle, [MarshalAs(UnmanagedType.LPStr)] string name, out uint entityHandle);
 

@@ -22,6 +22,10 @@ namespace Heart
         {
             HE_PROFILE_FUNCTION();
 
+            // Ignore trace because it fills up memory
+            if (msg.level == spdlog::level::trace)
+                return;
+
             spdlog::memory_buf_t formatted;
             auto localTime = spdlog::details::os::localtime(spdlog::log_clock::to_time_t(msg.time));
             spdlog::details::fmt_helper::pad2(localTime.tm_hour, formatted);

@@ -44,17 +44,15 @@ namespace Heart::RenderPlugins
     public:
         ComputeTextBatches(SceneRenderer* renderer, HStringView8 name, const ComputeTextBatchesCreateInfo& createInfo)
             : RenderPlugin(renderer, name), m_Info(createInfo)
-        { Initialize(); }
+        {}
 
         inline u32 GetMaxObjects() const { return m_MaxObjects; }
         inline const auto& GetBatchData() const { return m_BatchData[m_RenderFrameIndex]; }
 
     protected:
+        void InitializeInternal() override;
         void RenderInternal(const SceneRenderData& data) override;
         void ResizeInternal() override {};
-
-    private:
-        void Initialize();
 
     private:
         ComputeTextBatchesCreateInfo m_Info;

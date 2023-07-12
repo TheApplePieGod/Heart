@@ -28,14 +28,12 @@ namespace Heart::RenderPlugins
     public:
         RayPBRComposite(SceneRenderer* renderer, HStringView8 name, const RayPBRCompositeCreateInfo& createInfo)
             : RenderPlugin(renderer, name), m_Info(createInfo)
-        { Initialize(); }
+        {}
 
     protected:
+        void InitializeInternal() override;
         void RenderInternal(const SceneRenderData& data) override;
         void ResizeInternal() override;
-
-    private:
-        void Initialize();
 
     private:
         RayPBRCompositeCreateInfo m_Info;

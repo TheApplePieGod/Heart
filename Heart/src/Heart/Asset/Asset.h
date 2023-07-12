@@ -70,7 +70,7 @@ namespace Heart
          * This will will be true even if the load was unsuccessful, so make sure
          * to check IsValid() as well.
          */
-        inline bool IsLoaded() const { return m_Loaded; }
+        bool IsLoaded();
 
         /*! @brief Check if the asset is in the process of loading. */
         inline bool IsLoading() const { return m_Loading; }

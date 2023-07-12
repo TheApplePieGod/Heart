@@ -27,18 +27,16 @@ namespace Heart::RenderPlugins
     public:
         LightingData(SceneRenderer* renderer, HStringView8 name)
             : RenderPlugin(renderer, name)
-        { Initialize(); }
+        {}
 
         inline const Flourish::Buffer* GetBuffer() const { return m_Buffer.get(); }
         inline const Flourish::Buffer* GetDirectionalBuffer() const { return m_DirectionalBuffer.get(); }
         inline const Flourish::AccelerationStructure* GetLightTLAS() const { return m_LightTLAS.get(); }
 
     protected:
+        void InitializeInternal() override;
         void RenderInternal(const SceneRenderData& data) override;
         void ResizeInternal() override {};
-
-    private:
-        void Initialize();
 
     private:
         Ref<Flourish::Buffer> m_Buffer;

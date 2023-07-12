@@ -58,6 +58,14 @@ namespace Heart
         }
     }
 
+    // TODO: this is mid. Will wait until rewrite to deal with it.
+    bool Asset::IsLoaded()
+    {
+        const std::lock_guard<std::mutex> lock(m_LoadLock);
+
+        return m_Loaded;
+    }
+
     // adapted from https://stackoverflow.com/questions/180947/base64-decode-snippet-in-c
     HVector<unsigned char> Asset::Base64Decode(const HStringView8& encoded)
     {

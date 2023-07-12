@@ -1,6 +1,5 @@
 ﻿using Heart.Container;
 using Heart.NativeInterop;
-using Heart.Plugins;
 using Heart.Scene;
 using System;
 
@@ -8,9 +7,8 @@ namespace Heart.NativeBridge
 {
     internal unsafe struct ManagedCallbacks
     {
-        public delegate* unmanaged<IntPtr, HArrayInternal*, InteropBool> EntryPoint_LoadClientPlugin;
-        public delegate* unmanaged<InteropBool> EntryPoint_UnloadClientPlugin;
-        public delegate* unmanaged<HStringInternal*, HArrayInternal*, void> PluginReflection_GetClientSerializableFields;
+        public delegate* unmanaged<HArrayInternal*, void> ClientReflection_GetClientInstantiableClasses;
+        public delegate* unmanaged<HStringInternal*, HArrayInternal*, void> ClientReflection_GetClientSerializableFields;
         public delegate* unmanaged<HStringInternal*, uint, IntPtr, IntPtr> ManagedObject_InstantiateClientScriptEntity;
         public delegate* unmanaged<IntPtr, void> ManagedObject_DestroyObject;
         public delegate* unmanaged<IntPtr, HStringInternal*, HArrayInternal*, InteropBool> ManagedObject_InvokeFunction;
@@ -20,13 +18,12 @@ namespace Heart.NativeBridge
         public delegate* unmanaged<IntPtr, uint, IntPtr, void> ScriptEntity_CallOnCollisionStarted;
         public delegate* unmanaged<IntPtr, uint, IntPtr, void> ScriptEntity_CallOnCollisionEnded;
 
-        public static ManagedCallbacks Get()
+        public static void Get(IntPtr outCallbacks)
         {
-            return new()
-            {
-                EntryPoint_LoadClientPlugin = &EntryPoint.LoadClientPlugin,
-                EntryPoint_UnloadClientPlugin = &EntryPoint.UnloadClientPlugin,
-                PluginReflection_GetClientSerializableFields = &PluginReflection.GetClientSerializableFields,
+            ManagedCallbacks* outVal = (ManagedCallbacks*)outCallbacks;
+            *outVal = new() {
+                ClientReflection_GetClientInstantiableClasses = &ClientReflection.GetClientInstantiableClasses,
+                ClientReflection_GetClientSerializableFields = &ClientReflection.GetClientSerializableFields,
                 ManagedObject_InstantiateClientScriptEntity = &ManagedObject.InstantiateClientScriptEntity,
                 ManagedObject_DestroyObject = &ManagedObject.DestroyObject,
                 ManagedObject_InvokeFunction = &ManagedObject.InvokeFunction,

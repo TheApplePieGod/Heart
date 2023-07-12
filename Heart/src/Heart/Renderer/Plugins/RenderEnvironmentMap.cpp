@@ -17,7 +17,7 @@
 
 namespace Heart::RenderPlugins
 {
-    void RenderEnvironmentMap::Initialize()
+    void RenderEnvironmentMap::InitializeInternal()
     {
         Flourish::RenderPassCreateInfo rpCreateInfo;
         rpCreateInfo.SampleCount = Flourish::MsaaSampleCount::None;

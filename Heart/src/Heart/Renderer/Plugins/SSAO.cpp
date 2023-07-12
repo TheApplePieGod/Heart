@@ -18,7 +18,7 @@ const auto OUTPUT_FORMAT = Flourish::ColorFormat::R16_FLOAT;
 
 namespace Heart::RenderPlugins
 {
-    void SSAO::Initialize()
+    void SSAO::InitializeInternal()
     {
         Flourish::RenderPassCreateInfo rpCreateInfo;
         rpCreateInfo.SampleCount = Flourish::MsaaSampleCount::None;

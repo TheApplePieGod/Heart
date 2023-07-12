@@ -12,3 +12,4 @@ docs/html/*
 *.user
 **/.DS_Store
 .cache/**
+*.rdbg

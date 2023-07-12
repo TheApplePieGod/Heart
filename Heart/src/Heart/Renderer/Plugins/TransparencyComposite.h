@@ -22,17 +22,15 @@ namespace Heart::RenderPlugins
     public:
         TransparencyComposite(SceneRenderer* renderer, HStringView8 name, const TransparencyCompositeCreateInfo& createInfo)
             : RenderPlugin(renderer, name), m_Info(createInfo)
-        { Initialize(); }
+        {}
 
         inline const Ref<Flourish::Texture> GetAccumTexture() const { return m_AccumTexture; }
         inline const Ref<Flourish::Texture> GetRevealTexture() const { return m_RevealTexture; }
 
     protected:
+        void InitializeInternal() override;
         void RenderInternal(const SceneRenderData& data) override;
         void ResizeInternal() override;
-
-    private:
-        void Initialize();
 
     private:
         TransparencyCompositeCreateInfo m_Info;

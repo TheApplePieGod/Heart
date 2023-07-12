@@ -32,12 +32,8 @@ namespace Heart
         
         struct ExecutionData
         {
-            ExecutionData(u32 handle, size_t index)
-                : Handle(handle), Index(index)
-            {}
-
             u32 Handle;
-            size_t Index;
+            HVector<size_t> Indices;
         };
         
         struct WorkerQueue
@@ -48,6 +44,7 @@ namespace Heart
         };
         
     private:
+        static u32 ScheduleInternal(const HVector<size_t>& indices, std::function<void(size_t)>&& job, std::function<bool(size_t)>&& check);
         static u32 CreateJob();
         static void IncrementRefCount(u32 handle);
         static void DecrementRefCount(u32 handle);
@@ -60,7 +57,6 @@ namespace Heart
         inline static HVector<std::thread> s_WorkerThreads;
         
         inline static std::mutex s_FreeListMutex;
-        inline static std::mt19937 s_Generator;
         
         inline static bool s_Initialized = false;
         
@@ -72,35 +68,15 @@ namespace Heart
     {
         HE_PROFILE_FUNCTION();
 
-        u32 handle = CreateJob();
-        
-        for (auto& queue : s_ExecuteQueues)
-            queue.Mutex.lock();
-        
-        size_t count = 0;
-        std::uniform_int_distribution<int> distribution(0, (int)s_ExecuteQueues.Count() - 1);
+        HVector<size_t> indices;
         for (; begin != end; ++begin)
         {
             size_t idx = (size_t)*begin;
             if (!check(idx)) continue;
-            s_ExecuteQueues[distribution(s_Generator)].Queue.emplace(handle, (size_t)*begin);
-            count++;
+            indices.AddInPlace((size_t)*begin);
         }
 
-        JobData& data = s_JobList[handle];
-        data.Mutex.lock();
-        data.Complete = count == 0;
-        data.Remaining = count;
-        data.RefCount = count == 0 ? 1 : 2;
-        data.Job = std::move(job);
-        data.Mutex.unlock();
-
-        for (auto& queue : s_ExecuteQueues)
-        {
-            queue.Mutex.unlock();
-            queue.QueueCV.notify_all();
-        }
-        
+        u32 handle = ScheduleInternal(indices, std::move(job), std::move(check));
         return Job(handle, false);
     }
 

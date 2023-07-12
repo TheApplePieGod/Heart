@@ -14,7 +14,7 @@
 namespace Heart::RenderPlugins
 {
     // TODO: could separate lighting accel structure into own plugin
-    void LightingData::Initialize()
+    void LightingData::InitializeInternal()
     {
         m_UseRayTracing = Flourish::Context::FeatureTable().RayTracing;
 

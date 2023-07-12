@@ -33,18 +33,18 @@ namespace Heart::RenderPlugins
     public:
         CollectMaterials(SceneRenderer* renderer, HStringView8 name, const CollectMaterialsCreateInfo& createInfo)
             : RenderPlugin(renderer, name), m_Info(createInfo)
-        { Initialize(); }
+        {}
 
         inline const Flourish::Buffer* GetMaterialBuffer() const { return m_MaterialBuffer.get(); }
         inline const Flourish::ResourceSet* GetTexturesSet() const { return m_TexturesSet.get(); }
         inline const auto& GetMaterialMap() const { return m_MaterialMap; }
 
     protected:
+        void InitializeInternal() override;
         void RenderInternal(const SceneRenderData& data) override;
         void ResizeInternal() override {};
 
     private:
-        void Initialize();
         int BindTexture(UUID texId, bool async);
         void AddMaterial(Material* material, bool async);
 
@@ -59,6 +59,6 @@ namespace Heart::RenderPlugins
         std::unordered_map<u64, u32> m_MaterialMap;
 
         u32 m_MaxMaterials = 5000;
-        u32 m_MaxTextures = 1024;
+        u32 m_MaxTextures = 1000;
     };
 }

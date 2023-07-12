@@ -31,12 +31,12 @@ namespace Heart
         Scene();
         ~Scene();
 
-        Entity CreateEntity(const HStringView8& name);
-        Entity CreateEntityWithUUID(const HStringView8& name, UUID uuid);
+        Entity CreateEntity(const HStringView8& name, bool cache = true);
+        Entity CreateEntityWithUUID(const HStringView8& name, UUID uuid, bool cache = true);
         Entity DuplicateEntity(Entity source, bool keepParent, bool keepChildren);
         void DestroyEntity(Entity entity, bool forceCleanup = false);
-        void AssignRelationship(Entity parent, Entity child);
-        void UnparentEntity(Entity child, bool recache = true);
+        void AssignRelationship(Entity parent, Entity child, bool cache = true);
+        void UnparentEntity(Entity child, bool cache = true);
         Entity GetEntityFromUUID(UUID uuid);
         Entity GetEntityFromName(const HStringView8& name);
         Entity GetPrimaryCameraEntity();
@@ -58,6 +58,7 @@ namespace Heart
         void StartRuntime();
         void StopRuntime();
         void OnUpdateRuntime(Timestep ts);
+        void CacheDirtyTransforms();
 
         inline entt::registry& GetRegistry() { return m_Registry; }
         inline PhysicsWorld& GetPhysicsWorld() { return m_PhysicsWorld; }

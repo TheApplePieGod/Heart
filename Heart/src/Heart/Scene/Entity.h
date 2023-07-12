@@ -74,17 +74,17 @@ namespace Heart
         glm::vec3 GetWorldForwardVector();
         const glm::mat4x4& GetWorldTransformMatrix();
 
-        void SetPosition(glm::vec3 pos);
-        void SetRotation(glm::vec3 rot);
-        void SetScale(glm::vec3 scale);
-        void SetTransform(glm::vec3 pos, glm::vec3 rot, glm::vec3 scale);
-        void ApplyRotation(glm::vec3 rot);
+        void SetPosition(glm::vec3 pos, bool cache = true);
+        void SetRotation(glm::vec3 rot, bool cache = true);
+        void SetScale(glm::vec3 scale, bool cache = true);
+        void SetTransform(glm::vec3 pos, glm::vec3 rot, glm::vec3 scale, bool cache = true);
+        void ApplyRotation(glm::vec3 rot, bool cache = true);
 
         const HVector<UUID>& GetChildren();
-        void AddChild(UUID uuid);
-        void RemoveChild(UUID uuid);
+        void AddChild(UUID uuid, bool cache = true);
+        void RemoveChild(UUID uuid, bool cache = true);
         UUID GetParent() const;
-        void SetParent(UUID uuid);
+        void SetParent(UUID uuid, bool cache = true);
 
         Variant GetScriptProperty(const HStringView8& name) const;
         void SetScriptProperty(const HStringView8& name, const Variant& value);

@@ -51,6 +51,7 @@ namespace Heart
         glm::vec3 Translation = { 0.f, 0.f, 0.f };
         glm::vec3 Rotation = { 0.f, 0.f, 0.f };
         glm::vec3 Scale = { 1.f, 1.f, 1.f };
+        bool Dirty = true;
         
         inline glm::quat GetRotationQuat() const
         {
@@ -98,9 +99,6 @@ namespace Heart
     {
         ScriptInstance Instance;
     };
-    
-    struct ParallelUpdateComponent
-    {};
 
     struct PrimaryCameraComponent
     {};

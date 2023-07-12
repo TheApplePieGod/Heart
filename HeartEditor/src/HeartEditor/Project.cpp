@@ -178,6 +178,9 @@ namespace HeartEditor
         }
 
         // Reload
+        #ifdef HE_DEBUG
+            Heart::ScriptingEngine::ReloadCorePlugin();
+        #endif
         Heart::ScriptingEngine::LoadClientPlugin(assemblyPath.u8string());
 
         // Reinstantiate objects and load serialized properties
@@ -204,6 +207,9 @@ namespace HeartEditor
             scriptComp.Instance.LoadFieldsFromJson(serializedObjects[entity]);
             scriptComp.Instance.OnConstruct();
         }
+
+        // Ensure potential modifications of OnConstruct are reflected
+        Editor::GetActiveScene().CacheDirtyTransforms();
     }
 
     bool Project::BuildScripts(bool debug)

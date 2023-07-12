@@ -104,6 +104,14 @@ namespace Heart
 
         std::array<float, 4> clearColor = { 0.f, 0.f, 0.f, 0.f };
 
+        // Queue shader loads 
+        AssetManager::RetrieveAsset<ShaderAsset>("engine/EnvironmentMap.vert", true, true, true);
+        AssetManager::RetrieveAsset<ShaderAsset>("engine/CalcEnvironmentMap.frag", true, true, true);
+        AssetManager::RetrieveAsset<ShaderAsset>("engine/CalcIrradianceMap.frag", true, true, true);
+        AssetManager::RetrieveAsset<ShaderAsset>("engine/CalcPrefilterMap.frag", true, true, true);
+        AssetManager::RetrieveAsset<ShaderAsset>("engine/BRDFQuad.vert", true, true, true);
+        AssetManager::RetrieveAsset<ShaderAsset>("engine/CalcBRDF.frag", true, true, true);
+
         // ------------------------------------------------------------------
         // Environment map framebuffer: convert loaded image into a cubemap
         // ------------------------------------------------------------------
@@ -455,6 +463,7 @@ namespace Heart
             Task::Priority::Medium
         );
 
+        // TODO: don't need to wait here. Need to fix framebuffers first
         task.Wait();
         return task;
     }

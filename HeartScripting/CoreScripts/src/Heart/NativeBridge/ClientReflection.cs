@@ -8,15 +8,22 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 
-namespace Heart.Plugins
+namespace Heart.NativeBridge
 {
-    public static class PluginReflection
+    internal static class ClientReflection
     {
-        public static List<string> GetInstantiableClasses(Assembly assembly)
+        // Complains about no assignment but we assign it cross-assembly
+#pragma warning disable CS0649
+        internal static Assembly _clientAssembly;
+#pragma warning restore CS0649
+
+        internal static List<string> GetInstantiableClasses()
         {
+            if (_clientAssembly == null) return null;
+
             Type scriptEntityType = typeof(ScriptEntity);
             List<string> names = new();
-            var types = assembly.GetTypes().Where(t => t.IsAssignableTo(scriptEntityType));
+            var types = _clientAssembly.GetTypes().Where(t => t.IsAssignableTo(scriptEntityType));
 
             foreach (var type in types)
                 names.Add(type.FullName);
@@ -24,12 +31,14 @@ namespace Heart.Plugins
             return names;
         }
 
-        public static List<string> GetSerializableFields(Assembly assembly, string typeName)
+        internal static List<string> GetSerializableFields(string typeName)
         {
+            if (_clientAssembly == null) return null;
+
             Type serializeType = typeof(SerializeFieldAttribute);
             List<string> names = new();
             
-            var type = assembly.GetType(typeName);
+            var type = _clientAssembly.GetType(typeName);
             if (type == null) return names;
 
             var fields = type.GetFields()
@@ -43,13 +52,29 @@ namespace Heart.Plugins
             return names;
         }
 
+        internal static Type GetClientType(string name)
+        {
+            if (_clientAssembly == null) return null;
+            return _clientAssembly.GetType(name);
+        }
+
+        [UnmanagedCallersOnly]
+        internal static unsafe void GetClientInstantiableClasses(HArrayInternal* outClasses)
+        {
+            if (_clientAssembly == null) return;
+
+            var instantiableClasses = GetInstantiableClasses();
+            using var arr = new HArray(instantiableClasses);
+            arr.CopyTo(outClasses);
+        }
+
         [UnmanagedCallersOnly]
         internal static unsafe void GetClientSerializableFields(HStringInternal* typeNameStr, HArrayInternal* outFields)
         {
-            if (EntryPoint.ClientAssembly == null) return;
+            if (_clientAssembly == null) return;
 
             string typeName = NativeMarshal.HStringInternalToString(*typeNameStr);
-            var fields = PluginReflection.GetSerializableFields(EntryPoint.ClientAssembly, typeName);
+            var fields = GetSerializableFields(typeName);
 
             using var arr = new HArray(fields);
             arr.CopyTo(outFields);

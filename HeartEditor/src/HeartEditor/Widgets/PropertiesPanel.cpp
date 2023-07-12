@@ -330,6 +330,9 @@ namespace Widgets
                         scriptComp.Instance = Heart::ScriptInstance(classes[index].ToHString());
                         scriptComp.Instance.Instantiate(selectedEntity);
                         scriptComp.Instance.OnConstruct();
+
+                        // Ensure transform changes are reflected
+                        Editor::GetActiveScene().CacheDirtyTransforms();
                     }
                 );
 

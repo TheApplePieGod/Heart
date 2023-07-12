@@ -7,8 +7,12 @@
 #include "Heart/Scene/Entity.h"
 #include "Heart/Container/HArray.h"
 #include "Heart/Container/HString.h"
-#include "Heart/Scripting/ScriptingEngine.h"
 #include "Heart/Asset/AssetManager.h"
+#include "Heart/Task/TaskManager.h"
+#include "Heart/Task/JobManager.h"
+#include "Heart/Scripting/ScriptingEngine.h"
+#include "Heart/Scripting/ManagedIterator.h"
+#include "Heart/Scripting/EntityView.h"
 
 #define HE_INTEROP_EXPORT_BASE extern "C" [[maybe_unused]]
 #ifdef HE_PLATFORM_WINDOWS
@@ -116,7 +120,7 @@ HE_INTEROP_EXPORT bool Native_Input_IsMouseButtonPressed(Heart::MouseCode button
 
 HE_INTEROP_EXPORT void Native_Scene_CreateEntity(Heart::Scene* sceneHandle, const char* name, u32* entityHandle)
 {
-    *entityHandle = (u32)sceneHandle->CreateEntity(name).GetHandle();
+    *entityHandle = (u32)sceneHandle->CreateEntity(name, false).GetHandle();
 }
 
 HE_INTEROP_EXPORT void Native_Scene_GetEntityFromUUID(Heart::Scene* sceneHandle, Heart::UUID uuid, u32* entityHandle)
@@ -149,19 +153,6 @@ HE_INTEROP_EXPORT bool Native_Entity_IsValid(u32 entityHandle, Heart::Scene* sce
     return entity.IsValid();
 }
 
-HE_INTEROP_EXPORT void Native_Entity_SetParallelUpdate(u32 entityHandle, Heart::Scene* sceneHandle, bool parallel)
-{
-    Heart::Entity entity(sceneHandle, entityHandle);
-    if (parallel)
-    {
-        entity.AddComponent<Heart::ParallelUpdateComponent>();
-        return;
-    }
-    
-    if (entity.HasComponent<Heart::ParallelUpdateComponent>())
-        entity.RemoveComponent<Heart::ParallelUpdateComponent>();
-}
-
 /*
  * Asset manager functions
  */
@@ -169,6 +160,48 @@ HE_INTEROP_EXPORT void Native_Entity_SetParallelUpdate(u32 entityHandle, Heart::
 HE_INTEROP_EXPORT void Native_AssetManager_GetAssetUUID(const char* path, bool isResource, Heart::UUID* outId)
 {
     *outId = Heart::AssetManager::GetAssetUUID(path, isResource);
+}
+
+/*
+ * Entity view functions
+ */
+HE_INTEROP_EXPORT void Native_EntityView_Init(void** outView, Heart::Scene* sceneHandle)
+{
+    auto viewHandle = new Heart::EntityView();
+    viewHandle->View.iterate(sceneHandle->GetRegistry().storage<Heart::TransformComponent>());
+    viewHandle->Current = viewHandle->View.begin();
+
+    *outView = viewHandle;
+}
+
+HE_INTEROP_EXPORT void Native_EntityView_Destroy(void* view)
+{
+    delete ((Heart::EntityView*)view);
+}
+
+HE_INTEROP_EXPORT bool Native_EntityView_GetNext(void* _view, u32* outEntityHandle)
+{
+    auto view = (Heart::EntityView*)_view;
+    if (view->Current == view->View.end())
+        return false;
+    *outEntityHandle = (u32)*(view->Current++);
+    return true;
+}
+
+/*
+ * Task functions
+ */
+
+using Native_SchedulableIter_RunFn = void (*)(size_t);
+HE_INTEROP_EXPORT void Native_SchedulableIter_Schedule(
+    Heart::ManagedIterator<size_t>::GetNextIterFn getNext,
+    Native_SchedulableIter_RunFn runFunc)
+{
+    Heart::ManagedIterator<size_t> begin(getNext);
+    Heart::ManagedIterator<size_t> end(nullptr);
+
+    Heart::Job handle = Heart::JobManager::ScheduleIter(begin, end, runFunc);
+    handle.Wait();
 }
 
 /*
@@ -206,6 +239,14 @@ HE_INTEROP_EXPORT void Native_AssetManager_GetAssetUUID(const char* path, bool i
         *outComp = &entity.GetComponent<Heart::compName>(); \
     }
 
+#define EXPORT_COMPONENT_GET_FN_UNCHECKED(compName) \
+    HE_INTEROP_EXPORT void Native_##compName##_Get(u32 entityHandle, Heart::Scene* sceneHandle, Heart::compName** outComp) \
+    { \
+        ASSERT_ENTITY_IS_VALID(); \
+        Heart::Entity entity(sceneHandle, entityHandle); \
+        *outComp = &entity.GetComponent<Heart::compName>(); \
+    }
+
 #define EXPORT_COMPONENT_EXISTS_FN(compName) \
     HE_INTEROP_EXPORT bool Native_##compName##_Exists(u32 entityHandle, Heart::Scene* sceneHandle) \
     { \
@@ -237,10 +278,10 @@ HE_INTEROP_EXPORT void Native_AssetManager_GetAssetUUID(const char* path, bool i
     EXPORT_COMPONENT_REMOVE_FN(compName)
 
 // Id component (always exists)
-EXPORT_COMPONENT_GET_FN(IdComponent);
+EXPORT_COMPONENT_GET_FN_UNCHECKED(IdComponent);
 
 // Name component (always exists)
-EXPORT_COMPONENT_GET_FN(NameComponent);
+EXPORT_COMPONENT_GET_FN_UNCHECKED(NameComponent);
 
 HE_INTEROP_EXPORT void Native_NameComponent_SetName(u32 entityHandle, Heart::Scene* sceneHandle, Heart::HString value)
 {
@@ -250,46 +291,52 @@ HE_INTEROP_EXPORT void Native_NameComponent_SetName(u32 entityHandle, Heart::Sce
 }
 
 // Transform component (always exists)
-EXPORT_COMPONENT_GET_FN(TransformComponent);
+EXPORT_COMPONENT_GET_FN_UNCHECKED(TransformComponent);
 
 HE_INTEROP_EXPORT void Native_TransformComponent_SetPosition(u32 entityHandle, Heart::Scene* sceneHandle, glm::vec3 pos)
 {
+    HE_PROFILE_FUNCTION();
     ASSERT_ENTITY_IS_VALID();
     Heart::Entity entity(sceneHandle, entityHandle);
-    entity.SetPosition(pos);
+    entity.SetPosition(pos, false);
 }
 
 HE_INTEROP_EXPORT void Native_TransformComponent_SetRotation(u32 entityHandle, Heart::Scene* sceneHandle, glm::vec3 rot)
 {
+    HE_PROFILE_FUNCTION();
     ASSERT_ENTITY_IS_VALID();
     Heart::Entity entity(sceneHandle, entityHandle);
-    entity.SetRotation(rot);
+    entity.SetRotation(rot, false);
 }
 
 HE_INTEROP_EXPORT void Native_TransformComponent_SetScale(u32 entityHandle, Heart::Scene* sceneHandle, glm::vec3 scale)
 {
+    HE_PROFILE_FUNCTION();
     ASSERT_ENTITY_IS_VALID();
     Heart::Entity entity(sceneHandle, entityHandle);
-    entity.SetScale(scale);
+    entity.SetScale(scale, false);
 }
 
 HE_INTEROP_EXPORT void Native_TransformComponent_SetTransform(u32 entityHandle, Heart::Scene* sceneHandle, glm::vec3 pos, glm::vec3 rot, glm::vec3 scale)
 {
+    HE_PROFILE_FUNCTION();
     ASSERT_ENTITY_IS_VALID();
     Heart::Entity entity(sceneHandle, entityHandle);
-    entity.SetTransform(pos, rot, scale);
+    entity.SetTransform(pos, rot, scale, false);
 }
 
 HE_INTEROP_EXPORT void Native_TransformComponent_ApplyRotation(u32 entityHandle, Heart::Scene* sceneHandle, glm::vec3 rot)
 {
+    HE_PROFILE_FUNCTION();
     ASSERT_ENTITY_IS_VALID();
     Heart::Entity entity(sceneHandle, entityHandle);
-    entity.ApplyRotation(rot);
+    entity.ApplyRotation(rot, false);
 }
 
 // TODO: we eventually want to move this logic to c# (probably) (or something)
 HE_INTEROP_EXPORT void Native_TransformComponent_GetForwardVector(u32 entityHandle, Heart::Scene* sceneHandle, glm::vec3* outValue)
 {
+    HE_PROFILE_FUNCTION();
     ASSERT_ENTITY_IS_VALID();
     Heart::Entity entity(sceneHandle, entityHandle);
     *outValue = entity.GetForwardVector();
@@ -307,7 +354,7 @@ HE_INTEROP_EXPORT void Native_ParentComponent_SetParent(u32 entityHandle, Heart:
 { 
     ASSERT_ENTITY_IS_VALID();
     Heart::Entity entity(sceneHandle, entityHandle);
-    entity.SetParent(parent);
+    entity.SetParent(parent, false);
 }
 
 // Children component
@@ -320,16 +367,18 @@ HE_INTEROP_EXPORT void Native_ChildrenComponent_Get(u32 entityHandle, Heart::Sce
 
 HE_INTEROP_EXPORT void Native_ChildrenComponent_AddChild(u32 entityHandle, Heart::Scene* sceneHandle, Heart::UUID uuid)
 { 
+    HE_PROFILE_FUNCTION();
     ASSERT_ENTITY_IS_VALID();
     Heart::Entity entity(sceneHandle, entityHandle);
-    entity.AddChild(uuid);
+    entity.AddChild(uuid, false);
 }
 
 HE_INTEROP_EXPORT void Native_ChildrenComponent_RemoveChild(u32 entityHandle, Heart::Scene* sceneHandle, Heart::UUID uuid)
 { 
+    HE_PROFILE_FUNCTION();
     ASSERT_ENTITY_IS_VALID();
     Heart::Entity entity(sceneHandle, entityHandle);
-    entity.RemoveChild(uuid);
+    entity.RemoveChild(uuid, false);
 }
 
 // Mesh component
