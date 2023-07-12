@@ -28,12 +28,12 @@ namespace HeartEditor
         Editor::Initialize();
 
         // Crappy default project solution until we get some sort of settings file
+        if (std::filesystem::exists("D:/Projects/Heart/HeartProjects/VampireSurvivor/VampireSurvivor.heproj"))
+            Project::LoadFromPath("D:/Projects/Heart/HeartProjects/VampireSurvivor/VampireSurvivor.heproj");
         /*
-        if (std::filesystem::exists("D:/Projects/Heart/HeartProjects/DemoGame/DemoGame.heproj"))
-            Project::LoadFromPath("D:/Projects/Heart/HeartProjects/DemoGame/DemoGame.heproj");
-            */
         if (std::filesystem::exists("../../../HeartProjects/TestProject/TestProject.heproj"))
             Project::LoadFromPath("../../../HeartProjects/TestProject/TestProject.heproj");
+            */
         else
             Editor::CreateWindows();
 

@@ -219,7 +219,7 @@ namespace Heart
                     glm::vec3 translation = { compEntry["translation"][0], compEntry["translation"][1], compEntry["translation"][2] };
                     glm::vec3 rotation = { compEntry["rotation"][0], compEntry["rotation"][1], compEntry["rotation"][2] };
                     glm::vec3 scale = { compEntry["scale"][0], compEntry["scale"][1], compEntry["scale"][2] };
-                    entity.SetTransform(translation, rotation, scale);
+                    entity.SetTransform(translation, rotation, scale, false);
                 }
                     
                 // Script component
@@ -249,6 +249,9 @@ namespace Heart
                 }
             }
         }
+
+        // Cache initial transforms once everything has been instantiated and initialized
+        scene->CacheDirtyTransforms();
 
         // parse settings
         {

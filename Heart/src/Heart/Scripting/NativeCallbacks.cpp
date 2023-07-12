@@ -120,7 +120,7 @@ HE_INTEROP_EXPORT bool Native_Input_IsMouseButtonPressed(Heart::MouseCode button
 
 HE_INTEROP_EXPORT void Native_Scene_CreateEntity(Heart::Scene* sceneHandle, const char* name, u32* entityHandle)
 {
-    *entityHandle = (u32)sceneHandle->CreateEntity(name).GetHandle();
+    *entityHandle = (u32)sceneHandle->CreateEntity(name, false).GetHandle();
 }
 
 HE_INTEROP_EXPORT void Native_Scene_GetEntityFromUUID(Heart::Scene* sceneHandle, Heart::UUID uuid, u32* entityHandle)
@@ -233,9 +233,16 @@ HE_INTEROP_EXPORT void Native_SchedulableIter_Schedule(
 #define EXPORT_COMPONENT_GET_FN(compName) \
     HE_INTEROP_EXPORT void Native_##compName##_Get(u32 entityHandle, Heart::Scene* sceneHandle, Heart::compName** outComp) \
     { \
-        HE_PROFILE_FUNCTION(); \
         ASSERT_ENTITY_IS_VALID(); \
         ASSERT_ENTITY_HAS_COMPONENT(compName); \
+        Heart::Entity entity(sceneHandle, entityHandle); \
+        *outComp = &entity.GetComponent<Heart::compName>(); \
+    }
+
+#define EXPORT_COMPONENT_GET_FN_UNCHECKED(compName) \
+    HE_INTEROP_EXPORT void Native_##compName##_Get(u32 entityHandle, Heart::Scene* sceneHandle, Heart::compName** outComp) \
+    { \
+        ASSERT_ENTITY_IS_VALID(); \
         Heart::Entity entity(sceneHandle, entityHandle); \
         *outComp = &entity.GetComponent<Heart::compName>(); \
     }
@@ -271,10 +278,10 @@ HE_INTEROP_EXPORT void Native_SchedulableIter_Schedule(
     EXPORT_COMPONENT_REMOVE_FN(compName)
 
 // Id component (always exists)
-EXPORT_COMPONENT_GET_FN(IdComponent);
+EXPORT_COMPONENT_GET_FN_UNCHECKED(IdComponent);
 
 // Name component (always exists)
-EXPORT_COMPONENT_GET_FN(NameComponent);
+EXPORT_COMPONENT_GET_FN_UNCHECKED(NameComponent);
 
 HE_INTEROP_EXPORT void Native_NameComponent_SetName(u32 entityHandle, Heart::Scene* sceneHandle, Heart::HString value)
 {
@@ -284,14 +291,14 @@ HE_INTEROP_EXPORT void Native_NameComponent_SetName(u32 entityHandle, Heart::Sce
 }
 
 // Transform component (always exists)
-EXPORT_COMPONENT_GET_FN(TransformComponent);
+EXPORT_COMPONENT_GET_FN_UNCHECKED(TransformComponent);
 
 HE_INTEROP_EXPORT void Native_TransformComponent_SetPosition(u32 entityHandle, Heart::Scene* sceneHandle, glm::vec3 pos)
 {
     HE_PROFILE_FUNCTION();
     ASSERT_ENTITY_IS_VALID();
     Heart::Entity entity(sceneHandle, entityHandle);
-    entity.SetPosition(pos);
+    entity.SetPosition(pos, false);
 }
 
 HE_INTEROP_EXPORT void Native_TransformComponent_SetRotation(u32 entityHandle, Heart::Scene* sceneHandle, glm::vec3 rot)
@@ -299,7 +306,7 @@ HE_INTEROP_EXPORT void Native_TransformComponent_SetRotation(u32 entityHandle, H
     HE_PROFILE_FUNCTION();
     ASSERT_ENTITY_IS_VALID();
     Heart::Entity entity(sceneHandle, entityHandle);
-    entity.SetRotation(rot);
+    entity.SetRotation(rot, false);
 }
 
 HE_INTEROP_EXPORT void Native_TransformComponent_SetScale(u32 entityHandle, Heart::Scene* sceneHandle, glm::vec3 scale)
@@ -307,7 +314,7 @@ HE_INTEROP_EXPORT void Native_TransformComponent_SetScale(u32 entityHandle, Hear
     HE_PROFILE_FUNCTION();
     ASSERT_ENTITY_IS_VALID();
     Heart::Entity entity(sceneHandle, entityHandle);
-    entity.SetScale(scale);
+    entity.SetScale(scale, false);
 }
 
 HE_INTEROP_EXPORT void Native_TransformComponent_SetTransform(u32 entityHandle, Heart::Scene* sceneHandle, glm::vec3 pos, glm::vec3 rot, glm::vec3 scale)
@@ -315,7 +322,7 @@ HE_INTEROP_EXPORT void Native_TransformComponent_SetTransform(u32 entityHandle, 
     HE_PROFILE_FUNCTION();
     ASSERT_ENTITY_IS_VALID();
     Heart::Entity entity(sceneHandle, entityHandle);
-    entity.SetTransform(pos, rot, scale);
+    entity.SetTransform(pos, rot, scale, false);
 }
 
 HE_INTEROP_EXPORT void Native_TransformComponent_ApplyRotation(u32 entityHandle, Heart::Scene* sceneHandle, glm::vec3 rot)
@@ -323,7 +330,7 @@ HE_INTEROP_EXPORT void Native_TransformComponent_ApplyRotation(u32 entityHandle,
     HE_PROFILE_FUNCTION();
     ASSERT_ENTITY_IS_VALID();
     Heart::Entity entity(sceneHandle, entityHandle);
-    entity.ApplyRotation(rot);
+    entity.ApplyRotation(rot, false);
 }
 
 // TODO: we eventually want to move this logic to c# (probably) (or something)
@@ -347,7 +354,7 @@ HE_INTEROP_EXPORT void Native_ParentComponent_SetParent(u32 entityHandle, Heart:
 { 
     ASSERT_ENTITY_IS_VALID();
     Heart::Entity entity(sceneHandle, entityHandle);
-    entity.SetParent(parent);
+    entity.SetParent(parent, false);
 }
 
 // Children component
@@ -360,16 +367,18 @@ HE_INTEROP_EXPORT void Native_ChildrenComponent_Get(u32 entityHandle, Heart::Sce
 
 HE_INTEROP_EXPORT void Native_ChildrenComponent_AddChild(u32 entityHandle, Heart::Scene* sceneHandle, Heart::UUID uuid)
 { 
+    HE_PROFILE_FUNCTION();
     ASSERT_ENTITY_IS_VALID();
     Heart::Entity entity(sceneHandle, entityHandle);
-    entity.AddChild(uuid);
+    entity.AddChild(uuid, false);
 }
 
 HE_INTEROP_EXPORT void Native_ChildrenComponent_RemoveChild(u32 entityHandle, Heart::Scene* sceneHandle, Heart::UUID uuid)
 { 
+    HE_PROFILE_FUNCTION();
     ASSERT_ENTITY_IS_VALID();
     Heart::Entity entity(sceneHandle, entityHandle);
-    entity.RemoveChild(uuid);
+    entity.RemoveChild(uuid, false);
 }
 
 // Mesh component

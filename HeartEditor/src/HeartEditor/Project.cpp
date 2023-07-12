@@ -207,6 +207,9 @@ namespace HeartEditor
             scriptComp.Instance.LoadFieldsFromJson(serializedObjects[entity]);
             scriptComp.Instance.OnConstruct();
         }
+
+        // Ensure potential modifications of OnConstruct are reflected
+        Editor::GetActiveScene().CacheDirtyTransforms();
     }
 
     bool Project::BuildScripts(bool debug)

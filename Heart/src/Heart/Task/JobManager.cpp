@@ -62,6 +62,9 @@ namespace Heart
         data.Job = std::move(job);
         data.Mutex.unlock();
 
+        if (indices.IsEmpty())
+            return handle;
+
         u32 countPerThread = indices.Count() / s_ExecuteQueues.Count();
         for (u32 i = 0; i < s_ExecuteQueues.Count(); i++)
         {

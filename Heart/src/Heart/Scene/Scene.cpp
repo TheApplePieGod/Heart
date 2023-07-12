@@ -81,12 +81,12 @@ namespace Heart
         }
     }
 
-    Entity Scene::CreateEntity(const HStringView8& name)
+    Entity Scene::CreateEntity(const HStringView8& name, bool cache)
     {
-        return CreateEntityWithUUID(name, UUID());
+        return CreateEntityWithUUID(name, UUID(), cache);
     }
 
-    Entity Scene::CreateEntityWithUUID(const HStringView8& name, UUID uuid)
+    Entity Scene::CreateEntityWithUUID(const HStringView8& name, UUID uuid, bool cache)
     {
         Entity entity = { this, m_Registry.create() };
         m_UUIDMap[uuid] = entity.GetHandle();
@@ -95,7 +95,12 @@ namespace Heart
         entity.AddComponent<NameComponent>(name.IsEmpty() ? "New Entity" : HStringView(name));
         entity.AddComponent<TransformComponent>();
 
-        CacheEntityTransform(entity);
+        // Transform component dirty by default
+        if (cache)
+            CacheEntityTransform(entity);
+        else
+            // Populate default value
+            m_CachedTransforms[entity.GetHandle()] = {};
 
         return entity;
     }
@@ -134,6 +139,8 @@ namespace Heart
         CopyComponent<TextComponent>(source.GetHandle(), newEntity);
 
         CacheEntityTransform(newEntity);
+        if (newEntity.HasComponent<ScriptComponent>())
+            CacheDirtyTransforms();
 
         return newEntity;
     }
@@ -163,7 +170,7 @@ namespace Heart
             CleanupEntity(entity);
     }
 
-    void Scene::AssignRelationship(Entity parent, Entity child)
+    void Scene::AssignRelationship(Entity parent, Entity child, bool cache)
     {
         HE_ENGINE_ASSERT(parent.IsValid(), "Parent entity must be valid");
         HE_ENGINE_ASSERT(child.IsValid(), "Child entity must be valid");
@@ -195,10 +202,13 @@ namespace Heart
         else
             parent.AddComponent<ChildrenComponent>(std::initializer_list<UUID>({ childUUID }));
 
-        CacheEntityTransform(child);
+        if (cache)
+            CacheEntityTransform(child);
+        else
+            child.GetComponent<TransformComponent>().Dirty = true;
     }
 
-    void Scene::UnparentEntity(Entity child, bool recache)
+    void Scene::UnparentEntity(Entity child, bool cache)
     {
         HE_ENGINE_ASSERT(child.IsValid(), "Child entity must be valid");
 
@@ -214,8 +224,10 @@ namespace Heart
             child.RemoveComponent<ParentComponent>();
         }
 
-        if (recache)
+        if (cache)
             CacheEntityTransform(child);
+        else
+            child.GetComponent<TransformComponent>().Dirty = true;
     }
 
     void Scene::CleanupEntity(Entity entity)
@@ -266,6 +278,8 @@ namespace Heart
 
     void Scene::CacheEntityTransform(Entity entity, bool propagateToChildren, bool updatePhysics)
     {
+        HE_PROFILE_FUNCTION();
+
         glm::mat4 transform;
         glm::vec3 rot;
         CalculateEntityTransform(entity, transform, rot);
@@ -288,6 +302,8 @@ namespace Heart
         
         if (updatePhysics && entity.HasComponent<CollisionComponent>())
             entity.GetPhysicsBody()->SetTransform(translation, quat);
+
+        entity.GetComponent<TransformComponent>().Dirty = false;
             
         if (propagateToChildren && entity.HasComponent<ChildrenComponent>())
         {
@@ -307,6 +323,8 @@ namespace Heart
 
     void Scene::CalculateEntityTransform(Entity target, glm::mat4& outTransform, glm::vec3& outRotation)
     {
+        HE_PROFILE_FUNCTION();
+
         auto& transformComp = target.GetComponent<TransformComponent>();
         if (target.HasComponent<ParentComponent>() && (!m_IsRuntime || !target.HasComponent<CollisionComponent>()))
         {
@@ -366,6 +384,11 @@ namespace Heart
             
             CopyComponent<ScriptComponent>(src.GetHandle(), dst);
         });
+
+        // Ensure transform changes are reflected
+        auto scriptView = m_Registry.view<ScriptComponent>();
+        if (scriptView.size() > 0)
+            newScene->CacheDirtyTransforms();
             
         // Copy the environment map
         newScene->m_EnvironmentMap = m_EnvironmentMap;
@@ -429,7 +452,7 @@ namespace Heart
         // Update positions of physics entities to reflect physics body position
         runTimer = AggregateTimer("Scene::OnUpdateRuntime - Post Physics");
         auto physView = m_Registry.view<CollisionComponent, TransformComponent>();
-        Job physJob = JobManager::ScheduleIter(
+        JobManager::ScheduleIter(
             physView.begin(),
             physView.end(),
             [this, &physView](size_t _entity)
@@ -440,14 +463,13 @@ namespace Heart
                 PhysicsBody* body = m_PhysicsWorld.GetBody(bodyComp.BodyId);
                 
                 auto& transformComp = physView.get<TransformComponent>(entity);
-                bool dirty = false;
                 
                 // TODO: store body's position and check that rather than the entity's
                 auto newPos = body->GetPosition();
                 if (transformComp.Translation != newPos)
                 {
                     transformComp.Translation = newPos;
-                    dirty = true;
+                    transformComp.Dirty = true;
                 }
                 
                 auto bodyRot = body->GetRotation();
@@ -455,11 +477,8 @@ namespace Heart
                 if (!eq.x || !eq.y || !eq.z || !eq.w)
                 {
                     transformComp.Rotation = glm::degrees(glm::eulerAngles(bodyRot));
-                    dirty = true;
+                    transformComp.Dirty = true;
                 }
-                
-                if (dirty)
-                    CacheEntityTransform({ this, entity }, true, false);
             },
             [this, &physView](size_t _entity)
             {
@@ -471,8 +490,7 @@ namespace Heart
                 // Static & ghost objects will never have an updated position so skip
                 return body->GetBodyType() == PhysicsBodyType::Rigid && body->GetMass() != 0.f;
             }
-        );
-        physJob.Wait();
+        ).Wait();
         runTimer.Finish();
         
         // Call OnUpdate lifecycle method
@@ -491,11 +509,16 @@ namespace Heart
         for (auto entity : destroyedView)
             CleanupEntity({ this, entity });
         runTimer.Finish();
+
+        // Finalize transform data
+        runTimer = AggregateTimer("Scene::OnUpdateRuntime - Finalize Transforms");
+        CacheDirtyTransforms();
+        runTimer.Finish();
     }
 
     Entity Scene::GetEntityFromUUID(UUID uuid)
     {
-        if (m_UUIDMap.find(uuid) == m_UUIDMap.end()) return Entity();
+        //if (m_UUIDMap.find(uuid) == m_UUIDMap.end()) return Entity();
         return GetEntityFromUUIDUnchecked(uuid);
     }
     Entity Scene::GetEntityFromName(const HStringView8& name)
@@ -519,6 +542,47 @@ namespace Heart
     Entity Scene::GetEntityFromUUIDUnchecked(UUID uuid)
     {
         return { this, m_UUIDMap[uuid] };
+    }
+
+    void Scene::CacheDirtyTransforms()
+    {
+        auto transformView = m_Registry.view<TransformComponent>();
+        JobManager::ScheduleIter(
+            transformView.begin(),
+            transformView.end(),
+            [this, &transformView](size_t _entity)
+            {
+                auto entity = (entt::entity)_entity;
+                CacheEntityTransform({ this, entity }, true, true);
+            },
+            [this, &transformView](size_t _entity)
+            {
+                // We only want to update the highest level components that are dirty since
+                // they will propagate
+
+                Entity entity = { this, (entt::entity)_entity };
+
+                if (!transformView.get<TransformComponent>(entity.GetHandle()).Dirty)
+                    return false;
+
+                if (entity.HasComponent<CollisionComponent>())
+                    return true;
+
+                // Stop checking if the parent has a collision component since we
+                // don't follow its transform
+                Entity parent = GetEntityFromUUID(entity.GetParent());
+                while (parent.IsValid())
+                {
+                    if (transformView.get<TransformComponent>(parent.GetHandle()).Dirty)
+                        return false;
+                    if (parent.HasComponent<CollisionComponent>())
+                        break;
+                    parent = GetEntityFromUUID(parent.GetParent());
+                }
+
+                return true;
+            }
+        ).Wait();
     }
 
     void Scene::CollisionStartCallback(UUID id0, UUID id1)
