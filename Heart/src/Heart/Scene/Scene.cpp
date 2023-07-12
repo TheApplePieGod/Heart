@@ -465,11 +465,12 @@ namespace Heart
                 auto& transformComp = physView.get<TransformComponent>(entity);
                 
                 // TODO: store body's position and check that rather than the entity's
+                bool dirty = false;
                 auto newPos = body->GetPosition();
                 if (transformComp.Translation != newPos)
                 {
                     transformComp.Translation = newPos;
-                    transformComp.Dirty = true;
+                    dirty = true;
                 }
                 
                 auto bodyRot = body->GetRotation();
@@ -477,8 +478,12 @@ namespace Heart
                 if (!eq.x || !eq.y || !eq.z || !eq.w)
                 {
                     transformComp.Rotation = glm::degrees(glm::eulerAngles(bodyRot));
-                    transformComp.Dirty = true;
+                    dirty = true;
                 }
+
+                // Manual cache here to preserve velocities
+                if (dirty)
+                    CacheEntityTransform({ this, entity }, true, false);
             },
             [this, &physView](size_t _entity)
             {
@@ -518,7 +523,7 @@ namespace Heart
 
     Entity Scene::GetEntityFromUUID(UUID uuid)
     {
-        //if (m_UUIDMap.find(uuid) == m_UUIDMap.end()) return Entity();
+        if (m_UUIDMap.find(uuid) == m_UUIDMap.end()) return Entity();
         return GetEntityFromUUIDUnchecked(uuid);
     }
     Entity Scene::GetEntityFromName(const HStringView8& name)
