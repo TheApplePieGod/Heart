@@ -1,3 +1,7 @@
+[submodule "Heart/lib/Flourish"]
+	path = Heart/lib/Flourish
+	url = https://github.com/TheApplePieGod/Flourish.git
+	branch = dev
 [submodule "Heart/lib/spdlog"]
 	path = Heart/lib/spdlog
 	url = https://github.com/gabime/spdlog.git
