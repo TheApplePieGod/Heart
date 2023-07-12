@@ -3,9 +3,7 @@ using Heart.Math;
 using Heart.NativeInterop;
 using System;
 using System.Linq;
-using System.Numerics;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 
 namespace Heart.Scene
 {
@@ -32,12 +30,21 @@ namespace Heart.Scene
         internal uint _entityHandle = Entity.InvalidEntityHandle;
         internal IntPtr _sceneHandle = IntPtr.Zero;
 
+        public Component(Entity entity)
+        {
+            _entityHandle = entity._entityHandle;
+            _sceneHandle = entity._sceneHandle;
+        }
+
         internal Component(uint entityHandle, IntPtr sceneHandle)
         {
             _entityHandle = entityHandle;
             _sceneHandle = sceneHandle;
         }
     }
+
+    public interface IComponent
+    {}
 
     public static class ComponentUtils
     {

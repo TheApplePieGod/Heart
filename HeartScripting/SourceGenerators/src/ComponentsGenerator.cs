@@ -9,35 +9,48 @@ using System.Text;
 namespace SourceGenerators
 {
     [Generator]
-    public class ScriptFieldsGenerator : ISourceGenerator
+    public class ComponentsGenerator : ISourceGenerator
     {
-        private const string _className = "Heart.Scene.ScriptEntity";
+        private const string _className = "Heart.Scene.IComponent";
+        
+        class StructFinder : ISyntaxContextReceiver
+        {
+            public List<(StructDeclarationSyntax, INamedTypeSymbol)> Structs { get; } = new();
+            public List<(GenerationError, string, Location)> Errors { get; } = new();
+
+            public void OnVisitSyntaxNode(GeneratorSyntaxContext context)
+            {
+                if (!(context.Node is StructDeclarationSyntax structSynax)) return;
+
+                var typeSymbol = context.SemanticModel.GetDeclaredSymbol(structSynax);
+                if (typeSymbol?.BaseType == null || !typeSymbol.BaseType.Interfaces.Any(e => e.FullName() == _className))
+                    return;
+
+                Structs.Add((structSynax, typeSymbol));
+            }
+        }
 
         public void Initialize(GeneratorInitializationContext context)
         {
-            context.RegisterForSyntaxNotifications(() => new ClassFinder(_className));
+            context.RegisterForSyntaxNotifications(() => new StructFinder());
         }
 
         public void Execute(GeneratorExecutionContext context)
         {
-            if (!(context.SyntaxContextReceiver is ClassFinder finder) ||
-                ((ClassFinder)context.SyntaxContextReceiver).Name != _className)
+            if (!(context.SyntaxContextReceiver is StructFinder finder))
                 return;
 
-            var entityClasses = finder.Classes;
-            var errors = finder.Errors;
-
-            if (errors != null)
-                foreach (var error in errors)
+            if (finder.Errors != null)
+                foreach (var error in finder.Errors)
                     Util.EmitError(context, error.Item1, error.Item2, error.Item3);
 
-            foreach (var entityClass in entityClasses)
-                VisitEntityClass(context, entityClass.Item1, entityClass.Item2);
+            foreach (var clazz in finder.Structs)
+                VisitComponentClass(context, clazz.Item1, clazz.Item2);
         }
 
-        private void VisitEntityClass(
+        private void VisitComponentClass(
             GeneratorExecutionContext context,
-            ClassDeclarationSyntax entityClass,
+            StructDeclarationSyntax structSyntax,
             INamedTypeSymbol typeSymbol
         )
         {
@@ -51,12 +64,14 @@ namespace SourceGenerators
             sb.Append(" {\n");
             sb.Append("public partial class ");
             sb.Append(typeSymbol.Name);
-            sb.Append(" : ScriptEntity {\n");
+            sb.Append(" : Component {\n");
 
             sb.Append("public override bool GENERATED_SetField(string fieldName, Variant value) {\n");
             sb.Append("switch (fieldName) {\n");
             sb.Append("default: return false;\n");
-            var fields = entityClass.Members
+
+            var structMembers = new List<string>();
+            var fields = clazz.Members
                 .Where(m => m.Kind() == SyntaxKind.FieldDeclaration)
                 .ToList();
             foreach (var field in fields)

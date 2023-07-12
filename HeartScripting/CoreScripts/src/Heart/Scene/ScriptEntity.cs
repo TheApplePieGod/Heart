@@ -1,9 +1,7 @@
 ﻿using Heart.Container;
 using Heart.Core;
-using Heart.Math;
 using Heart.NativeBridge;
 using System;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace Heart.Scene
