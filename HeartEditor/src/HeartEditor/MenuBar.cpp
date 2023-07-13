@@ -7,7 +7,6 @@
 #include "HeartEditor/Widgets/Widget.h"
 #include "Heart/Core/Window.h"
 #include "Heart/Scene/Entity.h"
-#include "Heart/Renderer/Renderer.h"
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/SceneAsset.h"
 #include "Heart/Util/FilesystemUtils.h"
@@ -29,6 +28,7 @@ namespace HeartEditor
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 5.0f));
         
         bool newProjectModalOpened = false;
+        bool isRuntime = Editor::GetSceneState() != SceneState::Editing;
         if (ImGui::BeginViewportSideBar("##MainMenuBar", viewport, ImGuiDir_Up, height, window_flags))
         {
             if (ImGui::BeginMenuBar())
@@ -37,38 +37,49 @@ namespace HeartEditor
                 {
                     if (Project::GetActiveProject())
                     {
-                        bool disabled = Editor::GetSceneState() != SceneState::Editing;
-                        if (disabled)
+                        if (isRuntime)
                             ImGui::BeginDisabled();
                         if (ImGui::MenuItem("Reload Client Scripts"))
                             Project::GetActiveProject()->LoadScriptsPlugin();
-                        if (disabled)
+                        if (ImGui::MenuItem("Build & Load Client Scripts", "Ctrl+B"))
+                        {
+                            if (Project::GetActiveProject()->BuildScripts(true))
+                                Project::GetActiveProject()->LoadScriptsPlugin();
+                        }
+                        if (isRuntime)
                             ImGui::EndDisabled();
                         ImGui::Separator();
                     }
 
-                    if (Project::GetActiveProject() && ImGui::MenuItem("Save Project"))
+                    if (Project::GetActiveProject() && ImGui::MenuItem("Save Project", "Ctrl+S"))
                         Project::GetActiveProject()->SaveToDisk();
+                    
+                    if (isRuntime)
+                        ImGui::BeginDisabled();
+                    if (Project::GetActiveProject() && ImGui::MenuItem("Export Project"))
+                    {
+                        Heart::HString8 path = Heart::FilesystemUtils::OpenFolderDialog(Project::GetActiveProject()->GetPath(), "Export Parent Directory");
+                        if (!path.IsEmpty())
+                            Project::GetActiveProject()->Export(path);
+                    }
+                    if (isRuntime)
+                        ImGui::EndDisabled();
 
                     if (ImGui::MenuItem("New Project"))
                         newProjectModalOpened = true;
 
                     if (ImGui::MenuItem("Open Project"))
                     {
-                        Heart::HString8 path = Heart::FilesystemUtils::OpenFileDialog(Heart::AssetManager::GetAssetsDirectory(), "Open Project", "heproj");
+                        Heart::HString8 path = Heart::FilesystemUtils::OpenFileDialog(Heart::AssetManager::GetAssetsDirectory(), "Open Project", "*.heproj");
                         if (!path.IsEmpty())
                             Project::LoadFromPath(path);
                     }
 
                     ImGui::Separator();
 
-                    if (Editor::GetEditorSceneAsset() && ImGui::MenuItem("Save Scene"))
-                    {
-                        auto asset = Heart::AssetManager::RetrieveAsset<Heart::SceneAsset>(Editor::GetEditorSceneAsset());
-                        if (asset && asset->IsValid())
-                            asset->Save(&Editor::GetEditorScene());
-                    }
-
+                    if (Editor::GetEditorSceneAsset() && ImGui::MenuItem("Save Scene", "Ctrl+S"))
+                        Editor::SaveScene();
+                        
                     if (ImGui::MenuItem("New Scene"))
                         Editor::ClearScene();
 
@@ -76,12 +87,17 @@ namespace HeartEditor
                     {
                         Heart::HString8 path = Heart::FilesystemUtils::SaveAsDialog(Heart::AssetManager::GetAssetsDirectory(), "Save Scene As", "Scene", "hescn");
                         if (!path.IsEmpty())
+                        {
                             Heart::SceneAsset::SerializeScene(path, &Editor::GetEditorScene());
+                            Editor::SetEditorSceneAsset(
+                                Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Scene, path)
+                            );
+                        }
                     }
 
                     if (ImGui::MenuItem("Load Scene"))
                     {
-                        Heart::HString8 path = Heart::FilesystemUtils::OpenFileDialog(Heart::AssetManager::GetAssetsDirectory(), "Load Scene", "hescn");
+                        Heart::HString8 path = Heart::FilesystemUtils::OpenFileDialog(Heart::AssetManager::GetAssetsDirectory(), "Load Scene", "*.hescn");
                         if (!path.IsEmpty())
                         {
                             Heart::UUID assetId = Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Scene, path);
@@ -93,17 +109,6 @@ namespace HeartEditor
 
                     if (ImGui::MenuItem("Toggle Fullscreen", "F11"))
                         EditorApp::Get().GetWindow().ToggleFullscreen();
-
-                    if (ImGui::BeginMenu("Switch Graphics API"))
-                    {
-                        for (u32 i = 1; i < HE_ARRAY_SIZE(Heart::RenderApi::TypeStrings); i++)
-                        {
-                            if (ImGui::MenuItem(Heart::RenderApi::TypeStrings[i]))
-                                EditorApp::Get().SwitchGraphicsApi(static_cast<Heart::RenderApi::Type>(i));
-                        }
-
-                        ImGui::EndMenu();
-                    }
 
                     ImGui::Separator();
 

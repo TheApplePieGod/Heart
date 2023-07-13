@@ -90,6 +90,8 @@ namespace Heart
             // Destruct
             if constexpr (m_ShouldDestruct)
                 m_Container.Data()[m_Container.DecrementCount()].~T();
+            else
+                m_Container.DecrementCount();
         }
 
         void CopyFrom(const T* start, const T* end)
@@ -110,7 +112,24 @@ namespace Heart
             }
         }
 
-        // insert
+        void Insert(const T& other, u32 index)
+        {
+            u32 oldCount = PreAdd();
+
+            // Shift elements
+            index = std::min(index, oldCount);
+            if (index != oldCount)
+            {
+                memmove(
+                    Begin() + index + 1,
+                    Begin() + index,
+                    (oldCount - index) * sizeof(T)
+                );
+            }
+
+            HE_PLACEMENT_NEW(Begin() + index, T, other);
+        }
+
         // find
         
         inline void Reserve(u32 allocCount) { m_Container.Reserve(allocCount); }

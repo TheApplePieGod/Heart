@@ -16,12 +16,8 @@ namespace HeartEditor
     class EditorLayer : public Heart::Layer
     {
     public:
-        EditorLayer();
-        ~EditorLayer() override;
-
         void OnAttach() override;
         void OnUpdate(Heart::Timestep ts) override;
-        void OnImGuiRender() override;
         void OnDetach() override;
 
         void OnEvent(Heart::Event& event) override;

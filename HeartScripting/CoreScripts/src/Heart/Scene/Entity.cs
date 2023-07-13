@@ -2,6 +2,7 @@
 using Heart.Core;
 using Heart.Math;
 using Heart.NativeBridge;
+using Heart.NativeInterop;
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -19,13 +20,17 @@ namespace Heart.Scene
             _sceneHandle = sceneHandle;
         }
 
+        public bool IsAlive()
+        {
+            if (_entityHandle == InvalidEntityHandle) return false;
+            return NativeMarshal.InteropBoolToBool(
+                Native_Entity_IsValid(_entityHandle, _sceneHandle)
+            );
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Scene GetScene()
             => new Scene(_sceneHandle);
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool IsAlive()
-            => _entityHandle != InvalidEntityHandle;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public UUID GetId()
@@ -88,8 +93,8 @@ namespace Heart.Scene
             => ComponentUtils.RemoveChild(_entityHandle, _sceneHandle, entity.GetId());
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Vec3 GetTranslation()
-            => ComponentUtils.GetTranslation(_entityHandle, _sceneHandle);
+        public Vec3 GetPosition()
+            => ComponentUtils.GetPosition(_entityHandle, _sceneHandle);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vec3 GetRotation()
@@ -100,8 +105,8 @@ namespace Heart.Scene
             => ComponentUtils.GetScale(_entityHandle, _sceneHandle);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void SetTranslation(Vec3 translation)
-            => ComponentUtils.SetTranslation(_entityHandle, _sceneHandle, translation);
+        public void SetPosition(Vec3 position)
+            => ComponentUtils.SetPosition(_entityHandle, _sceneHandle, position);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void SetRotation(Vec3 rotation)
@@ -110,6 +115,14 @@ namespace Heart.Scene
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void SetScale(Vec3 scale)
             => ComponentUtils.SetScale(_entityHandle, _sceneHandle, scale);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void SetTransform(Vec3 position, Vec3 rotation, Vec3 scale)
+            => ComponentUtils.SetTransform(_entityHandle, _sceneHandle, position, rotation, scale);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void ApplyRotation(Vec3 rotation)
+            => ComponentUtils.ApplyRotation(_entityHandle, _sceneHandle, rotation);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vec3 GetForwardVector()
@@ -144,5 +157,8 @@ namespace Heart.Scene
 
         [DllImport("__Internal")]
         internal static extern void Native_Entity_Destroy(uint entityHandle, IntPtr sceneHandle);
+
+        [DllImport("__Internal")]
+        internal static extern InteropBool Native_Entity_IsValid(uint entityHandle, IntPtr sceneHandle);
     }
 }

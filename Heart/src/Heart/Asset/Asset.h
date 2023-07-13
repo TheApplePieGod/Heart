@@ -19,12 +19,12 @@ namespace Heart
         enum class Type
         {
             None = 0,
-            Texture, Shader, Mesh, Material, Scene
+            Texture, Shader, Mesh, Material, Scene, Font
         };
 
         /*! @brief Debug strings for each asset type. */
         inline static const char* TypeStrings[] = {
-            "None", "Texture", "Shader", "Mesh", "Material", "Scene"
+            "None", "Texture", "Shader", "Mesh", "Material", "Scene", "Font"
         };
 
     public:
@@ -70,7 +70,7 @@ namespace Heart
          * This will will be true even if the load was unsuccessful, so make sure
          * to check IsValid() as well.
          */
-        inline bool IsLoaded() const { return m_Loaded; }
+        bool IsLoaded();
 
         /*! @brief Check if the asset is in the process of loading. */
         inline bool IsLoading() const { return m_Loading; }
@@ -119,6 +119,7 @@ namespace Heart
         bool m_Loading = false;
         bool m_Valid = false;
         Type m_Type = Type::None;
+        std::mutex m_LoadLock;
 
     protected:
         static inline const HString8 s_Base64Chars =

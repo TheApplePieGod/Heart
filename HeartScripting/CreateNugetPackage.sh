@@ -1,2 +1,3 @@
 rm Heart.NET.Sdk.*.nupkg
-nuget pack Heart.NET.Sdk/Heart.NET.Sdk.csproj -IncludeReferencedProjects
+dotnet build Heart.NET.Sdk/Heart.NET.Sdk.csproj -c Release
+nuget pack Heart.NET.Sdk/Heart.NET.Sdk.nuspec

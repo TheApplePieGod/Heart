@@ -32,10 +32,16 @@ namespace Heart
         
         HStringTyped(const HStringViewTyped<T>& other);
 
-        int Compare(StringComparison type, const HStringViewTyped<T>& other) const;
-        u32 Find(const HStringViewTyped<T>& value) const;
-        u32 Find(T value) const;
-        HStringTyped<T> Substr(u32 start, u32 offset = InvalidIndex) const;
+        inline u32 Find(const HStringViewTyped<T>& value) const
+        { return HStringViewTyped<T>(*this).Find(value); }
+        inline u32 Find(T value) const
+        { return HStringViewTyped<T>(*this).Find(value); }
+        inline int Compare(StringComparison type, const HStringViewTyped<T>& other) const
+        { return HStringViewTyped<T>(*this).Compare(type, other); }
+        inline HStringViewTyped<T> Substr(u32 start, u32 size = InvalidIndex) const
+        { return HStringViewTyped<T>(*this).Substr(start, size); }
+        inline HVector<HStringViewTyped<T>> Split(HStringViewTyped<T> delim) const
+        { return HStringViewTyped<T>(*this).Split(delim); }
 
         inline u32 Count() const { return m_Container.Data() ? (m_Container.CountUnchecked() - 1) : 0; }
         inline const T* Data() const { return !m_Container.Data() ? (const T*)"" : m_Container.Data(); }
@@ -44,7 +50,7 @@ namespace Heart
         inline const T* End() const { return m_Container.End(); }
         inline HStringTyped Clone() const { return HStringTyped(m_Container.Clone()); }
         inline bool IsEmpty() const { return m_Container.IsEmpty(); }
-        inline void Clear() { m_Container.Clear(true); }
+        inline void Clear() { m_Container = Container<T>(); }
 
         inline bool operator==(const HStringViewTyped<T>& other) const
         { return StringUtils::CompareEq(Data(), Count(), other.Data(), other.Count()); }
@@ -56,10 +62,9 @@ namespace Heart
         inline bool operator>=(const HStringViewTyped<T>& other) const { return !(other > *this); }
         inline const T& operator[](u32 index) const { return m_Container[index]; }
         void operator=(const HStringViewTyped<T>& other);
-        void operator=(const HStringTyped& other);
-        HStringTyped operator+(const HStringViewTyped<T>& other) const;
+        void operator=(const HStringTyped<T>& other);
+        HStringTyped<T> operator+(const HStringViewTyped<T>& other) const;
         void operator+=(const HStringViewTyped<T>& other);
-        friend HStringTyped operator+(const HStringViewTyped<T>& left, const HStringViewTyped<T>& right);
 
         inline static constexpr u32 InvalidIndex = StringUtils::InvalidIndex;
     
@@ -77,6 +82,9 @@ namespace Heart
 
         friend class HString;
     };
+
+    template <typename T>
+    HStringTyped<T> operator+(const HStringViewTyped<T>& left, const HStringViewTyped<T>& right);
 
     template <typename T>
     class HStringViewTyped
@@ -109,7 +117,11 @@ namespace Heart
             : m_Data(str), m_Count(len)
         {}
 
+        constexpr u32 Find(const HStringViewTyped<T>& value) const;
+        constexpr u32 Find(T value) const;
         constexpr int Compare(StringComparison type, const HStringViewTyped<T>& other) const;
+        constexpr HStringViewTyped<T> Substr(u32 start, u32 size = StringUtils::InvalidIndex) const;
+        HVector<HStringViewTyped<T>> Split(HStringViewTyped<T> delim) const;
 
         inline constexpr u32 Count() const { return m_Count; }
         inline constexpr const T* Data() const { return !m_Data ? (const T*)"" : m_Data; }
@@ -139,44 +151,6 @@ namespace Heart
     HStringTyped<T>::HStringTyped(const HStringViewTyped<T>& other)
     {
         Allocate(other.Data(), other.Count());
-    }
-
-    template <typename T>
-    int HStringTyped<T>::Compare(StringComparison type, const HStringViewTyped<T>& other) const
-    {
-        switch (type)
-        {
-            case StringComparison::Value:
-            { return StringUtils::CompareByValue(Data(), Count(), other.Data(), other.Count()); }
-            case StringComparison::Alphabetical:
-            { return StringUtils::CompareAlphabetical(Data(), Count(), other.Data(), other.Count()); }
-            case StringComparison::Equality:
-            { return !StringUtils::CompareEq(Data(), Count(), other.Data(), other.Count()); }
-        }
-
-        HE_ENGINE_ASSERT(false, "HStringTyped comparison not fully implemented");
-        return 0;
-    }
-
-    template <typename T>
-    u32 HStringTyped<T>::Find(const HStringViewTyped<T>& value) const
-    {
-        return StringUtils::Find(Data(), Count(), value.Data(), value.Count());
-    }
-
-    template <typename T>
-    u32 HStringTyped<T>::Find(T value) const
-    {
-        return StringUtils::Find(Data(), Count(), &value, 1);
-    }
-
-    template <typename T>
-    HStringTyped<T> HStringTyped<T>::Substr(u32 start, u32 offset) const
-    {
-        if (Count() == 0) return HStringTyped<T>();
-
-        u32 size = std::min(offset, Count()) - start;
-        return HStringTyped<T>(Data() + start, size);
     }
 
     template <typename T>
@@ -260,6 +234,18 @@ namespace Heart
     }
 
     template <typename T>
+    constexpr u32 HStringViewTyped<T>::Find(const HStringViewTyped<T>& value) const
+    {
+        return StringUtils::Find(Data(), Count(), value.Data(), value.Count());
+    }
+
+    template <typename T>
+    constexpr u32 HStringViewTyped<T>::Find(T value) const
+    {
+        return StringUtils::Find(Data(), Count(), &value, 1);
+    }
+
+    template <typename T>
     constexpr int HStringViewTyped<T>::Compare(StringComparison type, const HStringViewTyped<T>& other) const
     {
         switch (type)
@@ -274,5 +260,24 @@ namespace Heart
 
         HE_ENGINE_ASSERT(false, "HStringViewTyped comparison not fully implemented");
         return 0;
+    }
+
+    template <typename T>
+    constexpr HStringViewTyped<T> HStringViewTyped<T>::Substr(u32 start, u32 size) const
+    {
+        if (Count() == 0) return HStringViewTyped<T>();
+
+        size = std::min(size, Count() - start);
+        return HStringViewTyped<T>(Data() + start, size);
+    }
+
+    template <typename T>
+    HVector<HStringViewTyped<T>> HStringViewTyped<T>::Split(HStringViewTyped<T> delim) const
+    {
+        HVector<HStringViewTyped<T>> result;
+        auto indices = StringUtils::Split(Data(), Count(), delim.Data(), delim.Count());
+        for (u32 i = 0; i < indices.Count(); i += 2)
+            result.AddInPlace(Data() + indices[i], indices[i + 1]);
+        return result;
     }
 }

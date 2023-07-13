@@ -9,7 +9,7 @@ namespace HeartEditor
 {
 namespace Widgets
 {
-    void LogList::OnImGuiRender()
+    void LogList::OnImGuiRenderPostSceneUpdate()
     {
         HE_PROFILE_FUNCTION();
 
@@ -38,13 +38,15 @@ namespace Widgets
             ImGui::Text("Source");
             Heart::ImGuiUtils::DrawTextFilter(m_SourceFilter, "##srcfilter");
 
+            float messageContentSize = 0.f;
             ImGui::TableNextColumn();
             ImGui::Text("Message");
+            messageContentSize = ImGui::GetContentRegionMax().x;
             Heart::ImGuiUtils::DrawTextFilter(m_MessageFilter, "##msgfilter");
 
             Heart::Logger::LockLogList();
             auto& logList = Heart::Logger::GetLogList();
-            Heart::HVector<Heart::LogListEntry> filteredEntries;
+            Heart::HVector<ListEntry> filteredEntries;
             for (int i = logList.size() - 1; i >= 0; i--)
             {
                 auto& entry = logList[i];
@@ -53,14 +55,38 @@ namespace Widgets
                     m_SourceFilter.PassFilter(entry.Source.c_str()) &&
                     m_MessageFilter.PassFilter(entry.Message.c_str())
                 )
-                    filteredEntries.Add(entry);
+                {
+                    u32 lineIndex = 0;
+                    auto lines = Heart::HStringView8(entry.Message.data(), entry.Message.size()).Split("\n");
+                    for (auto line : lines)
+                    {
+                        float textWidth = ImGui::CalcTextSize(line.Data(), line.Data() + line.Count()).x;
+                        if (textWidth == 0.f) continue;
+                        int lineCount = (int)pow(2.f, ceil(textWidth / messageContentSize)) - 1;
+                        int charCount = (int)line.Count() / lineCount;
+                        
+                        for (int i = 0; i < lineCount; i++)
+                        {
+                            auto substr = line.Substr(charCount * i, charCount);
+                            Heart::LogListEntry partialEntry(
+                                entry.Level,
+                                lineIndex == 0 ? entry.Timestamp : "",
+                                lineIndex == 0 ? entry.Source : "",
+                                std::string_view(substr.Data(), substr.Count())
+                            );
+                            filteredEntries.Add({ partialEntry, lineIndex != 0 });
+                        
+                            lineIndex++;
+                        }
+                    }
+                }
             }
             Heart::Logger::UnlockLogList();
 
             if (filteredEntries.Count() > 0)
             {
                 ImGuiListClipper clipper; // For virtualizing the list
-                clipper.Begin(filteredEntries.Count() + 20); // Add extra to account for text wrapping
+                clipper.Begin(filteredEntries.Count());
                 while (clipper.Step())
                 {
                     for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++)
@@ -69,7 +95,7 @@ namespace Widgets
                         auto& entry = filteredEntries[i];
 
                         ImVec4 rowColor = { 1.f, 1.f, 1.f, 0.5f };
-                        switch (entry.Level)
+                        switch (entry.Entry.Level)
                         {
                             default: break;
                             case Heart::LogLevel::Debug: { rowColor = { 0.5f, 1.0f, 1.0f, 1.f }; } break;
@@ -78,22 +104,26 @@ namespace Widgets
                             case Heart::LogLevel::Error: { rowColor = { 1.0f, 0.3f, 0.2f, 1.f }; } break;
                             case Heart::LogLevel::Critical: { rowColor = { 1.0f, 0.0f, 0.0f, 1.f }; } break;
                         }
-
+                        
                         ImGui::TableNextRow();
-
-                        ImGui::TableNextColumn();
-                        ImGui::TextColored(rowColor, entry.Timestamp.c_str());
-
-                        ImGui::TableNextColumn();
-                        ImGui::TextColored(rowColor, HE_ENUM_TO_STRING(Heart::LogListEntry, entry.Level));
-
-                        ImGui::TableNextColumn();
-                        ImGui::TextColored(rowColor, entry.Source.c_str());
-
-                        ImGui::TableNextColumn();
-                        ImGui::PushTextWrapPos(ImGui::GetContentRegionMax().x);
-                        ImGui::TextColored(rowColor, entry.Message.c_str());
-                        ImGui::PopTextWrapPos();
+                        
+                        if (entry.Partial)
+                            ImGui::TableSetColumnIndex(3);
+                        else
+                        {
+                            ImGui::TableNextColumn();
+                            ImGui::TextColored(rowColor, entry.Entry.Timestamp.c_str());
+                            
+                            ImGui::TableNextColumn();
+                            ImGui::TextColored(rowColor, HE_ENUM_TO_STRING(Heart::LogListEntry, entry.Entry.Level));
+                            
+                            ImGui::TableNextColumn();
+                            ImGui::TextColored(rowColor, entry.Entry.Source.c_str());
+                            
+                            ImGui::TableNextColumn();
+                        }
+                        
+                        ImGui::TextColored(rowColor, entry.Entry.Message.c_str());
                     }
                 }
             }

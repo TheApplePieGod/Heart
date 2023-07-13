@@ -6,6 +6,7 @@
 #include "Heart/Core/Timing.h"
 #include "Heart/Asset/SceneAsset.h"
 #include "Heart/Asset/AssetManager.h"
+#include "Heart/Task/TaskManager.h"
 #include "Heart/Renderer/SceneRenderer.h"
 #include "imgui/imgui.h"
 
@@ -17,17 +18,25 @@
 #include "HeartEditor/Widgets/DebugInfo.h"
 #include "HeartEditor/Widgets/ProjectSettings.h"
 #include "HeartEditor/Widgets/SceneSettings.h"
+#include "HeartEditor/Widgets/RenderSettings.h"
 #include "HeartEditor/Widgets/AssetRegistry.h"
 #include "HeartEditor/Widgets/LogList.h"
+#include "HeartEditor/Widgets/RenderGraph.h"
 
 namespace HeartEditor
 {
     void Editor::Initialize()
     {
+        HE_PROFILE_FUNCTION();
+
         s_EditorScene = Heart::CreateRef<Heart::Scene>();
         s_ActiveScene = s_EditorScene;
 
         GetState().RenderSettings.CopyEntityIdsTextureToCPU = true;
+        GetState().RenderSettings.AsyncAssetLoading = true;
+        GetState().RenderSettings.RenderPhysicsVolumes = false;
+        
+        CreateWindows();
     }
 
     void Editor::Shutdown()
@@ -35,50 +44,27 @@ namespace HeartEditor
         s_Windows.clear();
         s_ActiveScene.reset();
         s_EditorScene.reset();
+        s_RenderScene.Cleanup();
     }
 
     void Editor::CreateWindows()
     {
-        PushWindow(
-            "Viewport",
-            Heart::CreateRef<Widgets::Viewport>("Viewport", true)
-        );
-        PushWindow(
-            "Content Browser",
-            Heart::CreateRef<Widgets::ContentBrowser>("Content Browser", true)
-        );
-        PushWindow(
-            "Scene Hierarchy",
-            Heart::CreateRef<Widgets::SceneHierarchyPanel>("Scene Hierarchy", true)
-        );
-        PushWindow(
-            "Properties Panel",
-            Heart::CreateRef<Widgets::PropertiesPanel>("Properties Panel", true)
-        );
-        PushWindow(
-            "Material Editor",
-            Heart::CreateRef<Widgets::MaterialEditor>("Material Editor", false)
-        );
-        PushWindow(
-            "Debug Info",
-            Heart::CreateRef<Widgets::DebugInfo>("Debug Info", true)
-        );
-        PushWindow(
-            "Project Settings",
-            Heart::CreateRef<Widgets::ProjectSettings>("Project Settings", true)
-        );
-        PushWindow(
-            "Scene Settings",
-            Heart::CreateRef<Widgets::SceneSettings>("Scene Settings", true)
-        );
-        PushWindow(
-            "Asset Registry",
-            Heart::CreateRef<Widgets::AssetRegistry>("Asset Registry", false)
-        );
-        PushWindow(
-            "Log List",
-            Heart::CreateRef<Widgets::LogList>("Log List", false)
-        );
+        Heart::TaskGroup taskGroup;
+
+        taskGroup.AddTask(PushWindow<Widgets::Viewport>("Viewport", true));
+        taskGroup.AddTask(PushWindow<Widgets::ContentBrowser>("Content Browser", true));
+        taskGroup.AddTask(PushWindow<Widgets::SceneHierarchyPanel>("Scene Hierarchy", true));
+        taskGroup.AddTask(PushWindow<Widgets::PropertiesPanel>("Properties Panel", true));
+        taskGroup.AddTask(PushWindow<Widgets::MaterialEditor>("Material Editor", false));
+        taskGroup.AddTask(PushWindow<Widgets::DebugInfo>("Debug Info", true));
+        taskGroup.AddTask(PushWindow<Widgets::ProjectSettings>("Project Settings", true));
+        taskGroup.AddTask(PushWindow<Widgets::SceneSettings>("Scene Settings", true));
+        taskGroup.AddTask(PushWindow<Widgets::RenderSettings>("Render Settings", true));
+        taskGroup.AddTask(PushWindow<Widgets::AssetRegistry>("Asset Registry", false));
+        taskGroup.AddTask(PushWindow<Widgets::LogList>("Log List", false));
+        taskGroup.AddTask(PushWindow<Widgets::RenderGraph>("Render Graph", false));
+
+        taskGroup.Wait();
     }
 
     void Editor::DestroyWindows()
@@ -93,9 +79,29 @@ namespace HeartEditor
 
         for (auto& pair : s_Windows)
             pair.second->OnImGuiRender();
+    }
+
+    void Editor::RenderWindowsPostSceneUpdate()
+    {
+        HE_PROFILE_FUNCTION();
+        auto timer = Heart::AggregateTimer("Editor::RenderWindowsPostSceneUpdate");
+
+        for (auto& pair : s_Windows)
+            pair.second->OnImGuiRenderPostSceneUpdate();
 
         if (s_ImGuiDemoOpen)
             ImGui::ShowDemoWindow(&s_ImGuiDemoOpen);
+    }
+
+    void Editor::SaveScene()
+    {
+        if (!s_EditorSceneAsset) return;
+        
+        auto asset = Heart::AssetManager::RetrieveAsset<Heart::SceneAsset>(s_EditorSceneAsset, false);
+        if (asset)
+            asset->Save(s_EditorScene.get());
+        else
+            HE_ENGINE_LOG_ERROR("Failed to save scene");
     }
 
     void Editor::OpenScene(const Heart::Ref<Heart::Scene>& scene)
@@ -155,11 +161,16 @@ namespace HeartEditor
     void Editor::StopScene()
     {
         s_SceneState = SceneState::Editing;
+
+        s_SceneUpdateTask.Wait();
         
         s_ActiveScene->StopRuntime();
         s_ActiveScene = s_EditorScene;
 
         s_EditorState.SelectedEntity = Heart::Entity();
+        
+        auto& viewport = (Widgets::Viewport&)GetWindow("Viewport");
+        viewport.ResetEditorCamera();
     }
 
     bool Editor::IsDirty()

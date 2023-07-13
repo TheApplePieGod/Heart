@@ -9,7 +9,7 @@ namespace HeartEditor
 {
 namespace Widgets
 {
-    void AssetRegistry::OnImGuiRender()
+    void AssetRegistry::OnImGuiRenderPostSceneUpdate()
     {
         HE_PROFILE_FUNCTION();
 
@@ -66,7 +66,7 @@ namespace Widgets
 
                     ImGui::TableNextRow();
 
-                    Heart::HString8 id1 = "##" + uuid;
+                    Heart::HString8 id1 = Heart::HStringView8("##") + Heart::HStringView8(uuid);
                     Heart::HString8 id2 = id1 + "p";
 
                     ImGui::TableNextColumn();

@@ -1,12 +1,12 @@
 #pragma once
 
-#include "optick.h"
+#if defined(HE_DEBUG) && !defined(HE_DIST)
 
-#ifdef HE_DEBUG
+#include "tracy/Tracy.hpp"
 
-#define HE_PROFILE_FUNCTION() OPTICK_EVENT()
-#define HE_PROFILE_FRAME() OPTICK_FRAME("Main Thread")
-#define HE_PROFILE_THREAD(name) OPTICK_THREAD(name)
+#define HE_PROFILE_FUNCTION() ZoneScoped
+#define HE_PROFILE_FRAME() FrameMark
+#define HE_PROFILE_THREAD(name)
 
 #else
 
@@ -15,6 +15,3 @@
 #define HE_PROFILE_THREAD(name)
 
 #endif
-
-// Undefine optick's definition here because it gets redefined with the vulkansdk 
-#undef VKAPI_PTR

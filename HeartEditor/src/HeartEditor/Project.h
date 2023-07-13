@@ -8,14 +8,18 @@ namespace HeartEditor
     class Project
     {
     public:
-         Project::Project(const Heart::HStringView8& absolutePath)
+        Project(const Heart::HStringView8& absolutePath)
             : m_AbsolutePath(absolutePath)
         {}
 
         void SetActive();
         void SaveToDisk();
         void LoadScriptsPlugin();
-
+        bool BuildScripts(bool debug);
+        void Export(Heart::HStringView8 absolutePath);
+        
+        inline Heart::HStringView8 GetPath() const { return m_AbsolutePath; }
+        
     public:
         static Heart::Ref<Project> CreateAndLoad(const Heart::HStringView8& absolutePath, const Heart::HStringView8& name);
         static Heart::Ref<Project> LoadFromPath(const Heart::HStringView8& absolutePath);

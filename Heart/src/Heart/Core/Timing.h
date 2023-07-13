@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Heart/Container/HString8.h"
+#include "Heart/Container/HVector.hpp"
 
 namespace Heart
 {
@@ -85,33 +86,48 @@ namespace Heart
         /*! @brief Default destructor. */
         ~AggregateTimer()
         {
-            std::unique_lock lock(s_CurrentMutex);
-            s_AggregateTimes[m_Name] += ElapsedMilliseconds();
+            Finish();
         }
+        
+        void Finish()
+        {
+            if (m_Finished) return;
+            m_Finished = true;
 
+            // For now, throw out insignificant samples. Need to figure out how
+            // to do a copy constructor without calling the destructor
+            double ms = ElapsedMilliseconds();
+            if (ms < 0.01)
+                return;
+
+            std::unique_lock lock(s_CurrentMutex);
+            auto& samples = s_AggregateTimes[m_Name];
+            samples.Insert(ms, 0);
+        }
+        
+        inline static constexpr u32 MaxSamples = 5;
+        
+    public:
         /**
          * @brief Get the globally accumulated time for a specific timer id in milliseconds.
          *
          * @param name The name/id of the timer.
-         * @param current True if the time should be retrieved from the current frame and false for the previous frame.
          * @return The time in milliseconds or zero if the id is invalid.
          */
-        static double GetAggregateTime(const HStringView8& name, bool current)
+        static double GetAggregateTime(const HStringView8& name)
         {
-            if (current)
-            {
-                std::shared_lock lock(s_CurrentMutex);
-                if (s_AggregateTimes.find(name) != s_AggregateTimes.end())
-                    return s_AggregateTimes[name];
-                else
-                    return 0;
-            }
-            else {
-                if (s_AggregateTimesLastFrame.find(name) != s_AggregateTimesLastFrame.end())
-                    return s_AggregateTimesLastFrame[name];
-                else
-                    return 0;
-            }
+            std::shared_lock lock(s_CurrentMutex);
+            if (s_AggregateTimes.find(name) == s_AggregateTimes.end()) return 0;
+            
+            double average = 0.0;
+            const auto& samples = s_AggregateTimes[name];
+            if (samples.IsEmpty())
+                return average;
+
+            for (double val : samples)
+                average += val;
+
+            return average / samples.Count();
         }
 
         /**
@@ -123,26 +139,29 @@ namespace Heart
         {
             std::unique_lock lock(s_CurrentMutex);
             if (s_AggregateTimes.find(name) != s_AggregateTimes.end())
-                s_AggregateTimes[name] = 0;
+                s_AggregateTimes[name].Clear();
         }
 
         /*! @brief Store the current aggregate times for retrieval and prepare for next frame. */
         static void EndFrame()
         {
             std::unique_lock lock(s_CurrentMutex);
-            s_AggregateTimesLastFrame = s_AggregateTimes;
-            s_AggregateTimes.clear();
+            for (auto& pair : s_AggregateTimes)
+                while (pair.second.Count() > MaxSamples) // Remove oldest samples
+                    pair.second.Pop();
         }
 
         /*! @brief Get the map containing all timer ids and aggregate times from the last frame. */
-        inline static const std::map<HString8, double>& GetTimeMap() { return s_AggregateTimesLastFrame; }
+        inline static const std::map<HString8, HVector<double>>& GetTimeMap() { return s_AggregateTimes; }
 
         /*! @brief Clear all current stored timer ids and aggregate times. */
         inline static void ClearTimeMap() { std::unique_lock lock(s_CurrentMutex); s_AggregateTimes.clear(); }
 
     private:
-        inline static std::map<HString8, double> s_AggregateTimes; // stored in millis
-        inline static std::map<HString8, double> s_AggregateTimesLastFrame;
+        inline static std::map<HString8, HVector<double>> s_AggregateTimes; // stored in millis
         inline static std::shared_mutex s_CurrentMutex;
+        
+    private:
+        bool m_Finished = false;
     };
 }

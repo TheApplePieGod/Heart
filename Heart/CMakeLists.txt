@@ -1,19 +1,57 @@
 project(Engine)
 
+if(APPLE)
+  enable_language(OBJC)
+  enable_language(OBJCXX)
+endif()
+
 # Legacy include imgui so imguizmo can build properly
 include_directories("lib/imgui")
 
 # Build dependencies
+if(${CMAKE_BUILD_TYPE} MATCHES Debug)
+  set(TRACY_ENABLE ON)
+  set(TRACY_ON_DEMAND ON)
+  set(FLOURISH_TRACY_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lib/tracy/public")
+  if(DEFINED ENV{NSIGHT_AFTERMATH_SDK})
+    set(FLOURISH_ENABLE_AFTERMATH ON)
+  endif()
+  add_subdirectory("lib/tracy")
+endif()
 set(GLFW_BUILD_DOCS OFF)
+set(GLFW_BUILD_TESTS OFF)
+set(GLFW_BUILD_EXAMPLES OFF)
 add_subdirectory("lib/GLFW")
 add_subdirectory("lib/glm")
 add_subdirectory("lib/imgui")
 add_subdirectory("lib/spdlog")
 add_subdirectory("lib/Glad")
-add_subdirectory("lib/optick")
 add_subdirectory("lib/entt")
 add_subdirectory("lib/imguizmo")
 add_subdirectory("lib/json")
+set(FLOURISH_GLFW_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lib/GLFW/include")
+set(FLOURISH_IMGUI_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lib/imgui")
+add_subdirectory("lib/Flourish")
+set(BUILD_CPU_DEMOS OFF)
+set(BUILD_OPENGL3_DEMOS OFF)
+set(BUILD_BULLET2_DEMOS OFF)
+set(BUILD_EXTRAS OFF)
+set(BUILD_UNIT_TESTS OFF)
+set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
+add_subdirectory("lib/bullet3")
+set(FT_DISABLE_ZLIB ON)
+set(FT_DISABLE_BZIP2 ON)
+set(FT_DISABLE_PNG ON)
+set(FT_DISABLE_HARFBUZZ ON)
+set(FT_DISABLE_BROTLI ON)
+add_subdirectory("lib/FreeType")
+add_library(Freetype::Freetype ALIAS freetype-interface) # Add alias so msdf can find
+set (MSDF_ATLAS_GEN_BUILD_STANDALONE OFF)
+add_subdirectory("lib/msdf")
+set(TinyTIFF_BUILD_SHARED_LIBS OFF)
+set(TinyTIFF_BUILD_STATIC_LIBS ON)
+set(TinyTIFF_BUILD_TESTS OFF)
+add_subdirectory("lib/tinytiff")
 
 # Include other dependency sources that need to be built
 set(DEPENDENCY_SOURCES
@@ -21,13 +59,7 @@ set(DEPENDENCY_SOURCES
   "lib/imgui/backends/imgui_impl_vulkan.cpp"
   "lib/imgui/backends/imgui_impl_opengl3.cpp"
   "lib/stb_image/stb_image.cpp"
-)
-
-execute_process(
-  COMMAND python "scripts/configure-hostfxr.py"
-  WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
-  OUTPUT_VARIABLE DOTNET_RUNTIME_DIR
-  ERROR_VARIABLE DOTNET_HOSTFXR_DIR
+  "lib/tinyfd/tinyfiledialogs.cpp"
 )
 
 # Copy engine resources
@@ -41,7 +73,11 @@ add_custom_target(
 include(GNUInstallDirs)
 
 # Build main
-file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp" "src/*.h" "src/hepch.h")
+if(APPLE)
+  file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp" "src/*.h" "src/*.mm" "src/hepch.h")
+else()
+  file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp" "src/*.h" "src/hepch.h")
+endif()
 add_library(Engine STATIC "${SOURCES}" "${DEPENDENCY_SOURCES}")
 add_library(Heart::Engine ALIAS Engine)
 
@@ -58,12 +94,14 @@ target_include_directories(
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/imgui>"
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/spdlog/include>"
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/Glad/include>"
-  "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/optick/src>"
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/entt/src>"
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/imguizmo>"
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/json/include>"
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/utf-cpp/include>"
-  "$<BUILD_INTERFACE:$ENV{VULKAN_SDK}/include>"
+  "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/bullet3/src>"
+  "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/msdf>"
+  "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/tinytiff/src>"
+  "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/Flourish/Flourish/src>"
   "$<BUILD_INTERFACE:${DOTNET_RUNTIME_DIR}>"
 
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
@@ -72,79 +110,33 @@ target_include_directories(
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/imgui>"
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/spdlog/include>"
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/Glad/include>"
-  "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/optick/src>"
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/entt/src>"
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/imguizmo>"
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/json/include>"
-  "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/lib/utf-cpp/include>"
-  "$<INSTALL_INTERFACE:$ENV{VULKAN_SDK}/include>"
+  "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/utf-cpp/include>"
+  "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/lib/bullet3/src>"
+  "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/lib/msdf>"
+  "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/lib/tinytiff/src>"
+  "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/Flourish/Flourish/src>"
   "$<INSTALL_INTERFACE:${DOTNET_RUNTIME_DIR}>"
 )
 
-# Locate vulkansdk libraries
-if (WIN32)
-  find_library(vulkan
-    NAMES "vulkan-1"
-    PATHS "$ENV{VULKAN_SDK}/lib"
-  )
-  find_library(shaderc
-    NAMES "shaderc_shared"
-    PATHS "$ENV{VULKAN_SDK}/lib"
-  )
-  find_library(spirvglsl
-    NAMES "spirv-cross-glsl"
-    PATHS "$ENV{VULKAN_SDK}/lib"
-  )
-else()
-  find_library(vulkan
-    NAMES "libvulkan.so"
-    PATHS "$ENV{VULKAN_SDK}/lib"
-  )
-  find_library(shaderc
-    NAMES "libshaderc_shared.so"
-    PATHS "$ENV{VULKAN_SDK}/lib"
-  )
-  find_library(spirvglsl
-    NAMES "libspirv-cross-glsl.a"
-    PATHS "$ENV{VULKAN_SDK}/lib"
-  )
-endif()
-
-# Locate & link accessory vulkan libraries
-if (WIN32)
-  if (${CMAKE_BUILD_TYPE} MATCHES Debug)
-    find_library(spirvcored
-      NAMES "spirv-cross-cored"
-      PATHS "$ENV{VULKAN_SDK}/lib"
-    )
-    target_link_libraries(Engine ${spirvcored})
-  else()
-    find_library(spirvcore
-      NAMES "spirv-cross-core"
-      PATHS "$ENV{VULKAN_SDK}/lib"
-    )
-    target_link_libraries(Engine ${spirvcore})
-  endif()
-else()
-  find_library(spirvcore
-    NAMES "libspirv-cross-core.a"
-    PATHS "$ENV{VULKAN_SDK}/lib"
-  )
-  target_link_libraries(Engine ${spirvcore})
-endif()
-
 # Link dependencies
-target_link_libraries(
-  Engine
-  glfw glm imgui spdlog glad OptickCore imguizmo nlohmann_json ${vulkan} ${shaderc} ${spirvglsl}
+set(LINK_LIBS
+  glfw glm imgui spdlog glad imguizmo nlohmann_json FlourishCore
+  BulletDynamics BulletCollision LinearMath
+  freetype msdf-atlas-gen TinyTIFF
 )
-
-# Copy required dlls
-add_custom_target(
-  CopyRequiredDlls ALL
-  COMMAND ${CMAKE_COMMAND} -E copy ${DOTNET_HOSTFXR_DIR}/hostfxr.dll ${OUTPUT_DIRECTORY}
-  DEPENDS Engine
+target_link_libraries(Engine
+  PUBLIC
+  ${LINK_LIBS}
 )
+if(${CMAKE_BUILD_TYPE} MATCHES Debug)
+  target_link_libraries(Engine
+    PUBLIC
+    TracyClient
+  )
+endif()
 
 # PCH
 target_precompile_headers(
@@ -153,12 +145,40 @@ target_precompile_headers(
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/hepch.h>"
 )
 
+# Shared dist library
+if (HEART_BUILD_RUNTIME)
+  add_library(EngineRuntime STATIC "${SOURCES}" "${DEPENDENCY_SOURCES}")
+
+  target_compile_definitions(EngineRuntime PUBLIC HE_DIST)
+  target_compile_features(EngineRuntime PUBLIC cxx_std_17)
+
+  target_include_directories(EngineRuntime
+    PUBLIC
+    "$<TARGET_PROPERTY:Engine,INTERFACE_INCLUDE_DIRECTORIES>"
+  )
+  
+  target_link_libraries(EngineRuntime
+    PUBLIC
+    ${LINK_LIBS}
+  )
+
+  # Don't reuse from engine because PCH may be different when HE_DIST is set
+  target_precompile_headers(
+    EngineRuntime
+    PRIVATE
+    "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/hepch.h>"
+  )
+endif()
+
 # Installation
 include(CMakePackageConfigHelpers)
 
 set(JSON_Install ON) # Make sure the json lib installs the proper files
 install(
-  TARGETS Engine glm imgui spdlog glad imguizmo nlohmann_json glfw OptickCore
+  TARGETS
+    Engine glm imgui spdlog glad imguizmo nlohmann_json glfw FlourishCore
+    BulletDynamics BulletCollision LinearMath
+    freetype msdf-atlas-gen msdfgen-all msdfgen-core msdfgen-ext
   EXPORT EngineTargets
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}

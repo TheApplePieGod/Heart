@@ -6,9 +6,8 @@
 #include "HeartEditor/EditorCamera.h"
 #include "Heart/Input/Input.h"
 #include "Heart/Core/Timing.h"
-#include "Heart/Renderer/Renderer.h"
-#include "Heart/Renderer/Framebuffer.h"
-#include "Heart/Renderer/Pipeline.h"
+#include "Heart/Renderer/SceneRenderer.h"
+#include "Heart/Renderer/RenderPlugin.h"
 #include "imgui/imgui.h"
 
 #include "HeartEditor/Widgets/Viewport.h"
@@ -28,14 +27,14 @@ namespace Widgets
 
         ImGui::Text("Basic Info:");
         ImGui::Indent();
-        double stepMs = EditorApp::Get().GetLastTimestep().StepMilliseconds();
-        ImGui::Text("Render Api: %s", HE_ENUM_TO_STRING(Heart::RenderApi, Heart::Renderer::GetApiType()));
+        double stepMs = EditorApp::Get().GetAveragedTimestep().StepMilliseconds();
+        // ImGui::Text("Render Api: %s", HE_ENUM_TO_STRING(Heart::RenderApi, Heart::Renderer::GetApiType()));
         ImGui::Text("Frametime: %.1fms", stepMs);
         ImGui::Text("Framerate: %d FPS", static_cast<u32>(1000.0 / stepMs));
         ImGui::Unindent();
 
         auto& viewport = (Widgets::Viewport&)Editor::GetWindow("Viewport");
-        ImGui::Text("Viewport 1 Info:");
+        ImGui::Text("Viewport Info:");
         ImGui::Indent();
         glm::vec3 cameraPos =  viewport.GetActiveCameraPosition();
         glm::vec3 cameraFor = viewport.GetActiveCamera().GetForwardVector();
@@ -50,11 +49,12 @@ namespace Widgets
         ImGui::Text("CPU Timing:");
         ImGui::Indent();
         for (auto& pair : Heart::AggregateTimer::GetTimeMap())
-            ImGui::Text("%s: %.1fms", pair.first.Data(), pair.second);
+            ImGui::Text("%s: %.1fms", pair.first.Data(), Heart::AggregateTimer::GetAggregateTime(pair.first));
         ImGui::Unindent();
 
         ImGui::Text("GPU Timing:");
         ImGui::Indent();
+        /*
         ImGui::Text("Frustum cull: %.2fms", viewport.GetSceneRenderer().GetCullPipeline().GetPerformanceTimestamp());
         ImGui::Text("Opaque Pass: %.2fms", viewport.GetSceneRenderer().GetMainFramebuffer().GetSubpassPerformanceTimestamp(2));
         ImGui::Text("Translucent Pass: %.2fms", viewport.GetSceneRenderer().GetMainFramebuffer().GetSubpassPerformanceTimestamp(3));
@@ -65,14 +65,55 @@ namespace Widgets
             bloomTiming += bufs[1]->GetPerformanceTimestamp();
         }
         ImGui::Text("Bloom Pass: %.2fms", bloomTiming);
+        */
         ImGui::Unindent();
 
         ImGui::Text("Render Statistics:");
         ImGui::Indent();
+        ImGui::Text("Plugins:");
+        for (const auto& pair : viewport.GetSceneRenderer().GetPlugins())
+        {
+            if (pair.second->GetStats().empty())
+                continue;
+
+            ImGui::Indent();
+            ImGui::Text("%s:", pair.first.Data());
+            for (const auto& stat : pair.second->GetStats())
+            {
+                if (stat.second.Type == Heart::RenderPlugin::StatType::None)
+                    continue;
+                ImGui::Indent();
+                ImGui::Text("%s:", stat.first.Data());
+                ImGui::SameLine();
+                switch (stat.second.Type)
+                {
+                    default:
+                    {} break;
+                    case Heart::RenderPlugin::StatType::Int:
+                    { ImGui::Text("%d", stat.second.Data.Int); } break;
+                    case Heart::RenderPlugin::StatType::Float:
+                    { ImGui::Text("%2.f", stat.second.Data.Float); } break;
+                    case Heart::RenderPlugin::StatType::Bool:
+                    { ImGui::Text("%s", stat.second.Data.Bool ? "true" : "false"); } break;
+                    case Heart::RenderPlugin::StatType::TimeMS:
+                    { ImGui::Text("%1.fms", stat.second.Data.Float); } break;
+                }
+                ImGui::Unindent();
+            }
+            ImGui::Unindent();
+        }
+        /*
         for (auto& pair : Heart::Renderer::GetStatistics())
             ImGui::Text("%s: %lld", pair.first.Data(), pair.second);
+        */
         ImGui::Unindent();
-
+        
+        auto& activeScene = Editor::GetActiveScene();
+        ImGui::Text("Scene info:");
+        ImGui::Indent();
+        ImGui::Text("Entity count: %d", (int)activeScene.GetRegistry().alive());
+        ImGui::Unindent();
+        
         ImGui::End();
         ImGui::PopStyleVar();
     }

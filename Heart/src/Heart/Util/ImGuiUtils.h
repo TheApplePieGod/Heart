@@ -16,11 +16,12 @@ namespace Heart
     {
         static void RenderTooltip(const HStringView8& text);
         static bool InputText(const char* id, HString8& text);
-        static bool InputText(const char* id, HString& text);
+        static bool InputText(const char* id, HString& text, bool multiline = false);
         static void DrawFilterPopup(const char* popupName, bool focusOnOpen, std::function<void()>&& drawCallback, std::function<void()>&& clearCallback);
         static void DrawTextFilter(ImGuiTextFilter& filter, const char* popupName);
         static void DrawStringDropdownFilter(const char** options, u32 optionCount, u32& selected, const char* popupName);
         static void AssetDropTarget(Asset::Type typeFilter, std::function<void(const HStringView8&)>&& dropCallback);
+        static bool XYZSlider(HStringView8 name, f32* x, f32* y, f32* z, f32 min, f32 max, f32 step);
         static void ResizableWindowSplitter(
             glm::vec2& storedWindowSizes,
             glm::vec2 minWindowSize,

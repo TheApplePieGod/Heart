@@ -1,5 +1,5 @@
 {
-    "cmake.configureOnOpen": true,
+    "cmake.configureOnOpen": false,
     "cmake.generator": "Ninja",
     "cmake.configureSettings": {
         "CMAKE_BUILD_TYPE": "${buildType}",

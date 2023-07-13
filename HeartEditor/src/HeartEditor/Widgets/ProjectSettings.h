@@ -13,7 +13,7 @@ namespace Widgets
             : Widget(name, initialOpen)
         {}
 
-        void OnImGuiRender() override;
+        void OnImGuiRenderPostSceneUpdate() override;
 
     private:
 

@@ -10,7 +10,6 @@
 #include "Heart/Asset/MaterialAsset.h"
 #include "Heart/Util/ImGuiUtils.h"
 #include "Heart/Util/FilesystemUtils.h"
-#include "Heart/Renderer/Renderer.h"
 #include "imgui/imgui_internal.h"
 #include "glm/gtc/type_ptr.hpp"
 
@@ -32,7 +31,7 @@ namespace Widgets
         auto selectedEntity = Editor::GetState().SelectedEntity;
         if (selectedEntity.IsValid())
         {
-            // All entities should have a name component
+            // All entities should have a name & id component
             auto& nameComponent = selectedEntity.GetComponent<Heart::NameComponent>();
             Heart::ImGuiUtils::InputText("##Name", nameComponent.Name);
 
@@ -51,15 +50,27 @@ namespace Widgets
                     selectedEntity.AddComponent<Heart::ScriptComponent>();
                 if (ImGui::MenuItem("Camera Component"))
                     selectedEntity.AddComponent<Heart::CameraComponent>();
-
+                if (ImGui::MenuItem("Collision Component"))
+                {
+                    auto body = Heart::PhysicsBody::CreateDefaultBody((void*)(intptr_t)selectedEntity.GetUUID());
+                    selectedEntity.AddComponent<Heart::CollisionComponent>(body);
+                }
+                if (ImGui::MenuItem("Text Component"))
+                    selectedEntity.AddComponent<Heart::TextComponent>();
+                    
                 ImGui::EndPopup();
             }
-
+            
+            auto id = selectedEntity.GetUUID();
+            ImGui::Text("Id: %llu", (u64)id);
+            
             RenderTransformComponent();
             RenderMeshComponent();
             RenderLightComponent();
             RenderScriptComponent();
             RenderCameraComponent();
+            RenderCollisionComponent();
+            RenderTextComponent();
         }
 
         ImGui::End();
@@ -75,16 +86,28 @@ namespace Widgets
             bool headerOpen = ImGui::CollapsingHeader("Transform");
             if (!RenderComponentPopup<Heart::TransformComponent>("TransformPopup", false) && headerOpen)
             {
+                bool modified = false;
                 glm::vec3 translation = selectedEntity.GetPosition();
                 glm::vec3 rotation = selectedEntity.GetRotation();
                 glm::vec3 scale = selectedEntity.GetScale();
                 ImGui::Indent();
-                RenderXYZSlider("Translation  ", &translation.x, &translation.y, &translation.z, -999999.f, 999999.f, 0.1f);
-                RenderXYZSlider("Rotation     ", &rotation.x, &rotation.y, &rotation.z, 0.f, 360.f, 1.f);
-                RenderXYZSlider("Scale        ", &scale.x, &scale.y, &scale.z, 0.f, 999999.f, 0.1f);
+                modified |= Heart::ImGuiUtils::XYZSlider("Translation  ", &translation.x, &translation.y, &translation.z, -999999.f, 999999.f, 0.1f);
+                modified |= Heart::ImGuiUtils::XYZSlider("Rotation      ", &rotation.x, &rotation.y, &rotation.z, -360.f, 360.f, 1.f);
+                modified |= Heart::ImGuiUtils::XYZSlider("Scale           ", &scale.x, &scale.y, &scale.z, 0.f, 999999.f, 0.1f);
                 ImGui::Unindent();
-
-                selectedEntity.SetTransform(translation, rotation, scale);
+                
+                if (modified)
+                {
+                    // Apply a rot delta rather than setting when we are dealing with physics entities
+                    // because of quat weirdness
+                    if (selectedEntity.HasComponent<Heart::CollisionComponent>())
+                    {
+                        selectedEntity.ApplyRotation(rotation - selectedEntity.GetRotation());
+                        selectedEntity.SetTransform(translation, selectedEntity.GetRotation(), scale);
+                    }
+                    else
+                        selectedEntity.SetTransform(translation, rotation, scale);
+                }
             }
         }
     }
@@ -157,7 +180,7 @@ namespace Widgets
                     Heart::HStringView8 baseName = "Material ";
                     for (auto& materialId : meshComp.Materials)
                     {
-                        Heart::HString8 entryName = baseName + std::to_string(index);
+                        Heart::HString8 entryName = baseName + Heart::HStringView8(std::to_string(index));
 
                         // Material picker
                         ImGui::Text(entryName.Data(), index);
@@ -190,7 +213,13 @@ namespace Widgets
 
                                     Heart::HString8 path = Heart::FilesystemUtils::SaveAsDialog(Heart::AssetManager::GetAssetsDirectory(), "Export Material", "Material", "hemat");
                                     if (!path.IsEmpty())
+                                    {
                                         Heart::MaterialAsset::SerializeMaterial(path, *exportingMaterial);
+                                        Heart::AssetManager::RegisterAsset(
+                                            Heart::Asset::Type::Material,
+                                            Heart::AssetManager::GetRelativePath(path)
+                                        );
+                                    }
                                 }
                             },
                             [&materialId](Heart::UUID selected) { materialId = selected; }
@@ -250,20 +279,9 @@ namespace Widgets
                 ImGui::SameLine();
                 ImGui::DragFloat("##Intensity", &lightComp.Color.a, 0.5f, 0.f, 100.f);
 
-                ImGui::Text("Attenuation");
-                ImGui::Separator();
-
-                ImGui::Text("Constant");
+                ImGui::Text("Max Radius");
                 ImGui::SameLine();
-                ImGui::DragFloat("##ConstantAtten", &lightComp.ConstantAttenuation, 0.005f, 0.f, 2.f);
-
-                ImGui::Text("Linear");
-                ImGui::SameLine();
-                ImGui::DragFloat("##LinearAtten", &lightComp.LinearAttenuation, 0.005f, 0.f, 2.f);
-
-                ImGui::Text("Quadratic");
-                ImGui::SameLine();
-                ImGui::DragFloat("##QuadAtten", &lightComp.QuadraticAttenuation, 0.005f, 0.f, 2.f);
+                ImGui::DragFloat("##Rad", &lightComp.Radius, 0.25f, 0.f, 100.f);
 
                 ImGui::Unindent();
             }
@@ -311,6 +329,10 @@ namespace Widgets
                         scriptComp.Instance.Destroy();
                         scriptComp.Instance = Heart::ScriptInstance(classes[index].ToHString());
                         scriptComp.Instance.Instantiate(selectedEntity);
+                        scriptComp.Instance.OnConstruct();
+
+                        // Ensure transform changes are reflected
+                        Editor::GetActiveScene().CacheDirtyTransforms();
                     }
                 );
 
@@ -364,59 +386,234 @@ namespace Widgets
         }
     }
 
-    void PropertiesPanel::RenderXYZSlider(const Heart::HStringView8& name, f32* x, f32* y, f32* z, f32 min, f32 max, f32 step)
+    void PropertiesPanel::RenderCollisionComponent()
     {
-        f32 width = ImGui::GetContentRegionAvail().x;
-        ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(0.f, 0.5f));
-        if (ImGui::BeginTable(name.Data(), 7, ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingFixedFit))
+        auto selectedEntity = Editor::GetState().SelectedEntity;
+        if (selectedEntity.HasComponent<Heart::CollisionComponent>())
         {
-            ImGui::TableNextRow();
+            bool headerOpen = ImGui::CollapsingHeader("Collision");
+            if (!RenderComponentPopup<Heart::CollisionComponent>("RBPopup", true) && headerOpen)
+            {
+                auto& bodyComp = selectedEntity.GetComponent<Heart::CollisionComponent>();
+                Heart::PhysicsBody* body = selectedEntity.GetPhysicsBody();
+                
+                ImGui::Indent();
 
-            ImU32 xColor = ImGui::GetColorU32(ImVec4(1.f, 0.0f, 0.0f, 1.f));
-            ImU32 yColor = ImGui::GetColorU32(ImVec4(0.f, 1.0f, 0.0f, 1.f));
-            ImU32 zColor = ImGui::GetColorU32(ImVec4(0.f, 0.0f, 1.0f, 1.f));
-            ImU32 textColor = ImGui::GetColorU32(ImVec4(0.f, 0.0f, 0.0f, 1.f));
+                Heart::PhysicsBodyCreateInfo bodyInfo = body->GetInfo();
+                ImGui::Text("Mass:");
+                ImGui::SameLine();
+                bool recreate = ImGui::DragFloat("##mass", &bodyInfo.Mass, 0.25f, 0.f, 1000.f);
+                
+                ImGui::Text("Body Type:");
+                ImGui::SameLine();
+                constexpr std::array<const char*, 3> bodyStrings = {
+                    "None", "Rigid", "Ghost"
+                };
+                bool popupOpened = ImGui::Button(bodyStrings[(u32)bodyInfo.Type]);
+                if (popupOpened)
+                    ImGui::OpenPopup("BodyTypeSelect");
+                if (ImGui::BeginPopup("BodyTypeSelect"))
+                {
+                    if (ImGui::MenuItem("Rigid") && bodyInfo.Type != Heart::PhysicsBodyType::Rigid)
+                    {
+                        recreate = true;
+                        bodyInfo.Type = Heart::PhysicsBodyType::Rigid;
+                    }
+                    if (ImGui::MenuItem("Ghost") && bodyInfo.Type != Heart::PhysicsBodyType::Ghost)
+                    {
+                        recreate = true;
+                        bodyInfo.Type = Heart::PhysicsBodyType::Ghost;
+                    }
+                    ImGui::EndPopup();
+                }
 
-            ImGui::TableSetColumnIndex(0);
-            ImGui::Text(name.Data());
+                Heart::PhysicsBodyShape shapeType = body->GetShapeType();
+                ImGui::Text("Shape Type:");
+                ImGui::SameLine();
+                constexpr std::array<const char*, 4> shapeStrings = {
+                    "None", "Box", "Sphere", "Capsule"
+                };
+                popupOpened = ImGui::Button(shapeStrings[(u32)shapeType]);
+                if (popupOpened)
+                    ImGui::OpenPopup("ShapeSelect");
+                if (ImGui::BeginPopup("ShapeSelect"))
+                {
+                    if (ImGui::MenuItem("Box") && shapeType != Heart::PhysicsBodyShape::Box)
+                        selectedEntity.ReplacePhysicsBody(Heart::PhysicsBody::CreateBoxShape(bodyInfo, { 0.5f, 0.5f, 0.5f }));
+                    if (ImGui::MenuItem("Sphere") && shapeType != Heart::PhysicsBodyShape::Sphere)
+                        selectedEntity.ReplacePhysicsBody(Heart::PhysicsBody::CreateSphereShape(bodyInfo, 0.5f));
+                    if (ImGui::MenuItem("Capsule") && shapeType != Heart::PhysicsBodyShape::Capsule)
+                        selectedEntity.ReplacePhysicsBody(Heart::PhysicsBody::CreateCapsuleShape(bodyInfo, 0.5f, 1.f));
+                    ImGui::EndPopup();
+                }
+                
+                if (ImGui::CollapsingHeader("Collision Channels"))
+                {
+                    ImGui::Indent();
+                    recreate |= RenderCollisionChannels("CH", bodyInfo.CollisionChannels);
+                    ImGui::Unindent();
+                }
+                    
+                if (ImGui::CollapsingHeader("Collision Mask"))
+                {
+                    ImGui::Indent();
+                    recreate |= RenderCollisionChannels("MSK", bodyInfo.CollisionMask);
+                    ImGui::Unindent();
+                }
+    
+                ImGui::Dummy({ 0.f, 5.f });
+                ImGui::Text("Shape Properties");
+                ImGui::Separator();
 
-            ImGui::TableSetColumnIndex(1);
-            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, xColor);
-            ImGui::Text(" X ");
-            
-            ImGui::TableSetColumnIndex(2);
-            ImGui::PushItemWidth(width * 0.15f);
-            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, textColor);
-            ImGui::DragFloat("##x", x, step, min, max, "%.2f");
+                switch (body->GetShapeType())
+                {
+                    default: break;
+                    
+                    case Heart::PhysicsBodyShape::Box:
+                    {
+                        auto extent = body->GetBoxExtent();
+                        if (recreate || Heart::ImGuiUtils::XYZSlider(
+                            "Half Extent  ",
+                            &extent.x,
+                            &extent.y,
+                            &extent.z,
+                            0.f,
+                            1000.f,
+                            0.25f)
+                        )
+                            selectedEntity.ReplacePhysicsBody(Heart::PhysicsBody::CreateBoxShape(bodyInfo, extent));
+                    } break;
 
-            ImGui::TableSetColumnIndex(3);
-            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, yColor);
-            ImGui::Text(" Y ");
-            
-            ImGui::TableSetColumnIndex(4);
-            ImGui::PushItemWidth(width * 0.15f);
-            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, textColor);
-            ImGui::DragFloat("##y", y, step, min, max, "%.2f");
-
-            ImGui::TableSetColumnIndex(5);
-            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, zColor);
-            ImGui::Text(" Z ");
-            
-            ImGui::TableSetColumnIndex(6);
-            ImGui::PushItemWidth(width * 0.15f);
-            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, textColor);
-            ImGui::DragFloat("##z", z, step, min, max, "%.2f");
-
-            ImGui::EndTable();
+                    case Heart::PhysicsBodyShape::Sphere:
+                    {
+                        float radius = body->GetSphereRadius();
+                        ImGui::Text("Radius");
+                        ImGui::SameLine();
+                        if (recreate || ImGui::DragFloat("##radius", &radius, 0.25f, 0.f, 1000.f))
+                            selectedEntity.ReplacePhysicsBody(Heart::PhysicsBody::CreateSphereShape(bodyInfo, radius));
+                    } break;
+                        
+                    case Heart::PhysicsBodyShape::Capsule:
+                    {
+                        float radius = body->GetCapsuleRadius();
+                        float height = body->GetCapsuleHeight();
+                        ImGui::Text("Radius");
+                        ImGui::SameLine();
+                        recreate |= ImGui::DragFloat("##radius", &radius, 0.25f, 0.f, 1000.f);
+                        
+                        ImGui::Text("Height");
+                        ImGui::SameLine();
+                        recreate |= ImGui::DragFloat("##height", &height, 0.25f, 0.f, 1000.f);
+                        
+                        if (recreate)
+                            selectedEntity.ReplacePhysicsBody(Heart::PhysicsBody::CreateCapsuleShape(bodyInfo, radius, height));
+                    } break;
+                }
+                 
+                ImGui::Unindent();
+            }
         }
-        ImGui::PopStyleVar();
     }
 
-    void PropertiesPanel::RenderScriptField(const Heart::HStringView& fieldName, Heart::ScriptComponent& scriptComp)
+    void PropertiesPanel::RenderTextComponent()
+    {
+        auto selectedEntity = Editor::GetState().SelectedEntity;
+        if (selectedEntity.HasComponent<Heart::TextComponent>())
+        {
+            bool headerOpen = ImGui::CollapsingHeader("Text");
+            if (!RenderComponentPopup<Heart::TextComponent>("TextPopup", true) && headerOpen)
+            {
+                auto& textComp = selectedEntity.GetComponent<Heart::TextComponent>();
+
+                ImGui::Indent();
+                
+                // Font picker
+                ImGui::Text("Font Asset:");
+                ImGui::SameLine();
+                Heart::ImGuiUtils::AssetPicker(
+                    Heart::Asset::Type::Font,
+                    textComp.Font,
+                    "NULL",
+                    "FontSelect",
+                    m_FontTextFilter,
+                    [&textComp]()
+                    {
+                        if (!textComp.Font)
+                            return;
+
+                        if (ImGui::MenuItem("Clear"))
+                            textComp.Font = 0;
+                    },
+                    [&textComp](Heart::UUID selected)
+                    {
+                        textComp.Font = selected;
+                    }
+                );
+
+                // Assign font on drop
+                Heart::ImGuiUtils::AssetDropTarget(
+                    Heart::Asset::Type::Font,
+                    [&textComp](const Heart::HStringView8& path)
+                    {
+                        textComp.Font = Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Font, path);
+                    }
+                );
+
+                ImGui::Text("Text:");
+                ImGui::SameLine();
+                if (Heart::ImGuiUtils::InputText("##Text", textComp.Text, true))
+                    textComp.ClearRenderData();
+                
+                ImGui::Text("Font Size:");
+                ImGui::SameLine();
+                if (ImGui::DragFloat("##fontsize", &textComp.FontSize, 0.1f, 0.f, 100.f))
+                    textComp.ClearRenderData();
+                
+                ImGui::Text("Line Height:");
+                ImGui::SameLine();
+                if (ImGui::DragFloat("##linheig", &textComp.LineHeight, 0.1f, 0.f, 100.f))
+                    textComp.ClearRenderData();
+                
+                // Material picker
+                ImGui::Text("Material:");
+                ImGui::SameLine();
+                Heart::ImGuiUtils::AssetPicker(
+                    Heart::Asset::Type::Material,
+                    textComp.Material,
+                    "DEFAULT",
+                    "texMat",
+                    m_MaterialTextFilter,
+                    [&textComp]()
+                    {
+                        // Context menu per material
+                        if (textComp.Material)
+                        {
+                            if (ImGui::MenuItem("Clear"))
+                                textComp.Material = 0;
+                            if (ImGui::MenuItem("Open in Editor"))
+                                ((Widgets::MaterialEditor&)Editor::GetWindow("Material Editor")).SetSelectedMaterial(textComp.Material);
+                        }
+                    },
+                    [&textComp](Heart::UUID selected) { textComp.Material = selected; }
+                );
+
+                // Assign material on drop
+                Heart::ImGuiUtils::AssetDropTarget(
+                    Heart::Asset::Type::Material,
+                    [&textComp](const Heart::HStringView8& path) { textComp.Material = Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Material, path); }
+                );
+                
+                ImGui::Unindent();
+            }
+        }
+    }
+
+    void PropertiesPanel::RenderScriptField(Heart::HStringView fieldName, Heart::ScriptComponent& scriptComp)
     {
         ImGui::Text(fieldName.DataUTF8());
         ImGui::SameLine();
 
+        bool dirty = false;
         Heart::Variant value = scriptComp.Instance.GetFieldValue(fieldName);
         Heart::HString widgetId = "##" + fieldName;
         switch (value.GetType())
@@ -429,7 +626,10 @@ namespace Widgets
             {
                 bool intermediate = value.Bool();
                 if (ImGui::Checkbox(widgetId.DataUTF8(), &intermediate))
-                    scriptComp.Instance.SetFieldValue(fieldName, intermediate);
+                {
+                    scriptComp.Instance.SetFieldValue(fieldName, intermediate, true);
+                    dirty = true;
+                }
             } break;
             case Heart::Variant::Type::Int:
             {
@@ -442,7 +642,10 @@ namespace Widgets
                     &intermediate,
                     1.f, &min, &max
                 ))
-                    scriptComp.Instance.SetFieldValue(fieldName, intermediate);
+                {
+                    scriptComp.Instance.SetFieldValue(fieldName, intermediate, true);
+                    dirty = true;
+                }
             } break;
             case Heart::Variant::Type::UInt:
             {
@@ -455,7 +658,10 @@ namespace Widgets
                     &intermediate,
                     1.f, &min, &max
                 ))
-                    scriptComp.Instance.SetFieldValue(fieldName, intermediate);
+                {
+                    scriptComp.Instance.SetFieldValue(fieldName, intermediate, true);
+                    dirty = true;
+                }
             } break;
             case Heart::Variant::Type::Float:
             {
@@ -468,15 +674,62 @@ namespace Widgets
                     0.1f, min, max,
                     "%.2f"
                 ))
-                    scriptComp.Instance.SetFieldValue(fieldName, intermediate);
+                {
+                    scriptComp.Instance.SetFieldValue(fieldName, intermediate, true);
+                    dirty = true;
+                }
             } break;
             case Heart::Variant::Type::String:
             {
                 Heart::HString intermediate = value.String().Convert(Heart::HString::Encoding::UTF8);
                 if (Heart::ImGuiUtils::InputText(widgetId.DataUTF8(), intermediate))
-                    scriptComp.Instance.SetFieldValue(fieldName, intermediate.Convert(Heart::HString::Encoding::UTF16));
+                {
+                    scriptComp.Instance.SetFieldValue(fieldName, intermediate.Convert(Heart::HString::Encoding::UTF16), true);
+                    dirty = true;
+                }
             } break;
         }
+
+        // Need to cache in case the script has a callback
+        // TODO: could verify this
+        if (dirty)
+            Editor::GetActiveScene().CacheDirtyTransforms();
+    }
+
+    bool PropertiesPanel::RenderCollisionChannels(Heart::HStringView8 id, u32& mask)
+    {
+        constexpr std::array<const char*, 3> names = {
+            "Default",
+            "Static",
+            "Dynamic"
+        };
+        auto idStart = Heart::HString8("##") + id;
+        bool modified = false;
+        for (u32 i = 0; i < 3; i++)
+        {
+            bool set = mask & HE_BIT(i);
+            ImGui::Text(names[i]);
+            ImGui::SameLine();
+            modified |= ImGui::Checkbox((idStart + std::to_string(i)).Data(), &set);
+            if (set)
+                mask |= HE_BIT(i);
+            else
+                mask &= ~HE_BIT(i);
+        }
+        
+        for (auto& pair : Heart::PhysicsBody::GetCustomCollisionChannels())
+        {
+            bool set = mask & pair.second;
+            ImGui::Text(pair.first.Data());
+            ImGui::SameLine();
+            modified |= ImGui::Checkbox((idStart + pair.first).Data(), &set);
+            if (set)
+                mask |= pair.second;
+            else
+                mask &= ~pair.second;
+        }
+        
+        return modified;
     }
 }
 }

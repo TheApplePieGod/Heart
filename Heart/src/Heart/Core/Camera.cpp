@@ -1,7 +1,7 @@
 #include "hepch.h"
 #include "Camera.h"
 
-#include "Heart/Renderer/Renderer.h"
+#include "Flourish/Api/Context.h"
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtx/rotate_vector.hpp"
@@ -26,7 +26,7 @@ namespace Heart
                 f32 fl = 1.f / tan(glm::radians(m_FOV) * 0.5f);
                 f32 a = m_AspectRatio;
 
-                if (Renderer::IsUsingReverseDepth())
+                if (Flourish::Context::ReversedZBuffer())
                 {
                     m_ProjectionMatrix = glm::mat4(
                         fl / a, 0, 0, 0,
@@ -146,7 +146,7 @@ namespace Heart
             0.f, 0.f, -1.f, 0.f,
             0.f, 0.f, 0.f, 1.f
         ) * m_ViewMatrix;
-
+        
         // invert the y axis for ViewMatrixInvertedY
         m_ViewMatrixInvertedY = glm::mat4(
             1.f, 0.f, 0.f, 0.f,

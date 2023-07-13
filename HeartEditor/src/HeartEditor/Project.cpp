@@ -5,20 +5,25 @@
 #include "HeartEditor/EditorApp.h"
 #include "HeartEditor/EditorCamera.h"
 #include "HeartEditor/Widgets/ContentBrowser.h"
+#include "HeartEditor/Widgets/MaterialEditor.h"
 #include "HeartEditor/Widgets/Viewport.h"
 #include "Heart/ImGui/ImGuiInstance.h"
+#include "Heart/Core/Timing.h"
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/SceneAsset.h"
 #include "Heart/Scripting/ScriptingEngine.h"
 #include "Heart/Util/FilesystemUtils.h"
+#include "Heart/Util/PlatformUtils.h"
 #include "nlohmann/json.hpp"
 
 namespace HeartEditor
 {
     Heart::Ref<Project> Project::CreateAndLoad(const Heart::HStringView8& absolutePath, const Heart::HStringView8& name)
     {
+        HE_PROFILE_FUNCTION();
+
         const char* extension = ".heproj";
-        Heart::HString8 filename = name + extension;
+        Heart::HString8 filename = name + Heart::HStringView8(extension);
 
         std::filesystem::path finalPath = std::filesystem::path(absolutePath.Data()).append(name.Data());
         std::filesystem::create_directory(finalPath);
@@ -35,59 +40,45 @@ namespace HeartEditor
         file.close();
 
         /*
-         * Copy default imgui config
-         */
-        std::filesystem::copy_file("templates/imgui.ini", std::filesystem::path(finalPath).append("imgui.ini"));
-        
-        /*
          * Create default directories
          */
         std::filesystem::create_directory(std::filesystem::path(finalPath).append("Assets"));
         std::filesystem::create_directory(std::filesystem::path(finalPath).append("Scripts"));
-
-        /*
-         * Load templates and create visual studio project files
-         */
+        
         Heart::HString8 scriptsRootPath = std::filesystem::current_path()
             .append("scripting")
             .generic_u8string();
-
-        // Csproj
-        Heart::HString8 csprojTemplate = Heart::FilesystemUtils::ReadFileToString("templates/ProjectTemplate.csproj");
-        Heart::HString8 finalCsproj = std::regex_replace(csprojTemplate.Data(), std::regex("\\$\\{SCRIPTS_ROOT_PATH\\}"), scriptsRootPath.Data());
-        file = std::ofstream(
-            std::filesystem::path(finalPath).append((name + ".csproj").Data()),
-            std::ios::binary
-        );
-        file << finalCsproj.Data();
-        file.close();
-
-        // Sln
-        Heart::HString8 slnTemplate = Heart::FilesystemUtils::ReadFileToString("templates/ProjectTemplate.sln");
-        Heart::HString8 finalSln = std::regex_replace(slnTemplate.Data(), std::regex("\\$\\{SCRIPTS_ROOT_PATH\\}"), scriptsRootPath.Data());
-        finalSln = std::regex_replace(finalSln.Data(), std::regex("\\$\\{PROJECT_NAME\\}"), name.Data());
-        file = std::ofstream(
-            std::filesystem::path(finalPath).append((name + ".sln").Data()),
-            std::ios::binary
-        );
-        file << finalSln.Data();
-        file.close();
-
-        // Empty entity
-        Heart::HString8 entityTemplate = Heart::FilesystemUtils::ReadFileToString("templates/EmptyEntity.csfile");
-        Heart::HString8 finalEntity = std::regex_replace(entityTemplate.Data(), std::regex("\\$\\{PROJECT_NAME\\}"), name.Data());
-        file = std::ofstream(
-            std::filesystem::path(finalPath).append("Scripts").append("EmptyEntity.cs"),
-            std::ios::binary
-        );
-        file << finalEntity.Data();
-        file.close();
         
+        /*
+         * Iterate templates directory and perform preprocessing before copying to project dir
+         */
+        for (const auto& entry : std::filesystem::directory_iterator("templates"))
+        {
+            Heart::HString8 text = Heart::FilesystemUtils::ReadFileToString(entry.path().generic_u8string());
+            text = std::regex_replace(text.Data(), std::regex("\\$\\{SCRIPTS_ROOT_PATH\\}"), scriptsRootPath.Data());
+            text = std::regex_replace(text.Data(), std::regex("\\$\\{PROJECT_NAME\\}"), name.Data());
+            
+            Heart::HString8 filename = entry.path().filename().generic_u8string();
+            filename = std::regex_replace(filename.Data(), std::regex("\\$\\{PROJECT_NAME\\}"), name.Data());
+            
+            auto path = std::filesystem::path(finalPath);
+            if (filename == "EmptyEntity.cs")
+                path.append("Scripts");
+            
+            auto file = std::ofstream(
+                path.append(filename.Data()),
+                std::ios::binary
+            );
+            file << text.Data();
+        }
+            
         return LoadFromPath(mainProjectFilePath.generic_u8string());
     }
 
     Heart::Ref<Project> Project::LoadFromPath(const Heart::HStringView8& absolutePath)
     {
+        HE_PROFILE_FUNCTION();
+
         Heart::Ref<Project> project = Heart::CreateRef<Project>(absolutePath);
         
         u32 fileLength;
@@ -97,16 +88,15 @@ namespace HeartEditor
 
         // Cleanup editor state
         Editor::ClearScene();
-        Editor::DestroyWindows();
-
+        
         // Finally update the assets directory to the project root
         Heart::AssetManager::UpdateAssetsDirectory(
             Heart::FilesystemUtils::GetParentDirectory(absolutePath)
         );
 
-        // Recreate editor windows
-        Editor::CreateWindows();
-
+        ((Widgets::ContentBrowser&)Editor::GetWindow("Content Browser")).Reset();
+        ((Widgets::MaterialEditor&)Editor::GetWindow("Material Editor")).Reset();
+        
         // Update the imgui project config
         EditorApp::Get().GetImGuiInstance().OverrideImGuiConfig(Heart::AssetManager::GetAssetsDirectory());
         EditorApp::Get().GetImGuiInstance().ReloadImGuiConfig();
@@ -165,6 +155,8 @@ namespace HeartEditor
 
     void Project::LoadScriptsPlugin()
     {
+        HE_PROFILE_FUNCTION();
+
         auto assemblyPath = std::filesystem::path(Heart::AssetManager::GetAssetsDirectory().Data())
             .append("bin")
             .append("ClientScripts.dll");
@@ -186,6 +178,9 @@ namespace HeartEditor
         }
 
         // Reload
+        #ifdef HE_DEBUG
+            Heart::ScriptingEngine::ReloadCorePlugin();
+        #endif
         Heart::ScriptingEngine::LoadClientPlugin(assemblyPath.u8string());
 
         // Reinstantiate objects and load serialized properties
@@ -210,6 +205,131 @@ namespace HeartEditor
             // Reinstantiate
             scriptComp.Instance.Instantiate({ &Editor::GetActiveScene(), (u32)entity });
             scriptComp.Instance.LoadFieldsFromJson(serializedObjects[entity]);
+            scriptComp.Instance.OnConstruct();
         }
+
+        // Ensure potential modifications of OnConstruct are reflected
+        Editor::GetActiveScene().CacheDirtyTransforms();
+    }
+
+    bool Project::BuildScripts(bool debug)
+    {
+        HE_PROFILE_FUNCTION();
+
+        auto timer = Heart::Timer("Client plugin build");
+        
+        #ifdef HE_PLATFORM_WINDOWS
+            Heart::HString8 command = "/k cd ";
+        #else
+            Heart::HString8 command = "cd ";
+        #endif
+
+        command += Heart::AssetManager::GetAssetsDirectory();
+        
+        #ifdef HE_PLATFORM_WINDOWS
+            command += " && BuildScripts.bat ";
+        #else
+            command += ";sh BuildScripts.sh ";
+        #endif
+        
+        if (debug)
+            command += "Debug";
+        else
+            command += "Release";
+
+        Heart::HString8 output;
+        int res = Heart::PlatformUtils::ExecuteCommandWithOutput(command, output);
+        if (res == 0)
+        {
+            HE_ENGINE_LOG_INFO("Client plugin built successfully");
+            HE_ENGINE_LOG_INFO("Build output: {0}", output.Data());
+        }
+        else
+        {
+            HE_ENGINE_LOG_ERROR("Client plugin failed to build with code {0}", res);
+            HE_ENGINE_LOG_ERROR("Build output: {0}", output.Data());
+        }
+        
+        return res == 0;
+    }
+    
+    void Project::Export(Heart::HStringView8 absolutePath)
+    {
+        HE_PROFILE_FUNCTION();
+
+        if (!BuildScripts(false))
+        {
+            HE_ENGINE_LOG_ERROR("Failed to export project, client plugin build failed");
+            return;
+        }
+
+        std::filesystem::path finalPath = std::filesystem::path(absolutePath.Data()).append(m_Name.Data());
+        std::filesystem::create_directory(finalPath);
+        
+        #ifdef HE_PLATFORM_MACOS
+            Heart::HStringView8 runtimeExt = ".app";
+        #else
+            Heart::HStringView8 runtimeExt = ".exe";
+        #endif
+        
+        Heart::HString8 runtimeName = Heart::HStringView8("Runtime") + runtimeExt;
+        Heart::HString8 finalName = m_Name + runtimeExt;
+        std::filesystem::copy(
+            runtimeName.Data(),
+            std::filesystem::path(finalPath).append(finalName.Data()),
+            std::filesystem::copy_options::recursive
+        );
+        
+        std::filesystem::path copyPath;
+        std::filesystem::path engineResources = std::filesystem::path("resources").append("engine");
+        #ifdef HE_PLATFORM_MACOS
+            // Copy files to bundle resources directory
+            copyPath = std::filesystem::path(finalPath).append(finalName.Data());
+            copyPath.append("Contents");
+            std::filesystem::create_directory(copyPath);
+            copyPath.append("Resources");
+            std::filesystem::create_directory(copyPath);
+        #else
+            copyPath = std::filesystem::path(finalPath);
+        #endif
+
+        copyPath.append("resources");
+        std::filesystem::create_directory(copyPath);
+        copyPath.append("engine");
+        std::filesystem::create_directory(copyPath);
+        std::filesystem::copy(engineResources, copyPath, std::filesystem::copy_options::recursive);
+            
+        copyPath = copyPath.parent_path().parent_path().append("scripting");
+        std::filesystem::create_directory(copyPath);
+        std::filesystem::copy("dotnet", copyPath, std::filesystem::copy_options::recursive);
+        
+        copyPath = copyPath.parent_path().append("project");
+        std::filesystem::create_directory(copyPath);
+        std::filesystem::copy(std::filesystem::path(m_AbsolutePath.Data()).parent_path(), copyPath, std::filesystem::copy_options::recursive);
+        
+        // Copy extra files
+        #ifdef HE_PLATFORM_MACOS
+            std::filesystem::path dst = std::filesystem::path(copyPath).parent_path().parent_path();
+            dst.append("Lib");
+            std::filesystem::create_directory(dst);
+            std::filesystem::copy(
+              "libMoltenVK.dylib",
+              std::filesystem::path(dst).append("libMoltenVK.dylib")
+            );
+            // TODO: this is bad. We should be using a symlink, but it doesn't seem to work, so for now
+            // we are just copying the entire dylib again
+            std::filesystem::copy(
+              "libMoltenVK.dylib",
+              std::filesystem::path(dst).append("libvulkan.1.dylib")
+            );
+        #elif defined(HE_PLATFORM_WINDOWS)
+            std::filesystem::path dst = std::filesystem::path(copyPath).parent_path();
+            std::filesystem::copy(
+              "shaderc_shared.dll",
+              std::filesystem::path(dst).append("shaderc_shared.dll")
+            );
+        #endif
+        
+        HE_ENGINE_LOG_INFO("Project exported successfully to {0}", finalPath.generic_u8string());
     }
 }

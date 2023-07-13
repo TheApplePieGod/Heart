@@ -17,10 +17,8 @@ namespace Heart.NativeBridge
         [UnmanagedCallersOnly]
         internal static unsafe IntPtr InstantiateClientScriptEntity(HStringInternal* objectTypeStr, uint entityHandle, IntPtr sceneHandle)
         {
-            if (EntryPoint.ClientAssembly == null) return IntPtr.Zero;
-
             string typeStr = NativeMarshal.HStringInternalToString(*objectTypeStr);
-            Type objectType = EntryPoint.ClientAssembly.GetType(typeStr);
+            Type objectType = ClientReflection.GetClientType(typeStr);
             if (objectType == null) return IntPtr.Zero;
 
             // Instantiate uninitialized object
@@ -88,7 +86,7 @@ namespace Heart.NativeBridge
         internal static unsafe FieldInfo FindField(ManagedGCHandle objectHandle, string fieldName)
         {
             return objectHandle.Target.GetType()
-                .GetField(fieldName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                .GetField(fieldName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
         }
 
         [UnmanagedCallersOnly]
@@ -105,15 +103,17 @@ namespace Heart.NativeBridge
         }
 
         [UnmanagedCallersOnly]
-        internal static unsafe InteropBool SetFieldValue(IntPtr objectHandle, HStringInternal* fieldNameStr, Variant value)
+        internal static unsafe InteropBool SetFieldValue(IntPtr objectHandle, HStringInternal* fieldNameStr, Variant value, InteropBool invokeCallback)
         {
             var gcHandle = ManagedGCHandle.FromIntPtr(objectHandle);
             if (gcHandle != null && !gcHandle.IsAlive) return InteropBool.False;
 
             string fieldName = NativeMarshal.HStringInternalToString(*fieldNameStr);
-            return NativeMarshal.BoolToInteropBool(
-                ((ScriptEntity)gcHandle.Target).GENERATED_SetField(fieldName, value)
-            );
+            bool result = ((ScriptEntity)gcHandle.Target).GENERATED_SetField(fieldName, value);
+            if (invokeCallback == InteropBool.True && result)
+                ((ScriptEntity)gcHandle.Target).OnScriptFieldChanged(fieldName, value);
+        
+            return NativeMarshal.BoolToInteropBool(result);
         }
     }
 }

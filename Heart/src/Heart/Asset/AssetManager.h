@@ -180,7 +180,7 @@ namespace Heart
          * @param isResource Whether or not this path references a resource asset.
          * @return The pointer to the asset or nullptr if it could not be located. 
          */
-        static Asset* RetrieveAsset(const HStringView8& path, bool isResource = false);
+        static Asset* RetrieveAsset(const HStringView8& path, bool isResource = false, bool load = true, bool async = false);
 
         /**
          * @brief Retrieve an asset from a path.
@@ -191,12 +191,13 @@ namespace Heart
          * @tparam T The asset class to cast the pointer to upon retrieval.
          * @param path The path of the asset relative to the project directory.
          * @param isResource Whether or not this path references a resource asset.
-         * @return The pointer to the asset or nullptr if it could not be located. 
+         * @param async Whether or not to load this asset asynchronously
+         * @return The pointer to the asset or nullptr if it could not be located.
          */
         template<typename T>
-        static T* RetrieveAsset(const HStringView8& path, bool isResource = false)
+        static T* RetrieveAsset(const HStringView8& path, bool isResource = false, bool load = true, bool async = false)
         {
-            return static_cast<T*>(RetrieveAsset(path, isResource));
+            return static_cast<T*>(RetrieveAsset(path, isResource, load, async));
         }
 
         /**
@@ -207,10 +208,10 @@ namespace Heart
          * fail to load, which is why it is important to also check Asset->IsValid() first.
          * 
          * @param uuid The UUID of the asset.
-         * @param async Whether or not to load this asset asynchronously (NOT USED)
+         * @param async Whether or not to load this asset asynchronously
          * @return The pointer to the asset or nullptr if it could not be located
          */
-        static Asset* RetrieveAsset(UUID uuid, bool async = false);
+        static Asset* RetrieveAsset(UUID uuid, bool load = true, bool async = false);
 
         /**
          * @brief Retrieve an asset from a UUID.
@@ -221,13 +222,13 @@ namespace Heart
          * 
          * @tparam T The asset class to cast the pointer to upon retrieval.
          * @param uuid The UUID of the asset.
-         * @param async Whether or not to load this asset asynchronously (NOT USED)
+         * @param async Whether or not to load this asset asynchronously
          * @return The pointer to the asset or nullptr if it could not be located
          */
         template<typename T>
-        static T* RetrieveAsset(UUID uuid, bool async = false)
+        static T* RetrieveAsset(UUID uuid, bool load = true, bool async = false)
         {
-            return static_cast<T*>(RetrieveAsset(uuid, async));
+            return static_cast<T*>(RetrieveAsset(uuid, load, async));
         }
 
     private:
@@ -238,10 +239,9 @@ namespace Heart
         };
 
     private:
+        static void QueueLoad(AssetEntry& entry, bool async = false);
         static void LoadAsset(AssetEntry& entry, bool async = false);
         static void UnloadAsset(AssetEntry& entry, bool async = false);
-        static void ProcessQueue();
-        static void PushOperation(const LoadOperation& operation);
 
     private:
         inline static constexpr u64 s_AssetFrameLimit = 1000;
@@ -252,8 +252,6 @@ namespace Heart
         inline static HString8 s_AssetsDirectory;
 
         inline static bool s_Initialized = false;
-        inline static std::thread s_AssetThread;
-        inline static std::queue<LoadOperation> s_OperationQueue;
-        inline static std::mutex s_QueueLock;
+        inline static std::atomic<u32> s_AsyncLoadsInProgress;
     };
 }

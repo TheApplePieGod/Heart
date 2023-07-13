@@ -13,10 +13,12 @@ namespace Widgets
     public:
         ContentBrowser(const Heart::HStringView8& name, bool initialOpen);
 
-        void OnImGuiRender() override;
-
+        void OnImGuiRenderPostSceneUpdate() override;
+        
+        void Reset();
+        
         inline void RefreshList() { m_ShouldRescan = true; }
-
+        
     private:
         void ScanDirectory();
         void RenderFileCard(const std::filesystem::directory_entry& entry);
@@ -28,11 +30,13 @@ namespace Widgets
     private:
         const glm::vec2 m_CardSize = { 75.f, 75.f };
         const f32 m_CardSpacing = 5.f;
-        glm::vec2 m_WindowSizes = { 0.f, 0.f };
+        glm::vec2 m_WindowSizes = { 150.f, 850.f };
         Heart::HVector<Heart::HString8> m_DirectoryStack = { "" };
         int m_DirectoryStackIndex = 0;
         Heart::HVector<std::filesystem::directory_entry> m_DirectoryList;
         bool m_ShouldRescan = false;
+        bool m_CardHovered = false;
+        bool m_Hovered = false;
 
         std::filesystem::path m_RenamingPath;
         std::filesystem::path m_DeletingPath;

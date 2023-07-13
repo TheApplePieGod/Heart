@@ -6,6 +6,7 @@
 #include "Heart/Asset/MeshAsset.h"
 #include "Heart/Asset/MaterialAsset.h"
 #include "Heart/Asset/SceneAsset.h"
+#include "Heart/Asset/FontAsset.h"
 
 namespace Heart
 {
@@ -52,7 +53,17 @@ namespace Heart
             { return CreateRef<MaterialAsset>(path, absolutePath); }
             case Asset::Type::Scene:
             { return CreateRef<SceneAsset>(path, absolutePath); }
+            case Asset::Type::Font:
+            { return CreateRef<FontAsset>(path, absolutePath); }
         }
+    }
+
+    // TODO: this is mid. Will wait until rewrite to deal with it.
+    bool Asset::IsLoaded()
+    {
+        const std::lock_guard<std::mutex> lock(m_LoadLock);
+
+        return m_Loaded;
     }
 
     // adapted from https://stackoverflow.com/questions/180947/base64-decode-snippet-in-c

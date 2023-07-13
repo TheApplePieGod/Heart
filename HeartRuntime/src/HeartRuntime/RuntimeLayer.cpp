@@ -3,17 +3,22 @@
 
 #include "HeartRuntime/RuntimeApp.h"
 #include "Heart/Core/Window.h"
+#include "Heart/ImGui/ImGuiInstance.h"
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/SceneAsset.h"
+#include "Heart/Task/TaskManager.h"
 #include "Heart/Scripting/ScriptingEngine.h"
 #include "Heart/Util/FilesystemUtils.h"
 #include "nlohmann/json.hpp"
 
 namespace HeartRuntime
 {
-    RuntimeLayer::RuntimeLayer()
+    RuntimeLayer::RuntimeLayer(const std::filesystem::path& projectPath)
+        : m_ProjectPath(projectPath)
     {
-
+        m_RenderSettings.DrawGrid = false;
+        m_RenderSettings.AsyncAssetLoading = true;
+        m_RenderSettings.CopyEntityIdsTextureToCPU = false;
     }
 
     RuntimeLayer::~RuntimeLayer()
@@ -34,17 +39,26 @@ namespace HeartRuntime
     {
         UnsubscribeFromEmitter(&RuntimeApp::Get().GetWindow());
 
+        m_Viewport.Shutdown();
+        m_RuntimeScene.reset();
+        m_RenderScene.Cleanup();
+
         HE_LOG_INFO("Runtime detached");
     }
 
     void RuntimeLayer::OnUpdate(Heart::Timestep ts)
     {
-        m_RuntimeScene->OnUpdateRuntime(ts);
-    }
+        m_SceneUpdateTask.Wait();
 
-    void RuntimeLayer::OnImGuiRender()
-    {
-        m_Viewport.OnImGuiRender(m_RuntimeScene.get());
+        m_RenderScene.CopyFromScene(m_RuntimeScene.get());
+        
+        m_SceneUpdateTask = Heart::TaskManager::Schedule([this, ts]()
+        {
+            m_RuntimeScene->OnUpdateRuntime(ts);
+        }, Task::Priority::High, "SceneUpdate task");
+
+        m_Viewport.OnImGuiRender(m_RuntimeScene.get(), m_RenderSettings);
+        m_DevPanel.OnImGuiRender(m_RuntimeScene.get(), m_RenderSettings);
     }
 
     void RuntimeLayer::OnEvent(Heart::Event& event)
@@ -56,38 +70,27 @@ namespace HeartRuntime
     {
         if (event.GetKeyCode() == Heart::KeyCode::F11)
             RuntimeApp::Get().GetWindow().ToggleFullscreen();
+        if (event.GetKeyCode() == Heart::KeyCode::F12)
+        {
+            if (m_DevPanel.IsOpen())
+            {
+                RuntimeApp::Get().GetWindow().DisableCursor();
+                m_DevPanel.SetOpen(false);
+            }
+            else
+            {
+                RuntimeApp::Get().GetWindow().EnableCursor();
+                m_DevPanel.SetOpen(true);
+            }
+        }
         
         return true;
     }
 
     void RuntimeLayer::LoadProject()
     {
-        // Locate the project file to run
-        auto projectFolderPath = std::filesystem::path("project");
-        if (!std::filesystem::exists(projectFolderPath))
-        {
-            HE_LOG_ERROR("Unable to locate project folder");
-            throw std::exception();
-        }
-
-        auto projectPath = std::filesystem::path();
-        for (const auto& entry : std::filesystem::directory_iterator(projectFolderPath))
-        {
-            if (!entry.is_directory() && entry.path().extension() == ".heproj")
-            {
-                projectPath = entry.path();
-                break;
-            }
-        }
-
-        if (projectPath.empty())
-        {
-            HE_LOG_ERROR("Unable to locate project");
-            throw std::exception();
-        }
-
         u32 fileLength;
-        unsigned char* data = Heart::FilesystemUtils::ReadFile(projectPath.generic_u8string(), fileLength);
+        unsigned char* data = Heart::FilesystemUtils::ReadFile(m_ProjectPath.generic_u8string(), fileLength);
         if (!data)
         {
             HE_LOG_ERROR("Unable to load project");
@@ -99,12 +102,15 @@ namespace HeartRuntime
             .append("ClientScripts.dll");
         if (!std::filesystem::exists(assemblyPath))
         {
-            HE_LOG_WARN("Project assembly not found");
+            HE_LOG_ERROR("Project assembly not found");
             throw std::exception();
         }
         
         Heart::AssetManager::UpdateAssetsDirectory("project");
         Heart::ScriptingEngine::LoadClientPlugin(assemblyPath.u8string());
+
+        RuntimeApp::Get().GetImGuiInstance().OverrideImGuiConfig(Heart::AssetManager::GetAssetsDirectory());
+        RuntimeApp::Get().GetImGuiInstance().ReloadImGuiConfig();
 
         // TODO: eventually switch from loadedScene to default scene or something like that
         auto j = nlohmann::json::parse(data);
@@ -112,12 +118,6 @@ namespace HeartRuntime
         {
             HE_LOG_ERROR("Unable to load scene");
             throw std::exception();
-        }
-
-        if (j.contains("name") && !j["name"].empty())
-        {
-            std::string title = j["name"];
-            RuntimeApp::Get().GetWindow().SetWindowTitle(title.c_str());
         }
 
         Heart::UUID sceneAssetId = Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Scene, j["loadedScene"]);

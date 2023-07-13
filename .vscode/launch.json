@@ -5,7 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Launch",
+            "name": "Launch (Windows)",
             "type": "cppvsdbg",
             "request": "launch",
             "program": "${command:cmake.launchTargetPath}",
@@ -14,6 +14,22 @@
             "cwd": "${command:cmake.launchTargetPath}/..",
             "environment": [],
             "console": "integratedTerminal"
+        },
+        {
+            "name": "Launch (Other)",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${command:cmake.launchTargetPath}",
+            "args": [],
+            "cwd": "${command:cmake.launchTargetPath}/.."
+        },
+        {
+            "name": "Launch Exe Debug",
+            "type": "lldb",
+            "request": "launch",
+            "program": "build/bin/Debug/Editor",
+            "args": [],
+            "cwd": "build/bin/Debug"
         }
     ]
 }

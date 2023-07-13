@@ -2,14 +2,23 @@
 
 #include "HeartEditor/EditorApp.h"
 #include "Heart/Core/Log.h"
+#include "Heart/Util/PlatformUtils.h"
 
 int Main(int argc, char** argv)
 {
-    Heart::Logger::Initialize();
+    // Init platform
+    Heart::PlatformUtils::InitializePlatform();
 
-    HeartEditor::EditorApp* app = new HeartEditor::EditorApp();
-    app->Run();
-    delete app;
+    try
+    {
+        HeartEditor::EditorApp* app = new HeartEditor::EditorApp();
+        app->Run();
+        delete app;
+    }
+    catch (std::exception& e)
+    {
+        HE_LOG_ERROR("Crashed: {0}", e.what());
+    }
     
     return 0;
 }

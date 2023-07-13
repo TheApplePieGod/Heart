@@ -1,3 +1,7 @@
+[submodule "Heart/lib/Flourish"]
+	path = Heart/lib/Flourish
+	url = https://github.com/TheApplePieGod/Flourish.git
+	branch = dev
 [submodule "Heart/lib/spdlog"]
 	path = Heart/lib/spdlog
 	url = https://github.com/gabime/spdlog.git
@@ -14,9 +18,9 @@
 	path = Heart/lib/glm
 	url = https://github.com/g-truc/glm.git
 	branch = master
-[submodule "Heart/lib/optick"]
-	path = Heart/lib/optick
-	url = https://github.com/bombomby/optick.git
+[submodule "Heart/lib/tracy"]
+	path = Heart/lib/tracy
+	url = https://github.com/wolfpld/tracy.git
 	branch = master
 [submodule "Heart/lib/entt"]
 	path = Heart/lib/entt
@@ -30,6 +34,28 @@
 	path = Heart/lib/json
 	url = https://github.com/nlohmann/json.git
 	branch = develop
+[submodule "Heart/lib/bullet3"]
+	path = Heart/lib/bullet3
+	url = https://github.com/bulletphysics/bullet3.git
+	branch = master
+[submodule "Heart/lib/msdf"]
+	path = Heart/lib/msdf
+	url = https://github.com/Chlumsky/msdf-atlas-gen.git
+	branch = master
+[submodule "Heart/lib/FreeType"]
+	path = Heart/lib/FreeType
+	url = https://gitlab.freedesktop.org/freetype/freetype.git
+	branch = master
+[submodule "Heart/lib/tinytiff"]
+	path = Heart/lib/tinytiff
+	url = https://github.com/jkriege2/TinyTIFF.git
+	branch = master
+
+[submodule "HeartEditor/lib/imgui-node-editor"]
+	path = HeartEditor/lib/imgui-node-editor
+	url = https://github.com/TheApplePieGod/imgui-node-editor.git
+	branch = master
+
 [submodule "HeartTesting/lib/doctest"]
 	path = HeartTesting/lib/doctest
 	url = https://github.com/doctest/doctest.git

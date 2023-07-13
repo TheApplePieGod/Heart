@@ -24,9 +24,19 @@ namespace Heart
 
         // Will replace existing component of same type
         template<typename Component, typename ... Args>
-        decltype(auto) AddComponent(Args&& ... args)
+        void AddComponent(Args&& ... args)
         {
-            return m_Scene->GetRegistry().emplace_or_replace<Component>(m_EntityHandle, std::forward<Args>(args)...);
+            m_Scene->GetRegistry().emplace_or_replace<Component>(m_EntityHandle, std::forward<Args>(args)...);
+        }
+        
+        template<>
+        void AddComponent<CollisionComponent>(PhysicsBody& body)
+        {
+            if (HasComponent<CollisionComponent>())
+                m_Scene->GetPhysicsWorld().RemoveBody(GetComponent<CollisionComponent>().BodyId);
+            body.SetTransform(GetWorldPosition(), m_Scene->GetEntityCachedQuat(*this));
+            u32 id = m_Scene->GetPhysicsWorld().AddBody(body);
+            m_Scene->GetRegistry().emplace_or_replace<CollisionComponent>(m_EntityHandle, id);
         }
 
         // Safe to call when entity does not have component
@@ -46,6 +56,8 @@ namespace Heart
         bool IsValid();
         void Destroy();
         
+        void SetName(HStringView8 name);
+        
         inline Scene* GetScene() const { return m_Scene; }
         inline entt::entity GetHandle() const { return m_EntityHandle; }
         inline glm::vec3 GetPosition() const { return GetComponent<TransformComponent>().Translation; }
@@ -62,22 +74,28 @@ namespace Heart
         glm::vec3 GetWorldForwardVector();
         const glm::mat4x4& GetWorldTransformMatrix();
 
-        void SetPosition(glm::vec3 pos);
-        void SetRotation(glm::vec3 rot);
-        void SetScale(glm::vec3 scale);
-        void SetTransform(glm::vec3 pos, glm::vec3 rot, glm::vec3 scale);
+        void SetPosition(glm::vec3 pos, bool cache = true);
+        void SetRotation(glm::vec3 rot, bool cache = true);
+        void SetScale(glm::vec3 scale, bool cache = true);
+        void SetTransform(glm::vec3 pos, glm::vec3 rot, glm::vec3 scale, bool cache = true);
+        void ApplyRotation(glm::vec3 rot, bool cache = true);
 
         const HVector<UUID>& GetChildren();
-        void AddChild(UUID uuid);
-        void RemoveChild(UUID uuid);
+        void AddChild(UUID uuid, bool cache = true);
+        void RemoveChild(UUID uuid, bool cache = true);
         UUID GetParent() const;
-        void SetParent(UUID uuid);
+        void SetParent(UUID uuid, bool cache = true);
 
         Variant GetScriptProperty(const HStringView8& name) const;
         void SetScriptProperty(const HStringView8& name, const Variant& value);
 
         void SetIsPrimaryCameraEntity(bool primary);
 
+        PhysicsBody* GetPhysicsBody();
+        void ReplacePhysicsBody(const PhysicsBody& body, bool keepVel = false);
+        
+        void SetText(HStringView8 text);
+        
     private:
         entt::entity m_EntityHandle = entt::null;
         Scene* m_Scene = nullptr;

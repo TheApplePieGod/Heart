@@ -14,74 +14,64 @@ namespace Heart.Math
 
     public class Vec4
     {
-        private float _x, _y, _z, _w = 0.0F;
+        internal Vec4Internal _internal;
+
+        public Vec4()
+        {
+            _internal.X = 0.0f;
+            _internal.Y = 0.0f;
+            _internal.Z = 0.0f;
+            _internal.W = 0.0f;
+        }
 
         public Vec4(float x, float y, float z, float w)
         {
-            _x = x;
-            _y = y;
-            _z = z;
-            _w = w;
+            _internal.X = x;
+            _internal.Y = y;
+            _internal.Z = z;
+            _internal.W = w;
         }
 
         public Vec4(Vec4 other)
         {
-            _x = other._x;
-            _y = other._y;
-            _z = other._z;
-            _w = other._w;
+            _internal = other._internal;
         }
 
         internal Vec4(Vec4Internal other)
         {
-            _x = other.X;
-            _y = other.Y;
-            _z = other.Z;
-            _w = other.W;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal Vec4Internal ToVec4Internal()
-        {
-            return new Vec4Internal
-            {
-                X = _x,
-                Y = _y,
-                Z = _z,
-                W = _w,
-            };
+            _internal = other;
         }
 
         public float X
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => _x;
+            get => _internal.X;
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            set => _x = value;
+            set => _internal.X = value;
         }
 
         public float Y
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => _y;
+            get => _internal.Y;
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            set => _y = value;
+            set => _internal.Y = value;
         }
 
         public float Z
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => _z;
+            get => _internal.Z;
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            set => _z = value;
+            set => _internal.Z = value;
         }
 
         public float W
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => _w;
+            get => _internal.W;
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            set => _w = value;
+            set => _internal.W = value;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -119,5 +109,40 @@ namespace Heart.Math
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vec4 operator /(Vec4 a, float b)
             => new Vec4(a.X / b, a.Y / b, a.Z / b, a.W / b);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public override bool Equals(object other)
+            => Equals(other as Vec4);
+
+        public bool Equals(Vec4 other)
+        {
+            if (other == null) return false;
+            if (object.ReferenceEquals(this, other)) return true;
+            return (
+                _internal.X == other.X &&
+                _internal.Y == other.Y &&
+                _internal.Z == other.Z &&
+                _internal.W == other.W
+            );
+        }
+
+        public override int GetHashCode()
+            => base.GetHashCode();
+
+        public static bool operator ==(Vec4 a, Vec4 b)
+        {
+            if (object.ReferenceEquals(a, b)) return true;
+            if ((object)a == null || (object)b == null) return false;
+            return (
+                a.X == b.X &&
+                a.Y == b.Y &&
+                a.Z == b.Z &&
+                a.W == b.W
+            );
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool operator !=(Vec4 a, Vec4 b)
+            => !(a == b);
     }
 }

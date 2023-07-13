@@ -1,7 +1,9 @@
 #version 460
 
-#include "CubemapBuffer.glsl"
+#define INCLUDE_VERTEX_LAYOUT_INPUT
 #include "VertexLayout.glsl"
+
+#include "CubemapBuffer.glsl"
 
 layout(location = 0) out vec3 localPos;
 

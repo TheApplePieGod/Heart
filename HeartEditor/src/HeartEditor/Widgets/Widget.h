@@ -12,7 +12,8 @@ namespace HeartEditor
             : m_Name(name), m_Open(initialOpen)
         {}
 
-        virtual void OnImGuiRender() = 0;
+        virtual void OnImGuiRenderPostSceneUpdate() {};
+        virtual void OnImGuiRender() {};
         virtual nlohmann::json Serialize();
         virtual void Deserialize(const nlohmann::json& elem);
 

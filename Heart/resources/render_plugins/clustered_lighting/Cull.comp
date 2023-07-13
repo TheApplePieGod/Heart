@@ -1,0 +1,97 @@
+#version 460
+
+#define FRAME_BUFFER_BINDING 0
+#define FRAME_BUFFER_SET 0
+#include "../frame_data/FrameBuffer.glsl"
+
+#define LIGHT_BUFFER_BINDING 1
+#define LIGHT_BUFFER_SET 0
+#include "../lighting_data/LightingBuffer.glsl"
+
+#define CLUSTER_BUFFER_BINDING 2
+#define CLUSTER_LIGHT_INDICES_BINDING 3
+#define CLUSTER_LIGHT_GRID_BINDING 4
+#define CLUSTER_BUFFER_SET 0
+#define CLUSTER_BUFFER_WRITE
+#include "ClusterBuffer.glsl"
+
+#include "Common.glsl"
+#include "../util/Misc.glsl"
+
+layout(local_size_x = GROUP_X, local_size_y = GROUP_Y, local_size_z = GROUP_Z) in;
+
+layout(binding = 5) buffer BuildData {
+    uint clusterIndex;
+} buildData;
+
+shared Light lights[GROUP_SIZE];
+
+#define MAX_LIGHTS_PER_CLUSTER 100
+
+bool LightIntersectsCluster(inout Light light, inout Cluster cluster)
+{
+    if (light.lightType == LIGHT_DIRECTIONAL)
+        return true;
+    if (light.lightType == 0)
+        return false;
+
+    vec3 closest = max(cluster.minBounds.xyz, min(light.position.xyz, cluster.maxBounds.xyz));
+    vec3 dist = closest - light.position.xyz;
+    return dot(dist, dist) <= (light.radius * light.radius);
+}
+
+// https://github.com/pezcode/Cluster
+void main()
+{
+    // Reset build data
+    if (gl_GlobalInvocationID.xyz == uvec3(0))
+        buildData.clusterIndex = 0;
+
+    barrier();
+
+    uint visibleLights[MAX_LIGHTS_PER_CLUSTER];
+    uint visibleCount = 0;
+
+    uint clusterIndex = gl_GlobalInvocationID.z * gl_WorkGroupSize.x * gl_WorkGroupSize.y +
+                        gl_GlobalInvocationID.y * gl_WorkGroupSize.x +
+                        gl_GlobalInvocationID.x;
+
+    Cluster cluster = GET_CLUSTER(clusterIndex);
+    
+    uint lightCount = GET_LIGHT_COUNT();
+    uint lightOffset = 0;
+    while (lightOffset < lightCount)
+    {
+        uint batchSize = min(GROUP_SIZE, lightCount - lightOffset);
+
+        if (uint(gl_LocalInvocationIndex) < batchSize)
+        {
+            uint lightIndex = lightOffset + gl_LocalInvocationIndex;
+            Light light = GET_LIGHT(lightIndex + 1);
+            if (light.lightType > LIGHT_DIRECTIONAL)
+                light.position = frameBuffer.data.view * vec4(light.position.xyz, 1.0);
+            lights[gl_LocalInvocationIndex] = light;
+        }
+
+        barrier();
+
+        for (uint i = 0; i < batchSize; i++)
+        {
+            if (visibleCount < MAX_LIGHTS_PER_CLUSTER && LightIntersectsCluster(lights[i], cluster))
+            {
+                visibleLights[visibleCount] = lightOffset + i;
+                visibleCount++;
+            }
+        }
+
+        lightOffset += batchSize;
+    }
+
+    barrier();
+
+    uint offset = atomicAdd(buildData.clusterIndex, visibleCount);
+    for (uint i = 0; i < visibleCount; i++)
+        GET_CLUSTER_LIGHT_INDEX(offset + i) = visibleLights[i];
+
+    GET_CLUSTER_LIGHT_GRID(clusterIndex) = vec4(offset, visibleCount, 0, 0);
+}

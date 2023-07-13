@@ -3,7 +3,6 @@
 
 #include "HeartEditor/Editor.h"
 #include "HeartEditor/EditorApp.h"
-#include "Heart/Renderer/Texture.h"
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/TextureAsset.h"
 #include "Heart/Asset/MaterialAsset.h"
@@ -24,7 +23,7 @@ namespace Widgets
         ScanDirectory();
     }
 
-    void ContentBrowser::OnImGuiRender()
+    void ContentBrowser::OnImGuiRenderPostSceneUpdate()
     {
         HE_PROFILE_FUNCTION();
 
@@ -51,6 +50,14 @@ namespace Widgets
         ImGui::PopStyleVar();
     }
 
+    void ContentBrowser::Reset()
+    {
+        m_DirectoryStack = { "" };
+        m_DirectoryStackIndex = 0;
+        
+        ScanDirectory();
+    }
+
     void ContentBrowser::ScanDirectory()
     {
         if (Heart::AssetManager::GetAssetsDirectory().IsEmpty())
@@ -70,10 +77,12 @@ namespace Widgets
             {
                 // Root (exclude unnecessary folders)
                 Heart::HString filename = entry.path().filename().generic_u8string();
-                if (isRoot && (
+                if ((isRoot && (
                     filename == ".vs" ||
                     filename == "bin" ||
                     filename == "obj"
+                )) || (
+                    filename == ".DS_Store"
                 ))
                     continue;
                 m_DirectoryList.Add(entry);
@@ -111,9 +120,10 @@ namespace Widgets
         Heart::HVector<std::filesystem::directory_entry> directories;
         try
         {
-            for (const auto& entry : std::filesystem::directory_iterator(absolutePath))
-                if (entry.is_directory())
-                    directories.Add(entry);
+            if (!absolutePath.empty())
+                for (const auto& entry : std::filesystem::directory_iterator(absolutePath))
+                    if (entry.is_directory())
+                        directories.Add(entry);
         }
         catch (std::exception e) // likely invalid path so cut off this node
         { return; }
@@ -132,7 +142,13 @@ namespace Widgets
         if (open)
         {
             for (auto& entry : directories)
-                RenderDirectoryNode(entry.path().generic_u8string(), depth + 1);
+            {
+                // Pass in relative path
+                RenderDirectoryNode(
+                    entry.path().lexically_relative(Heart::AssetManager::GetAssetsDirectory().Data()).generic_u8string(),
+                    depth + 1
+                );
+            }
             ImGui::TreePop();
         }
     }
@@ -200,6 +216,9 @@ namespace Widgets
         }
         ImGui::PopStyleVar();
 
+        if (!m_CardHovered && m_Hovered && ImGui::IsMouseReleased(1))
+            ImGui::OpenPopup("CreatePopup");
+
         // Size-aware file list (TODO: redo this)
         ImGui::BeginChild("cbfileslist", ImVec2(m_WindowSizes.y, ImGui::GetContentRegionAvail().y));
         f32 currentExtent = 999999.f; // to prevent SameLine spacing in first row
@@ -217,9 +236,7 @@ namespace Widgets
             currentExtent += m_CardSize.x;
         }
         ImGui::EndChild();
-
-        if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(1))
-            ImGui::OpenPopup("CreatePopup");
+        m_Hovered = ImGui::IsItemHovered();
     }
 
     void ContentBrowser::RenderFileCard(const std::filesystem::directory_entry& entry)
@@ -255,7 +272,8 @@ namespace Widgets
         FileTransferDropTarget(entry);
 
         // If the card is clicked
-        if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0))
+        m_CardHovered = ImGui::IsItemHovered();
+        if (m_CardHovered && ImGui::IsMouseDoubleClicked(0))
         {
             if (entry.is_directory())
             {
@@ -313,7 +331,7 @@ namespace Widgets
             ImGui::EndPopup();
         }
 
-        auto deletePopupId = Heart::HStringView8("Delete##") + entryName;
+        auto deletePopupId = Heart::HStringView8("Delete##") + Heart::HStringView8(entryName);
         if (deleteDialogOpen)
             ImGui::OpenPopup(deletePopupId.Data());
         ImVec2 center = ImGui::GetMainViewport()->GetCenter();
@@ -350,7 +368,7 @@ namespace Widgets
 
             // Render the input box
             Heart::HStringView8 id = "##Rename";
-            Heart::ImGuiUtils::InputText((id + entryName).Data(), m_Rename);
+            Heart::ImGuiUtils::InputText((id + Heart::HStringView8(entryName)).Data(), m_Rename);
             if (m_ShouldRename)
                 ImGui::SetKeyboardFocusHere(-1);
 

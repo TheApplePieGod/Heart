@@ -4,6 +4,7 @@
 #include "Heart/Core/Timing.h"
 #include "Heart/Core/Timestep.h"
 #include "Heart/Scene/Scene.h"
+#include "Heart/Scene/Entity.h"
 #include "Heart/Container/HArray.h"
 #include "Heart/Util/FilesystemUtils.h"
 #include "Heart/Util/PlatformUtils.h"
@@ -27,7 +28,7 @@ namespace Heart
     hostfxr_close_fn s_CloseFunc;
     void* s_HostFXRHandle;
 
-    using InitializeFn = bool (*)(void*, ManagedCallbacks*);
+    using InitializeFn = bool (*)(void*, BridgeManagedCallbacks*);
 
     #ifdef HE_PLATFORM_WINDOWS
         #define HOSTFXR_STR(str) L##str
@@ -39,8 +40,13 @@ namespace Heart
 
     bool LoadHostFXR()
     {
-        char hostfxrName[100];
-        sprintf(hostfxrName, "hostfxr%s", PlatformUtils::GetDynamicLibraryExtension());
+        #ifdef HE_PLATFORM_WINDOWS
+        const char* hostfxrName = "scripting/hostfxr.dll";
+        #elif defined(HE_PLATFORM_MACOS)
+        const char* hostfxrName = "scripting/libhostfxr.dylib";
+        #else
+        const char* hostfxrName = "scripting/hostfxr.so";
+        #endif
 
         s_HostFXRHandle = PlatformUtils::LoadDynamicLibrary(hostfxrName);
         if (!s_HostFXRHandle) return false; 
@@ -89,8 +95,15 @@ namespace Heart
 
     void InitHostFXRWithConfig(const char_t* configPath, load_assembly_and_get_function_pointer_fn& outLoadAssemblyFunc)
     {
+        // TODO: this is mid, but we don't need to mess around with this on windows and allegedly
+        // the macos dotnet is always installed in the same location
+        hostfxr_initialize_parameters params{};
+        #ifdef HE_PLATFORM_MACOS
+        params.dotnet_root = "/usr/local/share/dotnet";
+        #endif
+
         hostfxr_handle ctx = nullptr;
-        int rc = s_ConfigInitFunc(configPath, nullptr, &ctx);
+        int rc = s_ConfigInitFunc(configPath, &params, &ctx);
         if (rc != 0 || !ctx)
         {
             s_CloseFunc(ctx);
@@ -114,17 +127,17 @@ namespace Heart
 
         load_assembly_and_get_function_pointer_fn loadAssemblyWithPtrFunc;
         #ifdef HE_DIST
-            InitHostFXRForCmdline(HOSTFXR_STR("scripting/CoreScripts.dll"), loadAssemblyWithPtrFunc);
+            InitHostFXRForCmdline(HOSTFXR_STR("scripting/BridgeScripts.dll"), loadAssemblyWithPtrFunc);
         #else
-            InitHostFXRWithConfig(HOSTFXR_STR("scripting/CoreScripts.runtimeconfig.json"), loadAssemblyWithPtrFunc);
+            InitHostFXRWithConfig(HOSTFXR_STR("scripting/BridgeScripts.runtimeconfig.json"), loadAssemblyWithPtrFunc);
         #endif
         HE_ENGINE_ASSERT(loadAssemblyWithPtrFunc, "Failed to initialize hostfxr with config");
         HE_ENGINE_LOG_DEBUG(".NET hostfxr initialized");
 
         InitializeFn initFunc = nullptr;
         int rc = loadAssemblyWithPtrFunc(
-            HOSTFXR_STR("scripting/CoreScripts.dll"),
-            HOSTFXR_STR("Heart.EntryPoint, CoreScripts"),
+            HOSTFXR_STR("scripting/BridgeScripts.dll"),
+            HOSTFXR_STR("BridgeScripts.EntryPoint, BridgeScripts"),
             HOSTFXR_STR("Initialize"),
             UNMANAGEDCALLERSONLY_METHOD,
             nullptr,
@@ -132,8 +145,13 @@ namespace Heart
         );
         HE_ENGINE_ASSERT(rc == 0, "Failed to load scripting entrypoint func");
 
-        bool res = initFunc(PlatformUtils::GetCurrentModuleHandle(), &s_CoreCallbacks);
-        HE_ENGINE_ASSERT(res, "Failed to initialize core scripts");
+        bool res = initFunc(PlatformUtils::GetCurrentModuleHandle(), &s_BridgeCallbacks);
+        HE_ENGINE_ASSERT(res, "Failed to initialize bridge scripts");
+
+        res = s_BridgeCallbacks.EntryPoint_LoadCorePlugin(&s_CoreCallbacks);
+        HE_ENGINE_ASSERT(res, "Failed to load core plugin");
+
+        HE_ENGINE_LOG_DEBUG("Scripts ready");
     }
 
     void ScriptingEngine::Shutdown()
@@ -155,24 +173,26 @@ namespace Heart
             if (!res) return false;
         }
 
-        HArray outClasses;
-        bool res = s_CoreCallbacks.EntryPoint_LoadClientPlugin(absolutePath.Data(), &outClasses);
-        if (res)
+        bool res = s_BridgeCallbacks.EntryPoint_LoadClientPlugin(absolutePath.Data());
+        if (!res)
         {
-            // Populate local array
-            for (u32 i = 0; i < outClasses.Count(); i++)
-            {
-                auto convertedString = outClasses[i].String().Convert(HString::Encoding::UTF8);
-                s_InstantiableClasses[convertedString] = ScriptClass(convertedString);
-            }
-
-            HE_ENGINE_LOG_INFO("Client plugin successfully loaded");
-            s_ClientPluginLoaded = true;
-            return true;
+            HE_ENGINE_LOG_ERROR("Failed to load client plugin");
+            return false;
         }
 
-        HE_ENGINE_LOG_ERROR("Failed to load client plugin");
-        return false;
+        HArray outClasses;
+        s_CoreCallbacks.PluginReflection_GetClientInstantiableClasses(&outClasses);
+
+        // Populate local array
+        for (u32 i = 0; i < outClasses.Count(); i++)
+        {
+            auto convertedString = outClasses[i].String().Convert(HString::Encoding::UTF8);
+            s_InstantiableClasses[convertedString] = ScriptClass(convertedString);
+        }
+
+        HE_ENGINE_LOG_INFO("Client plugin successfully loaded");
+        s_ClientPluginLoaded = true;
+        return true;
     }
 
     bool ScriptingEngine::UnloadClientPlugin()
@@ -181,23 +201,56 @@ namespace Heart
 
         s_InstantiableClasses.clear();
 
-        bool res = s_CoreCallbacks.EntryPoint_UnloadClientPlugin();
-        if (res)
+        bool res = s_BridgeCallbacks.EntryPoint_UnloadClientPlugin();
+        if (!res)
         {
-            HE_ENGINE_LOG_INFO("Client plugin successfully unloaded");
-            s_ClientPluginLoaded = false;
-            return true;
+            HE_ENGINE_LOG_ERROR("Failed to unload client plugin");
+            return false;
         }
 
-        HE_ENGINE_LOG_ERROR("Failed to unload client plugin");
-        return false;
+        HE_ENGINE_LOG_INFO("Client plugin successfully unloaded");
+        s_ClientPluginLoaded = false;
+        return true;
+    }
+
+    bool ScriptingEngine::ReloadCorePlugin()
+    {
+        auto timer = Timer("Core plugin reload"); 
+
+        bool res = UnloadClientPlugin();
+        if (!res)
+        {
+            HE_ENGINE_LOG_ERROR("Failed to unload client plugin while reloading core plugin");
+            return false;
+        }
+
+        res = s_BridgeCallbacks.EntryPoint_UnloadCorePlugin();
+        if (!res)
+        {
+            HE_ENGINE_LOG_ERROR("Failed to unload core plugin while reloading");
+            return false;
+        }
+
+        res = s_BridgeCallbacks.EntryPoint_LoadCorePlugin(&s_CoreCallbacks);
+        if (!res)
+        {
+            HE_ENGINE_LOG_ERROR("Failed to load core plugin while reloading");
+            return false;
+        }
+
+        HE_ENGINE_LOG_INFO("Core plugin successfully reloaded");
+        return true;
     }
 
     uptr ScriptingEngine::InstantiateObject(const HString& type, u32 entityHandle, Scene* sceneHandle)
     {
         HE_PROFILE_FUNCTION();
 
-        return (uptr)s_CoreCallbacks.ManagedObject_InstantiateClientScriptEntity(&type, entityHandle, sceneHandle);
+        uptr result = (uptr)s_CoreCallbacks.ManagedObject_InstantiateClientScriptEntity(&type, entityHandle, sceneHandle);
+        if (result == 0)
+            HE_ENGINE_LOG_ERROR("Failed to instantiate class '{0}'", type.ToUTF8().Data());
+        
+        return result;
     }
 
     void ScriptingEngine::DestroyObject(uptr handle)
@@ -221,6 +274,20 @@ namespace Heart
         s_CoreCallbacks.ScriptEntity_CallOnUpdate(entity, timestep.StepMilliseconds());
     }
 
+    void ScriptingEngine::InvokeEntityOnCollisionStarted(uptr entity, Entity other)
+    {
+        HE_PROFILE_FUNCTION();
+
+        s_CoreCallbacks.ScriptEntity_CallOnCollisionStarted(entity, (u32)other.GetHandle(), other.GetScene());
+    }
+
+    void ScriptingEngine::InvokeEntityOnCollisionEnded(uptr entity, Entity other)
+    {
+        HE_PROFILE_FUNCTION();
+
+        s_CoreCallbacks.ScriptEntity_CallOnCollisionEnded(entity, (u32)other.GetHandle(), other.GetScene());
+    }
+
     Variant ScriptingEngine::GetFieldValue(uptr entity, const HString& fieldName)
     {
         HE_PROFILE_FUNCTION();
@@ -230,10 +297,10 @@ namespace Heart
         return variant;
     }
 
-    bool ScriptingEngine::SetFieldValue(uptr entity, const HString& fieldName, const Variant& value)
+    bool ScriptingEngine::SetFieldValue(uptr entity, const HString& fieldName, const Variant& value, bool invokeCallback)
     {
         HE_PROFILE_FUNCTION();
 
-        return s_CoreCallbacks.ManagedObject_SetFieldValue(entity, &fieldName, value);
+        return s_CoreCallbacks.ManagedObject_SetFieldValue(entity, &fieldName, value, invokeCallback);
     }
 }

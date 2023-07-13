@@ -3,7 +3,7 @@
 
 #include "Heart/Core/App.h"
 #include "Heart/Core/Timing.h"
-#include <future>
+#include "Heart/Task/TaskManager.h"
 
 namespace Heart
 {
@@ -23,15 +23,18 @@ namespace Heart
         else
             HE_ENGINE_LOG_INFO("Assets directory not specified, skipping registration");
 
-
         s_Initialized = true;
-        s_AssetThread = std::thread(&AssetManager::ProcessQueue);
+
+        HE_ENGINE_LOG_DEBUG("Asset manager ready");
     }
 
     void AssetManager::Shutdown()
     {
         s_Initialized = false;
-        s_AssetThread.join();
+
+        // Wait for tasks to finish
+        while (s_AsyncLoadsInProgress)
+        { std::this_thread::sleep_for(std::chrono::milliseconds(1)); }
 
         // cleanup assets
         for (auto& pair : s_Registry)
@@ -42,10 +45,12 @@ namespace Heart
             pair.second.Asset.reset();
     }
 
+    // TODO: this could probably be a task
     void AssetManager::OnUpdate()
     {
+        HE_PROFILE_FUNCTION();
+
         // Check to see if assets should be unloaded
-        u64 loadLimit = 1000;
         for (auto& pair : s_UUIDs)
         {
             auto& uuidEntry = pair.second;
@@ -53,51 +58,28 @@ namespace Heart
 
             if (entry.Persistent) continue;
 
-            if (App::Get().GetFrameCount() > entry.LoadedFrame + loadLimit)
+            if (App::Get().GetFrameCount() > entry.LoadedFrame + s_AssetFrameLimit)
             {
-                HE_ENGINE_LOG_TRACE(
-                    "Unloading {0} @ {1}",
-                    uuidEntry.IsResource ? "resource" : "asset", 
-                    entry.Asset->GetPath().Data()
-                );
-                PushOperation({ false, pair.first });
-            }
-        }
-    }
+                entry.LoadedFrame = std::numeric_limits<u64>::max() - s_AssetFrameLimit; // prevent extraneous unloading
 
-    void AssetManager::ProcessQueue()
-    {
-        while (s_Initialized)
-        {
-            while (!s_OperationQueue.empty())
-            {
-                s_QueueLock.lock();
-                auto operation = s_OperationQueue.front();
-                s_OperationQueue.pop();
-                s_QueueLock.unlock();
-                
-                if (s_UUIDs.find(operation.Asset) != s_UUIDs.end())
+                UUID uuid = pair.first;
+                s_AsyncLoadsInProgress++;
+                TaskManager::Schedule([uuid]()
                 {
-                    auto& uuidEntry = s_UUIDs[operation.Asset];
+                    auto& uuidEntry = s_UUIDs[uuid];
                     auto& entry = uuidEntry.IsResource ? s_Resources[uuidEntry.Path] : s_Registry[uuidEntry.Path];
 
-                    if (operation.Load)
-                        LoadAsset(entry, true);
-                    else
-                        UnloadAsset(entry);
-                }
+                    HE_ENGINE_LOG_TRACE(
+                        "Unloading {0} @ {1}",
+                        uuidEntry.IsResource ? "resource" : "asset", 
+                        entry.Asset->GetPath().Data()
+                    );
+                
+                    UnloadAsset(entry, true);
+                    s_AsyncLoadsInProgress--;
+                }, Task::Priority::Low, "Unload asset");
             }
-
-            if (s_Initialized)
-                std::this_thread::sleep_for(std::chrono::milliseconds(50));
         }
-    }
-
-    void AssetManager::PushOperation(const LoadOperation& operation)
-    {
-        s_QueueLock.lock();
-        s_OperationQueue.push(operation);
-        s_QueueLock.unlock();
     }
 
     void AssetManager::UnloadAllAssets()
@@ -114,14 +96,14 @@ namespace Heart
 
     void AssetManager::LoadAsset(AssetEntry& entry, bool async)
     {
-        entry.Asset->Load(async);
         entry.LoadedFrame = App::Get().GetFrameCount();
+        entry.Asset->Load(async);
     }
     
     void AssetManager::UnloadAsset(AssetEntry& entry, bool async)
     {
-        entry.Asset->Unload();
         entry.LoadedFrame = std::numeric_limits<u64>::max() - s_AssetFrameLimit; // prevent extraneous unloading
+        entry.Asset->Unload();
     }
 
     UUID AssetManager::RegisterAsset(Asset::Type type, const HStringView8& path, bool persistent, bool isResource)
@@ -246,6 +228,10 @@ namespace Heart
 
     void AssetManager::UpdateAssetsDirectory(const HStringView8& directory)
     {
+        // Wait for tasks to finish
+        while (s_AsyncLoadsInProgress)
+        { std::this_thread::sleep_for(std::chrono::milliseconds(1)); }
+
         UnloadAllAssets();
         s_AssetsDirectory = directory;
 
@@ -273,16 +259,21 @@ namespace Heart
         std::transform(extension.begin(), extension.end(), extension.begin(), [](unsigned char c) { return std::tolower(c); });
         
         Asset::Type type = Asset::Type::None;
-        if (extension == ".png" || extension == ".jpg" || extension == ".bmp" || extension == ".hdr") // textures
+        if (extension == ".png" || extension == ".jpg" || extension == ".bmp" ||
+            extension == ".hdr" || extension == ".tiff" || extension == ".tif") // textures
             type = Asset::Type::Texture;
         else if (extension == ".gltf")
             type = Asset::Type::Mesh;
-        else if (extension == ".vert" || extension == ".frag" || extension == ".comp")
+        else if (extension == ".vert" || extension == ".frag" || extension == ".comp" ||
+                 extension == ".rgen" || extension == ".rmiss" || extension == ".rchit" ||
+                 extension == ".rint" || extension == ".rahit")
             type = Asset::Type::Shader;
         else if (extension == ".hemat")
             type = Asset::Type::Material;
         else if (extension == ".hescn")
             type = Asset::Type::Scene;
+        else if (extension == ".ttf" || extension == ".otf")
+            type = Asset::Type::Font;
 
         return type;
     }
@@ -308,7 +299,33 @@ namespace Heart
         return s_UUIDs[uuid].IsResource;
     }
 
-    Asset* AssetManager::RetrieveAsset(const HStringView8& path, bool isResource)
+    void AssetManager::QueueLoad(AssetEntry& entry, bool async)
+    {
+        // Ensure that we only load if the asset is unloaded and a task hasn't been started (i.e. when the loaded frame is this value)
+        if (entry.LoadedFrame == std::numeric_limits<u64>::max() - s_AssetFrameLimit)
+        {
+            if (async)
+            {
+                s_AsyncLoadsInProgress++;
+                TaskManager::Schedule([&entry]()
+                {
+                    LoadAsset(entry, true);
+                    s_AsyncLoadsInProgress--;
+                }, Task::Priority::Medium, "Load asset");
+            }
+            else
+                LoadAsset(entry);
+        }
+        else if (!async)
+        {
+            // Until we do the refactor, we need to wait until the asset is fully loaded
+            while (!entry.Asset->IsLoaded()) {}
+        }
+
+        entry.LoadedFrame = App::Get().GetFrameCount();
+    }
+
+    Asset* AssetManager::RetrieveAsset(const HStringView8& path, bool isResource, bool load, bool async)
     {
         if (path.IsEmpty()) return nullptr;
         if (isResource)
@@ -317,11 +334,13 @@ namespace Heart
         { if (s_Registry.find(path) == s_Registry.end()) return nullptr; }
 
         auto& entry = isResource ? s_Resources[path] : s_Registry[path];
-        LoadAsset(entry);
+        if (load)
+            QueueLoad(entry, async);
+
         return entry.Asset.get();
     }
 
-    Asset* AssetManager::RetrieveAsset(UUID uuid, bool async)
+    Asset* AssetManager::RetrieveAsset(UUID uuid, bool load, bool async)
     {
         HE_PROFILE_FUNCTION();
 
@@ -331,14 +350,9 @@ namespace Heart
         auto& uuidEntry = s_UUIDs[uuid];
         auto& entry = uuidEntry.IsResource ? s_Resources[uuidEntry.Path] : s_Registry[uuidEntry.Path];
 
-        if (!entry.Asset->IsLoading())
-        {
-            if (async)
-                PushOperation({ true, uuid });
-            else
-                LoadAsset(entry);
-        }
-
+        if (load)
+            QueueLoad(entry, async);
+            
         return entry.Asset.get();
     }
 }

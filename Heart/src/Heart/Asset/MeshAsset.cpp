@@ -5,7 +5,6 @@
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/MaterialAsset.h"
 #include "Heart/Asset/TextureAsset.h"
-#include "Heart/Renderer/Texture.h"
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtx/quaternion.hpp"
@@ -16,6 +15,8 @@ namespace Heart
     void MeshAsset::Load(bool async)
     {
         HE_PROFILE_FUNCTION();
+
+        const std::lock_guard<std::mutex> lock(m_LoadLock);
         
         if (m_Loaded || m_Loading) return;
         m_Loading = true;
@@ -48,10 +49,10 @@ namespace Heart
     void MeshAsset::Unload()
     {
         if (!m_Loaded) return;
-
-        m_Submeshes.Clear();
-        m_DefaultMaterials.Clear();
         m_Loaded = false;
+
+        m_Submeshes.Clear(true);
+        m_DefaultMaterials.Clear(true);
         m_Valid = false;
     }
 
@@ -66,7 +67,7 @@ namespace Heart
             HString8 uri = buffer["uri"];
             if (uri.Find("base64") != HString8::InvalidIndex)
             {
-                HString8 base64 = uri.Substr(uri.Find(',') + 1);
+                HStringView8 base64 = uri.Substr(uri.Find(',') + 1);
                 buffers.AddInPlace(Base64Decode(base64));
             }
             else if (uri.Find(".bin") != HString8::InvalidIndex)
@@ -74,6 +75,11 @@ namespace Heart
                 u32 fileLength;
                 HString8 binPath = std::filesystem::path(m_AbsolutePath.Data()).parent_path().append(uri.Data()).generic_u8string();
                 unsigned char* bin = FilesystemUtils::ReadFile(binPath, fileLength);
+                if (!bin)
+                {
+                    HE_ENGINE_LOG_ERROR("GLTF mesh missing .bin file");
+                    throw std::exception();
+                }
                 buffers.AddInPlace();
                 buffers.Back().CopyFrom(bin, bin + fileLength);
                 delete[] bin;
@@ -203,6 +209,9 @@ namespace Heart
                 }
                 if (material.contains("emissiveFactor"))
                     parsingMaterial.m_MaterialData.SetEmissiveFactor({ material["emissiveFactor"][0], material["emissiveFactor"][1], material["emissiveFactor"][2], 0.f });
+
+                if (material.contains("alphaCutoff"))
+                    parsingMaterial.m_MaterialData.SetAlphaClipThreshold(material["alphaCutoff"]);
 
                 m_DefaultMaterials.AddInPlace(parsingMaterial);
                 materialIndex++;

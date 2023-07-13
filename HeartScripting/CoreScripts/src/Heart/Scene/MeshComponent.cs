@@ -93,7 +93,7 @@ namespace Heart.Scene
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe void AddMaterial(ulong material)
+        public unsafe void AddMaterial(UUID material)
         {
             Native_MeshComponent_AddMaterial(_entityHandle, _sceneHandle, material);
         }
@@ -123,7 +123,7 @@ namespace Heart.Scene
         internal static extern void Native_MeshComponent_Remove(uint entityHandle, IntPtr sceneHandle);
 
         [DllImport("__Internal")]
-        internal static extern void Native_MeshComponent_AddMaterial(uint entityHandle, IntPtr sceneHandle, ulong material);
+        internal static extern void Native_MeshComponent_AddMaterial(uint entityHandle, IntPtr sceneHandle, UUID material);
 
         [DllImport("__Internal")]
         internal static extern void Native_MeshComponent_RemoveMaterial(uint entityHandle, IntPtr sceneHandle, uint index);

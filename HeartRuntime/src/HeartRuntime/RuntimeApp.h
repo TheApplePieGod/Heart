@@ -7,7 +7,7 @@ namespace HeartRuntime
     class RuntimeApp : public Heart::App
     {
     public:
-        RuntimeApp();
+        RuntimeApp(const std::filesystem::path& projectPath);
         ~RuntimeApp() = default;
 
     private:

@@ -2,7 +2,6 @@
 
 #include "Heart/Core/Timestep.h"
 #include "Heart/Events/EventEmitter.h"
-#include "Heart/Renderer/Renderer.h"
 #include "Heart/Container/HString8.h"
 #include "Heart/Container/HVector.hpp"
 
@@ -35,16 +34,6 @@ namespace Heart
          * @param layer The layer to push. 
          */
         void PushLayer(const Ref<Layer>& layer);
-        
-        /**
-         * @brief Switch the graphics api that is currently being used by the engine. 
-         *
-         * This can be called whenever during the frame because the switch happens
-         * at the end of the frame.
-         *  
-         * @param type The new api type to switch to.
-         */
-        void SwitchGraphicsApi(RenderApi::Type type);
         
         /**
          * @brief Switch the root assets directory that is currently being used by the engine.
@@ -90,27 +79,30 @@ namespace Heart
         /*! @brief Get the timestamp for the last frame */
         inline Timestep GetLastTimestep() const { return m_LastTimestep; }
 
+        /*! @brief Get the average timestamp from the last 5 frames */
+        inline Timestep GetAveragedTimestep() const { return m_AveragedTimestep; }
+
     protected:
         HVector<Ref<Layer>> m_Layers;
         Ref<ImGuiInstance> m_ImGuiInstance;
         Ref<Window> m_Window;
         bool m_Running = true;
         bool m_Minimized = false;
-        u64 m_FrameCount = 0;
+        u64 m_FrameCount = 1;
         double m_LastFrameTime = 0.0;
+        std::array<double, 5> m_TimestepSamples;
+        Timestep m_AveragedTimestep;
         Timestep m_LastTimestep;
 
     private:
-        void InitializeGraphicsApi(RenderApi::Type type, const WindowCreateInfo& windowCreateInfo);
+        void InitializeGraphicsApi(const WindowCreateInfo& windowCreateInfo);
         void ShutdownGraphicsApi();
-        void CheckForGraphicsApiSwitch();
         void CheckForAssetsDirectorySwitch();
         void OnEvent(Event& event) override;
         bool OnWindowResize(WindowResizeEvent& event);
         bool OnWindowClose(WindowCloseEvent& event);
 
     private:
-        RenderApi::Type m_SwitchingApi = RenderApi::Type::None;
         HString8 m_SwitchingAssetsDirectory = "";
 
     private:

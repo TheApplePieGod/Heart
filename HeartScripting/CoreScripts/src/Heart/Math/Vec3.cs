@@ -13,45 +13,37 @@ namespace Heart.Math
 
     public class Vec3
     {
-        private float _x, _y, _z = 0.0F;
+        internal Vec3Internal _internal;
+
+        public Vec3()
+        {
+            _internal.X = 0.0f;
+            _internal.Y = 0.0f;
+            _internal.Z = 0.0f;
+        }
 
         public Vec3(float x, float y, float z)
         {
-            _x = x;
-            _y = y;
-            _z = z;
+            _internal.X = x;
+            _internal.Y = y;
+            _internal.Z = z;
         }
 
         public Vec3(Vec3 other)
         {
-            _x = other._x;
-            _y = other._y;
-            _z = other._z;
+            _internal = other._internal;
         }
 
         internal Vec3(Vec3Internal other)
         {
-            _x = other.X;
-            _y = other.Y;
-            _z = other.Z;
+            _internal = other;
         }
 
         internal Vec3(Vec4Internal other)
         {
-            _x = other.X;
-            _y = other.Y;
-            _z = other.Z;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal Vec3Internal ToVec3Internal()
-        {
-            return new Vec3Internal
-            {
-                X = _x,
-                Y = _y,
-                Z = _z
-            };
+            _internal.X = other.X;
+            _internal.Y = other.Y;
+            _internal.Z = other.Z;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -59,37 +51,49 @@ namespace Heart.Math
         {
             return new Vec4Internal
             {
-                X = _x,
-                Y = _y,
-                Z = _z,
+                X = _internal.X,
+                Y = _internal.Y,
+                Z = _internal.Z,
                 W = w
             };
+        }
+        
+        public float Dot(Vec3 other)
+            => _internal.X * other.X + _internal.Y * other.Y + _internal.Z * other.Z;
+        
+        public float GetMagnitude()
+            => System.MathF.Sqrt(_internal.X * _internal.X + _internal.Y * _internal.Y + _internal.Z * _internal.Z);
+        
+        public Vec3 Normalize()
+        {
+            float mag = GetMagnitude();
+            return new Vec3(_internal.X / mag, _internal.Y / mag, _internal.Z / mag);
         }
 
         public float X
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => _x;
+            get => _internal.X;
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            set => _x = value;
+            set => _internal.X = value;
         }
 
         public float Y
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => _y;
+            get => _internal.Y;
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            set => _y = value;
+            set => _internal.Y = value;
         }
 
         public float Z
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => _z;
+            get => _internal.Z;
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            set => _z = value;
+            set => _internal.Z = value;
         }
-
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vec3 operator -(Vec3 a)
             => new Vec3(-a.X, -a.Y, -a.Z);
@@ -125,5 +129,38 @@ namespace Heart.Math
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vec3 operator /(Vec3 a, float b)
             => new Vec3(a.X / b, a.Y / b, a.Z / b);
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public override bool Equals(object other)
+            => Equals(other as Vec3);
+
+        public bool Equals(Vec3 other)
+        {
+            if (other == null) return false;
+            if (object.ReferenceEquals(this, other)) return true;
+            return (
+                _internal.X == other.X &&
+                _internal.Y == other.Y &&
+                _internal.Z == other.Z
+            );
+        }
+        
+        public override int GetHashCode()
+            => base.GetHashCode();
+
+        public static bool operator ==(Vec3 a, Vec3 b)
+        {
+            if (object.ReferenceEquals(a, b)) return true;
+            if ((object)a == null || (object)b == null) return false;
+            return (
+                a.X == b.X &&
+                a.Y == b.Y &&
+                a.Z == b.Z
+            );
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool operator !=(Vec3 a, Vec3 b)
+            => !(a == b);
     }
 }

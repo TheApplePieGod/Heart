@@ -13,7 +13,7 @@ namespace HeartEditor
 {
 namespace Widgets
 {
-    void ProjectSettings::OnImGuiRender()
+    void ProjectSettings::OnImGuiRenderPostSceneUpdate()
     {
         HE_PROFILE_FUNCTION();
 
@@ -40,9 +40,12 @@ namespace Widgets
             );
             ImGui::EndDisabled();
 
+            // TODO: implement project renaming
             ImGui::Text("Project Name:");
             ImGui::SameLine();
+            ImGui::BeginDisabled();
             Heart::ImGuiUtils::InputText("##ProjName", activeProject->m_Name);
+            ImGui::EndDisabled();
         }
 
         ImGui::End();

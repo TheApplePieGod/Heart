@@ -161,6 +161,10 @@ namespace Heart
         /*! @brief Get the camera's normalized up direction vector. */
         inline glm::vec3 GetUpVector() const { return m_UpVector; }
 
+        inline f32 GetNearClip() const { return m_NearClip; }
+        inline f32 GetFarClip() const { return m_FarClip; }
+        inline f32 GetFOV() const { return m_FOV; }
+
         /**
          * @brief Get the camera's 8 world space frustum corners.
          * 

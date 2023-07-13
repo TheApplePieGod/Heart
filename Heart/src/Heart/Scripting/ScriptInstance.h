@@ -24,12 +24,15 @@ namespace Heart
         void Destroy();
         void Clear();
 
+        void OnConstruct();
         void OnPlayStart();
         void OnPlayEnd();
         void OnUpdate(Timestep ts);
+        void OnCollisionStarted(Entity other);
+        void OnCollisionEnded(Entity other);
 
         Variant GetFieldValue(const HStringView& fieldName) const;
-        bool SetFieldValue(const HStringView& fieldName, const Variant& value);
+        bool SetFieldValue(const HStringView& fieldName, const Variant& value, bool invokeCallback);
 
         nlohmann::json SerializeFieldsToJson();
         void* SerializeFieldsToBinary();
@@ -47,7 +50,7 @@ namespace Heart
 
     private:
         Variant GetFieldValueUnchecked(const HStringView& fieldName) const;
-        bool SetFieldValueUnchecked(const HStringView& fieldName, const Variant& value);
+        bool SetFieldValueUnchecked(const HStringView& fieldName, const Variant& value, bool invokeCallback);
 
     private:
         uptr m_ObjectHandle = 0;

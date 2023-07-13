@@ -4,22 +4,27 @@
 #include "Heart/Core/Layer.h"
 #include "Heart/Core/Window.h"
 #include "Heart/Core/Timing.h"
-#include "Heart/Renderer/Renderer.h"
 #include "Heart/ImGui/ImGuiInstance.h"
+#include "Heart/Physics/PhysicsWorld.h"
 #include "Heart/Events/WindowEvents.h"
-#include "Heart/Events/AppEvents.h"
 #include "Heart/Asset/AssetManager.h"
+#include "Heart/Renderer/Material.h"
 #include "Heart/Scripting/ScriptingEngine.h"
+#include "Heart/Task/TaskManager.h"
+#include "Heart/Task/JobManager.h"
 #include "Heart/Util/PlatformUtils.h"
+#include "Flourish/Api/Context.h"
+#include "Flourish/Api/RenderContext.h"
+#include "Flourish/Core/Log.h"
 
 namespace Heart
 {
     App::App(const HStringView8& windowName)
     {
-        HE_ENGINE_ASSERT(!s_Instance, "App instance already exists");
+        if (s_Instance) return;
         s_Instance = this;
 
-        PlatformUtils::InitializePlatform();
+        Heart::Logger::Initialize(windowName.Data());
 
         Timer timer = Timer("App initialization");
         #ifdef HE_DEBUG
@@ -27,13 +32,32 @@ namespace Heart
         #else
             HE_ENGINE_LOG_INFO("Running Heart in Release mode");
         #endif
-
+        
+        u32 taskThreads = std::thread::hardware_concurrency() - 2;
+        HE_ENGINE_LOG_INFO("Using {0} task & job worker threads", taskThreads);
+        JobManager::Initialize(taskThreads);
+        TaskManager::Initialize(taskThreads);
+        
         WindowCreateInfo windowCreateInfo = WindowCreateInfo(windowName);
-        InitializeGraphicsApi(RenderApi::Type::Vulkan, windowCreateInfo);
+        InitializeGraphicsApi(windowCreateInfo);
+        HE_ENGINE_LOG_DEBUG("Graphics ready");
 
         // Init services
-        AssetManager::Initialize();
-        ScriptingEngine::Initialize();
+        TaskGroup initServices;
+        initServices.AddTask(TaskManager::Schedule(
+            [](){ PhysicsWorld::Initialize(); },
+            Task::Priority::High, "PhysicsWorld Init")
+        );
+        initServices.AddTask(TaskManager::Schedule(
+            [](){ AssetManager::Initialize(); },
+            Task::Priority::High, "AssetManager Init")
+        );
+        initServices.AddTask(TaskManager::Schedule(
+            [](){ ScriptingEngine::Initialize(); },
+            Task::Priority::High, "Scripts Init")
+        );
+        
+        initServices.Wait();
 
         HE_ENGINE_LOG_INFO("App initialized");
     }
@@ -44,8 +68,14 @@ namespace Heart
         ScriptingEngine::Shutdown();
         AssetManager::Shutdown();
 
-        ShutdownGraphicsApi();
+        for (auto layer : m_Layers)
+            layer->OnDetach();
 
+        ShutdownGraphicsApi();
+        
+        TaskManager::Shutdown();
+        JobManager::Shutdown();
+        
         PlatformUtils::ShutdownPlatform();
 
         HE_ENGINE_LOG_INFO("Shutdown complete");
@@ -57,46 +87,47 @@ namespace Heart
         layer->OnAttach();
     }
 
-    void App::SwitchGraphicsApi(RenderApi::Type type)
-    {
-        m_SwitchingApi = type;
-    }
-    
     void App::SwitchAssetsDirectory(const HStringView8& newDirectory)
     {
         m_SwitchingAssetsDirectory = newDirectory;
     }
 
-    void App::InitializeGraphicsApi(RenderApi::Type type, const WindowCreateInfo& windowCreateInfo)
+    void App::InitializeGraphicsApi(const WindowCreateInfo& windowCreateInfo)
     {
-        Renderer::Initialize(type);
+        Flourish::Logger::SetLogFunction([](Flourish::LogLevel level, const char* message)
+        {
+            Logger::GetEngineLogger().log((spdlog::level::level_enum)level, message);
+        });
+
+        Flourish::ContextInitializeInfo initInfo;
+        initInfo.ApplicationName = "Heart";
+        initInfo.Backend = Flourish::BackendType::Vulkan;
+        initInfo.FrameBufferCount = 3;
+        initInfo.UseReversedZBuffer = true;
+        initInfo.RequestedFeatures.IndependentBlend = true;
+        initInfo.RequestedFeatures.SamplerAnisotropy = true;
+        initInfo.RequestedFeatures.RayTracing = false;
+        initInfo.RequestedFeatures.PartiallyBoundResourceSets = true;
+        Flourish::Context::Initialize(initInfo);
 
         m_Window = Window::Create(windowCreateInfo);
         SubscribeToEmitter(&GetWindow());
         Window::SetMainWindow(m_Window);
 
         m_ImGuiInstance = CreateRef<ImGuiInstance>(m_Window);
-
-        AppGraphicsInitEvent event;
-        Emit(event);
     }
 
     void App::ShutdownGraphicsApi()
     {
-        for (auto layer : m_Layers)
-            layer->OnDetach();
-
         UnsubscribeFromEmitter(&GetWindow());
 
-        AppGraphicsShutdownEvent event;
-        Emit(event);
+        Flourish::Context::Shutdown([this]()
+        {
+            m_ImGuiInstance.reset();
 
-        m_ImGuiInstance.reset();
-
-        Renderer::Shutdown();
-
-        Window::SetMainWindow(nullptr);
-        m_Window.reset();
+            Window::SetMainWindow(nullptr);
+            m_Window.reset();
+        });
     }
 
     void App::OnEvent(Event& event)
@@ -114,7 +145,7 @@ namespace Heart
             return false;
         }
 
-        Renderer::OnWindowResize(m_Window->GetContext(), event.GetWidth(), event.GetHeight());
+        // Renderer::OnWindowResize(m_Window->GetContext(), event.GetWidth(), event.GetHeight());
         m_Minimized = false;
 
         return false;
@@ -126,42 +157,11 @@ namespace Heart
         return true;
     }
 
-    void App::CheckForGraphicsApiSwitch()
-    {
-        if (m_SwitchingApi != RenderApi::Type::None)
-        {
-            WindowCreateInfo windowCreateInfo = {
-                m_Window->GetTitle(),
-                m_Window->GetWidth(),
-                m_Window->GetHeight()
-            };
-            bool fullscreen = m_Window->IsFullscreen();
-
-            AssetManager::UnloadAllAssets();
-
-            ShutdownGraphicsApi();
-            AggregateTimer::ClearTimeMap();
-
-            InitializeGraphicsApi(m_SwitchingApi, windowCreateInfo);
-            m_Window->SetFullscreen(fullscreen);
-
-            for (auto layer : m_Layers)
-                layer->OnAttach();
-
-            m_SwitchingApi = RenderApi::Type::None;
-        }
-    }
-
     void App::CheckForAssetsDirectorySwitch()
     {
         if (!m_SwitchingAssetsDirectory.IsEmpty())
         {
             AssetManager::UpdateAssetsDirectory(m_SwitchingAssetsDirectory);
-            
-            // TEMPORARY SOLUTION
-            // Until we have dedicated projects and I figure out what exactly needs to happen when
-            // the assets directory changes, force a full reload on the graphics backend
-            m_SwitchingApi = Renderer::GetApiType();
 
             m_SwitchingAssetsDirectory.Clear();
         }
@@ -191,32 +191,44 @@ namespace Heart
 
             double currentFrameTime = m_Window->GetWindowTime();
             m_LastTimestep = Timestep(currentFrameTime - m_LastFrameTime);
+            m_TimestepSamples[m_FrameCount % 5] = m_LastTimestep.StepMilliseconds();
+            double averaged = 0.0;
+            for (auto sample : m_TimestepSamples)
+                averaged += sample;
+            m_AveragedTimestep = averaged / m_TimestepSamples.size();
             m_LastFrameTime = currentFrameTime;
 
+            auto timer = AggregateTimer("App::Run - PollEvents");
             m_Window->PollEvents();
+            timer.Finish();
 
-            if (m_Minimized)
-                continue;
+            if (!m_Minimized && m_Window->GetRenderContext()->Validate())
+            {
+                // Begin frame
+                timer = AggregateTimer("App::Run - Begin frame");
+                Flourish::Context::BeginFrame();
+                AssetManager::OnUpdate();
+                m_Window->BeginFrame();
+                m_ImGuiInstance->BeginFrame();
+                timer.Finish();
 
-            AssetManager::OnUpdate();
+                // Layer update
+                timer = AggregateTimer("App::Run - Layer update");
+                for (auto layer : m_Layers)
+                    layer->OnUpdate(m_LastTimestep);
+                timer.Finish();
 
-            m_Window->BeginFrame();
+                // End frame
+                timer = AggregateTimer("App::Run - End frame");
+                m_ImGuiInstance->EndFrame();
+                m_Window->EndFrame();
+                Flourish::Context::EndFrame();
+                m_FrameCount++;
+                timer.Finish();
 
-            // Layer update
-            for (auto layer : m_Layers)
-                layer->OnUpdate(m_LastTimestep);
+                CheckForAssetsDirectorySwitch();
+            }
 
-            // ImGui render
-            m_ImGuiInstance->BeginFrame();
-            for (auto layer : m_Layers)
-                layer->OnImGuiRender();
-            m_ImGuiInstance->EndFrame();
-
-            m_Window->EndFrame();
-            m_FrameCount++;
-
-            CheckForAssetsDirectorySwitch();
-            CheckForGraphicsApiSwitch();
             AggregateTimer::EndFrame();
         }
     }

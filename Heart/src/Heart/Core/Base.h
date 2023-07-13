@@ -1,11 +1,16 @@
 #pragma once
 
 #ifdef HE_DEBUG
-	#if defined(HE_PLATFORM_WINDOWS)
+	#if defined(_MSC_VER)
 		#define HE_DEBUGBREAK() __debugbreak()
-	#elif defined(HE_PLATFORM_LINUX)
-		#include <signal.h>
-		#define HE_DEBUGBREAK() raise(SIGTRAP)
+	#elif defined(__clang__)
+		#if __has_builtin(__builtin_debugtrap)
+			#define HE_DEBUGBREAK() __builtin_debugtrap()
+		#else
+			#define HE_DEBUGBREAK() __builtin_trap()
+		#endif
+	#elif defined(__GNUC__)
+		#define HE_DEBUGBREAK() __builtin_trap()
 	#else
 		#error "Platform doesn't support debugbreak yet!"
 	#endif
@@ -29,6 +34,7 @@ using uptr = intptr_t;
 using wchar = wchar_t;
 using char8 = char;
 using char16 = char16_t;
+using byte = unsigned char;
 
 #define HE_ENUM_TO_STRING(class, value) class::TypeStrings[static_cast<u16>(value)]
 #define HE_EXPAND_ARGS(args) args
@@ -36,8 +42,8 @@ using char16 = char16_t;
 #define HE_BIT(x) (1 << x)
 #define HE_PLACEMENT_NEW(ptr, type, ...) new (ptr) type(__VA_ARGS__)
 
-#define Pi32 3.14159265359f
-#define Tau32 6.28318530717958647692f
+#define Pi32 3.141592653f
+#define Tau32 6.283185302f
 #define Kilobytes(Value) ((Value)*1024LL)
 #define Megabytes(Value) (Kilobytes(Value)*1024LL)
 #define Gigabytes(Value) (Megabytes(Value)*1024LL)

@@ -1,0 +1,93 @@
+#version 460
+#extension GL_EXT_ray_tracing : require
+
+#define FRAME_BUFFER_BINDING 0
+#define FRAME_BUFFER_SET 0
+#include "../../frame_data/FrameBuffer.glsl"
+
+#include "Common.glsl"
+#include "../../util/BRDF.glsl"
+#include "../../util/Misc.glsl"
+#include "../util/RayCone.glsl"
+
+layout(binding = 1) uniform accelerationStructureEXT tlas;
+layout(binding = 3, rgba16f) uniform writeonly image2D outImage;
+layout(binding = 4) uniform sampler2D gBuffer2;
+layout(binding = 5) uniform sampler2D gBufferDepth;
+
+layout(location = 0) rayPayloadEXT HitPayload payload;
+
+// TODO: parameterize
+#define MIN_ROUGHNESS_THRESHOLD 0.05
+
+vec3 PerturbNormal(float roughness, vec3 V, vec3 N)
+{
+    HaltonState hstate;
+    HaltonInit(
+        hstate,
+        gl_LaunchIDEXT.xy,
+        constants.haltonData,
+        frameBuffer.data.frameCount
+    );
+
+    /*
+    return ImportanceSampleGGX(
+        vec2(fract(HaltonNext(hstate)), fract(HaltonNext(hstate))),
+        N,
+        roughness
+    );
+    */
+    return ImportanceSampleGGXVNDF(
+        vec2(fract(HaltonNext(hstate)), fract(HaltonNext(hstate))),
+        N, V,
+        roughness
+    );
+}
+
+void main() 
+{
+    ivec2 currentCoord = ivec2(gl_LaunchIDEXT.xy);
+    vec2 texCoord = (vec2(currentCoord) + vec2(0.5)) / vec2(gl_LaunchSizeEXT.xy);
+
+    // Skybox - don't trace ray
+    float depth = texelFetch(gBufferDepth, currentCoord, 0).r;
+    if (depth == 1.0 - float(frameBuffer.data.reverseDepth))
+    {
+        imageStore(outImage, currentCoord, vec4(0.f));
+        return;
+    }
+
+    float roughness = texelFetch(gBuffer2, currentCoord, 0).a; 
+    vec3 P = ComputeWorldPositionFromDepth(texCoord, depth, frameBuffer.data.invViewProj);
+    vec3 N = texelFetch(gBuffer2, currentCoord, 0).rgb;
+    vec3 V = normalize(frameBuffer.data.cameraPos.xyz - P);
+
+    // Mirror reflections by default
+    vec3 rayDir = reflect(-V, N);
+    if (roughness > MIN_ROUGHNESS_THRESHOLD)
+    {
+        vec3 perturbed = PerturbNormal(roughness, V, N);
+        rayDir = reflect(-V, perturbed);
+    }
+
+    // Initial raycone for texture filtering
+    // Simulates a hit at this point
+    payload.rayCone = vec2(
+        constants.mipSpreadAngle * length(P - frameBuffer.data.cameraPos.xyz),
+        constants.mipSpreadAngle
+    );
+    UpdateRayConeSpreadAngle(payload.rayCone, roughness, constants.mipSpreadAngle);
+
+    // Decrease max distance as a function of roughness
+    float tMin = frameBuffer.data.clipPlanes.x;
+    float tMax = 300.f * pow((1 - roughness) * 0.9 + 0.1, 4.0);
+    uint rayFlags = gl_RayFlagsOpaqueEXT;
+    uint cullMask = 0xff;
+    vec3 rayOrigin = P + N * 0.001; // Self-intersection bias
+    traceRayEXT(tlas, rayFlags, cullMask, 0, 0, 0, rayOrigin, tMin, rayDir, tMax, 0);
+
+    // Clamp final color to prevent small pixels with super bright values
+    vec3 finalColor = min(payload.hitValue.rgb, vec3(1.f));
+    float rayLength = payload.hitValue.a;
+    imageStore(outImage, currentCoord, vec4(finalColor, rayLength));
+}

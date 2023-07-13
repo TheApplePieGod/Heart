@@ -12,6 +12,8 @@ namespace Heart
     void SceneAsset::Load(bool async)
     {
         HE_PROFILE_FUNCTION();
+
+        const std::lock_guard<std::mutex> lock(m_LoadLock);
         
         if (m_Loaded || m_Loading) return;
         m_Loading = true;
@@ -37,11 +39,11 @@ namespace Heart
     void SceneAsset::Unload()
     {
         if (!m_Loaded) return;
+        m_Loaded = false;
 
         m_Scene.reset();
 
         m_Data = nullptr;
-        m_Loaded = false;
         m_Valid = false;
     }
 
@@ -73,12 +75,6 @@ namespace Heart
                 HString8 name = loaded["nameComponent"]["name"];
                 auto entity = scene->CreateEntityWithUUID(name, id);
 
-                // REQUIRED: Transform component
-                glm::vec3 translation = { loaded["transformComponent"]["translation"][0], loaded["transformComponent"]["translation"][1], loaded["transformComponent"]["translation"][2] };
-                glm::vec3 rotation = { loaded["transformComponent"]["rotation"][0], loaded["transformComponent"]["rotation"][1], loaded["transformComponent"]["rotation"][2] };
-                glm::vec3 scale = { loaded["transformComponent"]["scale"][0], loaded["transformComponent"]["scale"][1], loaded["transformComponent"]["scale"][2] };
-                entity.SetTransform(translation, rotation, scale);
-
                 // Parent component
                 if (loaded.contains("parentComponent"))
                     entity.AddComponent<ParentComponent>(static_cast<UUID>(loaded["parentComponent"]["id"]));
@@ -97,9 +93,10 @@ namespace Heart
                 // Mesh component
                 if (loaded.contains("meshComponent"))
                 {
-                    auto& materials = loaded["meshComponent"]["materials"];
+                    auto& compEntry = loaded["meshComponent"];
+                    auto& materials = compEntry["materials"];
                     HVector<UUID> materialIds;
-                    UUID meshAsset = AssetManager::RegisterAsset(Asset::Type::Mesh, loaded["meshComponent"]["mesh"]["path"], false, loaded["meshComponent"]["mesh"]["engineResource"]);
+                    UUID meshAsset = AssetManager::RegisterAsset(Asset::Type::Mesh, compEntry["mesh"]["path"], false, compEntry["mesh"]["engineResource"]);
                     for (auto& material : materials)
                         materialIds.AddInPlace(AssetManager::RegisterAsset(Asset::Type::Material, material["path"], false, material["engineResource"]));
                     entity.AddComponent<MeshComponent>(meshAsset, materialIds);
@@ -108,20 +105,129 @@ namespace Heart
                 // Light component
                 if (loaded.contains("lightComponent"))
                 {
+                    auto& compEntry = loaded["lightComponent"];
                     LightComponent comp;
-                    comp.Color = { loaded["lightComponent"]["color"][0], loaded["lightComponent"]["color"][1], loaded["lightComponent"]["color"][2], loaded["lightComponent"]["color"][3] };
-                    comp.LightType = loaded["lightComponent"]["lightType"];
-                    comp.ConstantAttenuation = loaded["lightComponent"]["attenuation"]["constant"];
-                    comp.LinearAttenuation = loaded["lightComponent"]["attenuation"]["linear"];
-                    comp.QuadraticAttenuation = loaded["lightComponent"]["attenuation"]["quadratic"];
+                    comp.Color = { compEntry["color"][0], compEntry["color"][1], compEntry["color"][2], compEntry["color"][3] };
+                    comp.LightType = compEntry["lightType"];
+                    if (compEntry.contains("radius"))
+                        comp.Radius = compEntry["radius"];
                     entity.AddComponent<LightComponent>(comp);
                 }
 
+                // Camera component
+                if (loaded.contains("cameraComponent"))
+                {
+                    auto& compEntry = loaded["cameraComponent"];
+                    CameraComponent comp;
+                    comp.FOV = compEntry["fov"];
+                    comp.NearClipPlane = compEntry["nearClip"];
+                    comp.FarClipPlane = compEntry["farClip"];
+                    entity.AddComponent<CameraComponent>(comp);
+                    if (compEntry["primary"])
+                        entity.AddComponent<PrimaryCameraComponent>();
+                }
+                
+                // Rigid body component
+                if (loaded.contains("collisionComponent"))
+                {
+                    auto& compEntry = loaded["collisionComponent"];
+                    CollisionComponent comp;
+                    PhysicsBody body;
+                    PhysicsBodyType bodyType = compEntry["type"];
+                    PhysicsBodyShape shapeType = compEntry["shape"];
+                    PhysicsBodyCreateInfo bodyInfo;
+                    bodyInfo.Type = bodyType;
+                    bodyInfo.ExtraData = (void*)(intptr_t)id;
+                    bodyInfo.Mass = compEntry["mass"];
+                    if (compEntry.contains("collisionChannels"))
+                        bodyInfo.CollisionChannels = compEntry["collisionChannels"];
+                    if (compEntry.contains("collisionMask"))
+                        bodyInfo.CollisionMask = compEntry["collisionMask"];
+                    switch (shapeType)
+                    {
+                        default:
+                        { HE_ENGINE_ASSERT(false, "Unsupported shape type"); }
+
+                        case PhysicsBodyShape::Box:
+                        {
+                            glm::vec3 extent = {
+                                compEntry["extent"][0],
+                                compEntry["extent"][1],
+                                compEntry["extent"][2]
+                            };
+                            body = PhysicsBody::CreateBoxShape(bodyInfo, extent);
+                        } break;
+
+                        case PhysicsBodyShape::Sphere:
+                        {
+                            float radius = compEntry["radius"];
+                            body = PhysicsBody::CreateSphereShape(bodyInfo, radius);
+                        } break;
+                            
+                        case PhysicsBodyShape::Capsule:
+                        {
+                            float radius = compEntry["radius"];
+                            float height = compEntry["height"];
+                            body = PhysicsBody::CreateCapsuleShape(bodyInfo, radius, height);
+                        } break;
+                    }
+                    
+                    comp.BodyId = scene->GetPhysicsWorld().AddBody(body);
+
+                    entity.AddComponent<CollisionComponent>(comp);
+                }
+
+                // Text component
+                if (loaded.contains("textComponent"))
+                {
+                    auto& compEntry = loaded["textComponent"];
+                    TextComponent comp;
+                    comp.Font = AssetManager::RegisterAsset(
+                        Asset::Type::Font,
+                        compEntry["font"]["path"],
+                        false,
+                        compEntry["font"]["engineResource"]
+                    );
+                    if (compEntry.contains("material"))
+                    {
+                        comp.Material = AssetManager::RegisterAsset(
+                            Asset::Type::Material,
+                            compEntry["material"]["path"],
+                            false,
+                            compEntry["material"]["engineResource"]
+                        );
+                    }
+                    comp.Text = compEntry["text"];
+                    comp.FontSize = compEntry["fontSize"];
+                    comp.LineHeight = compEntry["lineHeight"];
+                    
+                    entity.AddComponent<TextComponent>(comp);
+                }
+            }
+
+            // Load transform & script components once all entities have been parsed since their
+            // initialization may depend on other entities
+            for (auto& loaded : field)
+            {
+                UUID id = static_cast<UUID>(loaded["idComponent"]["id"]);
+                Entity entity = scene->GetEntityFromUUID(id);
+                
+                if (!entity.IsValid()) continue;
+                
+                {
+                    auto& compEntry = loaded["transformComponent"];
+                    glm::vec3 translation = { compEntry["translation"][0], compEntry["translation"][1], compEntry["translation"][2] };
+                    glm::vec3 rotation = { compEntry["rotation"][0], compEntry["rotation"][1], compEntry["rotation"][2] };
+                    glm::vec3 scale = { compEntry["scale"][0], compEntry["scale"][1], compEntry["scale"][2] };
+                    entity.SetTransform(translation, rotation, scale, false);
+                }
+                    
                 // Script component
                 if (loaded.contains("scriptComponent"))
                 {
+                    auto& compEntry = loaded["scriptComponent"];
                     ScriptComponent comp;
-                    HString8 scriptClass = loaded["scriptComponent"]["type"];
+                    HString8 scriptClass = compEntry["type"];
                     comp.Instance = ScriptInstance(scriptClass.ToHString());
                     if (comp.Instance.IsInstantiable())
                     {
@@ -135,36 +241,31 @@ namespace Heart
                         else
                         {
                             comp.Instance.Instantiate(entity);
-                            comp.Instance.LoadFieldsFromJson(loaded["scriptComponent"]["fields"]);
+                            comp.Instance.LoadFieldsFromJson(compEntry["fields"]);
+                            comp.Instance.OnConstruct();
                         }
                     }
                     entity.AddComponent<ScriptComponent>(comp);
                 }
-
-                // Camera component
-                if (loaded.contains("cameraComponent"))
-                {
-                    CameraComponent comp;
-                    comp.FOV = loaded["cameraComponent"]["fov"];
-                    comp.NearClipPlane = loaded["cameraComponent"]["nearClip"];
-                    comp.FarClipPlane = loaded["cameraComponent"]["farClip"];
-                    entity.AddComponent<CameraComponent>(comp);
-                    if (loaded["cameraComponent"]["primary"])
-                        entity.AddComponent<PrimaryCameraComponent>();
-                }
             }
-
-            // make sure all the transforms get cached
-            scene->GetRegistry().each([scene](auto handle) {
-                scene->CacheEntityTransform({ scene.get(), handle });
-            });
         }
+
+        // Cache initial transforms once everything has been instantiated and initialized
+        scene->CacheDirtyTransforms();
 
         // parse settings
         {
             auto& field = j["settings"];
             if (field.contains("environmentMap"))
                 scene->SetEnvironmentMap(AssetManager::RegisterAsset(Asset::Type::Texture, field["environmentMap"]["path"], false, field["environmentMap"]["engineResource"]));
+            if (field.contains("physics"))
+            {
+                scene->GetPhysicsWorld().SetGravity({
+                    field["physics"]["gravity"][0],
+                    field["physics"]["gravity"][1],
+                    field["physics"]["gravity"][2]
+                });
+            }
         }
 
         delete[] data;
@@ -192,10 +293,13 @@ namespace Heart
                 entry["nameComponent"]["name"] = entity.GetName();
 
                 // REQUIRED: Transform component
-                auto& transformComp = entity.GetComponent<TransformComponent>();
-                entry["transformComponent"]["translation"] = nlohmann::json::array({ transformComp.Translation.x, transformComp.Translation.y, transformComp.Translation.z });
-                entry["transformComponent"]["rotation"] = nlohmann::json::array({ transformComp.Rotation.x, transformComp.Rotation.y, transformComp.Rotation.z });
-                entry["transformComponent"]["scale"] = nlohmann::json::array({ transformComp.Scale.x, transformComp.Scale.y, transformComp.Scale.z });
+                {
+                    auto& compEntry = entry["transformComponent"];
+                    auto& comp = entity.GetComponent<TransformComponent>();
+                    compEntry["translation"] = nlohmann::json::array({ comp.Translation.x, comp.Translation.y, comp.Translation.z });
+                    compEntry["rotation"] = nlohmann::json::array({ comp.Rotation.x, comp.Rotation.y, comp.Rotation.z });
+                    compEntry["scale"] = nlohmann::json::array({ comp.Scale.x, comp.Scale.y, comp.Scale.z });
+                }
 
                 // Parent component
                 if (entity.HasComponent<ParentComponent>())
@@ -204,51 +308,103 @@ namespace Heart
                 // Child component
                 if (entity.HasComponent<ChildrenComponent>())
                 {
-                    auto& childComp = entity.GetComponent<ChildrenComponent>();
-                    for (size_t i = 0; i < childComp.Children.Count(); i++)
-                        entry["childrenComponent"]["children"][i] = static_cast<u64>(childComp.Children[i]);
+                    auto& compEntry = entry["childrenComponent"]["children"];
+                    auto& comp = entity.GetComponent<ChildrenComponent>();
+                    for (size_t i = 0; i < comp.Children.Count(); i++)
+                        compEntry[i] = static_cast<u64>(comp.Children[i]);
                 }
 
                 // Mesh component
                 if (entity.HasComponent<MeshComponent>())
                 {
-                    auto& meshComp = entity.GetComponent<MeshComponent>();
-                    entry["meshComponent"]["mesh"]["path"] = AssetManager::GetPathFromUUID(meshComp.Mesh);
-                    entry["meshComponent"]["mesh"]["engineResource"] = AssetManager::IsAssetAResource(meshComp.Mesh);
-                    for (size_t i = 0; i < meshComp.Materials.Count(); i++)
+                    auto& compEntry = entry["meshComponent"];
+                    auto& comp = entity.GetComponent<MeshComponent>();
+                    compEntry["mesh"]["path"] = AssetManager::GetPathFromUUID(comp.Mesh);
+                    compEntry["mesh"]["engineResource"] = AssetManager::IsAssetAResource(comp.Mesh);
+                    for (size_t i = 0; i < comp.Materials.Count(); i++)
                     {
-                        entry["meshComponent"]["materials"][i]["path"] = AssetManager::GetPathFromUUID(meshComp.Materials[i]);
-                        entry["meshComponent"]["materials"][i]["engineResource"] = AssetManager::IsAssetAResource(meshComp.Materials[i]);
+                        compEntry["materials"][i]["path"] = AssetManager::GetPathFromUUID(comp.Materials[i]);
+                        compEntry["materials"][i]["engineResource"] = AssetManager::IsAssetAResource(comp.Materials[i]);
                     }
                 }
 
                 // Light component
                 if (entity.HasComponent<LightComponent>())
                 {
-                    auto& lightComp = entity.GetComponent<LightComponent>();
-                    entry["lightComponent"]["color"] = nlohmann::json::array({ lightComp.Color.r, lightComp.Color.g, lightComp.Color.b, lightComp.Color.a });
-                    entry["lightComponent"]["lightType"] = lightComp.LightType;
-                    entry["lightComponent"]["attenuation"]["constant"] = lightComp.ConstantAttenuation;
-                    entry["lightComponent"]["attenuation"]["linear"] = lightComp.LinearAttenuation;
-                    entry["lightComponent"]["attenuation"]["quadratic"] = lightComp.QuadraticAttenuation;
+                    auto& compEntry = entry["lightComponent"];
+                    auto& comp = entity.GetComponent<LightComponent>();
+                    compEntry["color"] = nlohmann::json::array({ comp.Color.r, comp.Color.g, comp.Color.b, comp.Color.a });
+                    compEntry["lightType"] = comp.LightType;
+                    compEntry["radius"] = comp.Radius;
                 }
 
                 // Script component
                 if (entity.HasComponent<ScriptComponent>())
                 {
-                    auto& scriptComp = entity.GetComponent<ScriptComponent>();
-                    entry["scriptComponent"]["type"] = scriptComp.Instance.GetScriptClass();
-                    entry["scriptComponent"]["fields"] = scriptComp.Instance.SerializeFieldsToJson();
+                    auto& compEntry = entry["scriptComponent"];
+                    auto& comp = entity.GetComponent<ScriptComponent>();
+                    compEntry["type"] = comp.Instance.GetScriptClass();
+                    compEntry["fields"] = comp.Instance.SerializeFieldsToJson();
                 }
 
                 // Camera component
                 if (entity.HasComponent<CameraComponent>())
                 {
-                    auto& camComp = entity.GetComponent<CameraComponent>();
-                    entry["cameraComponent"]["primary"] = entity.HasComponent<PrimaryCameraComponent>();
-                    entry["cameraComponent"]["fov"] = camComp.FOV;
-                    entry["cameraComponent"]["nearClip"] = camComp.NearClipPlane;
-                    entry["cameraComponent"]["farClip"] = camComp.FarClipPlane;
+                    auto& compEntry = entry["cameraComponent"];
+                    auto& comp = entity.GetComponent<CameraComponent>();
+                    compEntry["primary"] = entity.HasComponent<PrimaryCameraComponent>();
+                    compEntry["fov"] = comp.FOV;
+                    compEntry["nearClip"] = comp.NearClipPlane;
+                    compEntry["farClip"] = comp.FarClipPlane;
+                }
+                
+                // Rigid body component
+                if (entity.HasComponent<CollisionComponent>())
+                {
+                    auto& compEntry = entry["collisionComponent"];
+                    auto& comp = entity.GetComponent<CollisionComponent>();
+                    PhysicsBody* body = scene->GetPhysicsWorld().GetBody(comp.BodyId);
+                    compEntry["type"] = body->GetBodyType();
+                    compEntry["shape"] = body->GetShapeType();
+                    compEntry["mass"] = body->GetMass();
+                    compEntry["collisionChannels"] = body->GetCollisionChannels();
+                    compEntry["collisionMask"] = body->GetCollisionMask();
+                    switch (body->GetShapeType())
+                    {
+                        default:
+                        { HE_ENGINE_ASSERT(false, "Unsupported body type"); }
+
+                        case PhysicsBodyShape::Box:
+                        {
+                            auto extent = body->GetBoxExtent();
+                            compEntry["extent"] = nlohmann::json::array({ extent.x, extent.y, extent.z });
+                        } break;
+
+                        case PhysicsBodyShape::Sphere:
+                        {
+                            compEntry["radius"] = body->GetSphereRadius();
+                        } break;
+                            
+                        case PhysicsBodyShape::Capsule:
+                        {
+                            compEntry["radius"] = body->GetCapsuleRadius();
+                            compEntry["height"] = body->GetCapsuleHeight();
+                        } break;
+                    }
+                }
+                
+                // Text component
+                if (entity.HasComponent<TextComponent>())
+                {
+                    auto& compEntry = entry["textComponent"];
+                    auto& comp = entity.GetComponent<TextComponent>();
+                    compEntry["font"]["path"] = AssetManager::GetPathFromUUID(comp.Font);
+                    compEntry["font"]["engineResource"] = AssetManager::IsAssetAResource(comp.Font);
+                    compEntry["material"]["path"] = AssetManager::GetPathFromUUID(comp.Material);
+                    compEntry["material"]["engineResource"] = AssetManager::IsAssetAResource(comp.Material);
+                    compEntry["text"] = comp.Text;
+                    compEntry["fontSize"] = comp.FontSize;
+                    compEntry["lineHeight"] = comp.LineHeight;
                 }
 
                 field[index++] = entry;
@@ -258,8 +414,18 @@ namespace Heart
         // settings
         {
             auto& field = j["settings"];
-            field["environmentMap"]["path"] = scene->GetEnvironmentMap() ? AssetManager::GetPathFromUUID(scene->GetEnvironmentMap()->GetMapAsset()) : "";
-            field["environmentMap"]["engineResource"] = scene->GetEnvironmentMap() ? AssetManager::IsAssetAResource(scene->GetEnvironmentMap()->GetMapAsset()) : false;
+            
+            // env map
+            {
+                field["environmentMap"]["path"] = scene->GetEnvironmentMap() ? AssetManager::GetPathFromUUID(scene->GetEnvironmentMap()->GetMapAsset()) : "";
+                field["environmentMap"]["engineResource"] = scene->GetEnvironmentMap() ? AssetManager::IsAssetAResource(scene->GetEnvironmentMap()->GetMapAsset()) : false;
+            }
+            
+            // physics
+            {
+                auto grav = scene->GetPhysicsWorld().GetGravity();
+                field["physics"]["gravity"] = nlohmann::json::array({ grav.x, grav.y, grav.z });
+            }
         }
 
         std::ofstream file(path.Data());

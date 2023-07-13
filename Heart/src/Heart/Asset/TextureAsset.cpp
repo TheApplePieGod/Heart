@@ -2,15 +2,16 @@
 #include "TextureAsset.h"
 
 #include "Heart/Asset/AssetManager.h"
-#include "Heart/Renderer/Renderer.h"
-#include "Heart/Renderer/Texture.h"
 #include "stb_image/stb_image.h"
+#include "tinytiffreader.h"
 
 namespace Heart
 {
     void TextureAsset::Load(bool async)
     {
         HE_PROFILE_FUNCTION();
+
+        const std::lock_guard<std::mutex> lock(m_LoadLock);
         
         if (m_Loaded || m_Loading) return;
         m_Loading = true;
@@ -26,10 +27,11 @@ namespace Heart
 
         void* pixels = nullptr;
         int width, height, channels;
-        if (floatComponents)
-            pixels = stbi_loadf(m_AbsolutePath.Data(), &width, &height, &channels, m_DesiredChannelCount);
+        if (m_Extension == ".tif" || m_Extension == ".tiff")
+            pixels = LoadTiff(width, height, channels);
         else
-            pixels = stbi_load(m_AbsolutePath.Data(), &width, &height, &channels, m_DesiredChannelCount);
+            pixels = LoadImage(width, height, channels, floatComponents);
+
         if (pixels == nullptr)
         {
             HE_ENGINE_LOG_ERROR("Failed to load texture at path {0}", m_AbsolutePath.Data());
@@ -37,42 +39,146 @@ namespace Heart
             m_Loading = false;
             return;
         }
-
-        TextureCreateInfo createInfo = {
-            static_cast<u32>(width), static_cast<u32>(height), static_cast<u32>(m_DesiredChannelCount),
-            floatComponents ? BufferDataType::Float : BufferDataType::UInt8,
-            BufferUsageType::Static,
-            1, 0
-        };
-
-        auto finalizeFn = [this, createInfo, pixels, floatComponents]()
+        
+        Flourish::ColorFormat format = Flourish::ColorFormat::RGBA8_UNORM;
+        if (floatComponents)
         {
-            if (!AssetManager::IsInitialized()) return;
-            m_Texture = Texture::Create(createInfo, pixels);
-            if (floatComponents)
-                delete[] (float*)pixels;
-            else
-                delete[] (unsigned char*)pixels;
+            switch (m_DesiredChannelCount)
+            {
+                default:
+                { HE_ENGINE_ASSERT(false, "Unsupported desired channel count for texture"); } break;
+                case 1: { format = Flourish::ColorFormat::R32_FLOAT; } break;
+                case 4: { format = Flourish::ColorFormat::RGBA32_FLOAT; } break;
+            }
+        }
+        else
+        {
+            switch (m_DesiredChannelCount)
+            {
+                default:
+                { HE_ENGINE_ASSERT(false, "Unsupported desired channel count for texture"); } break;
+                case 3: { format = Flourish::ColorFormat::RGB8_UNORM; } break;
+                case 4: { format = Flourish::ColorFormat::RGBA8_UNORM; } break;
+            }
+        }
+        
+        Flourish::TextureSamplerState samp;
+        samp.AnisotropyEnable = true;
 
+        Flourish::TextureCreateInfo createInfo = {
+            static_cast<u32>(width),
+            static_cast<u32>(height),
+            format,
+            Flourish::TextureUsageFlags::Readonly,
+            Flourish::TextureWritability::Once,
+            1, 6,
+            samp,
+            pixels,
+            static_cast<u32>(width * height * m_DesiredChannelCount) * (floatComponents ? 4 : 1),
+            async,
+            [this, async, pixels, floatComponents]()
+            {
+                if (!AssetManager::IsInitialized()) return;
+                if (floatComponents)
+                    delete[] (float*)pixels;
+                else
+                    delete[] (unsigned char*)pixels;
+
+                if (async)
+                {
+                    m_Loaded = true;
+                    m_Loading = false;
+                    m_Valid = true;
+                }
+            }
+        };
+        m_Texture = Flourish::Texture::Create(createInfo);
+        
+        if (!async)
+        {
             m_Loaded = true;
             m_Loading = false;
             m_Valid = true;
-        };
-
-        if (async)
-            Renderer::PushJobQueue(finalizeFn);
-        else
-            finalizeFn();
+        }
     }
 
     void TextureAsset::Unload()
     {
         if (!m_Loaded) return;
+        m_Loaded = false;
 
         m_Texture.reset();
         //delete[] m_Data;
         m_Data = nullptr;
         m_Valid = false;
-        m_Loaded = false;
+    }
+
+    void* TextureAsset::LoadImage(int& outWidth, int& outHeight, int& outChannels, bool floatComponents)
+    {
+        void* pixels;
+        if (floatComponents)
+            pixels = stbi_loadf(m_AbsolutePath.Data(), &outWidth, &outHeight, &outChannels, m_DesiredChannelCount);
+        else
+            pixels = stbi_load(m_AbsolutePath.Data(), &outWidth, &outHeight, &outChannels, m_DesiredChannelCount);
+
+        // Need to manually add the alloc here since stbi malloc instead of new
+        #ifdef HE_DEBUG
+            TracyAlloc(pixels, outWidth * outHeight * outChannels * (floatComponents ? 4 : 1));
+        #endif
+
+        return pixels;
+    }
+
+    void* TextureAsset::LoadTiff(int& outWidth, int& outHeight, int& outChannels)
+    {
+        TinyTIFFReaderFile* tiffr = TinyTIFFReader_open(m_AbsolutePath.Data()); 
+        if (!tiffr)
+            return nullptr;
+
+        u16 format = TinyTIFFReader_getSampleFormat(tiffr);
+        u16 samples = TinyTIFFReader_getSamplesPerPixel(tiffr);
+        u16 bits = TinyTIFFReader_getBitsPerSample(tiffr, 0);
+        outWidth = TinyTIFFReader_getWidth(tiffr); 
+        outHeight = TinyTIFFReader_getHeight(tiffr);
+        outChannels = bits / 8 * samples;
+
+        if (bits != 8)
+        {
+            HE_LOG_ERROR("Cannot import TIFF image with non 8-bit channels");
+            TinyTIFFReader_close(tiffr);
+            return nullptr;
+        }
+
+        // Allocate mem for one channel
+        u32 totalDim = outWidth * outHeight;
+        u32 totalSize = totalDim * m_DesiredChannelCount;
+        u8* channel = new u8[totalDim * bits / 8];
+        u8* pixels = new u8[totalSize]();
+
+        for (u16 sample = 0; sample < samples; sample++)
+        {
+            TinyTIFFReader_getSampleData(tiffr, channel, sample); 
+            if (TinyTIFFReader_wasError(tiffr))
+            {
+                HE_LOG_ERROR("TIFF read error: {0}", TinyTIFFReader_getLastError(tiffr));
+                delete[] channel;
+                delete[] pixels;
+                TinyTIFFReader_close(tiffr);
+                return nullptr;
+            }
+
+            u32 channelIndex = 0;
+            for (u32 i = sample; i < totalSize; i += m_DesiredChannelCount)
+                pixels[i] = channel[channelIndex++];
+        }
+
+        // Fill alpha channel with default 255
+        if (m_DesiredChannelCount == 4 && outChannels < 4)
+            for (u32 i = 3; i < totalSize; i += m_DesiredChannelCount)
+                pixels[i] = 255;
+
+        TinyTIFFReader_close(tiffr);
+        delete[] channel;
+        return pixels;
     }
 }

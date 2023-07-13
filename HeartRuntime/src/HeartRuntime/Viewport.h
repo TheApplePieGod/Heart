@@ -12,11 +12,12 @@ namespace HeartRuntime
     public:
         Viewport();
 
-        void OnImGuiRender(Heart::Scene* sceneContext);
+        void Shutdown();
+
+        void OnImGuiRender(Heart::Scene* sceneContext, const Heart::SceneRenderSettings& settings);
 
     private:
         Heart::Ref<Heart::SceneRenderer> m_SceneRenderer;
-        Heart::SceneRenderSettings m_RenderSettings;
         Heart::Camera m_Camera = Heart::Camera(70.f, 0.1f, 500.f, 1.f);
         glm::vec3 m_DebugCameraPos = { 0.f, 0.f, -1.f };
         glm::vec3 m_DebugCameraRot = { 0.f, 0.f, 0.f };

@@ -10,6 +10,7 @@ namespace Heart
     class Variant;
     class Timestep;
     class Scene;
+    class Entity;
     class ScriptingEngine
     {
     public:
@@ -18,13 +19,16 @@ namespace Heart
 
         static bool LoadClientPlugin(const HStringView8& absolutePath);
         static bool UnloadClientPlugin();
+        static bool ReloadCorePlugin();
 
         static uptr InstantiateObject(const HString& type, u32 entityHandle, Scene* sceneHandle);
         static void DestroyObject(uptr handle);
         static bool InvokeFunction(uptr object, const HString& funcName, const HArray& args);
         static void InvokeEntityOnUpdate(uptr entity, Timestep timestep);
+        static void InvokeEntityOnCollisionStarted(uptr entity, Entity other);
+        static void InvokeEntityOnCollisionEnded(uptr entity, Entity other);
         static Variant GetFieldValue(uptr entity, const HString& fieldName);
-        static bool SetFieldValue(uptr entity, const HString& fieldName, const Variant& value);
+        static bool SetFieldValue(uptr entity, const HString& fieldName, const Variant& value, bool invokeCallback);
 
         inline static bool IsClassInstantiable(const HStringView& name) { return s_InstantiableClasses.find(name) != s_InstantiableClasses.end(); }
         inline static ScriptClass& GetInstantiableClass(const HStringView& name) { return s_InstantiableClasses[name]; }
@@ -33,7 +37,8 @@ namespace Heart
         inline static void SetScriptInputEnabled(bool enabled) { s_ScriptInputEnabled = enabled; }
 
     private:
-        inline static ManagedCallbacks s_CoreCallbacks;
+        inline static BridgeManagedCallbacks s_BridgeCallbacks;
+        inline static CoreManagedCallbacks s_CoreCallbacks;
         inline static bool s_ClientPluginLoaded;
         inline static std::unordered_map<HString, ScriptClass> s_InstantiableClasses;
         inline static bool s_ScriptInputEnabled = true;

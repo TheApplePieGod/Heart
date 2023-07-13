@@ -81,7 +81,8 @@ namespace Heart
         HString16 ToUTF16() const;
     };
 
-    void to_json(nlohmann::json& j, const HString8& str);
+    void to_json(nlohmann::json& j, HStringView8 str);
+    void from_json(const nlohmann::json& j, HStringView8& str);
     void from_json(const nlohmann::json& j, HString8& str);
 }
 

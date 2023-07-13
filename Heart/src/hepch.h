@@ -24,6 +24,8 @@
 #include <type_traits>
 #include <new>
 #include <locale>
+#include <atomic>
+#include <condition_variable>
 
 #include <string>
 #include <regex>
@@ -45,4 +47,6 @@
 	#include <Windows.h>
 	#include <ShlObj.h>
 	#include <comdef.h>
+#elif defined(HE_PLATFORM_MACOS)
+	#include <dlfcn.h>
 #endif

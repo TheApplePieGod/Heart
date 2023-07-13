@@ -7,19 +7,21 @@
 #include "Heart/Input/Input.h"
 #include "Heart/Scene/Components.h"
 #include "Heart/Scene/Entity.h"
-#include "Heart/Renderer/Texture.h"
+#include "Flourish/Api/Texture.h"
 
 namespace HeartRuntime
 {
     Viewport::Viewport()
     {
         m_SceneRenderer = Heart::CreateScope<Heart::SceneRenderer>();
-        m_RenderSettings.DrawGrid = false;
-        m_RenderSettings.AsyncAssetLoading = true;
-        m_RenderSettings.CopyEntityIdsTextureToCPU = false;
     }
 
-    void Viewport::OnImGuiRender(Heart::Scene* sceneContext)
+    void Viewport::Shutdown()
+    {
+        m_SceneRenderer.reset();
+    }
+
+    void Viewport::OnImGuiRender(Heart::Scene* sceneContext, const Heart::SceneRenderSettings& settings)
     {
         HE_PROFILE_FUNCTION();
 
@@ -77,12 +79,12 @@ namespace HeartRuntime
         }
 
         m_SceneRenderer->RenderScene(
-            RuntimeApp::Get().GetWindow().GetContext(),
             sceneContext,
             m_Camera,
             cameraPosition,
-            m_RenderSettings
+            settings
         );
+        RuntimeApp::Get().GetWindow().PushDependencyBuffers(m_SceneRenderer->GetRenderBuffers());
 
         // draw the viewport background
         ImGui::GetWindowDrawList()->AddRectFilled(
@@ -92,7 +94,7 @@ namespace HeartRuntime
         );
 
         ImGui::Image(
-            m_SceneRenderer->GetFinalTexture().GetImGuiHandle(),
+            m_SceneRenderer->GetFinalTexture()->GetImGuiHandle(),
             viewportSize
         );
 

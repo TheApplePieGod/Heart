@@ -4,11 +4,17 @@
 #include "Heart/Container/HVector.hpp"
 #include "Heart/Container/HString.h"
 #include "Heart/Core/UUID.h"
+#include "Heart/Renderer/Mesh.h"
 #include "glm/vec3.hpp"
 #include "glm/vec4.hpp"
 #include "glm/mat4x4.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtx/quaternion.hpp"
+
+namespace Flourish
+{
+    class Buffer;
+}
 
 namespace Heart
 {
@@ -19,7 +25,6 @@ namespace Heart
     // When adding new components, make sure to update:
     // Scene::DuplicateEntity, Scene::Clone, SceneAsset::Serialize & Deserialize
     // -----------------------
-    
 
     struct IdComponent
     {
@@ -46,17 +51,23 @@ namespace Heart
         glm::vec3 Translation = { 0.f, 0.f, 0.f };
         glm::vec3 Rotation = { 0.f, 0.f, 0.f };
         glm::vec3 Scale = { 1.f, 1.f, 1.f };
-
+        bool Dirty = true;
+        
+        inline glm::quat GetRotationQuat() const
+        {
+            return glm::quat(glm::radians(Rotation));
+        }
+        
         inline glm::mat4 GetTransformMatrix() const
         {
 			return glm::translate(glm::mat4(1.0f), Translation)
-				* glm::toMat4(glm::quat(glm::radians(Rotation)))
+				* glm::toMat4(GetRotationQuat())
 				* glm::scale(glm::mat4(1.0f), Scale);
         }
 
         inline glm::vec3 GetForwardVector() const
         {
-            return glm::normalize(glm::vec3(glm::toMat4(glm::quat(glm::radians(Rotation))) * glm::vec4(0.f, 0.f, 1.f, 1.f)));
+            return glm::normalize(glm::vec3(glm::toMat4(GetRotationQuat()) * glm::vec4(0.f, 0.f, 1.f, 1.f)));
         }
     };
 
@@ -81,9 +92,7 @@ namespace Heart
         // TODO: ambient & specular colors
         glm::vec4 Color = { 1.f, 1.f, 1.f, 1.f }; // intensity is stored in the alpha component of the color
         Type LightType = Type::Point;
-        float ConstantAttenuation = 1.0f;
-        float LinearAttenuation = 0.7f;
-        float QuadraticAttenuation = 1.8f;
+        float Radius = 5.0f;
     };
 
     struct ScriptComponent
@@ -99,5 +108,30 @@ namespace Heart
         f32 FOV = 70.f;
         f32 NearClipPlane = 0.1f;
         f32 FarClipPlane = 500.f;
+    };
+
+    struct CollisionComponent
+    {
+        u32 BodyId = 0;
+    };
+
+    struct DestroyedComponent
+    {};
+
+    // TODO: make mesh an asset
+    // hard right now before asset system refactor
+    struct TextComponent
+    {
+        UUID Font = 0;
+        HString Text = "Text";
+        float FontSize = 1.f;
+        float LineHeight = 0.f;
+        UUID Material = 0;
+        
+        Mesh ComputedMesh;
+        bool Recomputing = false;
+        
+        void ClearRenderData();
+        void RecomputeRenderData();
     };
 }

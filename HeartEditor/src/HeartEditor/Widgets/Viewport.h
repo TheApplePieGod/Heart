@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Heart/Task/Task.h"
 #include "HeartEditor/Widgets/Widget.h"
 #include "imgui/imgui.h"
 #include "imguizmo/ImGuizmo.h"
@@ -26,13 +27,16 @@ namespace Widgets
     public:
         Viewport(const Heart::HStringView8& name, bool initialOpen);
 
-        void OnImGuiRender() override;
+        void OnImGuiRenderPostSceneUpdate() override;
         nlohmann::json Serialize() override;
         void Deserialize(const nlohmann::json& elem) override;
 
+        void Reset();
+
         void UpdateCamera();
         void SetFocused(bool focus);
-
+        void ResetEditorCamera();
+        
         inline bool IsFocused() const { return m_ViewportInput; }
         inline bool IsHovered() const { return m_ViewportHover; }
         inline bool ShouldCameraAttach() const { return m_AttachCamera; }
@@ -43,14 +47,17 @@ namespace Widgets
         inline glm::vec3 GetActiveCameraPosition() const { return m_ActiveCameraPos; }
         inline glm::vec3 GetActiveCameraRotation() const { return m_ActiveCameraRot; }
         inline EditorCamera& GetEditorCamera() { return *m_EditorCamera; }
+        inline const Heart::Task& GetSceneRendererUpdateTask() const { return m_SceneRendererUpdateTask; }
 
     private:
         Heart::Ref<Heart::SceneRenderer> m_SceneRenderer;
+        Heart::Task m_SceneRendererUpdateTask;
         Heart::Ref<Heart::Camera> m_ActiveCamera;
         Heart::Ref<EditorCamera> m_EditorCamera;
         glm::vec3 m_ActiveCameraPos;
         glm::vec3 m_ActiveCameraRot;
-        bool m_EditorCameraActive;
+        glm::vec3 m_StoredCameraPos;
+        glm::vec3 m_StoredCameraRot;
         bool m_AttachCamera = true;
         glm::vec2 m_ViewportMousePos; // mouse position relative to the viewport window
         glm::vec2 m_ViewportSize;
@@ -59,7 +66,8 @@ namespace Widgets
         f32 m_AspectRatio = 1.f;
         ImGuizmo::MODE m_GizmoMode = ImGuizmo::MODE::LOCAL;
         ImGuizmo::OPERATION m_GizmoOperation = ImGuizmo::OPERATION::TRANSLATE;
-        int m_SelectedOutput = 0;
+        Heart::HString8 m_SelectedOutput = "Primary";
+        int m_SelectedOutputMip = 0;
     };
 }
 }

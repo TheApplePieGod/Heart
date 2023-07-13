@@ -1,10 +1,14 @@
 #pragma once
 
-#include "Heart/Events/EventEmitter.h"
-#include "glm/vec2.hpp"
 #include "glm/vec3.hpp"
-#include "glm/mat4x4.hpp"
+#include "Heart/Events/EventEmitter.h"
+#include "Heart/Task/Task.h"
 #include "Heart/Container/HVector.hpp"
+#include "Heart/Container/HString8.h"
+#include "Heart/Scene/RenderScene.h"
+#include "Heart/Core/Camera.h"
+#include "Heart/Renderer/EnvironmentMap.h"
+#include "Heart/Renderer/RenderPlugin.h"
 
 namespace Heart
 {
@@ -12,175 +16,101 @@ namespace Heart
     {
         bool DrawGrid = true;
         bool BloomEnable = true;
-        float BloomBlurStrength = 0.2f;
-        float BloomBlurScale = 1.f;
-        float BloomThreshold = 1.f;
+        bool SSAOEnable = true;
+        float SSAORadius = 0.5f;
+        float SSAOBias = 0.025f;
+        int SSAOKernelSize = 64;
+        float BloomThreshold = 0.25f;
+        float BloomKnee = 0.1f;
+        float BloomSampleScale = 1.f;
+        float BloomStrength = 0.3f;
         bool CullEnable = true;
         bool AsyncAssetLoading = true;
         bool CopyEntityIdsTextureToCPU = false;
+        bool RenderPhysicsVolumes = false;
     };
 
-    class Scene;
-    class GraphicsContext;
-    class Framebuffer;
-    class ComputePipeline;
-    class Buffer;
-    class Texture;
-    class Material;
-    class Mesh;
-    class EnvironmentMap;
-    class Camera;
-    class AppGraphicsInitEvent;
-    class AppGraphicsShutdownEvent;
+    struct SceneRenderData
+    {
+        const RenderScene* Scene;
+        const EnvironmentMap* EnvMap;
+        const Camera* Camera;
+        glm::vec3 CameraPos;
+        SceneRenderSettings Settings;
+    };
+    
     class WindowResizeEvent;
     class SceneRenderer : public EventListener
     {
     public:
+        struct GraphData
+        {
+            HVector<HString8> Leaves;
+            HVector<HString8> Roots;
+            u32 MaxDepth = 0;
+        };
+
+    public:
         SceneRenderer();
         ~SceneRenderer();
 
-        void RenderScene(GraphicsContext& context, Scene* scene, const Camera& camera, glm::vec3 cameraPosition, const SceneRenderSettings& renderSettings);
-
         void OnEvent(Event& event) override;
 
-        inline Texture& GetFinalTexture() { return *m_FinalTexture; }
-        inline Texture& GetPreBloomTexture() { return *m_PreBloomTexture; }
-        inline Texture& GetBrightColorsTexture() { return *m_BrightColorsTexture; }
-        inline Texture& GetBloomBuffer1Texture() { return *m_BloomBufferTexture; }
-        inline Texture& GetBloomBuffer2Texture() { return *m_BloomUpsampleBufferTexture; }
-        inline Texture& GetEntityIdsTexture() { return *m_EntityIdsTexture; }
-        inline Framebuffer& GetMainFramebuffer() { return *m_MainFramebuffer; }
-        inline ComputePipeline& GetCullPipeline() { return *m_ComputeCullPipeline; }
-        inline HVector<std::array<Ref<Framebuffer>, 2>>& GetBloomFramebuffers() { return m_BloomFramebuffers; }
+        void RebuildGraph();
+        TaskGroup Render(const SceneRenderData& data);
 
+        GraphData& GetGraphData(GraphDependencyType depType);
+
+        template<typename Plugin, typename ... Args>
+        Ref<Plugin> RegisterPlugin(Args&& ... args)
+        {
+            auto plugin = CreateRef<Plugin>(this, std::forward<Args>(args)...);
+            m_Plugins[plugin->GetName()] = plugin;
+            return plugin;
+        }
+
+        inline RenderPlugin* GetPlugin(const HString8& name)
+        {
+            return m_Plugins[name].get();
+        }
+
+        template<typename Plugin>
+        inline Plugin* GetPlugin(const HString8& name)
+        {
+            return static_cast<Plugin*>(m_Plugins[name].get());
+        }
+
+        inline const auto& GetPlugins() const { return m_Plugins; }
+        inline u32 GetRenderWidth() const { return m_RenderWidth; }
+        inline u32 GetRenderHeight() const { return m_RenderHeight; }
+        inline Ref<Flourish::Texture>& GetRenderTexture() { return m_RenderTexture; }
+        inline Ref<Flourish::Texture>& GetOutputTexture() { return m_OutputTexture; }
+        inline Ref<Flourish::Texture>& GetDepthTexture() { return m_DepthTexture; }
+        inline Flourish::Texture* GetDefaultEnvironmentMap() { return m_DefaultEnvironmentMap.get(); }
+        inline Flourish::RenderGraph* GetRenderGraph() { return m_RenderGraph.get(); }
+    
     private:
-        struct IndirectBatch
-        {
-            Material* Material;
-            Mesh* Mesh;
-            u32 First = 0;
-            u32 Count = 0;
-            u32 EntityListIndex = 0;
-        };
-        struct IndexedIndirectCommand
-        {
-            u32 IndexCount;
-            u32 InstanceCount;
-            u32 FirstIndex;
-            int VertexOffset;
-            u32 FirstInstance;
-
-            u32 padding1;
-            glm::vec2 padding2;
-        };
-        struct InstanceData
-        {
-            u32 ObjectId;
-            u32 BatchId;
-            glm::vec2 padding;  
-        };
-        struct FrameData
-        {
-            glm::mat4 Proj;
-            glm::mat4 View;
-            glm::vec4 CameraPos;
-            glm::vec2 ScreenSize;
-            bool ReverseDepth;
-            float BloomThreshold;
-            bool CullEnable;
-            bool padding1;
-            glm::vec2 padding2;
-        };
-        struct BloomData
-        {
-            u32 MipLevel;
-            bool ReverseDepth;
-            float BlurScale;
-            float BlurStrength;
-        };
-        struct ObjectData
-        {
-            glm::mat4 Model;
-            glm::vec4 Data;
-            glm::vec4 BoundingSphere;
-        };
-        struct CullData
-        {
-            std::array<glm::vec4, 6> FrustumPlanes;
-            glm::vec4 Data;
-        };
-
-    private:
-        void Initialize();
-        void Shutdown();
-        void Resize();
-        void CreateTextures();
-        void CleanupTextures();
-        void CreateFramebuffers();
-        void CleanupFramebuffers();
-
-        void UpdateLightingBuffer();
-        void CalculateBatches();
-        void BindMaterial(Material* material);
-        void BindPBRDefaults();
-
-        void SetupCullCompute();
-        void RenderEnvironmentMap();
-        void RenderGrid();
-        void RenderBatches();
-        void Composite();
-        void Bloom(GraphicsContext& context);
-
-        void InitializeGridBuffers();
-
-        bool OnAppGraphicsInit(AppGraphicsInitEvent& event);
-        bool OnAppGraphicsShutdown(AppGraphicsShutdownEvent& event);
         bool OnWindowResize(WindowResizeEvent& event);
+        void InitializePlugins();
+        void CreateTextures();
+        void CreateDefaultResources();
+        void Resize();
+        void RebuildGraphInternal(GraphDependencyType depType);
 
     private:
-        bool m_Initialized = false;
-
-        Ref<Framebuffer> m_MainFramebuffer;
-        HVector<std::array<Ref<Framebuffer>, 2>> m_BloomFramebuffers; // one for each mip level and one for horizontal / vertical passes
-
-        Ref<ComputePipeline> m_ComputeCullPipeline;
-        Ref<Buffer> m_CullDataBuffer;
-        Ref<Buffer> m_InstanceDataBuffer;
-        Ref<Buffer> m_FinalInstanceBuffer;
-        Ref<Buffer> m_IndirectBuffer;
-
-        Ref<Texture> m_DefaultEnvironmentMap;
-        Ref<Texture> m_PreBloomTexture;
-        Ref<Texture> m_BrightColorsTexture;
-        Ref<Texture> m_BloomBufferTexture;
-        Ref<Texture> m_BloomUpsampleBufferTexture;
-
-        Ref<Texture> m_FinalTexture;
-        Ref<Texture> m_EntityIdsTexture;
-
-        Ref<Buffer> m_FrameDataBuffer;
-        Ref<Buffer> m_BloomDataBuffer;
-        Ref<Buffer> m_ObjectDataBuffer;
-        Ref<Buffer> m_MaterialDataBuffer;
-        Ref<Buffer> m_LightingDataBuffer;
-
-        // grid
-        Ref<Buffer> m_GridVertices;
-        Ref<Buffer> m_GridIndices;
-
-        // in-flight frame data
-        Scene* m_Scene;
-        EnvironmentMap* m_EnvironmentMap;
-        const Camera* m_Camera;
-        std::unordered_map<u64, IndirectBatch> m_IndirectBatches;
-        HVector<IndirectBatch*> m_DeferredIndirectBatches;
-        HVector<HVector<u32>> m_EntityListPool;
-        SceneRenderSettings m_SceneRenderSettings;
-        u32 m_RenderedInstanceCount;
-
-        const u32 m_BloomMipCount = 5;
+        std::unordered_map<HString8, Ref<RenderPlugin>> m_Plugins;
+        u32 m_RenderWidth, m_RenderHeight;
         bool m_ShouldResize = false;
-        u32 m_RenderWidth = 0;
-        u32 m_RenderHeight = 0;
+        GraphData m_CPUGraphData;
+        GraphData m_GPUGraphData;
+
+        Ref<Flourish::Texture> m_RenderTexture;
+        Ref<Flourish::Texture> m_OutputTexture;
+        Ref<Flourish::Texture> m_DepthTexture;
+
+        // TODO: move this out further
+        Ref<Flourish::Texture> m_DefaultEnvironmentMap;
+
+        Ref<Flourish::RenderGraph> m_RenderGraph;
     };
 }
