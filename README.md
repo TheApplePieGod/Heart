@@ -2,27 +2,15 @@
 
 # Heart
 
-Heart is a cross-platform C++ 3D renderer and game engine which is centered around a CPU task system, an entity component system, and C# scripting for games. Powered by the [Flourish](https://github.com/TheApplePieGod/flourish) graphics library, the engine provides high speed and quality graphics. It also has experimental support for hardware-accelerated ray tracing.
+Heart is a cross-platform C++ 3D renderer and game engine which is centered around a CPU task system, an entity component system, and C# scripting for games. Powered by the [Flourish](https://github.com/TheApplePieGod/flourish) graphics library, the engine provides high speed and quality graphics. It also has experimental support for hardware-accelerated real-time ray tracing.
 
 <!--
 @cond TURN_OFF_DOXYGEN
 -->
-# Screenshots
-
-## Sponza Scene
-![Sponza Scene](https://raw.githubusercontent.com/TheApplePieGod/Heart/61271d6393577735023f6b5f8a1021b30aafe1eb/images/screenshot1.png)
-
-## Spheres Scene
-![Spheres Scene](https://raw.githubusercontent.com/TheApplePieGod/Heart/61271d6393577735023f6b5f8a1021b30aafe1eb/images/screenshot2.png)
-
-## Helmet Scene
-![Helmet Scene](https://raw.githubusercontent.com/TheApplePieGod/Heart/61271d6393577735023f6b5f8a1021b30aafe1eb/images/screenshot3.png)
-
-## Material Editor
-![Material Editor](https://raw.githubusercontent.com/TheApplePieGod/Heart/61271d6393577735023f6b5f8a1021b30aafe1eb/images/screenshot4.png)
 
 # Table of Contents
 
+- [Screenshots](#Screenshots)
 - [Introduction](#Introduction)
 - [Getting Started](#Getting-Started)
     - [Requirements](#Requirements)
@@ -32,6 +20,20 @@ Heart is a cross-platform C++ 3D renderer and game engine which is centered arou
     - [Usage](#Usage)
 - [Documentation](#Documentation)
 - [License](#License)
+
+# Screenshots
+
+## Ray Tracing Enabled
+
+![Duck Ray Tracing](https://raw.githubusercontent.com/TheApplePieGod/Heart/main/images/duck-rays.webp)
+![Forest Ray Tracing](https://raw.githubusercontent.com/TheApplePieGod/Heart/main/images/rays-2.webp)
+![Sponza Ray Tracing](https://raw.githubusercontent.com/TheApplePieGod/Heart/main/images/rays-3.webp)
+
+## Standard
+
+![Duck](https://raw.githubusercontent.com/TheApplePieGod/Heart/main/images/duck-norays.webp)
+![Material Editor](https://raw.githubusercontent.com/TheApplePieGod/Heart/main/images/material-editor.webp)
+
 <!--
 @endcond TURN_OFF_DOXYGEN
 -->
