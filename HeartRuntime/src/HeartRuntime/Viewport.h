@@ -3,6 +3,7 @@
 #include "Heart/Scene/Scene.h"
 #include "Heart/Core/Camera.h"
 #include "Heart/Renderer/SceneRenderer.h"
+#include "Heart/Scene/RenderScene.h"
 #include "imgui/imgui.h"
 
 namespace HeartRuntime
@@ -14,7 +15,11 @@ namespace HeartRuntime
 
         void Shutdown();
 
-        void OnImGuiRender(Heart::Scene* sceneContext, const Heart::SceneRenderSettings& settings);
+        void OnImGuiRender(
+            Heart::RenderScene* renderScene,
+            Heart::Scene* sceneContext,
+            const Heart::SceneRenderSettings& settings
+        );
 
     private:
         Heart::Ref<Heart::SceneRenderer> m_SceneRenderer;

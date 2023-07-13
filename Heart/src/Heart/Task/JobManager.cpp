@@ -14,12 +14,10 @@ namespace Heart
             s_HandleFreeList.Add(i);
             
         s_Initialized = true;
-        
+
+        s_ExecuteQueues.Resize(numWorkers);
         for (u32 i = 0; i < numWorkers; i++)
-        {
-            s_ExecuteQueues.AddInPlace();
             s_WorkerThreads.AddInPlace(&JobManager::ProcessQueue, i);
-        }
     }
 
     void JobManager::Shutdown()
@@ -157,7 +155,6 @@ namespace Heart
             
             if (!s_Initialized) break;
             
-            // lock already locked by wait()
             auto executeData = std::move(queue.Queue.front());
             queue.Queue.pop();
             lock.unlock();

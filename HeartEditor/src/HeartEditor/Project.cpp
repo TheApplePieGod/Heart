@@ -328,6 +328,10 @@ namespace HeartEditor
               "shaderc_shared.dll",
               std::filesystem::path(dst).append("shaderc_shared.dll")
             );
+            std::filesystem::copy(
+              "spirv-cross-c-shared.dll",
+              std::filesystem::path(dst).append("spirv-cross-c-shared.dll")
+            );
         #endif
         
         HE_ENGINE_LOG_INFO("Project exported successfully to {0}", finalPath.generic_u8string());
