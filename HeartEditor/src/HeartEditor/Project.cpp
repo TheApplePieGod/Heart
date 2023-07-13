@@ -322,6 +322,15 @@ namespace HeartEditor
               "libMoltenVK.dylib",
               std::filesystem::path(dst).append("libvulkan.1.dylib")
             );
+
+            std::filesystem::copy(
+              "libshaderc_shared.dylib",
+              std::filesystem::path(dst).append("libshaderc_shared.dylib")
+            );
+            std::filesystem::copy(
+              "libspirv-cross-c-shared.dylib",
+              std::filesystem::path(dst).append("libspirv-cross-c-shared.dylib")
+            );
         #elif defined(HE_PLATFORM_WINDOWS)
             std::filesystem::path dst = std::filesystem::path(copyPath).parent_path();
             std::filesystem::copy(
