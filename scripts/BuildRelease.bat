@@ -1,3 +1,3 @@
 #!/bin/bash
 
-cmake --build ../build --config RelWithDebInfo
+cmake --build ../build --config Release
