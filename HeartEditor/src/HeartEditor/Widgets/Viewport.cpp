@@ -49,6 +49,8 @@ namespace Widgets
             m_ActiveCameraPos,
             Editor::GetState().RenderSettings
         });
+
+        // TODO: don't need to wait right away
         renderGroup.Wait();
 
         Flourish::Context::PushFrameRenderGraph(m_SceneRenderer->GetRenderGraph());

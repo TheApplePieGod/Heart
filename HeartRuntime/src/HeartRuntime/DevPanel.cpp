@@ -1,6 +1,7 @@
 #include "hepch.h"
 #include "DevPanel.h"
 
+#include "HeartRuntime/RuntimeApp.h"
 #include "Heart/Core/Timing.h"
 
 namespace HeartRuntime
@@ -11,6 +12,10 @@ namespace HeartRuntime
 
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 5.0f));
         ImGui::Begin("Dev Panel", &m_Open);
+
+        double stepMs = RuntimeApp::Get().GetAveragedTimestep().StepMilliseconds();
+        ImGui::Text("Frametime: %.1fms", stepMs);
+        ImGui::Text("Framerate: %d FPS", static_cast<u32>(1000.0 / stepMs));
 
         ImGui::Text("SSAO Enable");
         ImGui::SameLine();
@@ -37,7 +42,7 @@ namespace HeartRuntime
         ImGui::Text("CPU Timing:");
         ImGui::Indent();
         for (auto& pair : Heart::AggregateTimer::GetTimeMap())
-            ImGui::Text("%s: %.1fms", pair.first.Data(), pair.second);
+            ImGui::Text("%s: %.1fms", pair.first.Data(), Heart::AggregateTimer::GetAggregateTime(pair.first));
         ImGui::Unindent();
 
         ImGui::End();

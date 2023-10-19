@@ -310,7 +310,7 @@ namespace HeartEditor
         // Copy extra files
         #ifdef HE_PLATFORM_MACOS
             std::filesystem::path dst = std::filesystem::path(copyPath).parent_path().parent_path();
-            dst.append("Lib");
+            dst.append("Frameworks");
             std::filesystem::create_directory(dst);
             std::filesystem::copy(
               "libMoltenVK.dylib",
@@ -322,11 +322,24 @@ namespace HeartEditor
               "libMoltenVK.dylib",
               std::filesystem::path(dst).append("libvulkan.1.dylib")
             );
+
+            std::filesystem::copy(
+              "libshaderc_shared.1.dylib",
+              std::filesystem::path(dst).append("libshaderc_shared.1.dylib")
+            );
+            std::filesystem::copy(
+              "libspirv-cross-c-shared.0.dylib",
+              std::filesystem::path(dst).append("libspirv-cross-c-shared.0.dylib")
+            );
         #elif defined(HE_PLATFORM_WINDOWS)
             std::filesystem::path dst = std::filesystem::path(copyPath).parent_path();
             std::filesystem::copy(
               "shaderc_shared.dll",
               std::filesystem::path(dst).append("shaderc_shared.dll")
+            );
+            std::filesystem::copy(
+              "spirv-cross-c-shared.dll",
+              std::filesystem::path(dst).append("spirv-cross-c-shared.dll")
             );
         #endif
         

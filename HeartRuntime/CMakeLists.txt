@@ -32,6 +32,8 @@ elseif(APPLE)
     XCODE_GENERATE_SCHEME TRUE
     XCODE_SCHEME_ENVIRONMENT PATH=$ENV{PATH}:$ENV{DOTNET_SDK}
     XCODE_SCHEME_ENABLE_GPU_FRAME_CAPTURE_MODE Metal
+    XCODE_ATTRIBUTE_LD_RUNPATH_SEARCH_PATHS "@executable_path/../Frameworks"
+    BUILD_RPATH "@executable_path/../Frameworks"
   )
 endif()
 
