@@ -4,6 +4,7 @@ using Heart.NativeInterop;
 using System;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace Heart.Scene
 {
@@ -25,26 +26,22 @@ namespace Heart.Scene
             => value.Value;
     }
 
-    public abstract class Component
+    public interface IComponent<T> where T : IComponent<T>
     {
-        internal uint _entityHandle = Entity.InvalidEntityHandle;
-        internal IntPtr _sceneHandle = IntPtr.Zero;
+        static virtual T Create(uint entityHandle, IntPtr sceneHandle)
+            => throw new NotImplementedException("Component Create not implemented!");
+        static virtual unsafe InteropBool NativeExists(uint entityHandle, IntPtr sceneHandle)
+            => throw new NotImplementedException("Component NativeExists not implemented!");
+        static virtual unsafe void NativeAdd(uint entityHandle, IntPtr sceneHandle)
+            => throw new NotImplementedException("Component NativeAdd not implemented!");
+        static virtual unsafe void NativeRemove(uint entityHandle, IntPtr sceneHandle)
+            => throw new NotImplementedException("Component NativeRemove not implemented!");
 
-        public Component(Entity entity)
-        {
-            _entityHandle = entity._entityHandle;
-            _sceneHandle = entity._sceneHandle;
-        }
-
-        internal Component(uint entityHandle, IntPtr sceneHandle)
-        {
-            _entityHandle = entityHandle;
-            _sceneHandle = sceneHandle;
-        }
+        static virtual Int64 UniqueId
+            { get => throw new NotImplementedException("Component UniqueId not implemented!"); }
+        static virtual InteropBool IsEmptyType
+            { get => throw new NotImplementedException("Component EmptyType not implemented!"); }
     }
-
-    public interface IComponent
-    {}
 
     public static class ComponentUtils
     {
@@ -214,120 +211,29 @@ namespace Heart.Scene
             return new Vec3(value);
         }
 
-        public static T GetComponent<T>(uint entityHandle, IntPtr sceneHandle) where T : Component, new()
+        public static T GetComponent<T>(uint entityHandle, IntPtr sceneHandle) where T : class, IComponent<T>, new()
         {
             if (!HasComponent<T>(entityHandle, sceneHandle)) return null;
-            return new T { _entityHandle = entityHandle, _sceneHandle = sceneHandle };
+            return T.Create(entityHandle, sceneHandle);
         }
 
-        // This is mid
-        public static bool HasComponent<T>(uint entityHandle, IntPtr sceneHandle) where T : Component, new()
+        public static bool HasComponent<T>(uint entityHandle, IntPtr sceneHandle) where T : class, IComponent<T>, new()
         {
-            switch (typeof(T))
-            {
-                case var t when t == typeof(IdComponent):
-                    { return true; /* Always exists */ }
-                case var t when t == typeof(NameComponent):
-                    { return true; /* Always exists */ }
-                case var t when t == typeof(TransformComponent):
-                    { return true; /* Always exists */ }
-                case var t when t == typeof(ParentComponent):
-                    { return true; /* Will always be created if null */ }
-                case var t when t == typeof(ChildrenComponent):
-                    { return true; /* Will always be created if null */ }
-                case var t when t == typeof(MeshComponent):
-                    { return NativeMarshal.InteropBoolToBool(MeshComponent.Native_MeshComponent_Exists(entityHandle, sceneHandle)); }
-                case var t when t == typeof(LightComponent):
-                    { return NativeMarshal.InteropBoolToBool(LightComponent.Native_LightComponent_Exists(entityHandle, sceneHandle)); }
-                case var t when t == typeof(ScriptComponent):
-                    { return NativeMarshal.InteropBoolToBool(ScriptComponent.Native_ScriptComponent_Exists(entityHandle, sceneHandle)); }
-                case var t when t == typeof(CameraComponent):
-                    { return NativeMarshal.InteropBoolToBool(CameraComponent.Native_CameraComponent_Exists(entityHandle, sceneHandle)); }
-                case var t when t == typeof(CollisionComponent):
-                    { return NativeMarshal.InteropBoolToBool(CollisionComponent.Native_CollisionComponent_Exists(entityHandle, sceneHandle)); }
-                case var t when t == typeof(TextComponent):
-                    { return NativeMarshal.InteropBoolToBool(TextComponent.Native_TextComponent_Exists(entityHandle, sceneHandle)); }
-            }
-
-            throw new NotImplementedException("HasComponent does not support " + typeof(T).FullName);
+            return NativeMarshal.InteropBoolToBool(T.NativeExists(entityHandle, sceneHandle));
         }
 
-        // This is mid
-        public static T AddComponent<T>(uint entityHandle, IntPtr sceneHandle) where T : Component, new()
+        public static T AddComponent<T>(uint entityHandle, IntPtr sceneHandle) where T : class, IComponent<T>, new()
         {
-            switch (typeof(T))
-            {
-                default:
-                    { throw new NotImplementedException("AddComponent does not support " + typeof(T).FullName); }
-                case var t when t == typeof(IdComponent):
-                    { throw new InvalidOperationException("Cannot add an id component"); }
-                case var t when t == typeof(NameComponent):
-                    { throw new InvalidOperationException("Cannot add a name component"); }
-                case var t when t == typeof(TransformComponent):
-                    { throw new InvalidOperationException("Cannot add a transform component"); }
-                case var t when t == typeof(ParentComponent):
-                    { throw new InvalidOperationException("Cannot add a parent component"); }
-                case var t when t == typeof(ChildrenComponent):
-                    { throw new InvalidOperationException("Cannot add a children component"); }
-                case var t when t == typeof(MeshComponent):
-                    { MeshComponent.Native_MeshComponent_Add(entityHandle, sceneHandle); }
-                    break;
-                case var t when t == typeof(LightComponent):
-                    { LightComponent.Native_LightComponent_Add(entityHandle, sceneHandle); }
-                    break;
-                case var t when t == typeof(ScriptComponent):
-                    { ScriptComponent.Native_ScriptComponent_Add(entityHandle, sceneHandle); }
-                    break;
-                case var t when t == typeof(CameraComponent):
-                    { CameraComponent.Native_CameraComponent_Add(entityHandle, sceneHandle); }
-                    break;
-                case var t when t == typeof(CollisionComponent):
-                    { CollisionComponent.Native_CollisionComponent_Add(entityHandle, sceneHandle); }
-                    break;
-                case var t when t == typeof(TextComponent):
-                    { TextComponent.Native_TextComponent_Add(entityHandle, sceneHandle); }
-                    break;
-            }
-
-            return new T { _entityHandle = entityHandle, _sceneHandle = sceneHandle };
+            T.NativeAdd(entityHandle, sceneHandle);
+            return T.Create(entityHandle, sceneHandle);
         }
 
-        // This is mid
-        public static void RemoveComponent<T>(uint entityHandle, IntPtr sceneHandle) where T : Component, new()
+        public static void RemoveComponent<T>(uint entityHandle, IntPtr sceneHandle) where T : class, IComponent<T>, new()
         {
-            switch (typeof(T))
-            {
-                case var t when t == typeof(IdComponent):
-                    { throw new InvalidOperationException("Cannot remove an id component"); }
-                case var t when t == typeof(NameComponent):
-                    { throw new InvalidOperationException("Cannot remove a name component"); }
-                case var t when t == typeof(TransformComponent):
-                    { throw new InvalidOperationException("Cannot remove a transform component"); }
-                case var t when t == typeof(ParentComponent):
-                    { throw new InvalidOperationException("Cannot remove a parent component"); }
-                case var t when t == typeof(ChildrenComponent):
-                    { throw new InvalidOperationException("Cannot remove a children component"); }
-                case var t when t == typeof(MeshComponent):
-                    { MeshComponent.Native_MeshComponent_Remove(entityHandle, sceneHandle); }
-                    return;
-                case var t when t == typeof(LightComponent):
-                    { LightComponent.Native_LightComponent_Remove(entityHandle, sceneHandle); }
-                    return;
-                case var t when t == typeof(ScriptComponent):
-                    { ScriptComponent.Native_ScriptComponent_Remove(entityHandle, sceneHandle); }
-                    return;
-                case var t when t == typeof(CameraComponent):
-                    { CameraComponent.Native_CameraComponent_Remove(entityHandle, sceneHandle); }
-                    return;
-                case var t when t == typeof(CollisionComponent):
-                    { CollisionComponent.Native_CollisionComponent_Remove(entityHandle, sceneHandle); }
-                    return;
-                case var t when t == typeof(TextComponent):
-                    { TextComponent.Native_TextComponent_Remove(entityHandle, sceneHandle); }
-                    return;
-            }
-
-            throw new NotImplementedException("RemoveComponent does not support " + typeof(T).FullName);
+            T.NativeRemove(entityHandle, sceneHandle);
         }
+
+        [DllImport("__Internal")]
+        internal static extern InteropBool Native_RuntimeComponent_Exists(uint entityHandle, IntPtr sceneHandle, Int64 uniqueId, InteropBool emptyType);
     }
 }

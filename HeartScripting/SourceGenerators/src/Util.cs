@@ -4,7 +4,8 @@ namespace SourceGenerators
 {
     public enum GenerationError
     {
-        NonPartialClass
+        NonPartialScriptEntityClass,
+        NonPartialComponentClass,
     }
 
     public static class Util
@@ -16,10 +17,15 @@ namespace SourceGenerators
 
             switch (error)
             {
-                case GenerationError.NonPartialClass:
+                case GenerationError.NonPartialScriptEntityClass:
                     {
                         id = "H0001";
                         description = "All subclasses of Heart.Scene.ScriptEntity must be declared as a 'partial' class.";
+                    } break;
+                case GenerationError.NonPartialComponentClass:
+                    {
+                        id = "H0002";
+                        description = "All classes implementing Heart.Scene.IComponent<T> must be declared as a 'partial' class.";
                     } break;
             }
 

@@ -2,18 +2,22 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace SourceGenerators
 {
     class ClassFinder : ISyntaxContextReceiver
     {
         public List<(ClassDeclarationSyntax, INamedTypeSymbol)> Classes { get; } = new();
-        public List<(GenerationError, string, Location)> Errors { get; } = new();
-        public string Name;
+        public string SubclassName;
+        public string InterfaceName;
+        public string SkipNamespace;
 
-        public ClassFinder(string name)
+        public ClassFinder(string subclassName, string interfaceName, string skipNamespace)
         {
-            Name = name;
+            SubclassName = subclassName;
+            InterfaceName = interfaceName;
+            SkipNamespace = skipNamespace;
         }
 
         public void OnVisitSyntaxNode(GeneratorSyntaxContext context)
@@ -21,18 +25,18 @@ namespace SourceGenerators
             if (!(context.Node is ClassDeclarationSyntax entityClass)) return;
 
             var typeSymbol = context.SemanticModel.GetDeclaredSymbol(entityClass);
-            if (typeSymbol?.BaseType == null || !typeSymbol.BaseType.IsSubclassOf("CoreScripts", Name))
+            if (typeSymbol is null)
                 return;
 
-            if (!entityClass.IsPartialClass())
-            {
-                Errors.Add((
-                    GenerationError.NonPartialClass,
-                    $"Missing 'partial' keyword on class {typeSymbol?.FullName()}",
-                    entityClass.GetLocation()
-                ));
+            if (SubclassName != "")
+                if (typeSymbol.BaseType == null || !typeSymbol.BaseType.IsSubclassOf("CoreScripts", SubclassName))
+                    return;
+            if (InterfaceName != "")
+                if (!typeSymbol.AllInterfaces.Any(i => i.FullName().StartsWith(InterfaceName)))
+                    return;
+
+            if (typeSymbol.ContainingNamespace.FullName() == SkipNamespace)
                 return;
-            }
 
             Classes.Add((entityClass, typeSymbol));
         }

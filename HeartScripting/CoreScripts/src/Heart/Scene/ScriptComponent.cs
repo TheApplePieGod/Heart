@@ -21,17 +21,11 @@ namespace Heart.Scene
         [FieldOffset(0)] public ScriptInstanceInternal ScriptInstance;
     }
 
-    public class ScriptComponent : Component
+    public partial class ScriptComponent : IComponent<ScriptComponent>
     {
         internal unsafe ScriptComponentInternal* _internalValue;
-
-        public ScriptComponent()
-            : base(Entity.InvalidEntityHandle, IntPtr.Zero)
-        { }
-
-        internal ScriptComponent(uint entityHandle, IntPtr sceneHandle)
-            : base(entityHandle, sceneHandle)
-        { }
+        internal uint _entityHandle = Entity.InvalidEntityHandle;
+        internal IntPtr _sceneHandle = IntPtr.Zero;
 
         private unsafe void RefreshPtr()
         {
@@ -85,6 +79,13 @@ namespace Heart.Scene
                 return (ScriptEntity)ManagedGCHandle.FromIntPtr(_internalValue->ScriptInstance.ObjectHandle).Target;
             }
         }
+
+        public static unsafe InteropBool NativeExists(uint entityHandle, IntPtr sceneHandle)
+            => Native_ScriptComponent_Exists(entityHandle, sceneHandle);
+        public static unsafe void NativeAdd(uint entityHandle, IntPtr sceneHandle)
+            => Native_ScriptComponent_Add(entityHandle, sceneHandle);
+        public static unsafe void NativeRemove(uint entityHandle, IntPtr sceneHandle)
+            => Native_ScriptComponent_Remove(entityHandle, sceneHandle);
 
         [DllImport("__Internal")]
         internal static extern unsafe void Native_ScriptComponent_Get(uint entityHandle, IntPtr sceneHandle, out ScriptComponentInternal* comp);

@@ -13,15 +13,10 @@ namespace Heart.Scene
         [FieldOffset(0)] public uint BodyId;
     }
 
-    public class CollisionComponent : Component
+    public partial class CollisionComponent : IComponent<CollisionComponent>
     {
-        public CollisionComponent()
-            : base(Entity.InvalidEntityHandle, IntPtr.Zero)
-        { }
-
-        internal CollisionComponent(uint entityHandle, IntPtr sceneHandle)
-            : base(entityHandle, sceneHandle)
-        {}
+        internal uint _entityHandle = Entity.InvalidEntityHandle;
+        internal IntPtr _sceneHandle = IntPtr.Zero;
 
         public PhysicsBodyInfo GetInfo()
         {
@@ -62,6 +57,13 @@ namespace Heart.Scene
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void UseCapsuleShape(PhysicsBodyInfo info, float radius, float halfHeight)
             => Native_CollisionComponent_UseCapsuleShape(_entityHandle, _sceneHandle, info._internal, radius, halfHeight);
+
+        public static unsafe InteropBool NativeExists(uint entityHandle, IntPtr sceneHandle)
+            => Native_CollisionComponent_Exists(entityHandle, sceneHandle);
+        public static unsafe void NativeAdd(uint entityHandle, IntPtr sceneHandle)
+            => Native_CollisionComponent_Add(entityHandle, sceneHandle);
+        public static unsafe void NativeRemove(uint entityHandle, IntPtr sceneHandle)
+            => Native_CollisionComponent_Remove(entityHandle, sceneHandle);
 
         [DllImport("__Internal")]
         internal static extern unsafe void Native_CollisionComponent_Get(uint entityHandle, IntPtr sceneHandle, out CollisionComponentInternal* comp);

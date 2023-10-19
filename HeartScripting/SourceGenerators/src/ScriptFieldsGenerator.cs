@@ -15,24 +15,30 @@ namespace SourceGenerators
 
         public void Initialize(GeneratorInitializationContext context)
         {
-            context.RegisterForSyntaxNotifications(() => new ClassFinder(_className));
+            context.RegisterForSyntaxNotifications(() => new ClassFinder(_className, "", ""));
         }
 
         public void Execute(GeneratorExecutionContext context)
         {
             if (!(context.SyntaxContextReceiver is ClassFinder finder) ||
-                ((ClassFinder)context.SyntaxContextReceiver).Name != _className)
+                ((ClassFinder)context.SyntaxContextReceiver).SubclassName != _className)
                 return;
 
-            var entityClasses = finder.Classes;
-            var errors = finder.Errors;
+            foreach (var entityClass in finder.Classes)
+            {
+                if (!entityClass.Item1.IsPartialClass())
+                {
+                    Util.EmitError(
+                        context,
+                        GenerationError.NonPartialScriptEntityClass,
+                        $"Missing 'partial' keyword on class {entityClass.Item2.FullName()}",
+                        entityClass.Item1.GetLocation()
+                    );
+                    continue;
+                }
 
-            if (errors != null)
-                foreach (var error in errors)
-                    Util.EmitError(context, error.Item1, error.Item2, error.Item3);
-
-            foreach (var entityClass in entityClasses)
                 VisitEntityClass(context, entityClass.Item1, entityClass.Item2);
+            }
         }
 
         private void VisitEntityClass(

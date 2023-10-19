@@ -21,17 +21,11 @@ namespace Heart.Scene
         [FieldOffset(60)] public float Roughness;
     }
 
-    public class TextComponent : Component
+    public partial class TextComponent : IComponent<TextComponent>
     {
         internal unsafe TextComponentInternal* _internalValue;
-
-        public TextComponent()
-            : base(Entity.InvalidEntityHandle, IntPtr.Zero)
-        { }
-
-        internal TextComponent(uint entityHandle, IntPtr sceneHandle)
-            : base(entityHandle, sceneHandle)
-        { }
+        internal uint _entityHandle = Entity.InvalidEntityHandle;
+        internal IntPtr _sceneHandle = IntPtr.Zero;
 
         private unsafe void RefreshPtr()
         {
@@ -169,6 +163,13 @@ namespace Heart.Scene
                 _internalValue->Roughness = value;
             }
         }
+
+        public static unsafe InteropBool NativeExists(uint entityHandle, IntPtr sceneHandle)
+            => Native_TextComponent_Exists(entityHandle, sceneHandle);
+        public static unsafe void NativeAdd(uint entityHandle, IntPtr sceneHandle)
+            => Native_TextComponent_Add(entityHandle, sceneHandle);
+        public static unsafe void NativeRemove(uint entityHandle, IntPtr sceneHandle)
+            => Native_TextComponent_Remove(entityHandle, sceneHandle);
 
         [DllImport("__Internal")]
         internal static extern unsafe void Native_TextComponent_Get(uint entityHandle, IntPtr sceneHandle, out TextComponentInternal* comp);

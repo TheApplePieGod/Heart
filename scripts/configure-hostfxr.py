@@ -7,7 +7,7 @@ if "DOTNET_SDK" not in os.environ:
     sys.stderr.write("DOTNET_SDK path not configured")
     exit(1)
 SDK_PATH = os.environ["DOTNET_SDK"]
-DOTNET_MIN_VER = "6.0"
+DOTNET_MIN_VER = "7.0"
 
 def get_platform_info():
     system = platform.system()

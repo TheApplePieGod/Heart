@@ -1,7 +1,6 @@
 ﻿using Heart.Container;
 using Heart.NativeInterop;
 using System;
-using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -18,17 +17,11 @@ namespace Heart.Scene
             => (ContainerInfo*)Materials - 1;
     }
 
-    public class MeshComponent : Component
+    public partial class MeshComponent : IComponent<MeshComponent>
     {
         internal unsafe MeshComponentInternal* _internalValue;
-
-        public MeshComponent()
-            : base(Entity.InvalidEntityHandle, IntPtr.Zero)
-        { }
-
-        internal MeshComponent(uint entityHandle, IntPtr sceneHandle)
-            : base(entityHandle, sceneHandle)
-        { }
+        internal uint _entityHandle = Entity.InvalidEntityHandle;
+        internal IntPtr _sceneHandle = IntPtr.Zero;
 
         private unsafe void RefreshPtr()
         {
@@ -109,6 +102,13 @@ namespace Heart.Scene
         {
             Native_MeshComponent_RemoveMaterial(_entityHandle, _sceneHandle, MaterialCount - 1);
         }
+
+        public static unsafe InteropBool NativeExists(uint entityHandle, IntPtr sceneHandle)
+            => Native_MeshComponent_Exists(entityHandle, sceneHandle);
+        public static unsafe void NativeAdd(uint entityHandle, IntPtr sceneHandle)
+            => Native_MeshComponent_Add(entityHandle, sceneHandle);
+        public static unsafe void NativeRemove(uint entityHandle, IntPtr sceneHandle)
+            => Native_MeshComponent_Remove(entityHandle, sceneHandle);
 
         [DllImport("__Internal")]
         internal static extern unsafe void Native_MeshComponent_Get(uint entityHandle, IntPtr sceneHandle, out MeshComponentInternal* comp);
