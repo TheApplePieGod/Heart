@@ -134,4 +134,9 @@ namespace Heart
         void ClearRenderData();
         void RecomputeRenderData();
     };
+
+    struct RuntimeComponent
+    {
+        uptr ObjectHandle = 0; 
+    };
 }

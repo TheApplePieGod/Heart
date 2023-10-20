@@ -9,6 +9,7 @@ namespace Heart
     struct CoreManagedCallbacks
     {
         using PluginReflection_GetClientInstantiableClassesFn = void (*)(HArray*);
+        using PluginReflection_GetClientComponentClassesFn = void (*)(HArray*);
         using PluginReflection_GetClientSerializableFieldsFn = void (*)(const HString*, HArray*);
         using ManagedObject_InstantiateClientScriptEntityFn = void* (*)(const HString*, u32, Scene*);
         using ManagedObject_DestroyObjectFn = void (*)(uptr);
@@ -20,6 +21,7 @@ namespace Heart
         using ScriptEntity_CallOnCollisionEndedFn = void (*)(uptr, u32, Scene*);
 
         PluginReflection_GetClientInstantiableClassesFn PluginReflection_GetClientInstantiableClasses;
+        PluginReflection_GetClientComponentClassesFn PluginReflection_GetClientComponentClasses;
         PluginReflection_GetClientSerializableFieldsFn PluginReflection_GetClientSerializableFields;
         ManagedObject_InstantiateClientScriptEntityFn ManagedObject_InstantiateClientScriptEntity;
         ManagedObject_DestroyObjectFn ManagedObject_DestroyObject;

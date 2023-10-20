@@ -30,17 +30,12 @@ namespace Heart.Scene
     {
         static virtual T Create(uint entityHandle, IntPtr sceneHandle)
             => throw new NotImplementedException("Component Create not implemented!");
-        static virtual unsafe InteropBool NativeExists(uint entityHandle, IntPtr sceneHandle)
+        static virtual InteropBool NativeExists(uint entityHandle, IntPtr sceneHandle)
             => throw new NotImplementedException("Component NativeExists not implemented!");
-        static virtual unsafe void NativeAdd(uint entityHandle, IntPtr sceneHandle)
+        static virtual void NativeAdd(uint entityHandle, IntPtr sceneHandle)
             => throw new NotImplementedException("Component NativeAdd not implemented!");
-        static virtual unsafe void NativeRemove(uint entityHandle, IntPtr sceneHandle)
+        static virtual void NativeRemove(uint entityHandle, IntPtr sceneHandle)
             => throw new NotImplementedException("Component NativeRemove not implemented!");
-
-        static virtual Int64 UniqueId
-            { get => throw new NotImplementedException("Component UniqueId not implemented!"); }
-        static virtual InteropBool IsEmptyType
-            { get => throw new NotImplementedException("Component EmptyType not implemented!"); }
     }
 
     public static class ComponentUtils
@@ -232,8 +227,5 @@ namespace Heart.Scene
         {
             T.NativeRemove(entityHandle, sceneHandle);
         }
-
-        [DllImport("__Internal")]
-        internal static extern InteropBool Native_RuntimeComponent_Exists(uint entityHandle, IntPtr sceneHandle, Int64 uniqueId, InteropBool emptyType);
     }
 }

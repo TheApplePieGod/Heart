@@ -18,11 +18,16 @@ namespace Heart.Scene
             set => ComponentUtils.SetParent(_entityHandle, _sceneHandle, value);
         }
 
-        public static unsafe InteropBool NativeExists(uint entityHandle, IntPtr sceneHandle)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static InteropBool NativeExists(uint entityHandle, IntPtr sceneHandle)
             => InteropBool.True;
-        public static unsafe void NativeAdd(uint entityHandle, IntPtr sceneHandle)
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void NativeAdd(uint entityHandle, IntPtr sceneHandle)
             => throw new InvalidOperationException("Cannot add a parent component");
-        public static unsafe void NativeRemove(uint entityHandle, IntPtr sceneHandle)
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void NativeRemove(uint entityHandle, IntPtr sceneHandle)
             => throw new InvalidOperationException("Cannot remove a parent component");
 
         [DllImport("__Internal")]

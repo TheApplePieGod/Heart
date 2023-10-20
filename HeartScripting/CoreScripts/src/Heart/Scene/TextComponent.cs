@@ -164,11 +164,16 @@ namespace Heart.Scene
             }
         }
 
-        public static unsafe InteropBool NativeExists(uint entityHandle, IntPtr sceneHandle)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static InteropBool NativeExists(uint entityHandle, IntPtr sceneHandle)
             => Native_TextComponent_Exists(entityHandle, sceneHandle);
-        public static unsafe void NativeAdd(uint entityHandle, IntPtr sceneHandle)
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void NativeAdd(uint entityHandle, IntPtr sceneHandle)
             => Native_TextComponent_Add(entityHandle, sceneHandle);
-        public static unsafe void NativeRemove(uint entityHandle, IntPtr sceneHandle)
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void NativeRemove(uint entityHandle, IntPtr sceneHandle)
             => Native_TextComponent_Remove(entityHandle, sceneHandle);
 
         [DllImport("__Internal")]

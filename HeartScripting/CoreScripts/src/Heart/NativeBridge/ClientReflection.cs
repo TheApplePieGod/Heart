@@ -22,11 +22,24 @@ namespace Heart.NativeBridge
             if (_clientAssembly == null) return null;
 
             Type scriptEntityType = typeof(ScriptEntity);
-            List<string> names = new();
-            var types = _clientAssembly.GetTypes().Where(t => t.IsAssignableTo(scriptEntityType));
+            var names = _clientAssembly.GetTypes()
+                .Where(t => t.IsAssignableTo(scriptEntityType))
+                .Select(t => t.FullName)
+                .ToList();
 
-            foreach (var type in types)
-                names.Add(type.FullName);
+            return names;
+        }
+
+        internal static List<string> GetComponentClasses()
+        {
+            if (_clientAssembly == null) return null;
+
+            var names = _clientAssembly.GetTypes()
+                .Where(
+                    t => t.IsClass && t.GetInterfaces().Any(i => i.FullName.StartsWith("Heart.Scene.IComponent"))
+                )
+                .Select(t => t.FullName)
+                .ToList();
 
             return names;
         }
@@ -63,8 +76,16 @@ namespace Heart.NativeBridge
         {
             if (_clientAssembly == null) return;
 
-            var instantiableClasses = GetInstantiableClasses();
-            using var arr = new HArray(instantiableClasses);
+            using var arr = new HArray(GetInstantiableClasses());
+            arr.CopyTo(outClasses);
+        }
+
+        [UnmanagedCallersOnly]
+        internal static unsafe void GetClientComponentClasses(HArrayInternal* outClasses)
+        {
+            if (_clientAssembly == null) return;
+
+            using var arr = new HArray(GetComponentClasses());
             arr.CopyTo(outClasses);
         }
 

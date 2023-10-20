@@ -41,6 +41,7 @@ namespace Heart
         inline static CoreManagedCallbacks s_CoreCallbacks;
         inline static bool s_ClientPluginLoaded;
         inline static std::unordered_map<HString, ScriptClass> s_InstantiableClasses;
+        inline static std::unordered_map<HString, ScriptClass> s_ComponentClasses;
         inline static bool s_ScriptInputEnabled = true;
 
         friend class ScriptClass;

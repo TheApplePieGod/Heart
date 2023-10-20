@@ -195,4 +195,28 @@ namespace Heart
         comp.Text = text;
         comp.ClearRenderData();
     }
+
+    RuntimeComponent& Entity::GetRuntimeComponent(s64 typeId) const
+    {
+        HE_ENGINE_ASSERT(HasRuntimeComponent(typeId), "Cannot get, entity does not have specified runtime component");
+        return m_Scene->GetRegistry().storage<RuntimeComponent>(typeId).get(m_EntityHandle);
+    }
+
+    bool Entity::HasRuntimeComponent(s64 typeId) const
+    {
+        return m_Scene->GetRegistry().storage<RuntimeComponent>(typeId).contains(m_EntityHandle);
+    }
+
+    void Entity::AddRuntimeComponent(s64 typeId, uptr objectHandle)
+    {
+        if (HasRuntimeComponent(typeId))
+            m_Scene->GetRegistry().storage<RuntimeComponent>(typeId).get(m_EntityHandle).ObjectHandle = objectHandle;
+        else
+            m_Scene->GetRegistry().storage<RuntimeComponent>(typeId).emplace(m_EntityHandle, objectHandle);
+    }
+
+    void Entity::RemoveRuntimeComponent(s64 typeId)
+    {
+        m_Scene->GetRegistry().storage<RuntimeComponent>(typeId).remove(m_EntityHandle);
+    }
 }

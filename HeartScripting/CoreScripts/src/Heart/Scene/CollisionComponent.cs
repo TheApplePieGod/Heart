@@ -58,11 +58,16 @@ namespace Heart.Scene
         public void UseCapsuleShape(PhysicsBodyInfo info, float radius, float halfHeight)
             => Native_CollisionComponent_UseCapsuleShape(_entityHandle, _sceneHandle, info._internal, radius, halfHeight);
 
-        public static unsafe InteropBool NativeExists(uint entityHandle, IntPtr sceneHandle)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static InteropBool NativeExists(uint entityHandle, IntPtr sceneHandle)
             => Native_CollisionComponent_Exists(entityHandle, sceneHandle);
-        public static unsafe void NativeAdd(uint entityHandle, IntPtr sceneHandle)
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void NativeAdd(uint entityHandle, IntPtr sceneHandle)
             => Native_CollisionComponent_Add(entityHandle, sceneHandle);
-        public static unsafe void NativeRemove(uint entityHandle, IntPtr sceneHandle)
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void NativeRemove(uint entityHandle, IntPtr sceneHandle)
             => Native_CollisionComponent_Remove(entityHandle, sceneHandle);
 
         [DllImport("__Internal")]

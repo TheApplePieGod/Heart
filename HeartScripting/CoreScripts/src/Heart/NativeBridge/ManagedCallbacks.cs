@@ -8,6 +8,7 @@ namespace Heart.NativeBridge
     internal unsafe struct ManagedCallbacks
     {
         public delegate* unmanaged<HArrayInternal*, void> ClientReflection_GetClientInstantiableClasses;
+        public delegate* unmanaged<HArrayInternal*, void> ClientReflection_GetClientComponentClasses;
         public delegate* unmanaged<HStringInternal*, HArrayInternal*, void> ClientReflection_GetClientSerializableFields;
         public delegate* unmanaged<HStringInternal*, uint, IntPtr, IntPtr> ManagedObject_InstantiateClientScriptEntity;
         public delegate* unmanaged<IntPtr, void> ManagedObject_DestroyObject;
@@ -23,6 +24,7 @@ namespace Heart.NativeBridge
             ManagedCallbacks* outVal = (ManagedCallbacks*)outCallbacks;
             *outVal = new() {
                 ClientReflection_GetClientInstantiableClasses = &ClientReflection.GetClientInstantiableClasses,
+                ClientReflection_GetClientComponentClasses = &ClientReflection.GetClientComponentClasses,
                 ClientReflection_GetClientSerializableFields = &ClientReflection.GetClientSerializableFields,
                 ManagedObject_InstantiateClientScriptEntity = &ManagedObject.InstantiateClientScriptEntity,
                 ManagedObject_DestroyObject = &ManagedObject.DestroyObject,
