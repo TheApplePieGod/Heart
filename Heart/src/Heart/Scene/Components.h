@@ -1,6 +1,7 @@
 #pragma once
 
-#include "Heart/Scripting/ScriptInstance.h"
+#include "Heart/Scripting/ScriptEntityInstance.h"
+#include "Heart/Scripting/ScriptComponentInstance.h"
 #include "Heart/Container/HVector.hpp"
 #include "Heart/Container/HString.h"
 #include "Heart/Core/UUID.h"
@@ -97,7 +98,7 @@ namespace Heart
 
     struct ScriptComponent
     {
-        ScriptInstance Instance;
+        ScriptEntityInstance Instance;
     };
 
     struct PrimaryCameraComponent
@@ -137,6 +138,6 @@ namespace Heart
 
     struct RuntimeComponent
     {
-        uptr ObjectHandle = 0; 
+        ScriptComponentInstance Instance;
     };
 }

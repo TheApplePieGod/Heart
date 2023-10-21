@@ -180,15 +180,27 @@ namespace Heart
             return false;
         }
 
-        HArray outClasses;
-        s_CoreCallbacks.PluginReflection_GetClientInstantiableClasses(&outClasses);
+        HArray outArgs;
+        s_CoreCallbacks.PluginReflection_GetClientInstantiableClasses(&outArgs);
 
-        // Populate local array
-        for (u32 i = 0; i < outClasses.Count(); i++)
+        auto populate = [&outArgs](u32 index, std::unordered_map<s64, ScriptClass>& target)
         {
-            auto convertedString = outClasses[i].String().Convert(HString::Encoding::UTF8);
-            s_InstantiableClasses[convertedString] = ScriptClass(convertedString);
-        }
+            auto classes = outArgs[index * 2].Array();
+            auto ids = outArgs[index * 2 + 1].Array();
+            for (u32 i = 0; i < classes.Count(); i++)
+            {
+                auto convertedString = classes[i].String().Convert(HString::Encoding::UTF8);
+                s64 id = ids[i].Int();
+                s_NameToId[convertedString] = id;
+                target[id] = ScriptClass(convertedString, 0);
+            }
+        };
+
+        // Populate entity classes
+        populate(0, s_EntityClasses);
+
+        // Populate component classes
+        populate(1, s_ComponentClasses);
 
         HE_ENGINE_LOG_INFO("Client plugin successfully loaded");
         s_ClientPluginLoaded = true;
@@ -199,7 +211,9 @@ namespace Heart
     {
         if (!s_ClientPluginLoaded) return true;
 
-        s_InstantiableClasses.clear();
+        s_NameToId.clear();
+        s_EntityClasses.clear();
+        s_ComponentClasses.clear();
 
         bool res = s_BridgeCallbacks.EntryPoint_UnloadClientPlugin();
         if (!res)
@@ -242,7 +256,18 @@ namespace Heart
         return true;
     }
 
-    uptr ScriptingEngine::InstantiateObject(const HString& type, u32 entityHandle, Scene* sceneHandle)
+    uptr ScriptingEngine::InstantiateScriptComponent(const HString& type)
+    {
+        HE_PROFILE_FUNCTION();
+
+        uptr result = (uptr)s_CoreCallbacks.ManagedObject_InstantiateClientScriptComponent(&type);
+        if (result == 0)
+            HE_ENGINE_LOG_ERROR("Failed to instantiate class '{0}'", type.ToUTF8().Data());
+        
+        return result;
+    }
+
+    uptr ScriptingEngine::InstantiateScriptEntity(const HString& type, u32 entityHandle, Scene* sceneHandle)
     {
         HE_PROFILE_FUNCTION();
 
@@ -302,5 +327,19 @@ namespace Heart
         HE_PROFILE_FUNCTION();
 
         return s_CoreCallbacks.ManagedObject_SetFieldValue(entity, &fieldName, value, invokeCallback);
+    }
+
+    bool ScriptingEngine::IsClassIdInstantiable(s64 classId)
+    {
+        return s_EntityClasses.find(classId) != s_EntityClasses.end() ||
+               s_ComponentClasses.find(classId) != s_ComponentClasses.end();
+    }
+
+    s64 ScriptingEngine::GetClassIdFromName(const HString& name)
+    {
+        auto found = s_NameToId.find(name);
+        if (found == s_NameToId.end())
+            return 0;
+        return found->second;
     }
 }

@@ -41,6 +41,18 @@ namespace Heart.NativeBridge
         }
 
         [UnmanagedCallersOnly]
+        internal static unsafe IntPtr InstantiateClientScriptComponent(HStringInternal* objectTypeStr)
+        {
+            string typeStr = NativeMarshal.HStringInternalToString(*objectTypeStr);
+            Type objectType = ClientReflection.GetClientType(typeStr);
+            if (objectType == null) return IntPtr.Zero;
+
+            var instance = Activator.CreateInstance(objectType);
+            var handle = ManagedGCHandle.AllocStrong(instance);
+            return handle.ToIntPtr();
+        }
+
+        [UnmanagedCallersOnly]
         internal static void DestroyObject(IntPtr objectHandle)
         {
             if (objectHandle == IntPtr.Zero) return;

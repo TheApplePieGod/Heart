@@ -8,9 +8,9 @@ namespace Heart.NativeBridge
     internal unsafe struct ManagedCallbacks
     {
         public delegate* unmanaged<HArrayInternal*, void> ClientReflection_GetClientInstantiableClasses;
-        public delegate* unmanaged<HArrayInternal*, void> ClientReflection_GetClientComponentClasses;
         public delegate* unmanaged<HStringInternal*, HArrayInternal*, void> ClientReflection_GetClientSerializableFields;
         public delegate* unmanaged<HStringInternal*, uint, IntPtr, IntPtr> ManagedObject_InstantiateClientScriptEntity;
+        public delegate* unmanaged<HStringInternal*, IntPtr> ManagedObject_InstantiateClientScriptComponent;
         public delegate* unmanaged<IntPtr, void> ManagedObject_DestroyObject;
         public delegate* unmanaged<IntPtr, HStringInternal*, HArrayInternal*, InteropBool> ManagedObject_InvokeFunction;
         public delegate* unmanaged<IntPtr, HStringInternal*, Variant*, void> ManagedObject_GetFieldValue;
@@ -24,9 +24,9 @@ namespace Heart.NativeBridge
             ManagedCallbacks* outVal = (ManagedCallbacks*)outCallbacks;
             *outVal = new() {
                 ClientReflection_GetClientInstantiableClasses = &ClientReflection.GetClientInstantiableClasses,
-                ClientReflection_GetClientComponentClasses = &ClientReflection.GetClientComponentClasses,
                 ClientReflection_GetClientSerializableFields = &ClientReflection.GetClientSerializableFields,
                 ManagedObject_InstantiateClientScriptEntity = &ManagedObject.InstantiateClientScriptEntity,
+                ManagedObject_InstantiateClientScriptComponent = &ManagedObject.InstantiateClientScriptComponent,
                 ManagedObject_DestroyObject = &ManagedObject.DestroyObject,
                 ManagedObject_InvokeFunction = &ManagedObject.InvokeFunction,
                 ManagedObject_GetFieldValue = &ManagedObject.GetFieldValue,

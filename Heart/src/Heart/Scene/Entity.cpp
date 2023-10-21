@@ -3,6 +3,7 @@
 
 #include "Heart/Container/HString.h"
 #include "Heart/Container/Variant.h"
+#include "Heart/Scripting/ScriptingEngine.h"
 
 namespace Heart
 {
@@ -209,10 +210,19 @@ namespace Heart
 
     void Entity::AddRuntimeComponent(s64 typeId, uptr objectHandle)
     {
+        ScriptComponentInstance* instance;
         if (HasRuntimeComponent(typeId))
-            m_Scene->GetRegistry().storage<RuntimeComponent>(typeId).get(m_EntityHandle).ObjectHandle = objectHandle;
+        {
+            instance = &m_Scene->GetRegistry().storage<RuntimeComponent>(typeId).get(m_EntityHandle).Instance;
+            instance->SetScriptClassId(typeId);
+        }
         else
-            m_Scene->GetRegistry().storage<RuntimeComponent>(typeId).emplace(m_EntityHandle, objectHandle);
+            instance = &m_Scene->GetRegistry().storage<RuntimeComponent>(typeId).emplace(m_EntityHandle, typeId).Instance;
+
+        if (objectHandle == 0)
+            instance->Instantiate();
+        else
+            instance->ConsumeHandle(objectHandle);
     }
 
     void Entity::RemoveRuntimeComponent(s64 typeId)

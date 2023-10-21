@@ -6,6 +6,8 @@
 #include "nlohmann/json.hpp"
 #include "Heart/Scene/Scene.h"
 #include "Heart/Scene/Entity.h"
+#include "Heart/Scripting/ScriptClass.h"
+#include "Heart/Scripting/ScriptingEngine.h"
 
 namespace Heart
 {
@@ -227,15 +229,16 @@ namespace Heart
                 {
                     auto& compEntry = loaded["scriptComponent"];
                     ScriptComponent comp;
-                    HString8 scriptClass = compEntry["type"];
-                    comp.Instance = ScriptInstance(scriptClass.ToHString());
-                    if (comp.Instance.IsInstantiable())
+                    if (compEntry.contains("type"))
                     {
-                        if (!comp.Instance.ValidateClass())
+                        HString typeName = compEntry["type"];
+                        s64 typeId = ScriptingEngine::GetClassIdFromName(typeName);
+                        comp.Instance.SetScriptClassId(typeId);
+                        if (!comp.Instance.IsInstantiable())
                         {
                             HE_ENGINE_LOG_WARN(
-                                "Class '{0}' referenced in scene is no longer instantiable",
-                                scriptClass.Data()
+                                "Class '{0}' referenced in entity is no longer instantiable (id: {1}, name: {2})",
+                                typeName.DataUTF8(),id, entity.GetName().DataUTF8()
                             );
                         }
                         else
@@ -343,8 +346,11 @@ namespace Heart
                 {
                     auto& compEntry = entry["scriptComponent"];
                     auto& comp = entity.GetComponent<ScriptComponent>();
-                    compEntry["type"] = comp.Instance.GetScriptClass();
-                    compEntry["fields"] = comp.Instance.SerializeFieldsToJson();
+                    if (comp.Instance.HasScriptClass())
+                    {
+                        compEntry["type"] = comp.Instance.GetScriptClassObject().GetFullName();
+                        compEntry["fields"] = comp.Instance.SerializeFieldsToJson();
+                    }
                 }
 
                 // Camera component

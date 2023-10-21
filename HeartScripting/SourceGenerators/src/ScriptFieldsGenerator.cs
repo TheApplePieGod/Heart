@@ -2,9 +2,9 @@
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
-using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System;
 
 namespace SourceGenerators
 {
@@ -58,6 +58,9 @@ namespace SourceGenerators
             sb.Append("public partial class ");
             sb.Append(typeSymbol.Name);
             sb.Append(" : ScriptEntity {\n");
+
+            Int64 uniqueId = Util.ComputeUniqueTypeId(typeSymbol.FullName());
+            sb.Append("public const Int64 GENERATED_UniqueId = " + uniqueId + ";\n");
 
             sb.Append("public override bool GENERATED_SetField(string fieldName, Variant value) {\n");
             sb.Append("switch (fieldName) {\n");

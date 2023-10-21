@@ -167,14 +167,19 @@ namespace HeartEditor
         }
 
         // Serialize object state of all alive scripts
+        // TODO: stop using json here because it is slow
         auto view = Editor::GetActiveScene().GetRegistry().view<Heart::ScriptComponent>();
         std::unordered_map<entt::entity, nlohmann::json> serializedObjects;
         for (auto entity : view)
         {
             auto& scriptComp = view.get<Heart::ScriptComponent>(entity);
-            if (!scriptComp.Instance.IsAlive()) continue;
+            if (!scriptComp.Instance.IsInstantiable() || !scriptComp.Instance.IsAlive()) continue;
             
-            serializedObjects[entity] = scriptComp.Instance.SerializeFieldsToJson();
+            nlohmann::json j;
+            j["className"] = scriptComp.Instance.GetScriptClassObject().GetFullName();
+            j["fields"] = scriptComp.Instance.SerializeFieldsToJson();
+
+            serializedObjects[entity] = j;
         }
 
         // Reload
@@ -184,27 +189,32 @@ namespace HeartEditor
         Heart::ScriptingEngine::LoadClientPlugin(assemblyPath.u8string());
 
         // Reinstantiate objects and load serialized properties
-        for (auto entity : view)
+        for (auto _entity : view)
         {
-            auto& scriptComp = view.get<Heart::ScriptComponent>(entity);
-            if (!scriptComp.Instance.IsInstantiable())
+            auto& scriptComp = view.get<Heart::ScriptComponent>(_entity);
+            if (!scriptComp.Instance.HasScriptClass())
                 continue;
+
+            Heart::Entity entity(&Editor::GetActiveScene(), (u32)_entity);
+            auto& json = serializedObjects[_entity];
             
             // We need to ensure that the class still exists & is instantiable after the reload
             // before we try and reinstantiate it
             scriptComp.Instance.ClearObjectHandle();
-            if (!scriptComp.Instance.ValidateClass())
+            if (!scriptComp.Instance.IsInstantiable())
             {
                 HE_ENGINE_LOG_WARN(
-                    "Class '{0}' referenced in scene is no longer instantiable",
-                    scriptComp.Instance.GetScriptClass().DataUTF8()
+                    "Class '{0}' referenced in entity is no longer instantiable (id: {1}, name: {2})",
+                    json["className"],
+                    entity.GetUUID(),
+                    entity.GetName().DataUTF8()
                 );
                 continue;
             }
 
             // Reinstantiate
-            scriptComp.Instance.Instantiate({ &Editor::GetActiveScene(), (u32)entity });
-            scriptComp.Instance.LoadFieldsFromJson(serializedObjects[entity]);
+            scriptComp.Instance.Instantiate(entity);
+            scriptComp.Instance.LoadFieldsFromJson(json["fields"]);
             scriptComp.Instance.OnConstruct();
         }
 

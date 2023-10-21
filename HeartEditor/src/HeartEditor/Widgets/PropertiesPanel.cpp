@@ -2,6 +2,7 @@
 #include "PropertiesPanel.h"
 
 #include "HeartEditor/EditorApp.h"
+#include "Heart/Scripting/ScriptEntityInstance.h"
 #include "Heart/Scripting/ScriptingEngine.h"
 #include "Heart/Container/HVector.hpp"
 #include "Heart/Container/Variant.h"
@@ -299,11 +300,15 @@ namespace Widgets
                 Heart::UUID uuid = selectedEntity.GetUUID();
                 auto& scriptComp = selectedEntity.GetComponent<Heart::ScriptComponent>();
 
-                // Get keys of instantiable classes (names)
-                auto& classDict = Heart::ScriptingEngine::GetInstantiableClasses();
+                // Get instantiable entity classes (names)
+                auto& classDict = Heart::ScriptingEngine::GetEntityClasses();
                 Heart::HVector<Heart::HString8> classes(classDict.size(), false);
+                Heart::HVector<s64> ids(classDict.size(), false);
                 for (auto& pair : classDict)
-                    classes.Add(pair.first.ToUTF8());
+                {
+                    classes.Add(pair.second.GetFullName().ToUTF8());
+                    ids.Add(pair.first);
+                }
 
                 ImGui::Indent();
 
@@ -312,22 +317,21 @@ namespace Widgets
                 ImGui::SameLine();
                 Heart::ImGuiUtils::StringPicker(
                     classes,
-                    scriptComp.Instance.GetScriptClass().GetViewUTF8(),
+                    scriptComp.Instance.GetScriptClassObject().GetFullName().GetViewUTF8(),
                     "None",
                     "Script",
                     m_ScriptTextFilter,
                     [&scriptComp]()
                     {
-                        if (!scriptComp.Instance.IsInstantiable())
+                        if (!scriptComp.Instance.HasScriptClass())
                             return;
 
                         if (ImGui::MenuItem("Clear"))
                             scriptComp.Instance.Clear();
                     },
-                    [&scriptComp, &classes, selectedEntity](u32 index)
+                    [&scriptComp, &ids, selectedEntity](u32 index)
                     {
-                        scriptComp.Instance.Destroy();
-                        scriptComp.Instance = Heart::ScriptInstance(classes[index].ToHString());
+                        scriptComp.Instance.SetScriptClassId(ids[index]);
                         scriptComp.Instance.Instantiate(selectedEntity);
                         scriptComp.Instance.OnConstruct();
 
@@ -341,7 +345,7 @@ namespace Widgets
                     ImGui::Dummy({ 0.f, 5.f });
                     ImGui::Text("Properties");
                     ImGui::Separator();
-                    auto& fields = Heart::ScriptingEngine::GetInstantiableClass(scriptComp.Instance.GetScriptClass()).GetSerializableFields();
+                    auto& fields = scriptComp.Instance.GetScriptClassObject().GetSerializableFields();
                     for (auto& val : fields)
                         RenderScriptField(val, scriptComp);
                 }

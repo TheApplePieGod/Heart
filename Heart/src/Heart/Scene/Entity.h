@@ -61,7 +61,8 @@ namespace Heart
 
         RuntimeComponent& GetRuntimeComponent(s64 typeId) const;
         bool HasRuntimeComponent(s64 typeId) const;
-        void AddRuntimeComponent(s64 typeId, uptr objectHandle);
+        void AddRuntimeComponent(s64 typeId);
+        void AddRuntimeComponent(s64 typeId, uptr objectHandle = 0);
         void RemoveRuntimeComponent(s64 typeId);
 
     public:
