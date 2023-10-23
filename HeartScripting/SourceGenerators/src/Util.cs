@@ -33,7 +33,7 @@ namespace SourceGenerators
                 case GenerationError.NonPartialComponentClass:
                     {
                         id = "H0002";
-                        description = "All classes implementing Heart.Scene.IComponent<T> must be declared as a 'partial' class.";
+                        description = "All classes implementing Heart.Scene.IComponent must be declared as a 'partial' class.";
                     } break;
             }
 
