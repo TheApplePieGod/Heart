@@ -17,7 +17,7 @@ namespace Heart.Scene
             => (ContainerInfo*)Materials - 1;
     }
 
-    public partial class MeshComponent : IComponent<MeshComponent>
+    public partial class MeshComponent : IComponent
     {
         internal unsafe MeshComponentInternal* _internalValue;
         internal uint _entityHandle = Entity.InvalidEntityHandle;

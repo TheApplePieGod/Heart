@@ -21,7 +21,7 @@ namespace Heart.Scene
         [FieldOffset(60)] public float Roughness;
     }
 
-    public partial class TextComponent : IComponent<TextComponent>
+    public partial class TextComponent : IComponent
     {
         internal unsafe TextComponentInternal* _internalValue;
         internal uint _entityHandle = Entity.InvalidEntityHandle;

@@ -21,7 +21,7 @@ namespace Heart.Scene
         [FieldOffset(20)] public float Radius;
     }
 
-    public partial class LightComponent : IComponent<LightComponent>
+    public partial class LightComponent : IComponent
     {
         internal unsafe LightComponentInternal* _internalValue;
         internal uint _entityHandle = Entity.InvalidEntityHandle;

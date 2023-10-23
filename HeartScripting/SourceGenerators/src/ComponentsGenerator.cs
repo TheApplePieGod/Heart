@@ -53,13 +53,14 @@ namespace SourceGenerators
             sb.Append("using System;\n");
             sb.Append("using System.Runtime.CompilerServices;\n");
             sb.Append("using Heart.Scene;\n");
+            sb.Append("using Heart.Container;\n");
             sb.Append("using Heart.NativeInterop;\n");
             sb.Append("namespace ");
             sb.Append(fullNamespace);
             sb.Append(" {\n");
             sb.Append("public partial class ");
             sb.Append(typeSymbol.Name);
-            sb.Append(" : IComponent<" + typeSymbol.Name + "> {\n");
+            sb.Append(" : IComponent {\n");
 
             // Include fields and methods only needed on runtime components
             if (fullNamespace != "Heart.Scene")
@@ -88,13 +89,26 @@ namespace SourceGenerators
                 sb.Append("=> RuntimeComponent.NativeAdd<" + typeSymbol.Name + ">(entityHandle, sceneHandle, GENERATED_UniqueId);\n");
 
                 // Special create function that instantiates the saved object pointer
-                sb.Append("public static " + typeSymbol.Name + " Create(uint entityHandle, IntPtr sceneHandle)\n");
+                sb.Append("public static object Create(uint entityHandle, IntPtr sceneHandle)\n");
                 sb.Append("=> RuntimeComponent.Create<" + typeSymbol.Name + ">(entityHandle, sceneHandle, GENERATED_UniqueId);\n");
+
+                // Field setters 
+                var fields = compClass.Members
+                    .Where(m => m.Kind() == SyntaxKind.FieldDeclaration)
+                    .ToList();
+                Util.GenerateScriptFieldSetter(
+                    context,
+                    sb,
+                    typeSymbol.Name,
+                    "SetFieldValue",
+                    fields,
+                    false
+                );
             }
             else
             {
                 // Default create function
-                sb.Append("public static " + typeSymbol.Name + " Create(uint entityHandle, IntPtr sceneHandle)\n");
+                sb.Append("public static object Create(uint entityHandle, IntPtr sceneHandle)\n");
                 sb.Append("=> new " + typeSymbol.Name + "(entityHandle, sceneHandle);\n");
 
                 // Default constructors

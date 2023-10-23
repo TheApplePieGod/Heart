@@ -25,9 +25,17 @@ namespace Heart.Scene
             => value.Value;
     }
 
-    public interface IComponent<T> where T : IComponent<T>
+    public interface IUnmanagedFields
     {
-        static virtual T Create(uint entityHandle, IntPtr sceneHandle)
+        void OnScriptFieldChanged(string field, Variant value) {}
+
+        bool SetFieldValue(string fieldName, Variant value)
+            => throw new NotImplementedException("SetFieldValue not implemented!");
+    }
+
+    public interface IComponent : IUnmanagedFields
+    {
+        static virtual object Create(uint entityHandle, IntPtr sceneHandle)
             => throw new NotImplementedException("Component Create not implemented!");
         static virtual InteropBool NativeExists(uint entityHandle, IntPtr sceneHandle)
             => throw new NotImplementedException("Component NativeExists not implemented!");
@@ -205,24 +213,24 @@ namespace Heart.Scene
             return new Vec3(value);
         }
 
-        public static T GetComponent<T>(uint entityHandle, IntPtr sceneHandle) where T : class, IComponent<T>, new()
+        public static T GetComponent<T>(uint entityHandle, IntPtr sceneHandle) where T : class, IComponent, new()
         {
             if (!HasComponent<T>(entityHandle, sceneHandle)) return null;
-            return T.Create(entityHandle, sceneHandle);
+            return (T)T.Create(entityHandle, sceneHandle);
         }
 
-        public static bool HasComponent<T>(uint entityHandle, IntPtr sceneHandle) where T : class, IComponent<T>, new()
+        public static bool HasComponent<T>(uint entityHandle, IntPtr sceneHandle) where T : class, IComponent, new()
         {
             return NativeMarshal.InteropBoolToBool(T.NativeExists(entityHandle, sceneHandle));
         }
 
-        public static T AddComponent<T>(uint entityHandle, IntPtr sceneHandle) where T : class, IComponent<T>, new()
+        public static T AddComponent<T>(uint entityHandle, IntPtr sceneHandle) where T : class, IComponent, new()
         {
             T.NativeAdd(entityHandle, sceneHandle);
-            return T.Create(entityHandle, sceneHandle);
+            return (T)T.Create(entityHandle, sceneHandle);
         }
 
-        public static void RemoveComponent<T>(uint entityHandle, IntPtr sceneHandle) where T : class, IComponent<T>, new()
+        public static void RemoveComponent<T>(uint entityHandle, IntPtr sceneHandle) where T : class, IComponent, new()
         {
             T.NativeRemove(entityHandle, sceneHandle);
         }

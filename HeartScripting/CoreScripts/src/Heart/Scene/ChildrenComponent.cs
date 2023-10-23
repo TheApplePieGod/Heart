@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 
 namespace Heart.Scene
 {
-    public partial class ChildrenComponent : IComponent<ChildrenComponent>
+    public partial class ChildrenComponent : IComponent
     {
         internal uint _entityHandle = Entity.InvalidEntityHandle;
         internal IntPtr _sceneHandle = IntPtr.Zero;

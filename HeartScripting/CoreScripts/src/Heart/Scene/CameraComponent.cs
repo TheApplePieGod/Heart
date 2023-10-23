@@ -13,7 +13,7 @@ namespace Heart.Scene
         [FieldOffset(8)] public float FarClipPlane;
     }
 
-    public partial class CameraComponent : IComponent<CameraComponent>
+    public partial class CameraComponent : IComponent
     {
         internal unsafe CameraComponentInternal* _internalValue;
         internal uint _entityHandle = Entity.InvalidEntityHandle;

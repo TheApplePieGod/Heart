@@ -205,6 +205,32 @@ namespace Heart
                     
                     entity.AddComponent<TextComponent>(comp);
                 }
+
+                // Runtime components
+                if (loaded.contains("runtimeComponents"))
+                {
+                    auto& compEntry = loaded["runtimeComponents"];
+                    for (auto& j : compEntry)
+                    {
+                        ScriptComponentInstance instance;
+                        HString typeName = j["type"];
+                        s64 typeId = ScriptingEngine::GetClassIdFromName(typeName);
+                        instance.SetScriptClassId(typeId);
+                        if (!instance.IsInstantiable())
+                        {
+                            HE_ENGINE_LOG_WARN(
+                                "Component class '{0}' referenced in entity is no longer instantiable (id: {1}, name: {2})",
+                                typeName.DataUTF8(),id, entity.GetName().DataUTF8()
+                            );
+                        }
+                        else
+                        {
+                            instance.Instantiate();
+                            instance.LoadFieldsFromJson(j["fields"]);
+                            entity.AddRuntimeComponent(typeId, instance.GetObjectHandle());
+                        }
+                    }
+                }
             }
 
             // Load transform & script components once all entities have been parsed since their
@@ -237,7 +263,7 @@ namespace Heart
                         if (!comp.Instance.IsInstantiable())
                         {
                             HE_ENGINE_LOG_WARN(
-                                "Class '{0}' referenced in entity is no longer instantiable (id: {1}, name: {2})",
+                                "Script class '{0}' referenced in entity is no longer instantiable (id: {1}, name: {2})",
                                 typeName.DataUTF8(),id, entity.GetName().DataUTF8()
                             );
                         }
@@ -284,7 +310,7 @@ namespace Heart
             auto& field = j["entities"];
             
             u32 index = 0;
-            scene->GetRegistry().each([scene, &index, &field](auto handle)
+            for (auto [handle] : scene->GetRegistry().storage<entt::entity>().each())
             {
                 nlohmann::json entry;
                 Entity entity = { scene, handle };
@@ -413,8 +439,28 @@ namespace Heart
                     compEntry["lineHeight"] = comp.LineHeight;
                 }
 
+                // Runtime components
+                {
+                    nlohmann::json j;
+                    HVector<nlohmann::json> runComps;
+                    for (auto& pair : Heart::ScriptingEngine::GetComponentClasses())
+                    {
+                        if (!entity.HasRuntimeComponent(pair.first)) continue;
+
+                        auto& comp = entity.GetRuntimeComponent(pair.first);
+                        if (comp.Instance.HasScriptClass())
+                        {
+                            j["type"] = comp.Instance.GetScriptClassObject().GetFullName();
+                            j["fields"] = comp.Instance.SerializeFieldsToJson();
+                            runComps.AddInPlace(j);
+                        }
+                    }
+                    if (runComps.Count() > 0)
+                        entry["runtimeComponents"] = runComps;
+                }
+
                 field[index++] = entry;
-            });
+            }
         }
 
         // settings

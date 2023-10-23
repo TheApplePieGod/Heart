@@ -35,6 +35,24 @@ namespace Heart
     }
 
     template <>
+    void Scene::CopyComponent<RuntimeComponent>(entt::entity _src, Entity dst)
+    {
+        Entity src = { this, _src };
+        for (auto& pair : ScriptingEngine::GetComponentClasses())
+        {
+            if (!src.HasRuntimeComponent(pair.first)) continue;
+
+            ScriptComponentInstance instance(pair.first);
+            instance.Instantiate();
+            instance.LoadFieldsFromJson(
+                src.GetRuntimeComponent(pair.first).Instance.SerializeFieldsToJson()
+            );
+
+            dst.AddRuntimeComponent(pair.first, instance.GetObjectHandle());
+        }
+    }
+
+    template <>
     void Scene::CopyComponent<PrimaryCameraComponent>(entt::entity src, Entity dst)
     {
         if (m_Registry.any_of<PrimaryCameraComponent>(src))
@@ -72,12 +90,21 @@ namespace Heart
 
     Scene::~Scene()
     {
-        // Ensure all script objects have been destroyed
-        auto view = m_Registry.view<ScriptComponent>();
-        for (auto entity : view)
+        // Entity cleanup
+        for (auto [srcHandle] : GetEntityIterator())
         {
-            auto& scriptComp = view.get<ScriptComponent>(entity);
-            scriptComp.Instance.Destroy();
+            Entity src = { this, srcHandle };
+
+            // Ensure all script objects have been destroyed
+            if (src.HasComponent<ScriptComponent>())
+                src.GetComponent<ScriptComponent>().Instance.Destroy();
+
+            // Also destroy runtime component objects
+            for (auto& pair : ScriptingEngine::GetComponentClasses())
+            {
+                if (!src.HasRuntimeComponent(pair.first)) continue;
+                src.GetRuntimeComponent(pair.first).Instance.Destroy();
+            }
         }
     }
 
@@ -137,6 +164,7 @@ namespace Heart
         CopyComponent<CameraComponent>(source.GetHandle(), newEntity);
         CopyComponent<CollisionComponent>(source.GetHandle(), newEntity);
         CopyComponent<TextComponent>(source.GetHandle(), newEntity);
+        CopyComponent<RuntimeComponent>(source.GetHandle(), newEntity);
 
         CacheEntityTransform(newEntity);
         if (newEntity.HasComponent<ScriptComponent>())
@@ -354,7 +382,10 @@ namespace Heart
         Ref<Scene> newScene = CreateRef<Scene>();
 
         // Copy each entity & associated data to the new registry
-        m_Registry.each([&](auto srcHandle)
+        // TODO: look into speeding up / parallelization
+        // potentially we could also have a mirror scene that gets edited in parallel
+        // and when the user hits play it uses that one directly
+        for (auto [srcHandle] : GetEntityIterator())
         {
             Entity src = { this, srcHandle };
             Entity dst = { newScene.get(), newScene->GetRegistry().create() };
@@ -374,16 +405,17 @@ namespace Heart
             CopyComponent<CameraComponent>(src.GetHandle(), dst);
             CopyComponent<CollisionComponent>(src.GetHandle(), dst);
             CopyComponent<TextComponent>(src.GetHandle(), dst);
-        });
+            CopyComponent<RuntimeComponent>(src.GetHandle(), dst);
+        }
         
         // Copy script component after all entities have been created
-        m_Registry.each([&](auto srcHandle)
+        for (auto [srcHandle] : GetEntityIterator())
         {
             Entity src = { this, srcHandle };
             Entity dst = newScene->GetEntityFromUUID(src.GetUUID());
             
             CopyComponent<ScriptComponent>(src.GetHandle(), dst);
-        });
+        }
 
         // Ensure transform changes are reflected
         auto scriptView = m_Registry.view<ScriptComponent>();

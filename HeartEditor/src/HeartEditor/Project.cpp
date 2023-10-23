@@ -166,20 +166,51 @@ namespace HeartEditor
             return;
         }
 
+        const auto serializeInstance = [](nlohmann::json& j, Heart::ScriptInstance* instance)
+        {
+            if (!instance->IsInstantiable() || !instance->IsAlive())
+                return false;
+
+            j["type"] = instance->GetScriptClassObject().GetFullName();
+            j["fields"] = instance->SerializeFieldsToJson();
+
+            return true;
+        };
+
         // Serialize object state of all alive scripts
         // TODO: stop using json here because it is slow
-        auto view = Editor::GetActiveScene().GetRegistry().view<Heart::ScriptComponent>();
-        std::unordered_map<entt::entity, nlohmann::json> serializedObjects;
-        for (auto entity : view)
+        std::unordered_map<entt::entity, SerializedInstance> serializedObjects;
+        for (auto [_entity] : Editor::GetActiveScene().GetEntityIterator())
         {
-            auto& scriptComp = view.get<Heart::ScriptComponent>(entity);
-            if (!scriptComp.Instance.IsInstantiable() || !scriptComp.Instance.IsAlive()) continue;
-            
-            nlohmann::json j;
-            j["className"] = scriptComp.Instance.GetScriptClassObject().GetFullName();
-            j["fields"] = scriptComp.Instance.SerializeFieldsToJson();
+            Heart::Entity entity(&Editor::GetActiveScene(), (u32)_entity);
 
-            serializedObjects[entity] = j;
+            SerializedInstance instance;
+            bool include = false;
+
+            // Check for default script component
+            if (entity.HasComponent<Heart::ScriptComponent>())
+            {
+                include |= serializeInstance(
+                    instance.ScriptComp,
+                    &entity.GetComponent<Heart::ScriptComponent>().Instance
+                );
+            }
+
+            // Check for any runtime components
+            for (auto& pair : Heart::ScriptingEngine::GetComponentClasses())
+            {
+                if (!entity.HasRuntimeComponent(pair.first)) continue;
+
+                nlohmann::json j;
+                if (serializeInstance(j, &entity.GetRuntimeComponent(pair.first).Instance))
+                {
+                    instance.RuntimeComps[pair.first] = j;
+                    include = true;
+                }
+            }
+
+            if (include)
+                serializedObjects[_entity] = instance;
         }
 
         // Reload
@@ -189,33 +220,64 @@ namespace HeartEditor
         Heart::ScriptingEngine::LoadClientPlugin(assemblyPath.u8string());
 
         // Reinstantiate objects and load serialized properties
-        for (auto _entity : view)
+        for (auto& pair : serializedObjects)
         {
-            auto& scriptComp = view.get<Heart::ScriptComponent>(_entity);
-            if (!scriptComp.Instance.HasScriptClass())
-                continue;
-
-            Heart::Entity entity(&Editor::GetActiveScene(), (u32)_entity);
-            auto& json = serializedObjects[_entity];
+            Heart::Entity entity(&Editor::GetActiveScene(), (u32)pair.first);
+            auto& instance = pair.second;
             
-            // We need to ensure that the class still exists & is instantiable after the reload
-            // before we try and reinstantiate it
-            scriptComp.Instance.ClearObjectHandle();
-            if (!scriptComp.Instance.IsInstantiable())
+            // Instantiate script component
+            if (!instance.ScriptComp.is_null())
             {
-                HE_ENGINE_LOG_WARN(
-                    "Class '{0}' referenced in entity is no longer instantiable (id: {1}, name: {2})",
-                    json["className"],
-                    entity.GetUUID(),
-                    entity.GetName().DataUTF8()
-                );
-                continue;
+                auto& scriptComp = entity.GetComponent<Heart::ScriptComponent>();
+
+                // We need to ensure that the class still exists & is instantiable after the reload
+                // before we try and reinstantiate it
+                scriptComp.Instance.ClearObjectHandle();
+                if (!scriptComp.Instance.IsInstantiable())
+                {
+                    HE_ENGINE_LOG_WARN(
+                        "Script class '{0}' referenced in entity is no longer instantiable (id: {1}, name: {2})",
+                        instance.ScriptComp["type"],
+                        entity.GetUUID(),
+                        entity.GetName().DataUTF8()
+                    );
+                    continue;
+                }
+
+                // Reinstantiate
+                scriptComp.Instance.Instantiate(entity);
+                scriptComp.Instance.LoadFieldsFromJson(instance.ScriptComp["fields"]);
+                scriptComp.Instance.OnConstruct();
             }
 
-            // Reinstantiate
-            scriptComp.Instance.Instantiate(entity);
-            scriptComp.Instance.LoadFieldsFromJson(json["fields"]);
-            scriptComp.Instance.OnConstruct();
+            // Instantiate runtime components
+            for (auto& pair : instance.RuntimeComps)
+            {
+                auto& comp = entity.GetRuntimeComponent(pair.first);
+                auto& compJ = pair.second;
+
+                // We need to ensure that the class still exists & is instantiable after the reload
+                // before we try and reinstantiate it
+                comp.Instance.ClearObjectHandle();
+                if (!comp.Instance.IsInstantiable())
+                {
+                    HE_ENGINE_LOG_WARN(
+                        "Component class '{0}' referenced in entity is no longer instantiable (id: {1}, name: {2})",
+                        compJ["type"],
+                        entity.GetUUID(),
+                        entity.GetName().DataUTF8()
+                    );
+
+                    // Remove component since it no longer makes sene to keep it
+                    entity.RemoveRuntimeComponent(pair.first);
+
+                    continue;
+                }
+
+                // Reinstantiate
+                comp.Instance.Instantiate();
+                comp.Instance.LoadFieldsFromJson(compJ["fields"]);
+            }
         }
 
         // Ensure potential modifications of OnConstruct are reflected

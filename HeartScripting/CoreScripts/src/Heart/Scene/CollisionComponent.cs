@@ -13,7 +13,7 @@ namespace Heart.Scene
         [FieldOffset(0)] public uint BodyId;
     }
 
-    public partial class CollisionComponent : IComponent<CollisionComponent>
+    public partial class CollisionComponent : IComponent
     {
         internal uint _entityHandle = Entity.InvalidEntityHandle;
         internal IntPtr _sceneHandle = IntPtr.Zero;

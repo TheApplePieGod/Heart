@@ -27,13 +27,14 @@ namespace Widgets
         void RenderCameraComponent();
         void RenderCollisionComponent();
         void RenderTextComponent();
+        void RenderRuntimeComponents();
 
-        void RenderScriptField(Heart::HStringView fieldName, Heart::ScriptComponent& scriptComp);
+        void RenderScriptField(Heart::HStringView fieldName, Heart::ScriptInstance* instance);
         bool RenderCollisionChannels(Heart::HStringView8 id, u32& mask);
         
         // returns true if the component was deleted
         template<typename Component>
-        bool RenderComponentPopup(const Heart::HStringView8& popupName, bool canRemove = true)
+        bool RenderComponentPopup(const Heart::HStringView8& popupName, bool canRemove = true, s64 runtimeId = 0)
         {
             if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1))
                 ImGui::OpenPopup(popupName.Data());
@@ -43,7 +44,10 @@ namespace Widgets
                     ImGui::BeginDisabled();
                 if (ImGui::MenuItem("Remove Component"))
                 {
-                    Editor::GetState().SelectedEntity.RemoveComponent<Component>();
+                    if constexpr (std::is_same<Component, Heart::RuntimeComponent>::value)
+                        Editor::GetState().SelectedEntity.RemoveRuntimeComponent(runtimeId);
+                    else
+                        Editor::GetState().SelectedEntity.RemoveComponent<Component>();
                     ImGui::EndPopup();
                     return true;
                 }

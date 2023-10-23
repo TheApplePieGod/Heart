@@ -21,7 +21,7 @@ namespace Heart.Scene
         [FieldOffset(0)] public ScriptInstanceInternal ScriptInstance;
     }
 
-    public partial class ScriptComponent : IComponent<ScriptComponent>
+    public partial class ScriptComponent : IComponent
     {
         internal unsafe ScriptComponentInternal* _internalValue;
         internal uint _entityHandle = Entity.InvalidEntityHandle;

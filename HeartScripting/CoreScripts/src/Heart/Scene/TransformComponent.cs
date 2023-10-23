@@ -14,7 +14,7 @@ namespace Heart.Scene
         [FieldOffset(24)] public Vec3Internal Scale;
     }
 
-    public partial class TransformComponent : IComponent<TransformComponent>
+    public partial class TransformComponent : IComponent
     {
         internal uint _entityHandle = Entity.InvalidEntityHandle;
         internal IntPtr _sceneHandle = IntPtr.Zero;

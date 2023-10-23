@@ -55,9 +55,9 @@ namespace Heart.NativeBridge
             if (type == null) return names;
 
             var fields = type.GetFields()
-                .Where(f => f.IsPublic || f.CustomAttributes
+                .Where(f => (f.IsPublic || f.CustomAttributes
                     .Where(a => a.AttributeType == serializeType)
-                    .Any() && !f.Name.StartsWith("GENERATED_")
+                    .Any()) && !f.Name.StartsWith("GENERATED_")
                 );
 
             foreach (var field in fields)

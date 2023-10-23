@@ -5,7 +5,7 @@ using Heart.NativeInterop;
 
 namespace Heart.Scene
 {
-    public partial class IdComponent : IComponent<IdComponent>
+    public partial class IdComponent : IComponent
     {
         internal uint _entityHandle = Entity.InvalidEntityHandle;
         internal IntPtr _sceneHandle = IntPtr.Zero;

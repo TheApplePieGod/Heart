@@ -16,7 +16,9 @@ namespace Heart
 
         void Instantiate();
 
-    protected:
         const ScriptClass& GetScriptClassObject() const override;
+
+    private:
+
     };
 }
