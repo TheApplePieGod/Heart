@@ -217,6 +217,14 @@ HE_INTEROP_EXPORT void Native_SchedulableIter_Schedule(
                 "Entity HasComponent check failed for " #compName \
             ); \
         }
+    #define ASSERT_ENTITY_HAS_RUNTIME_COMPONENT(id) \
+        { \
+            Heart::Entity entity(sceneHandle, entityHandle); \
+            HE_ENGINE_ASSERT( \
+                entity.HasRuntimeComponent(id), \
+                "Entity HasRuntimeComponent check failed" \
+            ); \
+        }
     #define ASSERT_ENTITY_IS_VALID() \
         { \
             Heart::Entity entity(sceneHandle, entityHandle); \
@@ -227,6 +235,7 @@ HE_INTEROP_EXPORT void Native_SchedulableIter_Schedule(
         }
 #else
     #define ASSERT_ENTITY_HAS_COMPONENT(compName)
+    #define ASSERT_ENTITY_HAS_RUNTIME_COMPONENT(id)
     #define ASSERT_ENTITY_IS_VALID()
 #endif
 
@@ -411,7 +420,8 @@ HE_INTEROP_EXPORT void Native_ScriptComponent_SetScriptClass(u32 entityHandle, H
     ASSERT_ENTITY_IS_VALID();
     ASSERT_ENTITY_HAS_COMPONENT(ScriptComponent);
     Heart::Entity entity(sceneHandle, entityHandle);
-    entity.GetComponent<Heart::ScriptComponent>().Instance.SetScriptClass(value);
+    s64 typeId = Heart::ScriptingEngine::GetClassIdFromName(value);
+    entity.GetComponent<Heart::ScriptComponent>().Instance.SetScriptClassId(typeId);
 }
 
 HE_INTEROP_EXPORT void Native_ScriptComponent_InstantiateScript(u32 entityHandle, Heart::Scene* sceneHandle)
@@ -561,6 +571,37 @@ HE_INTEROP_EXPORT void Native_TextComponent_ClearRenderData(u32 entityHandle, He
     ASSERT_ENTITY_HAS_COMPONENT(TextComponent);
     Heart::Entity entity(sceneHandle, entityHandle);
     entity.GetComponent<Heart::TextComponent>().ClearRenderData();
+}
+
+// Runtime components
+// Special implementations required here 
+HE_INTEROP_EXPORT void Native_RuntimeComponent_Get(u32 entityHandle, Heart::Scene* sceneHandle, s64 typeId, uptr* outComp)
+{
+    ASSERT_ENTITY_IS_VALID();
+    ASSERT_ENTITY_HAS_RUNTIME_COMPONENT(typeId);
+    Heart::Entity entity(sceneHandle, entityHandle);
+    *outComp = entity.GetRuntimeComponent(typeId).Instance.GetObjectHandle();
+}
+
+HE_INTEROP_EXPORT bool Native_RuntimeComponent_Exists(u32 entityHandle, Heart::Scene* sceneHandle, s64 typeId)
+{
+    ASSERT_ENTITY_IS_VALID();
+    Heart::Entity entity(sceneHandle, entityHandle);
+    return entity.HasRuntimeComponent(typeId);
+}
+
+HE_INTEROP_EXPORT void Native_RuntimeComponent_Add(u32 entityHandle, Heart::Scene* sceneHandle, s64 typeId, uptr objectHandle)
+{
+    ASSERT_ENTITY_IS_VALID();
+    Heart::Entity entity(sceneHandle, entityHandle);
+    entity.AddRuntimeComponent(typeId, objectHandle);
+}
+
+HE_INTEROP_EXPORT void Native_RuntimeComponent_Remove(u32 entityHandle, Heart::Scene* sceneHandle, s64 typeId)
+{
+    ASSERT_ENTITY_IS_VALID();
+    Heart::Entity entity(sceneHandle, entityHandle);
+    entity.RemoveRuntimeComponent(typeId);
 }
 
 // We need this in order to ensure that the dllexports inside the engine static lib

@@ -6,15 +6,10 @@ using System.Runtime.InteropServices;
 
 namespace Heart.Scene
 {
-    public class NameComponent : Component
+    public partial class NameComponent : IComponent
     {
-        public NameComponent()
-            : base(Entity.InvalidEntityHandle, IntPtr.Zero)
-        { }
-
-        internal NameComponent(uint entityHandle, IntPtr sceneHandle)
-            : base(entityHandle, sceneHandle)
-        {}
+        internal uint _entityHandle = Entity.InvalidEntityHandle;
+        internal IntPtr _sceneHandle = IntPtr.Zero;
 
         public string Name
         {
@@ -23,6 +18,18 @@ namespace Heart.Scene
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set => ComponentUtils.SetName(_entityHandle, _sceneHandle, value);
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static InteropBool NativeExists(uint entityHandle, IntPtr sceneHandle)
+            => InteropBool.True;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void NativeAdd(uint entityHandle, IntPtr sceneHandle)
+            => throw new InvalidOperationException("Cannot add a name component");
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void NativeRemove(uint entityHandle, IntPtr sceneHandle)
+            => throw new InvalidOperationException("Cannot remove a name component");
 
         [DllImport("__Internal")]
         internal static extern unsafe void Native_NameComponent_Get(uint entityHandle, IntPtr sceneHandle, out HStringInternal* comp);

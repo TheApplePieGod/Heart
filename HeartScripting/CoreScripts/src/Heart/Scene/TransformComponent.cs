@@ -1,4 +1,5 @@
 ﻿using Heart.Math;
+using Heart.NativeInterop;
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -13,15 +14,10 @@ namespace Heart.Scene
         [FieldOffset(24)] public Vec3Internal Scale;
     }
 
-    public class TransformComponent : Component
+    public partial class TransformComponent : IComponent
     {
-        public TransformComponent()
-            : base(Entity.InvalidEntityHandle, IntPtr.Zero)
-        {}
-
-        internal TransformComponent(uint entityHandle, IntPtr sceneHandle)
-            : base(entityHandle, sceneHandle)
-        {}
+        internal uint _entityHandle = Entity.InvalidEntityHandle;
+        internal IntPtr _sceneHandle = IntPtr.Zero;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vec3 GetPosition()
@@ -58,6 +54,18 @@ namespace Heart.Scene
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vec3 GetForwardVector()
             => ComponentUtils.GetForwardVector(_entityHandle, _sceneHandle);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static InteropBool NativeExists(uint entityHandle, IntPtr sceneHandle)
+            => InteropBool.True;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void NativeAdd(uint entityHandle, IntPtr sceneHandle)
+            => throw new InvalidOperationException("Cannot add a transform component");
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void NativeRemove(uint entityHandle, IntPtr sceneHandle)
+            => throw new InvalidOperationException("Cannot remove a transform component");
 
         [DllImport("__Internal")]
         internal static extern unsafe void Native_TransformComponent_Get(uint entityHandle, IntPtr sceneHandle, out TransformComponentInternal* comp);

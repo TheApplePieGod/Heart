@@ -16,43 +16,6 @@ namespace Heart
         Entity(Scene* scene, u32 handle);
         Entity() = default;
 
-        template<typename Component>
-        bool HasComponent() const
-        {
-            return m_Scene->GetRegistry().all_of<Component>(m_EntityHandle);
-        }
-
-        // Will replace existing component of same type
-        template<typename Component, typename ... Args>
-        void AddComponent(Args&& ... args)
-        {
-            m_Scene->GetRegistry().emplace_or_replace<Component>(m_EntityHandle, std::forward<Args>(args)...);
-        }
-        
-        template<>
-        void AddComponent<CollisionComponent>(PhysicsBody& body)
-        {
-            if (HasComponent<CollisionComponent>())
-                m_Scene->GetPhysicsWorld().RemoveBody(GetComponent<CollisionComponent>().BodyId);
-            body.SetTransform(GetWorldPosition(), m_Scene->GetEntityCachedQuat(*this));
-            u32 id = m_Scene->GetPhysicsWorld().AddBody(body);
-            m_Scene->GetRegistry().emplace_or_replace<CollisionComponent>(m_EntityHandle, id);
-        }
-
-        // Safe to call when entity does not have component
-        template<typename Component>
-        void RemoveComponent()
-        {
-            m_Scene->GetRegistry().remove<Component>(m_EntityHandle);
-        }
-
-        template<typename Component>
-        Component& GetComponent() const
-        {
-            HE_ENGINE_ASSERT(HasComponent<Component>(), "Cannot get, entity does not have component");
-            return m_Scene->GetRegistry().get<Component>(m_EntityHandle);
-        }
-
         bool IsValid();
         void Destroy();
         
@@ -95,7 +58,50 @@ namespace Heart
         void ReplacePhysicsBody(const PhysicsBody& body, bool keepVel = false);
         
         void SetText(HStringView8 text);
+
+        RuntimeComponent& GetRuntimeComponent(s64 typeId) const;
+        bool HasRuntimeComponent(s64 typeId) const;
+        void AddRuntimeComponent(s64 typeId, uptr objectHandle = 0);
+        void RemoveRuntimeComponent(s64 typeId);
+
+    public:
+        template<typename Component>
+        bool HasComponent() const
+        {
+            return m_Scene->GetRegistry().all_of<Component>(m_EntityHandle);
+        }
+
+        // Will replace existing component of same type
+        template<typename Component, typename ... Args>
+        void AddComponent(Args&& ... args)
+        {
+            m_Scene->GetRegistry().emplace_or_replace<Component>(m_EntityHandle, std::forward<Args>(args)...);
+        }
         
+        template<>
+        void AddComponent<CollisionComponent>(PhysicsBody& body)
+        {
+            if (HasComponent<CollisionComponent>())
+                m_Scene->GetPhysicsWorld().RemoveBody(GetComponent<CollisionComponent>().BodyId);
+            body.SetTransform(GetWorldPosition(), m_Scene->GetEntityCachedQuat(*this));
+            u32 id = m_Scene->GetPhysicsWorld().AddBody(body);
+            m_Scene->GetRegistry().emplace_or_replace<CollisionComponent>(m_EntityHandle, id);
+        }
+
+        // Safe to call when entity does not have component
+        template<typename Component>
+        void RemoveComponent()
+        {
+            m_Scene->GetRegistry().remove<Component>(m_EntityHandle);
+        }
+
+        template<typename Component>
+        Component& GetComponent() const
+        {
+            HE_ENGINE_ASSERT(HasComponent<Component>(), "Cannot get, entity does not have component");
+            return m_Scene->GetRegistry().get<Component>(m_EntityHandle);
+        }
+
     private:
         entt::entity m_EntityHandle = entt::null;
         Scene* m_Scene = nullptr;

@@ -2,6 +2,7 @@
 #include "PropertiesPanel.h"
 
 #include "HeartEditor/EditorApp.h"
+#include "Heart/Scripting/ScriptEntityInstance.h"
 #include "Heart/Scripting/ScriptingEngine.h"
 #include "Heart/Container/HVector.hpp"
 #include "Heart/Container/Variant.h"
@@ -42,21 +43,35 @@ namespace Widgets
             
             if (ImGui::BeginPopup("AddComponent"))
             {
-                if (ImGui::MenuItem("Mesh Component"))
-                    selectedEntity.AddComponent<Heart::MeshComponent>();
-                if (ImGui::MenuItem("Light Component"))
-                    selectedEntity.AddComponent<Heart::LightComponent>();
-                if (ImGui::MenuItem("Script Component"))
-                    selectedEntity.AddComponent<Heart::ScriptComponent>();
-                if (ImGui::MenuItem("Camera Component"))
-                    selectedEntity.AddComponent<Heart::CameraComponent>();
-                if (ImGui::MenuItem("Collision Component"))
+                if (ImGui::BeginMenu("Built-in"))
                 {
-                    auto body = Heart::PhysicsBody::CreateDefaultBody((void*)(intptr_t)selectedEntity.GetUUID());
-                    selectedEntity.AddComponent<Heart::CollisionComponent>(body);
+                    if (ImGui::MenuItem("Mesh Component"))
+                        selectedEntity.AddComponent<Heart::MeshComponent>();
+                    if (ImGui::MenuItem("Light Component"))
+                        selectedEntity.AddComponent<Heart::LightComponent>();
+                    if (ImGui::MenuItem("Script Component"))
+                        selectedEntity.AddComponent<Heart::ScriptComponent>();
+                    if (ImGui::MenuItem("Camera Component"))
+                        selectedEntity.AddComponent<Heart::CameraComponent>();
+                    if (ImGui::MenuItem("Collision Component"))
+                    {
+                        auto body = Heart::PhysicsBody::CreateDefaultBody((void*)(intptr_t)selectedEntity.GetUUID());
+                        selectedEntity.AddComponent<Heart::CollisionComponent>(body);
+                    }
+                    if (ImGui::MenuItem("Text Component"))
+                        selectedEntity.AddComponent<Heart::TextComponent>();
+                    ImGui::EndMenu();
                 }
-                if (ImGui::MenuItem("Text Component"))
-                    selectedEntity.AddComponent<Heart::TextComponent>();
+
+                if (ImGui::BeginMenu("Scripts"))
+                {
+                    // TODO: separate display name
+                    for (auto& pair : Heart::ScriptingEngine::GetComponentClasses())
+                        if (ImGui::MenuItem(pair.second.GetName().DataUTF8()))
+                            selectedEntity.AddRuntimeComponent(pair.first);
+
+                    ImGui::EndMenu();
+                }
                     
                 ImGui::EndPopup();
             }
@@ -71,6 +86,7 @@ namespace Widgets
             RenderCameraComponent();
             RenderCollisionComponent();
             RenderTextComponent();
+            RenderRuntimeComponents();
         }
 
         ImGui::End();
@@ -299,11 +315,15 @@ namespace Widgets
                 Heart::UUID uuid = selectedEntity.GetUUID();
                 auto& scriptComp = selectedEntity.GetComponent<Heart::ScriptComponent>();
 
-                // Get keys of instantiable classes (names)
-                auto& classDict = Heart::ScriptingEngine::GetInstantiableClasses();
+                // Get instantiable entity classes (names)
+                auto& classDict = Heart::ScriptingEngine::GetEntityClasses();
                 Heart::HVector<Heart::HString8> classes(classDict.size(), false);
+                Heart::HVector<s64> ids(classDict.size(), false);
                 for (auto& pair : classDict)
-                    classes.Add(pair.first.ToUTF8());
+                {
+                    classes.Add(pair.second.GetFullName().ToUTF8());
+                    ids.Add(pair.first);
+                }
 
                 ImGui::Indent();
 
@@ -312,22 +332,21 @@ namespace Widgets
                 ImGui::SameLine();
                 Heart::ImGuiUtils::StringPicker(
                     classes,
-                    scriptComp.Instance.GetScriptClass().GetViewUTF8(),
+                    scriptComp.Instance.GetScriptClassObject().GetFullName().GetViewUTF8(),
                     "None",
                     "Script",
                     m_ScriptTextFilter,
                     [&scriptComp]()
                     {
-                        if (!scriptComp.Instance.IsInstantiable())
+                        if (!scriptComp.Instance.HasScriptClass())
                             return;
 
                         if (ImGui::MenuItem("Clear"))
                             scriptComp.Instance.Clear();
                     },
-                    [&scriptComp, &classes, selectedEntity](u32 index)
+                    [&scriptComp, &ids, selectedEntity](u32 index)
                     {
-                        scriptComp.Instance.Destroy();
-                        scriptComp.Instance = Heart::ScriptInstance(classes[index].ToHString());
+                        scriptComp.Instance.SetScriptClassId(ids[index]);
                         scriptComp.Instance.Instantiate(selectedEntity);
                         scriptComp.Instance.OnConstruct();
 
@@ -341,9 +360,9 @@ namespace Widgets
                     ImGui::Dummy({ 0.f, 5.f });
                     ImGui::Text("Properties");
                     ImGui::Separator();
-                    auto& fields = Heart::ScriptingEngine::GetInstantiableClass(scriptComp.Instance.GetScriptClass()).GetSerializableFields();
+                    auto& fields = scriptComp.Instance.GetScriptClassObject().GetSerializableFields();
                     for (auto& val : fields)
-                        RenderScriptField(val, scriptComp);
+                        RenderScriptField(val, &scriptComp.Instance);
                 }
 
                 ImGui::Unindent();
@@ -608,14 +627,46 @@ namespace Widgets
         }
     }
 
-    void PropertiesPanel::RenderScriptField(Heart::HStringView fieldName, Heart::ScriptComponent& scriptComp)
+    void PropertiesPanel::RenderRuntimeComponents()
+    {
+        auto selectedEntity = Editor::GetState().SelectedEntity;
+        for (auto& pair : Heart::ScriptingEngine::GetComponentClasses())
+        {
+            if (!selectedEntity.HasRuntimeComponent(pair.first))
+                continue;
+
+            bool headerOpen = ImGui::CollapsingHeader(pair.second.GetName().DataUTF8());
+            auto popupName = pair.second.GetName() + "Popup";
+            if (!RenderComponentPopup<Heart::RuntimeComponent>(popupName.DataUTF8(), true, pair.first) && headerOpen)
+            {
+                Heart::UUID uuid = selectedEntity.GetUUID();
+                auto& comp = selectedEntity.GetRuntimeComponent(pair.first);
+
+                ImGui::Indent();
+
+                if (comp.Instance.IsAlive())
+                {
+                    ImGui::Dummy({ 0.f, 5.f });
+                    ImGui::Text("Properties");
+                    ImGui::Separator();
+                    auto& fields = comp.Instance.GetScriptClassObject().GetSerializableFields();
+                    for (auto& val : fields)
+                        RenderScriptField(val, &comp.Instance);
+                }
+
+                ImGui::Unindent();
+            }
+        }
+    }
+
+    void PropertiesPanel::RenderScriptField(Heart::HStringView fieldName, Heart::ScriptInstance* instance)
     {
         ImGui::Text(fieldName.DataUTF8());
         ImGui::SameLine();
 
         bool dirty = false;
-        Heart::Variant value = scriptComp.Instance.GetFieldValue(fieldName);
-        Heart::HString widgetId = "##" + fieldName;
+        Heart::Variant value = instance->GetFieldValue(fieldName);
+        Heart::HString widgetId = "##" + instance->GetScriptClassObject().GetName() + fieldName;
         switch (value.GetType())
         {
             default:
@@ -627,7 +678,7 @@ namespace Widgets
                 bool intermediate = value.Bool();
                 if (ImGui::Checkbox(widgetId.DataUTF8(), &intermediate))
                 {
-                    scriptComp.Instance.SetFieldValue(fieldName, intermediate, true);
+                    instance->SetFieldValue(fieldName, intermediate, true);
                     dirty = true;
                 }
             } break;
@@ -643,7 +694,7 @@ namespace Widgets
                     1.f, &min, &max
                 ))
                 {
-                    scriptComp.Instance.SetFieldValue(fieldName, intermediate, true);
+                    instance->SetFieldValue(fieldName, intermediate, true);
                     dirty = true;
                 }
             } break;
@@ -659,7 +710,7 @@ namespace Widgets
                     1.f, &min, &max
                 ))
                 {
-                    scriptComp.Instance.SetFieldValue(fieldName, intermediate, true);
+                    instance->SetFieldValue(fieldName, intermediate, true);
                     dirty = true;
                 }
             } break;
@@ -675,7 +726,7 @@ namespace Widgets
                     "%.2f"
                 ))
                 {
-                    scriptComp.Instance.SetFieldValue(fieldName, intermediate, true);
+                    instance->SetFieldValue(fieldName, intermediate, true);
                     dirty = true;
                 }
             } break;
@@ -684,7 +735,7 @@ namespace Widgets
                 Heart::HString intermediate = value.String().Convert(Heart::HString::Encoding::UTF8);
                 if (Heart::ImGuiUtils::InputText(widgetId.DataUTF8(), intermediate))
                 {
-                    scriptComp.Instance.SetFieldValue(fieldName, intermediate.Convert(Heart::HString::Encoding::UTF16), true);
+                    instance->SetFieldValue(fieldName, intermediate.Convert(Heart::HString::Encoding::UTF16), true);
                     dirty = true;
                 }
             } break;

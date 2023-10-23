@@ -6,15 +6,10 @@ using System.Runtime.InteropServices;
 
 namespace Heart.Scene
 {
-    public class ChildrenComponent : Component
+    public partial class ChildrenComponent : IComponent
     {
-        public ChildrenComponent()
-            : base(Entity.InvalidEntityHandle, IntPtr.Zero)
-        { }
-
-        internal ChildrenComponent(uint entityHandle, IntPtr sceneHandle)
-            : base(entityHandle, sceneHandle)
-        { }
+        internal uint _entityHandle = Entity.InvalidEntityHandle;
+        internal IntPtr _sceneHandle = IntPtr.Zero;
 
         public uint Count
         {
@@ -49,6 +44,18 @@ namespace Heart.Scene
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void RemoveChild(UUID uuid)
             => ComponentUtils.RemoveChild(_entityHandle, _sceneHandle, uuid);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static InteropBool NativeExists(uint entityHandle, IntPtr sceneHandle)
+            => InteropBool.True;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void NativeAdd(uint entityHandle, IntPtr sceneHandle)
+            => throw new InvalidOperationException("Cannot add a children component");
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void NativeRemove(uint entityHandle, IntPtr sceneHandle)
+            => throw new InvalidOperationException("Cannot remove a children component");
 
         [DllImport("__Internal")]
         internal static extern unsafe void Native_ChildrenComponent_Get(uint entityHandle, IntPtr sceneHandle, out UUID* comp);

@@ -27,6 +27,13 @@ namespace HeartEditor
         static Project* GetActiveProject() { return s_ActiveProject.get(); }
 
     private:
+        struct SerializedInstance
+        {
+            nlohmann::json ScriptComp;
+            std::unordered_map<s64, nlohmann::json> RuntimeComps;
+        };
+
+    private:
         inline static Heart::Ref<Project> s_ActiveProject = nullptr;
         
     private:

@@ -3,6 +3,7 @@
 
 #include "Heart/Container/HString.h"
 #include "Heart/Container/Variant.h"
+#include "Heart/Scripting/ScriptingEngine.h"
 
 namespace Heart
 {
@@ -194,5 +195,38 @@ namespace Heart
         auto& comp = GetComponent<TextComponent>();
         comp.Text = text;
         comp.ClearRenderData();
+    }
+
+    RuntimeComponent& Entity::GetRuntimeComponent(s64 typeId) const
+    {
+        HE_ENGINE_ASSERT(HasRuntimeComponent(typeId), "Cannot get, entity does not have specified runtime component");
+        return m_Scene->GetRegistry().storage<RuntimeComponent>(typeId).get(m_EntityHandle);
+    }
+
+    bool Entity::HasRuntimeComponent(s64 typeId) const
+    {
+        return m_Scene->GetRegistry().storage<RuntimeComponent>(typeId).contains(m_EntityHandle);
+    }
+
+    void Entity::AddRuntimeComponent(s64 typeId, uptr objectHandle)
+    {
+        ScriptComponentInstance* instance;
+        if (HasRuntimeComponent(typeId))
+        {
+            instance = &m_Scene->GetRegistry().storage<RuntimeComponent>(typeId).get(m_EntityHandle).Instance;
+            instance->SetScriptClassId(typeId);
+        }
+        else
+            instance = &m_Scene->GetRegistry().storage<RuntimeComponent>(typeId).emplace(m_EntityHandle, typeId).Instance;
+
+        if (objectHandle == 0)
+            instance->Instantiate();
+        else
+            instance->ConsumeHandle(objectHandle);
+    }
+
+    void Entity::RemoveRuntimeComponent(s64 typeId)
+    {
+        m_Scene->GetRegistry().storage<RuntimeComponent>(typeId).remove(m_EntityHandle);
     }
 }

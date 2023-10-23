@@ -21,17 +21,11 @@ namespace Heart.Scene
         [FieldOffset(20)] public float Radius;
     }
 
-    public class LightComponent : Component
+    public partial class LightComponent : IComponent
     {
         internal unsafe LightComponentInternal* _internalValue;
-
-        public LightComponent()
-            : base(Entity.InvalidEntityHandle, IntPtr.Zero)
-        { }
-
-        internal LightComponent(uint entityHandle, IntPtr sceneHandle)
-            : base(entityHandle, sceneHandle)
-        { }
+        internal uint _entityHandle = Entity.InvalidEntityHandle;
+        internal IntPtr _sceneHandle = IntPtr.Zero;
 
         private unsafe void RefreshPtr()
         {
@@ -105,6 +99,18 @@ namespace Heart.Scene
                 _internalValue->Radius = value;
             }
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static InteropBool NativeExists(uint entityHandle, IntPtr sceneHandle)
+            => Native_LightComponent_Exists(entityHandle, sceneHandle);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void NativeAdd(uint entityHandle, IntPtr sceneHandle)
+            => Native_LightComponent_Add(entityHandle, sceneHandle);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void NativeRemove(uint entityHandle, IntPtr sceneHandle)
+            => Native_LightComponent_Remove(entityHandle, sceneHandle);
 
         [DllImport("__Internal")]
         internal static extern unsafe void Native_LightComponent_Get(uint entityHandle, IntPtr sceneHandle, out LightComponentInternal* comp);

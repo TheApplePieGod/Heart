@@ -10,7 +10,8 @@ namespace Heart
     {
         using PluginReflection_GetClientInstantiableClassesFn = void (*)(HArray*);
         using PluginReflection_GetClientSerializableFieldsFn = void (*)(const HString*, HArray*);
-        using ManagedObject_InstantiateClientScriptEntityFn = void* (*)(const HString*, u32, Scene*);
+        using ManagedObject_InstantiateClientScriptEntityFn = uptr (*)(const HString*, u32, Scene*);
+        using ManagedObject_InstantiateClientScriptComponentFn = uptr (*)(const HString*);
         using ManagedObject_DestroyObjectFn = void (*)(uptr);
         using ManagedObject_InvokeFunctionFn = bool (*)(uptr, const HString*, const HArray*);
         using ManagedObject_GetFieldValueFn = void (*)(uptr, const HString*, Variant*);
@@ -22,6 +23,7 @@ namespace Heart
         PluginReflection_GetClientInstantiableClassesFn PluginReflection_GetClientInstantiableClasses;
         PluginReflection_GetClientSerializableFieldsFn PluginReflection_GetClientSerializableFields;
         ManagedObject_InstantiateClientScriptEntityFn ManagedObject_InstantiateClientScriptEntity;
+        ManagedObject_InstantiateClientScriptComponentFn ManagedObject_InstantiateClientScriptComponent;
         ManagedObject_DestroyObjectFn ManagedObject_DestroyObject;
         ManagedObject_InvokeFunctionFn ManagedObject_InvokeFunction;
         ManagedObject_GetFieldValueFn ManagedObject_GetFieldValue;

@@ -1,14 +1,13 @@
 ﻿using Heart.Container;
 using Heart.Core;
-using Heart.Math;
 using Heart.NativeBridge;
 using System;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
 
 namespace Heart.Scene
 {
-    public abstract class ScriptEntity : Entity
+    public abstract class ScriptEntity : Entity, IUnmanagedFields
     {
         // Client overridable methods
         protected internal virtual void OnConstruct() {}
@@ -17,10 +16,15 @@ namespace Heart.Scene
         protected internal virtual void OnUpdate(Timestep timestep) {}
         protected internal virtual void OnCollisionStarted(Entity other) {}
         protected internal virtual void OnCollisionEnded(Entity other) {}
-        protected internal virtual void OnScriptFieldChanged(string field, Variant value) {}
 
         // Generated methods
-        public virtual bool GENERATED_SetField(string fieldName, Variant value) { return false; }
+        public virtual bool GENERATED_SetField(string fieldName, Variant value)
+            => false;
+
+        // Implement the IUnmanagedFields interface by calling the virtual method
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool SetFieldValue(string fieldName, Variant value)
+            => GENERATED_SetField(fieldName, value);
 
         // Having direct delegates for native code to call significantly speeds up performance
         // Not all lifecycle methods are performance-critical, which is why we only have a few
