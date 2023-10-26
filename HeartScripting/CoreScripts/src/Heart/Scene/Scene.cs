@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Linq;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Heart.Core;
@@ -58,16 +60,31 @@ namespace Heart.Scene
             return NativeMarshal.InteropBoolToBool(success);
         }
 
-        public ISchedulable CreateEntityIterator(Action<Entity> func)
+        public ISchedulable CreateEntityIterator(Func<Entity, List<Action>> func)
         {
+            ConcurrentBag<Action> transactions = new();
             var view = new EntityView(this);
             return new SchedulableIter(
                 view.Select(entity => (nuint)entity._entityHandle),
                 (nuint val) =>
                 {
                     try
-                    { func(new Entity((uint)val, _internalValue)); }
-                    catch (Exception e) { Log.Error("EntityIterator execution threw an exception: {0}", e.Message); }
+                    {
+                        var result = func(new Entity((uint)val, _internalValue));
+                        if (result != null)
+                            foreach (var elem in result)
+                                transactions.Add(elem);
+                    }
+                    catch (Exception e)
+                    {
+                        Log.Error("EntityIterator execution threw an exception: {0}", e.Message);
+                    }
+                },
+                null,
+                () =>
+                {
+                    foreach (var t in transactions)
+                        t();
                 }
             );
         }

@@ -23,7 +23,10 @@ namespace Heart.NativeBridge
 
             Type scriptEntityType = typeof(ScriptEntity);
             var names = _clientAssembly.GetTypes()
-                .Where(t => t.IsAssignableTo(scriptEntityType))
+                .Where(t =>
+                    t.IsAssignableTo(scriptEntityType) &&
+                    t.GetField("GENERATED_UniqueId") != null
+                )
                 .Select(t => (t.FullName, (Int64)t.GetField("GENERATED_UniqueId").GetValue(null)))
                 .ToList();
 
@@ -35,8 +38,10 @@ namespace Heart.NativeBridge
             if (_clientAssembly == null) return null;
 
             var names = _clientAssembly.GetTypes()
-                .Where(
-                    t => t.IsClass && t.GetInterfaces().Any(i => i.FullName.StartsWith("Heart.Scene.IComponent"))
+                .Where(t =>
+                    t.IsClass &&
+                    t.GetInterfaces().Any(i => i.FullName.StartsWith("Heart.Scene.IComponent")) &&
+                    t.GetField("GENERATED_UniqueId") != null
                 )
                 .Select(t => (t.FullName, (Int64)t.GetField("GENERATED_UniqueId").GetValue(null)))
                 .ToList();

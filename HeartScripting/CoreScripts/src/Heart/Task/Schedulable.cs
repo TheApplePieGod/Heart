@@ -15,15 +15,24 @@ namespace Heart.Task
 
     public class Schedulable : ISchedulable
     {
-        Action<nuint> _runFunc;
-        Func<nuint, bool> _checkFunc;
-        nuint _count;
+        public delegate void RunFn(nuint val);
 
-        public Schedulable(nuint count, Action<nuint> func, Func<nuint, bool> check = null)
+        private Action _completeFunc;
+        private RunFn _runFunc;
+        private Func<nuint, bool> _checkFunc;
+        private nuint _count;
+
+        public Schedulable(
+            nuint count,
+            RunFn runFunc,
+            Func<nuint, bool> checkFunc = null,
+            Action completeFunc = null
+        )
         {
             _count = count;
-            _runFunc = func;
-            _checkFunc = check;
+            _runFunc = runFunc;
+            _checkFunc = checkFunc;
+            _completeFunc = completeFunc;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -37,13 +46,18 @@ namespace Heart.Task
         {
             if (_checkFunc == null)
             {
-                RunUnchecked();
-                return;
+                for (nuint i = 0; i < _count; i++)
+                    _runFunc(i);
+            }
+            else
+            {
+                for (nuint i = 0; i < _count; i++)
+                    if (_checkFunc(i))
+                        _runFunc(i);
             }
 
-            for (nuint i = 0; i < _count; i++)
-                if (_checkFunc(i))
-                    _runFunc(i);
+            if (_completeFunc != null)
+                _completeFunc();
         }
 
         public void ScheduleParallel()
@@ -54,38 +68,43 @@ namespace Heart.Task
 
     public class SchedulableIter : ISchedulable
     {
-        public delegate void RunFn(nuint val);
         internal delegate InteropBool GetNextIterFn(out nuint outVal);
+        public delegate void RunFn(nuint val);
 
-        IEnumerable<nuint> _iterFunc;
-        RunFn _runFunc;
-        Func<nuint, bool> _checkFunc;
+        private IEnumerable<nuint> _iterFunc;
+        private Action _completeFunc;
+        private Func<nuint, bool> _checkFunc;
+        private RunFn _runFunc;
 
-        public SchedulableIter(IEnumerable<nuint> iter, RunFn runFunc, Func<nuint, bool> check = null)
+        public SchedulableIter(
+            IEnumerable<nuint> iter,
+            RunFn runFunc,
+            Func<nuint, bool> checkFunc = null,
+            Action completeFunc = null
+        )
         {
             _iterFunc = iter;
             _runFunc = runFunc;
-            _checkFunc = check;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void RunUnchecked()
-        {
-            foreach (nuint val in _iterFunc)
-                _runFunc(val);
+            _checkFunc = checkFunc;
+            _completeFunc = completeFunc;
         }
 
         public void Run()
         {
             if (_checkFunc == null)
             {
-                RunUnchecked();
-                return;
+                foreach (nuint val in _iterFunc)
+                    _runFunc(val);
+            }
+            else
+            {
+                foreach (nuint val in _iterFunc)
+                    if (_checkFunc(val))
+                        _runFunc(val);
             }
 
-            foreach (nuint val in _iterFunc)
-                if (_checkFunc(val))
-                    _runFunc(val);
+            if (_completeFunc != null)
+                _completeFunc();
         }
 
         public void ScheduleParallel()
@@ -98,6 +117,9 @@ namespace Heart.Task
             });
 
             Native_SchedulableIter_Schedule(callback, _runFunc);
+
+            if (_completeFunc != null)
+                _completeFunc();
         }
 
         [DllImport("__Internal")]
