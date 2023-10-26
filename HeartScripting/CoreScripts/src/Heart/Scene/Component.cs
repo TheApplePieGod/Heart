@@ -27,7 +27,7 @@ namespace Heart.Scene
 
     public interface IUnmanagedFields
     {
-        void OnScriptFieldChanged(string field, Variant value) {}
+        void ScriptFieldChangedCallback(string field, Variant value) {}
 
         bool SetFieldValue(string fieldName, Variant value)
             => throw new NotImplementedException("SetFieldValue not implemented!");

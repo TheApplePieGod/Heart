@@ -413,7 +413,25 @@ HE_INTEROP_EXPORT void Native_MeshComponent_RemoveMaterial(u32 entityHandle, Hea
 EXPORT_COMPONENT_BASIC_FNS(LightComponent);
 
 // Script component
-EXPORT_COMPONENT_BASIC_FNS(ScriptComponent);
+EXPORT_COMPONENT_EXISTS_FN(ScriptComponent);
+EXPORT_COMPONENT_ADD_FN(ScriptComponent);
+EXPORT_COMPONENT_REMOVE_FN(ScriptComponent);
+
+HE_INTEROP_EXPORT void Native_ScriptComponent_GetObjectHandle(u32 entityHandle, Heart::Scene* sceneHandle, uptr* outValue)
+{
+    ASSERT_ENTITY_IS_VALID();
+    ASSERT_ENTITY_HAS_COMPONENT(ScriptComponent);
+    Heart::Entity entity(sceneHandle, entityHandle);
+    *outValue = entity.GetComponent<Heart::ScriptComponent>().Instance.GetObjectHandle();
+}
+
+HE_INTEROP_EXPORT void Native_ScriptComponent_GetScriptClass(u32 entityHandle, Heart::Scene* sceneHandle, const Heart::HString** outValue)
+{
+    ASSERT_ENTITY_IS_VALID();
+    ASSERT_ENTITY_HAS_COMPONENT(ScriptComponent);
+    Heart::Entity entity(sceneHandle, entityHandle);
+    *outValue = &entity.GetComponent<Heart::ScriptComponent>().Instance.GetScriptClassObject().GetFullName();
+}
 
 HE_INTEROP_EXPORT void Native_ScriptComponent_SetScriptClass(u32 entityHandle, Heart::Scene* sceneHandle, const char* value)
 {
