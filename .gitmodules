@@ -50,6 +50,10 @@
 	path = Heart/lib/tinytiff
 	url = https://github.com/jkriege2/TinyTIFF.git
 	branch = master
+[submodule "Heart/lib/efsw"]
+	path = Heart/lib/efsw
+	url = https://github.com/SpartanJ/efsw.git
+	branch = master
 
 [submodule "HeartEditor/lib/imgui-node-editor"]
 	path = HeartEditor/lib/imgui-node-editor

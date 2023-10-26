@@ -52,6 +52,8 @@ set(TinyTIFF_BUILD_SHARED_LIBS OFF)
 set(TinyTIFF_BUILD_STATIC_LIBS ON)
 set(TinyTIFF_BUILD_TESTS OFF)
 add_subdirectory("lib/tinytiff")
+set(BUILD_SHARED_LIBS OFF)
+add_subdirectory("lib/efsw")
 
 # Include other dependency sources that need to be built
 set(DEPENDENCY_SOURCES
@@ -101,6 +103,7 @@ target_include_directories(
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/bullet3/src>"
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/msdf>"
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/tinytiff/src>"
+  "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/efsw/include>"
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/Flourish/Flourish/src>"
   "$<BUILD_INTERFACE:${DOTNET_RUNTIME_DIR}>"
 
