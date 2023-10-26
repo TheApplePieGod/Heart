@@ -30,7 +30,7 @@ namespace Heart
         HStringTyped(const std::basic_string<T>& str)
         { Allocate(str.data(), str.length()); }
         
-        HStringTyped(const HStringViewTyped<T>& other);
+        explicit HStringTyped(const HStringViewTyped<T>& other);
 
         inline u32 Find(const HStringViewTyped<T>& value) const
         { return HStringViewTyped<T>(*this).Find(value); }

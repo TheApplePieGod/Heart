@@ -7,14 +7,9 @@
 
 namespace Heart
 {
-    void TextureAsset::Load(bool async)
+    void TextureAsset::LoadInternal()
     {
         HE_PROFILE_FUNCTION();
-
-        const std::lock_guard<std::mutex> lock(m_LoadLock);
-        
-        if (m_Loaded || m_Loading) return;
-        m_Loading = true;
 
         bool floatComponents = false;
         if (m_Extension == ".hdr") // environment map: use float components and flip on load
@@ -35,8 +30,6 @@ namespace Heart
         if (pixels == nullptr)
         {
             HE_ENGINE_LOG_ERROR("Failed to load texture at path {0}", m_AbsolutePath.Data());
-            m_Loaded = true;
-            m_Loading = false;
             return;
         }
         
@@ -75,42 +68,27 @@ namespace Heart
             samp,
             pixels,
             static_cast<u32>(width * height * m_DesiredChannelCount) * (floatComponents ? 4 : 1),
-            async,
-            [this, async, pixels, floatComponents]()
+            false,
+            [pixels, floatComponents]()
             {
                 if (!AssetManager::IsInitialized()) return;
                 if (floatComponents)
                     delete[] (float*)pixels;
                 else
                     delete[] (unsigned char*)pixels;
-
-                if (async)
-                {
-                    m_Loaded = true;
-                    m_Loading = false;
-                    m_Valid = true;
-                }
             }
         };
         m_Texture = Flourish::Texture::Create(createInfo);
         
-        if (!async)
-        {
-            m_Loaded = true;
-            m_Loading = false;
-            m_Valid = true;
-        }
+        m_Loaded = true;
+        m_Valid = true;
     }
 
-    void TextureAsset::Unload()
+    void TextureAsset::UnloadInternal()
     {
-        if (!m_Loaded) return;
-        m_Loaded = false;
-
         m_Texture.reset();
         //delete[] m_Data;
         m_Data = nullptr;
-        m_Valid = false;
     }
 
     void* TextureAsset::LoadImage(int& outWidth, int& outHeight, int& outChannels, bool floatComponents)

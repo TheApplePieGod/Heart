@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Heart/Asset/Asset.h"
+#include "Heart/Task/Task.h"
 #include "Heart/Core/UUID.h"
 #include "Heart/Container/HString8.h"
 
@@ -24,8 +25,8 @@ namespace Heart
         struct AssetEntry
         {
             Ref<Asset> Asset;
-            u64 LoadedFrame;
             bool Persistent;
+            UUID Id;
         };
 
         /*! @brief The internal representation of an asset inside the UUID registry. */
@@ -46,23 +47,14 @@ namespace Heart
         /*! @brief Call Unload() on all of the registered assets. */
         static void UnloadAllAssets();
 
-        /*! @brief Call Load() on all of the registered assets. */
-        static void LoadAllAssets();
-
         /*! @brief Call Unload() on all of the registered resources. */
         static void UnloadAllResources();
 
-        /*! @brief Call Load() on all of the registered resources. */
-        static void LoadAllResources();
+        static void EnableFileWatcher();
 
-        /**
-         * @brief Gets called every frame.
-         * 
-         * Iterates over all of the registered assets and unloads them if they
-         * have not been referenced in a while. This is a WIP feature and will
-         * likely change in the future.
-         */
-        static void OnUpdate();
+        static void DisableFileWatcher();
+
+        static Task UnloadOldAssets();
 
         inline static bool IsInitialized() { return s_Initialized; }
 
@@ -94,7 +86,7 @@ namespace Heart
          * @param isResource Store this asset as a resource.
          * @return The UUID of the newly registered asset.
          */
-        static UUID RegisterAsset(Asset::Type type, const HStringView8& path, bool persistent = false, bool isResource = false);
+        static UUID RegisterAsset(Asset::Type type, const HString8& path, bool persistent = false, bool isResource = false);
 
         static void UnregisterAsset(UUID uuid);
 
@@ -120,7 +112,7 @@ namespace Heart
          * @param oldPath The old path of the asset relative to the project directory.
          * @param newPath The new path of the asset relative to the project directory.
          */
-        static void RenameAsset(const HStringView8& oldPath, const HStringView8& newPath);
+        static void RenameAsset(const HString8& oldPath, const HString8& newPath);
 
         /**
          * @brief Change the project directory.
@@ -130,7 +122,7 @@ namespace Heart
          * 
          * @param directory The absolute path of the new project directory.
          */
-        static void UpdateAssetsDirectory(const HStringView8& directory);
+        static void UpdateAssetsDirectory(const HString8& directory);
 
         /**
          * @brief Get the associated asset type of a file.
@@ -149,7 +141,7 @@ namespace Heart
          * @param isResource Whether or not this path references a resource asset.
          * @return The UUID of the registered path or zero if it could not be located.
          */
-        static UUID GetAssetUUID(const HStringView8& path, bool isResource = false);
+        static UUID GetAssetUUID(const HString8& path, bool isResource = false);
 
         /**
          * @brief Get the path of a registered asset from its UUID.
@@ -173,20 +165,14 @@ namespace Heart
         /**
          * @brief Retrieve an asset from a path.
          * 
-         * Retrieving an asset will call Load() on it and make sure that it has been loaded. However, the asset may
-         * fail to load, which is why it is important to also check Asset->IsValid() first.
-         * 
          * @param path The path of the asset relative to the project directory.
          * @param isResource Whether or not this path references a resource asset.
          * @return The pointer to the asset or nullptr if it could not be located. 
          */
-        static Asset* RetrieveAsset(const HStringView8& path, bool isResource = false, bool load = true, bool async = false);
+        static Asset* RetrieveAsset(const HString8& path, bool isResource = false);
 
         /**
          * @brief Retrieve an asset from a path.
-         * 
-         * Retrieving an asset will call Load() on it and make sure that it has been loaded. However, the asset may
-         * fail to load, which is why it is important to also check Asset->IsValid() first.
          * 
          * @tparam T The asset class to cast the pointer to upon retrieval.
          * @param path The path of the asset relative to the project directory.
@@ -195,30 +181,26 @@ namespace Heart
          * @return The pointer to the asset or nullptr if it could not be located.
          */
         template<typename T>
-        static T* RetrieveAsset(const HStringView8& path, bool isResource = false, bool load = true, bool async = false)
+        static T* RetrieveAsset(const HString8& path, bool isResource = false)
         {
-            return static_cast<T*>(RetrieveAsset(path, isResource, load, async));
+            return static_cast<T*>(RetrieveAsset(path, isResource));
         }
 
         /**
          * @brief Retrieve an asset from a UUID.
          * 
          * A UUID is agnostic to a resource/regular asset, which means the distinction does not need to be specified upon retrieval.
-         * Retrieving an asset will call Load() on it and make sure that it has been loaded. However, the asset may
-         * fail to load, which is why it is important to also check Asset->IsValid() first.
          * 
          * @param uuid The UUID of the asset.
          * @param async Whether or not to load this asset asynchronously
          * @return The pointer to the asset or nullptr if it could not be located
          */
-        static Asset* RetrieveAsset(UUID uuid, bool load = true, bool async = false);
+        static Asset* RetrieveAsset(UUID uuid);
 
         /**
          * @brief Retrieve an asset from a UUID.
          * 
          * A UUID is agnostic to a resource/regular asset, which means the distinction does not need to be specified upon retrieval.
-         * Retrieving an asset will call Load() on it and make sure that it has been loaded. However, the asset may
-         * fail to load, which is why it is important to also check Asset->IsValid() first.
          * 
          * @tparam T The asset class to cast the pointer to upon retrieval.
          * @param uuid The UUID of the asset.
@@ -226,22 +208,16 @@ namespace Heart
          * @return The pointer to the asset or nullptr if it could not be located
          */
         template<typename T>
-        static T* RetrieveAsset(UUID uuid, bool load = true, bool async = false)
+        static T* RetrieveAsset(UUID uuid)
         {
-            return static_cast<T*>(RetrieveAsset(uuid, load, async));
+            return static_cast<T*>(RetrieveAsset(uuid));
         }
 
     private:
-        struct LoadOperation
-        {
-            bool Load;
-            UUID Asset;
-        };
+        static void WatchAssetDirectory();
 
-    private:
-        static void QueueLoad(AssetEntry& entry, bool async = false);
-        static void LoadAsset(AssetEntry& entry, bool async = false);
-        static void UnloadAsset(AssetEntry& entry, bool async = false);
+        inline static auto& GetRegistry(bool isResource)
+        { return isResource ? s_Resources : s_Registry; }
 
     private:
         inline static constexpr u64 s_AssetFrameLimit = 1000;
@@ -250,8 +226,9 @@ namespace Heart
         inline static std::unordered_map<HString8, AssetEntry> s_Registry;
         inline static std::unordered_map<HString8, AssetEntry> s_Resources;
         inline static HString8 s_AssetsDirectory;
+        inline static Task s_UnloadTask;
 
         inline static bool s_Initialized = false;
-        inline static std::atomic<u32> s_AsyncLoadsInProgress;
+        inline static std::shared_mutex s_Mutex;
     };
 }
