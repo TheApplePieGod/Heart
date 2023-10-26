@@ -8,31 +8,10 @@ using System.Runtime.InteropServices;
 
 namespace Heart.Scene
 {
-    [StructLayout(LayoutKind.Explicit, Size = 24)]
-    internal struct ScriptInstanceInternal
-    {
-        [FieldOffset(0)] public IntPtr ObjectHandle;
-        [FieldOffset(8)] public HStringInternal ScriptClass;
-    }
-
-    [StructLayout(LayoutKind.Explicit, Size = 24)]
-    internal struct ScriptComponentInternal
-    {
-        [FieldOffset(0)] public ScriptInstanceInternal ScriptInstance;
-    }
-
     public partial class ScriptComponent : IComponent
     {
-        internal unsafe ScriptComponentInternal* _internalValue;
         internal uint _entityHandle = Entity.InvalidEntityHandle;
         internal IntPtr _sceneHandle = IntPtr.Zero;
-
-        private unsafe void RefreshPtr()
-        {
-            Native_ScriptComponent_Get(_entityHandle, _sceneHandle, out _internalValue);
-            if (_internalValue == null)
-                throw new InvalidOperationException("Attempting to read or modify script component that no longer exists");
-        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void InstantiateScript()
@@ -46,12 +25,11 @@ namespace Heart.Scene
         {
             get
             {
-                RefreshPtr();
-                return NativeMarshal.HStringInternalToString(_internalValue->ScriptInstance.ScriptClass);
+                Native_ScriptComponent_GetScriptClass(_entityHandle, _sceneHandle, out var value);
+                return NativeMarshal.HStringInternalToString(*value);
             }
             set
             {
-                RefreshPtr();
                 Native_ScriptComponent_SetScriptClass(_entityHandle, _sceneHandle, value);
             }
         }
@@ -60,8 +38,8 @@ namespace Heart.Scene
         {
             get
             {
-                RefreshPtr();
-                return _internalValue->ScriptInstance.ObjectHandle != IntPtr.Zero;
+                Native_ScriptComponent_GetObjectHandle(_entityHandle, _sceneHandle, out var handle);
+                return handle != IntPtr.Zero;
             }
         }
 
@@ -75,8 +53,9 @@ namespace Heart.Scene
         {
             get
             {
-                if (!IsAlive) return null;
-                return (ScriptEntity)ManagedGCHandle.FromIntPtr(_internalValue->ScriptInstance.ObjectHandle).Target;
+                Native_ScriptComponent_GetObjectHandle(_entityHandle, _sceneHandle, out var handle);
+                if (handle == IntPtr.Zero) return null;
+                return (ScriptEntity)ManagedGCHandle.FromIntPtr(handle).Target;
             }
         }
 
@@ -93,9 +72,6 @@ namespace Heart.Scene
             => Native_ScriptComponent_Remove(entityHandle, sceneHandle);
 
         [DllImport("__Internal")]
-        internal static extern unsafe void Native_ScriptComponent_Get(uint entityHandle, IntPtr sceneHandle, out ScriptComponentInternal* comp);
-
-        [DllImport("__Internal")]
         internal static extern InteropBool Native_ScriptComponent_Exists(uint entityHandle, IntPtr sceneHandle);
 
         [DllImport("__Internal")]
@@ -103,6 +79,12 @@ namespace Heart.Scene
 
         [DllImport("__Internal")]
         internal static extern void Native_ScriptComponent_Remove(uint entityHandle, IntPtr sceneHandle);
+
+        [DllImport("__Internal")]
+        internal static extern unsafe void Native_ScriptComponent_GetObjectHandle(uint entityHandle, IntPtr sceneHandle, out IntPtr objectHandle);
+        
+        [DllImport("__Internal")]
+        internal static extern unsafe void Native_ScriptComponent_GetScriptClass(uint entityHandle, IntPtr sceneHandle, out HStringInternal* value);
 
         [DllImport("__Internal")]
         internal static extern void Native_ScriptComponent_SetScriptClass(uint entityHandle, IntPtr sceneHandle, [MarshalAs(UnmanagedType.LPStr)] string value);

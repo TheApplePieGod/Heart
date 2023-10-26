@@ -16,12 +16,16 @@ namespace Heart.Scene
         protected internal virtual void OnUpdate(Timestep timestep) {}
         protected internal virtual void OnCollisionStarted(Entity other) {}
         protected internal virtual void OnCollisionEnded(Entity other) {}
+        protected internal virtual void OnScriptFieldChanged(string field, Variant value) {}
 
         // Generated methods
         public virtual bool GENERATED_SetField(string fieldName, Variant value)
             => false;
 
         // Implement the IUnmanagedFields interface by calling the virtual method
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void ScriptFieldChangedCallback(string field, Variant value)
+            => OnScriptFieldChanged(field, value);
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool SetFieldValue(string fieldName, Variant value)
             => GENERATED_SetField(fieldName, value);

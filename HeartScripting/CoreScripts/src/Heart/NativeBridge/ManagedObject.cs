@@ -121,7 +121,7 @@ namespace Heart.NativeBridge
             string fieldName = NativeMarshal.HStringInternalToString(*fieldNameStr);
             bool result = ((IUnmanagedFields)gcHandle.Target).SetFieldValue(fieldName, value);
             if (invokeCallback == InteropBool.True && result)
-                ((IUnmanagedFields)gcHandle.Target).OnScriptFieldChanged(fieldName, value);
+                ((IUnmanagedFields)gcHandle.Target).ScriptFieldChangedCallback(fieldName, value);
         
             return NativeMarshal.BoolToInteropBool(result);
         }
