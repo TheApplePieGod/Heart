@@ -134,7 +134,10 @@ namespace HeartEditor
             return;
         }
         
-        OpenScene(sceneAsset->GetScene()->Clone());
+        OpenScene(sceneAsset->GetScene());
+
+        sceneAsset->Unload();
+
         s_EditorSceneAsset = uuid;
     }
 
