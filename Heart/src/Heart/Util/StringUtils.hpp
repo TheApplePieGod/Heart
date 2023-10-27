@@ -219,8 +219,8 @@ namespace Heart
                 {
                     for (i = 0; i < 4; i++)
                     {
-                        char_array_4[j] = static_cast<unsigned char>(
-                            *std::find(s_Base64Chars, s_Base64Chars + s_Base64CharsLen, char_array_4[i])
+                        char_array_4[i] = static_cast<unsigned char>(
+                            std::find(s_Base64Chars, s_Base64Chars + s_Base64CharsLen, char_array_4[i]) - s_Base64Chars
                         );
                     }
 
@@ -242,7 +242,7 @@ namespace Heart
                 for (j = 0; j < 4; j++)
                 {
                     char_array_4[j] = static_cast<unsigned char>(
-                        *std::find(s_Base64Chars, s_Base64Chars + s_Base64CharsLen, char_array_4[j])
+                        std::find(s_Base64Chars, s_Base64Chars + s_Base64CharsLen, char_array_4[j]) - s_Base64Chars
                     );
                 }
 

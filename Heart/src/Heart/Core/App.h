@@ -44,7 +44,7 @@ namespace Heart
          * 
          * @param newDirectory The absolute path of the new assets directory. 
          */
-        void SwitchAssetsDirectory(const HStringView8& newDirectory);
+        void SwitchAssetsDirectory(const HString8& newDirectory);
 
         /**
          * @brief Stop running and close the application.

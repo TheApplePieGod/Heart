@@ -60,7 +60,7 @@ namespace Widgets
         ImGui::Begin(m_Name.Data(), &m_Open);
         
         auto materialAsset = Heart::AssetManager::RetrieveAsset<Heart::MaterialAsset>(m_SelectedMaterial);
-        bool shouldRenderViewport = materialAsset && materialAsset->IsValid();
+        bool shouldRenderViewport = materialAsset && materialAsset->Load()->IsValid();
         bool materialChanged = m_SelectedMaterial != m_LastMaterial; 
         bool shouldRerender = (shouldRenderViewport && ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows))
             || materialChanged || m_RenderedFrames < Flourish::Context::FrameBufferCount();
@@ -77,7 +77,7 @@ namespace Widgets
                 m_Dirty = false;
                 m_RenderedFrames = 0;
 
-                // Will always be valid
+                // Will always be valid & loaded (in-memory)
                 auto editingAsset = Heart::AssetManager::RetrieveAsset<Heart::MaterialAsset>(m_EditingMaterialAsset);
                 editingAsset->GetMaterial() = materialAsset->GetMaterial();
             }
@@ -118,7 +118,8 @@ namespace Widgets
         // Display material on drop
         Heart::ImGuiUtils::AssetDropTarget(
             Heart::Asset::Type::Material,
-            [&](const Heart::HStringView8& path) { m_SelectedMaterial = Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Material, path); }
+            [&](const Heart::HString8& path)
+            { m_SelectedMaterial = Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Material, path); }
         );
 
         ImGui::End();
@@ -140,7 +141,7 @@ namespace Widgets
         }
 
         auto materialAsset = Heart::AssetManager::RetrieveAsset<Heart::MaterialAsset>(m_SelectedMaterial);
-        if (materialAsset && materialAsset->IsValid())
+        if (materialAsset && materialAsset->Load()->IsValid())
         {
             // Do not allow modification of engine resources, but still allow for them to be displayed
             if (Heart::AssetManager::IsAssetAResource(m_SelectedMaterial))
@@ -250,7 +251,7 @@ namespace Widgets
                 }
             );
             auto albedoAsset = Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>(editingMaterial.GetAlbedoTexture());
-            if (albedoAsset && albedoAsset->IsValid())
+            if (albedoAsset && albedoAsset->Load(false)->IsValid())
                 ImGui::Image(albedoAsset->GetTexture()->GetImGuiHandle(0), { previewSize, previewSize });
 
             ImGui::Separator();
@@ -281,7 +282,7 @@ namespace Widgets
                 }
             );
             auto mrAsset = Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>(editingMaterial.GetMetallicRoughnessTexture());
-            if (mrAsset && mrAsset->IsValid())
+            if (mrAsset && mrAsset->Load(false)->IsValid())
                 ImGui::Image(mrAsset->GetTexture()->GetImGuiHandle(0), { previewSize, previewSize });
 
             ImGui::Separator();
@@ -312,7 +313,7 @@ namespace Widgets
                 }
             );
             auto normalAsset = Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>(editingMaterial.GetNormalTexture());
-            if (normalAsset && normalAsset->IsValid())
+            if (normalAsset && normalAsset->Load(false)->IsValid())
                 ImGui::Image(normalAsset->GetTexture()->GetImGuiHandle(0), { previewSize, previewSize });
 
             ImGui::Separator();
@@ -343,7 +344,7 @@ namespace Widgets
                 }
             );
             auto emAsset = Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>(editingMaterial.GetEmissiveTexture());
-            if (emAsset && emAsset->IsValid())
+            if (emAsset && emAsset->Load(false)->IsValid())
                 ImGui::Image(emAsset->GetTexture()->GetImGuiHandle(0), { previewSize, previewSize });
 
             ImGui::Separator();
@@ -374,7 +375,7 @@ namespace Widgets
                 }
             );
             auto ocAsset = Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>(editingMaterial.GetOcclusionTexture());
-            if (ocAsset && ocAsset->IsValid())
+            if (ocAsset && ocAsset->Load(false)->IsValid())
                 ImGui::Image(ocAsset->GetTexture()->GetImGuiHandle(0), { previewSize, previewSize });
         }
         else

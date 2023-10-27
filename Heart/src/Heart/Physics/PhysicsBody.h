@@ -82,7 +82,7 @@ namespace Heart
         
         static void ClearCustomCollisionChannels() { s_CustomCollisionChannels.clear(); }
         static const auto& GetCustomCollisionChannels() { return s_CustomCollisionChannels; }
-        static void AddCustomCollisionChannel(u32 mask, HStringView8 name) { s_CustomCollisionChannels[name] = mask; }
+        static void AddCustomCollisionChannel(u32 mask, const HString8& name) { s_CustomCollisionChannels[name] = mask; }
         
     private:
         void Initialize(const PhysicsBodyCreateInfo& createInfo, const btTransform& transform);

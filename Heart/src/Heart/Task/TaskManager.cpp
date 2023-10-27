@@ -73,7 +73,7 @@ namespace Heart
         // Start with one implicit dependency that is itself so that we can always rely on the atomic decrement
         // to determine whether or not we should execute in this function or at a later point
         data.DependencyCount = dependencyCount + 1;
-        data.Name = name;
+        data.Name = HString8(name);
         data.Priority = priority;
         // Increase the initial refcount by one because we'll consider a task before it is completed as having a reference to
         // itself. This saves some complexity when decrementing since we no longer need to check for completion. Increase it

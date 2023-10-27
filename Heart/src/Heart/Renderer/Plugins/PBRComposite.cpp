@@ -20,8 +20,10 @@ namespace Heart::RenderPlugins
 {
     void PBRComposite::InitializeInternal()
     {
+        auto shader = AssetManager::RetrieveAsset("engine/render_plugins/pbr_composite/Composite.comp", true);
+
         Flourish::ComputePipelineCreateInfo compCreateInfo;
-        compCreateInfo.Shader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/pbr_composite/Composite.comp", true)->GetShader() };
+        compCreateInfo.Shader = { shader->EnsureValid<ShaderAsset>()->GetShader() };
         m_Pipeline = Flourish::ComputePipeline::Create(compCreateInfo);
 
         Flourish::CommandBufferCreateInfo cbCreateInfo;

@@ -30,7 +30,14 @@ namespace Heart
          */
         Asset(const HString8& path, const HString8& absolutePath);
 
-        void Load();
+        Asset* Load(bool wait = true);
+
+        template<typename T>
+        inline T* Load(bool wait = true)
+        {
+            return static_cast<T*>(Load(wait));
+        }
+
         void Unload();
 
         /**
@@ -43,8 +50,13 @@ namespace Heart
          */
         void UpdatePath(const HString8& path, const HString8& absolutePath);
 
-        Asset* LoadImmediate();
         Asset* EnsureValid();
+
+        template<typename T>
+        inline T* EnsureValid()
+        {
+            return static_cast<T*>(EnsureValid());
+        }
 
         /**
          * @brief Check if the asset has been loaded.
@@ -74,10 +86,10 @@ namespace Heart
          * @param absolutePath The absolute filesystem path of the asset.
          * @return A ref to a new asset object.
          */
-        static Ref<Asset> Create(Type type, const HStringView8& path, const HStringView8& absolutePath);
+        static Ref<Asset> Create(Type type, const HString8& path, const HString8& absolutePath);
 
-        static void LoadMany(const std::initializer_list<Asset*>& assets);
-        static void LoadMany(const HVector<Asset*>& assets);
+        static void LoadMany(const std::initializer_list<Asset*>& assets, bool wait);
+        static void LoadMany(const HVector<Asset*>& assets, bool wait);
 
     protected:
         virtual void LoadInternal() = 0;
@@ -96,6 +108,7 @@ namespace Heart
         std::atomic<bool> m_Loaded = false;
 
     private:
+        void UpdateLoadedFrame();
         void UpdateLoadStatus();
 
     private:

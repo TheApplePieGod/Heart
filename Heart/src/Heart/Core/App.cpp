@@ -87,7 +87,7 @@ namespace Heart
         layer->OnAttach();
     }
 
-    void App::SwitchAssetsDirectory(const HStringView8& newDirectory)
+    void App::SwitchAssetsDirectory(const HString8& newDirectory)
     {
         m_SwitchingAssetsDirectory = newDirectory;
     }
@@ -206,8 +206,8 @@ namespace Heart
             {
                 // Begin frame
                 timer = AggregateTimer("App::Run - Begin frame");
+                AssetManager::UnloadOldAssets();
                 Flourish::Context::BeginFrame();
-                AssetManager::OnUpdate();
                 m_Window->BeginFrame();
                 m_ImGuiInstance->BeginFrame();
                 timer.Finish();

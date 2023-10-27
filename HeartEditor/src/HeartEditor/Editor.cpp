@@ -97,7 +97,7 @@ namespace HeartEditor
     {
         if (!s_EditorSceneAsset) return;
         
-        auto asset = Heart::AssetManager::RetrieveAsset<Heart::SceneAsset>(s_EditorSceneAsset, false);
+        auto asset = Heart::AssetManager::RetrieveAsset<Heart::SceneAsset>(s_EditorSceneAsset);
         if (asset)
             asset->Save(s_EditorScene.get());
         else
@@ -128,7 +128,7 @@ namespace HeartEditor
     void Editor::OpenSceneFromAsset(Heart::UUID uuid)
     {
         auto sceneAsset = Heart::AssetManager::RetrieveAsset<Heart::SceneAsset>(uuid);
-        if (!sceneAsset || !sceneAsset->IsValid())
+        if (!sceneAsset || !sceneAsset->Load()->IsValid())
         {
             HE_ENGINE_LOG_ERROR("Failed to load scene");
             return;

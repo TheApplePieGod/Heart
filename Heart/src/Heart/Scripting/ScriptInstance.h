@@ -26,8 +26,8 @@ namespace Heart
         void Destroy();
         void Clear();
 
-        Variant GetFieldValue(const HStringView& fieldName) const;
-        bool SetFieldValue(const HStringView& fieldName, const Variant& value, bool invokeCallback);
+        Variant GetFieldValue(const HString& fieldName) const;
+        bool SetFieldValue(const HString& fieldName, const Variant& value, bool invokeCallback);
 
         nlohmann::json SerializeFieldsToJson();
         void* SerializeFieldsToBinary();
@@ -47,8 +47,8 @@ namespace Heart
         inline bool IsAlive() const { return m_ObjectHandle != 0; }
 
     protected:
-        Variant GetFieldValueUnchecked(const HStringView& fieldName) const;
-        bool SetFieldValueUnchecked(const HStringView& fieldName, const Variant& value, bool invokeCallback);
+        Variant GetFieldValueUnchecked(const HString& fieldName) const;
+        bool SetFieldValueUnchecked(const HString& fieldName, const Variant& value, bool invokeCallback);
 
     protected:
         uptr m_ObjectHandle = 0;

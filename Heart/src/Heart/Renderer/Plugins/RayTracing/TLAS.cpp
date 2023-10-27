@@ -61,12 +61,9 @@ namespace Heart::RenderPlugins
             const auto& meshComp = meshView.get<MeshComponent>(entity);
             const auto& transformData = data.Scene->GetCachedTransforms().at(entity);
 
-            auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>(
-                meshComp.Mesh,
-                true,
-                data.Settings.AsyncAssetLoading
-            );
-            if (!meshAsset || !meshAsset->IsValid()) continue;
+            auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>(meshComp.Mesh);
+            if (!meshAsset || !meshAsset->Load(!data.Settings.AsyncAssetLoading)->IsValid())
+                continue;
 
             for (u32 i = 0; i < meshAsset->GetSubmeshCount(); i++)
             {
@@ -77,11 +74,9 @@ namespace Heart::RenderPlugins
                 if (meshData.GetMaterialIndex() < meshComp.Materials.Count())
                 {
                     auto materialAsset = AssetManager::RetrieveAsset<MaterialAsset>(
-                        meshComp.Materials[meshData.GetMaterialIndex()],
-                        true,
-                        data.Settings.AsyncAssetLoading
+                        meshComp.Materials[meshData.GetMaterialIndex()]
                     );
-                    if (materialAsset && materialAsset->IsValid())
+                    if (materialAsset && materialAsset->Load(!data.Settings.AsyncAssetLoading)->IsValid())
                         selectedMaterial = &materialAsset->GetMaterial();
                 }
 

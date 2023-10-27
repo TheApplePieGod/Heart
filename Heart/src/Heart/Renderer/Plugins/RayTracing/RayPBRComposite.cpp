@@ -25,16 +25,17 @@ namespace Heart::RenderPlugins
     void RayPBRComposite::InitializeInternal()
     {
         // Queue shader loads 
-        AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/ray_tracing/ray_pbr_composite/RayGen.rgen", true, true, true);
-        AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/ray_tracing/ray_pbr_composite/Shadow.rahit", true, true, true);
-        AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/ray_tracing/ray_pbr_composite/Shadow.rmiss", true, true, true);
+        auto raygen = AssetManager::RetrieveAsset("engine/render_plugins/ray_tracing/ray_pbr_composite/RayGen.rgen", true);
+        auto anyhit = AssetManager::RetrieveAsset("engine/render_plugins/ray_tracing/ray_pbr_composite/Shadow.rahit", true);
+        auto miss = AssetManager::RetrieveAsset("engine/render_plugins/ray_tracing/ray_pbr_composite/Shadow.rmiss", true);
+        Asset::LoadMany({ raygen, anyhit, miss }, false);
 
         Flourish::RayTracingPipelineCreateInfo pipelineCreateInfo;
         pipelineCreateInfo.MaxRayRecursionDepth = 1;
         pipelineCreateInfo.Shaders = {
-            { AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/ray_tracing/ray_pbr_composite/RayGen.rgen", true)->GetShader() },
-            { AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/ray_tracing/ray_pbr_composite/Shadow.rahit", true)->GetShader() },
-            { AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/ray_tracing/ray_pbr_composite/Shadow.rmiss", true)->GetShader() }
+            { raygen->EnsureValid<ShaderAsset>()->GetShader() },
+            { anyhit->EnsureValid<ShaderAsset>()->GetShader() },
+            { miss->EnsureValid<ShaderAsset>()->GetShader() },
         };
         pipelineCreateInfo.AccessOverrides = {
             { 2, 0, Flourish::ShaderTypeFlags::All }

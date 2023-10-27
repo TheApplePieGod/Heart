@@ -68,12 +68,12 @@ namespace Heart::RenderPlugins
             const auto& transformData = data.Scene->GetCachedTransforms().at(entity);
 
             auto fontAsset = AssetManager::RetrieveAsset<FontAsset>(textComp.Font);
-            if (!fontAsset || !fontAsset->IsValid())
+            if (!fontAsset || !fontAsset->Load(!async)->IsValid())
                 continue;
 
             Material* selectedMaterial = nullptr;
             auto materialAsset = AssetManager::RetrieveAsset<MaterialAsset>(textComp.Material);
-            if (materialAsset && materialAsset->IsValid())
+            if (materialAsset && materialAsset->Load(!async)->IsValid())
                 selectedMaterial = &materialAsset->GetMaterial();
 
             u64 materialId = (u64)selectedMaterial;

@@ -173,8 +173,12 @@ namespace Heart
         if (oldUUID != 0)
             return oldUUID;
 
+        HString8 absolutePath = isResource
+            ? std::filesystem::path(s_ResourceDirectory.Data()).append(path.Data()).generic_u8string()
+            : GetAbsolutePath(path);
+
         // Only register if the path exists (resources are assumed to exist)
-        if (!isResource && !std::filesystem::exists(GetAbsolutePath(path).Data()))
+        if (!isResource && !std::filesystem::exists(absolutePath.Data()))
             return 0;
 
         auto lock = std::unique_lock(s_Mutex);
@@ -186,7 +190,6 @@ namespace Heart
             isResource ? "resource" : "asset",
             path.Data()
         );
-        HString8 absolutePath = std::filesystem::path(s_ResourceDirectory.Data()).append(path.Data()).generic_u8string();
         GetRegistry(isResource)[path] = {
             Asset::Create(type, path, absolutePath),
             persistent,
@@ -224,8 +227,8 @@ namespace Heart
 
         // Register the 'loaded' asset as persistent so that it
         // never tries to unload itself 
-        s_Registry[idPath] = { newAsset, true };
-        s_UUIDs[newUUID] = { idPath, false, type };
+        s_Resources[idPath] = { newAsset, true };
+        s_UUIDs[newUUID] = { idPath, true, type };
 
         return newUUID;
     }
@@ -278,7 +281,7 @@ namespace Heart
         // (Locks internally)
         UnloadAllAssets();
 
-        auto lock = std::unique_lock(s_Mutex);
+        s_Mutex.lock();
 
         s_AssetsDirectory = directory;
 
@@ -288,6 +291,8 @@ namespace Heart
 
         // Clear all the registered assets
         s_Registry.clear();
+
+        s_Mutex.unlock();
 
         // Scan the new directory
         RegisterAssetsInDirectory(directory, false, false);

@@ -124,7 +124,10 @@ namespace Widgets
                 // translate
                 ImGui::TableNextColumn();
                 if (ImGui::ImageButton(
-                    Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>("editor/pan.png", true)->GetTexture()->GetImGuiHandle(),
+                    Heart::AssetManager::RetrieveAsset("editor/pan.png", true)
+                        ->EnsureValid<Heart::TextureAsset>()
+                        ->GetTexture()
+                        ->GetImGuiHandle(),
                     { 25, 25 }
                 ))
                 { m_GizmoOperation = ImGuizmo::OPERATION::TRANSLATE; }
@@ -135,7 +138,10 @@ namespace Widgets
                 // rotate
                 ImGui::TableNextColumn();
                 if (ImGui::ImageButton(
-                    Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>("editor/rotate.png", true)->GetTexture()->GetImGuiHandle(),
+                    Heart::AssetManager::RetrieveAsset("editor/rotate.png", true)
+                        ->EnsureValid<Heart::TextureAsset>()
+                        ->GetTexture()
+                        ->GetImGuiHandle(),
                     { 25, 25 }
                 ))
                 { m_GizmoOperation = ImGuizmo::OPERATION::ROTATE; }
@@ -146,7 +152,10 @@ namespace Widgets
                 // scale
                 ImGui::TableNextColumn();
                 if (ImGui::ImageButton(
-                    Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>("editor/scale.png", true)->GetTexture()->GetImGuiHandle(),
+                    Heart::AssetManager::RetrieveAsset("editor/scale.png", true)
+                        ->EnsureValid<Heart::TextureAsset>()
+                        ->GetTexture()
+                        ->GetImGuiHandle(),
                     { 25, 25 }
                 ))
                 { m_GizmoOperation = ImGuizmo::OPERATION::SCALE; }
@@ -160,7 +169,10 @@ namespace Widgets
                 // world/object space
                 ImGui::TableNextColumn();
                 if (ImGui::ImageButton(
-                    Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>(m_GizmoMode ? "editor/world.png" : "editor/object.png", true)->GetTexture()->GetImGuiHandle(),
+                    Heart::AssetManager::RetrieveAsset(m_GizmoMode ? "editor/world.png" : "editor/object.png", true)
+                        ->EnsureValid<Heart::TextureAsset>()
+                        ->GetTexture()
+                        ->GetImGuiHandle(),
                     { 25, 25 }
                 ))
                 { m_GizmoMode = (ImGuizmo::MODE)(!m_GizmoMode); }
@@ -174,7 +186,10 @@ namespace Widgets
                 // attach camera
                 ImGui::TableNextColumn();
                 if (ImGui::ImageButton(
-                    Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>(m_AttachCamera ? "editor/camera.png" : "editor/camera-disabled.png", true)->GetTexture()->GetImGuiHandle(),
+                    Heart::AssetManager::RetrieveAsset(m_AttachCamera ? "editor/camera.png" : "editor/camera-disabled.png", true)
+                        ->EnsureValid<Heart::TextureAsset>()
+                        ->GetTexture()
+                        ->GetImGuiHandle(),
                     { 25, 25 }
                 ))
                 { m_AttachCamera = !m_AttachCamera; }
@@ -214,7 +229,7 @@ namespace Widgets
 
             Heart::ImGuiUtils::AssetDropTarget(
                 Heart::Asset::Type::Scene,
-                [](const Heart::HStringView8& path)
+                [](const Heart::HString8& path)
                 {
                     Editor::OpenSceneFromAsset(Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Scene, path));
                 }

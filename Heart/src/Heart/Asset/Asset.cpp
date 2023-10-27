@@ -18,17 +18,38 @@ namespace Heart
         UpdatePath(path, absolutePath);
     }
 
-    void Asset::Load()
+    // TODO: assets reloading
+    Asset* Asset::Load(bool wait)
     {
+        if (wait)
+        {
+            std::lock_guard lock(m_LoadLock);
+
+            if (m_Loaded)
+            {
+                UpdateLoadedFrame();
+                return this;
+            }
+            
+            // We don't create a task here because when we want to ensure the
+            // loaded state it is always better to just load immediately rather
+            // than waiting for a task
+            LoadInternal();
+            UpdateLoadStatus();
+
+            return this;
+        }
+
         // If the lock is locked, someone else is handling load so we
         // don't have to do anything
         if (!m_LoadLock.try_lock())
-            return;
-        
+            return this;
+
         if (m_Loaded || m_LoadingTask.IsValid())
         {
+            UpdateLoadedFrame();
             m_LoadLock.unlock();
-            return;
+            return this;
         }
 
         // TODO: safety for when asset object goes out of scope
@@ -45,6 +66,8 @@ namespace Heart
         }, Task::Priority::Medium, "Asset Load");
 
         m_LoadLock.unlock();
+
+        return this;
     }
 
     // TODO: revisit this
@@ -57,21 +80,6 @@ namespace Heart
         UnloadInternal();
         m_Loaded = false;
         m_Valid = false;
-    }
-
-    Asset* Asset::LoadImmediate()
-    {
-        std::lock_guard lock(m_LoadLock);
-
-        if (m_Loaded) return this;
-        
-        // We don't create a task here because when we want to ensure the
-        // loaded state it is always better to just load immediately rather
-        // than waiting for a task
-        LoadInternal();
-        UpdateLoadStatus();
-
-        return this;
     }
 
     Asset* Asset::EnsureValid()
@@ -98,10 +106,15 @@ namespace Heart
         return this;
     }
 
+    void Asset::UpdateLoadedFrame()
+    {
+        m_LoadedFrame = Heart::App::Get().GetFrameCount();
+    }
+
     void Asset::UpdateLoadStatus()
     {
+        UpdateLoadedFrame();
         m_Loaded = true;
-        m_LoadedFrame = Heart::App::Get().GetFrameCount();
         m_LoadingTask = Task();
     }
 
@@ -119,7 +132,7 @@ namespace Heart
         m_AbsolutePath = absolutePath;
     }
 
-    Ref<Asset> Asset::Create(Type type, const HStringView8& path, const HStringView8& absolutePath)
+    Ref<Asset> Asset::Create(Type type, const HString8& path, const HString8& absolutePath)
     {
         switch (type)
         {
@@ -140,15 +153,15 @@ namespace Heart
         }
     }
 
-    void Asset::LoadMany(const std::initializer_list<Asset*>& assets)
+    void Asset::LoadMany(const std::initializer_list<Asset*>& assets, bool wait)
     {
         for (auto& asset : assets)
-            asset->Load();
+            asset->Load(wait);
     }
 
-    void Asset::LoadMany(const HVector<Asset*>& assets)
+    void Asset::LoadMany(const HVector<Asset*>& assets, bool wait)
     {
         for (auto& asset : assets)
-            asset->Load();
+            asset->Load(wait);
     }
 }

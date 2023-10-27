@@ -19,6 +19,11 @@ namespace Heart::RenderPlugins
 {
     void RenderEnvironmentMap::InitializeInternal()
     {
+        // Queue shader loads 
+        auto vertShader = AssetManager::RetrieveAsset("engine/render_plugins/render_environment_map/Vertex.vert", true);
+        auto fragShader = AssetManager::RetrieveAsset("engine/render_plugins/render_environment_map/Fragment.frag", true);
+        Asset::LoadMany({ vertShader, fragShader }, false);
+
         Flourish::RenderPassCreateInfo rpCreateInfo;
         rpCreateInfo.SampleCount = Flourish::MsaaSampleCount::None;
         rpCreateInfo.ColorAttachments.push_back({
@@ -33,8 +38,8 @@ namespace Heart::RenderPlugins
         m_RenderPass = Flourish::RenderPass::Create(rpCreateInfo);
 
         Flourish::GraphicsPipelineCreateInfo pipelineCreateInfo;
-        pipelineCreateInfo.FragmentShader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/render_environment_map/Fragment.frag", true)->GetShader() };
-        pipelineCreateInfo.VertexShader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/render_environment_map/Vertex.vert", true)->GetShader() };
+        pipelineCreateInfo.VertexShader = { vertShader->EnsureValid<ShaderAsset>()->GetShader() };
+        pipelineCreateInfo.FragmentShader = { fragShader->EnsureValid<ShaderAsset>()->GetShader() };
         pipelineCreateInfo.VertexTopology = Flourish::VertexTopology::TriangleList;
         pipelineCreateInfo.VertexLayout = Mesh::GetVertexLayout();
         pipelineCreateInfo.VertexInput = true;
@@ -99,6 +104,7 @@ namespace Heart::RenderPlugins
         encoder->FlushResourceSet(0);
 
         auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>("engine/DefaultCube.gltf", true);
+        meshAsset->EnsureValid();
         auto& meshData = meshAsset->GetSubmesh(0);
 
         encoder->BindVertexBuffer(meshData.GetVertexBuffer());

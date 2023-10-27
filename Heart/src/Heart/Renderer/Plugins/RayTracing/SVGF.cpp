@@ -29,16 +29,17 @@ namespace Heart::RenderPlugins
     void SVGF::InitializeInternal()
     {
         // Queue shader loads 
-        AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/ray_tracing/svgf/Reprojection.comp", true, true, true);
-        AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/ray_tracing/svgf/ATrous.comp", true, true, true);
-        AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/ray_tracing/svgf/Upsample.comp", true, true, true);
+        auto reprojShader = AssetManager::RetrieveAsset("engine/render_plugins/ray_tracing/svgf/Reprojection.comp", true);
+        auto atrousShader = AssetManager::RetrieveAsset("engine/render_plugins/ray_tracing/svgf/ATrous.comp", true);
+        auto upsampleShader = AssetManager::RetrieveAsset("engine/render_plugins/ray_tracing/svgf/Upsample.comp", true);
+        Asset::LoadMany({ reprojShader, atrousShader, upsampleShader }, false);
 
         Flourish::ComputePipelineCreateInfo compCreateInfo;
-        compCreateInfo.Shader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/ray_tracing/svgf/Reprojection.comp", true)->GetShader() };
+        compCreateInfo.Shader = { reprojShader->EnsureValid<ShaderAsset>()->GetShader() };
         m_TemporalPipeline = Flourish::ComputePipeline::Create(compCreateInfo);
-        compCreateInfo.Shader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/ray_tracing/svgf/ATrous.comp", true)->GetShader() };
+        compCreateInfo.Shader = { atrousShader->EnsureValid<ShaderAsset>()->GetShader() };
         m_ATrousPipeline = Flourish::ComputePipeline::Create(compCreateInfo);
-        compCreateInfo.Shader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/ray_tracing/svgf/Upsample.comp", true)->GetShader() };
+        compCreateInfo.Shader = { upsampleShader->EnsureValid<ShaderAsset>()->GetShader() };
         m_UpsamplePipeline = Flourish::ComputePipeline::Create(compCreateInfo);
 
         Flourish::CommandBufferCreateInfo cbCreateInfo;

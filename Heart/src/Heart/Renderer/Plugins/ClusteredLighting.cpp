@@ -19,13 +19,14 @@ namespace Heart::RenderPlugins
     void ClusteredLighting::InitializeInternal()
     {
         // Queue shader loads 
-        AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/clustered_lighting/Build.comp", true, true, true);
-        AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/clustered_lighting/Cull.comp", true, true, true);
+        auto buildAsset = AssetManager::RetrieveAsset("engine/render_plugins/clustered_lighting/Build.comp", true);
+        auto cullAsset = AssetManager::RetrieveAsset("engine/render_plugins/clustered_lighting/Cull.comp", true);
+        Asset::LoadMany({ buildAsset, cullAsset }, false);
 
         Flourish::ComputePipelineCreateInfo compCreateInfo;
-        compCreateInfo.Shader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/clustered_lighting/Build.comp", true)->GetShader() };
+        compCreateInfo.Shader = { buildAsset->EnsureValid<ShaderAsset>()->GetShader() };
         m_BuildPipeline = Flourish::ComputePipeline::Create(compCreateInfo);
-        compCreateInfo.Shader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/clustered_lighting/Cull.comp", true)->GetShader() };
+        compCreateInfo.Shader = { cullAsset->EnsureValid<ShaderAsset>()->GetShader() };
         m_CullPipeline = Flourish::ComputePipeline::Create(compCreateInfo);
 
         Flourish::CommandBufferCreateInfo cbCreateInfo;

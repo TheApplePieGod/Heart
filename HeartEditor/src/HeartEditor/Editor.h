@@ -49,7 +49,7 @@ namespace HeartEditor
         inline static Heart::UUID GetEditorSceneAsset() { return s_EditorSceneAsset; }
         inline static void SetEditorSceneAsset(Heart::UUID asset) { s_EditorSceneAsset = asset; }
         inline static auto& GetWindows() { return s_Windows; }
-        inline static Widget& GetWindow(const Heart::HStringView8& name) { return *s_Windows[name]; }
+        inline static Widget& GetWindow(const Heart::HString8& name) { return *s_Windows[name]; }
         inline static const Heart::Task& GetSceneUpdateTask() { return s_SceneUpdateTask; }
         inline static void SetSceneUpdateTask(const Heart::Task& task) { s_SceneUpdateTask = task; }
 
