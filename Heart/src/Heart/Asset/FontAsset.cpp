@@ -5,20 +5,13 @@
 
 namespace Heart
 {
-    void FontAsset::Load(bool async)
+    void FontAsset::LoadInternal()
     {
         HE_PROFILE_FUNCTION();
 
-        const std::lock_guard<std::mutex> lock(m_LoadLock);
-        
-        if (m_Loaded || m_Loading) return;
-        m_Loading = true;
-        
         auto failedFunc = [&]()
         {
             HE_ENGINE_LOG_ERROR("Failed to load font at path {0}", m_AbsolutePath.Data());
-            m_Loaded = true;
-            m_Loading = false;
         };
         
         // Init freetype
@@ -95,16 +88,7 @@ namespace Heart
             1, 1,
             Flourish::TextureSamplerState(),
             pixels.data(),
-            static_cast<u32>(width * height * 4),
-            async,
-            [this]()
-            {
-                if (!AssetManager::IsInitialized()) return;
-
-                m_Loaded = true;
-                m_Loading = false;
-                m_Valid = true;
-            }
+            static_cast<u32>(width * height * 4)
         };
         m_AtlasTexture = Flourish::Texture::Create(createInfo);
             
@@ -112,20 +96,14 @@ namespace Heart
         msdfgen::destroyFont(font);
         msdfgen::deinitializeFreetype(ft);
         
-        m_Loaded = true;
-        m_Loading = false;
         m_Valid = true;
     }
 
-    void FontAsset::Unload()
+    void FontAsset::UnloadInternal()
     {
-        if (!m_Loaded) return;
-        m_Loaded = false;
-
         m_AtlasTexture.reset();
         m_Glyphs.clear();
         m_FontGeometry = msdf_atlas::FontGeometry();
         m_Data = nullptr;
-        m_Valid = false;
     }
 }

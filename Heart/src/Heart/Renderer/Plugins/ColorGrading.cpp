@@ -19,6 +19,11 @@ namespace Heart::RenderPlugins
 {
     void ColorGrading::InitializeInternal()
     {
+        // Queue shader loads 
+        auto vertShader = AssetManager::RetrieveAsset("engine/FullscreenTriangle.vert", true);
+        auto fragShader = AssetManager::RetrieveAsset("engine/render_plugins/color_grading/Composite.frag", true);
+        Asset::LoadMany({ vertShader, fragShader }, false);
+
         Flourish::RenderPassCreateInfo rpCreateInfo;
         rpCreateInfo.SampleCount = Flourish::MsaaSampleCount::Four;
         rpCreateInfo.ColorAttachments.push_back({
@@ -32,8 +37,8 @@ namespace Heart::RenderPlugins
         m_RenderPass = Flourish::RenderPass::Create(rpCreateInfo);
 
         Flourish::GraphicsPipelineCreateInfo pipelineCreateInfo;
-        pipelineCreateInfo.FragmentShader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/color_grading/Composite.frag", true)->GetShader() };
-        pipelineCreateInfo.VertexShader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/FullscreenTriangle.vert", true)->GetShader() };
+        pipelineCreateInfo.VertexShader = { vertShader->EnsureValid<ShaderAsset>()->GetShader() };
+        pipelineCreateInfo.FragmentShader = { fragShader->EnsureValid<ShaderAsset>()->GetShader() };
         pipelineCreateInfo.VertexInput = false;
         pipelineCreateInfo.BlendStates = {
             { true, Flourish::BlendFactor::SrcAlpha, Flourish::BlendFactor::DstAlpha, Flourish::BlendFactor::One, Flourish::BlendFactor::Zero }

@@ -21,10 +21,11 @@ namespace Heart::RenderPlugins
     void Bloom::InitializeInternal()
     {
         // Queue shader loads 
-        AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/bloom/Composite.frag", true, true, true);
-        AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/bloom/Downsample.comp", true, true, true);
-        AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/bloom/Upsample.comp", true, true, true);
-        AssetManager::RetrieveAsset<ShaderAsset>("engine/FullscreenTriangle.vert", true, true, true);
+        auto compositeShader = AssetManager::RetrieveAsset("engine/render_plugins/bloom/Composite.frag", true);
+        auto downsampleShader = AssetManager::RetrieveAsset("engine/render_plugins/bloom/Downsample.comp", true);
+        auto upsampleShader = AssetManager::RetrieveAsset("engine/render_plugins/bloom/Upsample.comp", true);
+        auto vertShader = AssetManager::RetrieveAsset("engine/FullscreenTriangle.vert", true);
+        Asset::LoadMany({ compositeShader, downsampleShader, upsampleShader, vertShader }, false);
 
         Flourish::RenderPassCreateInfo rpCreateInfo;
         rpCreateInfo.SampleCount = Flourish::MsaaSampleCount::None;
@@ -40,8 +41,8 @@ namespace Heart::RenderPlugins
         m_RenderPass = Flourish::RenderPass::Create(rpCreateInfo);
 
         Flourish::GraphicsPipelineCreateInfo pipelineCreateInfo;
-        pipelineCreateInfo.FragmentShader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/bloom/Composite.frag", true)->GetShader() };
-        pipelineCreateInfo.VertexShader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/FullscreenTriangle.vert", true)->GetShader() };
+        pipelineCreateInfo.VertexShader = { vertShader->EnsureValid<ShaderAsset>()->GetShader() };
+        pipelineCreateInfo.FragmentShader = { compositeShader->EnsureValid<ShaderAsset>()->GetShader() };
         pipelineCreateInfo.VertexInput = false;
         pipelineCreateInfo.BlendStates = {
             { true, Flourish::BlendFactor::SrcAlpha, Flourish::BlendFactor::DstAlpha, Flourish::BlendFactor::One, Flourish::BlendFactor::Zero }
@@ -53,9 +54,9 @@ namespace Heart::RenderPlugins
         auto pipeline = m_RenderPass->CreatePipeline("main", pipelineCreateInfo);
 
         Flourish::ComputePipelineCreateInfo compCreateInfo;
-        compCreateInfo.Shader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/bloom/Downsample.comp", true)->GetShader() };
+        compCreateInfo.Shader = { downsampleShader->EnsureValid<ShaderAsset>()->GetShader() };
         m_DownsamplePipeline = Flourish::ComputePipeline::Create(compCreateInfo);
-        compCreateInfo.Shader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/bloom/Upsample.comp", true)->GetShader() };
+        compCreateInfo.Shader = { upsampleShader->EnsureValid<ShaderAsset>()->GetShader() };
         m_UpsamplePipeline = Flourish::ComputePipeline::Create(compCreateInfo);
 
         Flourish::CommandBufferCreateInfo cbCreateInfo;

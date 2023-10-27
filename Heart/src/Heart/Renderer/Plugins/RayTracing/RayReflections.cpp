@@ -32,18 +32,19 @@ namespace Heart::RenderPlugins
     void RayReflections::InitializeInternal()
     {
         // Queue shader loads 
-        AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/ray_tracing/ray_reflections/RayGen.rgen", true, true, true);
-        AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/ray_tracing/ray_reflections/Miss.rmiss", true, true, true);
-        AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/ray_tracing/ray_reflections/Hit.rchit", true, true, true);
-        AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/ray_tracing/ray_reflections/Shadow.rmiss", true, true, true);
+        auto raygen = AssetManager::RetrieveAsset("engine/render_plugins/ray_tracing/ray_reflections/RayGen.rgen", true);
+        auto miss = AssetManager::RetrieveAsset("engine/render_plugins/ray_tracing/ray_reflections/Miss.rmiss", true);
+        auto hit = AssetManager::RetrieveAsset("engine/render_plugins/ray_tracing/ray_reflections/Hit.rchit", true);
+        auto shadow = AssetManager::RetrieveAsset("engine/render_plugins/ray_tracing/ray_reflections/Shadow.rmiss", true);
+        Asset::LoadMany({ raygen, miss, hit, shadow }, false);
 
         Flourish::RayTracingPipelineCreateInfo pipelineCreateInfo;
         pipelineCreateInfo.MaxRayRecursionDepth = 2;
         pipelineCreateInfo.Shaders = {
-            { AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/ray_tracing/ray_reflections/RayGen.rgen", true)->GetShader() },
-            { AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/ray_tracing/ray_reflections/Miss.rmiss", true)->GetShader() },
-            { AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/ray_tracing/ray_reflections/Hit.rchit", true)->GetShader() },
-            { AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/ray_tracing/ray_reflections/Shadow.rmiss", true)->GetShader() }
+            { raygen->EnsureValid<ShaderAsset>()->GetShader() },
+            { miss->EnsureValid<ShaderAsset>()->GetShader() },
+            { hit->EnsureValid<ShaderAsset>()->GetShader() },
+            { shadow->EnsureValid<ShaderAsset>()->GetShader() }
         };
         pipelineCreateInfo.AccessOverrides = {
             { 2, 0, Flourish::ShaderTypeFlags::All }

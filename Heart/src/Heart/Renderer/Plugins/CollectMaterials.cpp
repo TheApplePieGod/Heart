@@ -41,9 +41,8 @@ namespace Heart::RenderPlugins
 
     int CollectMaterials::BindTexture(UUID texId, bool async)
     {
-        auto texAsset = AssetManager::RetrieveAsset<TextureAsset>(texId, true, async);
-        bool valid = texAsset && texAsset->IsValid();
-        if (valid)
+        auto texAsset = AssetManager::RetrieveAsset<TextureAsset>(texId);
+        if (texAsset && texAsset->Load(!async)->IsValid())
         {
             m_TexturesSet->BindTexture(0, texAsset->GetTexture(), m_TextureIndex);
             return m_TextureIndex++;
@@ -83,6 +82,7 @@ namespace Heart::RenderPlugins
         // Bind default material (don't bother with textures)
         {
             auto defMat = AssetManager::RetrieveAsset<MaterialAsset>("engine/DefaultMaterial.hemat", true);
+            defMat->EnsureValid();
             MaterialInfo matInfo = { defMat->GetMaterial().GetMaterialData() };
             m_MaterialBuffer->SetElements(&matInfo, 1, 0);
             m_MaterialMap.insert({ 0, 0 });
@@ -95,12 +95,9 @@ namespace Heart::RenderPlugins
         {
             const auto& meshComp = meshView.get<MeshComponent>(entity);
 
-            auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>(
-                meshComp.Mesh,
-                true,
-                data.Settings.AsyncAssetLoading
-            );
-            if (!meshAsset || !meshAsset->IsValid()) continue;
+            auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>(meshComp.Mesh);
+            if (!meshAsset || !meshAsset->Load(!data.Settings.AsyncAssetLoading)->IsValid())
+                continue;
 
             for (u32 i = 0; i < meshAsset->GetSubmeshCount(); i++)
             {
@@ -110,11 +107,9 @@ namespace Heart::RenderPlugins
                 if (meshData.GetMaterialIndex() < meshComp.Materials.Count())
                 {
                     auto materialAsset = AssetManager::RetrieveAsset<MaterialAsset>(
-                        meshComp.Materials[meshData.GetMaterialIndex()],
-                        true,
-                        data.Settings.AsyncAssetLoading
+                        meshComp.Materials[meshData.GetMaterialIndex()]
                     );
-                    if (materialAsset && materialAsset->IsValid())
+                    if (materialAsset && materialAsset->Load(!data.Settings.AsyncAssetLoading)->IsValid())
                         selectedMaterial = &materialAsset->GetMaterial();
                 }
 
@@ -129,12 +124,8 @@ namespace Heart::RenderPlugins
             const auto& textComp = textView.get<TextComponent>(entity);
 
             Material* selectedMaterial = nullptr;
-            auto materialAsset = AssetManager::RetrieveAsset<MaterialAsset>(
-                textComp.Material,
-                true,
-                data.Settings.AsyncAssetLoading
-            );
-            if (materialAsset && materialAsset->IsValid())
+            auto materialAsset = AssetManager::RetrieveAsset<MaterialAsset>(textComp.Material);
+            if (materialAsset && materialAsset->Load(!data.Settings.AsyncAssetLoading)->IsValid())
                 selectedMaterial = &materialAsset->GetMaterial();
 
             AddMaterial(selectedMaterial, data.Settings.AsyncAssetLoading);

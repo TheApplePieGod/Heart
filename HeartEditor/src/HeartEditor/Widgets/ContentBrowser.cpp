@@ -96,14 +96,14 @@ namespace Widgets
         }  
     }
 
-    void ContentBrowser::PushDirectoryStack(const Heart::HStringView8& entry)
+    void ContentBrowser::PushDirectoryStack(const Heart::HString8& entry)
     {
         m_DirectoryStack.Add(entry);
         m_DirectoryStackIndex++;
         m_ShouldRescan = true;
     }
 
-    void ContentBrowser::RenderDirectoryNode(const Heart::HStringView8& path, u32 depth)
+    void ContentBrowser::RenderDirectoryNode(const Heart::HString8& path, u32 depth)
     {
         auto absolutePath = std::filesystem::path(Heart::AssetManager::GetAssetsDirectory().Data()).append(path.Data());
 
@@ -252,7 +252,10 @@ namespace Widgets
         // Render the icon based on the file
         ImGui::PushID(entryName.Data());
         ImGui::ImageButton(
-            Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>(entry.is_directory() ? "editor/folder.png" :  "editor/file.png", true)->GetTexture()->GetImGuiHandle(),
+            Heart::AssetManager::RetrieveAsset(entry.is_directory() ? "editor/folder.png" :  "editor/file.png", true)
+                ->EnsureValid<Heart::TextureAsset>()
+                ->GetTexture()
+                ->GetImGuiHandle(),
             { m_CardSize.x, m_CardSize.y }
         );
         ImGui::PopID();
@@ -262,7 +265,10 @@ namespace Widgets
         {
             ImGui::SetDragDropPayload("FileTransfer", fullPath.Data(), fullPath.Count() * sizeof(char) + 1);
             ImGui::Image(
-                Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>(entry.is_directory() ? "editor/folder.png" :  "editor/file.png", true)->GetTexture()->GetImGuiHandle(),
+                Heart::AssetManager::RetrieveAsset(entry.is_directory() ? "editor/folder.png" :  "editor/file.png", true)
+                    ->EnsureValid<Heart::TextureAsset>()
+                    ->GetTexture()
+                    ->GetImGuiHandle(),
                 { m_CardSize.x * 0.5f, m_CardSize.y * 0.5f }
             );
             ImGui::EndDragDropSource();

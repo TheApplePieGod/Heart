@@ -22,6 +22,7 @@ namespace Heart
         bool Wait(u32 timeout = 0) const;
         
         inline u32 GetHandle() const { return m_Handle; }
+        inline bool IsValid() const { return m_Handle != InvalidHandle; }
         
         inline void operator=(const Task& other) { Copy(other); }
         

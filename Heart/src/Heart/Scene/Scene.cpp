@@ -119,7 +119,7 @@ namespace Heart
         m_UUIDMap[uuid] = entity.GetHandle();
 
         entity.AddComponent<IdComponent>(uuid);
-        entity.AddComponent<NameComponent>(name.IsEmpty() ? "New Entity" : HStringView(name));
+        entity.AddComponent<NameComponent>(name.IsEmpty() ? "New Entity" : HString(name));
         entity.AddComponent<TransformComponent>();
 
         // Transform component dirty by default

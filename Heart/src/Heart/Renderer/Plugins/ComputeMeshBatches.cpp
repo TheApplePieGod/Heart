@@ -69,12 +69,8 @@ namespace Heart::RenderPlugins
             float maxScale = std::max(std::max(scale.x, scale.y), scale.z);
 
             // Skip invalid meshes
-            auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>(
-                meshComp.Mesh,
-                true,
-                async
-            );
-            if (!meshAsset || !meshAsset->IsValid()) continue;
+            auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>(meshComp.Mesh);
+            if (!meshAsset || !meshAsset->Load(!async)->IsValid()) continue;
 
             for (u32 i = 0; i < meshAsset->GetSubmeshCount(); i++)
             {
@@ -113,12 +109,10 @@ namespace Heart::RenderPlugins
                 if (meshData.GetMaterialIndex() < meshComp.Materials.Count())
                 {
                     auto materialAsset = AssetManager::RetrieveAsset<MaterialAsset>(
-                        meshComp.Materials[meshData.GetMaterialIndex()],
-                        true,
-                        async
+                        meshComp.Materials[meshData.GetMaterialIndex()]
                     );
 
-                    if (materialAsset && materialAsset->IsValid())
+                    if (materialAsset && materialAsset->Load(!async)->IsValid())
                         selectedMaterial = &materialAsset->GetMaterial();
                 }
                 bool usePrepass = selectedMaterial->GetTransparencyMode() != TransparencyMode::AlphaBlend;

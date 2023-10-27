@@ -49,8 +49,8 @@ namespace Heart
         UUID GetParent() const;
         void SetParent(UUID uuid, bool cache = true);
 
-        Variant GetScriptProperty(const HStringView8& name) const;
-        void SetScriptProperty(const HStringView8& name, const Variant& value);
+        Variant GetScriptProperty(const HString& name) const;
+        void SetScriptProperty(const HString& name, const Variant& value);
 
         void SetIsPrimaryCameraEntity(bool primary);
 

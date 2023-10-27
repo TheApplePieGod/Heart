@@ -18,12 +18,9 @@ namespace Heart
          * @param path The path of the asset relative to the project directory.
          * @param absolutePath The absolute filesystem path of the asset.
          */
-        MeshAsset(const HStringView8& path, const HStringView8& absolutePath)
+        MeshAsset(const HString8& path, const HString8& absolutePath)
             : Asset(path, absolutePath)
         { m_Type = Type::Mesh; }
-
-        void Load(bool async = false) override;
-        void Unload() override;
 
         /**
          * @brief Get a submesh of the loaded mesh at the specified index.
@@ -42,6 +39,10 @@ namespace Heart
 
         /*! @brief Get a reference to the default materials loaded with the mesh. */
         inline HVector<Material>& GetDefaultMaterials() { return m_DefaultMaterials; }
+
+    protected:
+        void LoadInternal() override;
+        void UnloadInternal() override;
 
     private:
         struct BufferView
@@ -112,7 +113,7 @@ namespace Heart
         };
 
     private:
-        void ParseGLTF(unsigned char* data, bool async);
+        void ParseGLTF(unsigned char* data);
         void ParseGLTFNode(
             const nlohmann::json& root,
             u32 nodeIndex,

@@ -52,6 +52,8 @@ set(TinyTIFF_BUILD_SHARED_LIBS OFF)
 set(TinyTIFF_BUILD_STATIC_LIBS ON)
 set(TinyTIFF_BUILD_TESTS OFF)
 add_subdirectory("lib/tinytiff")
+set(BUILD_SHARED_LIBS OFF)
+add_subdirectory("lib/efsw")
 
 # Include other dependency sources that need to be built
 set(DEPENDENCY_SOURCES
@@ -101,31 +103,16 @@ target_include_directories(
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/bullet3/src>"
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/msdf>"
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/tinytiff/src>"
+  "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/efsw/include>"
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/Flourish/Flourish/src>"
   "$<BUILD_INTERFACE:${DOTNET_RUNTIME_DIR}>"
-
-  "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
-  "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/GLFW/include>"
-  "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/glm>"
-  "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/imgui>"
-  "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/spdlog/include>"
-  "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/Glad/include>"
-  "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/entt/src>"
-  "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/imguizmo>"
-  "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/json/include>"
-  "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/utf-cpp/include>"
-  "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/lib/bullet3/src>"
-  "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/lib/msdf>"
-  "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/lib/tinytiff/src>"
-  "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/Flourish/Flourish/src>"
-  "$<INSTALL_INTERFACE:${DOTNET_RUNTIME_DIR}>"
 )
 
 # Link dependencies
 set(LINK_LIBS
   glfw glm imgui spdlog glad imguizmo nlohmann_json FlourishCore
   BulletDynamics BulletCollision LinearMath
-  freetype msdf-atlas-gen TinyTIFF
+  freetype msdf-atlas-gen TinyTIFF efsw-static
 )
 target_link_libraries(Engine
   PUBLIC
@@ -169,58 +156,3 @@ if (HEART_BUILD_RUNTIME)
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/hepch.h>"
   )
 endif()
-
-# Installation
-include(CMakePackageConfigHelpers)
-
-set(JSON_Install ON) # Make sure the json lib installs the proper files
-install(
-  TARGETS
-    Engine glm imgui spdlog glad imguizmo nlohmann_json glfw FlourishCore
-    BulletDynamics BulletCollision LinearMath
-    freetype msdf-atlas-gen msdfgen-all msdfgen-core msdfgen-ext
-  EXPORT EngineTargets
-  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-  INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-)
-
-install(
-  DIRECTORY src/
-  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-  FILES_MATCHING
-    PATTERN "*.h"
-)
-install(
-  DIRECTORY lib/
-  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-  FILES_MATCHING
-    PATTERN "*.h"
-    PATTERN "*.hpp"
-    PATTERN "*.inl"
-)
-install(
-  EXPORT EngineTargets
-  FILE EngineTargets.cmake
-  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Heart
-  NAMESPACE Heart::
-)
-configure_package_config_file( 
-  "HeartConfig.cmake.in"
-  "${CMAKE_CURRENT_BINARY_DIR}/HeartConfig.cmake"
-  INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Heart
-  PATH_VARS
-  CMAKE_INSTALL_LIBDIR
-)
-write_basic_package_version_file(
-  ${CMAKE_CURRENT_BINARY_DIR}/HeartConfigVersion.cmake
-  VERSION 0.1.0
-  COMPATIBILITY SameMajorVersion
-)
-install(
-  FILES 
-    ${CMAKE_CURRENT_BINARY_DIR}/HeartConfig.cmake
-    ${CMAKE_CURRENT_BINARY_DIR}/HeartConfigVersion.cmake
-  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Heart
-)

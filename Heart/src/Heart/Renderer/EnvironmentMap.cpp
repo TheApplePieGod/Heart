@@ -38,6 +38,18 @@ namespace Heart
 
     void EnvironmentMap::Initialize()
     {
+        // Queue shader loads 
+        auto mapVertShader = AssetManager::RetrieveAsset("engine/EnvironmentMap.vert", true);
+        auto envMapFrag = AssetManager::RetrieveAsset("engine/CalcEnvironmentMap.frag", true);
+        auto irrMapFrag = AssetManager::RetrieveAsset("engine/CalcIrradianceMap.frag", true);
+        auto prefilterMapFrag = AssetManager::RetrieveAsset("engine/CalcPrefilterMap.frag", true);
+        auto brdfVert = AssetManager::RetrieveAsset("engine/BRDFQuad.vert", true);
+        auto brdfFrag = AssetManager::RetrieveAsset("engine/CalcBRDF.frag", true);
+        Asset::LoadMany(
+            { mapVertShader, envMapFrag, irrMapFrag, prefilterMapFrag, brdfVert, brdfFrag },
+            false
+        );
+
         // Create texture & cubemap targets
         Flourish::TextureCreateInfo texCreateInfo;
         texCreateInfo.Width = 512;
@@ -104,14 +116,6 @@ namespace Heart
 
         std::array<float, 4> clearColor = { 0.f, 0.f, 0.f, 0.f };
 
-        // Queue shader loads 
-        AssetManager::RetrieveAsset<ShaderAsset>("engine/EnvironmentMap.vert", true, true, true);
-        AssetManager::RetrieveAsset<ShaderAsset>("engine/CalcEnvironmentMap.frag", true, true, true);
-        AssetManager::RetrieveAsset<ShaderAsset>("engine/CalcIrradianceMap.frag", true, true, true);
-        AssetManager::RetrieveAsset<ShaderAsset>("engine/CalcPrefilterMap.frag", true, true, true);
-        AssetManager::RetrieveAsset<ShaderAsset>("engine/BRDFQuad.vert", true, true, true);
-        AssetManager::RetrieveAsset<ShaderAsset>("engine/CalcBRDF.frag", true, true, true);
-
         // ------------------------------------------------------------------
         // Environment map framebuffer: convert loaded image into a cubemap
         // ------------------------------------------------------------------
@@ -125,8 +129,8 @@ namespace Heart
             m_EnvironmentMap.Framebuffer = Flourish::Framebuffer::Create(fbCreateInfo);
 
             Flourish::GraphicsPipelineCreateInfo pipelineCreateInfo;
-            pipelineCreateInfo.VertexShader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/EnvironmentMap.vert", true)->GetShader() };
-            pipelineCreateInfo.FragmentShader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/CalcEnvironmentMap.frag", true)->GetShader() };
+            pipelineCreateInfo.VertexShader = { mapVertShader->EnsureValid<ShaderAsset>()->GetShader() };
+            pipelineCreateInfo.FragmentShader = { envMapFrag->EnsureValid<ShaderAsset>()->GetShader() };
             pipelineCreateInfo.VertexInput = true;
             pipelineCreateInfo.VertexTopology = Flourish::VertexTopology::TriangleList;
             pipelineCreateInfo.VertexLayout = Heart::Mesh::GetVertexLayout();
@@ -156,8 +160,8 @@ namespace Heart
             m_IrradianceMap.Framebuffer = Flourish::Framebuffer::Create(fbCreateInfo);
 
             Flourish::GraphicsPipelineCreateInfo pipelineCreateInfo;
-            pipelineCreateInfo.VertexShader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/EnvironmentMap.vert", true)->GetShader() };
-            pipelineCreateInfo.FragmentShader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/CalcIrradianceMap.frag", true)->GetShader() };
+            pipelineCreateInfo.VertexShader = { mapVertShader->EnsureValid<ShaderAsset>()->GetShader() };
+            pipelineCreateInfo.FragmentShader = { irrMapFrag->EnsureValid<ShaderAsset>()->GetShader() };
             pipelineCreateInfo.VertexInput = true;
             pipelineCreateInfo.VertexTopology = Flourish::VertexTopology::TriangleList;
             pipelineCreateInfo.VertexLayout = Heart::Mesh::GetVertexLayout();
@@ -192,8 +196,8 @@ namespace Heart
             }
 
             Flourish::GraphicsPipelineCreateInfo pipelineCreateInfo;
-            pipelineCreateInfo.VertexShader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/EnvironmentMap.vert", true)->GetShader() };
-            pipelineCreateInfo.FragmentShader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/CalcPrefilterMap.frag", true)->GetShader() };
+            pipelineCreateInfo.VertexShader = { mapVertShader->EnsureValid<ShaderAsset>()->GetShader() };
+            pipelineCreateInfo.FragmentShader = { prefilterMapFrag->EnsureValid<ShaderAsset>()->GetShader() };
             pipelineCreateInfo.VertexInput = true;
             pipelineCreateInfo.VertexTopology = Flourish::VertexTopology::TriangleList;
             pipelineCreateInfo.VertexLayout = Heart::Mesh::GetVertexLayout();
@@ -222,8 +226,8 @@ namespace Heart
             m_BRDFTexture.Framebuffer = Flourish::Framebuffer::Create(fbCreateInfo);
 
             Flourish::GraphicsPipelineCreateInfo pipelineCreateInfo;
-            pipelineCreateInfo.VertexShader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/BRDFQuad.vert", true)->GetShader() };
-            pipelineCreateInfo.FragmentShader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/CalcBRDF.frag", true)->GetShader() };
+            pipelineCreateInfo.VertexShader = { brdfVert->EnsureValid<ShaderAsset>()->GetShader() };
+            pipelineCreateInfo.FragmentShader = { brdfFrag->EnsureValid<ShaderAsset>()->GetShader() };
             pipelineCreateInfo.VertexInput = false;
             pipelineCreateInfo.BlendStates = { { false } };
             pipelineCreateInfo.DepthConfig.DepthTest = false;
@@ -251,11 +255,12 @@ namespace Heart
 
                 // Retrieve the basic cube mesh
                 auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>("engine/DefaultCube.gltf", true);
+                meshAsset->EnsureValid();
                 auto& meshData = meshAsset->GetSubmesh(0);
 
                 // Retrieve the associated env map asset
                 auto mapAsset = AssetManager::RetrieveAsset<TextureAsset>(m_MapAsset);
-                if (!mapAsset || !mapAsset->IsValid())
+                if (!mapAsset || !mapAsset->Load()->IsValid())
                 {
                     HE_ENGINE_LOG_ERROR("Could not calculate environment map, cannot retrieve map asset");
                     return;

@@ -113,7 +113,7 @@ namespace Heart
         );
     }
 
-    void ImGuiUtils::AssetDropTarget(Asset::Type typeFilter, std::function<void(const HStringView8&)>&& dropCallback)
+    void ImGuiUtils::AssetDropTarget(Asset::Type typeFilter, std::function<void(const HString8&)>&& dropCallback)
     {
         if (AssetManager::GetAssetsDirectory().IsEmpty());
             return;

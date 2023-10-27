@@ -1,6 +1,8 @@
 #include "hepch.h"
 #include "Asset.h"
 
+#include "Heart/Core/App.h"
+#include "Heart/Task/TaskManager.h"
 #include "Heart/Asset/TextureAsset.h"
 #include "Heart/Asset/ShaderAsset.h"
 #include "Heart/Asset/MeshAsset.h"
@@ -10,20 +12,113 @@
 
 namespace Heart
 {
-    Asset::Asset(const HStringView8& path, const HStringView8& absolutePath)
+    Asset::Asset(const HString8& path, const HString8& absolutePath)
         : m_Path(path), m_AbsolutePath(absolutePath)
     {
         UpdatePath(path, absolutePath);
     }
 
-    void Asset::Reload()
+    // TODO: assets reloading
+    Asset* Asset::Load(bool wait)
     {
-        if (m_Loaded)
-            Unload();
-        Load();
+        if (wait)
+        {
+            std::lock_guard lock(m_LoadLock);
+
+            if (m_Loaded)
+            {
+                UpdateLoadedFrame();
+                return this;
+            }
+            
+            // We don't create a task here because when we want to ensure the
+            // loaded state it is always better to just load immediately rather
+            // than waiting for a task
+            LoadInternal();
+            UpdateLoadStatus();
+
+            return this;
+        }
+
+        // If the lock is locked, someone else is handling load so we
+        // don't have to do anything
+        if (!m_LoadLock.try_lock())
+            return this;
+
+        if (m_Loaded || m_LoadingTask.IsValid())
+        {
+            UpdateLoadedFrame();
+            m_LoadLock.unlock();
+            return this;
+        }
+
+        // TODO: safety for when asset object goes out of scope
+
+        // Only one load task should ever get created at a time
+        m_LoadingTask = TaskManager::Schedule([this]()
+        {
+            std::lock_guard lock(m_LoadLock);
+
+            if (m_Loaded) return;
+
+            LoadInternal();
+            UpdateLoadStatus();
+        }, Task::Priority::Medium, "Asset Load");
+
+        m_LoadLock.unlock();
+
+        return this;
     }
 
-    void Asset::UpdatePath(const HStringView8& path, const HStringView8& absolutePath)
+    // TODO: revisit this
+    void Asset::Unload()
+    {
+        std::lock_guard lock(m_LoadLock);
+
+        if (!m_Loaded) return;
+
+        UnloadInternal();
+        m_Loaded = false;
+        m_Valid = false;
+    }
+
+    Asset* Asset::EnsureValid()
+    {
+        std::lock_guard lock(m_LoadLock);
+
+        if (!m_Loaded)
+        {
+            LoadInternal();
+            UpdateLoadStatus();
+        }
+
+        if (!m_Valid)
+        {
+            HE_ENGINE_LOG_CRITICAL(
+                "Asset '{0}' expected to be valid and is not",
+                m_Path.Data()
+            );
+            HE_ENGINE_ASSERT(false);
+
+            return nullptr;
+        }
+
+        return this;
+    }
+
+    void Asset::UpdateLoadedFrame()
+    {
+        m_LoadedFrame = Heart::App::Get().GetFrameCount();
+    }
+
+    void Asset::UpdateLoadStatus()
+    {
+        UpdateLoadedFrame();
+        m_Loaded = true;
+        m_LoadingTask = Task();
+    }
+
+    void Asset::UpdatePath(const HString8& path, const HString8& absolutePath)
     {
         auto entry = std::filesystem::path(path.Data());
         m_Filename = entry.filename().generic_u8string();
@@ -37,7 +132,7 @@ namespace Heart
         m_AbsolutePath = absolutePath;
     }
 
-    Ref<Asset> Asset::Create(Type type, const HStringView8& path, const HStringView8& absolutePath)
+    Ref<Asset> Asset::Create(Type type, const HString8& path, const HString8& absolutePath)
     {
         switch (type)
         {
@@ -58,58 +153,15 @@ namespace Heart
         }
     }
 
-    // TODO: this is mid. Will wait until rewrite to deal with it.
-    bool Asset::IsLoaded()
+    void Asset::LoadMany(const std::initializer_list<Asset*>& assets, bool wait)
     {
-        const std::lock_guard<std::mutex> lock(m_LoadLock);
-
-        return m_Loaded;
+        for (auto& asset : assets)
+            asset->Load(wait);
     }
 
-    // adapted from https://stackoverflow.com/questions/180947/base64-decode-snippet-in-c
-    HVector<unsigned char> Asset::Base64Decode(const HStringView8& encoded)
+    void Asset::LoadMany(const HVector<Asset*>& assets, bool wait)
     {
-        int in_len = static_cast<int>(encoded.Count());
-        int i = 0;
-        int j = 0;
-        int in_ = 0;
-        unsigned char char_array_4[4], char_array_3[3];
-        HVector<unsigned char> ret;
-
-        while (in_len-- && (encoded.Get(in_) != '=') && IsBase64(encoded.Get(in_)))
-        {
-            char_array_4[i++] = encoded.Get(in_); in_++;
-            if (i ==4)
-            {
-                for (i = 0; i <4; i++)
-                    char_array_4[i] = static_cast<unsigned char>(s_Base64Chars.Find(char_array_4[i]));
-
-                char_array_3[0] = (char_array_4[0] << 2) + ((char_array_4[1] & 0x30) >> 4);
-                char_array_3[1] = ((char_array_4[1] & 0xf) << 4) + ((char_array_4[2] & 0x3c) >> 2);
-                char_array_3[2] = ((char_array_4[2] & 0x3) << 6) + char_array_4[3];
-
-                for (i = 0; (i < 3); i++)
-                    ret.Add(char_array_3[i]);
-                i = 0;
-            }
-        }
-
-        if (i)
-        {
-            for (j = i; j <4; j++)
-                char_array_4[j] = 0;
-
-            for (j = 0; j <4; j++)
-                char_array_4[j] = static_cast<unsigned char>(s_Base64Chars.Find(char_array_4[j]));
-
-            char_array_3[0] = (char_array_4[0] << 2) + ((char_array_4[1] & 0x30) >> 4);
-            char_array_3[1] = ((char_array_4[1] & 0xf) << 4) + ((char_array_4[2] & 0x3c) >> 2);
-            char_array_3[2] = ((char_array_4[2] & 0x3) << 6) + char_array_4[3];
-
-            for (j = 0; (j < i - 1); j++)
-                ret.Add(char_array_3[j]);
-        }
-
-        return ret;
+        for (auto& asset : assets)
+            asset->Load(wait);
     }
 }

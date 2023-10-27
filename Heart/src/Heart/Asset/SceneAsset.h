@@ -14,12 +14,9 @@ namespace Heart
          * @param path The path of the asset relative to the project directory.
          * @param absolutePath The absolute filesystem path of the asset.
          */
-        SceneAsset(const HStringView8& path, const HStringView8& absolutePath)
+        SceneAsset(const HString8& path, const HString8& absolutePath)
             : Asset(path, absolutePath)
         { m_Type = Type::Scene; }
-
-        void Load(bool async = false) override;
-        void Unload() override;
 
         /*! @brief Take a scene and serialize it to the underlying asset file. */
         void Save(Scene* scene);
@@ -43,6 +40,10 @@ namespace Heart
          * @param scene The scene to serialize.
          */
         static void SerializeScene(const HStringView8& path, Scene* scene);
+
+    protected:
+        void LoadInternal() override;
+        void UnloadInternal() override;
 
     private:
         Ref<Scene> m_Scene;

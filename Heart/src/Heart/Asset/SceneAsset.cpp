@@ -11,14 +11,9 @@
 
 namespace Heart
 {
-    void SceneAsset::Load(bool async)
+    void SceneAsset::LoadInternal()
     {
         HE_PROFILE_FUNCTION();
-
-        const std::lock_guard<std::mutex> lock(m_LoadLock);
-        
-        if (m_Loaded || m_Loading) return;
-        m_Loading = true;
 
         try
         {
@@ -27,26 +22,17 @@ namespace Heart
         catch (std::exception e)
         {
             HE_ENGINE_LOG_ERROR("Failed to load scene at path {0}", m_AbsolutePath.Data());
-            m_Loaded = true;
-            m_Loading = false;
             return;
         }
 
         m_Data = nullptr;
-        m_Loaded = true;
-        m_Loading = false;
         m_Valid = true;
     }
 
-    void SceneAsset::Unload()
+    void SceneAsset::UnloadInternal()
     {
-        if (!m_Loaded) return;
-        m_Loaded = false;
-
         m_Scene.reset();
-
         m_Data = nullptr;
-        m_Valid = false;
     }
 
     void SceneAsset::Save(Scene* scene)

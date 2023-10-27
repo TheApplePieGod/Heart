@@ -3,7 +3,7 @@
 
 namespace Heart
 {
-    ShaderAsset::ShaderAsset(const HStringView8& path, const HStringView8& absolutePath)
+    ShaderAsset::ShaderAsset(const HString8& path, const HString8& absolutePath)
         : Asset(path, absolutePath)
     {
         m_Type = Type::Shader;
@@ -27,14 +27,9 @@ namespace Heart
             m_ShaderType = Flourish::ShaderTypeFlags::RayAnyHit;
     }
 
-    void ShaderAsset::Load(bool async)
+    void ShaderAsset::LoadInternal()
     {
         HE_PROFILE_FUNCTION();
-
-        const std::lock_guard<std::mutex> lock(m_LoadLock);
-
-        if (m_Loaded || m_Loading) return;
-        m_Loading = true;
 
         Flourish::ShaderCreateInfo createInfo;
         createInfo.Type = m_ShaderType;
@@ -42,19 +37,13 @@ namespace Heart
         m_Shader = Flourish::Shader::Create(createInfo);
 
         m_Data = nullptr;
-        m_Loaded = true;
-        m_Loading = false;
         m_Valid = true;
     }
 
-    void ShaderAsset::Unload()
+    void ShaderAsset::UnloadInternal()
     {
-        if (!m_Loaded) return;
-        m_Loaded = false;
-
         m_Shader.reset();
         //delete[] m_Data;
         m_Data = nullptr;
-        m_Valid = false;
     }
 }

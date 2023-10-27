@@ -59,7 +59,7 @@ namespace Heart
             : m_Encoding(Encoding::UTF16)
         { Allocate<char16>(str.data(), str.length()); }
 
-        HString(const HStringView& other);
+        explicit HString(const HStringView& other);
 
         u32 Count() const;
         HString Convert(Encoding encoding) const;

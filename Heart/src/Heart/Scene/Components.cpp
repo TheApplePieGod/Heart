@@ -20,8 +20,9 @@ namespace Heart
         if (Recomputing) return;
         Recomputing = true;
         
-        auto fontAsset = AssetManager::RetrieveAsset<FontAsset>(Font, true);
-        if (!fontAsset || !fontAsset->IsValid()) return;
+        auto fontAsset = AssetManager::RetrieveAsset<FontAsset>(Font);
+        if (!fontAsset || !fontAsset->Load(false)->IsValid())
+            return;
 
         HVector<Mesh::Vertex> vertices;
         HVector<u32> indices;

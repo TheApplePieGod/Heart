@@ -29,7 +29,7 @@ namespace Widgets
         void RenderTextComponent();
         void RenderRuntimeComponents();
 
-        void RenderScriptField(Heart::HStringView fieldName, Heart::ScriptInstance* instance);
+        void RenderScriptField(const Heart::HString& fieldName, Heart::ScriptInstance* instance);
         bool RenderCollisionChannels(Heart::HStringView8 id, u32& mask);
         
         // returns true if the component was deleted

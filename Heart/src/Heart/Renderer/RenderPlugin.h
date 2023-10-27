@@ -65,7 +65,7 @@ namespace Heart
         inline const Task& GetTask() const { return m_Task; }
         inline void SetActive(bool active) { m_Active = active; }
         inline bool IsActive() const { return m_Active; }
-        inline HStringView8 GetName() const { return HStringView8(m_Name); }
+        inline const auto& GetName() const { return m_Name; }
         inline const auto& GetStats() const { return m_Stats; }
         inline UUID GetUUID() const { return m_UUID; }
         inline Flourish::CommandBuffer* GetCommandBuffer() const { return m_CommandBuffer.get(); }

@@ -163,7 +163,13 @@ namespace Heart
         }
 
         template <typename T>
-        inline static HVector<u32> Split(const T* str, u32 len1, const T* delim, u32 len2)
+        inline static constexpr bool IsBase64(T c)
+        {
+            return (std::isalnum(c) || (c == (T)'+') || (c == (T)'/'));
+        }
+
+        template <typename T>
+        static HVector<u32> Split(const T* str, u32 len1, const T* delim, u32 len2)
         {
             HVector<u32> indices;
             if (!str || len1 == 0) return indices;
@@ -195,5 +201,66 @@ namespace Heart
             
             return indices;
         }
+
+        // adapted from https://stackoverflow.com/questions/180947/base64-decode-snippet-in-c
+        static HVector<unsigned char> Base64Decode(const char* encoded, int len)
+        {
+            int in_len = len;
+            int i = 0;
+            int j = 0;
+            int in_ = 0;
+            unsigned char char_array_4[4], char_array_3[3];
+            HVector<unsigned char> ret;
+
+            while (in_len-- && (encoded[in_] != '=') && IsBase64(encoded[in_]))
+            {
+                char_array_4[i++] = encoded[in_]; in_++;
+                if (i == 4)
+                {
+                    for (i = 0; i < 4; i++)
+                    {
+                        char_array_4[i] = static_cast<unsigned char>(
+                            std::find(s_Base64Chars, s_Base64Chars + s_Base64CharsLen, char_array_4[i]) - s_Base64Chars
+                        );
+                    }
+
+                    char_array_3[0] = (char_array_4[0] << 2) + ((char_array_4[1] & 0x30) >> 4);
+                    char_array_3[1] = ((char_array_4[1] & 0xf) << 4) + ((char_array_4[2] & 0x3c) >> 2);
+                    char_array_3[2] = ((char_array_4[2] & 0x3) << 6) + char_array_4[3];
+
+                    for (i = 0; (i < 3); i++)
+                        ret.Add(char_array_3[i]);
+                    i = 0;
+                }
+            }
+
+            if (i)
+            {
+                for (j = i; j < 4; j++)
+                    char_array_4[j] = 0;
+
+                for (j = 0; j < 4; j++)
+                {
+                    char_array_4[j] = static_cast<unsigned char>(
+                        std::find(s_Base64Chars, s_Base64Chars + s_Base64CharsLen, char_array_4[j]) - s_Base64Chars
+                    );
+                }
+
+                char_array_3[0] = (char_array_4[0] << 2) + ((char_array_4[1] & 0x30) >> 4);
+                char_array_3[1] = ((char_array_4[1] & 0xf) << 4) + ((char_array_4[2] & 0x3c) >> 2);
+                char_array_3[2] = ((char_array_4[2] & 0x3) << 6) + char_array_4[3];
+
+                for (j = 0; (j < i - 1); j++)
+                    ret.Add(char_array_3[j]);
+            }
+
+            return ret;
+        }
+
+        static inline constexpr const char* s_Base64Chars =
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+            "abcdefghijklmnopqrstuvwxyz"
+            "0123456789+/";
+        static inline constexpr u32 s_Base64CharsLen = 64;
     };
 }

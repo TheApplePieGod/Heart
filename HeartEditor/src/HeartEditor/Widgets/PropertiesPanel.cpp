@@ -162,8 +162,9 @@ namespace Widgets
                     {
                         meshComp.Mesh = selected;
 
+                        // TODO: this should not be a blocking load
                         auto meshAsset = Heart::AssetManager::RetrieveAsset<Heart::MeshAsset>(meshComp.Mesh);
-                        if (meshAsset && meshAsset->IsValid())
+                        if (meshAsset && meshAsset->Load()->IsValid())
                             meshComp.Materials.Resize(meshAsset->GetMaxMaterials(), false);
                     }
                 );
@@ -171,17 +172,17 @@ namespace Widgets
                 // Assign mesh on drop
                 Heart::ImGuiUtils::AssetDropTarget(
                     Heart::Asset::Type::Mesh,
-                    [&meshComp](const Heart::HStringView8& path)
+                    [&meshComp](const Heart::HString8& path)
                     {
                         meshComp.Mesh = Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Mesh, path);      
                         auto meshAsset = Heart::AssetManager::RetrieveAsset<Heart::MeshAsset>(meshComp.Mesh);
-                        if (meshAsset && meshAsset->IsValid())
+                        if (meshAsset && meshAsset->Load()->IsValid())
                             meshComp.Materials.Resize(meshAsset->GetMaxMaterials(), false);
                     }
                 );
 
                 auto meshAsset = Heart::AssetManager::RetrieveAsset<Heart::MeshAsset>(meshComp.Mesh);
-                if (meshAsset && meshAsset->IsValid())
+                if (meshAsset && meshAsset->Load()->IsValid())
                 {
                     // Resize the materials to match the max of the mesh
                     // This will add more zeros (defaults) if need be but will not replace old overridden materials
@@ -223,7 +224,7 @@ namespace Widgets
                                     if (materialId != 0)
                                     {
                                         auto materialAsset = Heart::AssetManager::RetrieveAsset<Heart::MaterialAsset>(materialId);
-                                        if (materialAsset && materialAsset->IsValid())
+                                        if (materialAsset && materialAsset->Load()->IsValid())
                                             exportingMaterial = &materialAsset->GetMaterial();
                                     }
 
@@ -244,7 +245,7 @@ namespace Widgets
                         // Assign material on drop
                         Heart::ImGuiUtils::AssetDropTarget(
                             Heart::Asset::Type::Material,
-                            [&materialId](const Heart::HStringView8& path) { materialId = Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Material, path); }
+                            [&materialId](const Heart::HString8& path) { materialId = Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Material, path); }
                         );
 
                         index++;
@@ -572,7 +573,7 @@ namespace Widgets
                 // Assign font on drop
                 Heart::ImGuiUtils::AssetDropTarget(
                     Heart::Asset::Type::Font,
-                    [&textComp](const Heart::HStringView8& path)
+                    [&textComp](const Heart::HString8& path)
                     {
                         textComp.Font = Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Font, path);
                     }
@@ -619,7 +620,7 @@ namespace Widgets
                 // Assign material on drop
                 Heart::ImGuiUtils::AssetDropTarget(
                     Heart::Asset::Type::Material,
-                    [&textComp](const Heart::HStringView8& path) { textComp.Material = Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Material, path); }
+                    [&textComp](const Heart::HString8& path) { textComp.Material = Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Material, path); }
                 );
                 
                 ImGui::Unindent();
@@ -659,7 +660,7 @@ namespace Widgets
         }
     }
 
-    void PropertiesPanel::RenderScriptField(Heart::HStringView fieldName, Heart::ScriptInstance* instance)
+    void PropertiesPanel::RenderScriptField(const Heart::HString& fieldName, Heart::ScriptInstance* instance)
     {
         ImGui::Text(fieldName.DataUTF8());
         ImGui::SameLine();

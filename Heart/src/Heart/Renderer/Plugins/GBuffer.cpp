@@ -39,9 +39,10 @@ namespace Heart::RenderPlugins
         auto eidPlugin = m_Renderer->GetPlugin<RenderPlugins::EntityIds>(m_Info.EntityIdsPluginName);
 
         // Queue shader loads 
-        AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/gbuffer/Vertex.vert", true, true, true);
-        AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/gbuffer/Standard.frag", true, true, true);
-        AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/gbuffer/Text.frag", true, true, true);
+        auto textFrag = AssetManager::RetrieveAsset("engine/render_plugins/gbuffer/Text.frag", true);
+        auto vertShader = AssetManager::RetrieveAsset("engine/render_plugins/gbuffer/Vertex.vert", true);
+        auto standardFrag = AssetManager::RetrieveAsset("engine/render_plugins/gbuffer/Standard.frag", true);
+        Asset::LoadMany({ textFrag, vertShader, standardFrag }, false);
 
         Flourish::RenderPassCreateInfo rpCreateInfo;
         rpCreateInfo.SampleCount = Flourish::MsaaSampleCount::None;
@@ -79,8 +80,8 @@ namespace Heart::RenderPlugins
         m_RenderPass = Flourish::RenderPass::Create(rpCreateInfo);
 
         Flourish::GraphicsPipelineCreateInfo pipelineCreateInfo;
-        pipelineCreateInfo.FragmentShader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/gbuffer/Standard.frag", true)->GetShader() };
-        pipelineCreateInfo.VertexShader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/gbuffer/Vertex.vert", true)->GetShader() };
+        pipelineCreateInfo.FragmentShader = { standardFrag->EnsureValid<ShaderAsset>()->GetShader() };
+        pipelineCreateInfo.VertexShader = { vertShader->EnsureValid<ShaderAsset>()->GetShader() };
         pipelineCreateInfo.VertexTopology = Flourish::VertexTopology::TriangleList;
         pipelineCreateInfo.VertexLayout = Mesh::GetVertexLayout();
         pipelineCreateInfo.VertexInput = true;
@@ -96,7 +97,7 @@ namespace Heart::RenderPlugins
             { 1, 0, Flourish::ShaderTypeFlags::All }
         };
         auto standardPipeline = m_RenderPass->CreatePipeline("standard", pipelineCreateInfo);
-        pipelineCreateInfo.FragmentShader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/gbuffer/Text.frag", true)->GetShader() };
+        pipelineCreateInfo.FragmentShader = { textFrag->EnsureValid<ShaderAsset>()->GetShader() };
         pipelineCreateInfo.CullMode = Flourish::CullMode::None;
         auto textPipeline = m_RenderPass->CreatePipeline("text", pipelineCreateInfo);
 
