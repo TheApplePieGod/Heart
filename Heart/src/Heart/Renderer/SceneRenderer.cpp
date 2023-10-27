@@ -214,9 +214,14 @@ namespace Heart
     {
         CreateTextures();
 
-        // Resize topologically in case of size dependencies
-        for (const auto& leaf : m_CPUGraphData.Leaves)
-            m_Plugins[leaf]->Resize();
+        TaskGroup group;
+        for (const auto& pair : m_Plugins)
+        {
+            pair.second->Resize();
+            group.AddTask(pair.second->GetTask());
+        }
+
+        group.Wait();
 
         RebuildGraph();
     }
@@ -267,7 +272,6 @@ namespace Heart
 
     void SceneRenderer::InitializePlugins()
     {
-        // TODO: only run on leaves, may not be worth the optimization
         TaskGroup group;
         for (const auto& pair : m_Plugins)
         {

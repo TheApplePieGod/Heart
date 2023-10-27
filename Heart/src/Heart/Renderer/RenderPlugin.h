@@ -85,6 +85,7 @@ namespace Heart
         HString8 m_Name;
         UUID m_UUID = UUID();
         u64 m_LastRenderFrame = 0;
+        u64 m_LastResizeFrame = 0;
         HVector<Task> m_DependencyTasks;
         std::map<HString8, Stat> m_Stats;
         SceneRenderer* m_Renderer;

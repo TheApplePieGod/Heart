@@ -53,10 +53,24 @@ namespace Heart
 
     void RenderPlugin::Resize()
     {
-        for (const auto& depName : m_CPUGraphData.Dependencies)
-            m_Renderer->GetPlugin(depName)->Resize();
+        if (App::Get().GetFrameCount() == m_LastResizeFrame)
+            return;
+        m_LastResizeFrame = App::Get().GetFrameCount();
 
-        ResizeInternal();
+        m_DependencyTasks.Clear();
+        for (const auto& depName : m_InitDependencies)
+        {
+            auto dep = m_Renderer->GetPlugin(depName);
+            dep->Resize();
+            m_DependencyTasks.Add(dep->GetTask());
+        }
+        
+        m_Task = TaskManager::Schedule(
+            [this](){ ResizeInternal(); },
+            Task::Priority::High,
+            m_DependencyTasks,
+            m_Name
+        );
     }
 
     void RenderPlugin::AddDependency(const HString8& name, GraphDependencyType depType)
