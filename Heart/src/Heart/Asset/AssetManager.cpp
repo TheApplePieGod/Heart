@@ -278,6 +278,9 @@ namespace Heart
 
     void AssetManager::UpdateAssetsDirectory(const HString8& directory)
     {
+        if (directory == s_AssetsDirectory)
+            return;
+
         // (Locks internally)
         UnloadAllAssets();
 

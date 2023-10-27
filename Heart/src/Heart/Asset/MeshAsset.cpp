@@ -26,7 +26,7 @@ namespace Heart
             if (!data)
                 throw std::exception();
             if (/*m_Extension == ".glb" ||*/ m_Extension == ".gltf") // TODO: glb support
-                ParseGLTF(data, false);
+                ParseGLTF(data);
         }
         catch (std::exception e)
         {
@@ -45,7 +45,7 @@ namespace Heart
         m_Data = nullptr;
     }
 
-    void MeshAsset::ParseGLTF(unsigned char* data, bool async)
+    void MeshAsset::ParseGLTF(unsigned char* data)
     {
         auto j = nlohmann::json::parse(data);
         

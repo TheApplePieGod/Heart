@@ -113,7 +113,7 @@ namespace Heart
         };
 
     private:
-        void ParseGLTF(unsigned char* data, bool async);
+        void ParseGLTF(unsigned char* data);
         void ParseGLTFNode(
             const nlohmann::json& root,
             u32 nodeIndex,
