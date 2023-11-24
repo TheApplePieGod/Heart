@@ -12,6 +12,10 @@
 #include "Heart/Platform/MacOS/Utils.h"
 #endif
 
+#ifdef HE_PLATFORM_ANDROID
+#include <android/log.h>
+#endif
+
 namespace Heart
 {
     template<typename Mutex>
@@ -50,6 +54,51 @@ namespace Heart
         }
     };
 
+#ifdef HE_PLATFORM_ANDROID
+    template<typename Mutex>
+    class AndroidLogSink : public spdlog::sinks::base_sink<Mutex>
+    {
+    protected:
+        void sink_it_(const spdlog::details::log_msg& msg) override
+        {
+            spdlog::memory_buf_t formatted;
+            auto localTime = spdlog::details::os::localtime(spdlog::log_clock::to_time_t(msg.time));
+            spdlog::details::fmt_helper::pad2(localTime.tm_hour, formatted);
+            formatted.push_back(':');
+            spdlog::details::fmt_helper::pad2(localTime.tm_min, formatted);
+            formatted.push_back(':');
+            spdlog::details::fmt_helper::pad2(localTime.tm_sec, formatted);
+
+            int androidLogLevel;
+            switch ((LogLevel)msg.level)
+            {
+                case LogLevel::Trace: { androidLogLevel = ANDROID_LOG_VERBOSE; } break;
+                case LogLevel::Debug: { androidLogLevel = ANDROID_LOG_DEBUG; } break;
+                case LogLevel::Info: { androidLogLevel = ANDROID_LOG_INFO; } break;
+                case LogLevel::Warn: { androidLogLevel = ANDROID_LOG_WARN; } break;
+                case LogLevel::Error: { androidLogLevel = ANDROID_LOG_ERROR; } break;
+                case LogLevel::Critical: { androidLogLevel = ANDROID_LOG_ERROR; } break;
+            }
+
+            auto timestamp =  fmt::to_string(formatted);
+            ((void)__android_log_print(
+                androidLogLevel,
+                "HeartRuntime",
+                "[%s] [%s] %s: %s",
+                timestamp.data(),
+                Heart::LogListEntry::TypeStrings[msg.level],
+                msg.logger_name.data(),
+                msg.payload.data()
+            ));
+        }
+
+        void flush_() override 
+        {
+            
+        }
+    };
+#endif
+
     void Logger::Initialize(const char* appName)
     {
         #if defined(HE_PLATFORM_MACOS) && defined(HE_DIST)
@@ -67,7 +116,11 @@ namespace Heart
         #endif
         
         HVector<spdlog::sink_ptr> logSinks = {
+            #ifdef HE_PLATFORM_ANDROID
+            CreateRef<AndroidLogSink<std::mutex>>(),
+            #else
             CreateRef<spdlog::sinks::basic_file_sink_mt>(logPath, true),
+            #endif
         };
         
         #ifndef HE_DIST

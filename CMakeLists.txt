@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.23)
+cmake_minimum_required(VERSION 3.22)
 
 project(
     Heart
@@ -7,7 +7,7 @@ project(
 )
 
 option(HEART_BUILD_DOCS "Build documentation" OFF)
-option(HEART_BUILD_EDITOR "Build the editor" ON)
+option(HEART_BUILD_EDITOR "Build the editor" OFF)
 option(HEART_BUILD_RUNTIME "Build the standalone runtime" OFF)
 option(HEART_BUILD_TESTS "Build the tests" OFF)
 
@@ -83,15 +83,17 @@ else()
   message(FATAL_ERROR "Python must be installed to configure Heart") 
 endif()
 
+if (HEART_BUILD_RUNTIME)
+    message("Building the runtime")
+    add_compile_definitions(HE_DIST)
+#   add_subdirectory("HeartRuntime")
+endif()
+
 add_subdirectory("Heart")
 add_subdirectory("HeartScripting")
 if (HEART_BUILD_EDITOR)
     message("Building the editor")
     add_subdirectory("HeartEditor")
-endif()
-if (HEART_BUILD_RUNTIME)
-    message("Building the runtime")
-    add_subdirectory("HeartRuntime")
 endif()
 if (HEART_BUILD_TESTS)
     message("Building the tests")

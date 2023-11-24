@@ -466,7 +466,6 @@ namespace Heart
             }
         }
 
-        std::ofstream file(path.Data());
-        file << j;
+        FilesystemUtils::WriteFile(path, j);
     }
 }

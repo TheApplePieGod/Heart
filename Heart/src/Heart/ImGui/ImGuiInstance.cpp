@@ -4,9 +4,14 @@
 #include "Heart/Core/App.h"
 #include "imgui/imgui.h"
 #include "Heart/Asset/AssetManager.h"
-#include "imgui/backends/imgui_impl_glfw.h"
 #include "Heart/Core/Window.h"
+
+#ifdef HE_PLATFORM_ANDROID
+#include "imgui/backends/imgui_impl_android.h"
+#else
 #include "GLFW/glfw3.h"
+#include "imgui/backends/imgui_impl_glfw.h"
+#endif
 
 #include "Flourish/Backends/Vulkan/Context.h"
 #include "Flourish/Backends/Vulkan/RenderPass.h"
@@ -53,7 +58,13 @@ namespace Heart
             default:
             { HE_ENGINE_ASSERT(false, "Cannot initialize ImGui: selected ApiType is not supported"); } break;
             case Flourish::BackendType::Vulkan:
-            { ImGui_ImplGlfw_InitForVulkan(window->GetWindowHandle(), true); } break;
+            {
+                #ifdef HE_PLATFORM_ANDROID
+                    ImGui_ImplAndroid_Init((ANativeWindow*)window->GetWindowHandle());
+                #else
+                    ImGui_ImplGlfw_InitForVulkan((GLFWwindow*)window->GetWindowHandle(), true);
+                #endif
+            } break;
         }
 
         Recreate();
@@ -64,7 +75,11 @@ namespace Heart
 		HE_ENGINE_LOG_TRACE("Shutting down ImGui instance");
         Cleanup();
         
-        ImGui_ImplGlfw_Shutdown();
+        #ifdef HE_PLATFORM_ANDROID
+            ImGui_ImplAndroid_Shutdown();
+        #else
+            ImGui_ImplGlfw_Shutdown();
+        #endif
 	    ImGui::DestroyContext();
     }
 
@@ -192,7 +207,11 @@ namespace Heart
             { ImGui_ImplVulkan_NewFrame(); } break;
 		}
 
-        ImGui_ImplGlfw_NewFrame();
+        #ifdef HE_PLATFORM_ANDROID
+            ImGui_ImplAndroid_NewFrame();
+        #else
+            ImGui_ImplGlfw_NewFrame();
+        #endif
         ImGui::NewFrame();
     }
 
@@ -219,10 +238,8 @@ namespace Heart
 
 		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
 		{
-			GLFWwindow* backup_current_context = glfwGetCurrentContext();
 			ImGui::UpdatePlatformWindows();
 			ImGui::RenderPlatformWindowsDefault();
-			glfwMakeContextCurrent(backup_current_context);
 		}
     }
 

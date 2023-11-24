@@ -3,11 +3,13 @@
 
 #include "Heart/Core/App.h"
 #include "Heart/Core/Timing.h"
+#include "Heart/Util/FilesystemUtils.h"
 #include "Heart/Task/TaskManager.h"
 #include "efsw/efsw.hpp"
 
 namespace Heart
 {
+#ifndef HE_PLATFORM_ANDROID
     class UpdateListener : public efsw::FileWatchListener
     {
     public:
@@ -50,22 +52,36 @@ namespace Heart
     static int s_WatchId = 0;
     static Scope<UpdateListener> s_UpdateListener = nullptr;
     static Scope<efsw::FileWatcher> s_FileWatcher = nullptr;
+#endif
 
     void AssetManager::Initialize()
     {
-        auto timer = Heart::Timer("Registering resources", false);
-        RegisterAssetsInDirectory(s_ResourceDirectory, false, true);
-        timer.Log();
-
-        if (!s_AssetsDirectory.IsEmpty())
-        {
-            timer.SetName("Registering assets");
-            timer.Reset();
-            RegisterAssetsInDirectory(s_AssetsDirectory, false, false);
+        #ifdef HE_DIST
+            // Register from manifest if assets dir is set
+            if (!s_AssetsDirectory.IsEmpty())
+            {
+                auto timer = Heart::Timer("Registering asset manifest", false);
+                RegisterAssetsFromManifest(s_AssetsDirectory);
+                timer.Log();
+            }
+            else
+                HE_ENGINE_LOG_INFO("Assets directory not specified, skipping manifest registration");
+        #else
+            // Register from directories
+            auto timer = Heart::Timer("Registering resources", false);
+            RegisterAssetsInDirectory(s_ResourceDirectory, false, true);
             timer.Log();
-        }
-        else
-            HE_ENGINE_LOG_INFO("Assets directory not specified, skipping registration");
+
+            if (!s_AssetsDirectory.IsEmpty())
+            {
+                timer.SetName("Registering assets");
+                timer.Reset();
+                RegisterAssetsInDirectory(s_AssetsDirectory, false, false);
+                timer.Log();
+            }
+            else
+                HE_ENGINE_LOG_INFO("Assets directory not specified, skipping registration");
+        #endif
 
         s_Initialized = true;
 
@@ -143,25 +159,31 @@ namespace Heart
 
     void AssetManager::EnableFileWatcher()
     {
+        #ifndef HE_PLATFORM_ANDROID
         if (s_FileWatcher) return;
 
-        s_FileWatcher = CreateScope<efsw::FileWatcher>();
-        s_UpdateListener = CreateScope<UpdateListener>();
+            s_FileWatcher = CreateScope<efsw::FileWatcher>();
+            s_UpdateListener = CreateScope<UpdateListener>();
+        #endif
     }
 
     void AssetManager::DisableFileWatcher()
     {
-        s_FileWatcher.reset();
-        s_UpdateListener.reset();
+        #ifndef HE_PLATFORM_ANDROID
+            s_FileWatcher.reset();
+            s_UpdateListener.reset();
+        #endif
     }
 
     void AssetManager::WatchAssetDirectory()
     {
-        s_WatchId = (int)s_FileWatcher->addWatch(
-            s_AssetsDirectory.Data(),
-            s_UpdateListener.get(),
-            true
-        );
+        #ifndef HE_PLATFORM_ANDROID
+            s_WatchId = (int)s_FileWatcher->addWatch(
+                s_AssetsDirectory.Data(),
+                s_UpdateListener.get(),
+                true
+            );
+        #endif
     }
 
     UUID AssetManager::RegisterAsset(Asset::Type type, const HString8& path, bool persistent, bool isResource)
@@ -256,6 +278,22 @@ namespace Heart
         { return; }
     }
 
+    void AssetManager::RegisterAssetsFromManifest(const HStringView8& directory)
+    {
+        u32 fileLength;
+        auto path = std::filesystem::path(directory.Data()).append(s_ManifestFile.Data());
+        unsigned char* data = FilesystemUtils::ReadFile(path.generic_u8string(), fileLength);
+        if (!data)
+        {
+            HE_LOG_ERROR("Failed to locate manifest file in {0}", path.generic_u8string());
+            return;
+        }
+
+        auto j = nlohmann::json::parse(data);
+        for (auto& entry : j)
+            RegisterAsset(entry["type"], entry["path"], false, entry["resource"]);
+    }
+
     // Non-resources only
     void AssetManager::RenameAsset(const HString8& oldPath, const HString8& newPath)
     {
@@ -288,6 +326,12 @@ namespace Heart
 
         s_AssetsDirectory = directory;
 
+        if (!s_Initialized)
+        {
+            s_Mutex.unlock();
+            return;
+        }
+
         // Remove all registry UUIDs
         for (auto& pair : s_Registry)
             s_UUIDs.erase(pair.second.Id);
@@ -298,14 +342,20 @@ namespace Heart
         s_Mutex.unlock();
 
         // Scan the new directory
-        RegisterAssetsInDirectory(directory, false, false);
+        #ifdef HE_DIST
+            RegisterAssetsFromManifest(directory);
+        #else
+            RegisterAssetsInDirectory(directory, false, false);
+        #endif
 
-        // Update file watcher to watch new directory
-        if (s_FileWatcher)
-        {
-            s_FileWatcher->removeWatch(s_WatchId);
-            WatchAssetDirectory();
-        }
+        #ifndef HE_PLATFORM_ANDROID
+            // Update file watcher to watch new directory
+            if (s_FileWatcher)
+            {
+                s_FileWatcher->removeWatch(s_WatchId);
+                WatchAssetDirectory();
+            }
+        #endif
     }
 
     Asset::Type AssetManager::DeduceAssetTypeFromFile(const HStringView8& path)
@@ -397,5 +447,21 @@ namespace Heart
 
         auto& entry = GetRegistry(found->second.IsResource)[found->second.Path];
         return entry.Asset.get();
+    }
+
+    nlohmann::json AssetManager::GenerateManifest()
+    {
+        nlohmann::json j;
+
+        u32 size = 0;
+        for (auto& entry : s_UUIDs)
+        {
+            auto& elem = j[size++];
+            elem["path"] = entry.second.Path;
+            elem["type"] = entry.second.Type;
+            elem["resource"] = entry.second.IsResource;
+        }
+
+        return j;
     }
 }

@@ -115,7 +115,7 @@ namespace Heart
 
     void ImGuiUtils::AssetDropTarget(Asset::Type typeFilter, std::function<void(const HString8&)>&& dropCallback)
     {
-        if (AssetManager::GetAssetsDirectory().IsEmpty());
+        if (AssetManager::GetAssetsDirectory().IsEmpty())
             return;
 
         if (ImGui::BeginDragDropTarget())
@@ -148,7 +148,7 @@ namespace Heart
             ImU32 textColor = ImGui::GetColorU32(ImVec4(0.f, 0.0f, 0.0f, 1.f));
 
             ImGui::TableSetColumnIndex(0);
-            ImGui::Text(name.Data());
+            ImGui::Text("%s", name.Data());
 
             ImGui::TableSetColumnIndex(1);
             ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, xColor);

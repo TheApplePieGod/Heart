@@ -89,6 +89,8 @@ namespace HeartRuntime
 
     void RuntimeLayer::LoadProject()
     {
+        HE_LOG_TRACE("Loading project '{0}'", m_ProjectPath.generic_u8string());
+
         u32 fileLength;
         unsigned char* data = Heart::FilesystemUtils::ReadFile(m_ProjectPath.generic_u8string(), fileLength);
         if (!data)
@@ -106,7 +108,6 @@ namespace HeartRuntime
             throw std::exception();
         }
         
-        Heart::AssetManager::UpdateAssetsDirectory("project");
         Heart::ScriptingEngine::LoadClientPlugin(assemblyPath.u8string());
 
         RuntimeApp::Get().GetImGuiInstance().OverrideImGuiConfig(Heart::AssetManager::GetAssetsDirectory());
@@ -121,7 +122,10 @@ namespace HeartRuntime
         }
 
         Heart::UUID sceneAssetId = Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Scene, j["loadedScene"]);
-        m_RuntimeScene = Heart::AssetManager::RetrieveAsset<Heart::SceneAsset>(sceneAssetId)->GetScene()->Clone();
+        m_RuntimeScene = Heart::AssetManager::RetrieveAsset(sceneAssetId)
+            ->EnsureValid<Heart::SceneAsset>()
+            ->GetScene()
+            ->Clone();
         m_RuntimeScene->StartRuntime();
 
         RuntimeApp::Get().GetWindow().DisableCursor();

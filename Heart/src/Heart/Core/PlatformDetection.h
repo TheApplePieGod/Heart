@@ -33,7 +33,6 @@
  * it has __linux__ defined */
 #elif defined(__ANDROID__)
 	#define HE_PLATFORM_ANDROID
-	#error "Android is not supported!"
 #elif defined(__linux__)
 	#define HE_PLATFORM_LINUX
 	#define GLFW_EXPOSE_NATIVE_X11

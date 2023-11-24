@@ -60,7 +60,7 @@ namespace HeartEditor
                     {
                         Heart::HString8 path = Heart::FilesystemUtils::OpenFolderDialog(Project::GetActiveProject()->GetPath(), "Export Parent Directory");
                         if (!path.IsEmpty())
-                            Project::GetActiveProject()->Export(path);
+                            Project::GetActiveProject()->Export(path, ExportPlatform::CurrentPlatform);
                     }
                     if (isRuntime)
                         ImGui::EndDisabled();

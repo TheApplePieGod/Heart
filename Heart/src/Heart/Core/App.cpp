@@ -4,6 +4,7 @@
 #include "Heart/Core/Layer.h"
 #include "Heart/Core/Window.h"
 #include "Heart/Core/Timing.h"
+#include "Heart/Input/Input.h"
 #include "Heart/ImGui/ImGuiInstance.h"
 #include "Heart/Physics/PhysicsWorld.h"
 #include "Heart/Events/WindowEvents.h"
@@ -23,8 +24,6 @@ namespace Heart
     {
         if (s_Instance) return;
         s_Instance = this;
-
-        Heart::Logger::Initialize(windowName.Data());
 
         Timer timer = Timer("App initialization");
         #ifdef HE_DEBUG
@@ -189,8 +188,9 @@ namespace Heart
         {
             HE_PROFILE_FRAME();
 
-            double currentFrameTime = m_Window->GetWindowTime();
-            m_LastTimestep = Timestep(currentFrameTime - m_LastFrameTime);
+            auto currentFrameTime = std::chrono::steady_clock::now();
+            auto step = std::chrono::duration_cast<std::chrono::milliseconds>(currentFrameTime - m_LastFrameTime).count();
+            m_LastTimestep = Timestep(step);
             m_TimestepSamples[m_FrameCount % 5] = m_LastTimestep.StepMilliseconds();
             double averaged = 0.0;
             for (auto sample : m_TimestepSamples)
@@ -208,7 +208,6 @@ namespace Heart
                 timer = AggregateTimer("App::Run - Begin frame");
                 AssetManager::UnloadOldAssets();
                 Flourish::Context::BeginFrame();
-                m_Window->BeginFrame();
                 m_ImGuiInstance->BeginFrame();
                 timer.Finish();
 
@@ -222,6 +221,7 @@ namespace Heart
                 timer = AggregateTimer("App::Run - End frame");
                 m_ImGuiInstance->EndFrame();
                 m_Window->EndFrame();
+                Input::ClearDeltas();
                 Flourish::Context::EndFrame();
                 m_FrameCount++;
                 timer.Finish();

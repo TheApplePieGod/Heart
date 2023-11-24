@@ -291,17 +291,9 @@ namespace HeartEditor
         auto timer = Heart::Timer("Client plugin build");
         
         #ifdef HE_PLATFORM_WINDOWS
-            Heart::HString8 command = "/k cd ";
+            Heart::HString8 command = "BuildScripts.bat ";
         #else
-            Heart::HString8 command = "cd ";
-        #endif
-
-        command += Heart::AssetManager::GetAssetsDirectory();
-        
-        #ifdef HE_PLATFORM_WINDOWS
-            command += " && BuildScripts.bat ";
-        #else
-            command += ";sh BuildScripts.sh ";
+            Heart::HString8 command = "sh BuildScripts.sh ";
         #endif
         
         if (debug)
@@ -309,8 +301,8 @@ namespace HeartEditor
         else
             command += "Release";
 
-        Heart::HString8 output;
-        int res = Heart::PlatformUtils::ExecuteCommandWithOutput(command, output);
+        int res;
+        Heart::HString8 output = RunCommandInProjectDirectory(command, res);
         if (res == 0)
         {
             HE_ENGINE_LOG_INFO("Client plugin built successfully");
@@ -324,14 +316,50 @@ namespace HeartEditor
         
         return res == 0;
     }
-    
-    void Project::Export(Heart::HStringView8 absolutePath)
+
+    bool Project::PublishScripts(ExportPlatform platform)
     {
         HE_PROFILE_FUNCTION();
 
-        if (!BuildScripts(false))
+        auto timer = Heart::Timer("Client plugin publish");
+        
+        #ifdef HE_PLATFORM_WINDOWS
+            Heart::HString8 command = "PublishScripts.bat ";
+        #else
+            Heart::HString8 command = "sh PublishScripts.sh ";
+        #endif
+        
+        auto runtimeId = GetDotnetRuntimeIdentifier(platform);
+        if (runtimeId.IsEmpty())
         {
-            HE_ENGINE_LOG_ERROR("Failed to export project, client plugin build failed");
+            HE_LOG_ERROR("Unsupported publish platform '{0}'", (u8)platform);
+            return false;
+        }
+        command += runtimeId;
+
+        int res;
+        Heart::HString8 output = RunCommandInProjectDirectory(command, res);
+        if (res == 0)
+        {
+            HE_LOG_INFO("Client plugin published successfully");
+            HE_LOG_INFO("Publish output: {0}", output.Data());
+        }
+        else
+        {
+            HE_LOG_ERROR("Client plugin failed to publish with code {0}", res);
+            HE_LOG_ERROR("Publish output: {0}", output.Data());
+        }
+        
+        return res == 0;
+    }
+    
+    void Project::Export(Heart::HStringView8 absolutePath, ExportPlatform platform)
+    {
+        HE_PROFILE_FUNCTION();
+
+        if (!PublishScripts(platform))
+        {
+            HE_ENGINE_LOG_ERROR("Failed to export project, client plugin publish failed");
             return;
         }
 
@@ -346,6 +374,13 @@ namespace HeartEditor
         
         Heart::HString8 runtimeName = Heart::HStringView8("Runtime") + runtimeExt;
         Heart::HString8 finalName = m_Name + runtimeExt;
+
+        if (!std::filesystem::exists(runtimeName.Data()))
+        {
+            HE_ENGINE_LOG_ERROR("Failed to export project, missing runtime executable for platform");
+            return;
+        }
+
         std::filesystem::copy(
             runtimeName.Data(),
             std::filesystem::path(finalPath).append(finalName.Data()),
@@ -371,13 +406,22 @@ namespace HeartEditor
         std::filesystem::create_directory(copyPath);
         std::filesystem::copy(engineResources, copyPath, std::filesystem::copy_options::recursive);
             
+        auto runtimeId = GetDotnetRuntimeIdentifier(platform);
         copyPath = copyPath.parent_path().parent_path().append("scripting");
         std::filesystem::create_directory(copyPath);
-        std::filesystem::copy("dotnet", copyPath, std::filesystem::copy_options::recursive);
+        std::filesystem::copy(
+            std::filesystem::path(m_AbsolutePath.Data()).parent_path().append("bin").append(runtimeId.Data()).append("publish"),
+            copyPath,
+            std::filesystem::copy_options::recursive
+        );
         
         copyPath = copyPath.parent_path().append("project");
         std::filesystem::create_directory(copyPath);
-        std::filesystem::copy(std::filesystem::path(m_AbsolutePath.Data()).parent_path(), copyPath, std::filesystem::copy_options::recursive);
+        std::filesystem::copy(
+            std::filesystem::path(m_AbsolutePath.Data()).parent_path(),
+            copyPath,
+            std::filesystem::copy_options::recursive
+        );
         
         // Copy extra files
         #ifdef HE_PLATFORM_MACOS
@@ -414,7 +458,53 @@ namespace HeartEditor
               std::filesystem::path(dst).append("spirv-cross-c-shared.dll")
             );
         #endif
+
+        // Generate assets manifest
+        auto assetsManifest = Heart::AssetManager::GenerateManifest();
+        dst = std::filesystem::path(copyPath).append(Heart::AssetManager::GetManifestFilename().Data());
+        Heart::FilesystemUtils::WriteFile(dst.generic_u8string(), assetsManifest);
+
+        // Write metadata
+        nlohmann::json metadata;
+        metadata["projectName"] = m_Name;
+        dst = std::filesystem::path(copyPath).parent_path().append("metadata.json");
+        Heart::FilesystemUtils::WriteFile(dst.generic_u8string(), metadata);
         
         HE_ENGINE_LOG_INFO("Project exported successfully to {0}", finalPath.generic_u8string());
+    }
+
+    Heart::HString8 Project::RunCommandInProjectDirectory(Heart::HStringView8 command, int& outResult)
+    {
+        #ifdef HE_PLATFORM_WINDOWS
+            Heart::HString8 prefix = "/k cd ";
+        #else
+            Heart::HString8 prefix = "cd ";
+        #endif
+
+        prefix += Heart::AssetManager::GetAssetsDirectory();
+        
+        #ifdef HE_PLATFORM_WINDOWS
+            prefix += " && ";
+        #else
+            prefix += ";";
+        #endif
+
+        prefix += command;
+        
+        Heart::HString8 output;
+        outResult = Heart::PlatformUtils::ExecuteCommandWithOutput(prefix, output);
+        return output;
+    }
+
+    Heart::HStringView8 Project::GetDotnetRuntimeIdentifier(ExportPlatform platform)
+    {
+        switch (platform)
+        {
+            default: { return Heart::HStringView8(); }
+            case ExportPlatform::Windows: { return "win-x64"; }
+            case ExportPlatform::MacOS: { return "osx-arm64"; }
+            case ExportPlatform::Linux: { return "linux-x64"; }
+            case ExportPlatform::Android: { return "android-arm64"; }
+        }
     }
 }

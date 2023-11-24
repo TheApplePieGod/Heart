@@ -18,10 +18,13 @@ if(${CMAKE_BUILD_TYPE} MATCHES Debug)
   endif()
   add_subdirectory("lib/tracy")
 endif()
-set(GLFW_BUILD_DOCS OFF)
-set(GLFW_BUILD_TESTS OFF)
-set(GLFW_BUILD_EXAMPLES OFF)
-add_subdirectory("lib/GLFW")
+if(NOT ANDROID)
+  set(GLFW_BUILD_DOCS OFF)
+  set(GLFW_BUILD_TESTS OFF)
+  set(GLFW_BUILD_EXAMPLES OFF)
+    set(FLOURISH_GLFW_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lib/GLFW/include")
+  add_subdirectory("lib/GLFW")
+endif()
 add_subdirectory("lib/glm")
 add_subdirectory("lib/imgui")
 add_subdirectory("lib/spdlog")
@@ -29,7 +32,6 @@ add_subdirectory("lib/Glad")
 add_subdirectory("lib/entt")
 add_subdirectory("lib/imguizmo")
 add_subdirectory("lib/json")
-set(FLOURISH_GLFW_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lib/GLFW/include")
 set(FLOURISH_IMGUI_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lib/imgui")
 add_subdirectory("lib/Flourish")
 set(BUILD_CPU_DEMOS OFF)
@@ -52,17 +54,28 @@ set(TinyTIFF_BUILD_SHARED_LIBS OFF)
 set(TinyTIFF_BUILD_STATIC_LIBS ON)
 set(TinyTIFF_BUILD_TESTS OFF)
 add_subdirectory("lib/tinytiff")
-set(BUILD_SHARED_LIBS OFF)
-add_subdirectory("lib/efsw")
+if (NOT ANDROID)
+  set(BUILD_SHARED_LIBS OFF)
+  add_subdirectory("lib/efsw")
+endif()
 
 # Include other dependency sources that need to be built
 set(DEPENDENCY_SOURCES
-  "lib/imgui/backends/imgui_impl_glfw.cpp"
   "lib/imgui/backends/imgui_impl_vulkan.cpp"
-  "lib/imgui/backends/imgui_impl_opengl3.cpp"
   "lib/stb_image/stb_image.cpp"
   "lib/tinyfd/tinyfiledialogs.cpp"
 )
+if(ANDROID)
+  set(DEPENDENCY_SOURCES
+    ${DEPENDENCY_SOURCES}
+    "lib/imgui/backends/imgui_impl_android.cpp"
+  )
+else()
+  set(DEPENDENCY_SOURCES
+    ${DEPENDENCY_SOURCES}
+    "lib/imgui/backends/imgui_impl_glfw.cpp"
+  )
+endif()
 
 # Copy engine resources
 add_custom_target(
@@ -71,8 +84,6 @@ add_custom_target(
   COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_CURRENT_SOURCE_DIR}/resources ${OUTPUT_DIRECTORY}/resources/engine
   DEPENDS Engine
 )
-
-include(GNUInstallDirs)
 
 # Build main
 if(APPLE)
@@ -86,9 +97,7 @@ add_library(Heart::Engine ALIAS Engine)
 target_compile_features(Engine PUBLIC cxx_std_17)
 
 # Includes
-target_include_directories(
-  Engine
-  PUBLIC
+target_include_directories(Engine PUBLIC
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>"
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib>"
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/GLFW/include>"
@@ -107,22 +116,26 @@ target_include_directories(
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/Flourish/Flourish/src>"
   "$<BUILD_INTERFACE:${DOTNET_RUNTIME_DIR}>"
 )
+if(ANDROID)
+  target_include_directories(Engine PUBLIC
+    "$<BUILD_INTERFACE:${CMAKE_ANDROID_NDK}/sources/android>"
+  )
+endif()
 
 # Link dependencies
 set(LINK_LIBS
-  glfw glm imgui spdlog glad imguizmo nlohmann_json FlourishCore
+  glm imgui spdlog glad imguizmo nlohmann_json FlourishCore
   BulletDynamics BulletCollision LinearMath
-  freetype msdf-atlas-gen TinyTIFF efsw-static
+  freetype msdf-atlas-gen TinyTIFF
 )
-target_link_libraries(Engine
-  PUBLIC
-  ${LINK_LIBS}
-)
+target_link_libraries(Engine PUBLIC ${LINK_LIBS})
 if(${CMAKE_BUILD_TYPE} MATCHES Debug)
-  target_link_libraries(Engine
-    PUBLIC
-    TracyClient
-  )
+  target_link_libraries(Engine PUBLIC TracyClient)
+endif()
+if(ANDROID)
+  target_link_libraries(Engine PUBLIC android)
+else()
+  target_link_libraries(Engine PUBLIC glfw efsw-static)
 endif()
 
 # PCH
@@ -131,28 +144,3 @@ target_precompile_headers(
   PRIVATE
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/hepch.h>"
 )
-
-# Shared dist library
-if (HEART_BUILD_RUNTIME)
-  add_library(EngineRuntime STATIC "${SOURCES}" "${DEPENDENCY_SOURCES}")
-
-  target_compile_definitions(EngineRuntime PUBLIC HE_DIST)
-  target_compile_features(EngineRuntime PUBLIC cxx_std_17)
-
-  target_include_directories(EngineRuntime
-    PUBLIC
-    "$<TARGET_PROPERTY:Engine,INTERFACE_INCLUDE_DIRECTORIES>"
-  )
-  
-  target_link_libraries(EngineRuntime
-    PUBLIC
-    ${LINK_LIBS}
-  )
-
-  # Don't reuse from engine because PCH may be different when HE_DIST is set
-  target_precompile_headers(
-    EngineRuntime
-    PRIVATE
-    "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/hepch.h>"
-  )
-endif()
