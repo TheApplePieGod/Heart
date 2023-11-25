@@ -54,6 +54,14 @@ namespace HeartEditor
         };
 
     private:
+        static void CopyTemplateDirectory(
+            std::filesystem::path src,
+            std::filesystem::path dst,
+            const Heart::HStringView8& scriptsRoot,
+            const Heart::HStringView8& projectName
+        );
+
+    private:
         inline static Heart::Ref<Project> s_ActiveProject = nullptr;
 
     private:

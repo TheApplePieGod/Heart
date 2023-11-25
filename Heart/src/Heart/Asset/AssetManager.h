@@ -228,7 +228,7 @@ namespace Heart
     private:
         inline static constexpr u64 s_AssetFrameLimit = 1000;
         inline static const HString8 s_ResourceDirectory = "resources";
-        inline static const HString8 s_ManifestFile = "assets.heman";
+        inline static const HString8 s_ManifestFile = "assets.json";
         inline static std::unordered_map<UUID, UUIDEntry> s_UUIDs;
         inline static std::unordered_map<HString8, AssetEntry> s_Registry;
         inline static std::unordered_map<HString8, AssetEntry> s_Resources;

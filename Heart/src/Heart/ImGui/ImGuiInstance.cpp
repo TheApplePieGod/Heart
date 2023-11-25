@@ -2,9 +2,10 @@
 #include "ImGuiInstance.h"
 
 #include "Heart/Core/App.h"
-#include "imgui/imgui.h"
-#include "Heart/Asset/AssetManager.h"
 #include "Heart/Core/Window.h"
+#include "Heart/Asset/AssetManager.h"
+#include "Heart/Util/FilesystemUtils.h"
+#include "imgui/imgui.h"
 
 #ifdef HE_PLATFORM_ANDROID
 #include "imgui/backends/imgui_impl_android.h"
@@ -31,12 +32,17 @@ namespace Heart
 		io.IniFilename = nullptr;
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;       // Enable Keyboard Controls
 		//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
-		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;           // Enable Docking
-		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
         //io.ConfigFlags |= ImGuiConfigFlags_ViewportsNoTaskBarIcons;
 		//io.ConfigFlags |= ImGuiConfigFlags_ViewportsNoMerge;
 
-		io.FontDefault = io.Fonts->AddFontFromFileTTF("resources/engine/Inter-Regular.otf", 14.0f);
+        #ifndef HE_DIST
+            io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;           // Enable Docking
+            io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
+        #endif
+
+        u32 fontDataSize;
+        unsigned char* fontData = FilesystemUtils::ReadFile("resources/engine/Inter-Regular.otf", fontDataSize);
+		io.FontDefault = io.Fonts->AddFontFromMemoryTTF(fontData, fontDataSize, 14.f);
 
 		// Setup Dear ImGui style
 		ImGui::StyleColorsDark();
@@ -88,6 +94,8 @@ namespace Heart
         if (m_Initialized)
             Cleanup();
 
+		HE_ENGINE_LOG_TRACE("ImGui: Recreating");
+
         switch (Flourish::Context::BackendType())
         {
             default:
@@ -98,6 +106,8 @@ namespace Heart
 				{
 					return vkGetInstanceProcAddr(Flourish::Vulkan::Context::Instance(), function_name);
 				});
+
+		        HE_ENGINE_LOG_TRACE("ImGui: Vulkan functions loaded");
 
 				// Create the descriptor pool for imgui
 				std::array<VkDescriptorPoolSize, 1> poolSizes{};
@@ -115,6 +125,8 @@ namespace Heart
 					nullptr,
 					(VkDescriptorPool*)&m_DescriptorPool
 				);
+
+		        HE_ENGINE_LOG_TRACE("ImGui: Descriptor pool created");
 
 				// Initialize
 				ImGui_ImplVulkan_InitInfo info = {};
@@ -139,6 +151,8 @@ namespace Heart
 					&info,
 					((Flourish::Vulkan::RenderPass*)App::Get().GetWindow().GetRenderContext()->GetRenderPass())->GetRenderPass()
 				);
+
+		        HE_ENGINE_LOG_TRACE("ImGui: Vulkan initialized");
 				
 				// Create fonts texture & cleanup resources
 				VkCommandBuffer cmdBuf;
@@ -152,6 +166,8 @@ namespace Heart
 				Flourish::Vulkan::Context::Queues().ExecuteCommand(Flourish::GPUWorkloadType::Graphics, cmdBuf);
 				ImGui_ImplVulkan_DestroyFontUploadObjects();
 				Flourish::Vulkan::Context::Commands().FreeBuffer(allocInfo, cmdBuf);
+
+		        HE_ENGINE_LOG_TRACE("ImGui: Font objects uploaded");
 			} break;
         }
 

@@ -20,7 +20,7 @@
     <application
         android:allowBackup="false"
         android:fullBackupContent="false"
-        android:label="Heart Runtime"
+        android:label="${PROJECT_NAME}"
         android:hasCode="false"> <!-- There is no Java or Kotlin code in the application. -->
 
         <activity

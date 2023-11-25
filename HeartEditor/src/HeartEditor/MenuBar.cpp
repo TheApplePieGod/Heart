@@ -56,11 +56,26 @@ namespace HeartEditor
                     
                     if (isRuntime)
                         ImGui::BeginDisabled();
-                    if (Project::GetActiveProject() && ImGui::MenuItem("Export Project"))
+                    if (Project::GetActiveProject() && ImGui::BeginMenu("Export Project"))
                     {
-                        Heart::HString8 path = Heart::FilesystemUtils::OpenFolderDialog(Project::GetActiveProject()->GetPath(), "Export Parent Directory");
-                        if (!path.IsEmpty())
-                            Project::GetActiveProject()->Export(path, ExportPlatform::CurrentPlatform);
+                        ExportPlatform platform = ExportPlatform::None;
+                        if (ImGui::MenuItem("Current Platform"))
+                            platform = ExportPlatform::CurrentPlatform;
+                        if (ImGui::MenuItem("Windows"))
+                            platform = ExportPlatform::Windows;
+                        if (ImGui::MenuItem("MacOS"))
+                            platform = ExportPlatform::MacOS;
+                        if (ImGui::MenuItem("Android"))
+                            platform = ExportPlatform::Android;
+
+                        if (platform != ExportPlatform::None)
+                        {
+                            Heart::HString8 path = Heart::FilesystemUtils::OpenFolderDialog(Project::GetActiveProject()->GetPath(), "Export Parent Directory");
+                            if (!path.IsEmpty())
+                                Project::GetActiveProject()->Export(path, platform);
+                        }
+
+                        ImGui::EndMenu();
                     }
                     if (isRuntime)
                         ImGui::EndDisabled();

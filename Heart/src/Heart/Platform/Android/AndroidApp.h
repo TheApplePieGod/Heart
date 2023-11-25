@@ -7,6 +7,8 @@ namespace Heart
     struct AndroidApp
     {
         inline static android_app* App = nullptr;
+        inline static ANativeWindow* NativeWindow = nullptr;
+        inline static bool Paused = false;
     };
 }
 

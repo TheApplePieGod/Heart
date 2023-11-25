@@ -11,6 +11,10 @@
 #include "Heart/Util/FilesystemUtils.h"
 #include "nlohmann/json.hpp"
 
+#ifdef HE_PLATFORM_ANDROID
+#include "Heart/Platform/Android/AndroidApp.h"
+#endif
+
 namespace HeartRuntime
 {
     RuntimeLayer::RuntimeLayer(const std::filesystem::path& projectPath)
@@ -99,16 +103,20 @@ namespace HeartRuntime
             throw std::exception();
         }
 
-        auto assemblyPath = std::filesystem::path("project")
-            .append("bin")
-            .append("ClientScripts.dll");
+        #ifdef HE_PLATFORM_ANDROID
+            auto assemblyPath = std::filesystem::path(Heart::AndroidApp::App->activity->internalDataPath)
+                .append("ClientScripts.dll");
+        #else
+            auto assemblyPath = std::filesystem::path("scripting/ClientScripts.dll");
+        #endif
+
         if (!std::filesystem::exists(assemblyPath))
         {
-            HE_LOG_ERROR("Project assembly not found");
+            HE_LOG_ERROR("Project assembly not found @ {0}", assemblyPath.generic_u8string().c_str());
             throw std::exception();
         }
         
-        Heart::ScriptingEngine::LoadClientPlugin(assemblyPath.u8string());
+        Heart::ScriptingEngine::LoadClientPlugin(assemblyPath.generic_u8string());
 
         RuntimeApp::Get().GetImGuiInstance().OverrideImGuiConfig(Heart::AssetManager::GetAssetsDirectory());
         RuntimeApp::Get().GetImGuiInstance().ReloadImGuiConfig();

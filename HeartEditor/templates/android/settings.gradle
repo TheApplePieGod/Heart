@@ -12,5 +12,5 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
-rootProject.name = "HeartRuntime"
+rootProject.name = "${PROJECT_NAME}"
 include ':app'

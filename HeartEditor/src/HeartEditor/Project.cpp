@@ -52,27 +52,46 @@ namespace HeartEditor
         /*
          * Iterate templates directory and perform preprocessing before copying to project dir
          */
-        for (const auto& entry : std::filesystem::directory_iterator("templates"))
+        CopyTemplateDirectory("templates", finalPath, scriptsRootPath, name);
+            
+        return LoadFromPath(mainProjectFilePath.generic_u8string());
+    }
+
+    void Project::CopyTemplateDirectory(
+        std::filesystem::path src,
+        std::filesystem::path dst,
+        const Heart::HStringView8& scriptsRoot,
+        const Heart::HStringView8& projectName
+    )
+    {
+        for (const auto& entry : std::filesystem::directory_iterator(src))
         {
+            if (entry.is_directory())
+            {
+                auto newDst = std::filesystem::path(dst).append(entry.path().filename().generic_u8string());
+                std::filesystem::create_directory(newDst);
+                CopyTemplateDirectory(
+                    entry.path(),
+                    newDst,
+                    scriptsRoot,
+                    projectName
+                );
+                continue;
+            }
+
             Heart::HString8 text = Heart::FilesystemUtils::ReadFileToString(entry.path().generic_u8string());
-            text = std::regex_replace(text.Data(), std::regex("\\$\\{SCRIPTS_ROOT_PATH\\}"), scriptsRootPath.Data());
-            text = std::regex_replace(text.Data(), std::regex("\\$\\{PROJECT_NAME\\}"), name.Data());
+            text = std::regex_replace(text.Data(), std::regex("\\$\\{SCRIPTS_ROOT_PATH\\}"), scriptsRoot.Data());
+            text = std::regex_replace(text.Data(), std::regex("\\$\\{PROJECT_NAME\\}"), projectName.Data());
             
             Heart::HString8 filename = entry.path().filename().generic_u8string();
-            filename = std::regex_replace(filename.Data(), std::regex("\\$\\{PROJECT_NAME\\}"), name.Data());
-            
-            auto path = std::filesystem::path(finalPath);
-            if (filename == "EmptyEntity.cs")
-                path.append("Scripts");
+            filename = std::regex_replace(filename.Data(), std::regex("\\$\\{PROJECT_NAME\\}"), projectName.Data());
             
             auto file = std::ofstream(
-                path.append(filename.Data()),
+                std::filesystem::path(dst).append(filename.Data()),
                 std::ios::binary
             );
             file << text.Data();
         }
-            
-        return LoadFromPath(mainProjectFilePath.generic_u8string());
     }
 
     Heart::Ref<Project> Project::LoadFromPath(const Heart::HStringView8& absolutePath)
@@ -363,21 +382,66 @@ namespace HeartEditor
             return;
         }
 
-        std::filesystem::path finalPath = std::filesystem::path(absolutePath.Data()).append(m_Name.Data());
-        std::filesystem::create_directory(finalPath);
+        std::filesystem::path finalPath;
+        switch (platform)
+        {
+            default:
+            {
+                HE_ENGINE_LOG_ERROR("Failed to export project, unsupported export target");
+                return;
+            }
+            case ExportPlatform::Windows:
+            case ExportPlatform::MacOS:
+            {
+                finalPath = std::filesystem::path(absolutePath.Data())
+                    .append(m_Name.Data());
+            } break;
+            case ExportPlatform::Android:
+            {
+                finalPath = std::filesystem::path(m_AbsolutePath.Data())
+                    .parent_path()
+                    .append("android")
+                    .append("app")
+                    .append("src")
+                    .append("main")
+                    .append("jniLibs");
+                if (std::filesystem::exists(finalPath))
+                    std::filesystem::remove_all(finalPath);
+                std::filesystem::create_directory(finalPath);
+                finalPath.append("arm64-v8a");
+            } break;
+        }
+
+        if (!std::filesystem::exists(finalPath))
+            std::filesystem::create_directory(finalPath);
         
-        #ifdef HE_PLATFORM_MACOS
-            Heart::HStringView8 runtimeExt = ".app";
-        #else
-            Heart::HStringView8 runtimeExt = ".exe";
-        #endif
-        
-        Heart::HString8 runtimeName = Heart::HStringView8("Runtime") + runtimeExt;
-        Heart::HString8 finalName = m_Name + runtimeExt;
+        Heart::HString8 runtimeName, finalName;
+        switch (platform)
+        {
+            default: break;
+            case ExportPlatform::Windows:
+            {
+                runtimeName = "Runtime.exe";
+                finalName = m_Name + ".exe";
+            } break;
+            case ExportPlatform::MacOS:
+            {
+                runtimeName = "Runtime.app";
+                finalName = m_Name + ".app";
+            } break;
+            case ExportPlatform::Android:
+            {
+                runtimeName = "libRuntime.so";
+                finalName = "libRuntime.so";
+            } break;
+        }
 
         if (!std::filesystem::exists(runtimeName.Data()))
         {
-            HE_ENGINE_LOG_ERROR("Failed to export project, missing runtime executable for platform");
+            HE_ENGINE_LOG_ERROR(
+                "Failed to export project, missing runtime executable for platform '{0}'",
+                runtimeName.Data()
+            );
             return;
         }
 
@@ -389,79 +453,162 @@ namespace HeartEditor
         
         std::filesystem::path copyPath;
         std::filesystem::path engineResources = std::filesystem::path("resources").append("engine");
-        #ifdef HE_PLATFORM_MACOS
-            // Copy files to bundle resources directory
-            copyPath = std::filesystem::path(finalPath).append(finalName.Data());
-            copyPath.append("Contents");
-            std::filesystem::create_directory(copyPath);
-            copyPath.append("Resources");
-            std::filesystem::create_directory(copyPath);
-        #else
-            copyPath = std::filesystem::path(finalPath);
-        #endif
+        switch (platform)
+        {
+            default: break;
+            case ExportPlatform::MacOS:
+            {
+                // Copy files to bundle resources directory
+                copyPath = std::filesystem::path(finalPath).append(finalName.Data());
+                copyPath.append("Contents");
+                std::filesystem::create_directory(copyPath);
+                copyPath.append("Resources");
+                std::filesystem::create_directory(copyPath);
+            } break;
+            case ExportPlatform::Windows:
+            {
+                copyPath = std::filesystem::path(finalPath);
+            } break;
+            case ExportPlatform::Android:
+            {
+                copyPath = finalPath.parent_path().parent_path().append("assets");
+                if (std::filesystem::exists(copyPath))
+                    std::filesystem::remove_all(copyPath);
+                std::filesystem::create_directory(copyPath);
+            } break;
+        }
 
-        copyPath.append("resources");
-        std::filesystem::create_directory(copyPath);
-        copyPath.append("engine");
-        std::filesystem::create_directory(copyPath);
-        std::filesystem::copy(engineResources, copyPath, std::filesystem::copy_options::recursive);
-            
+        switch (platform)
+        {
+            default: break;
+            case ExportPlatform::Windows:
+            case ExportPlatform::MacOS:
+            {
+                copyPath.append("resources");
+                std::filesystem::create_directory(copyPath);
+                copyPath.append("engine");
+                std::filesystem::create_directory(copyPath);
+                std::filesystem::copy(engineResources, copyPath, std::filesystem::copy_options::recursive);
+                copyPath = copyPath.parent_path().parent_path();
+            } break;
+            case ExportPlatform::Android:
+            {
+                // Create symlink since we only need files here temporarily
+                // TODO: this will also copy editor resources
+                std::filesystem::create_directory_symlink(
+                    std::filesystem::current_path().append("resources"),
+                    std::filesystem::path(copyPath).append("resources")
+                );
+            } break;
+        }
+
+        copyPath.append("scripting");
         auto runtimeId = GetDotnetRuntimeIdentifier(platform);
-        copyPath = copyPath.parent_path().parent_path().append("scripting");
-        std::filesystem::create_directory(copyPath);
-        std::filesystem::copy(
-            std::filesystem::path(m_AbsolutePath.Data()).parent_path().append("bin").append(runtimeId.Data()).append("publish"),
-            copyPath,
-            std::filesystem::copy_options::recursive
-        );
+        auto scriptPath = std::filesystem::path(m_AbsolutePath.Data()).parent_path().append("bin").append(runtimeId.Data()).append("publish");
+        switch (platform)
+        {
+            default: break;
+            case ExportPlatform::Windows:
+            case ExportPlatform::MacOS:
+            {
+                std::filesystem::create_directory(copyPath);
+                std::filesystem::copy(
+                    scriptPath,
+                    copyPath,
+                    std::filesystem::copy_options::recursive
+                );
+            } break;
+            case ExportPlatform::Android:
+            {
+                // Create symlink since we only need files here temporarily
+                std::filesystem::create_directory_symlink(scriptPath, copyPath);
+            } break;
+        }
         
+        // Copy project files
+        auto projPath = std::filesystem::path(m_AbsolutePath.Data()).parent_path();
         copyPath = copyPath.parent_path().append("project");
-        std::filesystem::create_directory(copyPath);
+        if (!std::filesystem::exists(copyPath))
+            std::filesystem::create_directory(copyPath);
+        projPath.append((m_Name + ".heproj").Data());
+        copyPath.append((m_Name + ".heproj").Data());
         std::filesystem::copy(
-            std::filesystem::path(m_AbsolutePath.Data()).parent_path(),
+            projPath,
             copyPath,
             std::filesystem::copy_options::recursive
         );
-        
+        projPath = projPath.parent_path().append("Assets");
+        copyPath = copyPath.parent_path().append("Assets");
+        switch (platform)
+        {
+            default: break;
+            case ExportPlatform::Windows:
+            case ExportPlatform::MacOS:
+            {
+                std::filesystem::create_directory(copyPath);
+                std::filesystem::copy(
+                    projPath,
+                    copyPath,
+                    std::filesystem::copy_options::recursive
+                );
+            } break;
+            case ExportPlatform::Android:
+            {
+                // Create symlink since we only need files here temporarily
+                std::filesystem::create_directory_symlink(projPath, copyPath);
+            } break;
+        }
+
         // Copy extra files
-        #ifdef HE_PLATFORM_MACOS
-            std::filesystem::path dst = std::filesystem::path(copyPath).parent_path().parent_path();
-            dst.append("Frameworks");
-            std::filesystem::create_directory(dst);
-            std::filesystem::copy(
-              "libMoltenVK.dylib",
-              std::filesystem::path(dst).append("libMoltenVK.dylib")
-            );
-            // TODO: this is bad. We should be using a symlink, but it doesn't seem to work, so for now
-            // we are just copying the entire dylib again
-            std::filesystem::copy(
-              "libMoltenVK.dylib",
-              std::filesystem::path(dst).append("libvulkan.1.dylib")
-            );
+        switch (platform)
+        {
+            default: break;
+            case ExportPlatform::Windows:
+            {
+                std::filesystem::path dst = std::filesystem::path(copyPath).parent_path();
+                std::filesystem::copy(
+                  "shaderc_shared.dll",
+                  std::filesystem::path(dst).append("shaderc_shared.dll")
+                );
+                std::filesystem::copy(
+                  "spirv-cross-c-shared.dll",
+                  std::filesystem::path(dst).append("spirv-cross-c-shared.dll")
+                );
+            } break;
+            case ExportPlatform::MacOS:
+            {
+                std::filesystem::path dst = std::filesystem::path(copyPath).parent_path().parent_path();
+                dst.append("Frameworks");
+                std::filesystem::create_directory(dst);
+                std::filesystem::copy(
+                  "libMoltenVK.dylib",
+                  std::filesystem::path(dst).append("libMoltenVK.dylib")
+                );
+                // TODO: this is bad. We should be using a symlink, but it doesn't seem to work, so for now
+                // we are just copying the entire dylib again
+                std::filesystem::copy(
+                  "libMoltenVK.dylib",
+                  std::filesystem::path(dst).append("libvulkan.1.dylib")
+                );
 
-            std::filesystem::copy(
-              "libshaderc_shared.1.dylib",
-              std::filesystem::path(dst).append("libshaderc_shared.1.dylib")
-            );
-            std::filesystem::copy(
-              "libspirv-cross-c-shared.0.dylib",
-              std::filesystem::path(dst).append("libspirv-cross-c-shared.0.dylib")
-            );
-        #elif defined(HE_PLATFORM_WINDOWS)
-            std::filesystem::path dst = std::filesystem::path(copyPath).parent_path();
-            std::filesystem::copy(
-              "shaderc_shared.dll",
-              std::filesystem::path(dst).append("shaderc_shared.dll")
-            );
-            std::filesystem::copy(
-              "spirv-cross-c-shared.dll",
-              std::filesystem::path(dst).append("spirv-cross-c-shared.dll")
-            );
-        #endif
+                std::filesystem::copy(
+                  "libshaderc_shared.1.dylib",
+                  std::filesystem::path(dst).append("libshaderc_shared.1.dylib")
+                );
+                std::filesystem::copy(
+                  "libspirv-cross-c-shared.0.dylib",
+                  std::filesystem::path(dst).append("libspirv-cross-c-shared.0.dylib")
+                );
+            } break;
+            case ExportPlatform::Android:
+                break;
+        }
 
+        copyPath = copyPath.parent_path();
+        
         // Generate assets manifest
         auto assetsManifest = Heart::AssetManager::GenerateManifest();
-        dst = std::filesystem::path(copyPath).append(Heart::AssetManager::GetManifestFilename().Data());
+        auto dst = std::filesystem::path(copyPath).append(Heart::AssetManager::GetManifestFilename().Data());
         Heart::FilesystemUtils::WriteFile(dst.generic_u8string(), assetsManifest);
 
         // Write metadata
@@ -469,6 +616,34 @@ namespace HeartEditor
         metadata["projectName"] = m_Name;
         dst = std::filesystem::path(copyPath).parent_path().append("metadata.json");
         Heart::FilesystemUtils::WriteFile(dst.generic_u8string(), metadata);
+
+        if (platform == ExportPlatform::Android)
+        {
+            #ifdef HE_PLATFORM_WINDOWS
+                Heart::HString8 command = "cd android && gradlew.bat build";
+            #else
+                Heart::HString8 command = "cd android; sh ./gradlew build";
+            #endif
+
+            // Run gradle and build apk
+            int res;
+            Heart::HString8 output = RunCommandInProjectDirectory(command, res);
+            if (res == 0)
+            {
+                HE_ENGINE_LOG_INFO("Client APK built successfully");
+                HE_ENGINE_LOG_INFO("Build output: {0}", output.Data());
+            }
+            else
+            {
+                HE_ENGINE_LOG_ERROR("Client APK failed to build with code {0}", res);
+                HE_ENGINE_LOG_ERROR("Build output: {0}", output.Data());
+
+                return;
+            }
+
+            finalPath = std::filesystem::path(absolutePath.Data())
+                .append(m_Name.Data());
+        }
         
         HE_ENGINE_LOG_INFO("Project exported successfully to {0}", finalPath.generic_u8string());
     }

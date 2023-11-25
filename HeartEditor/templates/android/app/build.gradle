@@ -3,12 +3,12 @@ plugins {
 }
 
 android {
-    namespace 'org.theapplepiegod.HeartRuntime'
+    namespace 'org.company.${PROJECT_NAME}'
     compileSdk 31
     ndkVersion '23.1.7779620'
 
     defaultConfig {
-        applicationId "org.theapplepiegod.HeartRuntime"
+        applicationId "org.company.${PROJECT_NAME}"
         minSdk 29
         targetSdk 31
         versionCode 1
@@ -24,19 +24,6 @@ android {
             minifyEnabled false
         }
     }
-
-    externalNativeBuild {
-        cmake {
-            version '3.22.1'
-            path '../CMakeLists.txt'
-        }
-    }
-
-    /*
-    sourceSets.main {
-        manifest.srcFile './AndroidManifest.xml'
-    }
-    */
 
     // Enable prefab support for the OpenXR AAR
     buildFeatures {

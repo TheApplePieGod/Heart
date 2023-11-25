@@ -14,6 +14,7 @@
 #include "Heart/Task/TaskManager.h"
 #include "Heart/Task/JobManager.h"
 #include "Heart/Util/PlatformUtils.h"
+#include "Heart/Util/FilesystemUtils.h"
 #include "Flourish/Api/Context.h"
 #include "Flourish/Api/RenderContext.h"
 #include "Flourish/Core/Log.h"
@@ -107,6 +108,7 @@ namespace Heart
         initInfo.RequestedFeatures.SamplerAnisotropy = true;
         initInfo.RequestedFeatures.RayTracing = true;
         initInfo.RequestedFeatures.PartiallyBoundResourceSets = true;
+        initInfo.ReadFile = FilesystemUtils::ReadFile;
         Flourish::Context::Initialize(initInfo);
 
         m_Window = Window::Create(windowCreateInfo);

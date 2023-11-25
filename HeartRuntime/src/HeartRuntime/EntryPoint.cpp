@@ -46,10 +46,43 @@ int Main(int argc, char** argv)
         return Main(0, nullptr);
     }
 #elif defined(HE_PLATFORM_ANDROID)
+    static void AndroidAppHandleCmd(struct android_app *app, int cmd)
+    {
+        switch (cmd) {
+            case APP_CMD_START: {
+                break;
+            }
+            case APP_CMD_RESUME: {
+                Heart::AndroidApp::Paused = false;
+                break;
+            }
+            case APP_CMD_PAUSE: {
+                Heart::AndroidApp::Paused = true;
+                break;
+            }
+            case APP_CMD_STOP: {
+                break;
+            }
+            case APP_CMD_DESTROY: {
+                Heart::AndroidApp::NativeWindow = nullptr;
+                break;
+            }
+            case APP_CMD_INIT_WINDOW: {
+                Heart::AndroidApp::NativeWindow = app->window;
+                break;
+            }
+            case APP_CMD_TERM_WINDOW: {
+                Heart::AndroidApp::NativeWindow = nullptr;
+                break;
+            }
+        }
+    }
+
     // https://github.com/KhronosGroup/OpenXR-Tutorials/blob/main/Chapter1/main.cpp
     void android_main(struct android_app* app)
     {
         Heart::AndroidApp::App = app;
+        app->onAppCmd = AndroidAppHandleCmd;
         Main(0, nullptr);
     }
 #else

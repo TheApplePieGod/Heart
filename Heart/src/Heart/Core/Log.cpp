@@ -58,6 +58,11 @@ namespace Heart
     template<typename Mutex>
     class AndroidLogSink : public spdlog::sinks::base_sink<Mutex>
     {
+    public:
+        AndroidLogSink(const char* appName)
+            : m_AppName(appName)
+        {}
+
     protected:
         void sink_it_(const spdlog::details::log_msg& msg) override
         {
@@ -83,7 +88,7 @@ namespace Heart
             auto timestamp =  fmt::to_string(formatted);
             ((void)__android_log_print(
                 androidLogLevel,
-                "HeartRuntime",
+                m_AppName.c_str(),
                 "[%s] [%s] %s: %s",
                 timestamp.data(),
                 Heart::LogListEntry::TypeStrings[msg.level],
@@ -96,6 +101,9 @@ namespace Heart
         {
             
         }
+
+    private:
+        std::string m_AppName;
     };
 #endif
 
@@ -117,7 +125,7 @@ namespace Heart
         
         HVector<spdlog::sink_ptr> logSinks = {
             #ifdef HE_PLATFORM_ANDROID
-            CreateRef<AndroidLogSink<std::mutex>>(),
+            CreateRef<AndroidLogSink<std::mutex>>(appName),
             #else
             CreateRef<spdlog::sinks::basic_file_sink_mt>(logPath, true),
             #endif
@@ -148,5 +156,7 @@ namespace Heart
             s_ClientLogger->set_level(spdlog::level::info);
             s_ClientLogger->flush_on(spdlog::level::info);
         #endif
+
+        HE_LOG_INFO("Logger initialized");
     }
 }
