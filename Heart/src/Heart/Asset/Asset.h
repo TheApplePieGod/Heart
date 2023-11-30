@@ -13,12 +13,12 @@ namespace Heart
         enum class Type
         {
             None = 0,
-            Texture, Shader, Mesh, Material, Scene, Font
+            Texture, Shader, Mesh, Material, Scene, Font, Splat
         };
 
         /*! @brief Debug strings for each asset type. */
         inline static const char* TypeStrings[] = {
-            "None", "Texture", "Shader", "Mesh", "Material", "Scene", "Font"
+            "None", "Texture", "Shader", "Mesh", "Material", "Scene", "Font", "Splat"
         };
 
     public:

@@ -331,6 +331,8 @@ namespace Heart
             type = Asset::Type::Scene;
         else if (extension == ".ttf" || extension == ".otf")
             type = Asset::Type::Font;
+        else if (extension == ".splat")
+            type = Asset::Type::Splat;
 
         return type;
     }
