@@ -26,7 +26,7 @@ namespace Heart
             if (!data)
                 throw std::exception();
 
-            HE_LOG_WARN("%d %d %d %d", data[0], data[1], data[2], data[3]);
+
         }
         catch (std::exception e)
         {
