@@ -136,11 +136,16 @@ namespace Heart
             pbrCompositeName = pbrComposite->GetName();
         }
 
+        RenderPlugins::SplatCreateInfo splatCreateInfo;
+        splatCreateInfo.FrameDataPluginName = frameData->GetName();
+        auto splat = RegisterPlugin<RenderPlugins::Splat>("Splat", splatCreateInfo);
+        splat->AddDependency(pbrCompositeName, GraphDependencyType::GPU);
+
         RenderPlugins::InfiniteGridCreateInfo gridCreateInfo;
         gridCreateInfo.FrameDataPluginName = frameData->GetName();
         gridCreateInfo.GBufferPluginName = gBuffer->GetName();
         auto grid = RegisterPlugin<RenderPlugins::InfiniteGrid>("Grid", gridCreateInfo);
-        grid->AddDependency(pbrCompositeName, GraphDependencyType::GPU);
+        grid->AddDependency(splat->GetName(), GraphDependencyType::GPU);
         grid->AddInitDependency(gBuffer->GetName());
 
         RenderPlugins::BloomCreateInfo BloomCreateInfo;
