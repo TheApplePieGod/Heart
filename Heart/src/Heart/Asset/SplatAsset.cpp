@@ -6,7 +6,6 @@
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/MaterialAsset.h"
 #include "Heart/Asset/TextureAsset.h"
-#include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtx/quaternion.hpp"
 #include "glm/gtc/type_ptr.hpp"
@@ -54,8 +53,8 @@ namespace Heart
         u32 vertexLength = 3 * 4 + 3 * 4 + 4 + 4;
         u32 vertexCount = length / vertexLength;
 
-        HVector<glm::mat4> transforms;
-        HVector<glm::vec4> colors;
+        SplatData splatData;
+        HVector<SplatData> splatDatas;
         float* floatData = (float*)data;
         for (u32 i = 0; i < vertexCount; i++)
         {
@@ -66,32 +65,36 @@ namespace Heart
                 floatData[8 * i + 3 + 1],
                 floatData[8 * i + 3 + 2],
             };
+            glm::mat4 scaleMat = glm::scale(glm::mat4(1.f), scale);
 
-            glm::vec3 vertPos = {
+            glm::vec4 pos = {
                 floatData[8 * i + 0],
                 floatData[8 * i + 1],
-                floatData[8 * i + 2]
+                floatData[8 * i + 2],
+                1.f
             };
 
             glm::quat quat = {
-                (data[32 * i + 28 + 0] - 128) / 128.f,
-                (data[32 * i + 28 + 1] - 128) / 128.f,
-                (data[32 * i + 28 + 2] - 128) / 128.f,
-                (data[32 * i + 28 + 3] - 128) / 128.f,
+                ((float)data[32 * i + 28 + 0] - 128.f) / 128.f,
+                ((float)data[32 * i + 28 + 1] - 128.f) / 128.f,
+                ((float)data[32 * i + 28 + 2] - 128.f) / 128.f,
+                ((float)data[32 * i + 28 + 3] - 128.f) / 128.f,
             };
+            glm::mat4 rotMat = glm::toMat4(quat);
 
-			transforms.AddInPlace(
-                glm::translate(glm::mat4(1.0f), vertPos)
-                    * glm::scale(glm::mat4(1.0f), scale)
-                    * glm::toMat4(quat)
-            );
-
-            colors.AddInPlace(
+            splatData.Position = pos;
+            splatData.Color = {
                 data[32 * i + 24 + 0] / 255.f,
                 data[32 * i + 24 + 1] / 255.f,
                 data[32 * i + 24 + 2] / 255.f,
                 data[32 * i + 24 + 3] / 255.f
-            );
+            };
+            // TODO: this is symmetric, so we can save on storage space
+            splatData.Sigma = {
+                rotMat * scaleMat * glm::transpose(scaleMat) * glm::transpose(rotMat)
+            };
+
+            splatDatas.AddInPlace(splatData);
 
             /*
             HE_LOG_WARN(
@@ -110,23 +113,17 @@ namespace Heart
             );
             */
 
-            //if (i > 1500000)
+            //if (i > 500000)
             //    break;
         }
 
         Flourish::BufferCreateInfo bufCreateInfo;
         bufCreateInfo.Type = Flourish::BufferType::Storage;
         bufCreateInfo.Usage = Flourish::BufferUsageType::Static;
-        bufCreateInfo.Stride = sizeof(glm::mat4);
-        bufCreateInfo.ElementCount = transforms.Count();
-        bufCreateInfo.InitialData = transforms.Data();
-        bufCreateInfo.InitialDataSize = sizeof(glm::mat4) * transforms.Count();
-        m_TransformBuffer = Flourish::Buffer::Create(bufCreateInfo);
-
-        bufCreateInfo.Stride = sizeof(glm::vec4);
-        bufCreateInfo.ElementCount = colors.Count();
-        bufCreateInfo.InitialData = colors.Data();
-        bufCreateInfo.InitialDataSize = sizeof(glm::vec4) * colors.Count();
-        m_ColorBuffer = Flourish::Buffer::Create(bufCreateInfo);
+        bufCreateInfo.Stride = sizeof(SplatData);
+        bufCreateInfo.ElementCount = splatDatas.Count();
+        bufCreateInfo.InitialData = splatDatas.Data();
+        bufCreateInfo.InitialDataSize = sizeof(SplatData) * splatDatas.Count();
+        m_DataBuffer = Flourish::Buffer::Create(bufCreateInfo);
     }
 }

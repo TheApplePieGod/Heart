@@ -118,10 +118,9 @@ namespace Heart::RenderPlugins
             if (!splatAsset || !splatAsset->Load(!data.Settings.AsyncAssetLoading)->IsValid())
                 continue;
 
-            u32 splatCount = splatAsset->GetTransformBuffer()->GetAllocatedCount();
+            u32 splatCount = splatAsset->GetDataBuffer()->GetAllocatedCount();
             m_ResourceSet->BindBuffer(0, frameDataBuffer, 0, 1);
-            m_ResourceSet->BindBuffer(1, splatAsset->GetTransformBuffer(), 0, splatCount);
-            m_ResourceSet->BindBuffer(2, splatAsset->GetColorBuffer(), 0, splatCount);
+            m_ResourceSet->BindBuffer(1, splatAsset->GetDataBuffer(), 0, splatCount);
             m_ResourceSet->FlushBindings();
 
             encoder->PushConstants(0, sizeof(glm::mat4), &transformData.Transform);
