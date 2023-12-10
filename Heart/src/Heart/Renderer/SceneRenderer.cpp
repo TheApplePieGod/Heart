@@ -192,7 +192,14 @@ namespace Heart
         if (m_ShouldResize)
         {
             m_ShouldResize = false;
+            m_ShouldRebuild = false; // Resizing also rebuilds
             Resize();
+        }
+
+        if (m_ShouldRebuild)
+        {
+            m_ShouldRebuild = false;
+            RebuildGraph();
         }
 
         TaskGroup group;

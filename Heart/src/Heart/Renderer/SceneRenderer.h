@@ -56,7 +56,6 @@ namespace Heart
 
         void OnEvent(Event& event) override;
 
-        void RebuildGraph();
         TaskGroup Render(const SceneRenderData& data);
 
         GraphData& GetGraphData(GraphDependencyType depType);
@@ -80,6 +79,8 @@ namespace Heart
             return static_cast<Plugin*>(m_Plugins[name].get());
         }
 
+        inline void QueueGraphRebuild() { m_ShouldRebuild = true; }
+
         inline const auto& GetPlugins() const { return m_Plugins; }
         inline u32 GetRenderWidth() const { return m_RenderWidth; }
         inline u32 GetRenderHeight() const { return m_RenderHeight; }
@@ -95,12 +96,14 @@ namespace Heart
         void CreateTextures();
         void CreateDefaultResources();
         void Resize();
+        void RebuildGraph();
         void RebuildGraphInternal(GraphDependencyType depType);
 
     private:
         std::unordered_map<HString8, Ref<RenderPlugin>> m_Plugins;
         u32 m_RenderWidth, m_RenderHeight;
         bool m_ShouldResize = false;
+        bool m_ShouldRebuild = false;
         GraphData m_CPUGraphData;
         GraphData m_GPUGraphData;
 

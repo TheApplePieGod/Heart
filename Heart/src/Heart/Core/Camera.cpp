@@ -23,7 +23,8 @@ namespace Heart
             {
                 f32 n = m_NearClip;
                 f32 f = m_FarClip;
-                f32 fl = 1.f / tan(glm::radians(m_FOV) * 0.5f);
+                f32 tanFov = tan(glm::radians(m_FOV) * 0.5f);
+                f32 fl = 1.f / tanFov;
                 f32 a = m_AspectRatio;
 
                 if (Flourish::Context::ReversedZBuffer())

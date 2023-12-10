@@ -1,0 +1,66 @@
+#version 460
+
+layout (local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+#define FRAME_BUFFER_BINDING 0
+#define FRAME_BUFFER_SET 0
+#include "../frame_data/FrameBuffer.glsl"
+
+#define OBJECT_BUFFER_BINDING 1
+#define OBJECT_BUFFER_SET 0
+#include "ObjectBuffer.glsl"
+
+layout (std430, set = 0, binding = 2) buffer IndexBuffer {
+    uint data[];
+} indexBuffer;
+
+layout (std430, set = 0, binding = 3) buffer KeyBuffer {
+    uint data[];
+} keyBuffer;
+
+layout (std140, set = 0, binding = 4) buffer BuildData {
+    uint keyCount;
+} buildData;
+
+layout(push_constant) uniform PushConstants
+{
+    mat4 model;
+    uint elementCount;
+} constants;
+
+// TODO: atomicadd for buffer write
+
+void main() {
+    uint idx = gl_GlobalInvocationID.x;
+    if (idx >= constants.elementCount)
+        return;
+
+    // Reset build data
+    if (idx == 0)
+        buildData.keyCount = 0;
+
+    barrier();
+
+    // Compute clip space position
+    vec4 position = GET_OBJECT(idx).position;
+    vec4 fragPos = frameBuffer.data.proj
+        * frameBuffer.data.view
+        * constants.model
+        * position;
+
+    // Cull out of bounds/behind the camera
+    /*
+    float clip = 1.2 * fragPos.w;
+    if (fragPos.z < -clip || fragPos.x < -clip || fragPos.x > clip || fragPos.y < -clip || fragPos.y > clip)
+        return;
+    */
+
+    // Map depth to a 16-bit integer
+    float depth = (fragPos.z / fragPos.w);
+    uint key = uint(depth * 0xFFFFFFFF);
+
+    // Store depth in the key buffer
+    uint offset = atomicAdd(buildData.keyCount, 1);
+    keyBuffer.data[idx] = key;
+    indexBuffer.data[idx] = idx;
+}

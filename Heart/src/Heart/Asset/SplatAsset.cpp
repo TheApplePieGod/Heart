@@ -113,8 +113,10 @@ namespace Heart
             );
             */
 
-            //if (i > 500000)
-            //    break;
+            /*
+            if (i > 500000)
+                break;
+            */
         }
 
         Flourish::BufferCreateInfo bufCreateInfo;

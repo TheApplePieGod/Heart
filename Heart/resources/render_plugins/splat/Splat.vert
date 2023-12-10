@@ -7,19 +7,17 @@
 #define FRAME_BUFFER_SET 0
 #include "../frame_data/FrameBuffer.glsl"
 
-struct ObjectData {
-    mat4 sigma;
-    vec4 position;
-    vec4 color;
-};
+#define OBJECT_BUFFER_BINDING 1
+#define OBJECT_BUFFER_SET 0
+#include "ObjectBuffer.glsl"
 
-layout(
-    std430,
-    binding = 1,
-    set = 0
-) readonly buffer ObjectBuffer {
-    ObjectData data[];
-} objectBuffer;
+layout (std430, set = 0, binding = 2) buffer IndexBuffer {
+    uint data[];
+} indexBuffer;
+
+layout (std140, set = 0, binding = 3) buffer BuildData {
+    uint keyCount;
+} buildData;
 
 layout(push_constant) uniform PushConstants
 {
@@ -31,8 +29,8 @@ layout(location = 1) out vec4 outColor;
 
 // https://www.cs.umd.edu/~zwicker/publications/EWASplatting-TVCG02.pdf
 void main() {
-    int objectId = gl_InstanceIndex;
-    ObjectData objectData = objectBuffer.data[objectId];
+    uint objectId = indexBuffer.data[buildData.keyCount - 1 - gl_InstanceIndex];
+    ObjectData objectData = GET_OBJECT(objectId);
 
     vec4 worldPos = constants.model * objectData.position;
     vec4 viewPos = frameBuffer.data.view * worldPos;
@@ -50,7 +48,7 @@ void main() {
     mat3 sigma = mat3(objectData.sigma);
 
     // Compute J matrix (34)
-    vec2 focalLen = -frameBuffer.data.proj[1][1] * frameBuffer.data.screenSize * 2.f;
+    vec2 focalLen = frameBuffer.data.screenSize;
     mat3 J = mat3(
         focalLen.x / viewPos.z, 0.f, -focalLen.x * viewPos.x / z2,
         0.f, -focalLen.y / viewPos.z, focalLen.y * viewPos.y / z2,
@@ -58,8 +56,8 @@ void main() {
     );
 
     // Compute the 2d screen space covariance matrix
-    mat3 WJ = transpose(mat3(frameBuffer.data.view)) * J;
-    mat3 camCov = transpose(WJ) * sigma * WJ;
+    mat3 JW = J * transpose(mat3(frameBuffer.data.view));
+    mat3 camCov = JW * sigma * transpose(JW);
     vec3 cov2d = vec3(camCov[0][0], camCov[0][1], camCov[1][1]);
     
     // Compute the eigenvalues of cov2d in order to determine the extent of the gaussian
@@ -72,8 +70,8 @@ void main() {
     vec2 eigenvec2 = vec2(eigenvec1.y, -eigenvec1.x);
     
     // Define the axes that span the final plane
-    vec2 axis1 = min(sqrt(2 * lambda.x), 1024) * eigenvec1;
-    vec2 axis2 = min(sqrt(2 * lambda.y), 1024) * eigenvec2;
+    vec2 axis1 = min(sqrt(2 * lambda.x), 2048) * eigenvec1;
+    vec2 axis2 = min(sqrt(2 * lambda.y), 2048) * eigenvec2;
 
     // Compute final position
     vec2 scaledPosition = inPosition.xy * 4.f;
@@ -85,5 +83,5 @@ void main() {
     );
 
     outLocalPos = scaledPosition;
-    outColor = objectData.color;
+    outColor = clamp(fragPos.z / fragPos.w + 1.0, 0.0, 1.0) * objectData.color;
 }
