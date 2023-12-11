@@ -29,13 +29,16 @@ layout (std430, set = 0, binding = 2) buffer KeyBuffer {
     uint data[];
 } keyBuffer;
 
-layout (std140, set = 0, binding = 3) buffer BuildData {
-    uint keyCount;
-} buildData;
+layout (std430, set = 0, binding = 3) buffer IndirectBuffer {
+    uint indexCount;
+    uint instanceCount;
+    uint firstIndex;
+} indirectBuffer;
 
 shared uint[RADIX_SORT_BINS] histogram;
 
 void main() {
+    uint elemCount = indirectBuffer.instanceCount;
     uint gID = gl_GlobalInvocationID.x;
     uint lID = gl_LocalInvocationID.x;
     uint wID = gl_WorkGroupID.x;
@@ -48,7 +51,7 @@ void main() {
 
     for (uint index = 0; index < g_num_blocks_per_workgroup; index++) {
         uint elementId = wID * g_num_blocks_per_workgroup * WORKGROUP_SIZE + index * WORKGROUP_SIZE + lID;
-        if (elementId < buildData.keyCount) {
+        if (elementId < elemCount) {
             // determine the bin
             const uint element_in_idx = g_elements_in[elementId];
             const uint element_in_value = keyBuffer.data[element_in_idx];

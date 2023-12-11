@@ -18,9 +18,11 @@ layout (std430, set = 0, binding = 3) buffer KeyBuffer {
     uint data[];
 } keyBuffer;
 
-layout (std140, set = 0, binding = 4) buffer BuildData {
-    uint keyCount;
-} buildData;
+layout (std430, set = 0, binding = 4) buffer IndirectBuffer {
+    uint indexCount;
+    uint instanceCount;
+    uint firstIndex;
+} indirectBuffer;
 
 layout(push_constant) uniform PushConstants
 {
@@ -35,9 +37,13 @@ void main() {
     if (idx >= constants.elementCount)
         return;
 
-    // Reset build data
+    // Reset indirect data
     if (idx == 0)
-        buildData.keyCount = 0;
+    {
+        indirectBuffer.indexCount = 6;
+        indirectBuffer.firstIndex = 12; // Since we are using the default cube mesh for now
+        indirectBuffer.instanceCount = 0;
+    }
 
     barrier();
 
@@ -48,18 +54,16 @@ void main() {
         * position;
 
     // Cull out of bounds/behind the camera
-    /*
     float clip = 1.2 * fragPos.w;
     if (fragPos.z < -clip || fragPos.x < -clip || fragPos.x > clip || fragPos.y < -clip || fragPos.y > clip)
         return;
-    */
 
     // Map depth to a 16-bit integer
     float depth = fragPos.z / fragPos.w;
-    uint key = uint(depth * 0xFFFF);
+    uint key = uint(depth * 0xFFFFFF);
 
     // Store depth in the key buffer
-    uint offset = atomicAdd(buildData.keyCount, 1);
+    uint offset = atomicAdd(indirectBuffer.instanceCount, 1);
     keyBuffer.data[idx] = key;
     //indexBuffer.data[idx] = idx;
     indexBuffer.data[offset] = idx;

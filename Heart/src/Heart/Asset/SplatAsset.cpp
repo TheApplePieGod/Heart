@@ -89,9 +89,16 @@ namespace Heart
                 data[32 * i + 24 + 2] / 255.f,
                 data[32 * i + 24 + 3] / 255.f
             };
-            // TODO: this is symmetric, so we can save on storage space
             glm::mat4 M = rotMat * scaleMat;
-            splatData.Sigma = M * glm::transpose(M);
+            glm::mat4 sigma = M * glm::transpose(M);
+
+            // Pack sigma since the matrix is symmetric
+            splatData.PackedSigma = {
+                PackFloats(sigma[0][0], sigma[0][1]),
+                PackFloats(sigma[0][2], sigma[1][1]),
+                PackFloats(sigma[1][2], sigma[2][2]),
+                0
+            };
 
             splatDatas.AddInPlace(splatData);
 
@@ -126,5 +133,23 @@ namespace Heart
         bufCreateInfo.InitialData = splatDatas.Data();
         bufCreateInfo.InitialDataSize = sizeof(SplatData) * splatDatas.Count();
         m_DataBuffer = Flourish::Buffer::Create(bufCreateInfo);
+    }
+
+    u32 SplatAsset::PackFloats(float a, float b)
+    {
+        return ((u32)FloatToHalf(b) << 16) | (u32)FloatToHalf(a);
+    }
+
+    u16 SplatAsset::FloatToHalf(float a)
+    {
+        // https://stackoverflow.com/questions/1659440/32-bit-to-16-bit-floating-point-conversion
+        uint casted = *(uint*)&a;
+        const uint b = casted + 0x00001000;
+        const uint e = (b & 0x7F800000) >> 23;
+        const uint m = b & 0x007FFFFF;
+        return (b & 0x80000000) >> 16 |
+               (e > 112) * ((((e - 112) << 10) & 0x7C00) | m >> 13) |
+               ((e < 113) & (e > 101)) * ((((0x007FF000 + m) >> (125 - e)) + 1) >> 1) |
+               (e > 143) * 0x7FFF;
     }
 }

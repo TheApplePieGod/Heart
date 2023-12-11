@@ -39,9 +39,11 @@ layout (std430, set = 1, binding = 3) buffer KeyBuffer {
     uint data[];
 } keyBuffer;
 
-layout (std140, set = 1, binding = 4) buffer BuildData {
-    uint keyCount;
-} buildData;
+layout (std430, set = 1, binding = 4) buffer IndirectBuffer {
+    uint indexCount;
+    uint instanceCount;
+    uint firstIndex;
+} indirectBuffer;
 
 shared uint[RADIX_SORT_BINS / SUBGROUP_SIZE] sums;// subgroup reductions
 shared uint[RADIX_SORT_BINS] global_offsets;// global exclusive scan (prefix sum)
@@ -52,7 +54,7 @@ struct BinFlags {
 shared BinFlags[RADIX_SORT_BINS] bin_flags;
 
 void main() {
-    uint elemCount = buildData.keyCount;
+    uint elemCount = indirectBuffer.instanceCount;
     uint gID = gl_GlobalInvocationID.x;
     uint lID = gl_LocalInvocationID.x;
     uint wID = gl_WorkGroupID.x;

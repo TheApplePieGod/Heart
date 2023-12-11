@@ -2,6 +2,7 @@
 #include "Splat.h"
 
 #include "Heart/Renderer/Plugins/FrameData.h"
+#include "Heart/Renderer/Plugins/ComputeMeshBatches.h"
 #include "Heart/Renderer/SceneRenderer.h"
 #include "Heart/Renderer/Mesh.h"
 #include "Heart/Core/Timing.h"
@@ -59,10 +60,8 @@ namespace Heart::RenderPlugins
         pipelineCreateInfo.VertexInput = true;
         pipelineCreateInfo.BlendStates = {
             { true, Flourish::BlendFactor::SrcAlpha, Flourish::BlendFactor::OneMinusSrcAlpha, Flourish::BlendFactor::SrcAlpha, Flourish::BlendFactor::OneMinusSrcAlpha }
-            //{ true, Flourish::BlendFactor::OneMinusDstAlpha, Flourish::BlendFactor::One, Flourish::BlendFactor::OneMinusDstAlpha, Flourish::BlendFactor::One }
-            //{ true }
         };
-        pipelineCreateInfo.DepthConfig.DepthTest = false;
+        pipelineCreateInfo.DepthConfig.DepthTest = true;
         pipelineCreateInfo.DepthConfig.DepthWrite = true;
         pipelineCreateInfo.CullMode = Flourish::CullMode::None;
         pipelineCreateInfo.WindingOrder = Flourish::WindingOrder::Clockwise;
@@ -81,12 +80,15 @@ namespace Heart::RenderPlugins
         m_KeyBuffer = Flourish::Buffer::Create(bufCreateInfo);
         bufCreateInfo.Type = Flourish::BufferType::Pixel;
         m_CPUBuffer = Flourish::Buffer::Create(bufCreateInfo);
+
         bufCreateInfo.Type = Flourish::BufferType::Storage;
         bufCreateInfo.ElementCount = maxWorkgroups * m_BinCount;
         m_HistogramBuffer = Flourish::Buffer::Create(bufCreateInfo);
-        bufCreateInfo.Stride = sizeof(u32);
+
+        bufCreateInfo.Type = Flourish::BufferType::Indirect;
+        bufCreateInfo.Stride = sizeof(ComputeMeshBatches::IndexedIndirectCommand);
         bufCreateInfo.ElementCount = 1;
-        m_BuildDataBuffer = Flourish::Buffer::Create(bufCreateInfo);
+        m_IndirectBuffer = Flourish::Buffer::Create(bufCreateInfo);
 
         Flourish::ComputePipelineCreateInfo compCreateInfo;
         compCreateInfo.Shader = { radixShader->EnsureValid<ShaderAsset>()->GetShader() };
@@ -137,7 +139,7 @@ namespace Heart::RenderPlugins
                 .AddEncoderNode(Flourish::GPUWorkloadType::Compute)
                 .EncoderAddBufferWrite(m_SortedKeysBuffers[0].get())
                 .EncoderAddBufferWrite(m_KeyBuffer.get())
-                .EncoderAddBufferWrite(m_BuildDataBuffer.get());
+                .EncoderAddBufferWrite(m_IndirectBuffer.get());
 
             // Radix sort
             for (u32 i = 0; i < 4; i++)
@@ -147,18 +149,19 @@ namespace Heart::RenderPlugins
                     .EncoderAddBufferRead(m_SortedKeysBuffers[i % 2].get())
                     .EncoderAddBufferWrite(m_HistogramBuffer.get())
                     .EncoderAddBufferRead(m_KeyBuffer.get())
-                    .EncoderAddBufferRead(m_BuildDataBuffer.get())
+                    .EncoderAddBufferRead(m_IndirectBuffer.get())
                     .AddEncoderNode(Flourish::GPUWorkloadType::Compute)
                     .EncoderAddBufferRead(m_HistogramBuffer.get())
                     .EncoderAddBufferRead(m_SortedKeysBuffers[i % 2].get())
                     .EncoderAddBufferWrite(m_SortedKeysBuffers[1 - i % 2].get())
                     .EncoderAddBufferRead(m_KeyBuffer.get())
-                    .EncoderAddBufferRead(m_BuildDataBuffer.get());
+                    .EncoderAddBufferRead(m_IndirectBuffer.get());
             }
 
             m_GPUGraphNodeBuilder
                 .AddEncoderNode(Flourish::GPUWorkloadType::Graphics)
                 .EncoderAddBufferRead(m_SortedKeysBuffers[0].get())
+                .EncoderAddBufferRead(m_IndirectBuffer.get())
                 .EncoderAddFramebuffer(m_Framebuffer.get());
         }
 
@@ -216,7 +219,7 @@ namespace Heart::RenderPlugins
             m_KeysResourceSet->BindBuffer(1, splatAsset->GetDataBuffer(), 0, splatCount);
             m_KeysResourceSet->BindBuffer(2, m_SortedKeysBuffers[0].get(), 0, m_SortedKeysBuffers[0]->GetAllocatedCount());
             m_KeysResourceSet->BindBuffer(3, m_KeyBuffer.get(), 0, m_KeyBuffer->GetAllocatedCount());
-            m_KeysResourceSet->BindBuffer(4, m_BuildDataBuffer.get(), 0, 1);
+            m_KeysResourceSet->BindBuffer(4, m_IndirectBuffer.get(), 0, 1);
             m_KeysResourceSet->FlushBindings();
             auto compEncoder = m_CommandBuffer->EncodeComputeCommands();
             compEncoder->BindComputePipeline(m_KeysPipeline.get());
@@ -240,7 +243,7 @@ namespace Heart::RenderPlugins
                     1, m_HistogramBuffer.get(), 0, m_HistogramBuffer->GetAllocatedCount()
                 );
                 m_HistorgramResourceSet->BindBuffer(2, m_KeyBuffer.get(), 0, m_KeyBuffer->GetAllocatedCount());
-                m_HistorgramResourceSet->BindBuffer(3, m_BuildDataBuffer.get(), 0, 1);
+                m_HistorgramResourceSet->BindBuffer(3, m_IndirectBuffer.get(), 0, 1);
                 m_HistorgramResourceSet->FlushBindings();
                 auto compEncoder = m_CommandBuffer->EncodeComputeCommands();
                 compEncoder->BindComputePipeline(m_HistogramPipeline.get());
@@ -260,7 +263,7 @@ namespace Heart::RenderPlugins
                     2, m_HistogramBuffer.get(), 0, m_HistogramBuffer->GetAllocatedCount()
                 );
                 m_RadixResourceSet->BindBuffer(3, m_KeyBuffer.get(), 0, m_KeyBuffer->GetAllocatedCount());
-                m_RadixResourceSet->BindBuffer(4, m_BuildDataBuffer.get(), 0, 1);
+                m_RadixResourceSet->BindBuffer(4, m_IndirectBuffer.get(), 0, 1);
                 m_RadixResourceSet->FlushBindings();
                 compEncoder = m_CommandBuffer->EncodeComputeCommands();
                 compEncoder->BindComputePipeline(m_RadixPipeline.get());
@@ -276,7 +279,6 @@ namespace Heart::RenderPlugins
             m_ResourceSet->BindBuffer(
                 2, m_SortedKeysBuffers[0].get(), 0, m_SortedKeysBuffers[0]->GetAllocatedCount()
             );
-            m_ResourceSet->BindBuffer(3, m_BuildDataBuffer.get(), 0, 1);
             m_ResourceSet->FlushBindings();
 
             auto encoder = m_CommandBuffer->EncodeRenderCommands(m_Framebuffer.get());
@@ -286,11 +288,9 @@ namespace Heart::RenderPlugins
             encoder->BindVertexBuffer(meshData.GetVertexBuffer());
             encoder->BindIndexBuffer(meshData.GetIndexBuffer());
 
-            encoder->PushConstants(0, sizeof(glm::mat4), &transformData.Transform);
-            encoder->DrawIndexed(
-                6, // Render once face
-                12, 0, splatCount, 0
-            );
+            glm::mat4 MV = data.Camera->GetViewMatrix() * transformData.Transform;
+            encoder->PushConstants(0, sizeof(glm::mat4), &MV);
+            encoder->DrawIndexedIndirect(m_IndirectBuffer.get(), 0, 1);
             encoder->EndEncoding();
 
             totalSplatCount += splatCount;

@@ -72,6 +72,6 @@ namespace Heart::RenderPlugins
         Ref<Flourish::Buffer> m_HistogramBuffer;
         Ref<Flourish::Buffer> m_KeyBuffer;
         Ref<Flourish::Buffer> m_CPUBuffer;
-        Ref<Flourish::Buffer> m_BuildDataBuffer;
+        Ref<Flourish::Buffer> m_IndirectBuffer;
     };
 }

@@ -2,7 +2,7 @@
 #define OBJECT_BUFFER
 
 struct ObjectData {
-    mat4 sigma;
+    uvec4 sigma;
     vec4 position;
     vec4 color;
 };

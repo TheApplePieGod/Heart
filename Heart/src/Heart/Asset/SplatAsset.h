@@ -23,13 +23,15 @@ namespace Heart
     private:
         struct SplatData
         {
-            glm::mat4 Sigma;
+            glm::uvec4 PackedSigma;
             glm::vec4 Position;
             glm::vec4 Color;
         };
 
     private:
         void ParseSplat(unsigned char* data, u32 length);
+        u32 PackFloats(float a, float b);
+        u16 FloatToHalf(float a);
 
     private:
         Ref<Flourish::Buffer> m_DataBuffer;
