@@ -90,9 +90,8 @@ namespace Heart
                 data[32 * i + 24 + 3] / 255.f
             };
             // TODO: this is symmetric, so we can save on storage space
-            splatData.Sigma = {
-                rotMat * scaleMat * glm::transpose(scaleMat) * glm::transpose(rotMat)
-            };
+            glm::mat4 M = rotMat * scaleMat;
+            splatData.Sigma = M * glm::transpose(M);
 
             splatDatas.AddInPlace(splatData);
 
@@ -114,9 +113,9 @@ namespace Heart
             */
 
             /*
-            if (i > 500000)
+            if (i > 50000)
                 break;
-            */
+                */
         }
 
         Flourish::BufferCreateInfo bufCreateInfo;

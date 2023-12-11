@@ -24,6 +24,7 @@ namespace Heart
         float BloomKnee = 0.1f;
         float BloomSampleScale = 1.f;
         float BloomStrength = 0.3f;
+        bool TonemapEnable = true;
         bool CullEnable = true;
         bool AsyncAssetLoading = true;
         bool CopyEntityIdsTextureToCPU = false;

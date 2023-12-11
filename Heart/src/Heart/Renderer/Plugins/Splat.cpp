@@ -58,9 +58,11 @@ namespace Heart::RenderPlugins
         pipelineCreateInfo.VertexLayout = Mesh::GetVertexLayout();
         pipelineCreateInfo.VertexInput = true;
         pipelineCreateInfo.BlendStates = {
-            { true, Flourish::BlendFactor::OneMinusDstAlpha, Flourish::BlendFactor::One, Flourish::BlendFactor::OneMinusDstAlpha, Flourish::BlendFactor::One }
+            { true, Flourish::BlendFactor::SrcAlpha, Flourish::BlendFactor::OneMinusSrcAlpha, Flourish::BlendFactor::SrcAlpha, Flourish::BlendFactor::OneMinusSrcAlpha }
+            //{ true, Flourish::BlendFactor::OneMinusDstAlpha, Flourish::BlendFactor::One, Flourish::BlendFactor::OneMinusDstAlpha, Flourish::BlendFactor::One }
+            //{ true }
         };
-        pipelineCreateInfo.DepthConfig.DepthTest = true;
+        pipelineCreateInfo.DepthConfig.DepthTest = false;
         pipelineCreateInfo.DepthConfig.DepthWrite = true;
         pipelineCreateInfo.CullMode = Flourish::CullMode::None;
         pipelineCreateInfo.WindingOrder = Flourish::WindingOrder::Clockwise;
@@ -160,10 +162,15 @@ namespace Heart::RenderPlugins
                 .EncoderAddFramebuffer(m_Framebuffer.get());
         }
 
+        /*
         m_GPUGraphNodeBuilder
             .AddEncoderNode(Flourish::GPUWorkloadType::Transfer)
             .EncoderAddBufferRead(m_SortedKeysBuffers[0].get())
-            .EncoderAddBufferWrite(m_CPUBuffer.get());
+            .EncoderAddBufferRead(m_KeyBuffer.get())
+            .EncoderAddBufferWrite(m_CPUBuffer.get())
+            .AddEncoderNode(Flourish::GPUWorkloadType::Transfer)
+            .EncoderAddBufferRead(m_CPUBuffer.get());
+        */
     }
 
     void Splat::RenderInternal(const SceneRenderData& data)
@@ -289,25 +296,42 @@ namespace Heart::RenderPlugins
             totalSplatCount += splatCount;
         }
 
+        /*
         auto tEncoder = m_CommandBuffer->EncodeTransferCommands();
         tEncoder->CopyBufferToBuffer(
             m_SortedKeysBuffers[0].get(),
             m_CPUBuffer.get(),
-            0, 0, 50
+            0, 0, 50 * sizeof(u32)
         );
+        tEncoder->CopyBufferToBuffer(
+            m_KeyBuffer.get(),
+            m_CPUBuffer.get(),
+            0, 50 * sizeof(u32), 50 * sizeof(u32)
+        );
+        tEncoder->EndEncoding();
+
+        tEncoder = m_CommandBuffer->EncodeTransferCommands();
         tEncoder->FlushBuffer(m_CPUBuffer.get());
         tEncoder->EndEncoding();
 
-        u32 elems[50];
-        m_CPUBuffer->ReadBytes(elems, sizeof(elems), 0);
+        u32 indices[50];
+        u32 keys[50];
+        m_CPUBuffer->ReadBytes(indices, sizeof(indices), 0);
+        m_CPUBuffer->ReadBytes(keys, sizeof(keys), sizeof(indices));
         HE_LOG_WARN(
             "{0}, {1}, {2}, {3}, {4}",
-            elems[0],
-            elems[1],
-            elems[2],
-            elems[3],
-            elems[4]
+            keys[0],
+            keys[1],
+            keys[2],
+            keys[3],
+            keys[4]
+            keys[indices[0]],
+            keys[indices[1]],
+            keys[indices[2]],
+            keys[indices[3]],
+            keys[indices[4]]
         );
+        */
 
         if (totalSplatInstances > m_LastSplatCount)
         {

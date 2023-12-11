@@ -43,8 +43,7 @@ void main() {
 
     // Compute clip space position
     vec4 position = GET_OBJECT(idx).position;
-    vec4 fragPos = frameBuffer.data.proj
-        * frameBuffer.data.view
+    vec4 fragPos = frameBuffer.data.proj * frameBuffer.data.view
         * constants.model
         * position;
 
@@ -56,11 +55,12 @@ void main() {
     */
 
     // Map depth to a 16-bit integer
-    float depth = (fragPos.z / fragPos.w);
-    uint key = uint(depth * 0xFFFFFFFF);
+    float depth = fragPos.z / fragPos.w;
+    uint key = uint(depth * 0xFFFF);
 
     // Store depth in the key buffer
     uint offset = atomicAdd(buildData.keyCount, 1);
     keyBuffer.data[idx] = key;
     indexBuffer.data[idx] = idx;
+    //indexBuffer.data[offset] = idx;
 }

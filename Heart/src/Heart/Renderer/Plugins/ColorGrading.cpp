@@ -91,6 +91,7 @@ namespace Heart::RenderPlugins
         encoder->BindPipeline("main");
         encoder->BindResourceSet(m_ResourceSet.get(), 0);
         encoder->FlushResourceSet(0);
+        encoder->PushConstants(0, sizeof(bool), &data.Settings.TonemapEnable);
 
         encoder->Draw(3, 0, 1, 0);
 
