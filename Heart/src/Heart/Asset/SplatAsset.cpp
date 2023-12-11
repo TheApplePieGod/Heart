@@ -143,10 +143,10 @@ namespace Heart
     u16 SplatAsset::FloatToHalf(float a)
     {
         // https://stackoverflow.com/questions/1659440/32-bit-to-16-bit-floating-point-conversion
-        uint casted = *(uint*)&a;
-        const uint b = casted + 0x00001000;
-        const uint e = (b & 0x7F800000) >> 23;
-        const uint m = b & 0x007FFFFF;
+        u32 casted = *(u32*)&a;
+        const u32 b = casted + 0x00001000;
+        const u32 e = (b & 0x7F800000) >> 23;
+        const u32 m = b & 0x007FFFFF;
         return (b & 0x80000000) >> 16 |
                (e > 112) * ((((e - 112) << 10) & 0x7C00) | m >> 13) |
                ((e < 113) & (e > 101)) * ((((0x007FF000 + m) >> (125 - e)) + 1) >> 1) |

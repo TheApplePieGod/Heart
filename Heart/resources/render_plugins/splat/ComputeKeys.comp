@@ -30,8 +30,6 @@ layout(push_constant) uniform PushConstants
     uint elementCount;
 } constants;
 
-// TODO: atomicadd for buffer write
-
 void main() {
     uint idx = gl_GlobalInvocationID.x;
     if (idx >= constants.elementCount)
@@ -58,7 +56,7 @@ void main() {
     if (fragPos.z < -clip || fragPos.x < -clip || fragPos.x > clip || fragPos.y < -clip || fragPos.y > clip)
         return;
 
-    // Map depth to a 16-bit integer
+    // Map depth to a 32-bit integer
     float depth = fragPos.z / fragPos.w;
     uint key = uint(depth * 0xFFFFFF);
 
