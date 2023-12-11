@@ -52,7 +52,7 @@ namespace Heart::RenderPlugins
         SplatCreateInfo m_Info;
 
         // Sort params
-        const u32 m_MaxSplats = 5000000;
+        const u32 m_MaxSplats = 10000000;
         const u32 m_NumBlocksPerWorkgroup = 500;
         const u32 m_WorkgroupSize = 256;
         const u32 m_BinCount = 256;

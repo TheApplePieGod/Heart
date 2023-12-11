@@ -61,6 +61,6 @@ void main() {
     // Store depth in the key buffer
     uint offset = atomicAdd(buildData.keyCount, 1);
     keyBuffer.data[idx] = key;
-    indexBuffer.data[idx] = idx;
-    //indexBuffer.data[offset] = idx;
+    //indexBuffer.data[idx] = idx;
+    indexBuffer.data[offset] = idx;
 }

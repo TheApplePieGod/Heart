@@ -55,58 +55,34 @@ void main() {
     //float focalLen = -500.f * frameBuffer.data.proj[1][1];
     mat3 J = mat3(
        focalLen.x / viewPos.z, 0.f, -focalLen.x * viewPos.x / z2,
-        0.f, focalLen.y / viewPos.z, -focalLen.y * viewPos.y / z2,
+        0.f, -focalLen.y / viewPos.z, focalLen.y * viewPos.y / z2,
         0.f, 0.f, 0.f
     );
 
     // Compute the 2d screen space covariance matrix
-    mat3 WJ = transpose(mat3(frameBuffer.data.view)) * J;
+    mat3 W = transpose(mat3(frameBuffer.data.view * constants.model));
+    mat3 WJ = W * J;
     mat3 camCov = transpose(WJ) * sigma * WJ;
     vec3 cov2d = vec3(camCov[0][0] + 0.3f, camCov[0][1], camCov[1][1] + 0.3f);
-    
-    float tanFov = -1.f / frameBuffer.data.proj[1][1];
-    vec2 wh = frameBuffer.data.screenSize;
-    vec2 quadwh_scr = vec2(3.f * sqrt(cov2d.x), 3.f * sqrt(cov2d.z));  // screen space half quad height and width
-    vec2 quadwh_ndc = quadwh_scr / wh;  // in ndc space
-
-    // Compute final position
-    vec2 scaledPosition = inPosition.xy * 2.f;
-    outLocalPos = scaledPosition * quadwh_scr;
-    gl_Position = vec4(
-        fragPos.xy + vec2(scaledPosition.x * quadwh_ndc.x / aspect, scaledPosition.y * quadwh_ndc.y),
-        fragPos.z, 1.f
-    );
-
-    /*
-    // Compute the eigenvalues of cov2d in order to determine the extent of the gaussian
-    float a = (cov2d.x + cov2d.z) * 0.5f;
-    float b = length(vec2((cov2d.x - cov2d.z) * 0.5f, cov2d.y));
-    vec2 lambda = vec2(a + b, a - b);
-    if (lambda.y < 0.f)
-        return;
-    vec2 eigenvec1 = normalize(vec2(cov2d.y, lambda.x - cov2d.x));
-    vec2 eigenvec2 = vec2(eigenvec1.y, -eigenvec1.x);
-    
-    // Define the axes that span the final plane
-    vec2 axis1 = min(sqrt(2 * lambda.x), 1024) * eigenvec1;
-    vec2 axis2 = min(sqrt(2 * lambda.y), 1024) * eigenvec2;
-
-    // Compute final position
-    vec2 scaledPosition = inPosition.xy * 2.f;
-    vec2 quadwh_scr = vec2(3.f * sqrt(cov2d.x), 3.f * sqrt(cov2d.z));  // screen space half quad height and width
-    outLocalPos = scaledPosition * quadwh_scr;
-    gl_Position = vec4(
-        fragPos.xy / fragPos.w // Pre-divide by homogenous coordinate for computation
-            + scaledPosition.x * axis1 / frameBuffer.data.screenSize / aspect // Coords are in [-1, 1] so this will extrude properly
-            + scaledPosition.y * axis2 / frameBuffer.data.screenSize,
-        fragPos.z, 1.f
-    );
-    */
 
     float det = (cov2d.x * cov2d.z - cov2d.y * cov2d.y);
 	if (det == 0.0f)
         return;
     
+    vec2 wh = frameBuffer.data.screenSize;
+    vec2 quadwh_scr = vec2(3.f * sqrt(cov2d.x), 3.f * sqrt(cov2d.z));  // screen space half quad height and width
+    vec2 quadwh_ndc = quadwh_scr / wh;  // in ndc space
+
+    // Purge extremely large points
+    if (abs(quadwh_ndc.x) > 2 || abs(quadwh_ndc.y) > 2)
+        return;
+
+    // Compute final position
+    vec2 scaledPosition = inPosition.xy * 2.f;
+    vec2 ndcAdd = vec2(scaledPosition.x * quadwh_ndc.x / aspect, scaledPosition.y * quadwh_ndc.y);
+    outLocalPos = scaledPosition * quadwh_scr;
+    gl_Position = vec4(fragPos.xy + ndcAdd, fragPos.z, 1.f);
+
     float det_inv = 1.f / det;
 	outConic = vec3(cov2d.z * det_inv, -cov2d.y * det_inv, cov2d.x * det_inv);
     outColor = objectData.color;
