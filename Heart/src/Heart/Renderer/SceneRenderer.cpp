@@ -143,10 +143,8 @@ namespace Heart
 
         RenderPlugins::InfiniteGridCreateInfo gridCreateInfo;
         gridCreateInfo.FrameDataPluginName = frameData->GetName();
-        gridCreateInfo.GBufferPluginName = gBuffer->GetName();
         auto grid = RegisterPlugin<RenderPlugins::InfiniteGrid>("Grid", gridCreateInfo);
         grid->AddDependency(splat->GetName(), GraphDependencyType::GPU);
-        grid->AddInitDependency(gBuffer->GetName());
 
         RenderPlugins::BloomCreateInfo BloomCreateInfo;
         auto bloom = RegisterPlugin<RenderPlugins::Bloom>("Bloom", BloomCreateInfo);

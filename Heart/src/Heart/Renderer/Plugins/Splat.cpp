@@ -78,8 +78,8 @@ namespace Heart::RenderPlugins
             m_SortedKeysBuffers[i] = Flourish::Buffer::Create(bufCreateInfo);
         bufCreateInfo.Usage = Flourish::BufferUsageType::Dynamic;
         m_KeyBuffer = Flourish::Buffer::Create(bufCreateInfo);
-        bufCreateInfo.Type = Flourish::BufferType::Pixel;
-        m_CPUBuffer = Flourish::Buffer::Create(bufCreateInfo);
+        //bufCreateInfo.Type = Flourish::BufferType::Pixel;
+        //m_CPUBuffer = Flourish::Buffer::Create(bufCreateInfo);
 
         bufCreateInfo.Type = Flourish::BufferType::Storage;
         bufCreateInfo.ElementCount = maxWorkgroups * m_BinCount;
@@ -124,7 +124,7 @@ namespace Heart::RenderPlugins
         fbCreateInfo.DepthAttachments.push_back({ m_Renderer->GetDepthTexture() });
         m_Framebuffer = Flourish::Framebuffer::Create(fbCreateInfo);
 
-        RebuildGraph(0);
+        RebuildGraph(m_LastSplatCount);
     }
 
     void Splat::RebuildGraph(u32 splatCount)
@@ -333,7 +333,24 @@ namespace Heart::RenderPlugins
         );
         */
 
-        if (totalSplatInstances > m_LastSplatCount)
+        for (u32 remaining = totalSplatInstances; remaining < m_LastSplatCount; remaining++)
+        {
+            auto compEncoder = m_CommandBuffer->EncodeComputeCommands();
+            compEncoder->EndEncoding();
+
+            for (u32 i = 0; i < 4; i++)
+            {
+                auto compEncoder = m_CommandBuffer->EncodeComputeCommands();
+                compEncoder->EndEncoding();
+                compEncoder = m_CommandBuffer->EncodeComputeCommands();
+                compEncoder->EndEncoding();
+            }
+
+            auto encoder = m_CommandBuffer->EncodeRenderCommands(m_Framebuffer.get());
+            encoder->EndEncoding();
+        }
+
+        if (totalSplatInstances != m_LastSplatCount)
         {
             RebuildGraph(totalSplatInstances);
             m_Renderer->QueueGraphRebuild();

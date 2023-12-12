@@ -8,7 +8,7 @@ layout(binding = 0) uniform sampler2D hdrTex;
 
 layout(push_constant) uniform PushConstants
 {
-    bool tonemapEnable;
+    uint tonemapEnable;
 } constants;
 
 // https://knarkowicz.wordpress.com/2016/01/06/aces-filmic-tone-mapping-curve/
@@ -27,7 +27,7 @@ void main()
 {
     vec3 finalColor = texture(hdrTex, texCoord).rgb;
 
-    if (constants.tonemapEnable) {
+    if (constants.tonemapEnable == 1) {
         // Tonemapping
         finalColor = ACESFilm(finalColor);
 

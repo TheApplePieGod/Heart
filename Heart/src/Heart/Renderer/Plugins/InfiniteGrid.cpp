@@ -2,7 +2,6 @@
 #include "InfiniteGrid.h"
 
 #include "Heart/Renderer/Plugins/FrameData.h"
-#include "Heart/Renderer/Plugins/GBuffer.h"
 #include "Heart/Renderer/SceneRenderer.h"
 #include "Heart/Renderer/Mesh.h"
 #include "Heart/Core/Timing.h"
@@ -73,8 +72,6 @@ namespace Heart::RenderPlugins
 
     void InfiniteGrid::ResizeInternal()
     {
-        auto gBufferPlugin = m_Renderer->GetPlugin<RenderPlugins::GBuffer>(m_Info.GBufferPluginName);
-
         Flourish::FramebufferCreateInfo fbCreateInfo;
         fbCreateInfo.RenderPass = m_RenderPass;
         fbCreateInfo.Width = m_Renderer->GetRenderWidth();

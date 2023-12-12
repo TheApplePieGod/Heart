@@ -53,13 +53,14 @@ namespace Heart
         u32 vertexLength = 3 * 4 + 3 * 4 + 4 + 4;
         u32 vertexCount = length / vertexLength;
 
+        float eps = 1e-10f;
+        float max = 99999.f;
+
         SplatData splatData;
         HVector<SplatData> splatDatas;
         float* floatData = (float*)data;
         for (u32 i = 0; i < vertexCount; i++)
         {
-            //1499000
-
             glm::vec3 scale = {
                 floatData[8 * i + 3 + 0],
                 floatData[8 * i + 3 + 1],
@@ -73,6 +74,9 @@ namespace Heart
                 floatData[8 * i + 2],
                 1.f
             };
+
+            if (glm::length(glm::vec3(pos)) < 0.001f)
+                continue;
 
             glm::quat quat = {
                 ((float)data[32 * i + 28 + 0] - 128.f) / 128.f,
@@ -92,6 +96,15 @@ namespace Heart
             glm::mat4 M = rotMat * scaleMat;
             glm::mat4 sigma = M * glm::transpose(M);
 
+            // Ensure sigma is valid, skip otherwise
+            if (abs(sigma[0][0]) <= eps || abs(sigma[0][0]) >= max || std::isnan(sigma[0][0]) ||
+                abs(sigma[0][1]) <= eps || abs(sigma[0][1]) >= max || std::isnan(sigma[0][1]) ||
+                abs(sigma[1][1]) <= eps || abs(sigma[1][1]) >= max || std::isnan(sigma[1][1]) ||
+                abs(sigma[0][2]) <= eps || abs(sigma[0][2]) >= max || std::isnan(sigma[0][2]) ||
+                abs(sigma[1][2]) <= eps || abs(sigma[1][2]) >= max || std::isnan(sigma[1][2]) ||
+                abs(sigma[2][2]) <= eps || abs(sigma[2][2]) >= max || std::isnan(sigma[2][2]))
+                continue;
+
             // Pack sigma since the matrix is symmetric
             splatData.PackedSigma = {
                 PackFloats(sigma[0][0], sigma[0][1]),
@@ -105,9 +118,9 @@ namespace Heart
             /*
             HE_LOG_WARN(
                 "X: {0}, Y: {1}, Z: {2}",
-                scale.x,
-                scale.y,
-                scale.z
+                sigma[0][0],
+                sigma[1][1],
+                sigma[2][2]
             );
 
             HE_LOG_WARN(
