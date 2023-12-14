@@ -6,6 +6,11 @@ layout(location = 0) in vec2 texCoord;
 
 layout(binding = 0) uniform sampler2D hdrTex;
 
+layout(push_constant) uniform PushConstants
+{
+    uint tonemapEnable;
+} constants;
+
 // https://knarkowicz.wordpress.com/2016/01/06/aces-filmic-tone-mapping-curve/
 vec3 ACESFilm(vec3 x)
 {
@@ -22,11 +27,13 @@ void main()
 {
     vec3 finalColor = texture(hdrTex, texCoord).rgb;
 
-    // Tonemapping
-    finalColor = ACESFilm(finalColor);
+    if (constants.tonemapEnable == 1) {
+        // Tonemapping
+        finalColor = ACESFilm(finalColor);
 
-    // Gamma correction     
-    finalColor = pow(finalColor, vec3(0.4545));
+        // Gamma correction     
+        finalColor = pow(finalColor, vec3(0.4545));
+    }
 
     outColor = vec4(finalColor, 1.f);
 }

@@ -136,12 +136,15 @@ namespace Heart
             pbrCompositeName = pbrComposite->GetName();
         }
 
+        RenderPlugins::SplatCreateInfo splatCreateInfo;
+        splatCreateInfo.FrameDataPluginName = frameData->GetName();
+        auto splat = RegisterPlugin<RenderPlugins::Splat>("Splat", splatCreateInfo);
+        splat->AddDependency(pbrCompositeName, GraphDependencyType::GPU);
+
         RenderPlugins::InfiniteGridCreateInfo gridCreateInfo;
         gridCreateInfo.FrameDataPluginName = frameData->GetName();
-        gridCreateInfo.GBufferPluginName = gBuffer->GetName();
         auto grid = RegisterPlugin<RenderPlugins::InfiniteGrid>("Grid", gridCreateInfo);
-        grid->AddDependency(pbrCompositeName, GraphDependencyType::GPU);
-        grid->AddInitDependency(gBuffer->GetName());
+        grid->AddDependency(splat->GetName(), GraphDependencyType::GPU);
 
         RenderPlugins::BloomCreateInfo BloomCreateInfo;
         auto bloom = RegisterPlugin<RenderPlugins::Bloom>("Bloom", BloomCreateInfo);
@@ -187,7 +190,14 @@ namespace Heart
         if (m_ShouldResize)
         {
             m_ShouldResize = false;
+            m_ShouldRebuild = false; // Resizing also rebuilds
             Resize();
+        }
+
+        if (m_ShouldRebuild)
+        {
+            m_ShouldRebuild = false;
+            RebuildGraph();
         }
 
         TaskGroup group;

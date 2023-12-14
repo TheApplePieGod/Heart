@@ -35,6 +35,11 @@ namespace HeartEditor
         GetState().RenderSettings.CopyEntityIdsTextureToCPU = true;
         GetState().RenderSettings.AsyncAssetLoading = true;
         GetState().RenderSettings.RenderPhysicsVolumes = false;
+
+        // Testing
+        GetState().RenderSettings.BloomEnable = false;
+        GetState().RenderSettings.DrawGrid = false;
+        GetState().RenderSettings.TonemapEnable = false;
         
         CreateWindows();
     }

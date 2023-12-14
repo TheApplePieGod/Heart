@@ -9,6 +9,7 @@
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/MeshAsset.h"
 #include "Heart/Asset/MaterialAsset.h"
+#include "Heart/Asset/SplatAsset.h"
 #include "Heart/Util/ImGuiUtils.h"
 #include "Heart/Util/FilesystemUtils.h"
 #include "imgui/imgui_internal.h"
@@ -47,6 +48,8 @@ namespace Widgets
                 {
                     if (ImGui::MenuItem("Mesh Component"))
                         selectedEntity.AddComponent<Heart::MeshComponent>();
+                    if (ImGui::MenuItem("Splat Component"))
+                        selectedEntity.AddComponent<Heart::SplatComponent>();
                     if (ImGui::MenuItem("Light Component"))
                         selectedEntity.AddComponent<Heart::LightComponent>();
                     if (ImGui::MenuItem("Script Component"))
@@ -81,6 +84,7 @@ namespace Widgets
             
             RenderTransformComponent();
             RenderMeshComponent();
+            RenderSplatComponent();
             RenderLightComponent();
             RenderScriptComponent();
             RenderCameraComponent();
@@ -253,6 +257,60 @@ namespace Widgets
                 }
                 else
                     ImGui::TextColored({ 0.9f, 0.1f, 0.1f, 1.f }, "Invalid Mesh");
+                
+                ImGui::Unindent();
+            }
+        }
+    }
+
+    void PropertiesPanel::RenderSplatComponent()
+    {
+        auto selectedEntity = Editor::GetState().SelectedEntity;
+        if (selectedEntity.HasComponent<Heart::SplatComponent>())
+        {
+            bool headerOpen = ImGui::CollapsingHeader("Splat"); 
+            if (!RenderComponentPopup<Heart::SplatComponent>("SplatPopup") && headerOpen)
+            {
+                auto& splatComp = selectedEntity.GetComponent<Heart::SplatComponent>();
+                const auto& UUIDRegistry = Heart::AssetManager::GetUUIDRegistry();
+
+                ImGui::Indent();
+
+                // Mesh picker
+                ImGui::Text("Splat Asset:");
+                ImGui::SameLine();
+                Heart::ImGuiUtils::AssetPicker(
+                    Heart::Asset::Type::Splat,
+                    splatComp.Splat,
+                    "NULL",
+                    "SplatSelect",
+                    m_MeshTextFilter,
+                    [&splatComp]()
+                    {
+                        if (!splatComp.Splat)
+                            return;
+
+                        if (ImGui::MenuItem("Clear"))
+                            splatComp.Splat = 0;
+                    },
+                    [&splatComp](Heart::UUID selected)
+                    {
+                        splatComp.Splat = selected;
+                    }
+                );
+
+                // Assign mesh on drop
+                Heart::ImGuiUtils::AssetDropTarget(
+                    Heart::Asset::Type::Splat,
+                    [&splatComp](const Heart::HString8& path)
+                    {
+                        splatComp.Splat = Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Mesh, path);      
+                    }
+                );
+
+                auto splatAsset = Heart::AssetManager::RetrieveAsset<Heart::SplatAsset>(splatComp.Splat);
+                if (!splatAsset || !splatAsset->Load()->IsValid())
+                    ImGui::TextColored({ 0.9f, 0.1f, 0.1f, 1.f }, "Invalid Splat");
                 
                 ImGui::Unindent();
             }

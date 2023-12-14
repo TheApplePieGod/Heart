@@ -22,6 +22,7 @@ namespace Widgets
     private:
         void RenderTransformComponent();
         void RenderMeshComponent();
+        void RenderSplatComponent();
         void RenderLightComponent();
         void RenderScriptComponent();
         void RenderCameraComponent();
@@ -60,6 +61,7 @@ namespace Widgets
     
     private:
         ImGuiTextFilter m_MeshTextFilter;
+        ImGuiTextFilter m_SplatTextFilter;
         ImGuiTextFilter m_MaterialTextFilter;
         ImGuiTextFilter m_ScriptTextFilter;
         ImGuiTextFilter m_FontTextFilter;
