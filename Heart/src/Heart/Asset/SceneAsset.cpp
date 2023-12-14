@@ -90,6 +90,14 @@ namespace Heart
                     entity.AddComponent<MeshComponent>(meshAsset, materialIds);
                 }
 
+                // Splat component
+                if (loaded.contains("splatComponent"))
+                {
+                    auto& compEntry = loaded["splatComponent"];
+                    UUID splatAsset = AssetManager::RegisterAsset(Asset::Type::Splat, compEntry["splat"]["path"], false, compEntry["splat"]["engineResource"]);
+                    entity.AddComponent<SplatComponent>(splatAsset);
+                }
+
                 // Light component
                 if (loaded.contains("lightComponent"))
                 {
@@ -341,6 +349,15 @@ namespace Heart
                         compEntry["materials"][i]["path"] = AssetManager::GetPathFromUUID(comp.Materials[i]);
                         compEntry["materials"][i]["engineResource"] = AssetManager::IsAssetAResource(comp.Materials[i]);
                     }
+                }
+
+                // Splat component
+                if (entity.HasComponent<SplatComponent>())
+                {
+                    auto& compEntry = entry["splatComponent"];
+                    auto& comp = entity.GetComponent<SplatComponent>();
+                    compEntry["splat"]["path"] = AssetManager::GetPathFromUUID(comp.Splat);
+                    compEntry["splat"]["engineResource"] = AssetManager::IsAssetAResource(comp.Splat);
                 }
 
                 // Light component

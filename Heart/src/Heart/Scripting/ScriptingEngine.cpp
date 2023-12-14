@@ -145,12 +145,16 @@ namespace Heart
 
     void InitHostFXRWithConfig(const char_t* configPath, load_assembly_and_get_function_pointer_fn& outLoadAssemblyFunc)
     {
-        // TODO: this is mid, but we don't need to mess around with this on windows and allegedly
-        // the macos dotnet is always installed in the same location
+        // We use config settings when developing. For now, we will assume the DOTNET_SDK path is set.
+        // In the future, we could find this automatically.
         hostfxr_initialize_parameters params{};
         params.size = sizeof(hostfxr_initialize_parameters);
-        #ifdef HE_PLATFORM_MACOS
-        params.dotnet_root = "/usr/local/share/dotnet";
+        #ifdef HE_PLATFORM_WINDOWS
+        // Wchar :(
+        HString16 root = HString8(std::getenv("DOTNET_SDK")).ToUTF16();
+        params.dotnet_root = (const wchar_t*)root.Data();
+        #else
+        params.dotnet_root = std::getenv("DOTNET_SDK");
         #endif
 
         hostfxr_handle ctx = nullptr;

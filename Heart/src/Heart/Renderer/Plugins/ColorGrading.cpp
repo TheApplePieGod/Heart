@@ -87,10 +87,12 @@ namespace Heart::RenderPlugins
         m_ResourceSet->BindTexture(0, m_Renderer->GetRenderTexture().get());
         m_ResourceSet->FlushBindings();
         
+        u32 enabled = data.Settings.TonemapEnable;
         auto encoder = m_CommandBuffer->EncodeRenderCommands(m_Framebuffer.get());
         encoder->BindPipeline("main");
         encoder->BindResourceSet(m_ResourceSet.get(), 0);
         encoder->FlushResourceSet(0);
+        encoder->PushConstants(0, sizeof(u32), &enabled);
 
         encoder->Draw(3, 0, 1, 0);
 

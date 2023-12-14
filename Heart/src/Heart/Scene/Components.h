@@ -78,6 +78,11 @@ namespace Heart
         HVector<UUID> Materials;
     };
 
+    struct SplatComponent
+    {
+        UUID Splat = 0;
+    };
+
     struct LightComponent
     {
         enum class Type : u32

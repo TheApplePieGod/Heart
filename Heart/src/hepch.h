@@ -25,6 +25,7 @@
 #include <new>
 #include <locale>
 #include <atomic>
+#include <cstdlib>
 #include <condition_variable>
 
 #include <string>

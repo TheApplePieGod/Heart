@@ -16,7 +16,7 @@ def get_platform_info():
     return (system, is_arm, is_64bit)
 
 def get_dotnet_version():
-    highest_ver = ""
+    highest_ver = (0, 0, 0)
     out = subprocess.check_output(["dotnet", "--list-runtimes"])
     for line in out.splitlines():
         line = line.decode("utf-8")
@@ -25,9 +25,10 @@ def get_dotnet_version():
         version_str = line.split(" ")[1]
         if not version_str.startswith(DOTNET_MIN_VER):
             continue
-        if version_str > highest_ver:
-            highest_ver = version_str
-    return highest_ver
+        versions = tuple(int(v) for v in version_str.split("."))
+        if versions > highest_ver:
+            highest_ver = versions
+    return ".".join(str(s) for s in highest_ver)
 
 def get_dotnet_runtime_string(platform_info):
     sys_map = {
