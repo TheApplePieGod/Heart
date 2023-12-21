@@ -38,61 +38,67 @@ namespace Widgets
             ImGui::Text("Source");
             Heart::ImGuiUtils::DrawTextFilter(m_SourceFilter, "##srcfilter");
 
+            const float messageContentPadding = 50.f;
             float messageContentSize = 0.f;
             ImGui::TableNextColumn();
             ImGui::Text("Message");
-            messageContentSize = ImGui::GetContentRegionMax().x;
+            messageContentSize = ImGui::GetContentRegionAvail().x;
             Heart::ImGuiUtils::DrawTextFilter(m_MessageFilter, "##msgfilter");
 
             Heart::Logger::LockLogList();
+            m_FilteredEntries.Clear();
             auto& logList = Heart::Logger::GetLogList();
-            Heart::HVector<ListEntry> filteredEntries;
             for (int i = logList.size() - 1; i >= 0; i--)
             {
+                if (m_FilteredEntries.Count() >= 5000)
+                    break;
+
                 auto& entry = logList[i];
-                if (PassLevelFilter((u32)entry.Level) &&
-                    m_TimestampFilter.PassFilter(entry.Timestamp.c_str()) &&
-                    m_SourceFilter.PassFilter(entry.Source.c_str()) &&
-                    m_MessageFilter.PassFilter(entry.Message.c_str())
+                if (!PassLevelFilter((u32)entry.Level) ||
+                    !m_TimestampFilter.PassFilter(entry.Timestamp.c_str()) ||
+                    !m_SourceFilter.PassFilter(entry.Source.c_str()) ||
+                    !m_MessageFilter.PassFilter(entry.Message.c_str())
                 )
+                    continue;
+
+                u32 lineIndex = 0;
+                auto lines = Heart::HStringView8(entry.Message.data(), entry.Message.size()).Split("\n");
+                for (auto line : lines)
                 {
-                    u32 lineIndex = 0;
-                    auto lines = Heart::HStringView8(entry.Message.data(), entry.Message.size()).Split("\n");
-                    for (auto line : lines)
+                    float textWidth = ImGui::CalcTextSize(line.Data(), line.Data() + line.Count()).x + messageContentPadding;
+                    if (textWidth == 0.f) continue;
+                    int lineCount = (textWidth / messageContentSize) + 1;
+                    int charCount = (int)line.Count() / lineCount;
+                    
+                    for (int i = 0; i < lineCount; i++)
                     {
-                        float textWidth = ImGui::CalcTextSize(line.Data(), line.Data() + line.Count()).x;
-                        if (textWidth == 0.f) continue;
-                        int lineCount = (int)pow(2.f, ceil(textWidth / messageContentSize)) - 1;
-                        int charCount = (int)line.Count() / lineCount;
-                        
-                        for (int i = 0; i < lineCount; i++)
-                        {
-                            auto substr = line.Substr(charCount * i, charCount);
-                            Heart::LogListEntry partialEntry(
-                                entry.Level,
-                                lineIndex == 0 ? entry.Timestamp : "",
-                                lineIndex == 0 ? entry.Source : "",
-                                std::string_view(substr.Data(), substr.Count())
-                            );
-                            filteredEntries.Add({ partialEntry, lineIndex != 0 });
-                        
-                            lineIndex++;
-                        }
+                        auto substr = line.Substr(charCount * i, charCount);
+                        Heart::LogListEntry partialEntry(
+                            entry.Level,
+                            lineIndex == 0 ? entry.Timestamp : "",
+                            lineIndex == 0 ? entry.Source : "",
+                            std::string_view(substr.Data(), substr.Count())
+                        );
+                        m_FilteredEntries.Add(
+                            { std::move(partialEntry), lineIndex != 0 }
+                        );
+                    
+                        lineIndex++;
                     }
                 }
             }
             Heart::Logger::UnlockLogList();
 
-            if (filteredEntries.Count() > 0)
+            if (m_FilteredEntries.Count() > 0)
             {
                 ImGuiListClipper clipper; // For virtualizing the list
-                clipper.Begin(filteredEntries.Count());
+                clipper.Begin(m_FilteredEntries.Count());
                 while (clipper.Step())
                 {
                     for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++)
                     {
-                        if (i >= filteredEntries.Count()) break;
-                        auto& entry = filteredEntries[i];
+                        if (i >= m_FilteredEntries.Count()) break;
+                        auto& entry = m_FilteredEntries[i];
 
                         ImVec4 rowColor = { 1.f, 1.f, 1.f, 0.5f };
                         switch (entry.Entry.Level)

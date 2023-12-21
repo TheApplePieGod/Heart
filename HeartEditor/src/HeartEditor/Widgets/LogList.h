@@ -27,10 +27,11 @@ namespace Widgets
         bool PassLevelFilter(u32 level);
 
     private:
+        Heart::HVector<ListEntry> m_FilteredEntries;
         ImGuiTextFilter m_MessageFilter;
         ImGuiTextFilter m_TimestampFilter;
         ImGuiTextFilter m_SourceFilter;
-        u32 m_LevelFilter = 2;
+        u32 m_LevelFilter = 1;
     };
 }
 }
