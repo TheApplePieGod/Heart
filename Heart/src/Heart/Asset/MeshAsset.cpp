@@ -45,6 +45,11 @@ namespace Heart
         m_Data = nullptr;
     }
 
+    bool MeshAsset::ShouldUnload()
+    {
+        return true;
+    }
+
     void MeshAsset::ParseGLTF(unsigned char* data)
     {
         auto j = nlohmann::json::parse(data);

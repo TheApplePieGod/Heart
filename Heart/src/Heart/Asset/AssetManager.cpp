@@ -106,7 +106,8 @@ namespace Heart
 
                 if (entry.Persistent || !entry.Asset->IsLoaded()) continue;
 
-                if (App::Get().GetFrameCount() > entry.Asset->GetLoadedFrame() + s_AssetFrameLimit)
+                bool notRecentlyUsed = App::Get().GetFrameCount() > entry.Asset->GetLoadedFrame() + s_AssetFrameLimit;
+                if (notRecentlyUsed && entry.Asset->ShouldUnload())
                 {
                     UUID uuid = pair.first;
                     TaskManager::Schedule([uuid]()
@@ -256,7 +257,6 @@ namespace Heart
         { return; }
     }
 
-    // Non-resources only
     void AssetManager::RenameAsset(const HString8& oldPath, const HString8& newPath)
     {
         auto lock = std::unique_lock(s_Mutex);
@@ -265,7 +265,10 @@ namespace Heart
         if (found == s_Registry.end()) return;
 
         // Update UUID link
-        s_UUIDs[found->second.Id].Path = newPath;
+        auto& uuidEntry = s_UUIDs[found->second.Id];
+        if (uuidEntry.IsResource) // Cannot update resources
+            return;
+        uuidEntry.Path = newPath;
 
         // Update asset path
         found->second.Asset->UpdatePath(newPath, GetAbsolutePath(newPath));
@@ -365,14 +368,6 @@ namespace Heart
         return found->second.IsResource;
     }
 
-    /*
-     * GetAsset(path, isResource)
-     * GetAsset(uuid, isResource)
-     * LoadAssets(uuid[]);
-     * LoadAssets(string[]);
-     */
-
-    // TODO: async should return a task
     Asset* AssetManager::RetrieveAsset(const HString8& path, bool isResource)
     {
         if (path.IsEmpty()) return nullptr;

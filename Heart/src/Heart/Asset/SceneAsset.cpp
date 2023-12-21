@@ -35,6 +35,12 @@ namespace Heart
         m_Data = nullptr;
     }
 
+    bool SceneAsset::ShouldUnload()
+    {
+        // This is the only remaining reference
+        return m_Scene.use_count() == 1;
+    }
+
     void SceneAsset::Save(Scene* scene)
     {
         SerializeScene(m_AbsolutePath, scene);

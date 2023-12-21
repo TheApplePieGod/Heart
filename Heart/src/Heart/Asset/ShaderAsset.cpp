@@ -46,4 +46,10 @@ namespace Heart
         //delete[] m_Data;
         m_Data = nullptr;
     }
+
+    bool ShaderAsset::ShouldUnload()
+    {
+        // This is the only remaining reference
+        return m_Shader.use_count() == 1;
+    }
 }

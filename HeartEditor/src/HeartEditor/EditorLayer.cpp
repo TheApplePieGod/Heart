@@ -32,8 +32,8 @@ namespace HeartEditor
         if (std::filesystem::exists("D:/Projects/Heart/HeartProjects/VampireSurvivor/VampireSurvivor.heproj"))
             Project::LoadFromPath("D:/Projects/Heart/HeartProjects/VampireSurvivor/VampireSurvivor.heproj");
             */
-        if (std::filesystem::exists("../../../HeartProjects/SplatTest/SplatTest.heproj"))
-            Project::LoadFromPath("../../../HeartProjects/SplatTest/SplatTest.heproj");
+        if (std::filesystem::exists("../../../HeartProjects/TestProject/TestProject.heproj"))
+            Project::LoadFromPath("../../../HeartProjects/TestProject/TestProject.heproj");
         else
             Editor::CreateWindows();
 

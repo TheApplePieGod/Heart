@@ -94,6 +94,7 @@ namespace Heart
     protected:
         virtual void LoadInternal() = 0;
         virtual void UnloadInternal() = 0;
+        virtual bool ShouldUnload() = 0;
 
     protected:
         HString8 m_Path;
