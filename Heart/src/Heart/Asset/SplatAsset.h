@@ -19,6 +19,7 @@ namespace Heart
     protected:
         void LoadInternal() override;
         void UnloadInternal() override;
+        bool ShouldUnload() override;
 
     private:
         struct SplatData

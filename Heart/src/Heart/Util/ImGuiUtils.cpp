@@ -95,7 +95,7 @@ namespace Heart
         );
     }
 
-    void ImGuiUtils::DrawStringDropdownFilter(const char** options, u32 optionCount, u32& selected, const char* popupName)
+    void ImGuiUtils::DrawStringDropdownFilter(const char* const* options, u32 optionCount, u32& selected, const char* popupName)
     {
         ImGuiUtils::DrawFilterPopup(
             popupName,

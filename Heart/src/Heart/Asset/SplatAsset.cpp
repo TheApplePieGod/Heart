@@ -42,6 +42,11 @@ namespace Heart
         m_Data = nullptr;
     }
 
+    bool SplatAsset::ShouldUnload()
+    {
+        return true;
+    }
+
     // https://github.com/antimatter15/splat/blob/main/main.js
     void SplatAsset::ParseSplat(unsigned char* data, u32 length)
     {

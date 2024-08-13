@@ -91,6 +91,12 @@ namespace Heart
         m_Data = nullptr;
     }
 
+    bool TextureAsset::ShouldUnload()
+    {
+        // This is the only remaining reference
+        return m_Texture.use_count() == 1;
+    }
+
     void* TextureAsset::LoadImage(int& outWidth, int& outHeight, int& outChannels, bool floatComponents)
     {
         void* pixels;

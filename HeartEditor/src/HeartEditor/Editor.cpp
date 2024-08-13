@@ -20,6 +20,7 @@
 #include "HeartEditor/Widgets/SceneSettings.h"
 #include "HeartEditor/Widgets/RenderSettings.h"
 #include "HeartEditor/Widgets/AssetRegistry.h"
+#include "HeartEditor/Widgets/ShaderRegistry.h"
 #include "HeartEditor/Widgets/LogList.h"
 #include "HeartEditor/Widgets/RenderGraph.h"
 
@@ -61,6 +62,7 @@ namespace HeartEditor
         taskGroup.AddTask(PushWindow<Widgets::SceneSettings>("Scene Settings", true));
         taskGroup.AddTask(PushWindow<Widgets::RenderSettings>("Render Settings", true));
         taskGroup.AddTask(PushWindow<Widgets::AssetRegistry>("Asset Registry", false));
+        taskGroup.AddTask(PushWindow<Widgets::ShaderRegistry>("Shader Registry", false));
         taskGroup.AddTask(PushWindow<Widgets::LogList>("Log List", false));
         taskGroup.AddTask(PushWindow<Widgets::RenderGraph>("Render Graph", false));
 

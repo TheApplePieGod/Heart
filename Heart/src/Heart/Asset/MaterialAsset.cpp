@@ -30,6 +30,11 @@ namespace Heart
         m_Data = nullptr;
     }
 
+    bool MaterialAsset::ShouldUnload()
+    {
+        return true;
+    }
+
     void MaterialAsset::Save(const Material& material)
     {
         SerializeMaterial(m_AbsolutePath, material);

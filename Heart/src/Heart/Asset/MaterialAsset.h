@@ -44,6 +44,7 @@ namespace Heart
     protected:
         void LoadInternal() override;
         void UnloadInternal() override;
+        bool ShouldUnload() override;
 
     private:
         Material m_Material;

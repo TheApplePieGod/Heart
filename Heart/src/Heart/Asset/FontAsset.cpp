@@ -106,4 +106,10 @@ namespace Heart
         m_FontGeometry = msdf_atlas::FontGeometry();
         m_Data = nullptr;
     }
+
+    bool FontAsset::ShouldUnload()
+    {
+        // This is the only remaining reference
+        return m_AtlasTexture.use_count() == 1;
+    }
 }

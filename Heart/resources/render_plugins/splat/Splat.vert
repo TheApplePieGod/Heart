@@ -11,7 +11,7 @@
 #define OBJECT_BUFFER_SET 0
 #include "ObjectBuffer.glsl"
 
-layout (std430, set = 0, binding = 2) buffer IndexBuffer {
+layout (std430, set = 0, binding = 2) readonly buffer IndexBuffer {
     uint data[];
 } indexBuffer;
 
