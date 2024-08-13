@@ -49,7 +49,7 @@ Heart is a cross-platform C++ 3D renderer and game engine which is centered arou
 
 - Compiler using C++17
 - [CMake](https://cmake.org/download/) >= 3.23
-- [.NET Core SDK](https://dotnet.microsoft.com/en-us/download/dotnet) >= 7.0
+- [.NET Core SDK](https://dotnet.microsoft.com/en-us/download/dotnet) 8.0^
 - [Visual Studio](https://visualstudio.microsoft.com/vs/) >= 2022
     - For writing code for scripted entities
     - Using MSBuild directly will also work
