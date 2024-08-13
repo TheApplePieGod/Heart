@@ -468,7 +468,9 @@ namespace Heart
             Task::Priority::Medium
         );
 
-        // TODO: don't need to wait here. Need to fix framebuffers first
+        // TODO: don't technically need to wait here. However, because it causes
+        // a massive gpu bottleneck, waiting here is better to prevent visual
+        // artifacts and inconsistent stuttering as it processes
         task.Wait();
         return task;
     }
