@@ -93,6 +93,7 @@ namespace Heart
         inline static std::condition_variable s_ExecuteQueueCV;
         
         inline static bool s_Initialized = false;
+        inline static bool s_SingleThreaded = false;
         
         friend class Task;
     };
