@@ -2,6 +2,7 @@
 #include "TextureAsset.h"
 
 #include "Heart/Asset/AssetManager.h"
+#include "Heart/Util/FilesystemUtils.h"
 #include "stb_image/stb_image.h"
 #include "tinytiffreader.h"
 
@@ -99,22 +100,24 @@ namespace Heart
 
     void* TextureAsset::LoadImage(int& outWidth, int& outHeight, int& outChannels, bool floatComponents)
     {
+        u32 outFileSize = 0;
+        u8* data = FilesystemUtils::ReadFile(m_AbsolutePath, outFileSize);
+
         void* pixels;
         if (floatComponents)
-            pixels = stbi_loadf(m_AbsolutePath.Data(), &outWidth, &outHeight, &outChannels, m_DesiredChannelCount);
+            pixels = stbi_loadf_from_memory(data, outFileSize, &outWidth, &outHeight, &outChannels, m_DesiredChannelCount);
         else
-            pixels = stbi_load(m_AbsolutePath.Data(), &outWidth, &outHeight, &outChannels, m_DesiredChannelCount);
+            pixels = stbi_load_from_memory(data, outFileSize, &outWidth, &outHeight, &outChannels, m_DesiredChannelCount);
 
-        // Need to manually add the alloc here since stbi malloc instead of new
-        #ifdef HE_DEBUG
-            TracyAlloc(pixels, outWidth * outHeight * outChannels * (floatComponents ? 4 : 1));
-        #endif
+        delete[] data;
 
         return pixels;
     }
 
     void* TextureAsset::LoadTiff(int& outWidth, int& outHeight, int& outChannels)
     {
+        // TODO: incompatible with android
+
         TinyTIFFReaderFile* tiffr = TinyTIFFReader_open(m_AbsolutePath.Data()); 
         if (!tiffr)
             return nullptr;
