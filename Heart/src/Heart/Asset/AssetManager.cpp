@@ -201,7 +201,7 @@ namespace Heart
             : GetAbsolutePath(path);
 
         // Only register if the path exists (resources are assumed to exist)
-        if (!isResource && !std::filesystem::exists(absolutePath.Data()))
+        if (!isResource && !FilesystemUtils::FileExistsLocalized(absolutePath.Data()))
             return 0;
 
         auto lock = std::unique_lock(s_Mutex);

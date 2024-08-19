@@ -14,6 +14,7 @@ namespace Heart
         };
 
     public:
+        static bool FileExistsLocalized(const HStringView8& path);
         static void WriteFile(const HStringView8& path, const HStringView8& data);
         static void WriteFile(const HStringView8& path, const nlohmann::json& data);
         static HString8 ReadFileToString(const HStringView8& path);

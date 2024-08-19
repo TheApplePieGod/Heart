@@ -12,6 +12,24 @@
 
 namespace Heart
 {
+    bool FilesystemUtils::FileExistsLocalized(const HStringView8& path)
+    {
+        // Checks for the existence of a file, using localized data when appropriate (i.e.
+        // APK data on android). This method should be preferred when followed up with ReadFile
+
+        #ifdef HE_PLATFORM_ANDROID
+            // Ensure that the path is canonical (no ..)
+            auto finalPath = std::filesystem::weakly_canonical(path.Data()).relative_path();
+            AAsset* file = AAssetManager_open(AndroidApp::App->activity->assetManager, finalPath.c_str(), AASSET_MODE_BUFFER);
+            bool exists = file != nullptr;
+            if (exists)
+                AAsset_close(file);
+            return exists;
+        #else
+            return std::filesystem::exists(path.Data());
+        #endif
+    }
+
     void FilesystemUtils::WriteFile(const HStringView8& path, const HStringView8& data)
     {
         std::ofstream file(path.Data());
@@ -49,7 +67,9 @@ namespace Heart
     unsigned char* FilesystemUtils::ReadFile(const HStringView8& path, u32& outLength)
     {
         #ifdef HE_PLATFORM_ANDROID
-            AAsset* file = AAssetManager_open(AndroidApp::App->activity->assetManager, path.Data(), AASSET_MODE_BUFFER);
+            // Ensure that the path is canonical (no ..)
+            auto finalPath = std::filesystem::weakly_canonical(path.Data()).relative_path();
+            AAsset* file = AAssetManager_open(AndroidApp::App->activity->assetManager, finalPath.c_str(), AASSET_MODE_BUFFER);
             if (!file)
                 return nullptr;
 
