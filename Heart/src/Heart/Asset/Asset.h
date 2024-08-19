@@ -113,7 +113,7 @@ namespace Heart
         void UpdateLoadStatus();
 
     private:
-        std::mutex m_LoadLock;
+        std::recursive_mutex m_LoadLock;
         std::atomic<u64> m_LoadedFrame = 0;
         Task m_LoadingTask;
 
