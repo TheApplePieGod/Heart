@@ -61,7 +61,9 @@ namespace Heart
 
         HE_ENGINE_LOG_DEBUG("Internal data path: {0}", basePath.Data());
 
-        if (!std::filesystem::exists(hostfxrName))
+        // For now, copy files on startup. This is effectively instant so it is OK, but ideally
+        // we will want a smarter way to determine when a new version needs to be copied.
+        if (true || !std::filesystem::exists(hostfxrName))
         {
             HE_ENGINE_LOG_DEBUG("Copying scripting files");
 
