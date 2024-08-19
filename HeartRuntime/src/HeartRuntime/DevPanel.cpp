@@ -2,6 +2,7 @@
 #include "DevPanel.h"
 
 #include "HeartRuntime/RuntimeApp.h"
+#include "Flourish/Api/Context.h"
 #include "Heart/Core/Timing.h"
 
 namespace HeartRuntime
@@ -44,6 +45,18 @@ namespace HeartRuntime
         for (auto& pair : Heart::AggregateTimer::GetTimeMap())
             ImGui::Text("%s: %.1fms", pair.first.Data(), Heart::AggregateTimer::GetAggregateTime(pair.first));
         ImGui::Unindent();
+
+        ImGui::Text("GPU Memory:");
+        ImGui::Indent();
+        Flourish::MemoryStatistics memoryStats = Flourish::Context::ComputeMemoryStatistics();
+        ImGui::Text("Allocations: %u", memoryStats.AllocationCount);
+        ImGui::Text("Allocation Mem: %.1f MB", (float)memoryStats.AllocationTotalSize / 1e6);
+        ImGui::Text("Blocks: %u", memoryStats.BlockCount);
+        ImGui::Text("Block Mem: %.1f MB", (float)memoryStats.BlockTotalSize / 1e6);
+        ImGui::Text("Total Avail: %.1f MB", (float)memoryStats.TotalAvailable / 1e6);
+        ImGui::Unindent();
+
+        //HE_LOG_WARN("Memory stats: {}", memoryStats.ToString());
 
         ImGui::End();
         ImGui::PopStyleVar();

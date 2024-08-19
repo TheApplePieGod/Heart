@@ -8,6 +8,7 @@
 #include "Heart/Core/Timing.h"
 #include "Heart/Renderer/SceneRenderer.h"
 #include "Heart/Renderer/RenderPlugin.h"
+#include "Flourish/Api/Context.h"
 #include "imgui/imgui.h"
 
 #include "HeartEditor/Widgets/Viewport.h"
@@ -66,6 +67,16 @@ namespace Widgets
         }
         ImGui::Text("Bloom Pass: %.2fms", bloomTiming);
         */
+        ImGui::Unindent();
+
+        ImGui::Text("GPU Memory:");
+        ImGui::Indent();
+        Flourish::MemoryStatistics memoryStats = Flourish::Context::ComputeMemoryStatistics();
+        ImGui::Text("Allocations: %d", memoryStats.AllocationCount);
+        ImGui::Text("Allocation Mem: %.1f MB", (float)memoryStats.AllocationTotalSize / 1e6);
+        ImGui::Text("Blocks: %d", memoryStats.BlockCount);
+        ImGui::Text("Block Mem: %.1f MB", (float)memoryStats.BlockTotalSize / 1e6);
+        ImGui::Text("Total Avail: %.1f MB", (float)memoryStats.TotalAvailable / 1e6);
         ImGui::Unindent();
 
         ImGui::Text("Render Statistics:");
