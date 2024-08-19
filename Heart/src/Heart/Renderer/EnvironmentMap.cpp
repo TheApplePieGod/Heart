@@ -303,7 +303,7 @@ namespace Heart
 
                         rcEncoder->BindPipeline("cubemap");  
                         rcEncoder->BindResourceSet(m_EnvironmentMap.ResourceSet.get(), 0);
-                        rcEncoder->UpdateDynamicOffset(0, 0, i * sizeof(CubemapData));
+                        rcEncoder->UpdateDynamicOffset(0, 0, i * m_CubemapDataBuffer->GetStride());
                         rcEncoder->FlushResourceSet(0);
 
                         rcEncoder->BindVertexBuffer(meshData.GetVertexBuffer());
@@ -341,7 +341,7 @@ namespace Heart
 
                         rcEncoder->BindPipeline("irradiance");  
                         rcEncoder->BindResourceSet(m_IrradianceMap.ResourceSet.get(), 0);
-                        rcEncoder->UpdateDynamicOffset(0, 0, i * sizeof(CubemapData));
+                        rcEncoder->UpdateDynamicOffset(0, 0, i * m_CubemapDataBuffer->GetStride());
                         rcEncoder->FlushResourceSet(0);
 
                         rcEncoder->BindVertexBuffer(meshData.GetVertexBuffer());
@@ -384,7 +384,7 @@ namespace Heart
                         };
                         m_CubemapDataBuffer->SetElements(&mapData, 1, cubeDataIndex);
                         rcEncoder->BindResourceSet(m_PrefilterMaps[0].ResourceSet.get(), 0);
-                        rcEncoder->UpdateDynamicOffset(0, 0, cubeDataIndex * sizeof(CubemapData));
+                        rcEncoder->UpdateDynamicOffset(0, 0, cubeDataIndex * m_CubemapDataBuffer->GetStride());
                         rcEncoder->FlushResourceSet(0);
 
                         rcEncoder->BindVertexBuffer(meshData.GetVertexBuffer());

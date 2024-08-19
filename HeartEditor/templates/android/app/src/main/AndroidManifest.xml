@@ -4,10 +4,10 @@
     android:versionCode="1"
     android:versionName="1.0">
 
-    <!-- Require Vulkan 1.2 support. -->
+    <!-- Require Vulkan 1.1 support. -->
     <uses-feature
         android:name="android.hardware.vulkan.version"
-        android:version="0x00402000"
+        android:version="0x00401000"
         android:required="true" />
 
     <!-- Tell Android that this application works in either 3DOF or 6DOF mode,

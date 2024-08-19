@@ -234,11 +234,14 @@ namespace Heart::RenderPlugins
 
         auto graphicsEncoder = m_CommandBuffer->EncodeGraphicsCommands();
 
-        // Generate mips for gbuffer
-        graphicsEncoder->GenerateMipMaps(m_GBuffer1.get(), Flourish::SamplerFilter::Nearest);
-        graphicsEncoder->GenerateMipMaps(m_GBuffer2.get(), Flourish::SamplerFilter::Nearest);
-        graphicsEncoder->GenerateMipMaps(m_GBuffer3.get(), Flourish::SamplerFilter::Nearest);
-        graphicsEncoder->GenerateMipMaps(m_GBufferDepth.get(), Flourish::SamplerFilter::Nearest);
+        // Generate mips for gbuffer if we are ray tracing
+        if (Flourish::FeatureTable().RayTracing)
+        {
+            graphicsEncoder->GenerateMipMaps(m_GBuffer1.get(), Flourish::SamplerFilter::Nearest);
+            graphicsEncoder->GenerateMipMaps(m_GBuffer2.get(), Flourish::SamplerFilter::Nearest);
+            graphicsEncoder->GenerateMipMaps(m_GBuffer3.get(), Flourish::SamplerFilter::Nearest);
+            graphicsEncoder->GenerateMipMaps(m_GBufferDepth.get(), Flourish::SamplerFilter::Nearest);
+        }
 
         // Blit depth to render depth for ease of use
         graphicsEncoder->BlitTexture(

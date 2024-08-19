@@ -665,6 +665,10 @@ namespace HeartEditor
         #endif
 
         prefix += command;
+
+        #ifndef HE_PLATFORM_WINDOWS
+            prefix += " 2>&1";
+        #endif
         
         Heart::HString8 output;
         outResult = Heart::PlatformUtils::ExecuteCommandWithOutput(prefix, output);

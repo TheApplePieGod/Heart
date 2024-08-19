@@ -123,17 +123,22 @@ namespace HeartRuntime
 
         // TODO: eventually switch from loadedScene to default scene or something like that
         auto j = nlohmann::json::parse(data);
-        if (!j.contains("loadedScene") || j["loadedScene"].empty())
+
+        if (j.contains("loadedScene") && !j["loadedScene"].empty())
         {
-            HE_LOG_ERROR("Unable to load scene");
-            throw std::exception();
+            HE_LOG_INFO("Loaded runtime scene: {}", j["loadedScene"]);
+            Heart::UUID sceneAssetId = Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Scene, j["loadedScene"]);
+            m_RuntimeScene = Heart::AssetManager::RetrieveAsset(sceneAssetId)
+                ->EnsureValid<Heart::SceneAsset>()
+                ->GetScene()
+                ->Clone();
+        }
+        else
+        {
+            HE_LOG_WARN("Runtime project has no scene configured");
+            m_RuntimeScene = Heart::CreateRef<Heart::Scene>();
         }
 
-        Heart::UUID sceneAssetId = Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Scene, j["loadedScene"]);
-        m_RuntimeScene = Heart::AssetManager::RetrieveAsset(sceneAssetId)
-            ->EnsureValid<Heart::SceneAsset>()
-            ->GetScene()
-            ->Clone();
         m_RuntimeScene->StartRuntime();
 
         RuntimeApp::Get().GetWindow().DisableCursor();

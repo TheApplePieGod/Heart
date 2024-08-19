@@ -54,9 +54,6 @@ void main()
     vec3 F0 = mix(vec3(0.04), albedo.rgb, metalness);
     vec3 diffuse = mix(albedo.rgb * (vec3(1.0) - F0), vec3(0.0), metalness);
 
-    uint shadowFlags = gl_RayFlagsOpaqueEXT | gl_RayFlagsSkipClosestHitShaderEXT;
-    vec3 shadowOrigin = P + N * 0.01;
-
     // Direct lighitng
 
     // Compute cluster indices
@@ -74,6 +71,7 @@ void main()
         GET_CLUSTER_DATA().clusterDims,
         clusterZ
     );
+
     LightGrid grid = GetLightGrid(clusterIdx);
     vec3 finalContribution = vec3(0.f);
     for (uint i = 0; i < grid.lightCount; i++)
