@@ -20,9 +20,7 @@
 // https://stackoverflow.com/questions/37205883/where-i-could-find-a-reference-for-all-the-cor-e-hresults-wrapped-by-net-fra
 // https://referencesource.microsoft.com/#mscorlib/system/__hresults.cs
 
-// See NativeCallbacks.cpp for more info
-extern void* exportVariable;
-[[maybe_unused]] volatile void* exportVariableSet;
+extern void* NativeCallbacks[];
 
 namespace Heart
 {
@@ -175,8 +173,6 @@ namespace Heart
 
     void ScriptingEngine::Initialize()
     {
-        exportVariableSet = exportVariable;
-
         bool result = LoadHostFXR();
         HE_ENGINE_ASSERT(result, "Failed to load hostfxr");
 
@@ -215,6 +211,8 @@ namespace Heart
 
         res = s_BridgeCallbacks.EntryPoint_LoadCorePlugin(&s_CoreCallbacks);
         HE_ENGINE_ASSERT(res, "Failed to load core plugin");
+
+        s_CoreCallbacks.UnmanagedCallbacks_PopulateCallbacks(NativeCallbacks);
 
         HE_ENGINE_LOG_DEBUG("Scripts ready");
     }
@@ -318,6 +316,8 @@ namespace Heart
             HE_ENGINE_LOG_ERROR("Failed to load core plugin while reloading");
             return false;
         }
+
+        s_CoreCallbacks.UnmanagedCallbacks_PopulateCallbacks(NativeCallbacks);
 
         HE_ENGINE_LOG_INFO("Core plugin successfully reloaded");
         return true;

@@ -1,6 +1,7 @@
 ﻿using Heart.Container;
 using Heart.Math;
 using Heart.NativeInterop;
+using Heart.NativeBridge;
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -112,16 +113,16 @@ namespace Heart.Scene
         public static void NativeRemove(uint entityHandle, IntPtr sceneHandle)
             => Native_LightComponent_Remove(entityHandle, sceneHandle);
 
-        [DllImport("__Internal")]
-        internal static extern unsafe void Native_LightComponent_Get(uint entityHandle, IntPtr sceneHandle, out LightComponentInternal* comp);
+        [UnmanagedCallback]
+        internal static unsafe partial void Native_LightComponent_Get(uint entityHandle, IntPtr sceneHandle, out LightComponentInternal* comp);
 
-        [DllImport("__Internal")]
-        internal static extern void Native_LightComponent_Add(uint entityHandle, IntPtr sceneHandle);
+        [UnmanagedCallback]
+        internal static partial void Native_LightComponent_Add(uint entityHandle, IntPtr sceneHandle);
 
-        [DllImport("__Internal")]
-        internal static extern void Native_LightComponent_Remove(uint entityHandle, IntPtr sceneHandle);
+        [UnmanagedCallback]
+        internal static partial void Native_LightComponent_Remove(uint entityHandle, IntPtr sceneHandle);
 
-        [DllImport("__Internal")]
-        internal static extern InteropBool Native_LightComponent_Exists(uint entityHandle, IntPtr sceneHandle);
+        [UnmanagedCallback]
+        internal static partial InteropBool Native_LightComponent_Exists(uint entityHandle, IntPtr sceneHandle);
     }
 }

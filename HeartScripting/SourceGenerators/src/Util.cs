@@ -12,6 +12,7 @@ namespace SourceGenerators
     {
         NonPartialScriptEntityClass,
         NonPartialComponentClass,
+        NonPartialUnmanagedFunction,
     }
 
     public static class Util
@@ -34,6 +35,11 @@ namespace SourceGenerators
                     {
                         id = "H0002";
                         description = "All classes implementing Heart.Scene.IComponent must be declared as a 'partial' class.";
+                    } break;
+                case GenerationError.NonPartialUnmanagedFunction:
+                    {
+                        id = "H0004";
+                        description = "All methods with the 'UnmanagedCallback' attribute must be declared as a 'partial' method.";
                     } break;
             }
 

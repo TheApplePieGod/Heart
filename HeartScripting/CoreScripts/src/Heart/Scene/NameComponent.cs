@@ -1,5 +1,6 @@
 ﻿using Heart.Container;
 using Heart.NativeInterop;
+using Heart.NativeBridge;
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -31,10 +32,10 @@ namespace Heart.Scene
         public static void NativeRemove(uint entityHandle, IntPtr sceneHandle)
             => throw new InvalidOperationException("Cannot remove a name component");
 
-        [DllImport("__Internal")]
-        internal static extern unsafe void Native_NameComponent_Get(uint entityHandle, IntPtr sceneHandle, out HStringInternal* comp);
+        [UnmanagedCallback]
+        internal static unsafe partial void Native_NameComponent_Get(uint entityHandle, IntPtr sceneHandle, out HStringInternal* comp);
 
-        [DllImport("__Internal")]
-        internal static extern void Native_NameComponent_SetName(uint entityHandle, IntPtr sceneHandle, HStringInternal value);
+        [UnmanagedCallback]
+        internal static partial void Native_NameComponent_SetName(uint entityHandle, IntPtr sceneHandle, HStringInternal value);
     }
 }

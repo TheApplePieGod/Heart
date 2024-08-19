@@ -8,6 +8,7 @@
     <OutputPath>../bin</OutputPath>
     <AssemblyName>CoreScripts</AssemblyName>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <EmitCompilerGeneratedFiles>false</EmitCompilerGeneratedFiles>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../SourceGenerators/SourceGenerators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />

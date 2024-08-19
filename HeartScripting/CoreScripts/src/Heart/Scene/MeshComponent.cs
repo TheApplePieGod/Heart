@@ -1,5 +1,6 @@
 ﻿using Heart.Container;
 using Heart.NativeInterop;
+using Heart.NativeBridge;
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -115,22 +116,22 @@ namespace Heart.Scene
         public static void NativeRemove(uint entityHandle, IntPtr sceneHandle)
             => Native_MeshComponent_Remove(entityHandle, sceneHandle);
 
-        [DllImport("__Internal")]
-        internal static extern unsafe void Native_MeshComponent_Get(uint entityHandle, IntPtr sceneHandle, out MeshComponentInternal* comp);
+        [UnmanagedCallback]
+        internal static unsafe partial void Native_MeshComponent_Get(uint entityHandle, IntPtr sceneHandle, out MeshComponentInternal* comp);
 
-        [DllImport("__Internal")]
-        internal static extern InteropBool Native_MeshComponent_Exists(uint entityHandle, IntPtr sceneHandle);
+        [UnmanagedCallback]
+        internal static partial InteropBool Native_MeshComponent_Exists(uint entityHandle, IntPtr sceneHandle);
 
-        [DllImport("__Internal")]
-        internal static extern void Native_MeshComponent_Add(uint entityHandle, IntPtr sceneHandle);
+        [UnmanagedCallback]
+        internal static partial void Native_MeshComponent_Add(uint entityHandle, IntPtr sceneHandle);
 
-        [DllImport("__Internal")]
-        internal static extern void Native_MeshComponent_Remove(uint entityHandle, IntPtr sceneHandle);
+        [UnmanagedCallback]
+        internal static partial void Native_MeshComponent_Remove(uint entityHandle, IntPtr sceneHandle);
 
-        [DllImport("__Internal")]
-        internal static extern void Native_MeshComponent_AddMaterial(uint entityHandle, IntPtr sceneHandle, UUID material);
+        [UnmanagedCallback]
+        internal static partial void Native_MeshComponent_AddMaterial(uint entityHandle, IntPtr sceneHandle, UUID material);
 
-        [DllImport("__Internal")]
-        internal static extern void Native_MeshComponent_RemoveMaterial(uint entityHandle, IntPtr sceneHandle, uint index);
+        [UnmanagedCallback]
+        internal static partial void Native_MeshComponent_RemoveMaterial(uint entityHandle, IntPtr sceneHandle, uint index);
     }
 }

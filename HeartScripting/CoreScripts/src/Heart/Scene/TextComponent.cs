@@ -1,5 +1,6 @@
 ﻿using Heart.Container;
 using Heart.NativeInterop;
+using Heart.NativeBridge;
 using Heart.Math;
 using System;
 using System.Collections.Generic;
@@ -92,7 +93,10 @@ namespace Heart.Scene
             set
             {
                 RefreshPtr();
-                Native_TextComponent_SetText(_entityHandle, _sceneHandle, value);
+                fixed (char* ptr = value)
+                {
+                    Native_TextComponent_SetText(_entityHandle, _sceneHandle, ptr, (uint)value.Length);
+                }
             }
         }
 
@@ -176,22 +180,22 @@ namespace Heart.Scene
         public static void NativeRemove(uint entityHandle, IntPtr sceneHandle)
             => Native_TextComponent_Remove(entityHandle, sceneHandle);
 
-        [DllImport("__Internal")]
-        internal static extern unsafe void Native_TextComponent_Get(uint entityHandle, IntPtr sceneHandle, out TextComponentInternal* comp);
+        [UnmanagedCallback]
+        internal static unsafe partial void Native_TextComponent_Get(uint entityHandle, IntPtr sceneHandle, out TextComponentInternal* comp);
 
-        [DllImport("__Internal")]
-        internal static extern InteropBool Native_TextComponent_Exists(uint entityHandle, IntPtr sceneHandle);
+        [UnmanagedCallback]
+        internal static partial InteropBool Native_TextComponent_Exists(uint entityHandle, IntPtr sceneHandle);
 
-        [DllImport("__Internal")]
-        internal static extern void Native_TextComponent_Add(uint entityHandle, IntPtr sceneHandle);
+        [UnmanagedCallback]
+        internal static partial void Native_TextComponent_Add(uint entityHandle, IntPtr sceneHandle);
 
-        [DllImport("__Internal")]
-        internal static extern void Native_TextComponent_Remove(uint entityHandle, IntPtr sceneHandle);
+        [UnmanagedCallback]
+        internal static partial void Native_TextComponent_Remove(uint entityHandle, IntPtr sceneHandle);
 
-        [DllImport("__Internal")]
-        internal static extern void Native_TextComponent_SetText(uint entityHandle, IntPtr sceneHandle, [MarshalAs(UnmanagedType.LPStr)] string text);
+        [UnmanagedCallback]
+        internal static unsafe partial void Native_TextComponent_SetText(uint entityHandle, IntPtr sceneHandle, char* text, uint textLen);
 
-        [DllImport("__Internal")]
-        internal static extern void Native_TextComponent_ClearRenderData(uint entityHandle, IntPtr sceneHandle);
+        [UnmanagedCallback]
+        internal static partial void Native_TextComponent_ClearRenderData(uint entityHandle, IntPtr sceneHandle);
     }
 }

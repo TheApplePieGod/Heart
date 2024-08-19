@@ -31,7 +31,7 @@ namespace Heart
 
     HString HString::Convert(Encoding encoding) const
     {
-        if (encoding == m_Encoding) return Clone();
+        if (encoding == m_Encoding) return *this;
         if (Count() == 0) return HString(encoding);
 
         switch (encoding)
@@ -309,5 +309,79 @@ namespace Heart
         if (!j.is_string()) return;
         
         str = HString(j.get<const nlohmann::json::string_t*>()->c_str());
+    }
+
+    int HStringView::Compare(StringComparison type, const HStringView& other) const
+    {
+        if (other.m_Encoding != m_Encoding)
+        {
+            HE_ENGINE_LOG_ERROR("Attempting to compare two HStringViews with different encodings, aborting");
+            HE_ENGINE_ASSERT(false);
+            return 0;
+        }
+
+        switch (type)
+        {
+            case StringComparison::Value:
+            {
+                switch (m_Encoding)
+                {
+                    case HString::Encoding::UTF8:
+                    { return StringUtils::CompareByValue(DataUTF8(), CountUTF8(), other.DataUTF8(), other.CountUTF8()); }
+                    case HString::Encoding::UTF16:
+                    { return StringUtils::CompareByValue(DataUTF16(), CountUTF16(), other.DataUTF16(), other.CountUTF16()); }
+                }
+            }
+            case StringComparison::Alphabetical:
+            {
+                switch (m_Encoding)
+                {
+                    case HString::Encoding::UTF8:
+                    { return StringUtils::CompareAlphabetical(DataUTF8(), CountUTF8(), other.DataUTF8(), other.CountUTF8()); }
+                    case HString::Encoding::UTF16:
+                    { return StringUtils::CompareAlphabetical(DataUTF16(), CountUTF16(), other.DataUTF16(), other.CountUTF16()); }
+                }
+            }
+            case StringComparison::Equality:
+            {
+                switch (m_Encoding)
+                {
+                    case HString::Encoding::UTF8:
+                    { return !StringUtils::CompareEq(DataUTF8(), CountUTF8(), other.DataUTF8(), other.CountUTF8()); }
+                    case HString::Encoding::UTF16:
+                    { return !StringUtils::CompareEq(DataUTF16(), CountUTF16(), other.DataUTF16(), other.CountUTF16()); }
+                }
+            }
+        }
+
+        HE_ENGINE_ASSERT(false, "HStringView comparison not fully implemented");
+        return 0;
+    }
+
+    HString HStringView::Convert(HString::Encoding encoding) const
+    {
+        if (encoding == m_Encoding) return HString(*this);
+        if (Count() == 0) return HString(encoding);
+
+        switch (encoding)
+        {
+            case HString::Encoding::UTF8:
+            {
+                switch (m_Encoding)
+                {
+                    case HString::Encoding::UTF16: return HString(ww898::utf::convz<char8>(DataUTF16()));
+                }
+            }
+            case HString::Encoding::UTF16:
+            {
+                switch (m_Encoding)
+                {
+                    case HString::Encoding::UTF8: return HString(ww898::utf::convz<char16>(DataUTF8()));
+                }
+            }
+        }
+
+        HE_ENGINE_ASSERT(false, "HStringView Convert() not fully implemented");
+        return HString();
     }
 }

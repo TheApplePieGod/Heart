@@ -226,7 +226,7 @@ namespace Heart
         {}
 
         constexpr HStringView(const char16* str)
-            : m_Encoding(HString::Encoding::UTF8), m_Data(str), m_Count(StringUtils::StrLen(str))
+            : m_Encoding(HString::Encoding::UTF16), m_Data(str), m_Count(StringUtils::StrLen(str))
         {}
 
         constexpr HStringView(const char8* str, u32 len)
@@ -234,10 +234,11 @@ namespace Heart
         {}
 
         constexpr HStringView(const char16* str, u32 len)
-            : m_Encoding(HString::Encoding::UTF8), m_Data(str), m_Count(len)
+            : m_Encoding(HString::Encoding::UTF16), m_Data(str), m_Count(len)
         {}
 
-        constexpr int Compare(StringComparison type, const HStringView& other) const;
+        int Compare(StringComparison type, const HStringView& other) const;
+        HString Convert(HString::Encoding encoding) const;
 
         inline HString8 ToUTF8() const { return HString8(DataUTF8(), CountUTF8()); }
         inline HString16 ToUTF16() const { return HString16(DataUTF16(), CountUTF16()); }
@@ -287,53 +288,6 @@ namespace Heart
 
     void to_json(nlohmann::json& j, const HString& str);
     void from_json(const nlohmann::json& j, HString& str);
-
-    constexpr int HStringView::Compare(StringComparison type, const HStringView& other) const
-    {
-        if (other.m_Encoding != m_Encoding)
-        {
-            HE_ENGINE_LOG_ERROR("Attempting to compare two HStringViews with different encodings, aborting");
-            HE_ENGINE_ASSERT(false);
-            return 0;
-        }
-
-        switch (type)
-        {
-            case StringComparison::Value:
-            {
-                switch (m_Encoding)
-                {
-                    case HString::Encoding::UTF8:
-                    { return StringUtils::CompareByValue(DataUTF8(), CountUTF8(), other.DataUTF8(), other.CountUTF8()); }
-                    case HString::Encoding::UTF16:
-                    { return StringUtils::CompareByValue(DataUTF16(), CountUTF16(), other.DataUTF16(), other.CountUTF16()); }
-                }
-            }
-            case StringComparison::Alphabetical:
-            {
-                switch (m_Encoding)
-                {
-                    case HString::Encoding::UTF8:
-                    { return StringUtils::CompareAlphabetical(DataUTF8(), CountUTF8(), other.DataUTF8(), other.CountUTF8()); }
-                    case HString::Encoding::UTF16:
-                    { return StringUtils::CompareAlphabetical(DataUTF16(), CountUTF16(), other.DataUTF16(), other.CountUTF16()); }
-                }
-            }
-            case StringComparison::Equality:
-            {
-                switch (m_Encoding)
-                {
-                    case HString::Encoding::UTF8:
-                    { return !StringUtils::CompareEq(DataUTF8(), CountUTF8(), other.DataUTF8(), other.CountUTF8()); }
-                    case HString::Encoding::UTF16:
-                    { return !StringUtils::CompareEq(DataUTF16(), CountUTF16(), other.DataUTF16(), other.CountUTF16()); }
-                }
-            }
-        }
-
-        HE_ENGINE_ASSERT(false, "HStringView comparison not fully implemented");
-        return 0;
-    }
 }
 
 // Implement hash functionality for HString

@@ -3,10 +3,11 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Heart.NativeBridge;
 
 namespace Heart.Container
 {
-    [StructLayout(LayoutKind.Explicit, Size=8)]
+    [StructLayout(LayoutKind.Explicit, Size = 8)]
     public unsafe struct HArrayInternal
     {
         [FieldOffset(0)] public Variant* Data;
@@ -21,7 +22,7 @@ namespace Heart.Container
     }
 
     // Todo: typed version
-    public sealed class HArray : IList<object>, ICollection, IDisposable
+    public sealed partial class HArray : IList<object>, ICollection, IDisposable
     {
         internal unsafe HArrayInternal _internalVal;
 
@@ -175,16 +176,16 @@ namespace Heart.Container
             get { return Valid ? _internalVal.GetInfo()->RefCount : 0; }
         }
 
-        [DllImport("__Internal")]
-        internal static extern void Native_HArray_Init(out HArrayInternal array);
+        [UnmanagedCallback]
+        internal static partial void Native_HArray_Init(out HArrayInternal array);
 
-        [DllImport("__Internal")]
-        internal static extern void Native_HArray_Destroy(in HArrayInternal array);
+        [UnmanagedCallback]
+        internal static partial void Native_HArray_Destroy(in HArrayInternal array);
 
-        [DllImport("__Internal")]
-        internal static extern void Native_HArray_Copy(out HArrayInternal dst, in HArrayInternal src);
+        [UnmanagedCallback]
+        internal static partial void Native_HArray_Copy(out HArrayInternal dst, in HArrayInternal src);
 
-        [DllImport("__Internal")]
-        internal static extern void Native_HArray_Add(in HArrayInternal array, Variant value);
+        [UnmanagedCallback]
+        internal static partial void Native_HArray_Add(in HArrayInternal array, Variant value);
     }
 }

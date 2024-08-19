@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Heart.NativeBridge;
 
 namespace Heart.Container
 {
@@ -10,7 +11,7 @@ namespace Heart.Container
         UTF16 = 1
     }
 
-    [StructLayout(LayoutKind.Explicit, Size=16)]
+    [StructLayout(LayoutKind.Explicit, Size = 16)]
     public unsafe struct HStringInternal
     {
         [FieldOffset(0)] public Encoding Encoding;
@@ -26,13 +27,16 @@ namespace Heart.Container
     }
 
     // Todo: typed version
-    public class HString : IDisposable
+    public sealed partial class HString : IDisposable
     {
         internal unsafe HStringInternal _internalVal;
 
-        public HString(string value)
+        public unsafe HString(string value)
         {
-            Native_HString_Init(out _internalVal, value);
+            fixed (char* ptr = value)
+            {
+                Native_HString_Init(out _internalVal, ptr);
+            }
         }
 
         internal HString(HStringInternal internalVal)
@@ -87,13 +91,13 @@ namespace Heart.Container
             get { return Valid ? _internalVal.GetInfo()->RefCount : 0; }
         }
 
-        [DllImport("__Internal")]
-        internal static extern void Native_HString_Init(out HStringInternal str, [MarshalAs(UnmanagedType.LPWStr)] string value);
+        [UnmanagedCallback]
+        internal static unsafe partial void Native_HString_Init(out HStringInternal str, char* value);
 
-        [DllImport("__Internal")]
-        internal static extern void Native_HString_Destroy(in HStringInternal str);
+        [UnmanagedCallback]
+        internal static partial void Native_HString_Destroy(in HStringInternal str);
 
-        [DllImport("__Internal")]
-        internal static extern void Native_HString_Copy(out HStringInternal dst, in HStringInternal src);
+        [UnmanagedCallback]
+        internal static partial void Native_HString_Copy(out HStringInternal dst, in HStringInternal src);
     }
 }
