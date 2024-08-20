@@ -12,7 +12,7 @@ namespace Heart
         GLFWWindow(const WindowCreateInfo& createInfo);
         ~GLFWWindow();
 
-        void PollEvents() override;
+        bool PollEvents() override;
         void EndFrame() override;
 
         void DisableCursor() override;

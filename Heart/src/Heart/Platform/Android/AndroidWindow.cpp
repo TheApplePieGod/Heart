@@ -9,11 +9,18 @@
 #include "Heart/Input/Input.h"
 #include "Heart/Core/App.h"
 #include "Heart/Platform/Android/AndroidApp.h"
-
 #include "Flourish/Api/RenderContext.h"
+
+#include "imgui/imgui.h"
+#include "imgui/backends/imgui_impl_android.h"
 
 namespace Heart
 {
+    static int HandleInputEvent(struct android_app* app, AInputEvent* inputEvent)
+    {
+        return ImGui_ImplAndroid_HandleInputEvent(inputEvent);
+    }
+
     AndroidWindow::AndroidWindow(const WindowCreateInfo& createInfo)
         : Window(createInfo)
     {
@@ -23,14 +30,12 @@ namespace Heart
 
         HE_ENGINE_LOG_TRACE("Android native window = {0}", static_cast<void*>(AndroidApp::NativeWindow));
 
-        Flourish::RenderContextCreateInfo ctxCreateInfo;
-        ctxCreateInfo.Window = AndroidApp::NativeWindow;
-        ctxCreateInfo.Width = createInfo.Width;
-        ctxCreateInfo.Height = createInfo.Height;
-        m_RenderContext = Flourish::RenderContext::Create(ctxCreateInfo);
+        AndroidApp::App->onInputEvent = HandleInputEvent;
 
         m_Window = AndroidApp::NativeWindow;
         s_WindowCount++;
+
+        RecreateRenderContext();
     }
 
     AndroidWindow::~AndroidWindow()
@@ -38,12 +43,26 @@ namespace Heart
     
     }
 
-    void AndroidWindow::PollEvents()
+    bool AndroidWindow::PollEvents()
     {
+        bool recreated = false;
+
         if (AndroidApp::App->destroyRequested != 0)
         {
             App::Get().Close();
-            return;
+            return recreated;
+        }
+
+        if (AndroidApp::NativeWindow && AndroidApp::NativeWindow != m_Window)
+        {
+            // Window has been recreated, so we need to remake the render context
+            
+            HE_ENGINE_LOG_WARN("Detected android window recreation");
+
+            m_Window = AndroidApp::NativeWindow;
+            recreated = true;
+
+            RecreateRenderContext();
         }
 
         while (true)
@@ -62,6 +81,8 @@ namespace Heart
 
             break;
         }
+
+        return recreated;
     }
 
     void AndroidWindow::EndFrame()
@@ -97,6 +118,17 @@ namespace Heart
     bool AndroidWindow::IsFullscreen() const
     {
         return false;
+    }
+
+    void AndroidWindow::RecreateRenderContext()
+    {
+        m_RenderContext = nullptr;
+
+        Flourish::RenderContextCreateInfo ctxCreateInfo;
+        ctxCreateInfo.Window = (ANativeWindow*)m_Window;
+        ctxCreateInfo.Width = m_WindowData.Width;
+        ctxCreateInfo.Height = m_WindowData.Height;
+        m_RenderContext = Flourish::RenderContext::Create(ctxCreateInfo);
     }
 }
 

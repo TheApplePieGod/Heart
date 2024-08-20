@@ -136,11 +136,13 @@ namespace Heart
             glfwTerminate();
     }
 
-    void GLFWWindow::PollEvents()
+    bool GLFWWindow::PollEvents()
     {
         HE_PROFILE_FUNCTION();
         
         glfwPollEvents();
+
+        return false;
     }
 
     void GLFWWindow::EndFrame()

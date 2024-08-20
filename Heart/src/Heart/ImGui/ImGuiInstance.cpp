@@ -58,41 +58,22 @@ namespace Heart
 
         SetThemeColors();
 
-        // do the Inits here because they don't need to be recalled when recreating the instance
-        switch (Flourish::Context::BackendType())
-        {
-            default:
-            { HE_ENGINE_ASSERT(false, "Cannot initialize ImGui: selected ApiType is not supported"); } break;
-            case Flourish::BackendType::Vulkan:
-            {
-                #ifdef HE_PLATFORM_ANDROID
-                    ImGui_ImplAndroid_Init((ANativeWindow*)window->GetWindowHandle());
-                #else
-                    ImGui_ImplGlfw_InitForVulkan((GLFWwindow*)window->GetWindowHandle(), true);
-                #endif
-            } break;
-        }
-
         Recreate();
     }
 
     ImGuiInstance::~ImGuiInstance()
     {
 		HE_ENGINE_LOG_TRACE("Shutting down ImGui instance");
-        Cleanup();
+
+        Cleanup(false);
         
-        #ifdef HE_PLATFORM_ANDROID
-            ImGui_ImplAndroid_Shutdown();
-        #else
-            ImGui_ImplGlfw_Shutdown();
-        #endif
 	    ImGui::DestroyContext();
     }
 
     void ImGuiInstance::Recreate()
     {
         if (m_Initialized)
-            Cleanup();
+            Cleanup(true);
 
 		HE_ENGINE_LOG_TRACE("ImGui: Recreating");
 
@@ -102,6 +83,12 @@ namespace Heart
             { HE_ENGINE_ASSERT(false, "Cannot initialize ImGui: selected ApiType is not supported"); } break;
             case Flourish::BackendType::Vulkan:
             {
+                #ifdef HE_PLATFORM_ANDROID
+                    ImGui_ImplAndroid_Init((ANativeWindow*)m_Window->GetWindowHandle());
+                #else
+                    ImGui_ImplGlfw_InitForVulkan((GLFWwindow*)m_Window->GetWindowHandle(), true);
+                #endif
+
     			ImGui_ImplVulkan_LoadFunctions([](const char* function_name, void*)
 				{
 					return vkGetInstanceProcAddr(Flourish::Vulkan::Context::Instance(), function_name);
@@ -109,24 +96,27 @@ namespace Heart
 
 		        HE_ENGINE_LOG_TRACE("ImGui: Vulkan functions loaded");
 
-				// Create the descriptor pool for imgui
-				std::array<VkDescriptorPoolSize, 1> poolSizes{};
-				poolSizes[0].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-				poolSizes[0].descriptorCount = 10000;
-				VkDescriptorPoolCreateInfo poolInfo{};
-				poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-				poolInfo.poolSizeCount = static_cast<u32>(poolSizes.size());
-				poolInfo.pPoolSizes = poolSizes.data();
-				poolInfo.maxSets = 10000;
-				poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-				vkCreateDescriptorPool(
-					Flourish::Vulkan::Context::Devices().Device(),
-					&poolInfo,
-					nullptr,
-					(VkDescriptorPool*)&m_DescriptorPool
-				);
+                if (!m_DescriptorPool)
+                {
+                    // Create the descriptor pool for imgui
+                    std::array<VkDescriptorPoolSize, 1> poolSizes{};
+                    poolSizes[0].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+                    poolSizes[0].descriptorCount = 10000;
+                    VkDescriptorPoolCreateInfo poolInfo{};
+                    poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+                    poolInfo.poolSizeCount = static_cast<u32>(poolSizes.size());
+                    poolInfo.pPoolSizes = poolSizes.data();
+                    poolInfo.maxSets = 10000;
+                    poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+                    vkCreateDescriptorPool(
+                        Flourish::Vulkan::Context::Devices().Device(),
+                        &poolInfo,
+                        nullptr,
+                        (VkDescriptorPool*)&m_DescriptorPool
+                    );
 
-		        HE_ENGINE_LOG_TRACE("ImGui: Descriptor pool created");
+                    HE_ENGINE_LOG_TRACE("ImGui: Descriptor pool created");
+                }
 
 				// Initialize
 				ImGui_ImplVulkan_InitInfo info = {};
@@ -139,7 +129,9 @@ namespace Heart
 				info.DescriptorPool = (VkDescriptorPool)m_DescriptorPool;
 				info.Allocator = NULL;
 				info.MinImageCount = 2;
+                info.DescriptorSetLayout = (VkDescriptorSetLayout)m_DescriptorSetLayout;
 				info.ImageCount = Flourish::Context::FrameBufferCount();
+                info.RenderPass = ((Flourish::Vulkan::RenderPass*)App::Get().GetWindow().GetRenderContext()->GetRenderPass())->GetRenderPass();
 				#ifdef HE_DEBUG
 					info.CheckVkResultFn = [](VkResult err)
 					{
@@ -147,27 +139,12 @@ namespace Heart
 					};
 				#endif
 				info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
-				ImGui_ImplVulkan_Init(
-					&info,
-					((Flourish::Vulkan::RenderPass*)App::Get().GetWindow().GetRenderContext()->GetRenderPass())->GetRenderPass()
-				);
+
+				ImGui_ImplVulkan_Init(&info);
+
+                m_DescriptorSetLayout = ImGui_ImplVulkan_GetDescriptorSetLayout();
 
 		        HE_ENGINE_LOG_TRACE("ImGui: Vulkan initialized");
-				
-				// Create fonts texture & cleanup resources
-				VkCommandBuffer cmdBuf;
-				auto allocInfo = Flourish::Vulkan::Context::Commands().AllocateBuffers(Flourish::GPUWorkloadType::Graphics, false, &cmdBuf, 1, true);
-				VkCommandBufferBeginInfo beginInfo{};
-				beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-				beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-				vkBeginCommandBuffer(cmdBuf, &beginInfo);
-				ImGui_ImplVulkan_CreateFontsTexture(cmdBuf);
-				vkEndCommandBuffer(cmdBuf);
-				Flourish::Vulkan::Context::Queues().ExecuteCommand(Flourish::GPUWorkloadType::Graphics, cmdBuf);
-				ImGui_ImplVulkan_DestroyFontUploadObjects();
-				Flourish::Vulkan::Context::Commands().FreeBuffer(allocInfo, cmdBuf);
-
-		        HE_ENGINE_LOG_TRACE("ImGui: Font objects uploaded");
 			} break;
         }
 
@@ -189,7 +166,7 @@ namespace Heart
 		ImGui::LoadIniSettingsFromDisk(io.IniFilename);
 	}
 
-    void ImGuiInstance::Cleanup()
+    void ImGuiInstance::Cleanup(bool willRecreate)
     {
         if (!m_Initialized) return;
 
@@ -199,14 +176,26 @@ namespace Heart
             { HE_ENGINE_ASSERT(false, "Cannot cleanup ImGui: selected ApiType is not supported"); } break;
             case Flourish::BackendType::Vulkan:
             {
-				ImGui_ImplVulkan_Shutdown();
-				vkDestroyDescriptorPool(
-					Flourish::Vulkan::Context::Devices().Device(),
-					(VkDescriptorPool)m_DescriptorPool,
-					nullptr
-				);
+                Flourish::Vulkan::Context::Sync();
+
+				ImGui_ImplVulkan_Shutdown(willRecreate);
+                if (!willRecreate)
+                {
+                    vkDestroyDescriptorPool(
+                        Flourish::Vulkan::Context::Devices().Device(),
+                        (VkDescriptorPool)m_DescriptorPool,
+                        nullptr
+                    );
+                    m_DescriptorPool = nullptr;
+                }
 			} break;
 		}
+
+        #ifdef HE_PLATFORM_ANDROID
+            ImGui_ImplAndroid_Shutdown();
+        #else
+            ImGui_ImplGlfw_Shutdown();
+        #endif
 
         m_Initialized = false;
     }

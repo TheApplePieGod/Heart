@@ -39,8 +39,11 @@ namespace Heart
         /*! @brief Default destructor. */
         virtual ~Window();
 
-        /*! @brief Poll the window for various input/misc events. */
-        virtual void PollEvents() = 0;
+        /** 
+         * @brief Poll the window for various input/misc events.
+         * @return true if the window was recreated for any reason
+         */
+        virtual bool PollEvents() = 0;
 
         /*! @brief End the window's frame. */
         virtual void EndFrame() = 0;

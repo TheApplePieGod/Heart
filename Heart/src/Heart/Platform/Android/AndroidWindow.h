@@ -12,7 +12,7 @@ namespace Heart
         AndroidWindow(const WindowCreateInfo& createInfo);
         ~AndroidWindow();
 
-        void PollEvents() override;
+        bool PollEvents() override;
         void EndFrame() override;
 
         void DisableCursor() override;
@@ -22,6 +22,9 @@ namespace Heart
         void SetFullscreen(bool fullscreen) override;
         void ToggleFullscreen() override;
         bool IsFullscreen() const override;
+
+    private:
+        void RecreateRenderContext();
     };
 }
 

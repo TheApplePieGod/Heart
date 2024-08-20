@@ -201,7 +201,13 @@ namespace Heart
             m_LastFrameTime = currentFrameTime;
 
             auto timer = AggregateTimer("App::Run - PollEvents");
-            m_Window->PollEvents();
+            if (m_Window->PollEvents())
+            {
+                // True here means the window was internally recreated, so we need to update objects
+                // that depend on window internals
+
+                m_ImGuiInstance->Recreate();
+            }
             timer.Finish();
 
             if (!m_Minimized && m_Window->GetRenderContext()->Validate())
