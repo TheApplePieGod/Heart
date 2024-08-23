@@ -42,6 +42,9 @@ namespace Heart
         InitializeGraphicsApi(windowCreateInfo);
         HE_ENGINE_LOG_DEBUG("Graphics ready");
 
+        // Run on main thread, since some platforms have issues otherwise
+        ScriptingEngine::Initialize();
+
         // Init services
         TaskGroup initServices;
         initServices.AddTask(TaskManager::Schedule(
@@ -51,10 +54,6 @@ namespace Heart
         initServices.AddTask(TaskManager::Schedule(
             [](){ AssetManager::Initialize(); },
             Task::Priority::High, "AssetManager Init")
-        );
-        initServices.AddTask(TaskManager::Schedule(
-            [](){ ScriptingEngine::Initialize(); },
-            Task::Priority::High, "Scripts Init")
         );
         
         initServices.Wait();

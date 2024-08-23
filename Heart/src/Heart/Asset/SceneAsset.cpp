@@ -264,7 +264,7 @@ namespace Heart
                         {
                             HE_ENGINE_LOG_WARN(
                                 "Script class '{0}' referenced in entity is no longer instantiable (id: {1}, name: {2})",
-                                typeName.DataUTF8(),id, entity.GetName().DataUTF8()
+                                typeName.DataUTF8(), id, entity.GetName().DataUTF8()
                             );
                         }
                         else
