@@ -53,12 +53,12 @@ namespace Heart
 
         glfwSetWindowSizeCallback(window, [](GLFWwindow *window, int width, int height)
         {
-			WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
-			data.Width = width;
-			data.Height = height;
+			GLFWWindowData& data = *(GLFWWindowData*)glfwGetWindowUserPointer(window);
+			data.DataPtr->Width = width;
+			data.DataPtr->Height = height;
 
 			WindowResizeEvent event(width, height);
-			data.EmitEvent(event);
+			data.DataPtr->EmitEvent(event);
         });
 
         glfwSetKeyCallback(window, [](GLFWwindow *window, int key, int scancode, int action, int mods)
@@ -219,7 +219,8 @@ namespace Heart
                     m_SavedWindowSizeAndPosition[3],
                     m_SavedWindowSizeAndPosition[0],
                     m_SavedWindowSizeAndPosition[1],
-                    0);
+                    0
+                );
             }
         }
     }

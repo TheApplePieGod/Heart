@@ -74,7 +74,8 @@ namespace HeartRuntime
     {
         if (event.GetKeyCode() == Heart::KeyCode::F11)
             RuntimeApp::Get().GetWindow().ToggleFullscreen();
-        if (event.GetKeyCode() == Heart::KeyCode::F12)
+        if (event.GetKeyCode() == Heart::KeyCode::F12 ||
+            event.GetKeyCode() == Heart::KeyCode::Back) // Android devices
         {
             if (m_DevPanel.IsOpen())
             {
@@ -87,7 +88,7 @@ namespace HeartRuntime
                 m_DevPanel.SetOpen(true);
             }
         }
-        
+
         return true;
     }
 

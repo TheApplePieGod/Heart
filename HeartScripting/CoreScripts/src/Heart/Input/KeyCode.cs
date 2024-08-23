@@ -55,6 +55,7 @@
         Y = 89,
         Z = 90,
 
+        Back = 255,
         Escape = 256,
         Enter = 257,
         Tab = 258,

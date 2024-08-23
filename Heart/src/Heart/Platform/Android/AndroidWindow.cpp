@@ -4,6 +4,9 @@
 #ifdef HE_PLATFORM_ANDROID
 
 #include "Heart/Input/Input.h"
+#include "Heart/Events/KeyEvents.h"
+#include "Heart/Events/ButtonEvents.h"
+#include "Heart/Events/WindowEvents.h"
 #include "Heart/Core/App.h"
 #include "Heart/Platform/Android/AndroidApp.h"
 #include "Flourish/Api/RenderContext.h"
@@ -45,6 +48,8 @@ namespace Heart
             return KeyCode::Space;
         case AKEYCODE_ENTER:
             return KeyCode::Enter;
+        case AKEYCODE_BACK:
+            return KeyCode::Back;
         case AKEYCODE_ESCAPE:
             return KeyCode::Escape;
         case AKEYCODE_APOSTROPHE:
@@ -201,6 +206,8 @@ namespace Heart
         int eventType = AInputEvent_getType(inputEvent);
         int eventSource = AInputEvent_getSource(inputEvent);
 
+        AndroidWindow& window = (AndroidWindow&)App::Get().GetWindow();
+
         switch (eventType)
         {
             case AINPUT_EVENT_TYPE_KEY:
@@ -215,8 +222,21 @@ namespace Heart
                     case AKEY_EVENT_ACTION_DOWN:
                     case AKEY_EVENT_ACTION_UP:
                     {
+                        bool pressed = action == AKEY_EVENT_ACTION_DOWN;
+
                         KeyCode key = ConvertKeyCode(keyCode);
-                        Input::AddKeyEvent(key, action == AKEY_EVENT_ACTION_DOWN);
+                        Input::AddKeyEvent(key, pressed);
+
+                        if (pressed)
+                        {
+                            KeyPressedEvent event(key, false);
+                            window.Emit(event);
+                        }
+                        else
+                        {
+                            KeyReleasedEvent event(key);
+                            window.Emit(event);
+                        }
 
                         break;
                     }
@@ -252,11 +272,23 @@ namespace Heart
                     {
                         if (toolType == AMOTION_EVENT_TOOL_TYPE_FINGER || toolType == AMOTION_EVENT_TOOL_TYPE_UNKNOWN)
                         {
+                            bool pressed = action == AMOTION_EVENT_ACTION_DOWN;
                             float xPos = AMotionEvent_getX(inputEvent, pointerIndex);
                             float yPos = AMotionEvent_getY(inputEvent, pointerIndex);
                             Input::AddAxisEvent(AxisCode::MouseX, (double)xPos, false);
                             Input::AddAxisEvent(AxisCode::MouseY, (double)yPos, false);
-                            Input::AddButtonEvent(ButtonCode::Button1, action == AMOTION_EVENT_ACTION_DOWN);
+                            Input::AddButtonEvent(ButtonCode::Button1, pressed);
+
+                            if (pressed)
+                            {
+					            ButtonPressedEvent event(ButtonCode::Button1);
+                                window.Emit(event);
+                            }
+                            else
+                            {
+					            ButtonReleasedEvent event(ButtonCode::Button1);
+                                window.Emit(event);
+                            }
                         }
 
                         break;
@@ -268,8 +300,6 @@ namespace Heart
                         Input::AddButtonEvent(ButtonCode::Button1, buttonState & AMOTION_EVENT_BUTTON_PRIMARY);
                         Input::AddButtonEvent(ButtonCode::Button2, buttonState & AMOTION_EVENT_BUTTON_SECONDARY);
                         Input::AddButtonEvent(ButtonCode::Button3, buttonState & AMOTION_EVENT_BUTTON_TERTIARY);
-
-                        // HE_ENGINE_LOG_INFO("Button event {}", buttonState);
 
                         break;
                     }
