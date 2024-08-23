@@ -229,7 +229,7 @@ namespace Heart
                 timer = AggregateTimer("App::Run - End frame");
                 m_ImGuiInstance->EndFrame();
                 m_Window->EndFrame();
-                Input::ClearDeltas();
+                Input::EndFrame();
                 Flourish::Context::EndFrame();
                 m_FrameCount++;
                 timer.Finish();

@@ -14,6 +14,11 @@ namespace BridgeScripts
         private static PluginLoadContext _clientLoadContext;
         private static PluginLoadContext _coreLoadContext;
 
+        public static Assembly CoreAssembly
+        {
+            get => _coreLoadContext.LoadedAssembly;
+        }
+
         public static Assembly ClientAssembly
         {
             get => _clientLoadContext.LoadedAssembly;

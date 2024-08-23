@@ -2,9 +2,11 @@
 using Heart.NativeInterop;
 using Heart.Scene;
 using System;
+using System.Runtime.InteropServices;
 
 namespace Heart.NativeBridge
 {
+    [StructLayout(LayoutKind.Sequential)]
     internal unsafe struct ManagedCallbacks
     {
         public delegate* unmanaged<IntPtr*, void> UnmanagedCallbacks_PopulateCallbacks;

@@ -5,6 +5,8 @@ namespace Heart
     /*! @brief All of the significant key codes represented as an enum. */
     enum class KeyCode : u16
     {
+        None = 0,
+
         Space = 32,
         Apostrophe = 39,
         Comma = 44,
@@ -108,8 +110,13 @@ namespace Heart
         LeftShift = 340,
         LeftCtrl = 341,
         LeftAlt = 342,
+        LeftSuper = 343,
         RightShift = 344,
         RightCtrl = 345,
         RightAlt = 346,
+        RightSuper = 347,
+        Menu = 348,
+
+        MAX = Menu
     };
 }

@@ -42,7 +42,7 @@ namespace Widgets
         ImGui::Text("Camera Pos: (%.2f, %.2f, %.2f)", cameraPos.x, cameraPos.y, cameraPos.z);
         ImGui::Text("Camera Dir: (%.2f, %.2f, %.2f)", cameraFor.x, cameraFor.y, cameraFor.z);
         ImGui::Text("Camera Rot: (%.2f, %.2f)", viewport.GetActiveCameraRotation().x, viewport.GetActiveCameraRotation().y);
-        ImGui::Text("Mouse Pos: (%.1f, %.1f)", Heart::Input::GetScreenMousePos().x, Heart::Input::GetScreenMousePos().y);
+        ImGui::Text("Mouse Pos: (%.1f, %.1f)", Heart::Input::GetMousePosition().x, Heart::Input::GetMousePosition().y);
         ImGui::Text("VP Mouse: (%.1f, %.1f)", viewport.GetRelativeMousePos().x, viewport.GetRelativeMousePos().y);
         ImGui::Text("VP Hover: %s", viewport.IsHovered() ? "true" : "false");
         ImGui::Unindent();

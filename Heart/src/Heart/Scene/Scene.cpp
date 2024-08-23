@@ -449,6 +449,8 @@ namespace Heart
     {
         m_IsRuntime = true;
 
+        HE_ENGINE_LOG_DEBUG("Starting scene runtime");
+
         // Call OnPlayStart lifecycle method
         auto view = m_Registry.view<ScriptComponent>();
         for (auto entity : view)

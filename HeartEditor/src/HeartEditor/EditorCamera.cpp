@@ -16,9 +16,8 @@ namespace HeartEditor
     {
         HE_PROFILE_FUNCTION();
         
-        bool middleMousePressed = Heart::Input::IsMouseButtonPressed(Heart::MouseCode::MiddleButton);
-        f32 deltaX = static_cast<f32>(Heart::Input::GetMouseDeltaX());
-        f32 deltaY = static_cast<f32>(Heart::Input::GetMouseDeltaY());
+        bool middleMousePressed = Heart::Input::IsButtonPressed(Heart::ButtonCode::MiddleMouse);
+        glm::vec2 mouseDelta = Heart::Input::GetMouseDelta();
         f32 stepSeconds = static_cast<f32>(ts.StepSeconds());
         f32 moveSpeed = 2.f; // m/s
         f32 panSpeed = 3.f; // m/s
@@ -37,8 +36,8 @@ namespace HeartEditor
             
             if (!middleMousePressed)
             {
-                m_Rotation.y += mouseScale * static_cast<f32>(Heart::Input::GetMouseDeltaX());
-                m_Rotation.x += mouseScale * static_cast<f32>(Heart::Input::GetMouseDeltaY());
+                m_Rotation.y += mouseScale * static_cast<f32>(mouseDelta.x);
+                m_Rotation.x += mouseScale * static_cast<f32>(mouseDelta.y);
             }
         }
 
@@ -47,11 +46,12 @@ namespace HeartEditor
             // Relative pan
             if (middleMousePressed)
             {
-                m_Position += m_RightVector * deltaX * panSpeed * stepSeconds;
-                m_Position += -m_UpVector * deltaY * panSpeed * stepSeconds;
+                m_Position += m_RightVector * mouseDelta.x * panSpeed * stepSeconds;
+                m_Position += -m_UpVector * mouseDelta.y * panSpeed * stepSeconds;
             }
 
-            m_Position += static_cast<f32>(Heart::Input::GetScrollOffsetY()) * m_ForwardVector;
+            f32 scrollY = (f32)Heart::Input::GetAxisDelta(Heart::AxisCode::ScrollY);
+            m_Position += scrollY * m_ForwardVector;
         }
 
         InternalUpdateViewMatrix();

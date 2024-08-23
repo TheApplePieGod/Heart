@@ -408,12 +408,14 @@ namespace Widgets
         {
             if (ImGui::IsMouseDragging(0))
             {
-                m_SwivelRotation.y += static_cast<float>(Heart::Input::GetMouseDeltaX());
-                m_SwivelRotation.x += -static_cast<float>(Heart::Input::GetMouseDeltaY());
+                glm::vec2 delta = Heart::Input::GetMouseDelta();
+                m_SwivelRotation.y += delta.x;
+                m_SwivelRotation.x += -delta.y;
             }
 
             // Camera will orbit around { 0, 0, 0 }
-            m_Radius = std::clamp(m_Radius + static_cast<float>(-Heart::Input::GetScrollOffsetY()), 0.f, 100.f);
+            f32 scrollY = (f32)Heart::Input::GetAxisDelta(Heart::AxisCode::ScrollY);
+            m_Radius = std::clamp(m_Radius + static_cast<float>(-scrollY), 0.f, 100.f);
             m_SceneCamera.UpdateViewMatrix(glm::vec3(0.f), m_Radius, m_SwivelRotation);
             m_SceneCameraPosition = -m_SceneCamera.GetForwardVector() * m_Radius;
         }

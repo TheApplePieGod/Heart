@@ -247,6 +247,8 @@ namespace Heart
             return false;
         }
 
+        HE_ENGINE_LOG_TRACE("Client plugin loaded from bridge");
+
         HArray outArgs;
         s_CoreCallbacks.PluginReflection_GetClientInstantiableClasses(&outArgs);
 
@@ -269,7 +271,7 @@ namespace Heart
         // Populate component classes
         populate(1, s_ComponentClasses);
 
-        HE_ENGINE_LOG_INFO("Client plugin successfully loaded");
+        HE_ENGINE_LOG_INFO("Client plugin fully loaded");
         s_ClientPluginLoaded = true;
         return true;
     }

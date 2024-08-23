@@ -22,6 +22,16 @@ namespace Heart
         void SetFullscreen(bool fullscreen) override;
         void ToggleFullscreen() override;
         bool IsFullscreen() const override;
+
+    private:
+        struct GLFWWindowData
+        {
+            WindowData* DataPtr;
+            u32 MousePositionSkips = 0;
+        };
+
+    private:
+        GLFWWindowData m_GLFWWindowData;
     };
 }
 

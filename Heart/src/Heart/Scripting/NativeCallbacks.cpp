@@ -102,10 +102,22 @@ HE_INTEROP_EXPORT bool Native_Input_IsKeyPressed(Heart::KeyCode key)
     return Heart::Input::IsKeyPressed(key);
 }
 
-HE_INTEROP_EXPORT bool Native_Input_IsMouseButtonPressed(Heart::MouseCode button)
+HE_INTEROP_EXPORT bool Native_Input_IsButtonPressed(Heart::ButtonCode button)
 {
     if (!Heart::ScriptingEngine::IsScriptInputEnabled()) return false;
-    return Heart::Input::IsMouseButtonPressed(button);
+    return Heart::Input::IsButtonPressed(button);
+}
+
+HE_INTEROP_EXPORT bool Native_Input_GetAxisValue(Heart::AxisCode axis)
+{
+    if (!Heart::ScriptingEngine::IsScriptInputEnabled()) return false;
+    return Heart::Input::GetAxisValue(axis);
+}
+
+HE_INTEROP_EXPORT bool Native_Input_GetAxisDelta(Heart::AxisCode axis)
+{
+    if (!Heart::ScriptingEngine::IsScriptInputEnabled()) return false;
+    return Heart::Input::GetAxisDelta(axis);
 }
 
 /*
@@ -660,7 +672,9 @@ void* NativeCallbacks[] = {
     (void*)&Native_HString_Copy,
     (void*)&Native_IdComponent_Get,
     (void*)&Native_Input_IsKeyPressed,
-    (void*)&Native_Input_IsMouseButtonPressed,
+    (void*)&Native_Input_IsButtonPressed,
+    (void*)&Native_Input_GetAxisValue,
+    (void*)&Native_Input_GetAxisDelta,
     (void*)&Native_LightComponent_Get,
     (void*)&Native_LightComponent_Add,
     (void*)&Native_LightComponent_Remove,
