@@ -122,7 +122,7 @@ namespace Widgets
         auto& activeScene = Editor::GetActiveScene();
         ImGui::Text("Scene info:");
         ImGui::Indent();
-        ImGui::Text("Entity count: %d", (int)activeScene.GetRegistry().alive());
+        ImGui::Text("Entity count: %d", (int)activeScene.GetAliveEntityCount());
         ImGui::Unindent();
         
         ImGui::End();

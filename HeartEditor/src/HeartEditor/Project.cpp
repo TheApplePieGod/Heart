@@ -256,7 +256,7 @@ namespace HeartEditor
                 {
                     HE_ENGINE_LOG_WARN(
                         "Script class '{0}' referenced in entity is no longer instantiable (id: {1}, name: {2})",
-                        instance.ScriptComp["type"],
+                        std::string(instance.ScriptComp["type"]),
                         entity.GetUUID(),
                         entity.GetName().DataUTF8()
                     );
@@ -282,7 +282,7 @@ namespace HeartEditor
                 {
                     HE_ENGINE_LOG_WARN(
                         "Component class '{0}' referenced in entity is no longer instantiable (id: {1}, name: {2})",
-                        compJ["type"],
+                        std::string(compJ["type"]),
                         entity.GetUUID(),
                         entity.GetName().DataUTF8()
                     );

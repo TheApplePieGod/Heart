@@ -680,4 +680,9 @@ namespace Heart
     {
         return m_CachedTransforms[entity.GetHandle()].ForwardVec;
     }
+
+    u32 Scene::GetAliveEntityCount()
+    {
+        return m_Registry.storage<entt::entity>().free_list();
+    }
 }

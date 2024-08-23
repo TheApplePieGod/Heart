@@ -42,7 +42,7 @@ namespace Heart
         
         // Compute atlas layout
         msdf_atlas::TightAtlasPacker packer;
-        packer.setDimensionsConstraint(msdf_atlas::TightAtlasPacker::DimensionsConstraint::SQUARE);
+        packer.setDimensionsConstraint(msdf_atlas::DimensionsConstraint::SQUARE);
         packer.setMinimumScale(24.0);
         packer.setPixelRange(2.0);
         packer.setMiterLimit(1.0);
@@ -52,7 +52,7 @@ namespace Heart
         int width = 0, height = 0;
         packer.getDimensions(width, height);
         m_GlyphScale = (float)packer.getScale();
-        m_PixelRange = (float)packer.getPixelRange();
+        m_PixelRange = (packer.getPixelRange().upper - packer.getPixelRange().lower);
         
         // Generate output atlas
         msdf_atlas::ImmediateAtlasGenerator<

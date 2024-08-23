@@ -127,7 +127,7 @@ namespace HeartRuntime
 
         if (j.contains("loadedScene") && !j["loadedScene"].empty())
         {
-            HE_LOG_INFO("Loaded runtime scene: {}", j["loadedScene"]);
+            HE_LOG_INFO("Loaded runtime scene: {}", std::string(j["loadedScene"]));
             Heart::UUID sceneAssetId = Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Scene, j["loadedScene"]);
             m_RuntimeScene = Heart::AssetManager::RetrieveAsset(sceneAssetId)
                 ->EnsureValid<Heart::SceneAsset>()

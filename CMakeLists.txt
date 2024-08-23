@@ -11,6 +11,8 @@ option(HEART_BUILD_EDITOR "Build the editor" OFF)
 option(HEART_BUILD_RUNTIME "Build the standalone runtime" OFF)
 option(HEART_BUILD_TESTS "Build the tests" OFF)
 
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 if(HEART_BUILD_DOCS)
     find_package(Doxygen)
 
