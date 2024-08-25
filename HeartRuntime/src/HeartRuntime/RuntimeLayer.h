@@ -30,7 +30,6 @@ namespace HeartRuntime
         std::filesystem::path m_ProjectPath;
         Heart::Ref<Heart::Scene> m_RuntimeScene;
         Heart::RenderScene m_RenderScene;
-        Heart::Task m_SceneUpdateTask;
         Heart::SceneRenderSettings m_RenderSettings;
         Viewport m_Viewport;
         DevPanel m_DevPanel;

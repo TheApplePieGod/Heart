@@ -52,14 +52,9 @@ namespace HeartRuntime
 
     void RuntimeLayer::OnUpdate(Heart::Timestep ts)
     {
-        m_SceneUpdateTask.Wait();
-
         m_RenderScene.CopyFromScene(m_RuntimeScene.get());
         
-        m_SceneUpdateTask = Heart::TaskManager::Schedule([this, ts]()
-        {
-            m_RuntimeScene->OnUpdateRuntime(ts);
-        }, Heart::Task::Priority::High, "SceneUpdate task");
+        m_RuntimeScene->OnUpdateRuntime(ts);
 
         m_Viewport.OnImGuiRender(&m_RenderScene, m_RuntimeScene.get(), m_RenderSettings);
         m_DevPanel.OnImGuiRender(m_RuntimeScene.get(), m_RenderSettings);

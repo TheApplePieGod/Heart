@@ -23,11 +23,17 @@ namespace Heart
     {
         auto& state = GetAxisStateMut(axis);
         if (accumulate)
+        {
             state.Value += value;
+            if (!skipDelta)
+                state.Delta += value;
+        }
         else
+        {
             state.Value = value;
-        if (!skipDelta)
-            state.Delta = state.Value - state.OldValue;
+            if (!skipDelta)
+                state.Delta = state.Value - state.OldValue;
+        }
         state.LastInteractionFrame = App::Get().GetFrameCount();
     }
 

@@ -382,7 +382,7 @@ namespace Heart
             struct android_poll_source *source = nullptr;
             int events = 0;
             int timeoutMilliseconds = AndroidApp::Paused ? -1 : 0;
-            if (ALooper_pollAll(timeoutMilliseconds, nullptr, &events, (void **)&source) >= 0)
+            if (ALooper_pollOnce(timeoutMilliseconds, nullptr, &events, (void **)&source) >= 0)
             {
                 if (source != nullptr)
                     source->process(AndroidApp::App, source);
