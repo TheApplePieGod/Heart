@@ -22,30 +22,49 @@ namespace Heart
         ) override
         {
             auto newPath = std::filesystem::path(dir).append(filename);
+            HString8 newPathStr = newPath.u8string();
+            newPathStr = AssetManager::GetRelativePath(newPathStr);
+
+            // Ignore actions that happen within the dotdir
+            if (newPathStr.StartsWith(AssetManager::GetDotDirectory()))
+                return;
+
+            // Ignore actions in build directories
+            if (newPathStr.StartsWith("obj") || newPathStr.StartsWith("bin"))
+                return;
+            
             switch (action)
             {
                 case efsw::Actions::Add:
-                    m_FileAddedCallback(dir, filename);
-                    break;
+                {
+                    Asset::Type assetType = AssetManager::DeduceAssetTypeFromFile(newPathStr);
+                    if (assetType == Asset::Type::None) break;
+                    HE_ENGINE_LOG_DEBUG("Detected new asset '{}', registering", newPathStr.Data());
+                    AssetManager::RegisterAsset(assetType, newPathStr);
+                } break;
                 case efsw::Actions::Delete:
-                    m_FileDeletedCallback(dir, filename);
-                    break;
+                {
+                    UUID id = AssetManager::GetAssetUUID(newPathStr);
+                    if (!id) break;
+                    HE_ENGINE_LOG_DEBUG("Detected deletion '{}', unregistering", newPathStr.Data());
+                    AssetManager::UnregisterAsset(id);
+                } break;
                 case efsw::Actions::Modified:
-                    m_FileModifiedCallback(dir, filename);
-                    break;
+                {
+                    // TODO: reloading
+                } break;
                 case efsw::Actions::Moved:
-                    m_FileRenamedCallback(dir, oldFilename, filename);
-                    break;
+                {
+                    auto oldPath = std::filesystem::path(dir).append(oldFilename);
+                    HString8 oldPathStr = oldPath.u8string();
+                    oldPathStr = AssetManager::GetRelativePath(oldPathStr);
+                    HE_ENGINE_LOG_DEBUG("Detected rename '{}' -> '{}'", oldPathStr.Data(), newPathStr.Data());
+                    AssetManager::RenameAsset(oldPathStr, newPathStr);
+                } break;
                 default:
                     break;
             }
         }
-
-    private:
-        std::function<void(HStringView8, HStringView8)> m_FileDeletedCallback;
-        std::function<void(HStringView8, HStringView8)> m_FileAddedCallback;
-        std::function<void(HStringView8, HStringView8)> m_FileModifiedCallback;
-        std::function<void(HStringView8, HStringView8, HStringView8)> m_FileRenamedCallback;
     };
 
     // esfw static variables
@@ -161,7 +180,7 @@ namespace Heart
     void AssetManager::EnableFileWatcher()
     {
         #ifndef HE_PLATFORM_ANDROID
-        if (s_FileWatcher) return;
+            if (s_FileWatcher) return;
 
             s_FileWatcher = CreateScope<efsw::FileWatcher>();
             s_UpdateListener = CreateScope<UpdateListener>();
@@ -262,7 +281,12 @@ namespace Heart
         {
             for (const auto& entry : std::filesystem::directory_iterator(directory.Data()))
                 if (entry.is_directory())
+                {
+                    // Ignore files in the dotdir
+                    if (s_DotDir == entry.path().filename().generic_u8string())
+                        continue;
                     RegisterAssetsInDirectory(entry.path().generic_u8string(), persistent, isResource);
+                }
                 else
                 {
                     std::filesystem::path path = entry.path();

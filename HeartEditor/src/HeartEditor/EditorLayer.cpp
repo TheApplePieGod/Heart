@@ -10,6 +10,7 @@
 #include "Heart/Renderer/SceneRenderer.h"
 #include "Heart/Renderer/Plugins/EntityIds.h"
 #include "Flourish/Api/Texture.h"
+#include "Heart/Asset/AssetManager.h"
 #include "Heart/Scene/Entity.h"
 #include "Heart/Input/Input.h"
 #include "Heart/Events/KeyEvents.h"
@@ -24,6 +25,8 @@ namespace HeartEditor
         HE_PROFILE_FUNCTION();
 
         SubscribeToEmitter(&EditorApp::Get().GetWindow());
+
+        Heart::AssetManager::EnableFileWatcher();
 
         Editor::Initialize();
 
@@ -48,6 +51,8 @@ namespace HeartEditor
 
         Editor::DestroyWindows();
         Editor::Shutdown();
+
+        Heart::AssetManager::DisableFileWatcher();
 
         HE_LOG_INFO("Editor detached");
     }
