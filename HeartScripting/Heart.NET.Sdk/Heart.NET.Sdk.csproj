@@ -6,11 +6,14 @@
     <OutputPath>../bin</OutputPath>
   </PropertyGroup>
   <ItemGroup>
-      <ProjectReference Include="../SourceGenerators/SourceGenerators.csproj" />
-      <ProjectReference Include="../CoreScripts/CoreScripts.csproj" />
-      <ProjectReference Include="../BridgeScripts/BridgeScripts.csproj" />
+    <ProjectReference Include="../SourceGenerators/SourceGenerators.csproj" />
+    <ProjectReference Include="../CoreScripts/CoreScripts.csproj" />
+    <ProjectReference Include="../BridgeScripts/BridgeScripts.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="NuGet.CommandLine" Version="6.2.1" PrivateAssets="all" />
+    <None Include="Sdk\Sdk.props" Pack="true" PackagePath="Sdk" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="NuGet.CommandLine" Version="6.11.0" PrivateAssets="all" />
   </ItemGroup>
 </Project>

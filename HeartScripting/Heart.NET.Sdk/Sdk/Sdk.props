@@ -1,0 +1,25 @@
+<Project>
+  <PropertyGroup Condition=" '$(HeartTargetPlatform)' == '' ">
+    <HeartTargetPlatform Condition=" '$(HeartTargetPlatform)' == '' and $(RuntimeIdentifier.StartsWith('android')) ">android</HeartTargetPlatform>
+    <HeartTargetPlatform Condition=" '$(HeartTargetPlatform)' == '' and $(RuntimeIdentifier.StartsWith('linux')) ">linux</HeartTargetPlatform>
+    <HeartTargetPlatform Condition=" '$(HeartTargetPlatform)' == '' and $(RuntimeIdentifier.StartsWith('osx')) ">macos</HeartTargetPlatform>
+    <HeartTargetPlatform Condition=" '$(HeartTargetPlatform)' == '' and $(RuntimeIdentifier.StartsWith('win')) ">windows</HeartTargetPlatform>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(HeartTargetPlatform)' == '' ">
+    <HeartTargetPlatform Condition=" '$([MSBuild]::IsOsPlatform(Linux))' ">linuxbsd</HeartTargetPlatform>
+    <HeartTargetPlatform Condition=" '$([MSBuild]::IsOsPlatform(OSX))' ">macos</HeartTargetPlatform>
+    <HeartTargetPlatform Condition=" '$([MSBuild]::IsOsPlatform(Windows))' ">windows</HeartTargetPlatform>
+  </PropertyGroup>
+  
+  <PropertyGroup>
+    <HeartPlatformConstants Condition=" '$(HeartTargetPlatform)' == 'windows' ">HEART_WINDOWS</HeartPlatformConstants>
+    <HeartPlatformConstants Condition=" '$(HeartTargetPlatform)' == 'linux' ">HEART_LINUX</HeartPlatformConstants>
+    <HeartPlatformConstants Condition=" '$(HeartTargetPlatform)' == 'macos' ">HEART_MACOS</HeartPlatformConstants>
+    <HeartPlatformConstants Condition=" '$(HeartTargetPlatform)' == 'android' ">HEART_ANDROID</HeartPlatformConstants>
+
+    <HeartDefineConstants>$(HeartPlatformConstants)</HeartDefineConstants>
+
+    <HeartDefineConstants Condition=" '$(Configuration)' == 'Debug' ">$(HeartDefineConstants);DEBUG</HeartDefineConstants>
+  </PropertyGroup>
+</Project>
