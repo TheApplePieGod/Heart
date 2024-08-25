@@ -79,18 +79,31 @@ namespace HeartEditor
                 continue;
             }
 
-            Heart::HString8 text = Heart::FilesystemUtils::ReadFileToString(entry.path().generic_u8string());
-            text = std::regex_replace(text.Data(), std::regex("\\$\\{SCRIPTS_ROOT_PATH\\}"), scriptsRoot.Data());
-            text = std::regex_replace(text.Data(), std::regex("\\$\\{PROJECT_NAME\\}"), projectName.Data());
+            auto extension = entry.path().extension();
+            bool hardCopy = extension == ".jar" || extension == ".exe";
+
+            Heart::HString8 ogText = Heart::FilesystemUtils::ReadFileToString(entry.path().generic_u8string());
+            Heart::HString8 newText = ogText;
+            if (!hardCopy)
+            {
+                newText = std::regex_replace(ogText.Data(), std::regex("\\$\\{SCRIPTS_ROOT_PATH\\}"), scriptsRoot.Data());
+                newText = std::regex_replace(newText.Data(), std::regex("\\$\\{PROJECT_NAME\\}"), projectName.Data());
+            }
             
             Heart::HString8 filename = entry.path().filename().generic_u8string();
             filename = std::regex_replace(filename.Data(), std::regex("\\$\\{PROJECT_NAME\\}"), projectName.Data());
             
-            auto file = std::ofstream(
-                std::filesystem::path(dst).append(filename.Data()),
-                std::ios::binary
-            );
-            file << text.Data();
+            hardCopy |= ogText == newText;        
+            if (hardCopy)
+                std::filesystem::copy(entry.path(), std::filesystem::path(dst).append(filename.Data()));
+            else
+            {
+                auto file = std::ofstream(
+                    std::filesystem::path(dst).append(filename.Data()),
+                    std::ios::binary
+                );
+                file << newText.Data();
+            }
         }
     }
 
@@ -310,9 +323,9 @@ namespace HeartEditor
         auto timer = Heart::Timer("Client plugin build");
         
         #ifdef HE_PLATFORM_WINDOWS
-            Heart::HString8 command = "BuildScripts.bat ";
+            Heart::HString8 command = ".heart/BuildScripts.bat ";
         #else
-            Heart::HString8 command = "sh BuildScripts.sh ";
+            Heart::HString8 command = "sh .heart/BuildScripts.sh ";
         #endif
         
         if (debug)
@@ -343,9 +356,9 @@ namespace HeartEditor
         auto timer = Heart::Timer("Client plugin publish");
         
         #ifdef HE_PLATFORM_WINDOWS
-            Heart::HString8 command = "PublishScripts.bat ";
+            Heart::HString8 command = ".heart/PublishScripts.bat ";
         #else
-            Heart::HString8 command = "sh PublishScripts.sh ";
+            Heart::HString8 command = "sh .heart/PublishScripts.sh ";
         #endif
         
         auto runtimeId = GetDotnetRuntimeIdentifier(platform);
@@ -400,6 +413,7 @@ namespace HeartEditor
             {
                 finalPath = std::filesystem::path(m_AbsolutePath.Data())
                     .parent_path()
+                    .append(".heart")
                     .append("android")
                     .append("app")
                     .append("src")
@@ -620,9 +634,9 @@ namespace HeartEditor
         if (platform == ExportPlatform::Android)
         {
             #ifdef HE_PLATFORM_WINDOWS
-                Heart::HString8 command = "cd android && gradlew.bat build";
+                Heart::HString8 command = "cd .heart/android && gradlew.bat build";
             #else
-                Heart::HString8 command = "cd android; sh ./gradlew build";
+                Heart::HString8 command = "cd .heart/android; sh ./gradlew build";
             #endif
 
             // Run gradle and build apk
