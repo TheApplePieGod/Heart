@@ -9,7 +9,9 @@ endif()
 include_directories("lib/imgui")
 
 # Build dependencies
-if(${CMAKE_BUILD_TYPE} MATCHES Debug)
+if(NOT ANDROID AND ${CMAKE_BUILD_TYPE} MATCHES Debug)
+  # Temp disable on android due to TLS issue
+  # https://github.com/wolfpld/tracy/issues/779
   set(TRACY_ENABLE ON)
   set(TRACY_ON_DEMAND ON)
   set(FLOURISH_TRACY_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lib/tracy/public")
@@ -17,6 +19,9 @@ if(${CMAKE_BUILD_TYPE} MATCHES Debug)
     set(FLOURISH_ENABLE_AFTERMATH ON)
   endif()
   add_subdirectory("lib/tracy")
+  add_compile_definitions(HE_ENABLE_TRACY)
+else()
+  set(TRACY_ENABLE OFF)
 endif()
 if(NOT ANDROID)
   set(GLFW_BUILD_DOCS OFF)
@@ -135,7 +140,7 @@ set(LINK_LIBS
   freetype msdf-atlas-gen TinyTIFF
 )
 target_link_libraries(Engine PUBLIC ${LINK_LIBS})
-if(${CMAKE_BUILD_TYPE} MATCHES Debug)
+if(TRACY_ENABLE)
   target_link_libraries(Engine PUBLIC TracyClient)
 endif()
 if(ANDROID)
