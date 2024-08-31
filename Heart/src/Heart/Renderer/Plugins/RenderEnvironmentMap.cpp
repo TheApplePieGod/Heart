@@ -27,8 +27,8 @@ namespace Heart::RenderPlugins
         Flourish::RenderPassCreateInfo rpCreateInfo;
         rpCreateInfo.SampleCount = Flourish::MsaaSampleCount::None;
         rpCreateInfo.ColorAttachments.push_back({
-            m_Renderer->GetRenderTexture()->GetColorFormat(),
-            Flourish::AttachmentInitialization::None,
+            m_Info.OutputTexture->GetColorFormat(),
+            m_Info.ClearOutput ? Flourish::AttachmentInitialization::Clear : Flourish::AttachmentInitialization::Preserve,
             true
         });
         rpCreateInfo.Subpasses.push_back({
@@ -66,9 +66,9 @@ namespace Heart::RenderPlugins
     {
         Flourish::FramebufferCreateInfo fbCreateInfo;
         fbCreateInfo.RenderPass = m_RenderPass;
-        fbCreateInfo.Width = m_Renderer->GetRenderWidth();
-        fbCreateInfo.Height = m_Renderer->GetRenderHeight();
-        fbCreateInfo.ColorAttachments.push_back({ { 0.f, 0.f, 0.f, 1.f }, m_Renderer->GetRenderTexture() });
+        fbCreateInfo.Width = m_Info.OutputTexture->GetWidth();
+        fbCreateInfo.Height = m_Info.OutputTexture->GetHeight();
+        fbCreateInfo.ColorAttachments.push_back({ { 0.f, 0.f, 0.f, 1.f }, m_Info.OutputTexture });
         m_Framebuffer = Flourish::Framebuffer::Create(fbCreateInfo);
 
         m_GPUGraphNodeBuilder.Reset()

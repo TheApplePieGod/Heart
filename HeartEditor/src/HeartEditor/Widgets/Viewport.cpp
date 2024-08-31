@@ -8,7 +8,7 @@
 #include "Heart/Core/Camera.h"
 #include "Heart/Task/TaskManager.h"
 #include "Heart/Scene/Scene.h"
-#include "Heart/Renderer/SceneRenderer.h"
+#include "Heart/Renderer/DesktopSceneRenderer.h"
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/TextureAsset.h"
 #include "Heart/Asset/SceneAsset.h"
@@ -29,7 +29,7 @@ namespace Widgets
     Viewport::Viewport(const Heart::HStringView8& name, bool initialOpen)
         : Widget(name, initialOpen)
     {
-        m_SceneRenderer = Heart::CreateRef<Heart::SceneRenderer>();
+        m_SceneRenderer = Heart::CreateRef<Heart::DesktopSceneRenderer>();
         m_ActiveCamera = Heart::CreateRef<Heart::Camera>(70.f, 0.1f, 500.f, 1.f);
         m_EditorCamera = Heart::CreateRef<EditorCamera>(70.f, 0.1f, 500.f, 1.f, glm::vec3(0.f, 1.f, 0.f));
     }
@@ -73,10 +73,12 @@ namespace Widgets
         u32 outputLayer = 0;
         if (m_SelectedOutput == "Primary")
             outputTex = m_SceneRenderer->GetOutputTexture().get();
+        /*
         else if (m_SelectedOutput == "Before Postprocessing")
             outputTex = m_SceneRenderer->GetRenderTexture().get();
         else if (m_SelectedOutput == "Primary Depth")
             outputTex = m_SceneRenderer->GetDepthTexture().get();
+    */
         else
         {
             for (auto& pair : plugins)

@@ -35,12 +35,12 @@ namespace Heart::RenderPlugins
         Flourish::RenderPassCreateInfo rpCreateInfo;
         rpCreateInfo.SampleCount = Flourish::MsaaSampleCount::None;
         rpCreateInfo.DepthAttachments.push_back({
-            m_Renderer->GetDepthTexture()->GetColorFormat(),
-            Flourish::AttachmentInitialization::Preserve
+            m_Info.OutputDepthTexture->GetColorFormat(),
+            m_Info.ClearDepthOutput ? Flourish::AttachmentInitialization::Clear : Flourish::AttachmentInitialization::Preserve,
         });
         rpCreateInfo.ColorAttachments.push_back({
-            m_Renderer->GetRenderTexture()->GetColorFormat(),
-            Flourish::AttachmentInitialization::Preserve,
+            m_Info.OutputColorTexture->GetColorFormat(),
+            m_Info.ClearColorOutput ? Flourish::AttachmentInitialization::Clear : Flourish::AttachmentInitialization::Preserve,
             true
         });
         rpCreateInfo.Subpasses.push_back({
@@ -78,8 +78,6 @@ namespace Heart::RenderPlugins
             m_SortedKeysBuffers[i] = Flourish::Buffer::Create(bufCreateInfo);
         bufCreateInfo.Usage = Flourish::BufferUsageType::Dynamic;
         m_KeyBuffer = Flourish::Buffer::Create(bufCreateInfo);
-        //bufCreateInfo.Type = Flourish::BufferType::Pixel;
-        //m_CPUBuffer = Flourish::Buffer::Create(bufCreateInfo);
 
         bufCreateInfo.Type = Flourish::BufferType::Storage;
         bufCreateInfo.ElementCount = maxWorkgroups * m_BinCount;
@@ -120,8 +118,8 @@ namespace Heart::RenderPlugins
         fbCreateInfo.RenderPass = m_RenderPass;
         fbCreateInfo.Width = m_Renderer->GetRenderWidth();
         fbCreateInfo.Height = m_Renderer->GetRenderHeight();
-        fbCreateInfo.ColorAttachments.push_back({ { 0.f, 0.f, 0.f, 0.f }, m_Renderer->GetRenderTexture() });
-        fbCreateInfo.DepthAttachments.push_back({ m_Renderer->GetDepthTexture() });
+        fbCreateInfo.ColorAttachments.push_back({ { 0.f, 0.f, 0.f, 0.f }, m_Info.OutputColorTexture });
+        fbCreateInfo.DepthAttachments.push_back({ m_Info.OutputDepthTexture });
         m_Framebuffer = Flourish::Framebuffer::Create(fbCreateInfo);
 
         RebuildGraph(m_LastSplatCount);
@@ -164,16 +162,6 @@ namespace Heart::RenderPlugins
                 .EncoderAddBufferRead(m_IndirectBuffer.get())
                 .EncoderAddFramebuffer(m_Framebuffer.get());
         }
-
-        /*
-        m_GPUGraphNodeBuilder
-            .AddEncoderNode(Flourish::GPUWorkloadType::Transfer)
-            .EncoderAddBufferRead(m_SortedKeysBuffers[0].get())
-            .EncoderAddBufferRead(m_KeyBuffer.get())
-            .EncoderAddBufferWrite(m_CPUBuffer.get())
-            .AddEncoderNode(Flourish::GPUWorkloadType::Transfer)
-            .EncoderAddBufferRead(m_CPUBuffer.get());
-        */
     }
 
     void Splat::RenderInternal(const SceneRenderData& data)
@@ -295,43 +283,6 @@ namespace Heart::RenderPlugins
 
             totalSplatCount += splatCount;
         }
-
-        /*
-        auto tEncoder = m_CommandBuffer->EncodeTransferCommands();
-        tEncoder->CopyBufferToBuffer(
-            m_SortedKeysBuffers[0].get(),
-            m_CPUBuffer.get(),
-            0, 0, 50 * sizeof(u32)
-        );
-        tEncoder->CopyBufferToBuffer(
-            m_KeyBuffer.get(),
-            m_CPUBuffer.get(),
-            0, 50 * sizeof(u32), 50 * sizeof(u32)
-        );
-        tEncoder->EndEncoding();
-
-        tEncoder = m_CommandBuffer->EncodeTransferCommands();
-        tEncoder->FlushBuffer(m_CPUBuffer.get());
-        tEncoder->EndEncoding();
-
-        u32 indices[50];
-        u32 keys[50];
-        m_CPUBuffer->ReadBytes(indices, sizeof(indices), 0);
-        m_CPUBuffer->ReadBytes(keys, sizeof(keys), sizeof(indices));
-        HE_LOG_WARN(
-            "{0}, {1}, {2}, {3}, {4}",
-            keys[0],
-            keys[1],
-            keys[2],
-            keys[3],
-            keys[4]
-            keys[indices[0]],
-            keys[indices[1]],
-            keys[indices[2]],
-            keys[indices[3]],
-            keys[indices[4]]
-        );
-        */
 
         for (u32 remaining = totalSplatInstances; remaining < m_LastSplatCount; remaining++)
         {

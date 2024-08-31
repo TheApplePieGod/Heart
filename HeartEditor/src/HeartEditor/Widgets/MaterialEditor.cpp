@@ -4,7 +4,7 @@
 #include "HeartEditor/EditorApp.h"
 #include "Heart/Core/Window.h"
 #include "Flourish/Api/Context.h"
-#include "Heart/Renderer/SceneRenderer.h"
+#include "Heart/Renderer/DesktopSceneRenderer.h"
 #include "Heart/Scene/Components.h"
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/MaterialAsset.h"
@@ -21,7 +21,7 @@ namespace Widgets
     MaterialEditor::MaterialEditor(const Heart::HStringView8& name, bool initialOpen)
         : Widget(name, initialOpen)
     {
-        m_SceneRenderer = Heart::CreateScope<Heart::SceneRenderer>();
+        m_SceneRenderer = Heart::CreateScope<Heart::DesktopSceneRenderer>();
         m_Scene = Heart::CreateRef<Heart::Scene>();
         m_Scene->SetEnvironmentMap(Heart::AssetManager::GetAssetUUID("engine/DefaultEnvironmentMap.hdr", true));
 

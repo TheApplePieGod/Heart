@@ -20,148 +20,20 @@ namespace Heart
         Flourish::RenderGraphCreateInfo rgCreateInfo;
         rgCreateInfo.Usage = Flourish::RenderGraphUsageType::PerFrame;
         m_RenderGraph = Flourish::RenderGraph::Create(rgCreateInfo);
-
-        CreateTextures();
-        CreateDefaultResources();
-
-        // Register plugins
-
-        // TODO: transparency broken (again)
-
-        auto frameData = RegisterPlugin<RenderPlugins::FrameData>("FrameData");
-        auto lightingData = RegisterPlugin<RenderPlugins::LightingData>("LightingData");
-        auto entityIds = RegisterPlugin<RenderPlugins::EntityIds>("EntityIds");
-
-        RenderPlugins::CollectMaterialsCreateInfo collectMatCreateInfo;
-        auto collectMaterials = RegisterPlugin<RenderPlugins::CollectMaterials>("CollectMaterials", collectMatCreateInfo);
-
-        RenderPlugins::ClusteredLightingCreateInfo clusteredCreateInfo;
-        clusteredCreateInfo.FrameDataPluginName = frameData->GetName();
-        clusteredCreateInfo.LightingDataPluginName = lightingData->GetName();
-        auto clusteredLighting = RegisterPlugin<RenderPlugins::ClusteredLighting>("ClusteredLighting", clusteredCreateInfo);
-
-        RenderPlugins::ComputeMeshBatchesCreateInfo cbmeshcamCreateInfo;
-        cbmeshcamCreateInfo.CollectMaterialsPluginName = collectMaterials->GetName();
-        auto CBMESHCam = RegisterPlugin<RenderPlugins::ComputeMeshBatches>("CBMESHCam", cbmeshcamCreateInfo);
-        CBMESHCam->AddDependency(collectMaterials->GetName(), GraphDependencyType::CPU);
-
-        RenderPlugins::ComputeTextBatchesCreateInfo cbtextcamCreateInfo;
-        cbtextcamCreateInfo.CollectMaterialsPluginName = collectMaterials->GetName();
-        auto CBTEXTCam = RegisterPlugin<RenderPlugins::ComputeTextBatches>("CBTEXTCam", cbtextcamCreateInfo);
-        CBTEXTCam->AddDependency(collectMaterials->GetName(), GraphDependencyType::CPU);
-
-        RenderPlugins::GBufferCreateInfo gBufferCreateInfo;
-        gBufferCreateInfo.FrameDataPluginName = frameData->GetName();
-        gBufferCreateInfo.MeshBatchesPluginName = CBMESHCam->GetName();
-        gBufferCreateInfo.TextBatchesPluginName = CBTEXTCam->GetName();
-        gBufferCreateInfo.CollectMaterialsPluginName = collectMaterials->GetName();
-        gBufferCreateInfo.EntityIdsPluginName = entityIds->GetName();
-        auto gBuffer = RegisterPlugin<RenderPlugins::GBuffer>("GBuffer", gBufferCreateInfo);
-        gBuffer->AddDependency(CBMESHCam->GetName(), GraphDependencyType::CPU);
-        gBuffer->AddDependency(CBTEXTCam->GetName(), GraphDependencyType::CPU);
-        gBuffer->AddInitDependency(entityIds->GetName());
-
-        RenderPlugins::RenderEnvironmentMapCreateInfo envMapCreateInfo;
-        envMapCreateInfo.FrameDataPluginName = frameData->GetName();
-        auto envMap = RegisterPlugin<RenderPlugins::RenderEnvironmentMap>("EnvMap", envMapCreateInfo);
-
-        HString8 pbrCompositeName;
-        if (Flourish::Context::FeatureTable().RayTracing)
-        {
-            RenderPlugins::TLASCreateInfo tlasCreateInfo;
-            tlasCreateInfo.CollectMaterialsPluginName = collectMaterials->GetName();
-            auto tlas = RegisterPlugin<RenderPlugins::TLAS>("TLAS", tlasCreateInfo);
-            tlas->AddDependency(collectMaterials->GetName(), GraphDependencyType::CPU);
-
-            RenderPlugins::RayReflectionsCreateInfo rayReflCreateInfo;
-            rayReflCreateInfo.FrameDataPluginName = frameData->GetName();
-            rayReflCreateInfo.TLASPluginName = tlas->GetName();
-            rayReflCreateInfo.LightingDataPluginName = lightingData->GetName();
-            rayReflCreateInfo.CollectMaterialsPluginName = collectMaterials->GetName();
-            rayReflCreateInfo.GBufferPluginName = gBuffer->GetName();
-            auto rayReflections = RegisterPlugin<RenderPlugins::RayReflections>("RayReflections", rayReflCreateInfo);
-            rayReflections->AddDependency(collectMaterials->GetName(), GraphDependencyType::CPU);
-            rayReflections->AddDependency(tlas->GetName(), GraphDependencyType::CPU);
-            rayReflections->AddDependency(tlas->GetName(), GraphDependencyType::GPU);
-            rayReflections->AddDependency(lightingData->GetName(), GraphDependencyType::CPU);
-            rayReflections->AddDependency(lightingData->GetName(), GraphDependencyType::GPU);
-            rayReflections->AddDependency(gBuffer->GetName(), GraphDependencyType::GPU);
-            rayReflections->AddInitDependency(gBuffer->GetName());
-
-            // TODO: downscaled version
-            RenderPlugins::SVGFCreateInfo svgfCreateInfo;
-            svgfCreateInfo.InputPluginName = rayReflections->GetName();
-            svgfCreateInfo.FrameDataPluginName = frameData->GetName();
-            svgfCreateInfo.GBufferPluginName = gBuffer->GetName();
-            auto svgf = RegisterPlugin<RenderPlugins::SVGF>("SVGF", svgfCreateInfo);
-            svgf->AddDependency(rayReflections->GetName(), GraphDependencyType::GPU);
-            svgf->AddInitDependency(rayReflections->GetName());
-            svgf->AddInitDependency(gBuffer->GetName());
-
-            RenderPlugins::RayPBRCompositeCreateInfo pbrCompCreateInfo;
-            pbrCompCreateInfo.ReflectionsInputPluginName = svgf->GetName();
-            pbrCompCreateInfo.FrameDataPluginName = frameData->GetName();
-            pbrCompCreateInfo.LightingDataPluginName = lightingData->GetName();
-            pbrCompCreateInfo.GBufferPluginName = gBuffer->GetName();
-            pbrCompCreateInfo.ClusteredLightingPluginName = clusteredLighting->GetName();
-            pbrCompCreateInfo.TLASPluginName = tlas->GetName();
-            pbrCompCreateInfo.CollectMaterialsPluginName = collectMaterials->GetName();
-            auto pbrComposite = RegisterPlugin<RenderPlugins::RayPBRComposite>("RayPBRComposite", pbrCompCreateInfo);
-            pbrComposite->AddDependency(envMap->GetName(), GraphDependencyType::GPU);
-            pbrComposite->AddDependency(svgf->GetName(), GraphDependencyType::GPU);
-            pbrComposite->AddDependency(tlas->GetName(), GraphDependencyType::CPU);
-            pbrComposite->AddDependency(clusteredLighting->GetName(), GraphDependencyType::CPU);
-            pbrComposite->AddDependency(clusteredLighting->GetName(), GraphDependencyType::GPU);
-            pbrComposite->AddInitDependency(svgf->GetName());
-            pbrComposite->AddInitDependency(gBuffer->GetName());
-            pbrComposite->AddInitDependency(clusteredLighting->GetName());
-
-            pbrCompositeName = pbrComposite->GetName();
-        }
-        else
-        {
-            RenderPlugins::PBRCompositeCreateInfo pbrCompCreateInfo;
-            pbrCompCreateInfo.FrameDataPluginName = frameData->GetName();
-            pbrCompCreateInfo.LightingDataPluginName = lightingData->GetName();
-            pbrCompCreateInfo.GBufferPluginName = gBuffer->GetName();
-            pbrCompCreateInfo.ClusteredLightingPluginName = clusteredLighting->GetName();
-            auto pbrComposite = RegisterPlugin<RenderPlugins::PBRComposite>("PBRComposite", pbrCompCreateInfo);
-            pbrComposite->AddDependency(gBuffer->GetName(), GraphDependencyType::GPU);
-            pbrComposite->AddDependency(envMap->GetName(), GraphDependencyType::GPU);
-            pbrComposite->AddDependency(clusteredLighting->GetName(), GraphDependencyType::CPU);
-            pbrComposite->AddDependency(clusteredLighting->GetName(), GraphDependencyType::GPU);
-            pbrComposite->AddInitDependency(gBuffer->GetName());
-            pbrComposite->AddInitDependency(clusteredLighting->GetName());
-
-            pbrCompositeName = pbrComposite->GetName();
-        }
-
-        RenderPlugins::SplatCreateInfo splatCreateInfo;
-        splatCreateInfo.FrameDataPluginName = frameData->GetName();
-        auto splat = RegisterPlugin<RenderPlugins::Splat>("Splat", splatCreateInfo);
-        splat->AddDependency(pbrCompositeName, GraphDependencyType::GPU);
-
-        RenderPlugins::InfiniteGridCreateInfo gridCreateInfo;
-        gridCreateInfo.FrameDataPluginName = frameData->GetName();
-        auto grid = RegisterPlugin<RenderPlugins::InfiniteGrid>("Grid", gridCreateInfo);
-        grid->AddDependency(splat->GetName(), GraphDependencyType::GPU);
-
-        RenderPlugins::BloomCreateInfo BloomCreateInfo;
-        auto bloom = RegisterPlugin<RenderPlugins::Bloom>("Bloom", BloomCreateInfo);
-        bloom->AddDependency(grid->GetName(), GraphDependencyType::GPU);
-
-        RenderPlugins::ColorGradingCreateInfo gradingCreateInfo;
-        auto grading = RegisterPlugin<RenderPlugins::ColorGrading>("Grading", gradingCreateInfo);
-        grading->AddDependency(bloom->GetName(), GraphDependencyType::GPU);
-
-        InitializePlugins();
-
-        RebuildGraph();
     }
 
     SceneRenderer::~SceneRenderer()
     {
         UnsubscribeFromEmitter(&Window::GetMainWindow());
+    }
+
+    void SceneRenderer::Initialize()
+    {
+        CreateDefaultResources();
+        CreateResources();
+        RegisterPlugins();
+        InitializeRegisteredPlugins();
+        RebuildGraph();
     }
 
     void SceneRenderer::RebuildGraph()
@@ -187,6 +59,13 @@ namespace Heart
 
     TaskGroup SceneRenderer::Render(const SceneRenderData& data)
     {
+        if (!m_RenderGraph->IsBuilt())
+        {
+            Initialize();
+            m_ShouldResize = false;
+            m_ShouldRebuild = false;
+        }
+
         if (m_ShouldResize)
         {
             m_ShouldResize = false;
@@ -222,7 +101,7 @@ namespace Heart
 
     void SceneRenderer::Resize()
     {
-        CreateTextures();
+        CreateResources();
 
         TaskGroup group;
         for (const auto& pair : m_Plugins)
@@ -280,7 +159,7 @@ namespace Heart
         }
     }
 
-    void SceneRenderer::InitializePlugins()
+    void SceneRenderer::InitializeRegisteredPlugins()
     {
         TaskGroup group;
         for (const auto& pair : m_Plugins)
@@ -290,26 +169,6 @@ namespace Heart
         }
 
         group.Wait();
-    }
-
-    void SceneRenderer::CreateTextures()
-    {
-        Flourish::TextureCreateInfo texCreateInfo;
-        texCreateInfo.Width = m_RenderWidth;
-        texCreateInfo.Height = m_RenderHeight;
-        texCreateInfo.ArrayCount = 1;
-        texCreateInfo.MipCount = 1;
-        texCreateInfo.Usage = Flourish::TextureUsageFlags::Graphics | Flourish::TextureUsageFlags::Compute;
-        texCreateInfo.Writability = Flourish::TextureWritability::PerFrame;
-        texCreateInfo.SamplerState.UVWWrap = { Flourish::SamplerWrapMode::ClampToBorder, Flourish::SamplerWrapMode::ClampToBorder, Flourish::SamplerWrapMode::ClampToBorder };
-        texCreateInfo.Format = Flourish::ColorFormat::RGBA16_FLOAT;
-        m_RenderTexture = Flourish::Texture::Create(texCreateInfo);
-        texCreateInfo.Format = Flourish::ColorFormat::RGBA8_UNORM;
-        texCreateInfo.Usage = Flourish::TextureUsageFlags::Graphics;
-        m_OutputTexture = Flourish::Texture::Create(texCreateInfo);
-        texCreateInfo.Format = Flourish::ColorFormat::Depth;
-        texCreateInfo.Usage |= Flourish::TextureUsageFlags::Transfer;
-        m_DepthTexture = Flourish::Texture::Create(texCreateInfo);
     }
 
     void SceneRenderer::CreateDefaultResources()

@@ -3,16 +3,13 @@
 
 #include "Heart/Renderer/Plugins/FrameData.h"
 #include "Heart/Renderer/SceneRenderer.h"
-#include "Heart/Renderer/Mesh.h"
 #include "Heart/Core/Timing.h"
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/ShaderAsset.h"
-#include "Heart/Asset/MeshAsset.h"
 #include "Flourish/Api/RenderCommandEncoder.h"
 #include "Flourish/Api/CommandBuffer.h"
 #include "Flourish/Api/RenderPass.h"
 #include "Flourish/Api/Framebuffer.h"
-#include "Flourish/Api/Texture.h"
 #include "Flourish/Api/ResourceSet.h"
 
 namespace Heart::RenderPlugins
@@ -27,12 +24,12 @@ namespace Heart::RenderPlugins
         Flourish::RenderPassCreateInfo rpCreateInfo;
         rpCreateInfo.SampleCount = Flourish::MsaaSampleCount::None;
         rpCreateInfo.DepthAttachments.push_back({
-            m_Renderer->GetDepthTexture()->GetColorFormat(),
-            Flourish::AttachmentInitialization::Preserve
+            m_Info.OutputDepthTexture->GetColorFormat(),
+            m_Info.ClearDepthOutput ? Flourish::AttachmentInitialization::Clear : Flourish::AttachmentInitialization::Preserve,
         });
         rpCreateInfo.ColorAttachments.push_back({
-            m_Renderer->GetRenderTexture()->GetColorFormat(),
-            Flourish::AttachmentInitialization::Preserve,
+            m_Info.OutputColorTexture->GetColorFormat(),
+            m_Info.ClearColorOutput ? Flourish::AttachmentInitialization::Clear : Flourish::AttachmentInitialization::Preserve,
             true
         });
         rpCreateInfo.Subpasses.push_back({
@@ -74,10 +71,10 @@ namespace Heart::RenderPlugins
     {
         Flourish::FramebufferCreateInfo fbCreateInfo;
         fbCreateInfo.RenderPass = m_RenderPass;
-        fbCreateInfo.Width = m_Renderer->GetRenderWidth();
-        fbCreateInfo.Height = m_Renderer->GetRenderHeight();
-        fbCreateInfo.ColorAttachments.push_back({ { 0.f, 0.f, 0.f, 0.f }, m_Renderer->GetRenderTexture() });
-        fbCreateInfo.DepthAttachments.push_back({ m_Renderer->GetDepthTexture() });
+        fbCreateInfo.Width = m_Info.OutputColorTexture->GetWidth();
+        fbCreateInfo.Height = m_Info.OutputColorTexture->GetHeight();
+        fbCreateInfo.ColorAttachments.push_back({ { 0.f, 0.f, 0.f, 0.f }, m_Info.OutputColorTexture });
+        fbCreateInfo.DepthAttachments.push_back({ m_Info.OutputDepthTexture });
         m_Framebuffer = Flourish::Framebuffer::Create(fbCreateInfo);
 
         m_GPUGraphNodeBuilder.Reset()

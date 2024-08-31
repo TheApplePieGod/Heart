@@ -87,7 +87,6 @@ namespace Heart::RenderPlugins
     {
         auto gBufferPlugin = m_Renderer->GetPlugin<RenderPlugins::GBuffer>(m_Info.GBufferPluginName);
         auto clusterPlugin = m_Renderer->GetPlugin<RenderPlugins::ClusteredLighting>(m_Info.ClusteredLightingPluginName);
-        auto reflPlugin = m_Renderer->GetPlugin(m_Info.ReflectionsInputPluginName);
 
         m_GPUGraphNodeBuilder.Reset()
             .SetCommandBuffer(m_CommandBuffer.get())
@@ -98,10 +97,8 @@ namespace Heart::RenderPlugins
             .EncoderAddTextureRead(gBufferPlugin->GetGBuffer2())
             .EncoderAddTextureRead(gBufferPlugin->GetGBuffer3())
             .EncoderAddTextureRead(gBufferPlugin->GetGBufferDepth().get())
-            .EncoderAddTextureRead(reflPlugin->GetOutputTexture().get())
-            .EncoderAddTextureWrite(m_Renderer->GetRenderTexture().get())
-            // Need a read here because we need to ensure current contents are synced
-            .EncoderAddTextureRead(m_Renderer->GetRenderTexture().get());
+            .EncoderAddTextureRead(m_Info.ReflectionsInputTexture.get())
+            .EncoderAddTextureWrite(m_Info.OutputTexture.get());
     }
 
     void RayPBRComposite::RenderInternal(const SceneRenderData& data)
@@ -116,7 +113,6 @@ namespace Heart::RenderPlugins
         auto gBufferPlugin = m_Renderer->GetPlugin<RenderPlugins::GBuffer>(m_Info.GBufferPluginName);
         auto clusterPlugin = m_Renderer->GetPlugin<RenderPlugins::ClusteredLighting>(m_Info.ClusteredLightingPluginName);
         auto tlasPlugin = m_Renderer->GetPlugin<RenderPlugins::TLAS>(m_Info.TLASPluginName);
-        auto reflPlugin = m_Renderer->GetPlugin(m_Info.ReflectionsInputPluginName);
         auto materialsPlugin = m_Renderer->GetPlugin<RenderPlugins::CollectMaterials>(m_Info.CollectMaterialsPluginName);
         auto objectDataBuffer = tlasPlugin->GetObjectBuffer();
         auto materialBuffer = materialsPlugin->GetMaterialBuffer();
@@ -134,8 +130,8 @@ namespace Heart::RenderPlugins
             m_ResourceSet0->BindTexture(8, data.EnvMap->GetBRDFTexture());
         else
             m_ResourceSet0->BindTextureLayer(8, m_Renderer->GetDefaultEnvironmentMap(), 0, 0);
-        m_ResourceSet0->BindTexture(9, m_Renderer->GetRenderTexture().get());
-        m_ResourceSet0->BindTexture(10, reflPlugin->GetOutputTexture().get());
+        m_ResourceSet0->BindTexture(9, m_Info.OutputTexture.get());
+        m_ResourceSet0->BindTexture(10, m_Info.ReflectionsInputTexture.get());
         m_ResourceSet0->BindAccelerationStructure(11, tlasPlugin->GetAccelStructure());
         m_ResourceSet0->FlushBindings();
 
@@ -157,8 +153,8 @@ namespace Heart::RenderPlugins
         encoder->FlushResourceSet(2);
         encoder->TraceRays(
             m_GroupTable.get(),
-            m_Renderer->GetRenderTexture()->GetWidth(),
-            m_Renderer->GetRenderTexture()->GetHeight(),
+            m_Info.OutputTexture->GetWidth(),
+            m_Info.OutputTexture->GetHeight(),
             1
         );
         encoder->EndEncoding();

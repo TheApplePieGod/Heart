@@ -14,6 +14,8 @@ namespace Heart::RenderPlugins
 {
     struct RenderEnvironmentMapCreateInfo
     {
+        Ref<Flourish::Texture> OutputTexture;
+        bool ClearOutput;
         HString8 FrameDataPluginName;
     };
 

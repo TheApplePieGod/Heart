@@ -14,7 +14,8 @@ namespace Heart::RenderPlugins
 {
     struct RayPBRCompositeCreateInfo
     {
-        HString8 ReflectionsInputPluginName;
+        Ref<Flourish::Texture> ReflectionsInputTexture;
+        Ref<Flourish::Texture> OutputTexture;
         HString8 FrameDataPluginName;
         HString8 LightingDataPluginName;
         HString8 GBufferPluginName;

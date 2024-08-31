@@ -14,6 +14,8 @@ namespace Heart::RenderPlugins
 {
     struct GBufferCreateInfo
     {
+        bool KeepHistory;
+        u32 MipCount;
         HString8 MeshBatchesPluginName;
         HString8 TextBatchesPluginName;
         HString8 CollectMaterialsPluginName;
@@ -24,9 +26,7 @@ namespace Heart::RenderPlugins
     class GBuffer : public RenderPlugin
     {
     public:
-        GBuffer(SceneRenderer* renderer, HStringView8 name, const GBufferCreateInfo& createInfo)
-            : RenderPlugin(renderer, name), m_Info(createInfo)
-        {}
+        GBuffer(SceneRenderer* renderer, HStringView8 name, const GBufferCreateInfo& createInfo);
 
         u32 GetArrayIndex() const;
         u32 GetPrevArrayIndex() const;
@@ -43,6 +43,8 @@ namespace Heart::RenderPlugins
 
     private:
         GBufferCreateInfo m_Info;
+
+        u32 m_ImageCount = 1;
 
         Ref<Flourish::ResourceSet> m_StandardResourceSet;
         Ref<Flourish::ResourceSet> m_TextResourceSet;

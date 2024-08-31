@@ -13,6 +13,7 @@ namespace Heart::RenderPlugins
 {
     struct PBRCompositeCreateInfo
     {
+        Ref<Flourish::Texture> OutputTexture;
         HString8 FrameDataPluginName;
         HString8 LightingDataPluginName;
         HString8 GBufferPluginName;
