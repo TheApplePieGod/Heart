@@ -61,7 +61,7 @@ namespace Heart
         if (s_SingleThreaded)
         {
             for (size_t i = 0; i < indices.Count(); i++)
-                job(i);
+                job(indices[i]);
             
             return 0;
         }
