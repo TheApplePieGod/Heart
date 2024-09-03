@@ -27,7 +27,8 @@ namespace Widgets
         
         void Reset();
 
-        inline void SetSelectedMaterial(Heart::UUID material) { m_SelectedMaterial = material; }
+        void SetSelectedMaterial(Heart::UUID material);
+        void SetSelectedMaterial(const Heart::Material& material);
 
     private:
         void RenderSidebar();
