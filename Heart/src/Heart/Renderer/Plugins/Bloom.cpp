@@ -52,7 +52,6 @@ namespace Heart::RenderPlugins
         Flourish::TextureCreateInfo texCreateInfo;
         texCreateInfo.Width = m_Renderer->GetRenderWidth();
         texCreateInfo.Height = m_Renderer->GetRenderHeight();
-        texCreateInfo.Writability = Flourish::TextureWritability::PerFrame;
         texCreateInfo.ArrayCount = 1;
         texCreateInfo.MipCount = 7; // TODO: parameterize?
         texCreateInfo.Format = Flourish::ColorFormat::RGBA16_FLOAT;

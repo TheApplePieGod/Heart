@@ -27,8 +27,8 @@ namespace Heart::RenderPlugins
         m_AccelStructure = Flourish::AccelerationStructure::Create(accelCreateInfo);
 
         Flourish::BufferCreateInfo bufCreateInfo;
-        bufCreateInfo.Usage = Flourish::BufferUsageType::Dynamic;
-        bufCreateInfo.Type = Flourish::BufferType::Storage;
+        bufCreateInfo.MemoryType = Flourish::BufferMemoryType::CPUWriteFrame;
+        bufCreateInfo.Usage = Flourish::BufferUsageFlags::Storage;
         bufCreateInfo.Stride = sizeof(ObjectData);
         bufCreateInfo.ElementCount = m_MaxObjects;
         m_ObjectBuffer = Flourish::Buffer::Create(bufCreateInfo);

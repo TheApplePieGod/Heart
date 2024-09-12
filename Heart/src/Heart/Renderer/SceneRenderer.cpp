@@ -178,7 +178,6 @@ namespace Heart
         envTexCreateInfo.Height = 256;
         envTexCreateInfo.Format = Flourish::ColorFormat::RGBA8_UNORM;
         envTexCreateInfo.Usage = Flourish::TextureUsageFlags::Readonly;
-        envTexCreateInfo.Writability = Flourish::TextureWritability::Once;
         envTexCreateInfo.ArrayCount = 6;
         envTexCreateInfo.MipCount = 1;
         m_DefaultEnvironmentMap = Flourish::Texture::Create(envTexCreateInfo);

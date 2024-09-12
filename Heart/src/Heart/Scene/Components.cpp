@@ -24,6 +24,9 @@ namespace Heart
         if (!fontAsset || !fontAsset->Load(false)->IsValid())
             return;
 
+        if (Text.GetEncoding() != HString::Encoding::UTF8)
+            return;
+
         HVector<Mesh::Vertex> vertices;
         HVector<u32> indices;
         vertices.Reserve(Text.Count() * 4);

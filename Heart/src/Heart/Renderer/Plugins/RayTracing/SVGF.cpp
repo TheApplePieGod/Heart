@@ -64,7 +64,6 @@ namespace Heart::RenderPlugins
         Flourish::TextureCreateInfo texCreateInfo;
         texCreateInfo.Width = m_Info.InputTexture->GetWidth();
         texCreateInfo.Height = m_Info.InputTexture->GetHeight();
-        texCreateInfo.Writability = Flourish::TextureWritability::Once;
         texCreateInfo.ArrayCount = 2;
         texCreateInfo.MipCount = 1;
         texCreateInfo.Format = Flourish::ColorFormat::RGBA16_FLOAT;

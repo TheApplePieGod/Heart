@@ -80,9 +80,7 @@ namespace Heart::RenderPlugins
 
         m_Pipeline = Flourish::RayTracingPipeline::Create(pipelineCreateInfo);
 
-        // TODO: need static
         Flourish::RayTracingGroupTableCreateInfo gtCreateInfo;
-        gtCreateInfo.Usage = Flourish::BufferUsageType::Dynamic;
         gtCreateInfo.Pipeline = m_Pipeline;
         gtCreateInfo.MaxHitEntries = 1;
         gtCreateInfo.MaxMissEntries = 2;

@@ -70,20 +70,18 @@ namespace Heart::RenderPlugins
         HE_ENGINE_ASSERT(m_MaxSplats % m_NumBlocksPerWorkgroup == 0);
         u32 maxWorkgroups = (m_MaxSplats / m_NumBlocksPerWorkgroup + m_WorkgroupSize - 1) / m_WorkgroupSize;
         Flourish::BufferCreateInfo bufCreateInfo;
-        bufCreateInfo.Type = Flourish::BufferType::Storage;
-        bufCreateInfo.Usage = Flourish::BufferUsageType::DynamicOneFrame;
+        bufCreateInfo.MemoryType = Flourish::BufferMemoryType::GPUOnly;
+        bufCreateInfo.Usage = Flourish::BufferUsageFlags::Storage;
         bufCreateInfo.Stride = sizeof(u32);
         bufCreateInfo.ElementCount = m_MaxSplats;
         for (u32 i = 0; i < m_SortedKeysBuffers.size(); i++)
             m_SortedKeysBuffers[i] = Flourish::Buffer::Create(bufCreateInfo);
-        bufCreateInfo.Usage = Flourish::BufferUsageType::Dynamic;
         m_KeyBuffer = Flourish::Buffer::Create(bufCreateInfo);
 
-        bufCreateInfo.Type = Flourish::BufferType::Storage;
         bufCreateInfo.ElementCount = maxWorkgroups * m_BinCount;
         m_HistogramBuffer = Flourish::Buffer::Create(bufCreateInfo);
 
-        bufCreateInfo.Type = Flourish::BufferType::Indirect;
+        bufCreateInfo.Usage = Flourish::BufferUsageFlags::Indirect | Flourish::BufferUsageFlags::Storage;
         bufCreateInfo.Stride = sizeof(ComputeMeshBatches::IndexedIndirectCommand);
         bufCreateInfo.ElementCount = 1;
         m_IndirectBuffer = Flourish::Buffer::Create(bufCreateInfo);

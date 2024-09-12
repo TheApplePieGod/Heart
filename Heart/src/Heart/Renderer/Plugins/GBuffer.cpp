@@ -137,7 +137,6 @@ namespace Heart::RenderPlugins
         texCreateInfo.ArrayCount = m_ImageCount;
         texCreateInfo.MipCount = m_Info.MipCount;
         texCreateInfo.Usage = Flourish::TextureUsageFlags::Graphics | Flourish::TextureUsageFlags::Transfer;
-        texCreateInfo.Writability = Flourish::TextureWritability::Once;
         texCreateInfo.SamplerState.MinFilter = Flourish::SamplerFilter::Nearest;
         texCreateInfo.SamplerState.MagFilter = Flourish::SamplerFilter::Nearest;
         texCreateInfo.SamplerState.UVWWrap = { Flourish::SamplerWrapMode::ClampToBorder, Flourish::SamplerWrapMode::ClampToBorder, Flourish::SamplerWrapMode::ClampToBorder };

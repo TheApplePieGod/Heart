@@ -19,8 +19,8 @@ namespace Heart::RenderPlugins
         m_UseRayTracing = Flourish::Context::FeatureTable().RayTracing;
 
         Flourish::BufferCreateInfo bufCreateInfo;
-        bufCreateInfo.Usage = Flourish::BufferUsageType::Dynamic;
-        bufCreateInfo.Type = Flourish::BufferType::Storage;
+        bufCreateInfo.MemoryType = Flourish::BufferMemoryType::CPUWriteFrame;
+        bufCreateInfo.Usage = Flourish::BufferUsageFlags::Storage;
         bufCreateInfo.Stride = sizeof(LightData);
         bufCreateInfo.ElementCount = m_MaxLights;
         m_Buffer = Flourish::Buffer::Create(bufCreateInfo);
@@ -62,14 +62,13 @@ namespace Heart::RenderPlugins
             std::array<float, 6> unitAABB = { -1.f, -1.f, -1.f, 1.f, 1.f, 1.f };
             auto uploadEncoder = uploadBuf->EncodeTransferCommands();
             Flourish::BufferCreateInfo bufCreateInfo;
-            bufCreateInfo.Type = Flourish::BufferType::Storage;
-            bufCreateInfo.Usage = Flourish::BufferUsageType::Static;
+            bufCreateInfo.MemoryType = Flourish::BufferMemoryType::GPUOnly;
+            bufCreateInfo.Usage = Flourish::BufferUsageFlags::AccelerationStructureBuild;
             bufCreateInfo.Stride = sizeof(unitAABB);
             bufCreateInfo.ElementCount = 1;
             bufCreateInfo.InitialData = unitAABB.data();
             bufCreateInfo.InitialDataSize = sizeof(unitAABB);
             bufCreateInfo.UploadEncoder = uploadEncoder;
-            bufCreateInfo.CanCreateAccelerationStructure = true;
             bufCreateInfo.ExposeGPUAddress = true;
             auto aabbBuffer = Flourish::Buffer::Create(bufCreateInfo);
             uploadEncoder->EndEncoding();

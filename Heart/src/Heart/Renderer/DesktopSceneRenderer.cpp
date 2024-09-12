@@ -177,7 +177,6 @@ namespace Heart
         texCreateInfo.ArrayCount = 1;
         texCreateInfo.MipCount = 1;
         texCreateInfo.Usage = Flourish::TextureUsageFlags::Graphics | Flourish::TextureUsageFlags::Compute;
-        texCreateInfo.Writability = Flourish::TextureWritability::PerFrame;
         texCreateInfo.SamplerState.UVWWrap = { Flourish::SamplerWrapMode::ClampToBorder, Flourish::SamplerWrapMode::ClampToBorder, Flourish::SamplerWrapMode::ClampToBorder };
         texCreateInfo.Format = Flourish::ColorFormat::RGBA16_FLOAT;
         Flourish::Texture::Replace(m_OutputTexture, texCreateInfo);
@@ -192,7 +191,6 @@ namespace Heart
             texCreateInfo.ArrayCount = 1;
             texCreateInfo.MipCount = 1;
             texCreateInfo.Usage = Flourish::TextureUsageFlags::Compute;
-            texCreateInfo.Writability = Flourish::TextureWritability::PerFrame;
             texCreateInfo.Format = Flourish::ColorFormat::RGBA16_FLOAT;
             m_RayReflectionsTexture = Flourish::Texture::Create(texCreateInfo);
         }

@@ -58,8 +58,8 @@ namespace Heart::RenderPlugins
         m_ResourceSet = pipeline->CreateResourceSet(0, dsCreateInfo);
 
         Flourish::BufferCreateInfo bufCreateInfo;
-        bufCreateInfo.Usage = Flourish::BufferUsageType::Dynamic;
-        bufCreateInfo.Type = Flourish::BufferType::Uniform;
+        bufCreateInfo.MemoryType = Flourish::BufferMemoryType::CPUWriteFrame;
+        bufCreateInfo.Usage = Flourish::BufferUsageFlags::Uniform;
         bufCreateInfo.Stride = sizeof(SSAOData);
         bufCreateInfo.ElementCount = 1;
         m_DataBuffer = Flourish::Buffer::Create(bufCreateInfo);
@@ -100,7 +100,6 @@ namespace Heart::RenderPlugins
         Flourish::TextureCreateInfo texCreateInfo;
         texCreateInfo.Width = 4;
         texCreateInfo.Height = 4;
-        texCreateInfo.Writability = Flourish::TextureWritability::Once;
         texCreateInfo.Format = Flourish::ColorFormat::RGBA32_FLOAT;
         texCreateInfo.Usage = Flourish::TextureUsageFlags::Readonly;
         texCreateInfo.ArrayCount = 1;
@@ -122,7 +121,6 @@ namespace Heart::RenderPlugins
         Flourish::TextureCreateInfo texCreateInfo;
         texCreateInfo.Width = m_Renderer->GetRenderWidth();
         texCreateInfo.Height = m_Renderer->GetRenderHeight();
-        texCreateInfo.Writability = Flourish::TextureWritability::PerFrame;
         texCreateInfo.ArrayCount = 1;
         texCreateInfo.MipCount = 1;
         texCreateInfo.Format = OUTPUT_FORMAT;

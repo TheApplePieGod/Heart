@@ -56,7 +56,6 @@ namespace Heart
         texCreateInfo.Height = 512;
         texCreateInfo.Format = Flourish::ColorFormat::RGBA16_FLOAT;
         texCreateInfo.Usage = Flourish::TextureUsageFlags::Graphics | Flourish::TextureUsageFlags::Transfer;
-        texCreateInfo.Writability = Flourish::TextureWritability::Once;
         texCreateInfo.ArrayCount = 6;
         texCreateInfo.MipCount = 0;
         texCreateInfo.SamplerState.UVWWrap = {
@@ -89,13 +88,9 @@ namespace Heart
 
         // Create the cubemap data buffer to hold data for each face render
         Flourish::BufferCreateInfo bufCreateInfo;
-        bufCreateInfo.Type = Flourish::BufferType::Storage;
-        bufCreateInfo.Usage = Flourish::BufferUsageType::DynamicOneFrame;
-        bufCreateInfo.Layout = {
-            { Flourish::BufferDataType::Mat4 },
-            { Flourish::BufferDataType::Mat4 },
-            { Flourish::BufferDataType::Float4 }
-        };
+        bufCreateInfo.MemoryType = Flourish::BufferMemoryType::CPUWrite;
+        bufCreateInfo.Usage = Flourish::BufferUsageFlags::Storage;
+        bufCreateInfo.Stride = sizeof(CubemapData);
         bufCreateInfo.ElementCount = 100;
         m_CubemapDataBuffer = Flourish::Buffer::Create(bufCreateInfo);
 

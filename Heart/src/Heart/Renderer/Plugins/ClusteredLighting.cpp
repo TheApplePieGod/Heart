@@ -47,8 +47,8 @@ namespace Heart::RenderPlugins
         m_PushData.ClusterDims = { xClusters, yClusters, zClusters, 0 };
 
         Flourish::BufferCreateInfo bufCreateInfo;
-        bufCreateInfo.Usage = Flourish::BufferUsageType::DynamicOneFrame;
-        bufCreateInfo.Type = Flourish::BufferType::Storage;
+        bufCreateInfo.MemoryType = Flourish::BufferMemoryType::GPUOnly;
+        bufCreateInfo.Usage = Flourish::BufferUsageFlags::Storage;
         bufCreateInfo.Stride = sizeof(Cluster);
         bufCreateInfo.ElementCount = clusterCount;
         m_ClusterBuffer = Flourish::Buffer::Create(bufCreateInfo);
@@ -58,7 +58,8 @@ namespace Heart::RenderPlugins
         m_LightIndicesBuffer = Flourish::Buffer::Create(bufCreateInfo);
         bufCreateInfo.ElementCount = 1;
         m_BuildData = Flourish::Buffer::Create(bufCreateInfo);
-        bufCreateInfo.Type = Flourish::BufferType::Uniform;
+        bufCreateInfo.MemoryType = Flourish::BufferMemoryType::CPUWriteFrame;
+        bufCreateInfo.Usage = Flourish::BufferUsageFlags::Uniform;
         bufCreateInfo.Stride = sizeof(ClusterData);
         m_ClusterData = Flourish::Buffer::Create(bufCreateInfo);
 

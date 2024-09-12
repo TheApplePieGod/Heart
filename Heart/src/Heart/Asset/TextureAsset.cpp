@@ -64,7 +64,6 @@ namespace Heart
             static_cast<u32>(height),
             format,
             Flourish::TextureUsageFlags::Readonly,
-            Flourish::TextureWritability::Once,
             1, 6,
             samp,
             pixels,

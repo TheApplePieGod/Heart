@@ -2,13 +2,8 @@
 #include "SplatAsset.h"
 
 #include "Heart/Util/FilesystemUtils.h"
-#include "Heart/Util/StringUtils.hpp"
-#include "Heart/Asset/AssetManager.h"
-#include "Heart/Asset/MaterialAsset.h"
-#include "Heart/Asset/TextureAsset.h"
-#include "glm/gtc/matrix_transform.hpp"
+#include "Heart/Util/BitUtils.hpp"
 #include "glm/gtx/quaternion.hpp"
-#include "glm/gtc/type_ptr.hpp"
 
 namespace Heart
 {
@@ -112,9 +107,9 @@ namespace Heart
 
             // Pack sigma since the matrix is symmetric
             splatData.PackedSigma = {
-                PackFloats(sigma[0][0], sigma[0][1]),
-                PackFloats(sigma[0][2], sigma[1][1]),
-                PackFloats(sigma[1][2], sigma[2][2]),
+                BitUtils::PackFloats(sigma[0][0], sigma[0][1]),
+                BitUtils::PackFloats(sigma[0][2], sigma[1][1]),
+                BitUtils::PackFloats(sigma[1][2], sigma[2][2]),
                 0
             };
 
@@ -144,30 +139,12 @@ namespace Heart
         }
 
         Flourish::BufferCreateInfo bufCreateInfo;
-        bufCreateInfo.Type = Flourish::BufferType::Storage;
-        bufCreateInfo.Usage = Flourish::BufferUsageType::Static;
+        bufCreateInfo.MemoryType = Flourish::BufferMemoryType::GPUOnly;
+        bufCreateInfo.Usage = Flourish::BufferUsageFlags::Storage;
         bufCreateInfo.Stride = sizeof(SplatData);
         bufCreateInfo.ElementCount = splatDatas.Count();
         bufCreateInfo.InitialData = splatDatas.Data();
         bufCreateInfo.InitialDataSize = sizeof(SplatData) * splatDatas.Count();
         m_DataBuffer = Flourish::Buffer::Create(bufCreateInfo);
-    }
-
-    u32 SplatAsset::PackFloats(float a, float b)
-    {
-        return ((u32)FloatToHalf(b) << 16) | (u32)FloatToHalf(a);
-    }
-
-    u16 SplatAsset::FloatToHalf(float a)
-    {
-        // https://stackoverflow.com/questions/1659440/32-bit-to-16-bit-floating-point-conversion
-        u32 casted = *(u32*)&a;
-        const u32 b = casted + 0x00001000;
-        const u32 e = (b & 0x7F800000) >> 23;
-        const u32 m = b & 0x007FFFFF;
-        return (b & 0x80000000) >> 16 |
-               (e > 112) * ((((e - 112) << 10) & 0x7C00) | m >> 13) |
-               ((e < 113) & (e > 101)) * ((((0x007FF000 + m) >> (125 - e)) + 1) >> 1) |
-               (e > 143) * 0x7FFF;
     }
 }
