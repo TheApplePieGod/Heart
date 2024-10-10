@@ -2,6 +2,7 @@
 #include "PBRComposite.h"
 
 #include "Heart/Renderer/SceneRenderer.h"
+#include "Heart/Renderer/Plugins/SSAO.h"
 #include "Heart/Renderer/Plugins/GBuffer.h"
 #include "Heart/Renderer/Plugins/FrameData.h"
 #include "Heart/Renderer/Plugins/LightingData.h"
@@ -41,6 +42,7 @@ namespace Heart::RenderPlugins
     void PBRComposite::ResizeInternal()
     {
         auto gBufferPlugin = m_Renderer->GetPlugin<RenderPlugins::GBuffer>(m_Info.GBufferPluginName);
+        auto ssaoPlugin = m_Renderer->GetPlugin<RenderPlugins::SSAO>(m_Info.SSAOPluginName);
         auto clusterPlugin = m_Renderer->GetPlugin<RenderPlugins::ClusteredLighting>(m_Info.ClusteredLightingPluginName);
 
         m_GPUGraphNodeBuilder.Reset()
@@ -48,10 +50,11 @@ namespace Heart::RenderPlugins
             .AddEncoderNode(Flourish::GPUWorkloadType::Compute)
             .EncoderAddBufferRead(clusterPlugin->GetLightIndicesBuffer())
             .EncoderAddBufferRead(clusterPlugin->GetLightGridBuffer())
-            .EncoderAddTextureRead(gBufferPlugin->GetGBuffer1())
-            .EncoderAddTextureRead(gBufferPlugin->GetGBuffer2())
-            .EncoderAddTextureRead(gBufferPlugin->GetGBuffer3())
+            .EncoderAddTextureRead(gBufferPlugin->GetGBuffer1().get())
+            .EncoderAddTextureRead(gBufferPlugin->GetGBuffer2().get())
+            .EncoderAddTextureRead(gBufferPlugin->GetGBuffer3().get())
             .EncoderAddTextureRead(gBufferPlugin->GetGBufferDepth().get())
+            .EncoderAddTextureRead(ssaoPlugin->GetOutputTexture())
             .EncoderAddTextureWrite(m_Info.OutputTexture.get());
     }
 
@@ -66,6 +69,7 @@ namespace Heart::RenderPlugins
         auto lightingDataPlugin = m_Renderer->GetPlugin<RenderPlugins::LightingData>(m_Info.LightingDataPluginName);
         auto lightingDataBuffer = lightingDataPlugin->GetBuffer();
         auto gBufferPlugin = m_Renderer->GetPlugin<RenderPlugins::GBuffer>(m_Info.GBufferPluginName);
+        auto ssaoPlugin = m_Renderer->GetPlugin<RenderPlugins::SSAO>(m_Info.SSAOPluginName);
         auto clusterPlugin = m_Renderer->GetPlugin<RenderPlugins::ClusteredLighting>(m_Info.ClusteredLightingPluginName);
 
         m_ResourceSet->BindBuffer(0, frameDataBuffer, 0, 1);
@@ -92,13 +96,17 @@ namespace Heart::RenderPlugins
             m_ResourceSet->BindTexture(10, m_Renderer->GetDefaultEnvironmentMap());
             m_ResourceSet->BindTexture(11, m_Renderer->GetDefaultEnvironmentMap());
         }
+        m_ResourceSet->BindTexture(12, ssaoPlugin->GetOutputTexture());
 
         m_ResourceSet->FlushBindings();
+
+        m_PushConstants.SSAOEnable = data.Settings.SSAOEnable;
 
         auto encoder = m_CommandBuffer->EncodeComputeCommands();
         encoder->BindComputePipeline(m_Pipeline.get());
         encoder->BindResourceSet(m_ResourceSet.get(), 0);
         encoder->FlushResourceSet(0);
+        encoder->PushConstants(0, sizeof(PushConstants), &m_PushConstants);
         encoder->Dispatch((m_Info.OutputTexture->GetWidth() / 16) + 1, (m_Info.OutputTexture->GetHeight() / 16) + 1, 1);
         encoder->EndEncoding();
     }

@@ -21,6 +21,11 @@
 
 layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
+layout(push_constant) uniform PushConstants
+{
+    uint ssaoEnable;
+} constants;
+
 layout(binding = 5) uniform sampler2D newGBuffer1;
 layout(binding = 6) uniform sampler2D newGBuffer2;
 layout(binding = 7) uniform sampler2D newGBufferDepth;
@@ -28,6 +33,7 @@ layout(binding = 8) uniform sampler2D brdfTex;
 layout(binding = 9, rgba16f) uniform writeonly image2D outColor;
 layout(binding = 10) uniform samplerCube prefilterMap;
 layout(binding = 11) uniform samplerCube irradianceMap;
+layout(binding = 12) uniform sampler2D ssao;
 
 void main()
 {
@@ -106,7 +112,9 @@ void main()
         vec2 brdf = texture(brdfTex, vec2(max(dot(N, V), 0.0), roughness)).rg;
         vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);
 
-        float occlusion = 1.0;
+        float occlusion = 1.f;
+        if (constants.ssaoEnable == 1)
+            occlusion = texture(ssao, texCoord).r;
         finalContribution += (kD * diffuse + specular) * occlusion;
     }
 

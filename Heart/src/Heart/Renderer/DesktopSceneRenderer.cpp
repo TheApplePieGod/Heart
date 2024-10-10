@@ -46,6 +46,14 @@ namespace Heart
         gBuffer->AddDependency(CBTEXTCam->GetName(), GraphDependencyType::CPU);
         gBuffer->AddInitDependency(entityIds->GetName());
 
+        RenderPlugins::SSAOCreateInfo ssaoCreateInfo;
+        ssaoCreateInfo.FrameDataPluginName = frameData->GetName();
+        ssaoCreateInfo.InputDepthTexture = gBuffer->GetGBufferDepth();
+        ssaoCreateInfo.InputNormalsTexture = gBuffer->GetGBuffer2();
+        auto ssao = RegisterPlugin<RenderPlugins::SSAO>("SSAO", ssaoCreateInfo);
+        ssao->AddDependency(gBuffer->GetName(), GraphDependencyType::CPU);
+        ssao->AddDependency(gBuffer->GetName(), GraphDependencyType::GPU);
+
         RenderPlugins::RenderEnvironmentMapCreateInfo envMapCreateInfo;
         envMapCreateInfo.OutputTexture = m_OutputTexture;
         envMapCreateInfo.ClearOutput = true;
@@ -99,6 +107,7 @@ namespace Heart
             auto pbrComposite = RegisterPlugin<RenderPlugins::RayPBRComposite>("RayPBRComposite", pbrCompCreateInfo);
             pbrComposite->AddDependency(envMap->GetName(), GraphDependencyType::GPU);
             pbrComposite->AddDependency(svgf->GetName(), GraphDependencyType::GPU);
+            pbrComposite->AddDependency(ssao->GetName(), GraphDependencyType::GPU);
             pbrComposite->AddDependency(tlas->GetName(), GraphDependencyType::CPU);
             pbrComposite->AddDependency(clusteredLighting->GetName(), GraphDependencyType::CPU);
             pbrComposite->AddDependency(clusteredLighting->GetName(), GraphDependencyType::GPU);
@@ -115,13 +124,15 @@ namespace Heart
             pbrCompCreateInfo.FrameDataPluginName = frameData->GetName();
             pbrCompCreateInfo.LightingDataPluginName = lightingData->GetName();
             pbrCompCreateInfo.GBufferPluginName = gBuffer->GetName();
+            pbrCompCreateInfo.SSAOPluginName = ssao->GetName();
             pbrCompCreateInfo.ClusteredLightingPluginName = clusteredLighting->GetName();
             auto pbrComposite = RegisterPlugin<RenderPlugins::PBRComposite>("PBRComposite", pbrCompCreateInfo);
-            pbrComposite->AddDependency(gBuffer->GetName(), GraphDependencyType::GPU);
+            pbrComposite->AddDependency(ssao->GetName(), GraphDependencyType::GPU);
             pbrComposite->AddDependency(envMap->GetName(), GraphDependencyType::GPU);
             pbrComposite->AddDependency(clusteredLighting->GetName(), GraphDependencyType::CPU);
             pbrComposite->AddDependency(clusteredLighting->GetName(), GraphDependencyType::GPU);
             pbrComposite->AddInitDependency(gBuffer->GetName());
+            pbrComposite->AddInitDependency(ssao->GetName());
             pbrComposite->AddInitDependency(clusteredLighting->GetName());
 
             pbrCompositeName = pbrComposite->GetName();

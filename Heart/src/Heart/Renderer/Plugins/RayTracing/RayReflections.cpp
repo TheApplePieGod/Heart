@@ -121,8 +121,8 @@ namespace Heart::RenderPlugins
             .SetCommandBuffer(m_CommandBuffer.get())
             .AddEncoderNode(Flourish::GPUWorkloadType::Compute)
             .EncoderAddTextureWrite(m_Info.OutputTexture.get())
-            .EncoderAddTextureRead(gBufferPlugin->GetGBuffer1())
-            .EncoderAddTextureRead(gBufferPlugin->GetGBuffer2())
+            .EncoderAddTextureRead(gBufferPlugin->GetGBuffer1().get())
+            .EncoderAddTextureRead(gBufferPlugin->GetGBuffer2().get())
             .EncoderAddTextureRead(gBufferPlugin->GetGBufferDepth().get());
             // .AccelStructure ???
     }

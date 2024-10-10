@@ -85,8 +85,8 @@ namespace Heart::RenderPlugins
             .SetCommandBuffer(m_CommandBuffer.get())
             .AddEncoderNode(Flourish::GPUWorkloadType::Compute)
             .EncoderAddTextureRead(m_Info.InputTexture.get())
-            .EncoderAddTextureRead(gBufferPlugin->GetGBuffer2())
-            .EncoderAddTextureRead(gBufferPlugin->GetGBuffer3())
+            .EncoderAddTextureRead(gBufferPlugin->GetGBuffer2().get())
+            .EncoderAddTextureRead(gBufferPlugin->GetGBuffer3().get())
             .EncoderAddTextureRead(gBufferPlugin->GetGBufferDepth().get())
             .EncoderAddTextureWrite(m_MomentsHistory.get())
             .EncoderAddTextureWrite(m_ColorHistory.get());
@@ -94,8 +94,8 @@ namespace Heart::RenderPlugins
         for (u32 i = 0; i < m_ATrousIterations; i++)
         {
             m_GPUGraphNodeBuilder.AddEncoderNode(Flourish::GPUWorkloadType::Compute)
-                .EncoderAddTextureRead(gBufferPlugin->GetGBuffer2())
-                .EncoderAddTextureRead(gBufferPlugin->GetGBuffer3())
+                .EncoderAddTextureRead(gBufferPlugin->GetGBuffer2().get())
+                .EncoderAddTextureRead(gBufferPlugin->GetGBuffer3().get())
                 .EncoderAddTextureRead(gBufferPlugin->GetGBufferDepth().get())
                 .EncoderAddTextureWrite(m_TempTexture.get());
 
@@ -106,8 +106,8 @@ namespace Heart::RenderPlugins
         }
 
         m_GPUGraphNodeBuilder.AddEncoderNode(Flourish::GPUWorkloadType::Compute)
-            .EncoderAddTextureRead(gBufferPlugin->GetGBuffer2())
-            .EncoderAddTextureRead(gBufferPlugin->GetGBuffer3())
+            .EncoderAddTextureRead(gBufferPlugin->GetGBuffer2().get())
+            .EncoderAddTextureRead(gBufferPlugin->GetGBuffer3().get())
             .EncoderAddTextureRead(m_TempTexture.get())
             .EncoderAddTextureWrite(m_Info.OutputTexture.get());
     }
