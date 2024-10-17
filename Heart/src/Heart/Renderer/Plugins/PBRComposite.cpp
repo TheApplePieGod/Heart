@@ -30,6 +30,7 @@ namespace Heart::RenderPlugins
         Flourish::CommandBufferCreateInfo cbCreateInfo;
         cbCreateInfo.FrameRestricted = true;
         cbCreateInfo.DebugName = m_Name.Data();
+        cbCreateInfo.MaxTimestamps = 2;
         m_CommandBuffer = Flourish::CommandBuffer::Create(cbCreateInfo);
 
         Flourish::ResourceSetCreateInfo dsCreateInfo;
@@ -63,6 +64,9 @@ namespace Heart::RenderPlugins
     {
         HE_PROFILE_FUNCTION();
         auto timer = AggregateTimer("RenderPlugins::PBRComposite");
+
+        m_Stats["GPU Time"].Type = StatType::TimeMS;
+        m_Stats["GPU Time"].Data.Float = (float)(m_CommandBuffer->ComputeTimestampDifference(0, 1) * 1e-6);
 
         auto frameDataPlugin = m_Renderer->GetPlugin<RenderPlugins::FrameData>(m_Info.FrameDataPluginName);
         auto frameDataBuffer = frameDataPlugin->GetBuffer();
@@ -103,11 +107,13 @@ namespace Heart::RenderPlugins
         m_PushConstants.SSAOEnable = data.Settings.SSAOEnable;
 
         auto encoder = m_CommandBuffer->EncodeComputeCommands();
+        encoder->WriteTimestamp(0);
         encoder->BindComputePipeline(m_Pipeline.get());
         encoder->BindResourceSet(m_ResourceSet.get(), 0);
         encoder->FlushResourceSet(0);
         encoder->PushConstants(0, sizeof(PushConstants), &m_PushConstants);
         encoder->Dispatch((m_Info.OutputTexture->GetWidth() / 16) + 1, (m_Info.OutputTexture->GetHeight() / 16) + 1, 1);
+        encoder->WriteTimestamp(1);
         encoder->EndEncoding();
     }
 }

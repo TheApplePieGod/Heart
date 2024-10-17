@@ -53,6 +53,7 @@ namespace Heart::RenderPlugins
         Flourish::CommandBufferCreateInfo cbCreateInfo;
         cbCreateInfo.FrameRestricted = true;
         cbCreateInfo.DebugName = m_Name.Data();
+        cbCreateInfo.MaxTimestamps = 2;
         m_CommandBuffer = Flourish::CommandBuffer::Create(cbCreateInfo);
 
         Flourish::ResourceSetCreateInfo dsCreateInfo;
@@ -82,6 +83,9 @@ namespace Heart::RenderPlugins
         HE_PROFILE_FUNCTION();
         auto timer = AggregateTimer("RenderPlugins::RenderEnvironmentMap");
 
+        m_Stats["GPU Time"].Type = StatType::TimeMS;
+        m_Stats["GPU Time"].Data.Float = (float)(m_CommandBuffer->ComputeTimestampDifference(0, 1) * 1e-6);
+
         if (!data.EnvMap)
         {
             auto encoder = m_CommandBuffer->EncodeRenderCommands(m_Framebuffer.get());
@@ -99,6 +103,7 @@ namespace Heart::RenderPlugins
         m_ResourceSet->FlushBindings();
         
         auto encoder = m_CommandBuffer->EncodeRenderCommands(m_Framebuffer.get());
+        encoder->WriteTimestamp(0);
         encoder->BindPipeline("main");
         encoder->BindResourceSet(m_ResourceSet.get(), 0);
         encoder->FlushResourceSet(0);
@@ -114,6 +119,7 @@ namespace Heart::RenderPlugins
             0, 0, 1, 0
         );
 
+        encoder->WriteTimestamp(1);
         encoder->EndEncoding();
     }
 }

@@ -1,3 +1,4 @@
+#include "Heart/Input/KeyCodes.h"
 #include "hepch.h"
 #include "GBuffer.h"
 
@@ -116,6 +117,7 @@ namespace Heart::RenderPlugins
         Flourish::CommandBufferCreateInfo cbCreateInfo;
         cbCreateInfo.FrameRestricted = true;
         cbCreateInfo.DebugName = m_Name.Data();
+        cbCreateInfo.MaxTimestamps = 3; // TODO: disable in dist
         m_CommandBuffer = Flourish::CommandBuffer::Create(cbCreateInfo);
 
         Flourish::ResourceSetCreateInfo dsCreateInfo;
@@ -183,7 +185,13 @@ namespace Heart::RenderPlugins
     {
         HE_PROFILE_FUNCTION();
         auto timer = AggregateTimer("RenderPlugins::GBuffer");
-        
+
+        // Update timing stats
+        m_Stats["GPU Time (Objects)"].Type = StatType::TimeMS;
+        m_Stats["GPU Time (Objects)"].Data.Float = (float)(m_CommandBuffer->ComputeTimestampDifference(0, 1) * 1e-6);
+        m_Stats["GPU Time (Text)"].Type = StatType::TimeMS;
+        m_Stats["GPU Time (Text)"].Data.Float = (float)(m_CommandBuffer->ComputeTimestampDifference(1, 2) * 1e-6);
+
         auto frameDataPlugin = m_Renderer->GetPlugin<RenderPlugins::FrameData>(m_Info.FrameDataPluginName);
         auto frameDataBuffer = frameDataPlugin->GetBuffer();
         auto materialsPlugin = m_Renderer->GetPlugin<RenderPlugins::CollectMaterials>(m_Info.CollectMaterialsPluginName);
@@ -197,6 +205,7 @@ namespace Heart::RenderPlugins
         m_StandardResourceSet->FlushBindings();
         
         auto encoder = m_CommandBuffer->EncodeRenderCommands(m_Framebuffers[GetArrayIndex()].get());
+        encoder->WriteTimestamp(0);
         encoder->BindPipeline("standard");
         encoder->BindResourceSet(m_StandardResourceSet.get(), 0);
         encoder->FlushResourceSet(0);
@@ -220,6 +229,7 @@ namespace Heart::RenderPlugins
         m_StandardResourceSet->BindBuffer(2, materialBuffer, 0, materialBuffer->GetAllocatedCount());
         m_StandardResourceSet->FlushBindings();
 
+        encoder->WriteTimestamp(1);
         encoder->BindPipeline("text");
         encoder->BindResourceSet(m_StandardResourceSet.get(), 0);
         encoder->FlushResourceSet(0);
@@ -240,6 +250,7 @@ namespace Heart::RenderPlugins
             );
         }
         
+        encoder->WriteTimestamp(2);
         encoder->EndEncoding();
 
         auto graphicsEncoder = m_CommandBuffer->EncodeGraphicsCommands();

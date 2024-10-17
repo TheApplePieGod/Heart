@@ -35,6 +35,7 @@ namespace Heart::RenderPlugins
         Flourish::CommandBufferCreateInfo cbCreateInfo;
         cbCreateInfo.FrameRestricted = true;
         cbCreateInfo.DebugName = m_Name.Data();
+        cbCreateInfo.MaxTimestamps = 4;
         m_CommandBuffer = Flourish::CommandBuffer::Create(cbCreateInfo);
 
         Flourish::ResourceSetCreateInfo dsCreateInfo;
@@ -94,6 +95,13 @@ namespace Heart::RenderPlugins
         HE_PROFILE_FUNCTION();
         auto timer = AggregateTimer("RenderPlugins::Bloom");
 
+        m_Stats["GPU Time (Downsample)"].Type = StatType::TimeMS;
+        m_Stats["GPU Time (Downsample)"].Data.Float = (float)(m_CommandBuffer->ComputeTimestampDifference(0, 1) * 1e-6);
+        m_Stats["GPU Time (Upsample)"].Type = StatType::TimeMS;
+        m_Stats["GPU Time (Upsample)"].Data.Float = (float)(m_CommandBuffer->ComputeTimestampDifference(1, 2) * 1e-6);
+        m_Stats["GPU Time (Composite)"].Type = StatType::TimeMS;
+        m_Stats["GPU Time (Composite)"].Data.Float = (float)(m_CommandBuffer->ComputeTimestampDifference(2, 3) * 1e-6);
+
         if (!data.Settings.BloomEnable)
         {
             for (u32 i = 1; i < m_MipCount; i++)
@@ -123,7 +131,10 @@ namespace Heart::RenderPlugins
             auto encoder = m_CommandBuffer->EncodeComputeCommands();
             encoder->BindComputePipeline(m_DownsamplePipeline.get());
             if (i == 1)
+            {
+                encoder->WriteTimestamp(0);
                 m_DownsampleResourceSet->BindTexture(0, m_Info.InputTexture.get());
+            }
             else
                 m_DownsampleResourceSet->BindTextureLayer(0, m_DownsampleTexture.get(), 0, i - 1);
             m_DownsampleResourceSet->BindTextureLayer(1, m_DownsampleTexture.get(), 0, i);
@@ -132,6 +143,8 @@ namespace Heart::RenderPlugins
             encoder->FlushResourceSet(0);
             encoder->PushConstants(0, sizeof(SamplePushData), &m_PushData);
             encoder->Dispatch((m_PushData.DstResolution.x / 16) + 1, (m_PushData.DstResolution.y / 16) + 1, 1);
+            if (i == m_MipCount - 1)
+                encoder->WriteTimestamp(1);
             encoder->EndEncoding();
         }
         
@@ -161,6 +174,8 @@ namespace Heart::RenderPlugins
             encoder->FlushResourceSet(0);
             encoder->PushConstants(0, sizeof(SamplePushData), &m_PushData);
             encoder->Dispatch((m_PushData.DstResolution.x / 16) + 1, (m_PushData.DstResolution.y / 16) + 1, 1);
+            if (i == 0)
+                encoder->WriteTimestamp(2);
             encoder->EndEncoding();
         }
 
@@ -184,6 +199,7 @@ namespace Heart::RenderPlugins
         encoder->FlushResourceSet(0);
         encoder->PushConstants(0, sizeof(CompositePushData), &compPushData);
         encoder->Dispatch((compPushData.DstResolution.x / 16) + 1, (compPushData.DstResolution.y / 16) + 1, 1);
+        encoder->WriteTimestamp(3);
         encoder->EndEncoding();
     }
 }

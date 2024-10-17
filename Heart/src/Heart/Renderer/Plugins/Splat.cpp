@@ -97,6 +97,7 @@ namespace Heart::RenderPlugins
         Flourish::CommandBufferCreateInfo cbCreateInfo;
         cbCreateInfo.FrameRestricted = true;
         cbCreateInfo.DebugName = m_Name.Data();
+        cbCreateInfo.MaxTimestamps = 3;
         m_CommandBuffer = Flourish::CommandBuffer::Create(cbCreateInfo);
 
         Flourish::ResourceSetCreateInfo dsCreateInfo;
@@ -167,6 +168,11 @@ namespace Heart::RenderPlugins
         HE_PROFILE_FUNCTION();
         auto timer = AggregateTimer("RenderPlugins::Splat");
 
+        m_Stats["GPU Time (Sort)"].Type = StatType::TimeMS;
+        m_Stats["GPU Time (Sort)"].Data.Float = (float)(m_CommandBuffer->ComputeTimestampDifference(0, 1) * 1e-6);
+        m_Stats["GPU Time (Render)"].Type = StatType::TimeMS;
+        m_Stats["GPU Time (Render)"].Data.Float = (float)(m_CommandBuffer->ComputeTimestampDifference(1, 2) * 1e-6);
+
         auto frameDataPlugin = m_Renderer->GetPlugin<RenderPlugins::FrameData>(m_Info.FrameDataPluginName);
         auto frameDataBuffer = frameDataPlugin->GetBuffer();
         
@@ -232,6 +238,8 @@ namespace Heart::RenderPlugins
                 m_HistorgramResourceSet->BindBuffer(3, m_IndirectBuffer.get(), 0, 1);
                 m_HistorgramResourceSet->FlushBindings();
                 auto compEncoder = m_CommandBuffer->EncodeComputeCommands();
+                if (i == 0)
+                    compEncoder->WriteTimestamp(0);
                 compEncoder->BindComputePipeline(m_HistogramPipeline.get());
                 compEncoder->BindResourceSet(m_HistorgramResourceSet.get(), 0);
                 compEncoder->FlushResourceSet(0);
@@ -257,6 +265,8 @@ namespace Heart::RenderPlugins
                 compEncoder->FlushResourceSet(1);
                 compEncoder->PushConstants(0, sizeof(RadixPushConstants), &radixPush);
                 compEncoder->Dispatch(workgroupCount, 1, 1);
+                if (i == 3)
+                    compEncoder->WriteTimestamp(1);
                 compEncoder->EndEncoding();
             }
 
@@ -277,6 +287,7 @@ namespace Heart::RenderPlugins
             glm::mat4 MV = data.Camera->GetViewMatrix() * transformData.Transform;
             encoder->PushConstants(0, sizeof(glm::mat4), &MV);
             encoder->DrawIndexedIndirect(m_IndirectBuffer.get(), 0, 1);
+            encoder->WriteTimestamp(2);
             encoder->EndEncoding();
 
             totalSplatCount += splatCount;

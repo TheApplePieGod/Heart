@@ -21,6 +21,7 @@ namespace Heart::RenderPlugins
         Flourish::CommandBufferCreateInfo cbCreateInfo;
         cbCreateInfo.FrameRestricted = true;
         cbCreateInfo.DebugName = m_Name.Data();
+        cbCreateInfo.MaxTimestamps = 2;
         m_CommandBuffer = Flourish::CommandBuffer::Create(cbCreateInfo);
 
         Flourish::ComputePipelineCreateInfo compCreateInfo;
@@ -48,6 +49,9 @@ namespace Heart::RenderPlugins
         HE_PROFILE_FUNCTION();
         auto timer = AggregateTimer("RenderPlugins::ColorGrading");
 
+        m_Stats["GPU Time"].Type = StatType::TimeMS;
+        m_Stats["GPU Time"].Data.Float = (float)(m_CommandBuffer->ComputeTimestampDifference(0, 1) * 1e-6);
+
         // TODO: need specialization when input and output are different resolutions
         // b/c of imageLoad in shader
 
@@ -63,11 +67,13 @@ namespace Heart::RenderPlugins
         };
 
         auto encoder = m_CommandBuffer->EncodeComputeCommands();
+        encoder->WriteTimestamp(0);
         encoder->BindComputePipeline(m_Pipeline.get());
         encoder->BindResourceSet(m_ResourceSet.get(), 0);
         encoder->FlushResourceSet(0);
         encoder->PushConstants(0, sizeof(PushConstants), &consts);
         encoder->Dispatch((consts.DstResolution.x / 16) + 1, (consts.DstResolution.y / 16) + 1, 1);
+        encoder->WriteTimestamp(1);
         encoder->EndEncoding();
     }
 }
