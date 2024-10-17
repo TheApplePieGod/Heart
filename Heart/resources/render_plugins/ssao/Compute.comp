@@ -35,10 +35,10 @@ vec3 ComputePosition(vec2 uv, float depth)
 void main()
 {
     ivec2 coord = ivec2(gl_GlobalInvocationID.xy);
-    if (coord.x >= frameBuffer.data.screenSize.x || coord.y >= frameBuffer.data.screenSize.y)
+    if (coord.x >= constants.renderSize.x || coord.y >= constants.renderSize.y)
         return;
 
-    vec2 texCoord = (vec2(coord) + vec2(0.5)) / frameBuffer.data.screenSize.xy;
+    vec2 texCoord = (vec2(coord) + vec2(0.5)) / constants.renderSize;
 
     float depth = textureLod(depthTex, texCoord, 0).r;
     vec3 position = ComputePosition(texCoord, depth);

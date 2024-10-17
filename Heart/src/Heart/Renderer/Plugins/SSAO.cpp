@@ -89,8 +89,8 @@ namespace Heart::RenderPlugins
     void SSAO::ResizeInternal()
     {
         Flourish::TextureCreateInfo texCreateInfo;
-        texCreateInfo.Width = m_Renderer->GetRenderWidth();
-        texCreateInfo.Height = m_Renderer->GetRenderHeight();
+        texCreateInfo.Width = m_Renderer->GetRenderWidth() / 2;
+        texCreateInfo.Height = m_Renderer->GetRenderHeight() / 2;
         texCreateInfo.ArrayCount = 1;
         texCreateInfo.MipCount = 1;
         texCreateInfo.Format = OUTPUT_FORMAT;
