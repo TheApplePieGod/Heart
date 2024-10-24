@@ -3,7 +3,7 @@
 
 layout(location = 0) in vec2 texCoord;
 
-layout(location = 0) out vec4 outColor;
+layout(location = 0) out vec2 outColor;
 
 float RadicalInverse_VdC(uint bits) 
 {
@@ -76,7 +76,7 @@ vec2 IntegrateBRDF(float NdotV, float roughness)
 
     vec3 N = vec3(0.0, 0.0, 1.0);
 
-    const uint SAMPLE_COUNT = 1024u;
+    const uint SAMPLE_COUNT = 2048u;
     for(uint i = 0u; i < SAMPLE_COUNT; ++i)
     {
         vec2 Xi = Hammersley(i, SAMPLE_COUNT);
@@ -104,5 +104,5 @@ vec2 IntegrateBRDF(float NdotV, float roughness)
 
 void main() {
     vec2 integratedBRDF = IntegrateBRDF(texCoord.x, texCoord.y);
-    outColor = vec4(integratedBRDF.rg, 0.f, 1.f);
+    outColor = integratedBRDF;
 }

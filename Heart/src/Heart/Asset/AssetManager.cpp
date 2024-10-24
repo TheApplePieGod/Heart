@@ -388,14 +388,17 @@ namespace Heart
 
     Asset::Type AssetManager::DeduceAssetTypeFromFile(const HStringView8& path)
     {
-        auto extension = std::filesystem::path(path.Data()).extension().generic_u8string();
+        auto rawExtension = std::filesystem::path(path.Data()).extension().generic_u8string();
 
         // Convert the extension to lowercase
-        std::transform(extension.begin(), extension.end(), extension.begin(), [](unsigned char c) { return std::tolower(c); });
-        
+        std::transform(rawExtension.begin(), rawExtension.end(), rawExtension.begin(), [](unsigned char c) { return std::tolower(c); });
+
+        HStringView8 extension(rawExtension);
+
         Asset::Type type = Asset::Type::None;
         if (extension == ".png" || extension == ".jpg" || extension == ".bmp" ||
-            extension == ".hdr" || extension == ".tiff" || extension == ".tif") // textures
+            extension == ".hdr" || extension == ".tiff" || extension == ".tif" ||
+            extension == ".hetex") // textures
             type = Asset::Type::Texture;
         else if (extension == ".gltf")
             type = Asset::Type::Mesh;

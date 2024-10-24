@@ -28,6 +28,21 @@ namespace Heart
                    (e > 143) * 0x7FFF;
         }
 
+        static float HalfToFloat(u16 a)
+        {
+            // https://stackoverflow.com/questions/1659440/32-bit-to-16-bit-floating-point-conversion
+            const u32 e = (a & 0x7C00) >> 10;
+            const u32 m = (a & 0x03FF) << 13;
+            const float mf = (float)m;
+            const u32 v = (*(u32*)&mf) >> 23;
+            const u32 result = (
+                (a & 0x8000) << 16 |
+                (e != 0) * ((e + 112) << 23 | m) |
+                ((e == 0) & (m != 0)) * ((v - 37) << 23 | ((m << (150 - v)) & 0x007FE000))
+            );
+            return *(float*)&result;
+        }
+
         static u32 PackFloats(float a, float b)
         {
             return ((u32)FloatToHalf(b) << 16) | (u32)FloatToHalf(a);

@@ -32,7 +32,8 @@ namespace Heart
         inline const Flourish::Texture* GetEnvironmentCubemap() const { return m_EnvironmentMap.Texture.get(); }
         inline const Flourish::Texture* GetIrradianceCubemap() const { return m_IrradianceMap.Texture.get(); }
         inline const Flourish::Texture* GetPrefilterCubemap() const { return m_PrefilterMaps[0].Texture.get(); }
-        inline const Flourish::Texture* GetBRDFTexture() const { return m_BRDFTexture.Texture.get(); }
+
+        const Flourish::Texture* GetBRDFTexture() const;
 
     private:
         struct CubemapData
@@ -54,6 +55,8 @@ namespace Heart
         void Initialize();
 
     private:
+        const bool m_GenerateBRDF = false;
+
         UUID m_MapAsset;
         bool m_SetsWritten = false;
 
@@ -66,6 +69,7 @@ namespace Heart
         Ref<Flourish::RenderPass> m_BRDFRenderPass;
 
         Ref<Flourish::Buffer> m_CubemapDataBuffer;
+        Ref<Flourish::Buffer> m_BRDFTexBuffer;
         Ref<Flourish::Buffer> m_FrameDataBuffer;
 
         Ref<Flourish::RenderGraph> m_RenderGraph;
