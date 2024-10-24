@@ -119,7 +119,10 @@ namespace Heart
         }
 
         if (format == Flourish::ColorFormat::None)
+        {
+            delete[] data;
             return result;
+        }
 
         Flourish::TextureSamplerState samp;
         samp.AnisotropyEnable = true;
