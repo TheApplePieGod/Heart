@@ -24,21 +24,17 @@ namespace HeartEditor
     {
         HE_PROFILE_FUNCTION();
 
+        Heart::WindowCreateInfo startupWindow;
+        startupWindow.Title = m_WindowName;
+        startupWindow.Width = 1920;
+        startupWindow.Height = 1080;
+        EditorApp::Get().CreateWindow(startupWindow);
+
         SubscribeToEmitter(&EditorApp::Get().GetWindow());
 
         Heart::AssetManager::EnableFileWatcher();
 
-        Editor::Initialize();
-
-        // Crappy default project solution until we get some sort of settings file
-        /*
-        if (std::filesystem::exists("D:/Projects/Heart/HeartProjects/VampireSurvivor/VampireSurvivor.heproj"))
-            Project::LoadFromPath("D:/Projects/Heart/HeartProjects/VampireSurvivor/VampireSurvivor.heproj");
-            */
-        if (std::filesystem::exists("../../../HeartProjects/TestProject/TestProject.heproj"))
-            Project::LoadFromPath("../../../HeartProjects/TestProject/TestProject.heproj");
-        else
-            Editor::CreateWindows();
+        Editor::CreateWindows();
 
         Heart::ScriptingEngine::SetScriptInputEnabled(false);
 
@@ -50,7 +46,6 @@ namespace HeartEditor
         UnsubscribeFromEmitter(&EditorApp::Get().GetWindow());
 
         Editor::DestroyWindows();
-        Editor::Shutdown();
 
         Heart::AssetManager::DisableFileWatcher();
 
@@ -61,12 +56,13 @@ namespace HeartEditor
     {
         HE_PROFILE_FUNCTION();
 
+        auto& viewport = (Widgets::Viewport&)Editor::GetWindow("Viewport");
+
         Editor::GetSceneUpdateTask().Wait();
-        ((Widgets::Viewport&)Editor::GetWindow("Viewport")).GetSceneRendererUpdateTask().Wait();
+        viewport.GetSceneRendererUpdateTask().Wait();
 
         Editor::GetRenderScene().CopyFromScene(&Editor::GetActiveScene());
 
-        auto& viewport = (Widgets::Viewport&)Editor::GetWindow("Viewport");
         viewport.UpdateCamera();
 
         /*
@@ -132,7 +128,7 @@ namespace HeartEditor
             EditorApp::Get().GetWindow().ToggleFullscreen();
         else if (event.GetKeyCode() == Heart::KeyCode::S && Heart::Input::IsKeyPressed(Heart::KeyCode::LeftCtrl))
         {
-            Project::GetActiveProject()->SaveToDisk();
+            Editor::GetState().ActiveProject->SaveToDisk();
             Editor::SaveScene();
         }
         else if (
@@ -140,8 +136,8 @@ namespace HeartEditor
             Heart::Input::IsKeyPressed(Heart::KeyCode::LeftCtrl) &&
             Editor::GetSceneState() != SceneState::Playing)
         {
-            if (Project::GetActiveProject()->BuildScripts(true))
-                Project::GetActiveProject()->LoadScriptsPlugin();
+            if (Editor::GetState().ActiveProject->BuildScripts(true))
+                Editor::GetState().ActiveProject->LoadScriptsPlugin();
         }
             
         return true;

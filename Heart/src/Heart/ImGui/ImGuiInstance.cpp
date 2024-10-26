@@ -40,10 +40,6 @@ namespace Heart
             io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
         #endif
 
-        u32 fontDataSize;
-        unsigned char* fontData = FilesystemUtils::ReadFile("resources/engine/Inter-Regular.otf", fontDataSize);
-		io.FontDefault = io.Fonts->AddFontFromMemoryTTF(fontData, fontDataSize, 14.f);
-
 		// Setup Dear ImGui style
 		ImGui::StyleColorsDark();
 		//ImGui::StyleColorsClassic();
@@ -58,6 +54,8 @@ namespace Heart
 
         SetThemeColors();
 
+        UploadFonts();
+
         Recreate();
     }
 
@@ -68,6 +66,12 @@ namespace Heart
         Cleanup(false);
         
 	    ImGui::DestroyContext();
+    }
+
+    void ImGuiInstance::UpdateWindow(Ref<Window>& window)
+    {
+        m_Window = window;
+        Recreate();
     }
 
     void ImGuiInstance::Recreate()
@@ -170,6 +174,14 @@ namespace Heart
     {
         if (!m_Initialized) return;
 
+        if (!willRecreate)
+        { HE_LOG_DEBUG("Fully leaning up ImGuiInstance"); }
+
+        // Special case when we want to cleanup/recreate in the middle of an imgui frame.
+        // End frame prematurely so that old draw data does not get rendered with new device
+        // objects
+        EndFrameInternal(false);
+
         switch (Flourish::Context::BackendType())
         {
             default:
@@ -204,6 +216,8 @@ namespace Heart
     {
 		HE_PROFILE_FUNCTION();
 
+        if (m_InFrame) return;
+
         switch (Flourish::Context::BackendType())
         {
             default:
@@ -218,34 +232,81 @@ namespace Heart
             ImGui_ImplGlfw_NewFrame();
         #endif
         ImGui::NewFrame();
+
+        m_InFrame = true;
     }
 
     void ImGuiInstance::EndFrame()
     {  
 		HE_PROFILE_FUNCTION();
+
+        EndFrameInternal(true);
+    }
+
+    void ImGuiInstance::EndFrameInternal(bool render)
+    {
+        if (!m_InFrame) return;
 		
         ImGuiIO& io = ImGui::GetIO();
 		io.DisplaySize = ImVec2((f32)m_Window->GetWidth(), (f32)m_Window->GetHeight());
         
-		ImGui::Render();
-        switch (Flourish::Context::BackendType())
+        if (render)
         {
-            default:
-            { HE_ENGINE_ASSERT(false, "Cannot end ImGui frame: selected ApiType is not supported"); } break;
-            case Flourish::BackendType::Vulkan:
+            ImGui::Render();
+            switch (Flourish::Context::BackendType())
             {
-				auto encoder = (Flourish::Vulkan::RenderCommandEncoder*)App::Get().GetWindow().GetRenderContext()->EncodeRenderCommands();
-				ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), encoder->GetCommandBuffer());
-                encoder->MarkManuallyRecorded();
-				encoder->EndEncoding();
-			} break;
-		}
+                default:
+                { HE_ENGINE_ASSERT(false, "Cannot end ImGui frame: selected ApiType is not supported"); } break;
+                case Flourish::BackendType::Vulkan:
+                {
+                    auto encoder = (Flourish::Vulkan::RenderCommandEncoder*)App::Get().GetWindow().GetRenderContext()->EncodeRenderCommands();
+                    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), encoder->GetCommandBuffer());
+                    encoder->MarkManuallyRecorded();
+                    encoder->EndEncoding();
+                } break;
+            }
+        }
+        else
+            ImGui::EndFrame();
 
 		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
 		{
 			ImGui::UpdatePlatformWindows();
 			ImGui::RenderPlatformWindowsDefault();
 		}
+
+        m_InFrame = false;
+    }
+
+    void ImGuiInstance::UploadFonts()
+    {
+        ImGuiIO& io = ImGui::GetIO();
+
+        float dpiScale = m_Window->GetDPIScale();
+
+        // Small font
+        {
+            u32 fontDataSize;
+            unsigned char* fontData = FilesystemUtils::ReadFile("resources/engine/Inter-Regular.otf", fontDataSize);
+            m_SmallFont = io.Fonts->AddFontFromMemoryTTF(fontData, fontDataSize, 14.f * dpiScale);
+            io.FontDefault = m_SmallFont;
+        }
+
+        // Medium font
+        {
+            u32 fontDataSize;
+            unsigned char* fontData = FilesystemUtils::ReadFile("resources/engine/Inter-Regular.otf", fontDataSize);
+            m_MediumFont = io.Fonts->AddFontFromMemoryTTF(fontData, fontDataSize, 18.f * dpiScale);
+        }
+
+        // Large font
+        {
+            u32 fontDataSize;
+            unsigned char* fontData = FilesystemUtils::ReadFile("resources/engine/Inter-Regular.otf", fontDataSize);
+            m_LargeFont = io.Fonts->AddFontFromMemoryTTF(fontData, fontDataSize, 24.f * dpiScale);
+        }
+
+        io.FontGlobalScale = 1.f / dpiScale;
     }
 
     void ImGuiInstance::SetThemeColors()

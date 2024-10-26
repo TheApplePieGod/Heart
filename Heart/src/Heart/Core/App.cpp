@@ -21,7 +21,7 @@
 
 namespace Heart
 {
-    App::App(const HStringView8& windowName)
+    App::App()
     {
         if (s_Instance) return;
         s_Instance = this;
@@ -37,13 +37,13 @@ namespace Heart
         HE_ENGINE_LOG_INFO("Using {0} task & job worker threads", taskThreads);
         JobManager::Initialize(taskThreads);
         TaskManager::Initialize(taskThreads);
-        
-        WindowCreateInfo windowCreateInfo = WindowCreateInfo(windowName);
-        InitializeGraphicsApi(windowCreateInfo);
-        HE_ENGINE_LOG_DEBUG("Graphics ready");
 
         // Run on main thread, since some platforms have issues otherwise
         ScriptingEngine::Initialize();
+        
+        // TODO: put in a task?
+        InitializeGraphicsApi();
+        HE_ENGINE_LOG_DEBUG("Graphics ready");
 
         // Init services
         TaskGroup initServices;
@@ -80,10 +80,30 @@ namespace Heart
         HE_ENGINE_LOG_INFO("Shutdown complete");
     }
 
+    void App::CreateWindow(const WindowCreateInfo& windowInfo)
+    {
+        m_Window = Window::Create(windowInfo);
+        SubscribeToEmitter(&GetWindow());
+        Window::SetMainWindow(m_Window);
+
+        if (m_ImGuiInstance)
+            m_ImGuiInstance->UpdateWindow(m_Window);
+        else
+            m_ImGuiInstance = CreateRef<ImGuiInstance>(m_Window);
+    }
+
     void App::PushLayer(const Ref<Layer>& layer)
     {
         m_Layers.Add(layer);
         layer->OnAttach();
+    }
+
+    void App::PopLayer()
+    {
+        if (m_Layers.IsEmpty()) return;
+
+        m_Layers.Back()->OnDetach();
+        m_Layers.Pop();
     }
 
     void App::SwitchAssetsDirectory(const HString8& newDirectory)
@@ -91,7 +111,7 @@ namespace Heart
         m_SwitchingAssetsDirectory = newDirectory;
     }
 
-    void App::InitializeGraphicsApi(const WindowCreateInfo& windowCreateInfo)
+    void App::InitializeGraphicsApi()
     {
         Flourish::Logger::SetLogFunction([](Flourish::LogLevel level, const char* message)
         {
@@ -109,12 +129,6 @@ namespace Heart
         initInfo.RequestedFeatures.PartiallyBoundResourceSets = true;
         initInfo.ReadFile = FilesystemUtils::ReadFile;
         Flourish::Context::Initialize(initInfo);
-
-        m_Window = Window::Create(windowCreateInfo);
-        SubscribeToEmitter(&GetWindow());
-        Window::SetMainWindow(m_Window);
-
-        m_ImGuiInstance = CreateRef<ImGuiInstance>(m_Window);
     }
 
     void App::ShutdownGraphicsApi()

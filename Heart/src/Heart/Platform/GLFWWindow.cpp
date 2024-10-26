@@ -148,6 +148,10 @@ namespace Heart
 
     GLFWWindow::~GLFWWindow()
     {
+        HE_ENGINE_LOG_INFO("Destroying window ({0}x{1})", m_WindowData.Width, m_WindowData.Height);
+
+        glfwDestroyWindow((GLFWwindow*)m_Window);
+
         // This is the last window
         if (s_WindowCount == 1)
             glfwTerminate();
@@ -232,7 +236,15 @@ namespace Heart
 
     bool GLFWWindow::IsFullscreen() const
     {
-        return glfwGetWindowMonitor((GLFWwindow *)m_Window) != nullptr;
+        return glfwGetWindowMonitor((GLFWwindow*)m_Window) != nullptr;
+    }
+
+    float GLFWWindow::GetDPIScale() const
+    {
+        int w, h;
+        glfwGetFramebufferSize((GLFWwindow*)m_Window, &w, &h);
+
+        return (float)w / m_WindowData.Width;
     }
 }
 

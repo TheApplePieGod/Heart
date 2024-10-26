@@ -8,7 +8,9 @@ namespace HeartEditor
     {
     public:
         EditorApp();
-        ~EditorApp() = default;
+        ~EditorApp();
+
+        void StartEditor(Heart::HStringView8 windowName);
 
         void Close() override;
 

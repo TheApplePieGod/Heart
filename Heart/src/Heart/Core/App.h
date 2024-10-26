@@ -21,12 +21,14 @@ namespace Heart
          * 
          * @param windowName The initial name of the window.
          */
-        App(const HStringView8& windowName = "Heart Engine");
+        App();
 
         /*! @brief Default destructor. */
         ~App();
 
         void Run();
+
+        void CreateWindow(const WindowCreateInfo& windowInfo);
 
         /**
          * @brief Append a new layer to the top of the layer stack.
@@ -34,6 +36,8 @@ namespace Heart
          * @param layer The layer to push. 
          */
         void PushLayer(const Ref<Layer>& layer);
+
+        void PopLayer();
         
         /**
          * @brief Switch the root assets directory that is currently being used by the engine.
@@ -95,7 +99,7 @@ namespace Heart
         Timestep m_LastTimestep;
 
     private:
-        void InitializeGraphicsApi(const WindowCreateInfo& windowCreateInfo);
+        void InitializeGraphicsApi();
         void ShutdownGraphicsApi();
         void CheckForAssetsDirectorySwitch();
         void OnEvent(Event& event) override;

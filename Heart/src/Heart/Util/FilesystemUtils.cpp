@@ -110,6 +110,25 @@ namespace Heart
         return result;
     }
 
+    HString8 FilesystemUtils::GetHomeDirectory()
+    {
+        #ifdef HE_PLATFORM_WINDOWS
+            // Windows-specific: Try USERPROFILE first, then HOMEDRIVE + HOMEPATH
+            const char* home = std::getenv("USERPROFILE");
+            if (!home) {
+                const char* homeDrive = std::getenv("HOMEDRIVE");
+                const char* homePath = std::getenv("HOMEPATH");
+                if (homeDrive && homePath) {
+                    return std::string(homeDrive) + std::string(homePath);
+                }
+            }
+        #else
+            // Unix-like: Check the HOME environment variable
+            const char* home = std::getenv("HOME");
+        #endif
+        return home ? HString8(home) : HString8();
+    }
+
     HString8 FilesystemUtils::GetParentDirectory(const HStringView8& path)
     {
         return std::filesystem::path(path.Data()).parent_path().generic_u8string();

@@ -39,10 +39,9 @@ namespace Widgets
             Heart::ImGuiUtils::DrawTextFilter(m_SourceFilter, "##srcfilter");
 
             const float messageContentPadding = 50.f;
-            float messageContentSize = 0.f;
             ImGui::TableNextColumn();
             ImGui::Text("Message");
-            messageContentSize = ImGui::GetContentRegionAvail().x;
+            float messageContentSize = std::max(ImGui::GetContentRegionAvail().x, 1.f);
             Heart::ImGuiUtils::DrawTextFilter(m_MessageFilter, "##msgfilter");
 
             Heart::Logger::LockLogList();

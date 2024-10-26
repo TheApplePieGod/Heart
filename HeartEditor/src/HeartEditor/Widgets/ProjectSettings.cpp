@@ -22,7 +22,7 @@ namespace Widgets
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 5.0f));
         ImGui::Begin(m_Name.Data(), &m_Open);
 
-        Project* activeProject = Project::GetActiveProject();
+        Project* activeProject = Editor::GetState().ActiveProject.get();
         if (!activeProject)
         {
             ImGui::Text("No project loaded");

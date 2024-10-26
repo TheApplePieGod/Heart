@@ -70,6 +70,8 @@ namespace Heart
         /*! @brief Get the current fullscreen status of the window. */
         virtual bool IsFullscreen() const = 0;
 
+        virtual float GetDPIScale() const = 0;
+
         /*! @brief Get the window's graphics context. */
         inline Flourish::RenderContext* GetRenderContext() const { return m_RenderContext.get(); }
 

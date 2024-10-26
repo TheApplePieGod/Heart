@@ -1,7 +1,6 @@
 #pragma once
 
-#include "HeartEditor/Toolbar.h"
-#include "HeartEditor/MenuBar.h"
+#include "HeartEditor/ProjectPicker.h"
 #include "Heart/Core/Layer.h"
 
 namespace Heart
@@ -13,13 +12,9 @@ namespace Heart
 
 namespace HeartEditor
 {
-    class EditorLayer : public Heart::Layer
+    class StartupLayer : public Heart::Layer
     {
     public:
-        EditorLayer(Heart::HStringView8 windowName)
-            : m_WindowName(windowName)
-        {}
-
         void OnAttach() override;
         void OnUpdate(Heart::Timestep ts) override;
         void OnDetach() override;
@@ -32,8 +27,6 @@ namespace HeartEditor
         bool ButtonReleasedEvent(Heart::ButtonReleasedEvent& event);
 
     private:
-        Heart::HString8 m_WindowName;
-        Toolbar m_Toolbar;
-        MenuBar m_MenuBar;
+        ProjectPicker m_ProjectPicker;
     };
 }

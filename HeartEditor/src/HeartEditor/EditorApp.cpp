@@ -3,18 +3,30 @@
 
 #include "HeartEditor/Editor.h"
 #include "HeartEditor/EditorLayer.h"
+#include "HeartEditor/StartupLayer.h"
 #include "Heart/ImGui/ImGuiInstance.h"
 
 namespace HeartEditor
 {
     EditorApp::EditorApp()
-        : App("Heart Editor")
+        : App()
     {
-        // Load default ini file (will remove this when no-project editor support gets removed)
-        m_ImGuiInstance->OverrideImGuiConfig("imgui.ini");
-        m_ImGuiInstance->ReloadImGuiConfig();
+        // Init editor
+        Editor::Initialize();
 
-        PushLayer(Heart::CreateRef<EditorLayer>());
+        PushLayer(Heart::CreateRef<StartupLayer>());
+    }
+
+    EditorApp::~EditorApp()
+    {
+        Editor::Shutdown();
+    }
+
+    void EditorApp::StartEditor(Heart::HStringView8 windowName)
+    {
+        PopLayer();
+
+        PushLayer(Heart::CreateRef<EditorLayer>(windowName));
     }
 
     void EditorApp::Close()

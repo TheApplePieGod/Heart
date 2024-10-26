@@ -5,6 +5,7 @@
 #include "Heart/Renderer/SceneRenderer.h"
 #include "Heart/Container/HString8.h"
 #include "Heart/Task/TaskManager.h"
+#include "HeartEditor/Project.h"
 
 namespace HeartEditor
 {
@@ -16,8 +17,21 @@ namespace HeartEditor
 
     struct EditorState
     {
+        Heart::Ref<Project> ActiveProject;
         Heart::Entity SelectedEntity;
         Heart::SceneRenderSettings RenderSettings;
+    };
+
+    struct ProjectDescriptor
+    {
+        bool New = false;
+        Heart::HString8 Path;
+        Heart::HString8 Name;
+    };
+
+    struct EditorConfig
+    {
+        Heart::HVector<ProjectDescriptor> RecentProjects;
     };
 
     class EditorCamera;
@@ -32,6 +46,11 @@ namespace HeartEditor
         static void RenderWindows();
         static void RenderWindowsPostSceneUpdate();
 
+        static void ReloadEditorConfig();
+        static void SaveEditorConfig();
+
+        static void SetActiveProject(Heart::Ref<Project>& project);
+
         static void SaveScene();
         static void OpenScene(const Heart::Ref<Heart::Scene>& scene);
         static void OpenSceneFromAsset(Heart::UUID uuid);
@@ -41,6 +60,7 @@ namespace HeartEditor
 
         static bool IsDirty();
 
+        inline static EditorConfig& GetConfig() { return s_EditorConfig; }
         inline static EditorState& GetState() { return s_EditorState; }
         inline static SceneState GetSceneState() { return s_SceneState; }
         inline static Heart::Scene& GetActiveScene() { return *s_ActiveScene; }
@@ -49,7 +69,7 @@ namespace HeartEditor
         inline static Heart::UUID GetEditorSceneAsset() { return s_EditorSceneAsset; }
         inline static void SetEditorSceneAsset(Heart::UUID asset) { s_EditorSceneAsset = asset; }
         inline static auto& GetWindows() { return s_Windows; }
-        inline static Widget& GetWindow(const Heart::HString8& name) { return *s_Windows[name]; }
+        inline static Widget& GetWindow(const Heart::HString8& name) { return *s_Windows.at(name); }
         inline static const Heart::Task& GetSceneUpdateTask() { return s_SceneUpdateTask; }
         inline static void SetSceneUpdateTask(const Heart::Task& task) { s_SceneUpdateTask = task; }
 
@@ -68,7 +88,12 @@ namespace HeartEditor
             );
         }
 
+    public:
+        inline static const Heart::HString8 s_ConfigDirectoryName = "HeartEditor";
+        inline static const Heart::HString8 s_ConfigFileName = "GlobalEditorConfig.json";
+
     private:
+        inline static EditorConfig s_EditorConfig;
         inline static EditorState s_EditorState;
         inline static Heart::Ref<Heart::Scene> s_ActiveScene, s_EditorScene;
         inline static Heart::RenderScene s_RenderScene;
@@ -78,6 +103,7 @@ namespace HeartEditor
         inline static std::mutex s_WindowsLock;
         inline static bool s_ImGuiDemoOpen;
         inline static SceneState s_SceneState;
+        inline static Heart::HString8 s_ConfigDirectory;
 
         friend class MenuBar;
     };

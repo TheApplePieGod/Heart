@@ -427,6 +427,11 @@ namespace Heart
         return false;
     }
 
+    float AndroidWindow::GetDPIScale() const
+    {
+        return 1.f;
+    }
+
     void AndroidWindow::RecreateRenderContext()
     {
         m_RenderContext = nullptr;

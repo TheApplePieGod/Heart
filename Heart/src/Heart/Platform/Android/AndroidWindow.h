@@ -22,6 +22,7 @@ namespace Heart
         void SetFullscreen(bool fullscreen) override;
         void ToggleFullscreen() override;
         bool IsFullscreen() const override;
+        float GetDPIScale() const override;
 
     private:
         void RecreateRenderContext();

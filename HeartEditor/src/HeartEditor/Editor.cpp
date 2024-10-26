@@ -8,6 +8,7 @@
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Task/TaskManager.h"
 #include "Heart/Renderer/SceneRenderer.h"
+#include "Heart/Util/FilesystemUtils.h"
 #include "imgui/imgui.h"
 
 #include "HeartEditor/Widgets/SceneHierarchyPanel.h"
@@ -30,14 +31,14 @@ namespace HeartEditor
     {
         HE_PROFILE_FUNCTION();
 
+        ReloadEditorConfig();
+
         s_EditorScene = Heart::CreateRef<Heart::Scene>();
         s_ActiveScene = s_EditorScene;
 
         GetState().RenderSettings.CopyEntityIdsTextureToCPU = true;
         GetState().RenderSettings.AsyncAssetLoading = true;
         GetState().RenderSettings.RenderPhysicsVolumes = false;
-        
-        CreateWindows();
     }
 
     void Editor::Shutdown()
@@ -93,6 +94,89 @@ namespace HeartEditor
 
         if (s_ImGuiDemoOpen)
             ImGui::ShowDemoWindow(&s_ImGuiDemoOpen);
+    }
+
+    void Editor::ReloadEditorConfig()
+    {
+        std::filesystem::path homeDir(Heart::FilesystemUtils::GetHomeDirectory().Data());
+        if (homeDir.empty())
+        {
+            HE_LOG_ERROR("Could not find HOME directory, falling back to default editor config");
+            return;
+        }
+
+        auto configDir = homeDir.append(s_ConfigDirectoryName.Data());
+        if (!std::filesystem::exists(configDir))
+            std::filesystem::create_directory(configDir);
+        s_ConfigDirectory = configDir.generic_u8string();
+
+        auto configFile = configDir.append(s_ConfigFileName.Data());
+        if (!std::filesystem::exists(configFile))
+        {
+            HE_LOG_INFO("Could not find global editor config, falling back to default editor config");
+            return;
+        }
+
+        nlohmann::json config = Heart::FilesystemUtils::ReadFileToJson(configFile.generic_u8string());
+        if (config.contains("recentProjects"))
+        {
+            for (auto& project : config["recentProjects"])
+            {
+                ProjectDescriptor entry;
+                entry.Path = project["path"];
+                entry.Name = project["name"];
+
+                s_EditorConfig.RecentProjects.AddInPlace(entry);
+            }
+        }
+
+        HE_LOG_INFO("Loaded editor config from '{}'", s_ConfigDirectory.Data());
+    }
+
+    void Editor::SaveEditorConfig()
+    {
+        if (s_ConfigDirectory.IsEmpty()) return;
+
+        nlohmann::json j;
+        
+        u32 projectIndex = 0;
+        auto& recentProjects = j["recentProjects"];
+        for (auto& project : s_EditorConfig.RecentProjects)
+        {
+            nlohmann::json entry;
+            entry["path"] = project.Path;
+            entry["name"] = project.Name;
+
+            recentProjects[projectIndex++] = entry;
+        }
+        
+        auto configPath = std::filesystem::path(s_ConfigDirectory.Data()).append(s_ConfigFileName.Data());
+        Heart::FilesystemUtils::WriteFile(configPath.generic_u8string(), j);
+
+        HE_LOG_TRACE("Saving editor config at {}", configPath.generic_u8string().c_str());
+    }
+
+    void Editor::SetActiveProject(Heart::Ref<Project>& project)
+    {
+        s_EditorState.ActiveProject = project;
+
+        // Update recent project list
+        for (u32 i = 0; i < s_EditorConfig.RecentProjects.Count(); i++)
+        {
+            if (s_EditorConfig.RecentProjects[i].Path == project->GetPath())
+            {
+                // Remove so that we can re-add in the front of the list
+                s_EditorConfig.RecentProjects.Remove(i);
+                break;
+            }
+        }
+
+        ProjectDescriptor entry;
+        entry.Path = Heart::HString8(project->GetPath());
+        entry.Name = Heart::HString8(project->GetName());
+        s_EditorConfig.RecentProjects.Insert(entry, 0);
+
+        SaveEditorConfig();
     }
 
     void Editor::SaveScene()

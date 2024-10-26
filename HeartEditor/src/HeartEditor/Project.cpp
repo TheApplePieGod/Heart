@@ -34,25 +34,29 @@ namespace HeartEditor
         nlohmann::json j;
         j["name"] = name;
 
+        // Skip creation if project file already exists
         std::filesystem::path mainProjectFilePath = std::filesystem::path(finalPath).append(filename.Data());
-        std::ofstream file(mainProjectFilePath);
-        file << j;
-        file.close();
+        if (!std::filesystem::exists(mainProjectFilePath))
+        {
+            std::ofstream file(mainProjectFilePath);
+            file << j;
+            file.close();
 
-        /*
-         * Create default directories
-         */
-        std::filesystem::create_directory(std::filesystem::path(finalPath).append("Assets"));
-        std::filesystem::create_directory(std::filesystem::path(finalPath).append("Scripts"));
-        
-        Heart::HString8 scriptsRootPath = std::filesystem::current_path()
-            .append("scripting")
-            .generic_u8string();
-        
-        /*
-         * Iterate templates directory and perform preprocessing before copying to project dir
-         */
-        CopyTemplateDirectory("templates", finalPath, scriptsRootPath, name);
+            /*
+             * Create default directories
+             */
+            std::filesystem::create_directory(std::filesystem::path(finalPath).append("Assets"));
+            std::filesystem::create_directory(std::filesystem::path(finalPath).append("Scripts"));
+            
+            Heart::HString8 scriptsRootPath = std::filesystem::current_path()
+                .append("scripting")
+                .generic_u8string();
+            
+            /*
+             * Iterate templates directory and perform preprocessing before copying to project dir
+             */
+            CopyTemplateDirectory("templates", finalPath, scriptsRootPath, name);
+        }
             
         return LoadFromPath(mainProjectFilePath.generic_u8string());
     }
@@ -126,8 +130,11 @@ namespace HeartEditor
             Heart::FilesystemUtils::GetParentDirectory(absolutePath)
         );
 
-        ((Widgets::ContentBrowser&)Editor::GetWindow("Content Browser")).Reset();
-        ((Widgets::MaterialEditor&)Editor::GetWindow("Material Editor")).Reset();
+        if (!Editor::GetWindows().empty())
+        {
+            ((Widgets::ContentBrowser&)Editor::GetWindow("Content Browser")).Reset();
+            ((Widgets::MaterialEditor&)Editor::GetWindow("Material Editor")).Reset();
+        }
         
         // Update the imgui project config
         EditorApp::Get().GetImGuiInstance().OverrideImGuiConfig(Heart::AssetManager::GetAssetsDirectory());
@@ -156,7 +163,8 @@ namespace HeartEditor
                     pair.second->Deserialize(field[pair.first.Data()]);
         }
 
-        s_ActiveProject = project;
+        Editor::SetActiveProject(project);
+
         delete[] data;
         return project;
     }

@@ -39,12 +39,11 @@ namespace HeartEditor
         void Export(Heart::HStringView8 absolutePath, ExportPlatform platform);
         
         inline Heart::HStringView8 GetPath() const { return m_AbsolutePath; }
+        inline Heart::HStringView8 GetName() const { return m_Name; }
         
     public:
         static Heart::Ref<Project> CreateAndLoad(const Heart::HStringView8& absolutePath, const Heart::HStringView8& name);
         static Heart::Ref<Project> LoadFromPath(const Heart::HStringView8& absolutePath);
-
-        static Project* GetActiveProject() { return s_ActiveProject.get(); }
 
     private:
         struct SerializedInstance
@@ -60,9 +59,6 @@ namespace HeartEditor
             const Heart::HStringView8& scriptsRoot,
             const Heart::HStringView8& projectName
         );
-
-    private:
-        inline static Heart::Ref<Project> s_ActiveProject = nullptr;
 
     private:
         Heart::HString8 RunCommandInProjectDirectory(Heart::HStringView8 command, int& outResult);
