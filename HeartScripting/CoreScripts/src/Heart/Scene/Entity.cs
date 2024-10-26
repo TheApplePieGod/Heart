@@ -9,7 +9,7 @@ using System.Runtime.InteropServices;
 
 namespace Heart.Scene
 {
-    public class Entity
+    public partial class Entity
     {
         internal Entity()
         { }
@@ -155,10 +155,10 @@ namespace Heart.Scene
         internal uint _entityHandle = InvalidEntityHandle;
         internal IntPtr _sceneHandle = IntPtr.Zero;
 
-        [DllImport("__Internal")]
-        internal static extern void Native_Entity_Destroy(uint entityHandle, IntPtr sceneHandle);
+        [UnmanagedCallback]
+        internal static partial void Native_Entity_Destroy(uint entityHandle, IntPtr sceneHandle);
 
-        [DllImport("__Internal")]
-        internal static extern InteropBool Native_Entity_IsValid(uint entityHandle, IntPtr sceneHandle);
+        [UnmanagedCallback]
+        internal static partial InteropBool Native_Entity_IsValid(uint entityHandle, IntPtr sceneHandle);
     }
 }

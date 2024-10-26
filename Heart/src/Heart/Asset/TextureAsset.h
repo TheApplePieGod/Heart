@@ -8,6 +8,17 @@ namespace Heart
     class TextureAsset : public Asset
     {
     public:
+        struct HeartTextureHeader
+        {
+            u32 Width;
+            u32 Height;
+            u8 Channels;
+            u8 Precision;
+            u8 DataType;
+            u8 MipLevels;
+        };
+
+    public:
         /**
          * @brief Default constructor.
          * 
@@ -27,8 +38,22 @@ namespace Heart
         bool ShouldUnload() override;
 
     private:
-        void* LoadImage(int& outWidth, int& outHeight, int& outChannels, bool floatComponents);
-        void* LoadTiff(int& outWidth, int& outHeight, int& outChannels);
+        struct LoadResult
+        {
+            Flourish::ColorFormat Format;
+            void* Pixels;
+            u32 DataSize;
+            u32 Width;
+            u32 Height;
+            u32 Channels;
+            u32 MipLevels;
+            std::function<void()> Free;
+        };
+
+    private:
+        LoadResult LoadHeartTexture();
+        LoadResult LoadImage();
+        LoadResult LoadTiff();
 
     private:
         const int m_DesiredChannelCount = 4; // all images will load as RGBA

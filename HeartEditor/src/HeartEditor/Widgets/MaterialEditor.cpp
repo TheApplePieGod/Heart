@@ -4,7 +4,7 @@
 #include "HeartEditor/EditorApp.h"
 #include "Heart/Core/Window.h"
 #include "Flourish/Api/Context.h"
-#include "Heart/Renderer/SceneRenderer.h"
+#include "Heart/Renderer/DesktopSceneRenderer.h"
 #include "Heart/Scene/Components.h"
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/MaterialAsset.h"
@@ -21,7 +21,7 @@ namespace Widgets
     MaterialEditor::MaterialEditor(const Heart::HStringView8& name, bool initialOpen)
         : Widget(name, initialOpen)
     {
-        m_SceneRenderer = Heart::CreateScope<Heart::SceneRenderer>();
+        m_SceneRenderer = Heart::CreateScope<Heart::DesktopSceneRenderer>();
         m_Scene = Heart::CreateRef<Heart::Scene>();
         m_Scene->SetEnvironmentMap(Heart::AssetManager::GetAssetUUID("engine/DefaultEnvironmentMap.hdr", true));
 
@@ -132,6 +132,19 @@ namespace Widgets
         m_EditingMaterialAsset = Heart::AssetManager::RegisterInMemoryAsset(Heart::Asset::Type::Material);
     }
 
+    void MaterialEditor::SetSelectedMaterial(Heart::UUID material)
+    {
+        m_SelectedMaterial = material;
+    }
+
+    void MaterialEditor::SetSelectedMaterial(const Heart::Material& material)
+    {
+        m_LastMaterial = 0;
+        m_SelectedMaterial = m_EditingMaterialAsset;
+        auto editingMaterialAsset = Heart::AssetManager::RetrieveAsset<Heart::MaterialAsset>(m_EditingMaterialAsset);
+        editingMaterialAsset->GetMaterial() = material;
+    }
+
     void MaterialEditor::RenderSidebar()
     {
         if (!m_SelectedMaterial)
@@ -143,22 +156,28 @@ namespace Widgets
         auto materialAsset = Heart::AssetManager::RetrieveAsset<Heart::MaterialAsset>(m_SelectedMaterial);
         if (materialAsset && materialAsset->Load()->IsValid())
         {
+            bool isResource = Heart::AssetManager::IsAssetAResource(m_SelectedMaterial);
+            bool isTemporary = m_SelectedMaterial == m_EditingMaterialAsset;
+            bool canEdit = !isResource && !isTemporary;
+
             // Do not allow modification of engine resources, but still allow for them to be displayed
-            if (Heart::AssetManager::IsAssetAResource(m_SelectedMaterial))
-            {
-                ImGui::TextColored({ 1.f, 1.f, 0.f, 1.f }, "Cannot Modify an Engine Resource");
-                return;
-            }
 
             auto editingMaterialAsset = Heart::AssetManager::RetrieveAsset<Heart::MaterialAsset>(m_EditingMaterialAsset);
             auto& editingMaterial = editingMaterialAsset->GetMaterial();
             auto& materialData = editingMaterial.GetMaterialData();
 
             // Material path
-            ImGui::Text(materialAsset->GetPath().Data());
+            if (!materialAsset->GetPath().IsEmpty())
+                ImGui::Text("%s", materialAsset->GetPath().Data());
+
+            // Status
+            if (isTemporary)
+                ImGui::TextColored({ 1.f, 1.f, 0.f, 1.f }, "Cannot modify a temporary resource");
+            else if (isResource)
+                ImGui::TextColored({ 1.f, 1.f, 0.f, 1.f }, "Cannot modify an engine resource");
 
             // Save buttons
-            bool disabled = !m_Dirty;
+            bool disabled = !m_Dirty || canEdit;
             if (disabled)
                 ImGui::BeginDisabled();
             if (ImGui::Button("Save Changes"))
@@ -178,6 +197,9 @@ namespace Widgets
 
             ImGui::Text("Material Properties");
             ImGui::Separator();
+
+            if (!canEdit)
+                ImGui::BeginDisabled();
 
             // Careful here, we are editing the material data properties directly so if the layout changes we need to come back in here and fix them
             ImGui::Text("Base Color");
@@ -225,6 +247,9 @@ namespace Widgets
             ImGui::Text("Material Textures");
             ImGui::Separator();
 
+            if (!canEdit)
+                ImGui::EndDisabled();
+
             // ---------------------------------
             // Albedo select
             // ---------------------------------
@@ -238,6 +263,8 @@ namespace Widgets
                 m_TextureTextFilter,
                 [&]()
                 {
+                    if (!canEdit) return;
+
                     if (ImGui::MenuItem("Clear"))
                     {
                         editingMaterial.SetAlbedoTexture(0);
@@ -246,6 +273,8 @@ namespace Widgets
                 },
                 [&](Heart::UUID selected)
                 {
+                    if (!canEdit) return;
+
                     editingMaterial.SetAlbedoTexture(selected);
                     m_Dirty = true;
                 }
@@ -269,6 +298,8 @@ namespace Widgets
                 m_TextureTextFilter,
                 [&]()
                 {
+                    if (!canEdit) return;
+
                     if (ImGui::MenuItem("Clear"))
                     {
                         editingMaterial.SetMetallicRoughnessTexture(0);
@@ -277,6 +308,8 @@ namespace Widgets
                 },
                 [&](Heart::UUID selected)
                 {
+                    if (!canEdit) return;
+
                     editingMaterial.SetMetallicRoughnessTexture(selected);
                     m_Dirty = true;
                 }
@@ -300,6 +333,8 @@ namespace Widgets
                 m_TextureTextFilter,
                 [&]()
                 {
+                    if (!canEdit) return;
+
                     if (ImGui::MenuItem("Clear"))
                     {
                         editingMaterial.SetNormalTexture(0);
@@ -308,6 +343,8 @@ namespace Widgets
                 },
                 [&](Heart::UUID selected)
                 {
+                    if (!canEdit) return;
+
                     editingMaterial.SetNormalTexture(selected);
                     m_Dirty = true;
                 }
@@ -331,6 +368,8 @@ namespace Widgets
                 m_TextureTextFilter,
                 [&]()
                 {
+                    if (!canEdit) return;
+
                     if (ImGui::MenuItem("Clear"))
                     {
                         editingMaterial.SetEmissiveTexture(0);
@@ -339,6 +378,8 @@ namespace Widgets
                 },
                 [&](Heart::UUID selected)
                 {
+                    if (!canEdit) return;
+
                     editingMaterial.SetEmissiveTexture(selected);
                     m_Dirty = true;
                 }
@@ -362,6 +403,8 @@ namespace Widgets
                 m_TextureTextFilter,
                 [&]()
                 {
+                    if (!canEdit) return;
+
                     if (ImGui::MenuItem("Clear"))
                     {
                         editingMaterial.SetOcclusionTexture(0);
@@ -370,6 +413,8 @@ namespace Widgets
                 },
                 [&](Heart::UUID selected)
                 {
+                    if (!canEdit) return;
+
                     editingMaterial.SetOcclusionTexture(selected);
                     m_Dirty = true;
                 }
@@ -408,12 +453,14 @@ namespace Widgets
         {
             if (ImGui::IsMouseDragging(0))
             {
-                m_SwivelRotation.y += static_cast<float>(Heart::Input::GetMouseDeltaX());
-                m_SwivelRotation.x += -static_cast<float>(Heart::Input::GetMouseDeltaY());
+                glm::vec2 delta = Heart::Input::GetMouseDelta();
+                m_SwivelRotation.y += delta.x;
+                m_SwivelRotation.x += -delta.y;
             }
 
             // Camera will orbit around { 0, 0, 0 }
-            m_Radius = std::clamp(m_Radius + static_cast<float>(-Heart::Input::GetScrollOffsetY()), 0.f, 100.f);
+            f32 scrollY = (f32)Heart::Input::GetAxisDelta(Heart::AxisCode::ScrollY);
+            m_Radius = std::clamp(m_Radius + static_cast<float>(-scrollY), 0.f, 100.f);
             m_SceneCamera.UpdateViewMatrix(glm::vec3(0.f), m_Radius, m_SwivelRotation);
             m_SceneCameraPosition = -m_SceneCamera.GetForwardVector() * m_Radius;
         }

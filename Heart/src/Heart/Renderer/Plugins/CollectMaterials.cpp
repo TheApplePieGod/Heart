@@ -17,8 +17,8 @@ namespace Heart::RenderPlugins
     void CollectMaterials::InitializeInternal()
     {
         Flourish::BufferCreateInfo bufCreateInfo;
-        bufCreateInfo.Usage = Flourish::BufferUsageType::Dynamic;
-        bufCreateInfo.Type = Flourish::BufferType::Storage;
+        bufCreateInfo.MemoryType = Flourish::BufferMemoryType::CPUWriteFrame;
+        bufCreateInfo.Usage = Flourish::BufferUsageFlags::Storage;
         bufCreateInfo.Stride = sizeof(MaterialInfo);
         bufCreateInfo.ElementCount = m_MaxMaterials;
         m_MaterialBuffer = Flourish::Buffer::Create(bufCreateInfo);

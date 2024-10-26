@@ -20,23 +20,35 @@
 #include "Flourish/Api/Texture.h"
 #include "Flourish/Api/ResourceSet.h"
 
-const auto GBUFFER_FORMAT = Flourish::ColorFormat::RGBA16_FLOAT;
+const auto GBUFFER_COLOR_FORMAT = Flourish::ColorFormat::RGBA16_FLOAT;
+const auto GBUFFER_DEPTH_FORMAT = Flourish::ColorFormat::Depth;
 
 namespace Heart::RenderPlugins
 {
+    GBuffer::GBuffer(SceneRenderer* renderer, HStringView8 name, const GBufferCreateInfo& createInfo)
+        : RenderPlugin(renderer, name), m_Info(createInfo)
+    {
+        m_GBuffer1 = Flourish::Texture::CreatePlaceholder(GBUFFER_COLOR_FORMAT);
+        m_GBuffer2 = Flourish::Texture::CreatePlaceholder(GBUFFER_COLOR_FORMAT);
+        m_GBuffer3 = Flourish::Texture::CreatePlaceholder(GBUFFER_COLOR_FORMAT);
+        m_GBufferDepth = Flourish::Texture::CreatePlaceholder(GBUFFER_DEPTH_FORMAT);
+    }
+
     u32 GBuffer::GetArrayIndex() const
     {
-        return Flourish::Context::FrameCount() % 2;
+        return Flourish::Context::FrameCount() % m_ImageCount;
     }
 
     u32 GBuffer::GetPrevArrayIndex() const
     {
-        return (Flourish::Context::FrameCount() - 1) % 2;
+        return (Flourish::Context::FrameCount() - 1) % m_ImageCount;
     }
 
     void GBuffer::InitializeInternal()
     {
         auto eidPlugin = m_Renderer->GetPlugin<RenderPlugins::EntityIds>(m_Info.EntityIdsPluginName);
+
+        m_ImageCount = m_Info.KeepHistory ? 2 : 1;
 
         // Queue shader loads 
         auto textFrag = AssetManager::RetrieveAsset("engine/render_plugins/gbuffer/Text.frag", true);
@@ -51,15 +63,15 @@ namespace Heart::RenderPlugins
             Flourish::AttachmentInitialization::None // Cleared manually
         });
         rpCreateInfo.ColorAttachments.push_back({
-            GBUFFER_FORMAT,
+            GBUFFER_COLOR_FORMAT,
             Flourish::AttachmentInitialization::Clear
         });
         rpCreateInfo.ColorAttachments.push_back({
-            GBUFFER_FORMAT,
+            GBUFFER_COLOR_FORMAT,
             Flourish::AttachmentInitialization::Clear
         });
         rpCreateInfo.ColorAttachments.push_back({
-            GBUFFER_FORMAT,
+            GBUFFER_COLOR_FORMAT,
             Flourish::AttachmentInitialization::Clear
         });
         rpCreateInfo.Subpasses.push_back({
@@ -104,6 +116,7 @@ namespace Heart::RenderPlugins
         Flourish::CommandBufferCreateInfo cbCreateInfo;
         cbCreateInfo.FrameRestricted = true;
         cbCreateInfo.DebugName = m_Name.Data();
+        cbCreateInfo.MaxTimestamps = 3; // TODO: disable in dist
         m_CommandBuffer = Flourish::CommandBuffer::Create(cbCreateInfo);
 
         Flourish::ResourceSetCreateInfo dsCreateInfo;
@@ -122,25 +135,24 @@ namespace Heart::RenderPlugins
         Flourish::TextureCreateInfo texCreateInfo;
         texCreateInfo.Width = m_Renderer->GetRenderWidth();
         texCreateInfo.Height = m_Renderer->GetRenderHeight();
-        texCreateInfo.ArrayCount = 2;
-        texCreateInfo.MipCount = 2;
+        texCreateInfo.ArrayCount = m_ImageCount;
+        texCreateInfo.MipCount = m_Info.MipCount;
         texCreateInfo.Usage = Flourish::TextureUsageFlags::Graphics | Flourish::TextureUsageFlags::Transfer;
-        texCreateInfo.Writability = Flourish::TextureWritability::Once;
         texCreateInfo.SamplerState.MinFilter = Flourish::SamplerFilter::Nearest;
         texCreateInfo.SamplerState.MagFilter = Flourish::SamplerFilter::Nearest;
         texCreateInfo.SamplerState.UVWWrap = { Flourish::SamplerWrapMode::ClampToBorder, Flourish::SamplerWrapMode::ClampToBorder, Flourish::SamplerWrapMode::ClampToBorder };
-        texCreateInfo.Format = GBUFFER_FORMAT;
-        m_GBuffer1 = Flourish::Texture::Create(texCreateInfo);
-        m_GBuffer2 = Flourish::Texture::Create(texCreateInfo);
-        m_GBuffer3 = Flourish::Texture::Create(texCreateInfo);
+        texCreateInfo.Format = GBUFFER_COLOR_FORMAT;
+        Flourish::Texture::Replace(m_GBuffer1, texCreateInfo);
+        Flourish::Texture::Replace(m_GBuffer2, texCreateInfo);
+        Flourish::Texture::Replace(m_GBuffer3, texCreateInfo);
         texCreateInfo.Format = Flourish::ColorFormat::Depth;
-        m_GBufferDepth = Flourish::Texture::Create(texCreateInfo);
+        Flourish::Texture::Replace(m_GBufferDepth, texCreateInfo);
 
         Flourish::FramebufferCreateInfo fbCreateInfo;
         fbCreateInfo.RenderPass = m_RenderPass;
         fbCreateInfo.Width = m_Renderer->GetRenderWidth();
         fbCreateInfo.Height = m_Renderer->GetRenderHeight();
-        for (u32 i = 0; i < 2; i++)
+        for (u32 i = 0; i < m_ImageCount; i++)
         {
             fbCreateInfo.ColorAttachments.clear();
             fbCreateInfo.DepthAttachments.clear();
@@ -165,15 +177,20 @@ namespace Heart::RenderPlugins
             .EncoderAddTextureWrite(m_GBuffer1.get())
             .EncoderAddTextureWrite(m_GBuffer2.get())
             .EncoderAddTextureWrite(m_GBuffer3.get())
-            .EncoderAddTextureWrite(m_GBufferDepth.get())
-            .EncoderAddTextureWrite(m_Renderer->GetDepthTexture().get());
+            .EncoderAddTextureWrite(m_GBufferDepth.get());
     }
 
     void GBuffer::RenderInternal(const SceneRenderData& data)
     {
         HE_PROFILE_FUNCTION();
         auto timer = AggregateTimer("RenderPlugins::GBuffer");
-        
+
+        // Update timing stats
+        m_Stats["GPU Time (Objects)"].Type = StatType::TimeMS;
+        m_Stats["GPU Time (Objects)"].Data.Float = (float)(m_CommandBuffer->ComputeTimestampDifference(0, 1) * 1e-6);
+        m_Stats["GPU Time (Text)"].Type = StatType::TimeMS;
+        m_Stats["GPU Time (Text)"].Data.Float = (float)(m_CommandBuffer->ComputeTimestampDifference(1, 2) * 1e-6);
+
         auto frameDataPlugin = m_Renderer->GetPlugin<RenderPlugins::FrameData>(m_Info.FrameDataPluginName);
         auto frameDataBuffer = frameDataPlugin->GetBuffer();
         auto materialsPlugin = m_Renderer->GetPlugin<RenderPlugins::CollectMaterials>(m_Info.CollectMaterialsPluginName);
@@ -187,6 +204,7 @@ namespace Heart::RenderPlugins
         m_StandardResourceSet->FlushBindings();
         
         auto encoder = m_CommandBuffer->EncodeRenderCommands(m_Framebuffers[GetArrayIndex()].get());
+        encoder->WriteTimestamp(0);
         encoder->BindPipeline("standard");
         encoder->BindResourceSet(m_StandardResourceSet.get(), 0);
         encoder->FlushResourceSet(0);
@@ -210,6 +228,7 @@ namespace Heart::RenderPlugins
         m_StandardResourceSet->BindBuffer(2, materialBuffer, 0, materialBuffer->GetAllocatedCount());
         m_StandardResourceSet->FlushBindings();
 
+        encoder->WriteTimestamp(1);
         encoder->BindPipeline("text");
         encoder->BindResourceSet(m_StandardResourceSet.get(), 0);
         encoder->FlushResourceSet(0);
@@ -230,23 +249,19 @@ namespace Heart::RenderPlugins
             );
         }
         
+        encoder->WriteTimestamp(2);
         encoder->EndEncoding();
 
         auto graphicsEncoder = m_CommandBuffer->EncodeGraphicsCommands();
 
-        // Generate mips for gbuffer
-        graphicsEncoder->GenerateMipMaps(m_GBuffer1.get(), Flourish::SamplerFilter::Nearest);
-        graphicsEncoder->GenerateMipMaps(m_GBuffer2.get(), Flourish::SamplerFilter::Nearest);
-        graphicsEncoder->GenerateMipMaps(m_GBuffer3.get(), Flourish::SamplerFilter::Nearest);
-        graphicsEncoder->GenerateMipMaps(m_GBufferDepth.get(), Flourish::SamplerFilter::Nearest);
-
-        // Blit depth to render depth for ease of use
-        graphicsEncoder->BlitTexture(
-            m_GBufferDepth.get(),
-            m_Renderer->GetDepthTexture().get(),
-            GetArrayIndex(), 0,
-            0, 0
-        );
+        if (m_Info.MipCount != 1)
+        {
+            // TODO: should be able target current layer
+            graphicsEncoder->GenerateMipMaps(m_GBuffer1.get(), Flourish::SamplerFilter::Nearest);
+            graphicsEncoder->GenerateMipMaps(m_GBuffer2.get(), Flourish::SamplerFilter::Nearest);
+            graphicsEncoder->GenerateMipMaps(m_GBuffer3.get(), Flourish::SamplerFilter::Nearest);
+            graphicsEncoder->GenerateMipMaps(m_GBufferDepth.get(), Flourish::SamplerFilter::Nearest);
+        }
         
         graphicsEncoder->EndEncoding();
     }

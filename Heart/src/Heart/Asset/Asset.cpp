@@ -3,6 +3,7 @@
 
 #include "Heart/Core/App.h"
 #include "Heart/Task/TaskManager.h"
+#include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/TextureAsset.h"
 #include "Heart/Asset/ShaderAsset.h"
 #include "Heart/Asset/MeshAsset.h"
@@ -58,6 +59,8 @@ namespace Heart
         // Only one load task should ever get created at a time
         m_LoadingTask = TaskManager::Schedule([this]()
         {
+            if (!AssetManager::IsInitialized()) return;
+
             std::lock_guard lock(m_LoadLock);
 
             if (m_Loaded) return;

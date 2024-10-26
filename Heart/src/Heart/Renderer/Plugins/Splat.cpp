@@ -35,12 +35,12 @@ namespace Heart::RenderPlugins
         Flourish::RenderPassCreateInfo rpCreateInfo;
         rpCreateInfo.SampleCount = Flourish::MsaaSampleCount::None;
         rpCreateInfo.DepthAttachments.push_back({
-            m_Renderer->GetDepthTexture()->GetColorFormat(),
-            Flourish::AttachmentInitialization::Preserve
+            m_Info.OutputDepthTexture->GetColorFormat(),
+            m_Info.ClearDepthOutput ? Flourish::AttachmentInitialization::Clear : Flourish::AttachmentInitialization::Preserve,
         });
         rpCreateInfo.ColorAttachments.push_back({
-            m_Renderer->GetRenderTexture()->GetColorFormat(),
-            Flourish::AttachmentInitialization::Preserve,
+            m_Info.OutputColorTexture->GetColorFormat(),
+            m_Info.ClearColorOutput ? Flourish::AttachmentInitialization::Clear : Flourish::AttachmentInitialization::Preserve,
             true
         });
         rpCreateInfo.Subpasses.push_back({
@@ -70,22 +70,18 @@ namespace Heart::RenderPlugins
         HE_ENGINE_ASSERT(m_MaxSplats % m_NumBlocksPerWorkgroup == 0);
         u32 maxWorkgroups = (m_MaxSplats / m_NumBlocksPerWorkgroup + m_WorkgroupSize - 1) / m_WorkgroupSize;
         Flourish::BufferCreateInfo bufCreateInfo;
-        bufCreateInfo.Type = Flourish::BufferType::Storage;
-        bufCreateInfo.Usage = Flourish::BufferUsageType::DynamicOneFrame;
+        bufCreateInfo.MemoryType = Flourish::BufferMemoryType::GPUOnly;
+        bufCreateInfo.Usage = Flourish::BufferUsageFlags::Storage;
         bufCreateInfo.Stride = sizeof(u32);
         bufCreateInfo.ElementCount = m_MaxSplats;
         for (u32 i = 0; i < m_SortedKeysBuffers.size(); i++)
             m_SortedKeysBuffers[i] = Flourish::Buffer::Create(bufCreateInfo);
-        bufCreateInfo.Usage = Flourish::BufferUsageType::Dynamic;
         m_KeyBuffer = Flourish::Buffer::Create(bufCreateInfo);
-        //bufCreateInfo.Type = Flourish::BufferType::Pixel;
-        //m_CPUBuffer = Flourish::Buffer::Create(bufCreateInfo);
 
-        bufCreateInfo.Type = Flourish::BufferType::Storage;
         bufCreateInfo.ElementCount = maxWorkgroups * m_BinCount;
         m_HistogramBuffer = Flourish::Buffer::Create(bufCreateInfo);
 
-        bufCreateInfo.Type = Flourish::BufferType::Indirect;
+        bufCreateInfo.Usage = Flourish::BufferUsageFlags::Indirect | Flourish::BufferUsageFlags::Storage;
         bufCreateInfo.Stride = sizeof(ComputeMeshBatches::IndexedIndirectCommand);
         bufCreateInfo.ElementCount = 1;
         m_IndirectBuffer = Flourish::Buffer::Create(bufCreateInfo);
@@ -101,6 +97,7 @@ namespace Heart::RenderPlugins
         Flourish::CommandBufferCreateInfo cbCreateInfo;
         cbCreateInfo.FrameRestricted = true;
         cbCreateInfo.DebugName = m_Name.Data();
+        cbCreateInfo.MaxTimestamps = 3;
         m_CommandBuffer = Flourish::CommandBuffer::Create(cbCreateInfo);
 
         Flourish::ResourceSetCreateInfo dsCreateInfo;
@@ -120,8 +117,8 @@ namespace Heart::RenderPlugins
         fbCreateInfo.RenderPass = m_RenderPass;
         fbCreateInfo.Width = m_Renderer->GetRenderWidth();
         fbCreateInfo.Height = m_Renderer->GetRenderHeight();
-        fbCreateInfo.ColorAttachments.push_back({ { 0.f, 0.f, 0.f, 0.f }, m_Renderer->GetRenderTexture() });
-        fbCreateInfo.DepthAttachments.push_back({ m_Renderer->GetDepthTexture() });
+        fbCreateInfo.ColorAttachments.push_back({ { 0.f, 0.f, 0.f, 0.f }, m_Info.OutputColorTexture });
+        fbCreateInfo.DepthAttachments.push_back({ m_Info.OutputDepthTexture });
         m_Framebuffer = Flourish::Framebuffer::Create(fbCreateInfo);
 
         RebuildGraph(m_LastSplatCount);
@@ -164,22 +161,17 @@ namespace Heart::RenderPlugins
                 .EncoderAddBufferRead(m_IndirectBuffer.get())
                 .EncoderAddFramebuffer(m_Framebuffer.get());
         }
-
-        /*
-        m_GPUGraphNodeBuilder
-            .AddEncoderNode(Flourish::GPUWorkloadType::Transfer)
-            .EncoderAddBufferRead(m_SortedKeysBuffers[0].get())
-            .EncoderAddBufferRead(m_KeyBuffer.get())
-            .EncoderAddBufferWrite(m_CPUBuffer.get())
-            .AddEncoderNode(Flourish::GPUWorkloadType::Transfer)
-            .EncoderAddBufferRead(m_CPUBuffer.get());
-        */
     }
 
     void Splat::RenderInternal(const SceneRenderData& data)
     {
         HE_PROFILE_FUNCTION();
         auto timer = AggregateTimer("RenderPlugins::Splat");
+
+        m_Stats["GPU Time (Sort)"].Type = StatType::TimeMS;
+        m_Stats["GPU Time (Sort)"].Data.Float = (float)(m_CommandBuffer->ComputeTimestampDifference(0, 1) * 1e-6);
+        m_Stats["GPU Time (Render)"].Type = StatType::TimeMS;
+        m_Stats["GPU Time (Render)"].Data.Float = (float)(m_CommandBuffer->ComputeTimestampDifference(1, 2) * 1e-6);
 
         auto frameDataPlugin = m_Renderer->GetPlugin<RenderPlugins::FrameData>(m_Info.FrameDataPluginName);
         auto frameDataBuffer = frameDataPlugin->GetBuffer();
@@ -246,6 +238,8 @@ namespace Heart::RenderPlugins
                 m_HistorgramResourceSet->BindBuffer(3, m_IndirectBuffer.get(), 0, 1);
                 m_HistorgramResourceSet->FlushBindings();
                 auto compEncoder = m_CommandBuffer->EncodeComputeCommands();
+                if (i == 0)
+                    compEncoder->WriteTimestamp(0);
                 compEncoder->BindComputePipeline(m_HistogramPipeline.get());
                 compEncoder->BindResourceSet(m_HistorgramResourceSet.get(), 0);
                 compEncoder->FlushResourceSet(0);
@@ -271,6 +265,8 @@ namespace Heart::RenderPlugins
                 compEncoder->FlushResourceSet(1);
                 compEncoder->PushConstants(0, sizeof(RadixPushConstants), &radixPush);
                 compEncoder->Dispatch(workgroupCount, 1, 1);
+                if (i == 3)
+                    compEncoder->WriteTimestamp(1);
                 compEncoder->EndEncoding();
             }
 
@@ -291,47 +287,11 @@ namespace Heart::RenderPlugins
             glm::mat4 MV = data.Camera->GetViewMatrix() * transformData.Transform;
             encoder->PushConstants(0, sizeof(glm::mat4), &MV);
             encoder->DrawIndexedIndirect(m_IndirectBuffer.get(), 0, 1);
+            encoder->WriteTimestamp(2);
             encoder->EndEncoding();
 
             totalSplatCount += splatCount;
         }
-
-        /*
-        auto tEncoder = m_CommandBuffer->EncodeTransferCommands();
-        tEncoder->CopyBufferToBuffer(
-            m_SortedKeysBuffers[0].get(),
-            m_CPUBuffer.get(),
-            0, 0, 50 * sizeof(u32)
-        );
-        tEncoder->CopyBufferToBuffer(
-            m_KeyBuffer.get(),
-            m_CPUBuffer.get(),
-            0, 50 * sizeof(u32), 50 * sizeof(u32)
-        );
-        tEncoder->EndEncoding();
-
-        tEncoder = m_CommandBuffer->EncodeTransferCommands();
-        tEncoder->FlushBuffer(m_CPUBuffer.get());
-        tEncoder->EndEncoding();
-
-        u32 indices[50];
-        u32 keys[50];
-        m_CPUBuffer->ReadBytes(indices, sizeof(indices), 0);
-        m_CPUBuffer->ReadBytes(keys, sizeof(keys), sizeof(indices));
-        HE_LOG_WARN(
-            "{0}, {1}, {2}, {3}, {4}",
-            keys[0],
-            keys[1],
-            keys[2],
-            keys[3],
-            keys[4]
-            keys[indices[0]],
-            keys[indices[1]],
-            keys[indices[2]],
-            keys[indices[3]],
-            keys[indices[4]]
-        );
-        */
 
         for (u32 remaining = totalSplatInstances; remaining < m_LastSplatCount; remaining++)
         {

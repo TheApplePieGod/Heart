@@ -1,55 +1,59 @@
 #pragma once
 
 #include "Heart/Input/KeyCodes.h"
-#include "Heart/Input/MouseCodes.h"
+#include "Heart/Input/ButtonCodes.h"
+#include "Heart/Input/AxisCodes.h"
 #include "glm/vec2.hpp"
 
 namespace Heart
 {
-    // TODO: switch to use MainWindow & threading stuff for GLFW
+    struct AxisState
+    {
+        double Value = 0.0;
+        double OldValue = 0.0;
+        double Delta = 0.0;
+        u64 LastInteractionFrame = 0;
+    };
+
+    struct ButtonState
+    {
+        bool Pressed = false;
+        u64 LastPressFrame = 0;
+    };
+    
+    using KeyState = ButtonState;
+
     class Input
     {
     public:
-        /**
-         * @brief Check if a keyboard key is pressed on the main window.
-         *
-         * @param key The KeyCode to check.
-         */
-        static bool IsKeyPressed(KeyCode key);
+        inline static glm::vec2 GetMousePosition() { return { GetAxisValue(AxisCode::MouseX), GetAxisValue(AxisCode::MouseY) }; }
+        inline static glm::vec2 GetMouseDelta()    { return { GetAxisDelta(AxisCode::MouseX), GetAxisDelta(AxisCode::MouseY) }; }
 
-        /**
-         * @brief Check if a mouse button is pressed on the main window.
-         *
-         * @param key The MouseCode to check.
-         */
-        static bool IsMouseButtonPressed(MouseCode button);
+        inline static const ButtonState& GetButtonState(ButtonCode button) { return GetButtonStateMut(button); }
+        inline static const AxisState& GetAxisState(AxisCode axis)         { return GetAxisStateMut(axis); }
+        inline static const KeyState& GetKeyState(KeyCode key)             { return GetKeyStateMut(key); }
 
-        /**
-         * @brief Get the current coordinates of the mouse relative to the main window.
-         *
-         * @todo Use stored variables?
-         *
-         * @param key The MouseCode to check.
-         * @returns The (x,y) coordinates with (0,0) being at the top left of the window.
-         */
-        static glm::vec2 GetScreenMousePos();
+        inline static bool   IsButtonPressed(ButtonCode button) { return GetButtonState(button).Pressed; }
+        inline static bool   IsKeyPressed(KeyCode key)          { return GetKeyState(key).Pressed; }
+        inline static double GetAxisValue(AxisCode axis)        { return GetAxisState(axis).Value; }
+        inline static double GetAxisDelta(AxisCode axis)        { return GetAxisState(axis).Delta; }
 
-        static void SetMousePosition(double newX, double newY);
-        static void UpdateMousePosition(double newX, double newY);
-        static void UpdateScrollOffset(double newX, double newY);
+    public:
+        static void AddKeyEvent(KeyCode key, bool pressed);
+        static void AddButtonEvent(ButtonCode button, bool pressed);
+        static void AddAxisEvent(AxisCode axis, double value, bool accumulate, bool skipDelta = false);
 
-        inline static double GetMouseDeltaX() { return s_MouseDeltaX; }
-        inline static double GetMouseDeltaY() { return s_MouseDeltaY; }
-        inline static double GetScrollOffsetX() { return s_ScrollOffsetX; }
-        inline static double GetScrollOffsetY() { return s_ScrollOffsetY; }
-        static void ClearDeltas();
+        static void EndFrame();
 
     private:
-        inline static double s_MouseDeltaX = 0.0;
-        inline static double s_MouseDeltaY = 0.0;
-        inline static double s_ScrollOffsetX = 0.0;
-        inline static double s_ScrollOffsetY = 0.0;
-        inline static double s_LastMousePosX = 0.0;
-        inline static double s_LastMousePosY = 0.0;
+        inline static ButtonState& GetButtonStateMut(ButtonCode button) { return m_ButtonStates[(u16)button]; }
+        inline static AxisState& GetAxisStateMut(AxisCode axis)         { return m_AxisStates[(u16)axis]; }
+        inline static KeyState& GetKeyStateMut(KeyCode key)             { return m_KeyStates[(u16)key]; }
+
+    private:
+        inline static std::array<KeyState, (u32)KeyCode::MAX + 1> m_KeyStates;
+        inline static std::array<ButtonState, (u32)ButtonCode::MAX + 1> m_ButtonStates;
+        inline static std::array<AxisState, (u32)AxisCode::MAX + 1> m_AxisStates;
+        
     };
 }

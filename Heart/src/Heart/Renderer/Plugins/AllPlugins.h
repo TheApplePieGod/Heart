@@ -2,6 +2,7 @@
 
 #include "Empty.h"
 
+#include "BlitTexture.h"
 #include "FrameData.h"
 #include "LightingData.h"
 #include "ComputeMeshBatches.h"

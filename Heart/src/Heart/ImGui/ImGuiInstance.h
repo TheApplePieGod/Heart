@@ -5,7 +5,7 @@
 namespace Heart
 {
     class Window;
-
+    
     // TODO: redo this class
     class ImGuiInstance
     {
@@ -21,7 +21,7 @@ namespace Heart
         void EndFrame();
 
     private:
-        void Cleanup();
+        void Cleanup(bool willRecreate);
         void SetThemeColors();
 
     private:
@@ -30,6 +30,7 @@ namespace Heart
         Ref<Window> m_Window;
         
         // Used for vulkan imgui backend
-        void* m_DescriptorPool;
+        void* m_DescriptorPool = nullptr;
+        void* m_DescriptorSetLayout = nullptr;
     };
 }

@@ -80,9 +80,7 @@ namespace Heart::RenderPlugins
 
         m_Pipeline = Flourish::RayTracingPipeline::Create(pipelineCreateInfo);
 
-        // TODO: need static
         Flourish::RayTracingGroupTableCreateInfo gtCreateInfo;
-        gtCreateInfo.Usage = Flourish::BufferUsageType::Dynamic;
         gtCreateInfo.Pipeline = m_Pipeline;
         gtCreateInfo.MaxHitEntries = 1;
         gtCreateInfo.MaxMissEntries = 2;
@@ -105,21 +103,11 @@ namespace Heart::RenderPlugins
     {
         auto gBufferPlugin = m_Renderer->GetPlugin<RenderPlugins::GBuffer>(m_Info.GBufferPluginName);
 
-        Flourish::TextureCreateInfo texCreateInfo;
-        texCreateInfo.Width = m_Renderer->GetRenderWidth() / 2;
-        texCreateInfo.Height = m_Renderer->GetRenderHeight() / 2;
-        texCreateInfo.ArrayCount = 1;
-        texCreateInfo.MipCount = 1;
-        texCreateInfo.Usage = Flourish::TextureUsageFlags::Compute;
-        texCreateInfo.Writability = Flourish::TextureWritability::PerFrame;
-        texCreateInfo.Format = Flourish::ColorFormat::RGBA16_FLOAT;
-        m_OutputTexture = Flourish::Texture::Create(texCreateInfo);
-
         // Half resolution
         m_GBufferMip = 1;
 
-        m_PushData.HaltonData.p2 = ceil(log2(m_OutputTexture->GetWidth()));
-        m_PushData.HaltonData.p3 = ceil(log2(m_OutputTexture->GetHeight())/log2(3));
+        m_PushData.HaltonData.p2 = ceil(log2(m_Info.OutputTexture->GetWidth()));
+        m_PushData.HaltonData.p3 = ceil(log2(m_Info.OutputTexture->GetHeight())/log2(3));
         int w = pow(2, m_PushData.HaltonData.p2);
         int h = pow(3, m_PushData.HaltonData.p3);
         m_PushData.HaltonData.w = w;
@@ -132,9 +120,9 @@ namespace Heart::RenderPlugins
         m_GPUGraphNodeBuilder.Reset()
             .SetCommandBuffer(m_CommandBuffer.get())
             .AddEncoderNode(Flourish::GPUWorkloadType::Compute)
-            .EncoderAddTextureWrite(m_OutputTexture.get())
-            .EncoderAddTextureRead(gBufferPlugin->GetGBuffer1())
-            .EncoderAddTextureRead(gBufferPlugin->GetGBuffer2())
+            .EncoderAddTextureWrite(m_Info.OutputTexture.get())
+            .EncoderAddTextureRead(gBufferPlugin->GetGBuffer1().get())
+            .EncoderAddTextureRead(gBufferPlugin->GetGBuffer2().get())
             .EncoderAddTextureRead(gBufferPlugin->GetGBufferDepth().get());
             // .AccelStructure ???
     }
@@ -159,7 +147,7 @@ namespace Heart::RenderPlugins
         m_ResourceSet0->BindBuffer(0, frameDataBuffer, 0, 1);
         m_ResourceSet0->BindAccelerationStructure(1, tlasPlugin->GetAccelStructure());
         m_ResourceSet0->BindAccelerationStructure(2, lightingDataPlugin->GetLightTLAS());
-        m_ResourceSet0->BindTexture(3, m_OutputTexture.get());
+        m_ResourceSet0->BindTexture(3, m_Info.OutputTexture.get());
         m_ResourceSet0->BindTextureLayer(4, gBufferPlugin->GetGBuffer2(), arrayIndex, m_GBufferMip);
         m_ResourceSet0->BindTextureLayer(5, gBufferPlugin->GetGBufferDepth(), arrayIndex, m_GBufferMip);
         m_ResourceSet0->FlushBindings();
@@ -200,8 +188,8 @@ namespace Heart::RenderPlugins
         encoder->PushConstants(0, sizeof(PushData), &m_PushData);
         encoder->TraceRays(
             m_GroupTable.get(),
-            m_OutputTexture->GetWidth(),
-            m_OutputTexture->GetHeight(),
+            m_Info.OutputTexture->GetWidth(),
+            m_Info.OutputTexture->GetHeight(),
             1
         );
         encoder->EndEncoding();

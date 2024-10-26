@@ -22,6 +22,9 @@ namespace SourceGenerators
         public static bool IsPartialClass(this ClassDeclarationSyntax syntax)
             => syntax.Modifiers.Any(SyntaxKind.PartialKeyword);
 
+        public static bool IsPartialMethod(this MethodDeclarationSyntax syntax)
+            => syntax.Modifiers.Any(SyntaxKind.PartialKeyword);
+
         private static SymbolDisplayFormat GeneratorOutputFormat
             => SymbolDisplayFormat.FullyQualifiedFormat.WithGlobalNamespaceStyle(SymbolDisplayGlobalNamespaceStyle.Omitted);
 

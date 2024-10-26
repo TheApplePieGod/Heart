@@ -4,6 +4,7 @@
 #include "Heart/Core/Layer.h"
 #include "Heart/Core/Window.h"
 #include "Heart/Core/Timing.h"
+#include "Heart/Input/Input.h"
 #include "Heart/ImGui/ImGuiInstance.h"
 #include "Heart/Physics/PhysicsWorld.h"
 #include "Heart/Events/WindowEvents.h"
@@ -13,6 +14,7 @@
 #include "Heart/Task/TaskManager.h"
 #include "Heart/Task/JobManager.h"
 #include "Heart/Util/PlatformUtils.h"
+#include "Heart/Util/FilesystemUtils.h"
 #include "Flourish/Api/Context.h"
 #include "Flourish/Api/RenderContext.h"
 #include "Flourish/Core/Log.h"
@@ -23,8 +25,6 @@ namespace Heart
     {
         if (s_Instance) return;
         s_Instance = this;
-
-        Heart::Logger::Initialize(windowName.Data());
 
         Timer timer = Timer("App initialization");
         #ifdef HE_DEBUG
@@ -42,6 +42,9 @@ namespace Heart
         InitializeGraphicsApi(windowCreateInfo);
         HE_ENGINE_LOG_DEBUG("Graphics ready");
 
+        // Run on main thread, since some platforms have issues otherwise
+        ScriptingEngine::Initialize();
+
         // Init services
         TaskGroup initServices;
         initServices.AddTask(TaskManager::Schedule(
@@ -51,10 +54,6 @@ namespace Heart
         initServices.AddTask(TaskManager::Schedule(
             [](){ AssetManager::Initialize(); },
             Task::Priority::High, "AssetManager Init")
-        );
-        initServices.AddTask(TaskManager::Schedule(
-            [](){ ScriptingEngine::Initialize(); },
-            Task::Priority::High, "Scripts Init")
         );
         
         initServices.Wait();
@@ -108,6 +107,7 @@ namespace Heart
         initInfo.RequestedFeatures.SamplerAnisotropy = true;
         initInfo.RequestedFeatures.RayTracing = true;
         initInfo.RequestedFeatures.PartiallyBoundResourceSets = true;
+        initInfo.ReadFile = FilesystemUtils::ReadFile;
         Flourish::Context::Initialize(initInfo);
 
         m_Window = Window::Create(windowCreateInfo);
@@ -189,8 +189,9 @@ namespace Heart
         {
             HE_PROFILE_FRAME();
 
-            double currentFrameTime = m_Window->GetWindowTime();
-            m_LastTimestep = Timestep(currentFrameTime - m_LastFrameTime);
+            auto currentFrameTime = std::chrono::steady_clock::now();
+            auto step = std::chrono::duration_cast<std::chrono::milliseconds>(currentFrameTime - m_LastFrameTime).count();
+            m_LastTimestep = Timestep(step);
             m_TimestepSamples[m_FrameCount % 5] = m_LastTimestep.StepMilliseconds();
             double averaged = 0.0;
             for (auto sample : m_TimestepSamples)
@@ -199,7 +200,13 @@ namespace Heart
             m_LastFrameTime = currentFrameTime;
 
             auto timer = AggregateTimer("App::Run - PollEvents");
-            m_Window->PollEvents();
+            if (m_Window->PollEvents())
+            {
+                // True here means the window was internally recreated, so we need to update objects
+                // that depend on window internals
+
+                m_ImGuiInstance->Recreate();
+            }
             timer.Finish();
 
             if (!m_Minimized && m_Window->GetRenderContext()->Validate())
@@ -208,7 +215,6 @@ namespace Heart
                 timer = AggregateTimer("App::Run - Begin frame");
                 AssetManager::UnloadOldAssets();
                 Flourish::Context::BeginFrame();
-                m_Window->BeginFrame();
                 m_ImGuiInstance->BeginFrame();
                 timer.Finish();
 
@@ -222,6 +228,7 @@ namespace Heart
                 timer = AggregateTimer("App::Run - End frame");
                 m_ImGuiInstance->EndFrame();
                 m_Window->EndFrame();
+                Input::EndFrame();
                 Flourish::Context::EndFrame();
                 m_FrameCount++;
                 timer.Finish();

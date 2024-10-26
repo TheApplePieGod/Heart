@@ -1,4 +1,5 @@
 ﻿using Heart.NativeInterop;
+using Heart.NativeBridge;
 using Heart.Scene;
 using System;
 using System.Collections.Generic;
@@ -66,7 +67,7 @@ namespace Heart.Task
         }
     }
 
-    public class SchedulableIter : ISchedulable
+    public partial class SchedulableIter : ISchedulable
     {
         internal delegate InteropBool GetNextIterFn(out nuint outVal);
         public delegate void RunFn(nuint val);
@@ -110,7 +111,8 @@ namespace Heart.Task
         public void ScheduleParallel()
         {
             var enumerator = _iterFunc.GetEnumerator();
-            GetNextIterFn callback = new GetNextIterFn((out nuint outVal) => {
+            GetNextIterFn callback = new GetNextIterFn((out nuint outVal) =>
+            {
                 bool result = enumerator.MoveNext();
                 outVal = enumerator.Current;
                 return NativeMarshal.BoolToInteropBool(result);
@@ -122,7 +124,7 @@ namespace Heart.Task
                 _completeFunc();
         }
 
-        [DllImport("__Internal")]
-        internal static extern void Native_SchedulableIter_Schedule(GetNextIterFn getNext, RunFn run);
+        [UnmanagedCallback]
+        internal static partial void Native_SchedulableIter_Schedule(GetNextIterFn getNext, RunFn run);
     }
 }

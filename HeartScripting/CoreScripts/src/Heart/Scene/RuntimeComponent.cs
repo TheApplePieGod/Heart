@@ -7,7 +7,7 @@ using Heart.NativeBridge;
 namespace Heart.Scene
 {
     // Static helpers to be utilized in generated component code
-    public static class RuntimeComponent
+    public static partial class RuntimeComponent
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static InteropBool NativeExists(uint entityHandle, IntPtr sceneHandle, Int64 uniqueId)
@@ -34,16 +34,16 @@ namespace Heart.Scene
             return (T)gcHandle.Target;
         }
 
-        [DllImport("__Internal")]
-        internal static extern InteropBool Native_RuntimeComponent_Exists(uint entityHandle, IntPtr sceneHandle, Int64 typeId);
+        [UnmanagedCallback]
+        internal static partial InteropBool Native_RuntimeComponent_Exists(uint entityHandle, IntPtr sceneHandle, Int64 typeId);
 
-        [DllImport("__Internal")]
-        internal static extern InteropBool Native_RuntimeComponent_Add(uint entityHandle, IntPtr sceneHandle, Int64 typeId, IntPtr objectHandle);
+        [UnmanagedCallback]
+        internal static partial InteropBool Native_RuntimeComponent_Add(uint entityHandle, IntPtr sceneHandle, Int64 typeId, IntPtr objectHandle);
 
-        [DllImport("__Internal")]
-        internal static extern InteropBool Native_RuntimeComponent_Remove(uint entityHandle, IntPtr sceneHandle, Int64 typeId);
+        [UnmanagedCallback]
+        internal static partial InteropBool Native_RuntimeComponent_Remove(uint entityHandle, IntPtr sceneHandle, Int64 typeId);
 
-        [DllImport("__Internal")]
-        internal static extern InteropBool Native_RuntimeComponent_Get(uint entityHandle, IntPtr sceneHandle, Int64 typeId, out IntPtr comp);
+        [UnmanagedCallback]
+        internal static partial InteropBool Native_RuntimeComponent_Get(uint entityHandle, IntPtr sceneHandle, Int64 typeId, out IntPtr comp);
     }
 }

@@ -69,8 +69,9 @@ namespace HeartRuntime
             if (Heart::Input::IsKeyPressed(Heart::KeyCode::S))
                 m_DebugCameraPos -= (m_Camera.GetForwardVector() * moveSpeed * static_cast<f32>(ts.StepSeconds()));
 
-            m_DebugCameraRot.y += mouseScale * static_cast<f32>(Heart::Input::GetMouseDeltaX());
-            m_DebugCameraRot.x += mouseScale * static_cast<f32>(Heart::Input::GetMouseDeltaY());
+            glm::vec2 mouseDelta = Heart::Input::GetMouseDelta();
+            m_DebugCameraRot.y += mouseScale * static_cast<f32>(mouseDelta.x);
+            m_DebugCameraRot.x += mouseScale * static_cast<f32>(mouseDelta.y);
 
             m_Camera = Heart::Camera(
                 70.f,

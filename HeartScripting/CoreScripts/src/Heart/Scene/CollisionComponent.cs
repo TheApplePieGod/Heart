@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Heart.Math;
 using Heart.NativeInterop;
+using Heart.NativeBridge;
 using Heart.Physics;
 
 namespace Heart.Scene
@@ -26,7 +27,7 @@ namespace Heart.Scene
 
         public PhysicsBodyShape GetShapeType()
         {
-            Native_CollisionComponent_GetShapeType(_entityHandle, _sceneHandle, out var type);            
+            Native_CollisionComponent_GetShapeType(_entityHandle, _sceneHandle, out var type);
             return (PhysicsBodyShape)type;
         }
 
@@ -45,7 +46,7 @@ namespace Heart.Scene
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void UpdateCollisionMask(ulong mask)
             => Native_CollisionComponent_UpdateCollisionMask(_entityHandle, _sceneHandle, mask);
-        
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void UseBoxShape(PhysicsBodyInfo info, Vec3 halfExtent)
             => Native_CollisionComponent_UseBoxShape(_entityHandle, _sceneHandle, info._internal, halfExtent._internal);
@@ -70,43 +71,43 @@ namespace Heart.Scene
         public static void NativeRemove(uint entityHandle, IntPtr sceneHandle)
             => Native_CollisionComponent_Remove(entityHandle, sceneHandle);
 
-        [DllImport("__Internal")]
-        internal static extern unsafe void Native_CollisionComponent_Get(uint entityHandle, IntPtr sceneHandle, out CollisionComponentInternal* comp);
+        [UnmanagedCallback]
+        internal static unsafe partial void Native_CollisionComponent_Get(uint entityHandle, IntPtr sceneHandle, out CollisionComponentInternal* comp);
 
-        [DllImport("__Internal")]
-        internal static extern void Native_CollisionComponent_Add(uint entityHandle, IntPtr sceneHandle);
+        [UnmanagedCallback]
+        internal static partial void Native_CollisionComponent_Add(uint entityHandle, IntPtr sceneHandle);
 
-        [DllImport("__Internal")]
-        internal static extern void Native_CollisionComponent_Remove(uint entityHandle, IntPtr sceneHandle);
+        [UnmanagedCallback]
+        internal static partial void Native_CollisionComponent_Remove(uint entityHandle, IntPtr sceneHandle);
 
-        [DllImport("__Internal")]
-        internal static extern InteropBool Native_CollisionComponent_Exists(uint entityHandle, IntPtr sceneHandle);
+        [UnmanagedCallback]
+        internal static partial InteropBool Native_CollisionComponent_Exists(uint entityHandle, IntPtr sceneHandle);
 
-        [DllImport("__Internal")]
-        internal static extern void Native_CollisionComponent_GetInfo(uint entityHandle, IntPtr sceneHandle, out PhysicsBodyInfoInternal info);
+        [UnmanagedCallback]
+        internal static partial void Native_CollisionComponent_GetInfo(uint entityHandle, IntPtr sceneHandle, out PhysicsBodyInfoInternal info);
 
-        [DllImport("__Internal")]
-        internal static extern void Native_CollisionComponent_GetShapeType(uint entityHandle, IntPtr sceneHandle, out uint type);
+        [UnmanagedCallback]
+        internal static partial void Native_CollisionComponent_GetShapeType(uint entityHandle, IntPtr sceneHandle, out uint type);
 
-        [DllImport("__Internal")]
-        internal static extern void Native_CollisionComponent_UpdateType(uint entityHandle, IntPtr sceneHandle, uint type);
+        [UnmanagedCallback]
+        internal static partial void Native_CollisionComponent_UpdateType(uint entityHandle, IntPtr sceneHandle, uint type);
 
-        [DllImport("__Internal")]
-        internal static extern void Native_CollisionComponent_UpdateMass(uint entityHandle, IntPtr sceneHandle, float mass);
+        [UnmanagedCallback]
+        internal static partial void Native_CollisionComponent_UpdateMass(uint entityHandle, IntPtr sceneHandle, float mass);
 
-        [DllImport("__Internal")]
-        internal static extern void Native_CollisionComponent_UpdateCollisionChannels(uint entityHandle, IntPtr sceneHandle, ulong channels);
+        [UnmanagedCallback]
+        internal static partial void Native_CollisionComponent_UpdateCollisionChannels(uint entityHandle, IntPtr sceneHandle, ulong channels);
 
-        [DllImport("__Internal")]
-        internal static extern void Native_CollisionComponent_UpdateCollisionMask(uint entityHandle, IntPtr sceneHandle, ulong mask);
+        [UnmanagedCallback]
+        internal static partial void Native_CollisionComponent_UpdateCollisionMask(uint entityHandle, IntPtr sceneHandle, ulong mask);
 
-        [DllImport("__Internal")]
-        internal static extern void Native_CollisionComponent_UseBoxShape(uint entityHandle, IntPtr sceneHandle, in PhysicsBodyInfoInternal info, Vec3Internal extent);
+        [UnmanagedCallback]
+        internal static partial void Native_CollisionComponent_UseBoxShape(uint entityHandle, IntPtr sceneHandle, in PhysicsBodyInfoInternal info, Vec3Internal extent);
 
-        [DllImport("__Internal")]
-        internal static extern void Native_CollisionComponent_UseSphereShape(uint entityHandle, IntPtr sceneHandle, in PhysicsBodyInfoInternal info, float radius);
+        [UnmanagedCallback]
+        internal static partial void Native_CollisionComponent_UseSphereShape(uint entityHandle, IntPtr sceneHandle, in PhysicsBodyInfoInternal info, float radius);
 
-        [DllImport("__Internal")]
-        internal static extern void Native_CollisionComponent_UseCapsuleShape(uint entityHandle, IntPtr sceneHandle, in PhysicsBodyInfoInternal info, float radius, float halfHeight);
+        [UnmanagedCallback]
+        internal static partial void Native_CollisionComponent_UseCapsuleShape(uint entityHandle, IntPtr sceneHandle, in PhysicsBodyInfoInternal info, float radius, float halfHeight);
     }
 }

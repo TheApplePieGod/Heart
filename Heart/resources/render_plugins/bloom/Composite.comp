@@ -1,0 +1,30 @@
+#version 460
+
+#extension GL_EXT_shader_image_load_formatted : require
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout(binding = 0) uniform sampler2D bloomTex;
+layout(binding = 1) uniform readonly image2D inputTex;
+layout(binding = 2) uniform writeonly image2D outputTex;
+
+layout(push_constant) uniform PushConstants
+{
+    vec2 srcResolution;
+    vec2 dstResolution;
+    float strength;
+} constants;
+
+void main()
+{
+    ivec2 coord = ivec2(gl_GlobalInvocationID.xy);
+    if (coord.x >= int(constants.dstResolution.x) || coord.y >= int(constants.dstResolution.y))
+        return;
+
+    vec2 texCoord = vec2(coord) / vec2(constants.dstResolution);
+    vec4 finalColor = imageLoad(inputTex, coord);
+    vec4 bloomColor = textureLod(bloomTex, texCoord, 0) * constants.strength;
+    finalColor.rgb += bloomColor.rgb * bloomColor.a;
+
+    imageStore(outputTex, coord, finalColor);
+}

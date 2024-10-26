@@ -59,6 +59,7 @@ namespace Heart
         inline static std::mutex s_FreeListMutex;
         
         inline static bool s_Initialized = false;
+        inline static bool s_SingleThreaded = false;
         
         friend class Job;
     };

@@ -10,10 +10,11 @@
 #include "Heart/Renderer/SceneRenderer.h"
 #include "Heart/Renderer/Plugins/EntityIds.h"
 #include "Flourish/Api/Texture.h"
+#include "Heart/Asset/AssetManager.h"
 #include "Heart/Scene/Entity.h"
 #include "Heart/Input/Input.h"
-#include "Heart/Events/KeyboardEvents.h"
-#include "Heart/Events/MouseEvents.h"
+#include "Heart/Events/KeyEvents.h"
+#include "Heart/Events/ButtonEvents.h"
 #include "Heart/Scripting/ScriptingEngine.h"
 #include "imgui/imgui_internal.h"
 
@@ -24,6 +25,8 @@ namespace HeartEditor
         HE_PROFILE_FUNCTION();
 
         SubscribeToEmitter(&EditorApp::Get().GetWindow());
+
+        Heart::AssetManager::EnableFileWatcher();
 
         Editor::Initialize();
 
@@ -48,6 +51,8 @@ namespace HeartEditor
 
         Editor::DestroyWindows();
         Editor::Shutdown();
+
+        Heart::AssetManager::DisableFileWatcher();
 
         HE_LOG_INFO("Editor detached");
     }
@@ -110,8 +115,8 @@ namespace HeartEditor
     void EditorLayer::OnEvent(Heart::Event& event)
     {
         event.Map<Heart::KeyPressedEvent>(HE_BIND_EVENT_FN(EditorLayer::KeyPressedEvent));
-        event.Map<Heart::MouseButtonPressedEvent>(HE_BIND_EVENT_FN(EditorLayer::MouseButtonPressedEvent));
-        event.Map<Heart::MouseButtonReleasedEvent>(HE_BIND_EVENT_FN(EditorLayer::MouseButtonReleasedEvent));
+        event.Map<Heart::ButtonPressedEvent>(HE_BIND_EVENT_FN(EditorLayer::ButtonPressedEvent));
+        event.Map<Heart::ButtonReleasedEvent>(HE_BIND_EVENT_FN(EditorLayer::ButtonReleasedEvent));
     }
 
     bool EditorLayer::KeyPressedEvent(Heart::KeyPressedEvent& event)
@@ -142,11 +147,11 @@ namespace HeartEditor
         return true;
     }
 
-    bool EditorLayer::MouseButtonPressedEvent(Heart::MouseButtonPressedEvent& event)
+    bool EditorLayer::ButtonPressedEvent(Heart::ButtonPressedEvent& event)
     {
         // screen picking
         auto& viewport = (Widgets::Viewport&)Editor::GetWindow("Viewport");
-        if (event.GetMouseCode() == Heart::MouseCode::LeftButton &&
+        if (event.GetButtonCode() == Heart::ButtonCode::LeftMouse &&
             (!ImGuizmo::IsOver() || !Editor::GetState().SelectedEntity.IsValid()) &&
             !viewport.IsFocused()
             && viewport.IsHovered())
@@ -171,7 +176,7 @@ namespace HeartEditor
         return true;
     }
 
-    bool EditorLayer::MouseButtonReleasedEvent(Heart::MouseButtonReleasedEvent& event)
+    bool EditorLayer::ButtonReleasedEvent(Heart::ButtonReleasedEvent& event)
     {
         return false;
     }

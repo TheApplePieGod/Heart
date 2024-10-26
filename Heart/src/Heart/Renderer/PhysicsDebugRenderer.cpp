@@ -20,6 +20,7 @@ namespace Heart
 {
     PhysicsDebugRenderer::PhysicsDebugRenderer(u32 width, u32 height)
     {
+    /*
         Flourish::RenderPassCreateInfo rpCreateInfo;
         rpCreateInfo.SampleCount = Flourish::MsaaSampleCount::None;
         rpCreateInfo.ColorAttachments.push_back({ Flourish::ColorFormat::RGBA8_UNORM });
@@ -60,10 +61,12 @@ namespace Heart
         m_MainCommandBuffer = Flourish::CommandBuffer::Create(cbCreateInfo);
      
         Resize(width, height);
+    */
     }
 
     void PhysicsDebugRenderer::Draw(Scene* scene, const Camera& camera)
     {
+        /*
         HE_PROFILE_FUNCTION();
         
         setDebugMode(DBG_DrawWireframe);
@@ -76,7 +79,6 @@ namespace Heart
         };
         m_CameraDataBuffer->SetElements(&camData, 1, 0);
         
-        /*
         auto encoder = m_MainCommandBuffer->EncodeRenderCommands(m_MainFramebuffer.get());
         encoder->BindPipeline("main");
         encoder->BindPipelineBufferResource(0, m_CameraDataBuffer.get(), 0, 0, 1);
@@ -85,22 +87,25 @@ namespace Heart
         encoder->BindVertexBuffer(m_VertexBuffer.get());
         encoder->Draw(m_VertexCount, 0, 1, 0);
         encoder->EndEncoding();
-        */
         
         m_VertexCount = 0;
+        */
     }
 
     void PhysicsDebugRenderer::Resize(u32 width, u32 height)
     {
+    /*
         m_RenderWidth = width;
         m_RenderHeight = height;
         
         CreateTextures();
         CreateFramebuffers();
+    */
     }
 
     void PhysicsDebugRenderer::drawLine(const btVector3 &from, const btVector3 &to, const btVector3 &color)
     {
+    /*
         m_VertexBuffer->SetBytes(&from, sizeof(glm::vec3), m_VertexCount * sizeof(VertexPoint));
         m_VertexBuffer->SetBytes(&color, sizeof(glm::vec3), m_VertexCount * sizeof(VertexPoint) + sizeof(glm::vec3));
         m_VertexCount++;
@@ -108,6 +113,7 @@ namespace Heart
         m_VertexBuffer->SetBytes(&to, sizeof(glm::vec3), m_VertexCount * sizeof(VertexPoint));
         m_VertexBuffer->SetBytes(&color, sizeof(glm::vec3), m_VertexCount * sizeof(VertexPoint) + sizeof(glm::vec3));
         m_VertexCount++;
+    */
     }
 
     void PhysicsDebugRenderer::drawContactPoint(const btVector3 &PointOnB, const btVector3 &normalOnB, btScalar distance, int lifeTime, const btVector3 &color)
@@ -127,6 +133,7 @@ namespace Heart
 
     void PhysicsDebugRenderer::CreateTextures()
     {
+    /*
         Flourish::TextureCreateInfo texCreateInfo;
         texCreateInfo.Width = m_RenderWidth;
         texCreateInfo.Height = m_RenderHeight;
@@ -136,15 +143,18 @@ namespace Heart
         texCreateInfo.ArrayCount = 1;
         texCreateInfo.MipCount = 1;
         m_FinalTexture = Flourish::Texture::Create(texCreateInfo);
+    */
     }
 
     void PhysicsDebugRenderer::CreateFramebuffers()
     {
+    /*
         Flourish::FramebufferCreateInfo fbCreateInfo;
         fbCreateInfo.RenderPass = m_MainRenderPass;
         fbCreateInfo.Width = m_RenderWidth;
         fbCreateInfo.Height = m_RenderHeight;
         fbCreateInfo.ColorAttachments.push_back({ { 0.f, 0.f, 0.f, 0.f }, m_FinalTexture });
         m_MainFramebuffer = Flourish::Framebuffer::Create(fbCreateInfo);
+    */
     }
 }

@@ -7,8 +7,8 @@
 namespace Heart
 {
     class KeyPressedEvent;
-    class MouseButtonPressedEvent;
-    class MouseButtonReleasedEvent;
+    class ButtonPressedEvent;
+    class ButtonReleasedEvent;
 }
 
 namespace HeartEditor
@@ -24,8 +24,8 @@ namespace HeartEditor
 
     protected:
         bool KeyPressedEvent(Heart::KeyPressedEvent& event);
-        bool MouseButtonPressedEvent(Heart::MouseButtonPressedEvent& event);
-        bool MouseButtonReleasedEvent(Heart::MouseButtonReleasedEvent& event);
+        bool ButtonPressedEvent(Heart::ButtonPressedEvent& event);
+        bool ButtonReleasedEvent(Heart::ButtonReleasedEvent& event);
 
     private:
         Toolbar m_Toolbar;

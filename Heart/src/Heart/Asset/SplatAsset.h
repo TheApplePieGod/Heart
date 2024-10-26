@@ -31,8 +31,6 @@ namespace Heart
 
     private:
         void ParseSplat(unsigned char* data, u32 length);
-        u32 PackFloats(float a, float b);
-        u16 FloatToHalf(float a);
 
     private:
         Ref<Flourish::Buffer> m_DataBuffer;

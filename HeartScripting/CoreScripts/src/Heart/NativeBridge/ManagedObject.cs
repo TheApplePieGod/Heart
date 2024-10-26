@@ -1,4 +1,4 @@
-﻿using Heart.Container;
+using Heart.Container;
 using Heart.Core;
 using Heart.NativeInterop;
 using Heart.Scene;
@@ -6,7 +6,7 @@ using System;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using System.Runtime.Serialization;
+using System.Runtime.CompilerServices;
 
 namespace Heart.NativeBridge
 {
@@ -20,7 +20,7 @@ namespace Heart.NativeBridge
             if (objectType == null) return IntPtr.Zero;
 
             // Instantiate uninitialized object
-            var instance = FormatterServices.GetUninitializedObject(objectType);
+            var instance = RuntimeHelpers.GetUninitializedObject(objectType);
 
             // Find default parameterless constructor
             var constructor = objectType

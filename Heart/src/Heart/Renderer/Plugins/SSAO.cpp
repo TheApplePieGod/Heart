@@ -6,9 +6,8 @@
 #include "Heart/Core/Timing.h"
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/ShaderAsset.h"
-#include "Flourish/Api/RenderCommandEncoder.h"
-#include "Flourish/Api/RenderPass.h"
-#include "Flourish/Api/Framebuffer.h"
+#include "Flourish/Api/ComputeCommandEncoder.h"
+#include "Flourish/Api/ComputePipeline.h"
 #include "Flourish/Api/CommandBuffer.h"
 #include "Flourish/Api/Texture.h"
 #include "Flourish/Api/ResourceSet.h"
@@ -20,49 +19,21 @@ namespace Heart::RenderPlugins
 {
     void SSAO::InitializeInternal()
     {
-        // Queue shader loads 
-        auto vertShader = AssetManager::RetrieveAsset("engine/FullscreenTriangle.vert", true);
-        auto fragShader = AssetManager::RetrieveAsset("engine/render_plugins/ssao/Fragment.frag", true);
-        Asset::LoadMany({ vertShader, fragShader }, false);
+        auto shader = AssetManager::RetrieveAsset("engine/render_plugins/ssao/Compute.comp", true);
 
-        Flourish::RenderPassCreateInfo rpCreateInfo;
-        rpCreateInfo.SampleCount = Flourish::MsaaSampleCount::None;
-        rpCreateInfo.ColorAttachments.push_back({
-            OUTPUT_FORMAT,
-            Flourish::AttachmentInitialization::Clear
-        });
-        rpCreateInfo.Subpasses.push_back({
-            {},
-            { { Flourish::SubpassAttachmentType::Color, 0 } }
-        });
-        m_RenderPass = Flourish::RenderPass::Create(rpCreateInfo);
-
-        Flourish::GraphicsPipelineCreateInfo pipelineCreateInfo;
-        pipelineCreateInfo.VertexShader = { vertShader->EnsureValid<ShaderAsset>()->GetShader() };
-        pipelineCreateInfo.FragmentShader = { fragShader->EnsureValid<ShaderAsset>()->GetShader() };
-        pipelineCreateInfo.VertexInput = false;
-        pipelineCreateInfo.BlendStates = {{ false }};
-        pipelineCreateInfo.DepthConfig.DepthTest = false;
-        pipelineCreateInfo.DepthConfig.DepthWrite = false;
-        pipelineCreateInfo.CullMode = Flourish::CullMode::Backface;
-        pipelineCreateInfo.WindingOrder = Flourish::WindingOrder::CounterClockwise;
-        auto pipeline = m_RenderPass->CreatePipeline("main", pipelineCreateInfo);
+        Flourish::ComputePipelineCreateInfo compCreateInfo;
+        compCreateInfo.Shader = { shader->EnsureValid<ShaderAsset>()->GetShader() };
+        m_Pipeline = Flourish::ComputePipeline::Create(compCreateInfo);
 
         Flourish::CommandBufferCreateInfo cbCreateInfo;
         cbCreateInfo.FrameRestricted = true;
         cbCreateInfo.DebugName = m_Name.Data();
+        cbCreateInfo.MaxTimestamps = 2;
         m_CommandBuffer = Flourish::CommandBuffer::Create(cbCreateInfo);
 
         Flourish::ResourceSetCreateInfo dsCreateInfo;
         dsCreateInfo.Writability = Flourish::ResourceSetWritability::PerFrame;
-        m_ResourceSet = pipeline->CreateResourceSet(0, dsCreateInfo);
-
-        Flourish::BufferCreateInfo bufCreateInfo;
-        bufCreateInfo.Usage = Flourish::BufferUsageType::Dynamic;
-        bufCreateInfo.Type = Flourish::BufferType::Uniform;
-        bufCreateInfo.Stride = sizeof(SSAOData);
-        bufCreateInfo.ElementCount = 1;
-        m_DataBuffer = Flourish::Buffer::Create(bufCreateInfo);
+        m_ResourceSet = m_Pipeline->CreateResourceSet(0, dsCreateInfo);
         
         // https://learnopengl.com/Advanced-Lighting/SSAO
         // Generate random hemispherical perturbation vectors
@@ -70,18 +41,18 @@ namespace Heart::RenderPlugins
         std::default_random_engine generator;
         for (u32 i = 0; i < 64; i++)
         {
-            m_Data.Samples[i].x = floats(generator) * 2.f - 1.f;
-            m_Data.Samples[i].y = floats(generator) * 2.f - 1.f;
-            m_Data.Samples[i].z = floats(generator);
-            m_Data.Samples[i].w = 0.f;
+            m_PushConstants.Samples[i].x = floats(generator) * 2.f - 1.f;
+            m_PushConstants.Samples[i].y = floats(generator) * 2.f - 1.f;
+            m_PushConstants.Samples[i].z = floats(generator);
+            m_PushConstants.Samples[i].w = 0.f;
 
-            m_Data.Samples[i] = glm::normalize(m_Data.Samples[i]);
-            m_Data.Samples[i] *= floats(generator);
+            m_PushConstants.Samples[i] = glm::normalize(m_PushConstants.Samples[i]);
+            m_PushConstants.Samples[i] *= floats(generator);
 
             // Scale sample to distribute more towards the origin
             float scale = (float)i / 64.f; 
             scale = 0.1f + (scale * scale * 0.9f); // lerp(0.1, 1.0, scale * scale)
-            m_Data.Samples[i] *= scale;
+            m_PushConstants.Samples[i] *= scale;
         }
 
         // Generate random noise for the sample kernels
@@ -100,7 +71,6 @@ namespace Heart::RenderPlugins
         Flourish::TextureCreateInfo texCreateInfo;
         texCreateInfo.Width = 4;
         texCreateInfo.Height = 4;
-        texCreateInfo.Writability = Flourish::TextureWritability::Once;
         texCreateInfo.Format = Flourish::ColorFormat::RGBA32_FLOAT;
         texCreateInfo.Usage = Flourish::TextureUsageFlags::Readonly;
         texCreateInfo.ArrayCount = 1;
@@ -120,32 +90,21 @@ namespace Heart::RenderPlugins
     void SSAO::ResizeInternal()
     {
         Flourish::TextureCreateInfo texCreateInfo;
-        texCreateInfo.Width = m_Renderer->GetRenderWidth();
-        texCreateInfo.Height = m_Renderer->GetRenderHeight();
-        texCreateInfo.Writability = Flourish::TextureWritability::PerFrame;
+        texCreateInfo.Width = m_Renderer->GetRenderWidth() / 2;
+        texCreateInfo.Height = m_Renderer->GetRenderHeight() / 2;
         texCreateInfo.ArrayCount = 1;
         texCreateInfo.MipCount = 1;
         texCreateInfo.Format = OUTPUT_FORMAT;
-        texCreateInfo.Usage = Flourish::TextureUsageFlags::Graphics;
+        texCreateInfo.Usage = Flourish::TextureUsageFlags::Compute;
         texCreateInfo.SamplerState.UVWWrap = { Flourish::SamplerWrapMode::ClampToEdge, Flourish::SamplerWrapMode::ClampToEdge, Flourish::SamplerWrapMode::ClampToEdge };
         m_OutputTexture = Flourish::Texture::Create(texCreateInfo);
 
-        Flourish::FramebufferCreateInfo fbCreateInfo;
-        fbCreateInfo.RenderPass = m_RenderPass;
-        fbCreateInfo.Width = m_OutputTexture->GetWidth();
-        fbCreateInfo.Height = m_OutputTexture->GetHeight();
-        fbCreateInfo.ColorAttachments.push_back({ { 1.f }, m_OutputTexture });
-        m_Framebuffer = Flourish::Framebuffer::Create(fbCreateInfo);
-
-        /*
-        auto meshPlugin = m_Renderer->GetPlugin<RenderPlugins::RenderMeshBatches>(m_Info.RenderMeshBatchesPluginName);
         m_GPUGraphNodeBuilder.Reset()
             .SetCommandBuffer(m_CommandBuffer.get())
-            .AddEncoderNode(Flourish::GPUWorkloadType::Graphics)
-            .EncoderAddFramebuffer(m_Framebuffer.get())
-            .EncoderAddTextureRead(m_Renderer->GetDepthTexture().get())
-            .EncoderAddTextureRead(meshPlugin->GetNormalsTexture());
-        */
+            .AddEncoderNode(Flourish::GPUWorkloadType::Compute)
+            .EncoderAddTextureWrite(m_OutputTexture.get())
+            .EncoderAddTextureRead(m_Info.InputDepthTexture.get())
+            .EncoderAddTextureRead(m_Info.InputNormalsTexture.get());
     }
 
     void SSAO::RenderInternal(const SceneRenderData& data)
@@ -153,40 +112,43 @@ namespace Heart::RenderPlugins
         HE_PROFILE_FUNCTION();
         auto timer = AggregateTimer("RenderPlugins::SSAO");
 
+        m_Stats["GPU Time"].Type = StatType::TimeMS;
+        m_Stats["GPU Time"].Data.Float = (float)(m_CommandBuffer->ComputeTimestampDifference(0, 1) * 1e-6);
+
         if (!data.Settings.SSAOEnable)
         {
-            auto encoder = m_CommandBuffer->EncodeRenderCommands(m_Framebuffer.get());
+            auto encoder = m_CommandBuffer->EncodeComputeCommands();
             encoder->EndEncoding();
             return;
         }
 
-        /*
         auto frameDataPlugin = m_Renderer->GetPlugin<RenderPlugins::FrameData>(m_Info.FrameDataPluginName);
         auto frameDataBuffer = frameDataPlugin->GetBuffer();
-        auto meshPlugin = m_Renderer->GetPlugin<RenderPlugins::RenderMeshBatches>(m_Info.RenderMeshBatchesPluginName);
 
         // TODO: this could probably be static
         m_ResourceSet->BindBuffer(0, frameDataBuffer, 0, 1);
-        m_ResourceSet->BindBuffer(1, m_DataBuffer.get(), 0, 1);
-        m_ResourceSet->BindTexture(2, m_Renderer->GetDepthTexture().get());
+        m_ResourceSet->BindTexture(1, m_OutputTexture.get());
         m_ResourceSet->BindTexture(3, m_NoiseTexture.get());
-        m_ResourceSet->BindTexture(4, meshPlugin->GetNormalsTexture());
+
+        // TODO: fix for RT
+        m_ResourceSet->BindTexture(2, m_Info.InputDepthTexture.get());
+        m_ResourceSet->BindTexture(4, m_Info.InputNormalsTexture.get(), 0);
+
         m_ResourceSet->FlushBindings();
 
-        m_Data.KernelSize = data.Settings.SSAOKernelSize;
-        m_Data.Radius = data.Settings.SSAORadius;
-        m_Data.Bias = data.Settings.SSAOBias;
-        m_Data.RenderSize = { m_OutputTexture->GetWidth(), m_OutputTexture->GetHeight() };
-        m_DataBuffer->SetElements(&m_Data, 1, 0);
+        m_PushConstants.KernelSize = data.Settings.SSAOKernelSize;
+        m_PushConstants.Radius = data.Settings.SSAORadius;
+        m_PushConstants.Bias = data.Settings.SSAOBias;
+        m_PushConstants.RenderSize = { m_OutputTexture->GetWidth(), m_OutputTexture->GetHeight() };
 
-        auto encoder = m_CommandBuffer->EncodeRenderCommands(m_Framebuffer.get());
-        encoder->BindPipeline("main");
+        auto encoder = m_CommandBuffer->EncodeComputeCommands();
+        encoder->WriteTimestamp(0);
+        encoder->BindComputePipeline(m_Pipeline.get());
         encoder->BindResourceSet(m_ResourceSet.get(), 0);
         encoder->FlushResourceSet(0);
-
-        encoder->Draw(3, 0, 1, 0);
-
+        encoder->PushConstants(0, sizeof(PushConstants), &m_PushConstants);
+        encoder->Dispatch((m_OutputTexture->GetWidth() / 16) + 1, (m_OutputTexture->GetHeight() / 16) + 1, 1);
+        encoder->WriteTimestamp(1);
         encoder->EndEncoding();
-        */
     }
 }

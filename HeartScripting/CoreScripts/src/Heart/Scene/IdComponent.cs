@@ -2,6 +2,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Heart.NativeInterop;
+using Heart.NativeBridge;
 
 namespace Heart.Scene
 {
@@ -28,7 +29,7 @@ namespace Heart.Scene
         public static void NativeRemove(uint entityHandle, IntPtr sceneHandle)
             => throw new InvalidOperationException("Cannot remove an id component");
 
-        [DllImport("__Internal")]
-        internal static extern unsafe void Native_IdComponent_Get(uint entityHandle, IntPtr sceneHandle, out UUID* comp);
+        [UnmanagedCallback]
+        internal static unsafe partial void Native_IdComponent_Get(uint entityHandle, IntPtr sceneHandle, out UUID* comp);
     }
 }

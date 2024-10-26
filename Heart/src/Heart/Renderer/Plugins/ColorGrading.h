@@ -1,12 +1,12 @@
 #pragma once
 
+#include "glm/vec2.hpp"
 #include "Heart/Renderer/RenderPlugin.h"
 
 namespace Flourish
 {
     class Texture;
-    class RenderPass;
-    class Framebuffer;
+    class ComputePipeline;
     class ResourceSet;
 }
 
@@ -14,7 +14,8 @@ namespace Heart::RenderPlugins
 {
     struct ColorGradingCreateInfo
     {
-
+        Ref<Flourish::Texture> InputTexture;
+        Ref<Flourish::Texture> OutputTexture;
     };
 
     class ColorGrading : public RenderPlugin
@@ -30,10 +31,17 @@ namespace Heart::RenderPlugins
         void ResizeInternal() override;
 
     private:
+        struct PushConstants
+        {
+            glm::vec2 SrcResolution;
+            glm::vec2 DstResolution;
+            u32 TonemapEnable;
+        };
+
+    private:
         ColorGradingCreateInfo m_Info;
 
         Ref<Flourish::ResourceSet> m_ResourceSet;
-        Ref<Flourish::RenderPass> m_RenderPass;
-        Ref<Flourish::Framebuffer> m_Framebuffer;
+        Ref<Flourish::ComputePipeline> m_Pipeline;
     };
 }

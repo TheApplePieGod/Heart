@@ -5,6 +5,14 @@ namespace Heart
 {
     void TaskManager::Initialize(u32 numWorkers)
     {
+        if (numWorkers == 0)
+        {
+            s_SingleThreaded = true;
+            s_Initialized = true;
+
+            return;
+        }
+
         // Populate initial data to prevent resizing
         s_TaskList.Resize(5000);
         s_HandleFreeList.Reserve(s_TaskList.Count());
@@ -58,6 +66,12 @@ namespace Heart
     {
         HE_PROFILE_FUNCTION();
 
+        if (s_SingleThreaded)
+        {
+            task();
+            return Task(0, false);
+        }
+
         s_FreeListMutex.lock();
         HE_ENGINE_ASSERT(s_HandleFreeList.Count() != 0, "Scheduled too many tasks!");
         u32 handle = s_HandleFreeList.Back();
@@ -107,6 +121,7 @@ namespace Heart
     bool TaskManager::Wait(const Task& task, u32 timeout)
     {
         if (task.GetHandle() == Task::InvalidHandle) return false;
+        if (s_SingleThreaded) return true;
 
         HE_PROFILE_FUNCTION();
         
@@ -149,12 +164,14 @@ namespace Heart
 
     void TaskManager::IncrementRefCount(u32 handle)
     {
+        if (!s_Initialized || s_SingleThreaded) return;
+
         s_TaskList[handle].RefCount++;
     }
 
     void TaskManager::DecrementRefCount(u32 handle)
     {
-        if (!s_Initialized) return;
+        if (!s_Initialized || s_SingleThreaded) return;
 
         auto& data = s_TaskList[handle];
         if (--data.RefCount == 0)

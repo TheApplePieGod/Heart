@@ -3,11 +3,13 @@
 
 #include "Heart/Core/App.h"
 #include "Heart/Core/Timing.h"
+#include "Heart/Util/FilesystemUtils.h"
 #include "Heart/Task/TaskManager.h"
 #include "efsw/efsw.hpp"
 
 namespace Heart
 {
+#ifndef HE_PLATFORM_ANDROID
     class UpdateListener : public efsw::FileWatchListener
     {
     public:
@@ -20,52 +22,85 @@ namespace Heart
         ) override
         {
             auto newPath = std::filesystem::path(dir).append(filename);
+            HString8 newPathStr = newPath.u8string();
+            newPathStr = AssetManager::GetRelativePath(newPathStr);
+
+            // Ignore actions that happen within the dotdir
+            if (newPathStr.StartsWith(AssetManager::GetDotDirectory()))
+                return;
+
+            // Ignore actions in build directories
+            if (newPathStr.StartsWith("obj") || newPathStr.StartsWith("bin"))
+                return;
+            
             switch (action)
             {
                 case efsw::Actions::Add:
-                    m_FileAddedCallback(dir, filename);
-                    break;
+                {
+                    Asset::Type assetType = AssetManager::DeduceAssetTypeFromFile(newPathStr);
+                    if (assetType == Asset::Type::None) break;
+                    HE_ENGINE_LOG_DEBUG("Detected new asset '{}', registering", newPathStr.Data());
+                    AssetManager::RegisterAsset(assetType, newPathStr);
+                } break;
                 case efsw::Actions::Delete:
-                    m_FileDeletedCallback(dir, filename);
-                    break;
+                {
+                    UUID id = AssetManager::GetAssetUUID(newPathStr);
+                    if (!id) break;
+                    HE_ENGINE_LOG_DEBUG("Detected deletion '{}', unregistering", newPathStr.Data());
+                    AssetManager::UnregisterAsset(id);
+                } break;
                 case efsw::Actions::Modified:
-                    m_FileModifiedCallback(dir, filename);
-                    break;
+                {
+                    // TODO: reloading
+                } break;
                 case efsw::Actions::Moved:
-                    m_FileRenamedCallback(dir, oldFilename, filename);
-                    break;
+                {
+                    auto oldPath = std::filesystem::path(dir).append(oldFilename);
+                    HString8 oldPathStr = oldPath.u8string();
+                    oldPathStr = AssetManager::GetRelativePath(oldPathStr);
+                    HE_ENGINE_LOG_DEBUG("Detected rename '{}' -> '{}'", oldPathStr.Data(), newPathStr.Data());
+                    AssetManager::RenameAsset(oldPathStr, newPathStr);
+                } break;
                 default:
                     break;
             }
         }
-
-    private:
-        std::function<void(HStringView8, HStringView8)> m_FileDeletedCallback;
-        std::function<void(HStringView8, HStringView8)> m_FileAddedCallback;
-        std::function<void(HStringView8, HStringView8)> m_FileModifiedCallback;
-        std::function<void(HStringView8, HStringView8, HStringView8)> m_FileRenamedCallback;
     };
 
     // esfw static variables
     static int s_WatchId = 0;
     static Scope<UpdateListener> s_UpdateListener = nullptr;
     static Scope<efsw::FileWatcher> s_FileWatcher = nullptr;
+#endif
 
     void AssetManager::Initialize()
     {
-        auto timer = Heart::Timer("Registering resources", false);
-        RegisterAssetsInDirectory(s_ResourceDirectory, false, true);
-        timer.Log();
-
-        if (!s_AssetsDirectory.IsEmpty())
-        {
-            timer.SetName("Registering assets");
-            timer.Reset();
-            RegisterAssetsInDirectory(s_AssetsDirectory, false, false);
+        #ifdef HE_DIST
+            // Register from manifest if assets dir is set
+            if (!s_AssetsDirectory.IsEmpty())
+            {
+                auto timer = Heart::Timer("Registering asset manifest", false);
+                RegisterAssetsFromManifest(s_AssetsDirectory);
+                timer.Log();
+            }
+            else
+                HE_ENGINE_LOG_INFO("Assets directory not specified, skipping manifest registration");
+        #else
+            // Register from directories
+            auto timer = Heart::Timer("Registering resources", false);
+            RegisterAssetsInDirectory(s_ResourceDirectory, false, true);
             timer.Log();
-        }
-        else
-            HE_ENGINE_LOG_INFO("Assets directory not specified, skipping registration");
+
+            if (!s_AssetsDirectory.IsEmpty())
+            {
+                timer.SetName("Registering assets");
+                timer.Reset();
+                RegisterAssetsInDirectory(s_AssetsDirectory, false, false);
+                timer.Log();
+            }
+            else
+                HE_ENGINE_LOG_INFO("Assets directory not specified, skipping registration");
+        #endif
 
         s_Initialized = true;
 
@@ -144,25 +179,31 @@ namespace Heart
 
     void AssetManager::EnableFileWatcher()
     {
-        if (s_FileWatcher) return;
+        #ifndef HE_PLATFORM_ANDROID
+            if (s_FileWatcher) return;
 
-        s_FileWatcher = CreateScope<efsw::FileWatcher>();
-        s_UpdateListener = CreateScope<UpdateListener>();
+            s_FileWatcher = CreateScope<efsw::FileWatcher>();
+            s_UpdateListener = CreateScope<UpdateListener>();
+        #endif
     }
 
     void AssetManager::DisableFileWatcher()
     {
-        s_FileWatcher.reset();
-        s_UpdateListener.reset();
+        #ifndef HE_PLATFORM_ANDROID
+            s_FileWatcher.reset();
+            s_UpdateListener.reset();
+        #endif
     }
 
     void AssetManager::WatchAssetDirectory()
     {
-        s_WatchId = (int)s_FileWatcher->addWatch(
-            s_AssetsDirectory.Data(),
-            s_UpdateListener.get(),
-            true
-        );
+        #ifndef HE_PLATFORM_ANDROID
+            s_WatchId = (int)s_FileWatcher->addWatch(
+                s_AssetsDirectory.Data(),
+                s_UpdateListener.get(),
+                true
+            );
+        #endif
     }
 
     UUID AssetManager::RegisterAsset(Asset::Type type, const HString8& path, bool persistent, bool isResource)
@@ -179,7 +220,7 @@ namespace Heart
             : GetAbsolutePath(path);
 
         // Only register if the path exists (resources are assumed to exist)
-        if (!isResource && !std::filesystem::exists(absolutePath.Data()))
+        if (!isResource && !FilesystemUtils::FileExistsLocalized(absolutePath.Data()))
             return 0;
 
         auto lock = std::unique_lock(s_Mutex);
@@ -240,7 +281,12 @@ namespace Heart
         {
             for (const auto& entry : std::filesystem::directory_iterator(directory.Data()))
                 if (entry.is_directory())
+                {
+                    // Ignore files in the dotdir
+                    if (s_DotDir == entry.path().filename().generic_u8string())
+                        continue;
                     RegisterAssetsInDirectory(entry.path().generic_u8string(), persistent, isResource);
+                }
                 else
                 {
                     std::filesystem::path path = entry.path();
@@ -257,6 +303,23 @@ namespace Heart
         { return; }
     }
 
+    void AssetManager::RegisterAssetsFromManifest(const HStringView8& directory)
+    {
+        u32 fileLength;
+        auto path = std::filesystem::path(directory.Data()).append(s_ManifestFile.Data());
+        unsigned char* data = FilesystemUtils::ReadFile(path.generic_u8string(), fileLength);
+        if (!data)
+        {
+            HE_LOG_ERROR("Failed to locate manifest file in {0}", path.generic_u8string());
+            return;
+        }
+
+        auto j = nlohmann::json::parse(data);
+        for (auto& entry : j)
+            RegisterAsset(entry["type"], entry["path"], false, entry["resource"]);
+    }
+
+    // Non-resources only
     void AssetManager::RenameAsset(const HString8& oldPath, const HString8& newPath)
     {
         auto lock = std::unique_lock(s_Mutex);
@@ -291,6 +354,12 @@ namespace Heart
 
         s_AssetsDirectory = directory;
 
+        if (!s_Initialized)
+        {
+            s_Mutex.unlock();
+            return;
+        }
+
         // Remove all registry UUIDs
         for (auto& pair : s_Registry)
             s_UUIDs.erase(pair.second.Id);
@@ -301,26 +370,35 @@ namespace Heart
         s_Mutex.unlock();
 
         // Scan the new directory
-        RegisterAssetsInDirectory(directory, false, false);
+        #ifdef HE_DIST
+            RegisterAssetsFromManifest(directory);
+        #else
+            RegisterAssetsInDirectory(directory, false, false);
+        #endif
 
-        // Update file watcher to watch new directory
-        if (s_FileWatcher)
-        {
-            s_FileWatcher->removeWatch(s_WatchId);
-            WatchAssetDirectory();
-        }
+        #ifndef HE_PLATFORM_ANDROID
+            // Update file watcher to watch new directory
+            if (s_FileWatcher)
+            {
+                s_FileWatcher->removeWatch(s_WatchId);
+                WatchAssetDirectory();
+            }
+        #endif
     }
 
     Asset::Type AssetManager::DeduceAssetTypeFromFile(const HStringView8& path)
     {
-        auto extension = std::filesystem::path(path.Data()).extension().generic_u8string();
+        auto rawExtension = std::filesystem::path(path.Data()).extension().generic_u8string();
 
         // Convert the extension to lowercase
-        std::transform(extension.begin(), extension.end(), extension.begin(), [](unsigned char c) { return std::tolower(c); });
-        
+        std::transform(rawExtension.begin(), rawExtension.end(), rawExtension.begin(), [](unsigned char c) { return std::tolower(c); });
+
+        HStringView8 extension(rawExtension);
+
         Asset::Type type = Asset::Type::None;
         if (extension == ".png" || extension == ".jpg" || extension == ".bmp" ||
-            extension == ".hdr" || extension == ".tiff" || extension == ".tif") // textures
+            extension == ".hdr" || extension == ".tiff" || extension == ".tif" ||
+            extension == ".hetex") // textures
             type = Asset::Type::Texture;
         else if (extension == ".gltf")
             type = Asset::Type::Mesh;
@@ -394,5 +472,21 @@ namespace Heart
 
         auto& entry = GetRegistry(found->second.IsResource)[found->second.Path];
         return entry.Asset.get();
+    }
+
+    nlohmann::json AssetManager::GenerateManifest()
+    {
+        nlohmann::json j;
+
+        u32 size = 0;
+        for (auto& entry : s_UUIDs)
+        {
+            auto& elem = j[size++];
+            elem["path"] = entry.second.Path;
+            elem["type"] = entry.second.Type;
+            elem["resource"] = entry.second.IsResource;
+        }
+
+        return j;
     }
 }

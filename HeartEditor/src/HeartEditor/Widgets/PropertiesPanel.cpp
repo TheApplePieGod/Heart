@@ -215,12 +215,17 @@ namespace Widgets
                             [&materialId, &meshAsset, index]()
                             {
                                 // Context menu per material
-                                if (materialId)
+                                if (materialId && ImGui::MenuItem("Clear"))
+                                    materialId = 0;
+                                if (ImGui::MenuItem("Open in Editor"))
                                 {
-                                    if (ImGui::MenuItem("Clear"))
-                                        materialId = 0;
-                                    if (ImGui::MenuItem("Open in Editor"))
+                                    if (materialId)
                                         ((Widgets::MaterialEditor&)Editor::GetWindow("Material Editor")).SetSelectedMaterial(materialId);
+                                    else
+                                    {
+                                        Heart::Material& defaultMaterial = meshAsset->GetDefaultMaterials()[index];
+                                        ((Widgets::MaterialEditor&)Editor::GetWindow("Material Editor")).SetSelectedMaterial(defaultMaterial);
+                                    }
                                 }
                                 if (ImGui::MenuItem("Export to File"))
                                 {

@@ -449,6 +449,8 @@ namespace Heart
     {
         m_IsRuntime = true;
 
+        HE_ENGINE_LOG_DEBUG("Starting scene runtime");
+
         // Call OnPlayStart lifecycle method
         auto view = m_Registry.view<ScriptComponent>();
         for (auto entity : view)
@@ -677,5 +679,10 @@ namespace Heart
     glm::vec3 Scene::GetEntityCachedForwardVec(Entity entity)
     {
         return m_CachedTransforms[entity.GetHandle()].ForwardVec;
+    }
+
+    u32 Scene::GetAliveEntityCount()
+    {
+        return m_Registry.storage<entt::entity>().free_list();
     }
 }

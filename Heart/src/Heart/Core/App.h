@@ -89,7 +89,7 @@ namespace Heart
         bool m_Running = true;
         bool m_Minimized = false;
         u64 m_FrameCount = 1;
-        double m_LastFrameTime = 0.0;
+        std::chrono::time_point<std::chrono::steady_clock> m_LastFrameTime;
         std::array<double, 5> m_TimestepSamples;
         Timestep m_AveragedTimestep;
         Timestep m_LastTimestep;

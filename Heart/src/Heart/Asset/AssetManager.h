@@ -61,6 +61,10 @@ namespace Heart
         /*! @brief Get the current project directory. */
         inline static const HString8& GetAssetsDirectory() { return s_AssetsDirectory; }
 
+        inline static const HString8& GetManifestFilename() { return s_ManifestFile; }
+
+        inline static const HString8& GetDotDirectory() { return s_DotDir; }
+
         /*! @brief Get a reference to the internal asset UUID registry. */
         inline static const std::unordered_map<UUID, UUIDEntry>& GetUUIDRegistry() { return s_UUIDs; }
 
@@ -103,6 +107,8 @@ namespace Heart
          * @param isResource Store all assets as resources.
          */
         static void RegisterAssetsInDirectory(const HStringView8& directory, bool persistent = false, bool isResource = false);
+
+        static void RegisterAssetsFromManifest(const HStringView8& directory);
 
         /**
          * @brief Change the name and/or path of a registered non-resource asset.
@@ -213,6 +219,8 @@ namespace Heart
             return static_cast<T*>(RetrieveAsset(uuid));
         }
 
+        static nlohmann::json GenerateManifest();
+
     private:
         static void WatchAssetDirectory();
 
@@ -222,6 +230,8 @@ namespace Heart
     private:
         inline static constexpr u64 s_AssetFrameLimit = 1000;
         inline static const HString8 s_ResourceDirectory = "resources";
+        inline static const HString8 s_ManifestFile = "assets.json";
+        inline static const HString8 s_DotDir = ".heart";
         inline static std::unordered_map<UUID, UUIDEntry> s_UUIDs;
         inline static std::unordered_map<HString8, AssetEntry> s_Registry;
         inline static std::unordered_map<HString8, AssetEntry> s_Resources;

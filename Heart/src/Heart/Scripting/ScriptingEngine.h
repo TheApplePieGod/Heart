@@ -43,7 +43,7 @@ namespace Heart
     private:
         inline static BridgeManagedCallbacks s_BridgeCallbacks;
         inline static CoreManagedCallbacks s_CoreCallbacks;
-        inline static bool s_ClientPluginLoaded;
+        inline static bool s_ClientPluginLoaded = false;
         inline static std::unordered_map<HString, s64> s_NameToId;
         inline static std::unordered_map<s64, ScriptClass> s_EntityClasses;
         inline static std::unordered_map<s64, ScriptClass> s_ComponentClasses;

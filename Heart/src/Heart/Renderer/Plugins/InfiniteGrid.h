@@ -13,6 +13,10 @@ namespace Heart::RenderPlugins
 {
     struct InfiniteGridCreateInfo
     {
+        Ref<Flourish::Texture> OutputColorTexture;
+        Ref<Flourish::Texture> OutputDepthTexture;
+        bool ClearColorOutput;
+        bool ClearDepthOutput;
         HString8 FrameDataPluginName;
     };
 

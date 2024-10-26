@@ -52,6 +52,8 @@ namespace Heart
         glm::vec3 GetEntityCachedScale(Entity entity);
         glm::vec3 GetEntityCachedForwardVec(Entity entity);
 
+        u32 GetAliveEntityCount();
+
         Ref<Scene> Clone();
         void ClearScene();
         void SetEnvironmentMap(UUID mapAsset);

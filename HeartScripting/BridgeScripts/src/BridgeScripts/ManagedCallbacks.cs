@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Runtime.InteropServices;
 
 namespace BridgeScripts
 {
+    [StructLayout(LayoutKind.Sequential)]
     internal unsafe struct ManagedCallbacks
     {
         public delegate* unmanaged<IntPtr, byte> EntryPoint_LoadCorePlugin;

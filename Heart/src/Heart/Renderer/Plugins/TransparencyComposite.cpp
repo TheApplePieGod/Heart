@@ -19,6 +19,7 @@ namespace Heart::RenderPlugins
 {
     void TransparencyComposite::InitializeInternal()
     {
+    /*
         // Queue shader loads 
         auto vertShader = AssetManager::RetrieveAsset("engine/FullscreenTriangle.vert", true);
         auto fragShader = AssetManager::RetrieveAsset("engine/render_plugins/transparency_composite/Fragment.frag", true);
@@ -59,10 +60,12 @@ namespace Heart::RenderPlugins
         m_ResourceSet = pipeline->CreateResourceSet(0, dsCreateInfo);
 
         ResizeInternal();
+    */
     }
 
     void TransparencyComposite::ResizeInternal()
     {
+    /*
         Flourish::TextureCreateInfo texCreateInfo;
         texCreateInfo.Width = m_Renderer->GetRenderWidth();
         texCreateInfo.Height = m_Renderer->GetRenderHeight();
@@ -89,10 +92,12 @@ namespace Heart::RenderPlugins
             .EncoderAddFramebuffer(m_Framebuffer.get())
             .EncoderAddTextureRead(m_AccumTexture.get())
             .EncoderAddTextureRead(m_RevealTexture.get());
+    */
     }
 
     void TransparencyComposite::RenderInternal(const SceneRenderData& data)
     {
+    /*
         HE_PROFILE_FUNCTION();
         auto timer = AggregateTimer("RenderPlugins::TransparencyComposite");
 
@@ -109,5 +114,6 @@ namespace Heart::RenderPlugins
         encoder->Draw(3, 0, 1, 0);
 
         encoder->EndEncoding();
+    */
     }
 }

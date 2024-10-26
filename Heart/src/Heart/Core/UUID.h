@@ -37,3 +37,13 @@ namespace std
         }
     };
 }
+
+// Implement format functionality for UUID
+template<>
+struct fmt::formatter<Heart::UUID> : fmt::formatter<std::string>
+{
+    auto format(Heart::UUID& val, format_context &ctx) const -> decltype(ctx.out())
+    {
+        return format_to(ctx.out(), "{}", (u64)val);
+    }
+};

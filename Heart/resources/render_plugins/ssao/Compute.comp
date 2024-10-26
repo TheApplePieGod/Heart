@@ -1,24 +1,22 @@
 #version 460
 
+#define FRAME_BUFFER_BINDING 0
+#define FRAME_BUFFER_SET 0
 #include "../frame_data/FrameBuffer.glsl"
 
-layout(location = 0) out float outColor;
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
-layout(location = 0) in vec2 texCoord;
-
-struct SSAOData {
+layout(push_constant) uniform PushConstants
+{
     vec4 samples[64];
     uint kernelSize;
     float radius;
     float bias;
     float padding;
     vec2 renderSize;
-};
+} constants;
 
-layout(binding = 1) readonly uniform SSAODataBuffer {
-    SSAOData data;
-} ssaoDataBuffer;
-
+layout(binding = 1, r16f) uniform writeonly image2D outColor;
 layout(binding = 2) uniform sampler2D depthTex;
 layout(binding = 3) uniform sampler2D noiseTex;
 layout(binding = 4) uniform sampler2D normalTex;
@@ -36,11 +34,21 @@ vec3 ComputePosition(vec2 uv, float depth)
 // https://learnopengl.com/Advanced-Lighting/SSAO
 void main()
 {
-    float depth = texture(depthTex, texCoord).r;
+    ivec2 coord = ivec2(gl_GlobalInvocationID.xy);
+    if (coord.x >= constants.renderSize.x || coord.y >= constants.renderSize.y)
+        return;
+
+    vec2 texCoord = (vec2(coord) + vec2(0.5)) / constants.renderSize;
+
+    float depth = textureLod(depthTex, texCoord, 0).r;
     vec3 position = ComputePosition(texCoord, depth);
-    vec3 normal = texture(normalTex, texCoord).rgb;
+    vec3 normal = textureLod(normalTex, texCoord, 0).rgb;
+
+    // Convert into view space (stored in world space)
+    normal = normalize((frameBuffer.data.view * vec4(normal, 0.0)).xyz);
+    normal.y *= -1.f;
     
-    vec2 noiseScale = ssaoDataBuffer.data.renderSize * 0.25;
+    vec2 noiseScale = constants.renderSize * 0.25;
     vec3 randomVec = normalize(texture(noiseTex, texCoord * noiseScale).xyz);
     vec3 tangent = normalize(randomVec - normal * dot(randomVec, normal));
     vec3 bitangent = cross(normal, tangent);
@@ -48,11 +56,11 @@ void main()
 
     // Compute total occlusion factor
     float occlusion = 0.0;
-    for(int i = 0; i < ssaoDataBuffer.data.kernelSize; i++)
+    for(int i = 0; i < constants.kernelSize; i++)
     {
         // Get sample position
-        vec3 samplePos = TBN * ssaoDataBuffer.data.samples[i].xyz; // from tangent to view-space
-        samplePos = position + samplePos * ssaoDataBuffer.data.radius; 
+        vec3 samplePos = TBN * constants.samples[i].xyz; // from tangent to view-space
+        samplePos = position + samplePos * constants.radius; 
         
         // Project sample position (to sample texture) (to get position on screen/texture)
         vec4 offset = vec4(samplePos, 1.0);
@@ -62,14 +70,14 @@ void main()
         offset.y = 1 - offset.y; // Invert y tex coordinate
         
         // Get sample depth
-        float sampleDepth = texture(depthTex, offset.xy).r;
+        float sampleDepth = textureLod(depthTex, offset.xy, 0).r;
         sampleDepth = ComputePosition(offset.xy, sampleDepth).z;
         
         // Range check & accumulate
-        float rangeCheck = smoothstep(0.0, 1.0, ssaoDataBuffer.data.radius / abs(position.z - sampleDepth));
-        occlusion += (sampleDepth >= samplePos.z + ssaoDataBuffer.data.bias ? 1.0 : 0.0) * rangeCheck;           
+        float rangeCheck = smoothstep(0.0, 1.0, constants.radius / abs(position.z - sampleDepth));
+        occlusion += (sampleDepth >= samplePos.z + constants.bias ? 1.0 : 0.0) * rangeCheck;           
     }
-    occlusion = 1.0 - (occlusion / ssaoDataBuffer.data.kernelSize);
+    occlusion = 1.0 - (occlusion / constants.kernelSize);
 
-    outColor = occlusion;
+    imageStore(outColor, coord, vec4(occlusion, 0.f, 0.f, 0.f));
 }

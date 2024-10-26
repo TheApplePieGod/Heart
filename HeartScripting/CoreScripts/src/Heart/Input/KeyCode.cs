@@ -2,6 +2,8 @@
 {
     public enum KeyCode : ushort
     {
+        None = 0,
+
         Space = 32,
         Apostrophe = 39,
         Comma = 44,
@@ -53,6 +55,7 @@
         Y = 89,
         Z = 90,
 
+        Back = 255,
         Escape = 256,
         Enter = 257,
         Tab = 258,
@@ -105,8 +108,11 @@
         LeftShift = 340,
         LeftCtrl = 341,
         LeftAlt = 342,
+        LeftSuper = 343,
         RightShift = 344,
         RightCtrl = 345,
-        RightAlt = 346
+        RightAlt = 346,
+        RightSuper = 347,
+        Menu = 348,
     }
 }

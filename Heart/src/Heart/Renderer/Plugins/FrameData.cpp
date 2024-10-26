@@ -11,8 +11,8 @@ namespace Heart::RenderPlugins
     void FrameData::InitializeInternal()
     {
         Flourish::BufferCreateInfo bufCreateInfo;
-        bufCreateInfo.Usage = Flourish::BufferUsageType::Dynamic;
-        bufCreateInfo.Type = Flourish::BufferType::Uniform;
+        bufCreateInfo.MemoryType = Flourish::BufferMemoryType::CPUWriteFrame;
+        bufCreateInfo.Usage = Flourish::BufferUsageFlags::Uniform;
         bufCreateInfo.Stride = sizeof(BufferData);
         bufCreateInfo.ElementCount = 1;
         m_Buffer = Flourish::Buffer::Create(bufCreateInfo);

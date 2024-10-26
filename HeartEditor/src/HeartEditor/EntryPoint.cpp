@@ -11,6 +11,7 @@ int Main(int argc, char** argv)
 
     try
     {
+        Heart::Logger::Initialize("HeartEditor");
         HeartEditor::EditorApp* app = new HeartEditor::EditorApp();
         app->Run();
         delete app;

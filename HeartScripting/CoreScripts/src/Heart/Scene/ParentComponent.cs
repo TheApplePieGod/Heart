@@ -1,4 +1,5 @@
 ﻿using Heart.NativeInterop;
+using Heart.NativeBridge;
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -30,10 +31,10 @@ namespace Heart.Scene
         public static void NativeRemove(uint entityHandle, IntPtr sceneHandle)
             => throw new InvalidOperationException("Cannot remove a parent component");
 
-        [DllImport("__Internal")]
-        internal static extern unsafe void Native_ParentComponent_Get(uint entityHandle, IntPtr sceneHandle, out UUID* comp);
+        [UnmanagedCallback]
+        internal static unsafe partial void Native_ParentComponent_Get(uint entityHandle, IntPtr sceneHandle, out UUID* comp);
 
-        [DllImport("__Internal")]
-        internal static extern void Native_ParentComponent_SetParent(uint entityHandle, IntPtr sceneHandle, UUID parent);
+        [UnmanagedCallback]
+        internal static partial void Native_ParentComponent_SetParent(uint entityHandle, IntPtr sceneHandle, UUID parent);
     }
 }

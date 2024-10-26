@@ -1,4 +1,5 @@
 ﻿using Heart.NativeInterop;
+using Heart.NativeBridge;
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -15,10 +16,10 @@ namespace Heart.Container
     // Variants do not clean up by themselves. Either Free() must be manually called
     // or the native destructor will automatically run if stored in an HArray and
     // cleaned up
-    [StructLayout(LayoutKind.Explicit, Size=24)]
-    public ref struct Variant
+    [StructLayout(LayoutKind.Explicit, Size = 24)]
+    public ref partial struct Variant
     {
-        [StructLayout(LayoutKind.Explicit, Size=16)]
+        [StructLayout(LayoutKind.Explicit, Size = 16)]
         private unsafe ref struct Data
         {
             [FieldOffset(0)] public InteropBool Bool;
@@ -108,7 +109,7 @@ namespace Heart.Container
             set { _data.Array = value; _type = VariantType.Array; }
         }
 
-        [DllImport("__Internal")]
-        internal static extern void Native_Variant_Destroy(Variant variant);
+        [UnmanagedCallback]
+        internal static partial void Native_Variant_Destroy(Variant variant);
     }
 }

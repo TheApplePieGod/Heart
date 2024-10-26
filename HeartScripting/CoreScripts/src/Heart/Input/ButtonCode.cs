@@ -1,6 +1,6 @@
 ﻿namespace Heart.Input
 {
-    public enum MouseCode : ushort
+    public enum ButtonCode : ushort
     {
         Button1 = 0,
         Button2 = 1,

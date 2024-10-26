@@ -6,12 +6,13 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Heart.Core;
 using Heart.NativeInterop;
+using Heart.NativeBridge;
 using Heart.Physics;
 using Heart.Task;
 
 namespace Heart.Scene
 {
-    public class Scene
+    public partial class Scene
     {
         internal IntPtr _internalValue;
 
@@ -29,9 +30,15 @@ namespace Heart.Scene
         public Entity CreateEntity(string name = "New Entity")
             => CreateEntity(_internalValue, name);
 
-        internal static Entity CreateEntity(IntPtr sceneHandle, string name = "New Entity")
+        internal static unsafe Entity CreateEntity(IntPtr sceneHandle, string name = "New Entity")
         {
-            Native_Scene_CreateEntity(sceneHandle, name, out var entityHandle);
+            uint entityHandle = 0;
+
+            fixed (char* ptr = name)
+            {
+                Native_Scene_CreateEntity(sceneHandle, ptr, (uint)name.Length, out entityHandle);
+            }
+
             return new Entity(entityHandle, sceneHandle);
         }
 
@@ -42,17 +49,24 @@ namespace Heart.Scene
         internal static Entity GetEntityFromUUID(IntPtr sceneHandle, UUID uuid)
         {
             Native_Scene_GetEntityFromUUID(sceneHandle, uuid, out var entityHandle);
+
             if (entityHandle == Entity.InvalidEntityHandle) return null;
             return new Entity(entityHandle, sceneHandle);
         }
 
-        public Entity GetEntityFromName(string name)
+        public unsafe Entity GetEntityFromName(string name)
         {
-            Native_Scene_GetEntityFromName(_internalValue, name, out var entityHandle);
+            uint entityHandle = 0;
+
+            fixed (char* ptr = name)
+            {
+                Native_Scene_GetEntityFromName(_internalValue, ptr, (uint)name.Length, out entityHandle);
+            }
+
             if (entityHandle == Entity.InvalidEntityHandle) return null;
             return new Entity(entityHandle, _internalValue);
         }
-        
+
         public bool RaycastSingle(RaycastInfo castInfo, out RaycastResult outResult)
         {
             var success = Native_Scene_RaycastSingle(_internalValue, castInfo._internal, out var res);
@@ -89,16 +103,16 @@ namespace Heart.Scene
             );
         }
 
-        [DllImport("__Internal")]
-        internal static extern void Native_Scene_CreateEntity(IntPtr sceneHandle, [MarshalAs(UnmanagedType.LPStr)] string name, out uint entityHandle);
+        [UnmanagedCallback]
+        internal static unsafe partial void Native_Scene_CreateEntity(IntPtr sceneHandle, char* name, uint nameLen, out uint entityHandle);
 
-        [DllImport("__Internal")]
-        internal static extern void Native_Scene_GetEntityFromUUID(IntPtr sceneHandle, UUID uuid, out uint entityHandle);
+        [UnmanagedCallback]
+        internal static partial void Native_Scene_GetEntityFromUUID(IntPtr sceneHandle, UUID uuid, out uint entityHandle);
 
-        [DllImport("__Internal")]
-        internal static extern void Native_Scene_GetEntityFromName(IntPtr sceneHandle, [MarshalAs(UnmanagedType.LPStr)] string name, out uint entityHandle);
+        [UnmanagedCallback]
+        internal static unsafe partial void Native_Scene_GetEntityFromName(IntPtr sceneHandle, char* name, uint nameLen, out uint entityHandle);
 
-        [DllImport("__Internal")]
-        internal static extern InteropBool Native_Scene_RaycastSingle(IntPtr sceneHandle, in RaycastInfoInternal info, out RaycastResultInternal outResult);
+        [UnmanagedCallback]
+        internal static partial InteropBool Native_Scene_RaycastSingle(IntPtr sceneHandle, in RaycastInfoInternal info, out RaycastResultInternal outResult);
     }
 }

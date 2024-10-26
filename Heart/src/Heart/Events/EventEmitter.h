@@ -35,7 +35,7 @@ namespace Heart
          *
          * @param listener The listener to check.
          */
-        bool IsSubscribed(EventListener* listener) const;
+        bool IsSubscribed(EventListener* listener);
 
         /**
          * @brief Emit an event to all subscribers.
@@ -46,6 +46,7 @@ namespace Heart
 
     private:
         std::unordered_set<EventListener*> m_Subscribers;
+        std::recursive_mutex m_Lock;
     };
 
     class EventListener

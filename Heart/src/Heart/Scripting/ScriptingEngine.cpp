@@ -11,14 +11,16 @@
 #include "hostfxr.h"
 #include "coreclr_delegates.h"
 
+#ifdef HE_PLATFORM_ANDROID
+#include "Heart/Platform/Android/AndroidApp.h"
+#endif
+
 // Link to error codes that can be returned by hostfxr functions
 // will need to convert int result into hex
 // https://stackoverflow.com/questions/37205883/where-i-could-find-a-reference-for-all-the-cor-e-hresults-wrapped-by-net-fra
 // https://referencesource.microsoft.com/#mscorlib/system/__hresults.cs
 
-// See NativeCallbacks.cpp for more info
-extern void* exportVariable;
-[[maybe_unused]] volatile void* exportVariableSet;
+extern void* NativeCallbacks[];
 
 namespace Heart
 {
@@ -37,15 +39,56 @@ namespace Heart
     #endif
 
     #define UTF16_STR(str) u##str
-
+    
     bool LoadHostFXR()
     {
         #ifdef HE_PLATFORM_WINDOWS
         const char* hostfxrName = "scripting/hostfxr.dll";
         #elif defined(HE_PLATFORM_MACOS)
         const char* hostfxrName = "scripting/libhostfxr.dylib";
-        #else
-        const char* hostfxrName = "scripting/hostfxr.so";
+        #elif defined(HE_PLATFORM_LINUX)
+        const char* hostfxrName = "scripting/libhostfxr.so";
+        #endif
+
+        #ifdef HE_PLATFORM_ANDROID
+        // Check to see if the files exist in local storage or not. If not, we need
+        // to copy them over from assets so we can properly load them.
+        HString8 basePath(AndroidApp::App->activity->internalDataPath);
+        basePath += "/";
+        HString8 scriptingPath("scripting/");
+        HString8 hostfxrPath = basePath + "libhostfxr.so";
+        const char* hostfxrName = hostfxrPath.Data();
+
+        HE_ENGINE_LOG_DEBUG("Internal data path: {0}", basePath.Data());
+
+        // For now, copy files on startup. This is effectively instant so it is OK, but ideally
+        // we will want a smarter way to determine when a new version needs to be copied.
+        if (true || !std::filesystem::exists(hostfxrName))
+        {
+            HE_ENGINE_LOG_DEBUG("Copying scripting files");
+
+            AAssetDir* assetDir = AAssetManager_openDir(
+                AndroidApp::App->activity->assetManager,
+                scriptingPath.Data()
+            );
+            const char* filename = (const char*)NULL;
+            while ((filename = AAssetDir_getNextFileName(assetDir)) != NULL) {
+                HE_ENGINE_LOG_TRACE("Copying '{0}' to internal storage", filename);
+                AAsset* asset = AAssetManager_open(
+                    AndroidApp::App->activity->assetManager,
+                    (scriptingPath + filename).Data(),
+                    AASSET_MODE_STREAMING
+                );
+                char buf[BUFSIZ];
+                int nb_read = 0;
+                FILE* out = fopen((basePath + filename).Data(), "w");
+                while ((nb_read = AAsset_read(asset, buf, BUFSIZ)) > 0)
+                    fwrite(buf, nb_read, 1, out);
+                fclose(out);
+                AAsset_close(asset);
+            }
+            AAssetDir_close(assetDir);
+        }
         #endif
 
         s_HostFXRHandle = PlatformUtils::LoadDynamicLibrary(hostfxrName);
@@ -77,8 +120,15 @@ namespace Heart
 
     void InitHostFXRForCmdline(const char_t* assemblyPath, load_assembly_and_get_function_pointer_fn& outLoadAssemblyFunc)
     {
+        hostfxr_initialize_parameters params{};
+        params.size = sizeof(hostfxr_initialize_parameters);
+        #ifdef HE_PLATFORM_ANDROID
+        // Load assemblies from the location we copied scripting files to
+        params.dotnet_root = AndroidApp::App->activity->internalDataPath;
+        #endif
+
         hostfxr_handle ctx = nullptr;
-        int rc = s_CmdInitFunc(1, &assemblyPath, nullptr, &ctx);
+        int rc = s_CmdInitFunc(1, &assemblyPath, &params, &ctx);
         if (rc != 0 || !ctx)
         {
             s_CloseFunc(ctx);
@@ -98,6 +148,7 @@ namespace Heart
         // We use config settings when developing. For now, we will assume the DOTNET_SDK path is set.
         // In the future, we could find this automatically.
         hostfxr_initialize_parameters params{};
+        params.size = sizeof(hostfxr_initialize_parameters);
         #ifdef HE_PLATFORM_WINDOWS
         // Wchar :(
         HString16 root = HString8(std::getenv("DOTNET_SDK")).ToUTF16();
@@ -124,23 +175,31 @@ namespace Heart
 
     void ScriptingEngine::Initialize()
     {
-        exportVariableSet = exportVariable;
-
         bool result = LoadHostFXR();
         HE_ENGINE_ASSERT(result, "Failed to load hostfxr");
 
+        #ifdef HE_PLATFORM_ANDROID
+            HString8 bridgePathStr(AndroidApp::App->activity->internalDataPath);
+            bridgePathStr += "/BridgeScripts.dll";
+            const char_t* bridgePath = bridgePathStr.Data();
+        #else
+            const char_t* bridgePath = HOSTFXR_STR("scripting/BridgeScripts.dll");
+        #endif
+
+        HE_ENGINE_LOG_TRACE("Loading BridgeScripts.dll from @ {0}", bridgePath);
+
         load_assembly_and_get_function_pointer_fn loadAssemblyWithPtrFunc;
         #ifdef HE_DIST
-            InitHostFXRForCmdline(HOSTFXR_STR("scripting/BridgeScripts.dll"), loadAssemblyWithPtrFunc);
+            InitHostFXRForCmdline(bridgePath, loadAssemblyWithPtrFunc);
         #else
             InitHostFXRWithConfig(HOSTFXR_STR("scripting/BridgeScripts.runtimeconfig.json"), loadAssemblyWithPtrFunc);
         #endif
-        HE_ENGINE_ASSERT(loadAssemblyWithPtrFunc, "Failed to initialize hostfxr with config");
+        HE_ENGINE_ASSERT(loadAssemblyWithPtrFunc, "Failed to initialize hostfxr");
         HE_ENGINE_LOG_DEBUG(".NET hostfxr initialized");
 
         InitializeFn initFunc = nullptr;
         int rc = loadAssemblyWithPtrFunc(
-            HOSTFXR_STR("scripting/BridgeScripts.dll"),
+            bridgePath,
             HOSTFXR_STR("BridgeScripts.EntryPoint, BridgeScripts"),
             HOSTFXR_STR("Initialize"),
             UNMANAGEDCALLERSONLY_METHOD,
@@ -154,6 +213,8 @@ namespace Heart
 
         res = s_BridgeCallbacks.EntryPoint_LoadCorePlugin(&s_CoreCallbacks);
         HE_ENGINE_ASSERT(res, "Failed to load core plugin");
+
+        s_CoreCallbacks.UnmanagedCallbacks_PopulateCallbacks(NativeCallbacks);
 
         HE_ENGINE_LOG_DEBUG("Scripts ready");
     }
@@ -169,6 +230,8 @@ namespace Heart
 
     bool ScriptingEngine::LoadClientPlugin(const HStringView8& absolutePath)
     {
+        HE_ENGINE_LOG_TRACE("Loading client plugin");
+
         auto timer = Timer("Client plugin load"); 
 
         if (s_ClientPluginLoaded)
@@ -183,6 +246,8 @@ namespace Heart
             HE_ENGINE_LOG_ERROR("Failed to load client plugin");
             return false;
         }
+
+        HE_ENGINE_LOG_TRACE("Client plugin loaded from bridge");
 
         HArray outArgs;
         s_CoreCallbacks.PluginReflection_GetClientInstantiableClasses(&outArgs);
@@ -206,7 +271,7 @@ namespace Heart
         // Populate component classes
         populate(1, s_ComponentClasses);
 
-        HE_ENGINE_LOG_INFO("Client plugin successfully loaded");
+        HE_ENGINE_LOG_INFO("Client plugin fully loaded");
         s_ClientPluginLoaded = true;
         return true;
     }
@@ -255,6 +320,8 @@ namespace Heart
             HE_ENGINE_LOG_ERROR("Failed to load core plugin while reloading");
             return false;
         }
+
+        s_CoreCallbacks.UnmanagedCallbacks_PopulateCallbacks(NativeCallbacks);
 
         HE_ENGINE_LOG_INFO("Core plugin successfully reloaded");
         return true;

@@ -16,6 +16,7 @@ namespace Heart::RenderPlugins
 {
     struct RayReflectionsCreateInfo
     {
+        Ref<Flourish::Texture> OutputTexture;
         HString8 FrameDataPluginName;
         HString8 TLASPluginName;
         HString8 LightingDataPluginName;
