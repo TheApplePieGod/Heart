@@ -20,7 +20,7 @@ namespace HeartEditor
         startupWindow.Title = "Heart Editor";
         startupWindow.Width = 960;
         startupWindow.Height = 540;
-        EditorApp::Get().CreateWindow(startupWindow);
+        EditorApp::Get().OpenWindow(startupWindow);
 
         SubscribeToEmitter(&EditorApp::Get().GetWindow());
 

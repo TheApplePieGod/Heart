@@ -28,7 +28,7 @@ namespace HeartEditor
         startupWindow.Title = m_WindowName;
         startupWindow.Width = 1920;
         startupWindow.Height = 1080;
-        EditorApp::Get().CreateWindow(startupWindow);
+        EditorApp::Get().OpenWindow(startupWindow);
 
         SubscribeToEmitter(&EditorApp::Get().GetWindow());
 

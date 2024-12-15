@@ -182,11 +182,10 @@ namespace Heart
             HString8 bridgePathStr(AndroidApp::App->activity->internalDataPath);
             bridgePathStr += "/BridgeScripts.dll";
             const char_t* bridgePath = bridgePathStr.Data();
+            HE_ENGINE_LOG_TRACE("Loading BridgeScripts.dll from @ {0}", bridgePathStr.Data());
         #else
             const char_t* bridgePath = HOSTFXR_STR("scripting/BridgeScripts.dll");
         #endif
-
-        HE_ENGINE_LOG_TRACE("Loading BridgeScripts.dll from @ {0}", bridgePath);
 
         load_assembly_and_get_function_pointer_fn loadAssemblyWithPtrFunc;
         #ifdef HE_DIST

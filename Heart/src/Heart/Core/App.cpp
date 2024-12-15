@@ -80,7 +80,7 @@ namespace Heart
         HE_ENGINE_LOG_INFO("Shutdown complete");
     }
 
-    void App::CreateWindow(const WindowCreateInfo& windowInfo)
+    void App::OpenWindow(const WindowCreateInfo& windowInfo)
     {
         m_Window = Window::Create(windowInfo);
         SubscribeToEmitter(&GetWindow());

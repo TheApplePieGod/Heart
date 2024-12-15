@@ -28,7 +28,7 @@ namespace Heart
 
         void Run();
 
-        void CreateWindow(const WindowCreateInfo& windowInfo);
+        void OpenWindow(const WindowCreateInfo& windowInfo);
 
         /**
          * @brief Append a new layer to the top of the layer stack.
