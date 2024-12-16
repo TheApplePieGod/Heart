@@ -177,7 +177,7 @@ namespace Widgets
                 ImGui::TextColored({ 1.f, 1.f, 0.f, 1.f }, "Cannot modify an engine resource");
 
             // Save buttons
-            bool disabled = !m_Dirty || canEdit;
+            bool disabled = !m_Dirty || !canEdit;
             if (disabled)
                 ImGui::BeginDisabled();
             if (ImGui::Button("Save Changes"))
