@@ -95,10 +95,10 @@ namespace Heart::RenderPlugins
             .EncoderAddBufferRead(clusterPlugin->GetLightIndicesBuffer())
             .EncoderAddBufferRead(clusterPlugin->GetLightGridBuffer())
             .EncoderAddBufferRead(clusterPlugin->GetClusterDataBuffer())
-            .EncoderAddTextureRead(gBufferPlugin->GetGBuffer1().get())
-            .EncoderAddTextureRead(gBufferPlugin->GetGBuffer2().get())
-            .EncoderAddTextureRead(gBufferPlugin->GetGBuffer3().get())
-            .EncoderAddTextureRead(gBufferPlugin->GetGBufferDepth().get())
+            .EncoderAddTextureRead(gBufferPlugin->GetNormalData().get())
+            .EncoderAddTextureRead(gBufferPlugin->GetColorData().get())
+            .EncoderAddTextureRead(gBufferPlugin->GetEmissiveData().get())
+            .EncoderAddTextureRead(gBufferPlugin->GetDepth().get())
             .EncoderAddTextureRead(ssaoPlugin->GetOutputTexture())
             .EncoderAddTextureRead(m_Info.ReflectionsInputTexture.get())
             .EncoderAddTextureWrite(m_Info.OutputTexture.get());
@@ -127,17 +127,18 @@ namespace Heart::RenderPlugins
         m_ResourceSet0->BindBuffer(2, clusterPlugin->GetLightIndicesBuffer(), 0, clusterPlugin->GetLightIndicesBuffer()->GetAllocatedCount());
         m_ResourceSet0->BindBuffer(3, clusterPlugin->GetLightGridBuffer(), 0, clusterPlugin->GetLightGridBuffer()->GetAllocatedCount());
         m_ResourceSet0->BindBuffer(4, clusterPlugin->GetClusterDataBuffer(), 0, clusterPlugin->GetClusterDataBuffer()->GetAllocatedCount());
-        m_ResourceSet0->BindTextureLayer(5, gBufferPlugin->GetGBuffer1(), arrayIndex, 0);
-        m_ResourceSet0->BindTextureLayer(6, gBufferPlugin->GetGBuffer2(), arrayIndex, 0);
-        m_ResourceSet0->BindTextureLayer(7, gBufferPlugin->GetGBufferDepth(), arrayIndex, 0);
+        m_ResourceSet0->BindTextureLayer(5, gBufferPlugin->GetNormalData(), arrayIndex, 0);
+        m_ResourceSet0->BindTextureLayer(6, gBufferPlugin->GetColorData(), 0, 0);
+        m_ResourceSet0->BindTextureLayer(7, gBufferPlugin->GetEmissiveData(), 0, 0);
+        m_ResourceSet0->BindTextureLayer(8, gBufferPlugin->GetDepth(), arrayIndex, 0);
         if (data.EnvMap)
-            m_ResourceSet0->BindTexture(8, data.EnvMap->GetBRDFTexture());
+            m_ResourceSet0->BindTexture(9, data.EnvMap->GetBRDFTexture());
         else
-            m_ResourceSet0->BindTextureLayer(8, m_Renderer->GetDefaultEnvironmentMap(), 0, 0);
-        m_ResourceSet0->BindTexture(9, m_Info.OutputTexture.get());
-        m_ResourceSet0->BindTexture(10, m_Info.ReflectionsInputTexture.get());
-        m_ResourceSet0->BindAccelerationStructure(11, tlasPlugin->GetAccelStructure());
-        m_ResourceSet0->BindTexture(12, ssaoPlugin->GetOutputTexture());
+            m_ResourceSet0->BindTextureLayer(9, m_Renderer->GetDefaultEnvironmentMap(), 0, 0);
+        m_ResourceSet0->BindTexture(10, m_Info.OutputTexture.get());
+        m_ResourceSet0->BindTexture(11, m_Info.ReflectionsInputTexture.get());
+        m_ResourceSet0->BindAccelerationStructure(12, tlasPlugin->GetAccelStructure());
+        m_ResourceSet0->BindTexture(13, ssaoPlugin->GetOutputTexture());
         m_ResourceSet0->FlushBindings();
 
         m_ResourceSet1->BindBuffer(0, objectDataBuffer, 0, objectDataBuffer->GetAllocatedCount());

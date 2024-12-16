@@ -52,10 +52,10 @@ namespace Heart::RenderPlugins
             .EncoderAddBufferRead(clusterPlugin->GetLightIndicesBuffer())
             .EncoderAddBufferRead(clusterPlugin->GetLightGridBuffer())
             .EncoderAddBufferRead(clusterPlugin->GetClusterDataBuffer())
-            .EncoderAddTextureRead(gBufferPlugin->GetGBuffer1().get())
-            .EncoderAddTextureRead(gBufferPlugin->GetGBuffer2().get())
-            .EncoderAddTextureRead(gBufferPlugin->GetGBuffer3().get())
-            .EncoderAddTextureRead(gBufferPlugin->GetGBufferDepth().get())
+            .EncoderAddTextureRead(gBufferPlugin->GetNormalData().get())
+            .EncoderAddTextureRead(gBufferPlugin->GetColorData().get())
+            .EncoderAddTextureRead(gBufferPlugin->GetEmissiveData().get())
+            .EncoderAddTextureRead(gBufferPlugin->GetDepth().get())
             .EncoderAddTextureRead(ssaoPlugin->GetOutputTexture())
             .EncoderAddTextureWrite(m_Info.OutputTexture.get());
     }
@@ -82,26 +82,27 @@ namespace Heart::RenderPlugins
         m_ResourceSet->BindBuffer(2, clusterPlugin->GetLightIndicesBuffer(), 0, clusterPlugin->GetLightIndicesBuffer()->GetAllocatedCount());
         m_ResourceSet->BindBuffer(3, clusterPlugin->GetLightGridBuffer(), 0, clusterPlugin->GetLightGridBuffer()->GetAllocatedCount());
         m_ResourceSet->BindBuffer(4, clusterPlugin->GetClusterDataBuffer(), 0, clusterPlugin->GetClusterDataBuffer()->GetAllocatedCount());
-        m_ResourceSet->BindTextureLayer(5, gBufferPlugin->GetGBuffer1(), 0, 0);
-        m_ResourceSet->BindTextureLayer(6, gBufferPlugin->GetGBuffer2(), 0, 0);
-        m_ResourceSet->BindTextureLayer(7, gBufferPlugin->GetGBufferDepth(), 0, 0);
+        m_ResourceSet->BindTextureLayer(5, gBufferPlugin->GetNormalData(), 0, 0);
+        m_ResourceSet->BindTextureLayer(6, gBufferPlugin->GetColorData(), 0, 0);
+        m_ResourceSet->BindTextureLayer(7, gBufferPlugin->GetEmissiveData(), 0, 0);
+        m_ResourceSet->BindTextureLayer(8, gBufferPlugin->GetDepth(), 0, 0);
         if (data.EnvMap)
-            m_ResourceSet->BindTexture(8, data.EnvMap->GetBRDFTexture());
+            m_ResourceSet->BindTexture(9, data.EnvMap->GetBRDFTexture());
         else
-            m_ResourceSet->BindTextureLayer(8, m_Renderer->GetDefaultEnvironmentMap(), 0, 0);
-        m_ResourceSet->BindTexture(9, m_Info.OutputTexture.get());
+            m_ResourceSet->BindTextureLayer(9, m_Renderer->GetDefaultEnvironmentMap(), 0, 0);
+        m_ResourceSet->BindTexture(10, m_Info.OutputTexture.get());
 
         if (data.EnvMap)
         {
-            m_ResourceSet->BindTexture(10, data.EnvMap->GetPrefilterCubemap());
-            m_ResourceSet->BindTexture(11, data.EnvMap->GetIrradianceCubemap());
+            m_ResourceSet->BindTexture(11, data.EnvMap->GetPrefilterCubemap());
+            m_ResourceSet->BindTexture(12, data.EnvMap->GetIrradianceCubemap());
         }
         else
         {
-            m_ResourceSet->BindTexture(10, m_Renderer->GetDefaultEnvironmentMap());
             m_ResourceSet->BindTexture(11, m_Renderer->GetDefaultEnvironmentMap());
+            m_ResourceSet->BindTexture(12, m_Renderer->GetDefaultEnvironmentMap());
         }
-        m_ResourceSet->BindTexture(12, ssaoPlugin->GetOutputTexture());
+        m_ResourceSet->BindTexture(13, ssaoPlugin->GetOutputTexture());
 
         m_ResourceSet->FlushBindings();
 

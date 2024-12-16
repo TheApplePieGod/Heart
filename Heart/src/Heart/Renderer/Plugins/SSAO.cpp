@@ -117,6 +117,9 @@ namespace Heart::RenderPlugins
             .EncoderAddTextureWrite(m_OutputTexture.get())
             .EncoderAddTextureRead(m_Info.InputDepthTexture.get())
             .EncoderAddTextureRead(m_Info.InputNormalsTexture.get());
+
+        m_DebugTextures.clear();
+        m_DebugTextures["Occlusion"] = m_OutputTexture;
     }
 
     void SSAO::RenderInternal(const SceneRenderData& data)

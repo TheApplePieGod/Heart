@@ -3,6 +3,7 @@
 #define FRAME_BUFFER_BINDING 0
 #define FRAME_BUFFER_SET 0
 #include "../frame_data/FrameBuffer.glsl"
+#include "../gbuffer/Util.glsl"
 
 layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
@@ -45,7 +46,7 @@ void main()
 
     float depth = textureLod(depthTex, texCoord, 0).r;
     vec3 position = ComputePosition(texCoord, depth);
-    vec3 normal = textureLod(normalTex, texCoord, 0).rgb;
+    vec3 normal = OctahedronDecode(textureLod(normalTex, texCoord, 0).rg);
 
     // Convert into view space (stored in world space)
     normal = normalize((frameBuffer.data.view * vec4(normal, 0.0)).xyz);

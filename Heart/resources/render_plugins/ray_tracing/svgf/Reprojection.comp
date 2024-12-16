@@ -6,17 +6,17 @@
 
 #include "EdgeStopping.glsl"
 #include "../../util/Misc.glsl"
+#include "../../gbuffer/Util.glsl"
 
 #define MAX_NORMAL_DISTANCE 0.1f
 #define MAX_PLANE_DISTANCE 5.0f
 
 layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
-layout(binding = 1) uniform sampler2D prevGBuffer2;
-//layout(binding = 2) uniform sampler2D prevGBuffer3;
+layout(binding = 1) uniform sampler2D prevGBufferNormals;
 layout(binding = 3) uniform sampler2D prevGBufferDepth;
-layout(binding = 4) uniform sampler2D newGBuffer2;
-layout(binding = 5) uniform sampler2D newGBuffer3;
+layout(binding = 4) uniform sampler2D newGBufferNormals;
+layout(binding = 5) uniform usampler2D newGBufferColor;
 layout(binding = 6) uniform sampler2D newGBufferDepth;
 layout(binding = 7) uniform sampler2D prevColors;
 layout(binding = 8) uniform sampler2D prevMoments;
@@ -148,11 +148,13 @@ void main()
     if (coord.x >= size.x || coord.y >= size.y)
         return;
 
-    const vec4 gbuf2 = texelFetch(newGBuffer2, coord, 0);
+    const uvec4 colorData = texelFetch(newGBufferColor, coord, 0);
+    float roughness = UnpackRoughness(colorData);
+
     const vec4 filterColor = texelFetch(filterInput, coord, 0);
 
     // Check roughness. We do not need to accumulate mirror reflections
-    const float newRoughness = max(gbuf2.a, 0.01);
+    const float newRoughness = max(roughness, 0.01);
     if (newRoughness <= 0.05)
     {
         imageStore(outColors, coord, filterColor);
@@ -160,7 +162,9 @@ void main()
         return;
     }
 
-    const vec3 newNormal = gbuf2.xyz;
+    const vec4 normalData = texelFetch(newGBufferNormals, coord, 0);
+    const vec2 motionVector = normalData.ba;
+    const vec3 newNormal = OctahedronDecode(normalData.rg);
     const vec2 texCoord = (vec2(coord) + vec2(0.5)) / size;
     const float newDepth = texelFetch(newGBufferDepth, coord, 0).r;
     const vec3 newPos = ComputeWorldPositionFromDepth(
@@ -179,7 +183,6 @@ void main()
     const float filterLuminance = Luminance(filterColor.rgb);
 
     float rayLength = filterColor.a;
-    const vec2 motionVector = texelFetch(newGBuffer3, coord, 0).rg;
     const vec2 prevTexCoord = texCoord + motionVector;
     const vec2 prevCoord = ProjectCoord(coord, newDepth, motionVector, rayLength, size);
 
@@ -205,7 +208,8 @@ void main()
         {
             ivec2 p = ivec2(prevCoord) + twoTapOffsets[i];
 
-            const vec3 prevNormal = texelFetch(prevGBuffer2, p, 0).xyz;
+            const vec4 prevNormalData = texelFetch(prevGBufferNormals, p, 0);
+            const vec3 prevNormal = OctahedronDecode(prevNormalData.rg);
             const float prevDepth = texelFetch(prevGBufferDepth, p, 0).r;
             const vec3 prevPos = ComputeWorldPositionFromDepth(
                 prevTexCoord,
@@ -252,7 +256,8 @@ void main()
                 {
                     ivec2 p = ivec2(prevCoord) + ivec2(x, y);
 
-                    const vec3 prevNormal = texelFetch(prevGBuffer2, p, 0).xyz;
+                    const vec4 prevNormalData = texelFetch(prevGBufferNormals, p, 0);
+                    const vec3 prevNormal = OctahedronDecode(prevNormalData.rg);
                     const float prevDepth = texelFetch(prevGBufferDepth, p, 0).r;
                     const vec3 prevPos = ComputeWorldPositionFromDepth(
                         prevTexCoord,

@@ -85,18 +85,18 @@ namespace Heart::RenderPlugins
             .SetCommandBuffer(m_CommandBuffer.get())
             .AddEncoderNode(Flourish::GPUWorkloadType::Compute)
             .EncoderAddTextureRead(m_Info.InputTexture.get())
-            .EncoderAddTextureRead(gBufferPlugin->GetGBuffer2().get())
-            .EncoderAddTextureRead(gBufferPlugin->GetGBuffer3().get())
-            .EncoderAddTextureRead(gBufferPlugin->GetGBufferDepth().get())
+            .EncoderAddTextureRead(gBufferPlugin->GetNormalData().get())
+            .EncoderAddTextureRead(gBufferPlugin->GetColorData().get())
+            .EncoderAddTextureRead(gBufferPlugin->GetDepth().get())
             .EncoderAddTextureWrite(m_MomentsHistory.get())
             .EncoderAddTextureWrite(m_ColorHistory.get());
 
         for (u32 i = 0; i < m_ATrousIterations; i++)
         {
             m_GPUGraphNodeBuilder.AddEncoderNode(Flourish::GPUWorkloadType::Compute)
-                .EncoderAddTextureRead(gBufferPlugin->GetGBuffer2().get())
-                .EncoderAddTextureRead(gBufferPlugin->GetGBuffer3().get())
-                .EncoderAddTextureRead(gBufferPlugin->GetGBufferDepth().get())
+                .EncoderAddTextureRead(gBufferPlugin->GetNormalData().get())
+                .EncoderAddTextureRead(gBufferPlugin->GetColorData().get())
+                .EncoderAddTextureRead(gBufferPlugin->GetDepth().get())
                 .EncoderAddTextureWrite(m_TempTexture.get());
 
             Flourish::Texture* read = m_TempTexture.get();
@@ -106,8 +106,9 @@ namespace Heart::RenderPlugins
         }
 
         m_GPUGraphNodeBuilder.AddEncoderNode(Flourish::GPUWorkloadType::Compute)
-            .EncoderAddTextureRead(gBufferPlugin->GetGBuffer2().get())
-            .EncoderAddTextureRead(gBufferPlugin->GetGBuffer3().get())
+            .EncoderAddTextureRead(gBufferPlugin->GetNormalData().get())
+            .EncoderAddTextureRead(gBufferPlugin->GetColorData().get())
+            .EncoderAddTextureRead(gBufferPlugin->GetDepth().get())
             .EncoderAddTextureRead(m_TempTexture.get())
             .EncoderAddTextureWrite(m_Info.OutputTexture.get());
     }
@@ -125,12 +126,11 @@ namespace Heart::RenderPlugins
         u32 arrayIndex = gBufferPlugin->GetArrayIndex();
         u32 prevArrayIndex = gBufferPlugin->GetPrevArrayIndex();
         m_TemporalResourceSet->BindBuffer(0, frameDataBuffer, 0, 1);
-        m_TemporalResourceSet->BindTextureLayer(1, gBufferPlugin->GetGBuffer2(), prevArrayIndex, m_GBufferMip);
-        //m_TemporalResourceSet->BindTextureLayer(2, gBufferPlugin->GetGBuffer3(), prevArrayIndex, m_GBufferMip);
-        m_TemporalResourceSet->BindTextureLayer(3, gBufferPlugin->GetGBufferDepth(), prevArrayIndex, m_GBufferMip);
-        m_TemporalResourceSet->BindTextureLayer(4, gBufferPlugin->GetGBuffer2(), arrayIndex, m_GBufferMip);
-        m_TemporalResourceSet->BindTextureLayer(5, gBufferPlugin->GetGBuffer3(), arrayIndex, m_GBufferMip);
-        m_TemporalResourceSet->BindTextureLayer(6, gBufferPlugin->GetGBufferDepth(), arrayIndex, m_GBufferMip);
+        m_TemporalResourceSet->BindTextureLayer(1, gBufferPlugin->GetNormalData(), prevArrayIndex, m_GBufferMip);
+        m_TemporalResourceSet->BindTextureLayer(3, gBufferPlugin->GetDepth(), prevArrayIndex, m_GBufferMip);
+        m_TemporalResourceSet->BindTextureLayer(4, gBufferPlugin->GetNormalData(), arrayIndex, m_GBufferMip);
+        m_TemporalResourceSet->BindTextureLayer(5, gBufferPlugin->GetColorData(), 0, m_GBufferMip);
+        m_TemporalResourceSet->BindTextureLayer(6, gBufferPlugin->GetDepth(), arrayIndex, m_GBufferMip);
         m_TemporalResourceSet->BindTextureLayer(7, m_ColorHistory.get(), GetPrevArrayIndex(), 0);
         m_TemporalResourceSet->BindTextureLayer(8, m_MomentsHistory.get(), GetPrevArrayIndex(), 0);
         m_TemporalResourceSet->BindTexture(9, m_Info.InputTexture.get());
@@ -151,9 +151,9 @@ namespace Heart::RenderPlugins
         {
             m_ATrousPushData.Iteration = i;
             m_ATrousResourceSet->BindBuffer(0, frameDataBuffer, 0, 1);
-            m_ATrousResourceSet->BindTextureLayer(1, gBufferPlugin->GetGBuffer2(), arrayIndex, m_GBufferMip);
-            m_ATrousResourceSet->BindTextureLayer(2, gBufferPlugin->GetGBuffer3(), arrayIndex, m_GBufferMip);
-            m_ATrousResourceSet->BindTextureLayer(3, gBufferPlugin->GetGBufferDepth(), arrayIndex, m_GBufferMip);
+            m_ATrousResourceSet->BindTextureLayer(1, gBufferPlugin->GetNormalData(), arrayIndex, m_GBufferMip);
+            m_ATrousResourceSet->BindTextureLayer(2, gBufferPlugin->GetColorData(), 0, m_GBufferMip);
+            m_ATrousResourceSet->BindTextureLayer(3, gBufferPlugin->GetDepth(), arrayIndex, m_GBufferMip);
             if (i == 0)
                 m_ATrousResourceSet->BindTextureLayer(4, m_ColorHistory.get(), GetArrayIndex(), 0);
             else
@@ -169,12 +169,13 @@ namespace Heart::RenderPlugins
             encoder->EndEncoding();
         }
 
-        m_UpsampleResourceSet->BindTextureLayer(0, gBufferPlugin->GetGBuffer2(), arrayIndex, m_GBufferMip);
-        m_UpsampleResourceSet->BindTextureLayer(1, gBufferPlugin->GetGBuffer3(), arrayIndex, m_GBufferMip);
-        m_UpsampleResourceSet->BindTextureLayer(2, gBufferPlugin->GetGBuffer2(), arrayIndex, 0);
-        m_UpsampleResourceSet->BindTextureLayer(3, gBufferPlugin->GetGBuffer3(), arrayIndex, 0);
-        m_UpsampleResourceSet->BindTextureLayer(4, m_TempTexture.get(), m_ATrousIterations % 2, 0);
-        m_UpsampleResourceSet->BindTexture(5, m_Info.OutputTexture.get());
+        m_UpsampleResourceSet->BindTextureLayer(0, gBufferPlugin->GetNormalData(), arrayIndex, m_GBufferMip);
+        m_UpsampleResourceSet->BindTextureLayer(1, gBufferPlugin->GetDepth(), arrayIndex, m_GBufferMip);
+        m_UpsampleResourceSet->BindTextureLayer(2, gBufferPlugin->GetNormalData(), arrayIndex, 0);
+        m_UpsampleResourceSet->BindTextureLayer(3, gBufferPlugin->GetColorData(), 0, 0);
+        m_UpsampleResourceSet->BindTextureLayer(4, gBufferPlugin->GetDepth(), arrayIndex, 0);
+        m_UpsampleResourceSet->BindTextureLayer(5, m_TempTexture.get(), m_ATrousIterations % 2, 0);
+        m_UpsampleResourceSet->BindTexture(6, m_Info.OutputTexture.get());
         m_UpsampleResourceSet->FlushBindings();
         encoder = m_CommandBuffer->EncodeComputeCommands();
         encoder->BindComputePipeline(m_UpsamplePipeline.get());

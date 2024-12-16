@@ -36,6 +36,8 @@ namespace Heart
         RenderPlugins::GBufferCreateInfo gBufferCreateInfo;
         gBufferCreateInfo.KeepHistory = rayTracing;
         gBufferCreateInfo.MipCount = rayTracing ? 2 : 1;
+        gBufferCreateInfo.StoreMotionVectors = true;
+        gBufferCreateInfo.StoreColorAndEmissiveData = true;
         gBufferCreateInfo.FrameDataPluginName = frameData->GetName();
         gBufferCreateInfo.MeshBatchesPluginName = CBMESHCam->GetName();
         gBufferCreateInfo.TextBatchesPluginName = CBTEXTCam->GetName();
@@ -48,8 +50,8 @@ namespace Heart
 
         RenderPlugins::SSAOCreateInfo ssaoCreateInfo;
         ssaoCreateInfo.FrameDataPluginName = frameData->GetName();
-        ssaoCreateInfo.InputDepthTexture = gBuffer->GetGBufferDepth();
-        ssaoCreateInfo.InputNormalsTexture = gBuffer->GetGBuffer2();
+        ssaoCreateInfo.InputDepthTexture = gBuffer->GetDepth();
+        ssaoCreateInfo.InputNormalsTexture = gBuffer->GetNormalData();
         auto ssao = RegisterPlugin<RenderPlugins::SSAO>("SSAO", ssaoCreateInfo);
         ssao->AddDependency(gBuffer->GetName(), GraphDependencyType::CPU);
         ssao->AddDependency(gBuffer->GetName(), GraphDependencyType::GPU);
@@ -147,7 +149,7 @@ namespace Heart
         RenderPlugins::BlitTextureCreateInfo blitCreateInfo;
         blitCreateInfo.SrcDynamicLayerIndex = true;
         blitCreateInfo.SrcLayerIndex = rayTracing ? 2 : 1;
-        blitCreateInfo.SrcTexture = gBuffer->GetGBufferDepth();
+        blitCreateInfo.SrcTexture = gBuffer->GetDepth();
         blitCreateInfo.DstTexture = m_DepthTexture;
         auto blit = RegisterPlugin<RenderPlugins::BlitTexture>("GBuf Depth Blit", blitCreateInfo);
         blit->AddDependency(gBuffer->GetName(), GraphDependencyType::CPU);

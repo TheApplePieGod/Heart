@@ -121,9 +121,9 @@ namespace Heart::RenderPlugins
             .SetCommandBuffer(m_CommandBuffer.get())
             .AddEncoderNode(Flourish::GPUWorkloadType::Compute)
             .EncoderAddTextureWrite(m_Info.OutputTexture.get())
-            .EncoderAddTextureRead(gBufferPlugin->GetGBuffer1().get())
-            .EncoderAddTextureRead(gBufferPlugin->GetGBuffer2().get())
-            .EncoderAddTextureRead(gBufferPlugin->GetGBufferDepth().get());
+            .EncoderAddTextureRead(gBufferPlugin->GetNormalData().get())
+            .EncoderAddTextureRead(gBufferPlugin->GetColorData().get())
+            .EncoderAddTextureRead(gBufferPlugin->GetDepth().get());
             // .AccelStructure ???
     }
 
@@ -148,8 +148,9 @@ namespace Heart::RenderPlugins
         m_ResourceSet0->BindAccelerationStructure(1, tlasPlugin->GetAccelStructure());
         m_ResourceSet0->BindAccelerationStructure(2, lightingDataPlugin->GetLightTLAS());
         m_ResourceSet0->BindTexture(3, m_Info.OutputTexture.get());
-        m_ResourceSet0->BindTextureLayer(4, gBufferPlugin->GetGBuffer2(), arrayIndex, m_GBufferMip);
-        m_ResourceSet0->BindTextureLayer(5, gBufferPlugin->GetGBufferDepth(), arrayIndex, m_GBufferMip);
+        m_ResourceSet0->BindTextureLayer(4, gBufferPlugin->GetNormalData(), arrayIndex, m_GBufferMip);
+        m_ResourceSet0->BindTextureLayer(5, gBufferPlugin->GetColorData(), 0, m_GBufferMip);
+        m_ResourceSet0->BindTextureLayer(6, gBufferPlugin->GetDepth(), arrayIndex, m_GBufferMip);
         m_ResourceSet0->FlushBindings();
 
         m_ResourceSet1->BindBuffer(0, lightingDataBuffer, 0, lightingDataBuffer->GetAllocatedCount());
