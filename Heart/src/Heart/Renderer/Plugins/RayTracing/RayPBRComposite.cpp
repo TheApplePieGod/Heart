@@ -87,16 +87,19 @@ namespace Heart::RenderPlugins
     {
         auto gBufferPlugin = m_Renderer->GetPlugin<RenderPlugins::GBuffer>(m_Info.GBufferPluginName);
         auto clusterPlugin = m_Renderer->GetPlugin<RenderPlugins::ClusteredLighting>(m_Info.ClusteredLightingPluginName);
+        auto ssaoPlugin = m_Renderer->GetPlugin<RenderPlugins::SSAO>(m_Info.SSAOPluginName);
 
         m_GPUGraphNodeBuilder.Reset()
             .SetCommandBuffer(m_CommandBuffer.get())
             .AddEncoderNode(Flourish::GPUWorkloadType::Compute)
             .EncoderAddBufferRead(clusterPlugin->GetLightIndicesBuffer())
             .EncoderAddBufferRead(clusterPlugin->GetLightGridBuffer())
+            .EncoderAddBufferRead(clusterPlugin->GetClusterDataBuffer())
             .EncoderAddTextureRead(gBufferPlugin->GetGBuffer1().get())
             .EncoderAddTextureRead(gBufferPlugin->GetGBuffer2().get())
             .EncoderAddTextureRead(gBufferPlugin->GetGBuffer3().get())
             .EncoderAddTextureRead(gBufferPlugin->GetGBufferDepth().get())
+            .EncoderAddTextureRead(ssaoPlugin->GetOutputTexture())
             .EncoderAddTextureRead(m_Info.ReflectionsInputTexture.get())
             .EncoderAddTextureWrite(m_Info.OutputTexture.get());
     }
