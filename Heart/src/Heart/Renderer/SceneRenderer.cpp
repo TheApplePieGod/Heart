@@ -54,6 +54,12 @@ namespace Heart
                 for (const auto& dep : pair.second->GetGraphData(GraphDependencyType::GPU).Dependencies)
                     m_RenderGraph->AddExecutionDependency(pair.second->GetCommandBuffer(), m_Plugins[dep]->GetCommandBuffer());
 
+        HE_ENGINE_LOG_DEBUG("Rebuilding SceneRenderer {}", (void*)this);
+        for (const auto& pair : m_RenderGraph->GetNodes())
+        {
+            HE_ENGINE_LOG_DEBUG("SceneRenderer {}: Buffer {} has id {}", (void*)this, pair.second.Buffer->GetDebugName(), pair.second.Buffer->GetId());
+        }
+
         m_RenderGraph->Build();
     }
 

@@ -51,6 +51,7 @@ namespace Heart::RenderPlugins
             .AddEncoderNode(Flourish::GPUWorkloadType::Compute)
             .EncoderAddBufferRead(clusterPlugin->GetLightIndicesBuffer())
             .EncoderAddBufferRead(clusterPlugin->GetLightGridBuffer())
+            .EncoderAddBufferRead(clusterPlugin->GetClusterDataBuffer())
             .EncoderAddTextureRead(gBufferPlugin->GetGBuffer1().get())
             .EncoderAddTextureRead(gBufferPlugin->GetGBuffer2().get())
             .EncoderAddTextureRead(gBufferPlugin->GetGBuffer3().get())
