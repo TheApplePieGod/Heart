@@ -21,7 +21,7 @@ namespace Widgets
     MaterialEditor::MaterialEditor(const Heart::HStringView8& name, bool initialOpen)
         : Widget(name, initialOpen)
     {
-        m_SceneRenderer = Heart::CreateScope<Heart::DesktopSceneRenderer>();
+        m_SceneRenderer = Heart::CreateScope<Heart::DesktopSceneRenderer>(false);
         m_Scene = Heart::CreateRef<Heart::Scene>();
         m_Scene->SetEnvironmentMap(Heart::AssetManager::GetAssetUUID("engine/DefaultEnvironmentMap.hdr", true));
 

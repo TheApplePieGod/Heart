@@ -52,7 +52,7 @@ namespace Heart
         };
 
     public:
-        SceneRenderer();
+        SceneRenderer(bool debug);
         virtual ~SceneRenderer();
 
         TaskGroup Render(const SceneRenderData& data);
@@ -88,6 +88,7 @@ namespace Heart
         inline Ref<Flourish::Texture>& GetOutputTexture() { return m_OutputTexture; }
         inline Flourish::Texture* GetDefaultEnvironmentMap() { return m_DefaultEnvironmentMap.get(); }
         inline Flourish::RenderGraph* GetRenderGraph() { return m_RenderGraph.get(); }
+        inline bool IsDebug() const { return m_Debug; }
 
     protected:
         virtual void RegisterPlugins() = 0;
@@ -114,6 +115,7 @@ namespace Heart
         std::unordered_map<HString8, Ref<RenderPlugin>> m_Plugins;
         bool m_ShouldResize = false;
         bool m_ShouldRebuild = false;
+        bool m_Debug = false;
         GraphData m_CPUGraphData;
         GraphData m_GPUGraphData;
 

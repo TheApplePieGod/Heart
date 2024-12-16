@@ -53,22 +53,6 @@ namespace Widgets
             ImGui::Text("%s: %.1fms", pair.first.Data(), Heart::AggregateTimer::GetAggregateTime(pair.first));
         ImGui::Unindent();
 
-        ImGui::Text("GPU Timing:");
-        ImGui::Indent();
-        /*
-        ImGui::Text("Frustum cull: %.2fms", viewport.GetSceneRenderer().GetCullPipeline().GetPerformanceTimestamp());
-        ImGui::Text("Opaque Pass: %.2fms", viewport.GetSceneRenderer().GetMainFramebuffer().GetSubpassPerformanceTimestamp(2));
-        ImGui::Text("Translucent Pass: %.2fms", viewport.GetSceneRenderer().GetMainFramebuffer().GetSubpassPerformanceTimestamp(3));
-        double bloomTiming = 0.0;
-        for (auto& bufs : viewport.GetSceneRenderer().GetBloomFramebuffers())
-        {
-            bloomTiming += bufs[0]->GetPerformanceTimestamp();
-            bloomTiming += bufs[1]->GetPerformanceTimestamp();
-        }
-        ImGui::Text("Bloom Pass: %.2fms", bloomTiming);
-        */
-        ImGui::Unindent();
-
         ImGui::Text("GPU Memory:");
         ImGui::Indent();
         Flourish::MemoryStatistics memoryStats = Flourish::Context::ComputeMemoryStatistics();

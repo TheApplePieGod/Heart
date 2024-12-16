@@ -7,7 +7,9 @@ namespace Heart
     class DesktopSceneRenderer : public SceneRenderer
     {
     public:
-        DesktopSceneRenderer() = default;
+        DesktopSceneRenderer(bool debug)
+            : SceneRenderer(debug)
+        {}
 
         inline Ref<Flourish::Texture>& GetDepthTexture() { return m_DepthTexture; }
 

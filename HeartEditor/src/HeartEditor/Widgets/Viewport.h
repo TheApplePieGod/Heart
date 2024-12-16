@@ -66,7 +66,7 @@ namespace Widgets
         f32 m_AspectRatio = 1.f;
         ImGuizmo::MODE m_GizmoMode = ImGuizmo::MODE::LOCAL;
         ImGuizmo::OPERATION m_GizmoOperation = ImGuizmo::OPERATION::TRANSLATE;
-        Heart::HString8 m_SelectedOutput = "Primary";
+        std::pair<Heart::HString8, Heart::HString8> m_SelectedOutput = { "", "" };
         int m_SelectedOutputMip = 0;
     };
 }

@@ -10,7 +10,8 @@
 
 namespace Heart
 {
-    SceneRenderer::SceneRenderer()
+    SceneRenderer::SceneRenderer(bool debug)
+        : m_Debug(debug)
     {
         SubscribeToEmitter(&Window::GetMainWindow()); // We manually handle window resizes here
 

@@ -1,3 +1,4 @@
+#include "Flourish/Api/PipelineCommon.h"
 #include "hepch.h"
 #include "GBuffer.h"
 
@@ -178,6 +179,20 @@ namespace Heart::RenderPlugins
             .EncoderAddTextureWrite(m_GBuffer2.get())
             .EncoderAddTextureWrite(m_GBuffer3.get())
             .EncoderAddTextureWrite(m_GBufferDepth.get());
+
+        m_DebugTextures.clear();
+        if (m_Renderer->IsDebug())
+        {
+            texCreateInfo.ArrayCount = 1;
+            texCreateInfo.MipCount = 1;
+            texCreateInfo.Usage = Flourish::TextureUsageFlags::Graphics;
+            texCreateInfo.Format = GBUFFER_COLOR_FORMAT;
+            m_DebugTextures["Albedo"] = Flourish::Texture::Create(texCreateInfo);
+            m_DebugTextures["Normal"] = Flourish::Texture::Create(texCreateInfo);
+            m_DebugTextures["Motion Vector"] = Flourish::Texture::Create(texCreateInfo);
+            m_DebugTextures["Metallic Roughness"] = Flourish::Texture::Create(texCreateInfo);
+            m_DebugTextures["Depth"] = m_GBufferDepth;
+        }
     }
 
     void GBuffer::RenderInternal(const SceneRenderData& data)

@@ -29,7 +29,7 @@ namespace Widgets
     Viewport::Viewport(const Heart::HStringView8& name, bool initialOpen)
         : Widget(name, initialOpen)
     {
-        m_SceneRenderer = Heart::CreateRef<Heart::DesktopSceneRenderer>();
+        m_SceneRenderer = Heart::CreateRef<Heart::DesktopSceneRenderer>(true);
         m_ActiveCamera = Heart::CreateRef<Heart::Camera>(70.f, 0.1f, 500.f, 1.f);
         m_EditorCamera = Heart::CreateRef<EditorCamera>(70.f, 0.1f, 500.f, 1.f, glm::vec3(0.f, 1.f, 0.f));
     }
@@ -72,19 +72,10 @@ namespace Widgets
         auto& plugins = m_SceneRenderer->GetPlugins();
         const Flourish::Texture* outputTex = nullptr;
         u32 outputLayer = 0;
-        if (m_SelectedOutput == "Primary")
+        if (m_SelectedOutput.first == "")
             outputTex = m_SceneRenderer->GetOutputTexture().get();
         else
-        {
-            for (auto& pair : plugins)
-            {
-                if (pair.second->GetOutputTexture() && pair.second->GetName() == m_SelectedOutput)
-                {
-                    outputTex = pair.second->GetOutputTexture().get();
-                    break;
-                }
-            }
-        }
+            outputTex = plugins.at(m_SelectedOutput.first)->GetDebugTextures().at(m_SelectedOutput.second).get();
 
         ImGui::Image(
             outputTex->GetImGuiHandle(outputLayer, m_SelectedOutputMip),
@@ -207,12 +198,22 @@ namespace Widgets
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.f, 5.f));
             if (ImGui::BeginPopup("OutSel"))
             {
-                if (ImGui::MenuItem("Primary", nullptr, m_SelectedOutput == "Primary"))
-                    m_SelectedOutput = "Primary";
+                if (ImGui::MenuItem("Primary", nullptr, m_SelectedOutput.first == ""))
+                    m_SelectedOutput.first = "";
                 for (auto& pair : plugins)
-                    if (pair.second->GetOutputTexture())
-                        if (ImGui::MenuItem(pair.first.Data(), nullptr, m_SelectedOutput == pair.first))
-                            m_SelectedOutput = pair.first;
+                {
+                    const auto& debugTextures = pair.second->GetDebugTextures();
+                    if (debugTextures.empty()) continue;
+
+                    if (ImGui::BeginMenu(pair.first.Data()))
+                    {
+                        for (const auto& texPair : debugTextures)
+                            if (ImGui::MenuItem(texPair.first.Data(), nullptr, m_SelectedOutput.first == pair.first && m_SelectedOutput.second == texPair.first))
+                                m_SelectedOutput = { pair.first, texPair.first };
+
+                        ImGui::EndMenu();
+                    }
+                }
 
                 ImGui::EndPopup();
             }

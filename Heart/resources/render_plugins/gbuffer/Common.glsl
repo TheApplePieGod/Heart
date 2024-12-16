@@ -15,7 +15,7 @@ layout(location = 7) in vec4 inPrevClipPos;
 
 layout(location = 0) out vec4 outGBuffer1; // RGB: Albedo, A: Metallic
 layout(location = 1) out vec4 outGBuffer2; // RGB: WSNormal, A: Roughness
-layout(location = 2) out vec4 outGBuffer3; // RG: Motion Vector
+layout(location = 2) out vec4 outGBuffer3; // RG: Motion Vector, B: Linear Z
 layout(location = 3) out float outEntityId;
 
 #define MIN_ROUGHNESS 0.001
