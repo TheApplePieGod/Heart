@@ -6,6 +6,7 @@
 #include "Heart/Core/Timing.h"
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/ShaderAsset.h"
+#include "Flourish/Api/Context.h"
 #include "Flourish/Api/ComputeCommandEncoder.h"
 #include "Flourish/Api/ComputePipeline.h"
 #include "Flourish/Api/CommandBuffer.h"
@@ -39,20 +40,21 @@ namespace Heart::RenderPlugins
         // Generate random hemispherical perturbation vectors
         std::uniform_real_distribution<float> floats(0.f, 1.f);
         std::default_random_engine generator;
-        for (u32 i = 0; i < 64; i++)
+        HVector<glm::vec4> samples(64);
+        for (u32 i = 0; i < samples.Count(); i++)
         {
-            m_PushConstants.Samples[i].x = floats(generator) * 2.f - 1.f;
-            m_PushConstants.Samples[i].y = floats(generator) * 2.f - 1.f;
-            m_PushConstants.Samples[i].z = floats(generator);
-            m_PushConstants.Samples[i].w = 0.f;
+            samples[i].x = floats(generator) * 2.f - 1.f;
+            samples[i].y = floats(generator) * 2.f - 1.f;
+            samples[i].z = floats(generator);
+            samples[i].w = 0.f;
 
-            m_PushConstants.Samples[i] = glm::normalize(m_PushConstants.Samples[i]);
-            m_PushConstants.Samples[i] *= floats(generator);
+            samples[i] = glm::normalize(samples[i]);
+            samples[i] *= floats(generator);
 
             // Scale sample to distribute more towards the origin
             float scale = (float)i / 64.f; 
             scale = 0.1f + (scale * scale * 0.9f); // lerp(0.1, 1.0, scale * scale)
-            m_PushConstants.Samples[i] *= scale;
+            samples[i] *= scale;
         }
 
         // Generate random noise for the sample kernels
@@ -66,6 +68,16 @@ namespace Heart::RenderPlugins
                 0.f
             );
         }
+
+        // Upload samples to the GPU
+        Flourish::BufferCreateInfo bufCreateInfo;
+        bufCreateInfo.Usage = Flourish::BufferUsageFlags::Uniform;
+        bufCreateInfo.MemoryType = Flourish::BufferMemoryType::GPUOnly;
+        bufCreateInfo.Stride = sizeof(glm::vec4);
+        bufCreateInfo.ElementCount = samples.Count();
+        bufCreateInfo.InitialData = samples.Data();
+        bufCreateInfo.InitialDataSize = samples.Count() * sizeof(glm::vec4);
+        m_SampleBuffer = Flourish::Buffer::Create(bufCreateInfo);
 
         // Create a texture from the random noise for later sampling
         Flourish::TextureCreateInfo texCreateInfo;
@@ -127,12 +139,14 @@ namespace Heart::RenderPlugins
 
         // TODO: this could probably be static
         m_ResourceSet->BindBuffer(0, frameDataBuffer, 0, 1);
-        m_ResourceSet->BindTexture(1, m_OutputTexture.get());
-        m_ResourceSet->BindTexture(3, m_NoiseTexture.get());
+        m_ResourceSet->BindBuffer(1, m_SampleBuffer.get(), 0, m_SampleBuffer->GetAllocatedCount());
+        m_ResourceSet->BindTexture(2, m_OutputTexture.get());
+        m_ResourceSet->BindTexture(4, m_NoiseTexture.get());
 
-        // TODO: fix for RT
-        m_ResourceSet->BindTexture(2, m_Info.InputDepthTexture.get());
-        m_ResourceSet->BindTexture(4, m_Info.InputNormalsTexture.get(), 0);
+        // Kinda sus. We are hardcoding the behavior of gbuffer with RT enabled where the input is alternating
+        u32 layerIndex = Flourish::Context::FrameCount() % m_Info.InputDepthTexture->GetArrayCount();
+        m_ResourceSet->BindTextureLayer(3, m_Info.InputDepthTexture.get(), layerIndex, 0);
+        m_ResourceSet->BindTextureLayer(5, m_Info.InputNormalsTexture.get(), layerIndex, 0);
 
         m_ResourceSet->FlushBindings();
 

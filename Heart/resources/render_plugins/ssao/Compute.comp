@@ -8,7 +8,6 @@ layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
 layout(push_constant) uniform PushConstants
 {
-    vec4 samples[64];
     uint kernelSize;
     float radius;
     float bias;
@@ -16,10 +15,14 @@ layout(push_constant) uniform PushConstants
     vec2 renderSize;
 } constants;
 
-layout(binding = 1, r16f) uniform writeonly image2D outColor;
-layout(binding = 2) uniform sampler2D depthTex;
-layout(binding = 3) uniform sampler2D noiseTex;
-layout(binding = 4) uniform sampler2D normalTex;
+layout(binding = 1) readonly uniform SampleBuffer {
+    vec4 samples[64];
+} sampleBuffer;
+
+layout(binding = 2, r16f) uniform writeonly image2D outColor;
+layout(binding = 3) uniform sampler2D depthTex;
+layout(binding = 4) uniform sampler2D noiseTex;
+layout(binding = 5) uniform sampler2D normalTex;
 
 // https://wickedengine.net/2019/09/22/improved-normal-reconstruction-from-depth/
 vec3 ComputePosition(vec2 uv, float depth)
@@ -59,7 +62,7 @@ void main()
     for(int i = 0; i < constants.kernelSize; i++)
     {
         // Get sample position
-        vec3 samplePos = TBN * constants.samples[i].xyz; // from tangent to view-space
+        vec3 samplePos = TBN * sampleBuffer.samples[i].xyz; // from tangent to view-space
         samplePos = position + samplePos * constants.radius; 
         
         // Project sample position (to sample texture) (to get position on screen/texture)

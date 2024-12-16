@@ -106,8 +106,8 @@ namespace Heart::RenderPlugins
         // Half resolution
         m_GBufferMip = 1;
 
-        m_PushData.HaltonData.p2 = ceil(log2(m_Info.OutputTexture->GetWidth()));
-        m_PushData.HaltonData.p3 = ceil(log2(m_Info.OutputTexture->GetHeight())/log2(3));
+        m_PushData.HaltonData.p2 = ceil(log2(m_Info.OutputTexture->GetWidth() * m_Info.TraceWidth));
+        m_PushData.HaltonData.p3 = ceil(log2(m_Info.OutputTexture->GetHeight() * m_Info.TraceHeight)/log2(3.f));
         int w = pow(2, m_PushData.HaltonData.p2);
         int h = pow(3, m_PushData.HaltonData.p3);
         m_PushData.HaltonData.w = w;
@@ -188,8 +188,8 @@ namespace Heart::RenderPlugins
         encoder->PushConstants(0, sizeof(PushData), &m_PushData);
         encoder->TraceRays(
             m_GroupTable.get(),
-            m_Info.OutputTexture->GetWidth(),
-            m_Info.OutputTexture->GetHeight(),
+            m_Info.OutputTexture->GetWidth() * m_Info.TraceWidth,
+            m_Info.OutputTexture->GetHeight() * m_Info.TraceHeight,
             1
         );
         encoder->EndEncoding();

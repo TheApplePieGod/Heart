@@ -21,7 +21,7 @@ const vec2 DIRECTIONS[4] = vec2[](
 
 void main()
 {
-    ivec2 size = textureSize(dstGBuffer2, 0);
+    ivec2 size = imageSize(outColor);
     ivec2 coord = ivec2(gl_GlobalInvocationID.xy);
     if (coord.x >= size.x || coord.y >= size.y)
         return;

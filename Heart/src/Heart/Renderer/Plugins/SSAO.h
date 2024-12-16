@@ -39,7 +39,6 @@ namespace Heart::RenderPlugins
     private:
         struct PushConstants
         {
-            glm::vec4 Samples[64];
             u32 KernelSize;
             float Radius;
             float Bias;
@@ -51,6 +50,7 @@ namespace Heart::RenderPlugins
         SSAOCreateInfo m_Info;
 
         PushConstants m_PushConstants;
+        Ref<Flourish::Buffer> m_SampleBuffer;
         Ref<Flourish::Texture> m_NoiseTexture;
         Ref<Flourish::ResourceSet> m_ResourceSet;
         Ref<Flourish::ComputePipeline> m_Pipeline;

@@ -68,6 +68,7 @@ namespace Heart
             auto tlas = RegisterPlugin<RenderPlugins::TLAS>("TLAS", tlasCreateInfo);
             tlas->AddDependency(collectMaterials->GetName(), GraphDependencyType::CPU);
 
+            float rayTraceScale = 0.5f;
             RenderPlugins::RayReflectionsCreateInfo rayReflCreateInfo;
             rayReflCreateInfo.OutputTexture = m_RayReflectionsTexture;
             rayReflCreateInfo.FrameDataPluginName = frameData->GetName();
@@ -75,6 +76,8 @@ namespace Heart
             rayReflCreateInfo.LightingDataPluginName = lightingData->GetName();
             rayReflCreateInfo.CollectMaterialsPluginName = collectMaterials->GetName();
             rayReflCreateInfo.GBufferPluginName = gBuffer->GetName();
+            rayReflCreateInfo.TraceWidth = rayTraceScale;
+            rayReflCreateInfo.TraceHeight = rayTraceScale;
             auto rayReflections = RegisterPlugin<RenderPlugins::RayReflections>("RayReflections", rayReflCreateInfo);
             rayReflections->AddDependency(collectMaterials->GetName(), GraphDependencyType::CPU);
             rayReflections->AddDependency(tlas->GetName(), GraphDependencyType::CPU);
@@ -84,12 +87,13 @@ namespace Heart
             rayReflections->AddDependency(gBuffer->GetName(), GraphDependencyType::GPU);
             rayReflections->AddInitDependency(gBuffer->GetName());
 
-            // TODO: downscaled version
             RenderPlugins::SVGFCreateInfo svgfCreateInfo;
             svgfCreateInfo.InputTexture = m_RayReflectionsTexture;
             svgfCreateInfo.OutputTexture = m_RayReflectionsTexture;
             svgfCreateInfo.FrameDataPluginName = frameData->GetName();
             svgfCreateInfo.GBufferPluginName = gBuffer->GetName();
+            svgfCreateInfo.InputUsableFactorWidth = rayTraceScale;
+            svgfCreateInfo.InputUsableFactorHeight = rayTraceScale;
             auto svgf = RegisterPlugin<RenderPlugins::SVGF>("SVGF", svgfCreateInfo);
             svgf->AddDependency(rayReflections->GetName(), GraphDependencyType::GPU);
             svgf->AddInitDependency(rayReflections->GetName());
@@ -104,6 +108,7 @@ namespace Heart
             pbrCompCreateInfo.ClusteredLightingPluginName = clusteredLighting->GetName();
             pbrCompCreateInfo.TLASPluginName = tlas->GetName();
             pbrCompCreateInfo.CollectMaterialsPluginName = collectMaterials->GetName();
+            pbrCompCreateInfo.SSAOPluginName = ssao->GetName();
             auto pbrComposite = RegisterPlugin<RenderPlugins::RayPBRComposite>("RayPBRComposite", pbrCompCreateInfo);
             pbrComposite->AddDependency(envMap->GetName(), GraphDependencyType::GPU);
             pbrComposite->AddDependency(svgf->GetName(), GraphDependencyType::GPU);
@@ -114,6 +119,7 @@ namespace Heart
             pbrComposite->AddInitDependency(svgf->GetName());
             pbrComposite->AddInitDependency(gBuffer->GetName());
             pbrComposite->AddInitDependency(clusteredLighting->GetName());
+            pbrComposite->AddInitDependency(ssao->GetName());
 
             pbrCompositeName = pbrComposite->GetName();
         }
@@ -197,8 +203,8 @@ namespace Heart
 
         if (rayTracing)
         {
-            texCreateInfo.Width = m_RenderWidth / 2;
-            texCreateInfo.Height = m_RenderHeight / 2;
+            texCreateInfo.Width = m_RenderWidth;
+            texCreateInfo.Height = m_RenderHeight;
             texCreateInfo.ArrayCount = 1;
             texCreateInfo.MipCount = 1;
             texCreateInfo.Usage = Flourish::TextureUsageFlags::Compute;

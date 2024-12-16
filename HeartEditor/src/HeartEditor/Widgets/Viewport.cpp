@@ -68,17 +68,12 @@ namespace Widgets
         // draw the viewport background
         ImGui::GetWindowDrawList()->AddRectFilled({ viewportStart.x, viewportStart.y }, { viewportEnd.x, viewportEnd.y }, IM_COL32( 0, 0, 0, 255 )); // viewport background
 
+        // TODO: revisit this
         auto& plugins = m_SceneRenderer->GetPlugins();
         const Flourish::Texture* outputTex = nullptr;
         u32 outputLayer = 0;
         if (m_SelectedOutput == "Primary")
             outputTex = m_SceneRenderer->GetOutputTexture().get();
-        /*
-        else if (m_SelectedOutput == "Before Postprocessing")
-            outputTex = m_SceneRenderer->GetRenderTexture().get();
-        else if (m_SelectedOutput == "Primary Depth")
-            outputTex = m_SceneRenderer->GetDepthTexture().get();
-    */
         else
         {
             for (auto& pair : plugins)
@@ -214,10 +209,6 @@ namespace Widgets
             {
                 if (ImGui::MenuItem("Primary", nullptr, m_SelectedOutput == "Primary"))
                     m_SelectedOutput = "Primary";
-                if (ImGui::MenuItem("Before Postprocessing", nullptr, m_SelectedOutput == "Before Postprocessing"))
-                    m_SelectedOutput = "Before Postprocessing";
-                if (ImGui::MenuItem("Primary Depth", nullptr, m_SelectedOutput == "Primary Depth"))
-                    m_SelectedOutput = "Primary Depth";
                 for (auto& pair : plugins)
                     if (pair.second->GetOutputTexture())
                         if (ImGui::MenuItem(pair.first.Data(), nullptr, m_SelectedOutput == pair.first))

@@ -62,8 +62,8 @@ namespace Heart::RenderPlugins
         auto gBufferPlugin = m_Renderer->GetPlugin<RenderPlugins::GBuffer>(m_Info.GBufferPluginName);
 
         Flourish::TextureCreateInfo texCreateInfo;
-        texCreateInfo.Width = m_Info.InputTexture->GetWidth();
-        texCreateInfo.Height = m_Info.InputTexture->GetHeight();
+        texCreateInfo.Width = m_Info.InputTexture->GetWidth() * m_Info.InputUsableFactorWidth;
+        texCreateInfo.Height = m_Info.InputTexture->GetHeight() * m_Info.InputUsableFactorHeight;
         texCreateInfo.ArrayCount = 2;
         texCreateInfo.MipCount = 1;
         texCreateInfo.Format = Flourish::ColorFormat::RGBA16_FLOAT;

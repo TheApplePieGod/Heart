@@ -37,6 +37,11 @@ namespace Heart
         bufCreateInfo.ElementCount = indices.Count();
         bufCreateInfo.InitialData = indices.Data();
         bufCreateInfo.InitialDataSize = sizeof(u32) * indices.Count();
+        if (Flourish::Context::FeatureTable().RayTracing)
+        {
+            bufCreateInfo.Usage |= Flourish::BufferUsageFlags::AccelerationStructureBuild;
+            bufCreateInfo.ExposeGPUAddress = true;
+        }
         m_IndexBuffer = Flourish::Buffer::Create(bufCreateInfo);
         uploadEncoder->EndEncoding();
 

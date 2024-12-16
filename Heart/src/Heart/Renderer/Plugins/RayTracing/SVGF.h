@@ -19,6 +19,9 @@ namespace Heart::RenderPlugins
         Ref<Flourish::Texture> OutputTexture;
         HString8 FrameDataPluginName;
         HString8 GBufferPluginName;
+
+        f32 InputUsableFactorWidth = 1.f;
+        f32 InputUsableFactorHeight = 1.f;
     };
 
     class SVGF : public RenderPlugin

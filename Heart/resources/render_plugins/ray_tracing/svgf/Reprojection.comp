@@ -28,8 +28,6 @@ layout(binding = 12, rgba16f) uniform writeonly image2D outDebug;
 layout(push_constant) uniform PushConstants
 {
     uint reset;
-    uint padding;
-    vec2 padding2;
 } constants;
 
 const ivec2 twoTapOffsets[4] = {
@@ -145,7 +143,7 @@ vec3 ClipAABB(vec3 minVal, vec3 maxVal, vec3 value)
 
 void main()
 {
-    const ivec2 size = textureSize(filterInput, 0);
+    const ivec2 size = imageSize(outColors);
     const ivec2 coord = ivec2(gl_GlobalInvocationID.xy);
     if (coord.x >= size.x || coord.y >= size.y)
         return;
