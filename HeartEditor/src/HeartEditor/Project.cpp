@@ -599,7 +599,7 @@ namespace HeartEditor
             } break;
             case ExportPlatform::MacOS:
             {
-                std::filesystem::path dst = std::filesystem::path(copyPath).parent_path().parent_path();
+                std::filesystem::path dst = std::filesystem::path(copyPath).parent_path().parent_path().parent_path();
                 dst.append("Frameworks");
                 std::filesystem::create_directory(dst);
                 std::filesystem::copy(

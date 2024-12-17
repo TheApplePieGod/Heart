@@ -18,7 +18,7 @@ int Main(int argc, char** argv)
 
         nlohmann::json metadata = Heart::FilesystemUtils::ReadFileToJson("metadata.json");
         if (metadata.is_null())
-            throw std::exception();
+            return 0;
 
         // Init
         Heart::HString8 projectName = metadata["projectName"];

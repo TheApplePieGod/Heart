@@ -21,6 +21,8 @@ namespace HeartRuntime
             const Heart::SceneRenderSettings& settings
         );
 
+        inline Heart::SceneRenderer* GetSceneRenderer() { return m_SceneRenderer.get(); }
+
     private:
         Heart::Ref<Heart::SceneRenderer> m_SceneRenderer;
         Heart::Camera m_Camera = Heart::Camera(70.f, 0.1f, 500.f, 1.f);

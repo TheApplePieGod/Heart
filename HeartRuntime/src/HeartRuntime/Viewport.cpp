@@ -7,6 +7,7 @@
 #include "Heart/Input/Input.h"
 #include "Heart/Scene/Components.h"
 #include "Heart/Scene/Entity.h"
+#include "Heart/Renderer/DesktopSceneRenderer.h"
 #include "Flourish/Api/Context.h"
 #include "Flourish/Api/Texture.h"
 
@@ -14,7 +15,7 @@ namespace HeartRuntime
 {
     Viewport::Viewport()
     {
-        m_SceneRenderer = Heart::CreateScope<Heart::SceneRenderer>();
+        m_SceneRenderer = Heart::CreateScope<Heart::DesktopSceneRenderer>(false);
     }
 
     void Viewport::Shutdown()

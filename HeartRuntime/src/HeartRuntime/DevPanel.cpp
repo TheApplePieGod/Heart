@@ -7,7 +7,11 @@
 
 namespace HeartRuntime
 {
-    void DevPanel::OnImGuiRender(Heart::Scene* scene, Heart::SceneRenderSettings& settings)
+    void DevPanel::OnImGuiRender(
+        Viewport* viewport,
+        Heart::Scene* scene,
+        Heart::SceneRenderSettings& settings
+    )
     {
         if (!m_Open) return;
 
@@ -44,6 +48,42 @@ namespace HeartRuntime
         ImGui::Indent();
         for (auto& pair : Heart::AggregateTimer::GetTimeMap())
             ImGui::Text("%s: %.1fms", pair.first.Data(), Heart::AggregateTimer::GetAggregateTime(pair.first));
+        ImGui::Unindent();
+
+        ImGui::Text("Render Statistics:");
+        ImGui::Indent();
+        ImGui::Text("Plugins:");
+        for (const auto& pair : viewport->GetSceneRenderer()->GetPlugins())
+        {
+            if (pair.second->GetStats().empty())
+                continue;
+
+            ImGui::Indent();
+            ImGui::Text("%s:", pair.first.Data());
+            for (const auto& stat : pair.second->GetStats())
+            {
+                if (stat.second.Type == Heart::RenderPlugin::StatType::None)
+                    continue;
+                ImGui::Indent();
+                ImGui::Text("%s:", stat.first.Data());
+                ImGui::SameLine();
+                switch (stat.second.Type)
+                {
+                    default:
+                    {} break;
+                    case Heart::RenderPlugin::StatType::Int:
+                    { ImGui::Text("%d", stat.second.Data.Int); } break;
+                    case Heart::RenderPlugin::StatType::Float:
+                    { ImGui::Text("%2.f", stat.second.Data.Float); } break;
+                    case Heart::RenderPlugin::StatType::Bool:
+                    { ImGui::Text("%s", stat.second.Data.Bool ? "true" : "false"); } break;
+                    case Heart::RenderPlugin::StatType::TimeMS:
+                    { ImGui::Text("%1.fms", stat.second.Data.Float); } break;
+                }
+                ImGui::Unindent();
+            }
+            ImGui::Unindent();
+        }
         ImGui::Unindent();
 
         ImGui::Text("GPU Memory:");

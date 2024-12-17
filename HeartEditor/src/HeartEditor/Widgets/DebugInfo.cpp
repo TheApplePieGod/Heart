@@ -97,10 +97,6 @@ namespace Widgets
             }
             ImGui::Unindent();
         }
-        /*
-        for (auto& pair : Heart::Renderer::GetStatistics())
-            ImGui::Text("%s: %lld", pair.first.Data(), pair.second);
-        */
         ImGui::Unindent();
         
         auto& activeScene = Editor::GetActiveScene();

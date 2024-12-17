@@ -57,7 +57,7 @@ namespace HeartRuntime
         m_RuntimeScene->OnUpdateRuntime(ts);
 
         m_Viewport.OnImGuiRender(&m_RenderScene, m_RuntimeScene.get(), m_RenderSettings);
-        m_DevPanel.OnImGuiRender(m_RuntimeScene.get(), m_RenderSettings);
+        m_DevPanel.OnImGuiRender(&m_Viewport, m_RuntimeScene.get(), m_RenderSettings);
     }
 
     void RuntimeLayer::OnEvent(Heart::Event& event)
