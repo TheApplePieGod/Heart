@@ -17,6 +17,7 @@
 #include "EntityIds.h"
 #include "ComputeTextBatches.h"
 #include "PBRComposite.h"
+#include "Forward.h"
 #include "ClusteredLighting.h"
 #include "Splat.h"
 

@@ -26,6 +26,8 @@ namespace Heart
     SceneRenderer::~SceneRenderer()
     {
         UnsubscribeFromEmitter(&Window::GetMainWindow());
+
+        HE_ENGINE_LOG_TRACE("SceneRenderer cleanup");
     }
 
     void SceneRenderer::Initialize()

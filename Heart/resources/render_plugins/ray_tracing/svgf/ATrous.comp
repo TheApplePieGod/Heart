@@ -121,7 +121,7 @@ void main()
                 float wZ = EdgeStoppingWeightDepth(centerDepth, sampleDepth, sigmaDepth);
                 float wN = EdgeStoppingWeightNormal(centerNormal, sampleNormal, sigmaNormal);
                 float wL = EdgeStoppingWeightLuminance(centerLuminance, sampleLuminance, phi);
-                float w = useSample * kernel * EdgeStoppingWeight(wZ, wN, wL);
+                float w = kernel * EdgeStoppingWeight(wZ, wN, wL);
 
                 weightsSum += w;
                 weightsSquareSum += w * w;

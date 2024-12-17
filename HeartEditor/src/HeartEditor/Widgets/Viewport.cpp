@@ -9,6 +9,7 @@
 #include "Heart/Task/TaskManager.h"
 #include "Heart/Scene/Scene.h"
 #include "Heart/Renderer/DesktopSceneRenderer.h"
+#include "Heart/Renderer/MobileSceneRenderer.h"
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/TextureAsset.h"
 #include "Heart/Asset/SceneAsset.h"
@@ -29,7 +30,7 @@ namespace Widgets
     Viewport::Viewport(const Heart::HStringView8& name, bool initialOpen)
         : Widget(name, initialOpen)
     {
-        m_SceneRenderer = Heart::CreateRef<Heart::DesktopSceneRenderer>(true);
+        m_SceneRenderer = Heart::CreateRef<Heart::MobileSceneRenderer>(true);
         m_ActiveCamera = Heart::CreateRef<Heart::Camera>(70.f, 0.1f, 500.f, 1.f);
         m_EditorCamera = Heart::CreateRef<EditorCamera>(70.f, 0.1f, 500.f, 1.f, glm::vec3(0.f, 1.f, 0.f));
     }
