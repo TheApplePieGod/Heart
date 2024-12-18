@@ -23,6 +23,7 @@ namespace Heart::RenderPlugins
         BufferData bufData = {
             data.Camera->GetProjectionMatrix(),
             data.Camera->GetViewMatrix(),
+            data.Camera->GetProjectionMatrix() * data.Camera->GetViewMatrix(),
             m_PrevViewProj,
             glm::inverse(data.Camera->GetProjectionMatrix()),
             glm::inverse(data.Camera->GetViewMatrix()),

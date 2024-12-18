@@ -2,6 +2,7 @@
 #include "FontAsset.h"
 
 #include "Heart/Asset/AssetManager.h"
+#include "Heart/Util/FilesystemUtils.h"
 
 namespace Heart
 {
@@ -21,11 +22,21 @@ namespace Heart
             failedFunc();
             return;
         }
+
+        // Read font data
+        u32 fileLength;
+        unsigned char* data = FilesystemUtils::ReadFile(m_AbsolutePath, fileLength);
+        if (!data)
+        {
+            failedFunc();
+            return;
+        }
         
         // Load font file
-        msdfgen::FontHandle* font = msdfgen::loadFont(ft, m_AbsolutePath.Data());
+        msdfgen::FontHandle* font = msdfgen::loadFontData(ft, data, fileLength);
         if (!font)
         {
+            delete[] data;
             failedFunc();
             return;
         }
@@ -95,6 +106,7 @@ namespace Heart
         msdfgen::destroyFont(font);
         msdfgen::deinitializeFreetype(ft);
         
+        delete[] data;
         m_Valid = true;
     }
 

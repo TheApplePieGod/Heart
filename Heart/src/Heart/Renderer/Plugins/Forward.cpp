@@ -13,6 +13,7 @@
 #include "Heart/Core/Timing.h"
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/ShaderAsset.h"
+#include "Heart/Asset/MeshAsset.h"
 #include "Flourish/Api/RenderCommandEncoder.h"
 #include "Flourish/Api/GraphicsCommandEncoder.h"
 #include "Flourish/Api/TransferCommandEncoder.h"
@@ -30,7 +31,14 @@ namespace Heart::RenderPlugins
         auto textFrag = AssetManager::RetrieveAsset("engine/render_plugins/forward/Text.frag", true);
         auto vertShader = AssetManager::RetrieveAsset("engine/render_plugins/forward/Vertex.vert", true);
         auto standardFrag = AssetManager::RetrieveAsset("engine/render_plugins/forward/Standard.frag", true);
-        Asset::LoadMany({ textFrag, vertShader, standardFrag }, false);
+        auto envMapVert = AssetManager::RetrieveAsset("engine/render_plugins/render_environment_map/Vertex.vert", true);
+        auto envMapFrag = AssetManager::RetrieveAsset("engine/render_plugins/render_environment_map/Fragment.frag", true);
+        auto postVert = AssetManager::RetrieveAsset("engine/FullscreenTriangle.vert", true);
+        auto postFrag = AssetManager::RetrieveAsset("engine/render_plugins/forward/PostProcess.frag", true);
+        Asset::LoadMany({
+            textFrag, vertShader, standardFrag, envMapVert, envMapFrag,
+            postVert, postFrag
+        }, false);
 
         Flourish::RenderPassCreateInfo rpCreateInfo;
         rpCreateInfo.SampleCount = Flourish::MsaaSampleCount::None;
@@ -40,11 +48,33 @@ namespace Heart::RenderPlugins
         });
         rpCreateInfo.ColorAttachments.push_back({
             m_Info.OutputTexture->GetColorFormat(),
-            Flourish::AttachmentInitialization::Preserve,
+            Flourish::AttachmentInitialization::None,
             (m_Info.OutputTexture->GetUsageType() & Flourish::TextureUsageFlags::Compute) > 0
         });
+
+        // Environment map pass
         rpCreateInfo.Subpasses.push_back({
             {},
+            {
+                { Flourish::SubpassAttachmentType::Depth, 0 },
+                { Flourish::SubpassAttachmentType::Color, 0 },
+            }
+        });
+
+        // Forward pass
+        rpCreateInfo.Subpasses.push_back({
+            {},
+            {
+                { Flourish::SubpassAttachmentType::Depth, 0 },
+                { Flourish::SubpassAttachmentType::Color, 0 },
+            }
+        });
+
+        // Post processing pass
+        rpCreateInfo.Subpasses.push_back({
+            {
+                { Flourish::SubpassAttachmentType::Color, 0 },
+            },
             {
                 { Flourish::SubpassAttachmentType::Depth, 0 },
                 { Flourish::SubpassAttachmentType::Color, 0 },
@@ -68,10 +98,22 @@ namespace Heart::RenderPlugins
         pipelineCreateInfo.AccessOverrides = {
             { 1, 0, Flourish::ShaderTypeFlags::All }
         };
+        pipelineCreateInfo.CompatibleSubpasses = { 1 };
         auto standardPipeline = m_RenderPass->CreatePipeline("standard", pipelineCreateInfo);
         pipelineCreateInfo.FragmentShader = { textFrag->EnsureValid<ShaderAsset>()->GetShader() };
         pipelineCreateInfo.CullMode = Flourish::CullMode::None;
         auto textPipeline = m_RenderPass->CreatePipeline("text", pipelineCreateInfo);
+        pipelineCreateInfo.VertexShader = { envMapVert->EnsureValid<ShaderAsset>()->GetShader() };
+        pipelineCreateInfo.FragmentShader = { envMapFrag->EnsureValid<ShaderAsset>()->GetShader() };
+        pipelineCreateInfo.DepthConfig.DepthTest = false;
+        pipelineCreateInfo.DepthConfig.DepthWrite = false;
+        pipelineCreateInfo.CompatibleSubpasses = { 0 };
+        auto envMapPipeline = m_RenderPass->CreatePipeline("envmap", pipelineCreateInfo);
+        pipelineCreateInfo.VertexInput = false;
+        pipelineCreateInfo.VertexShader = { postVert->EnsureValid<ShaderAsset>()->GetShader() };
+        pipelineCreateInfo.FragmentShader = { postFrag->EnsureValid<ShaderAsset>()->GetShader() };
+        pipelineCreateInfo.CompatibleSubpasses = { 2 };
+        auto postProcessPipeline = m_RenderPass->CreatePipeline("post", pipelineCreateInfo);
 
         Flourish::CommandBufferCreateInfo cbCreateInfo;
         cbCreateInfo.FrameRestricted = true;
@@ -83,14 +125,15 @@ namespace Heart::RenderPlugins
         dsCreateInfo.Writability = Flourish::ResourceSetWritability::MultiPerFrame;
         m_StandardResourceSet = standardPipeline->CreateResourceSet(0, dsCreateInfo);
         m_TextResourceSet = textPipeline->CreateResourceSet(2, dsCreateInfo);
+        dsCreateInfo.Writability = Flourish::ResourceSetWritability::PerFrame;
+        m_EnvMapResourceSet = envMapPipeline->CreateResourceSet(0, dsCreateInfo);
+        m_PostProcessResourceSet = postProcessPipeline->CreateResourceSet(0, dsCreateInfo);
 
         ResizeInternal();
     }
 
     void Forward::ResizeInternal()
     {
-        auto clusterPlugin = m_Renderer->GetPlugin<RenderPlugins::ClusteredLighting>(m_Info.ClusteredLightingPluginName);
-
         Flourish::FramebufferCreateInfo fbCreateInfo;
         fbCreateInfo.RenderPass = m_RenderPass;
         fbCreateInfo.Width = m_Renderer->GetRenderWidth();
@@ -102,10 +145,7 @@ namespace Heart::RenderPlugins
         m_GPUGraphNodeBuilder.Reset()
             .SetCommandBuffer(m_CommandBuffer.get())
             .AddEncoderNode(Flourish::GPUWorkloadType::Graphics)
-            .EncoderAddFramebuffer(m_Framebuffer.get())
-            .EncoderAddBufferRead(clusterPlugin->GetLightIndicesBuffer())
-            .EncoderAddBufferRead(clusterPlugin->GetLightGridBuffer())
-            .EncoderAddBufferRead(clusterPlugin->GetClusterDataBuffer());
+            .EncoderAddFramebuffer(m_Framebuffer.get());
     }
 
     void Forward::RenderInternal(const SceneRenderData& data)
@@ -123,19 +163,41 @@ namespace Heart::RenderPlugins
         auto frameDataBuffer = frameDataPlugin->GetBuffer();
         auto materialsPlugin = m_Renderer->GetPlugin<RenderPlugins::CollectMaterials>(m_Info.CollectMaterialsPluginName);
         auto materialBuffer = materialsPlugin->GetMaterialBuffer();
-        auto lightingDataPlugin = m_Renderer->GetPlugin<RenderPlugins::LightingData>(m_Info.LightingDataPluginName);
-        auto lightingDataBuffer = lightingDataPlugin->GetBuffer();
-        auto clusterPlugin = m_Renderer->GetPlugin<RenderPlugins::ClusteredLighting>(m_Info.ClusteredLightingPluginName);
         const auto& meshBatchData = m_Renderer->GetPlugin<RenderPlugins::ComputeMeshBatches>(m_Info.MeshBatchesPluginName)->GetBatchData();
         const auto& textBatchData = m_Renderer->GetPlugin<RenderPlugins::ComputeTextBatches>(m_Info.TextBatchesPluginName)->GetBatchData();
 
+        auto encoder = m_CommandBuffer->EncodeRenderCommands(m_Framebuffer.get());
+
+        // Environment map pass
+        if (data.EnvMap)
+        {
+            m_EnvMapResourceSet->BindBuffer(0, frameDataBuffer, 0, 1);
+            m_EnvMapResourceSet->BindTexture(1, data.EnvMap->GetEnvironmentCubemap());
+            m_EnvMapResourceSet->FlushBindings();
+
+            encoder->BindPipeline("envmap");
+            encoder->BindResourceSet(m_EnvMapResourceSet.get(), 0);
+            encoder->FlushResourceSet(0);
+            
+            auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>("engine/DefaultCube.gltf", true);
+            meshAsset->EnsureValid();
+            auto& meshData = meshAsset->GetSubmesh(0);
+
+            encoder->BindVertexBuffer(meshData.GetVertexBuffer());
+            encoder->BindIndexBuffer(meshData.GetIndexBuffer());
+            encoder->DrawIndexed(
+                meshData.GetIndexBuffer()->GetAllocatedCount(),
+                0, 0, 1, 0
+            );
+        }
+        else
+            encoder->ClearColorAttachment(0);
+
+        encoder->StartNextSubpass();
+
         m_StandardResourceSet->BindBuffer(0, frameDataBuffer, 0, 1);
         m_StandardResourceSet->BindBuffer(1, meshBatchData.ObjectDataBuffer.get(), 0, meshBatchData.ObjectDataBuffer->GetAllocatedCount());
-        m_StandardResourceSet->BindBuffer(2, lightingDataBuffer, 0, lightingDataBuffer->GetAllocatedCount());
         m_StandardResourceSet->BindBuffer(3, materialBuffer, 0, materialBuffer->GetAllocatedCount());
-        m_StandardResourceSet->BindBuffer(4, clusterPlugin->GetLightIndicesBuffer(), 0, clusterPlugin->GetLightIndicesBuffer()->GetAllocatedCount());
-        m_StandardResourceSet->BindBuffer(5, clusterPlugin->GetLightGridBuffer(), 0, clusterPlugin->GetLightGridBuffer()->GetAllocatedCount());
-        m_StandardResourceSet->BindBuffer(6, clusterPlugin->GetClusterDataBuffer(), 0, clusterPlugin->GetClusterDataBuffer()->GetAllocatedCount());
         if (data.EnvMap)
             m_StandardResourceSet->BindTexture(7, data.EnvMap->GetBRDFTexture());
         else
@@ -152,7 +214,6 @@ namespace Heart::RenderPlugins
         }
         m_StandardResourceSet->FlushBindings();
         
-        auto encoder = m_CommandBuffer->EncodeRenderCommands(m_Framebuffer.get());
         encoder->WriteTimestamp(0);
         encoder->BindPipeline("standard");
         encoder->BindResourceSet(m_StandardResourceSet.get(), 0);
@@ -173,11 +234,7 @@ namespace Heart::RenderPlugins
 
         m_StandardResourceSet->BindBuffer(0, frameDataBuffer, 0, 1);
         m_StandardResourceSet->BindBuffer(1, textBatchData.ObjectDataBuffer.get(), 0, textBatchData.ObjectDataBuffer->GetAllocatedCount());
-        m_StandardResourceSet->BindBuffer(2, lightingDataBuffer, 0, lightingDataBuffer->GetAllocatedCount());
         m_StandardResourceSet->BindBuffer(3, materialBuffer, 0, materialBuffer->GetAllocatedCount());
-        m_StandardResourceSet->BindBuffer(4, clusterPlugin->GetLightIndicesBuffer(), 0, clusterPlugin->GetLightIndicesBuffer()->GetAllocatedCount());
-        m_StandardResourceSet->BindBuffer(5, clusterPlugin->GetLightGridBuffer(), 0, clusterPlugin->GetLightGridBuffer()->GetAllocatedCount());
-        m_StandardResourceSet->BindBuffer(6, clusterPlugin->GetClusterDataBuffer(), 0, clusterPlugin->GetClusterDataBuffer()->GetAllocatedCount());
         if (data.EnvMap)
             m_StandardResourceSet->BindTexture(7, data.EnvMap->GetBRDFTexture());
         else
@@ -216,6 +273,21 @@ namespace Heart::RenderPlugins
         }
         
         encoder->WriteTimestamp(2);
+
+        encoder->StartNextSubpass();
+
+        // Post processing pass
+
+        m_PostProcessResourceSet->BindSubpassInput(0, m_Framebuffer.get(), { Flourish::SubpassAttachmentType::Color, 0 });
+        m_PostProcessResourceSet->FlushBindings();
+        
+        u32 enableTonemap = data.Settings.TonemapEnable;
+        encoder->BindPipeline("post");
+        encoder->BindResourceSet(m_PostProcessResourceSet.get(), 0);
+        encoder->FlushResourceSet(0);
+        encoder->PushConstants(0, sizeof(u32), &enableTonemap);
+        encoder->Draw(3, 0, 1, 0);
+        
         encoder->EndEncoding();
     }
 }

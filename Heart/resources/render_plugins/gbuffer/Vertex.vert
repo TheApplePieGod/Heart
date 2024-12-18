@@ -24,8 +24,7 @@ void main() {
     int objectId = gl_InstanceIndex;
 
     vec4 worldPos = GET_OBJECT(objectId).model * vec4(inPosition, 1.0);
-    vec4 viewPos = frameBuffer.data.view * worldPos;
-    gl_Position = frameBuffer.data.proj * viewPos;
+    gl_Position = frameBuffer.data.viewProj * worldPos;
 
     // TODO: prev pos should consider the previous model matrix
     // Could store an old index and bind the old object buffer

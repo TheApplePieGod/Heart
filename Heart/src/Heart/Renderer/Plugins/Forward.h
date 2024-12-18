@@ -20,8 +20,6 @@ namespace Heart::RenderPlugins
         HString8 TextBatchesPluginName;
         HString8 CollectMaterialsPluginName;
         HString8 FrameDataPluginName;
-        HString8 LightingDataPluginName;
-        HString8 ClusteredLightingPluginName;
     };
 
     class Forward : public RenderPlugin
@@ -39,8 +37,10 @@ namespace Heart::RenderPlugins
     private:
         ForwardCreateInfo m_Info;
 
+        Ref<Flourish::ResourceSet> m_EnvMapResourceSet;
         Ref<Flourish::ResourceSet> m_StandardResourceSet;
         Ref<Flourish::ResourceSet> m_TextResourceSet;
+        Ref<Flourish::ResourceSet> m_PostProcessResourceSet;
         Ref<Flourish::RenderPass> m_RenderPass;
         Ref<Flourish::Framebuffer> m_Framebuffer;
     };

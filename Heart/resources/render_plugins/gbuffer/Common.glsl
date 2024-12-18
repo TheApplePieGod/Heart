@@ -43,8 +43,25 @@ vec2 ComputeMotionVector(vec4 prevPos, vec4 newPos)
     return prev2d - new2d;
 }
 
-void WriteOutputs(vec3 normal, vec3 albedo, vec3 emissive, float roughness, float metalness, float occlusion)
+void WriteFinalColor()
 {
+    MaterialInfo material = GET_MATERIAL(inMaterialId);
+
+    vec4 albedo = GetAlbedo(material, inTexCoord, vec4(0.f));
+    if (AlphaClip(material, albedo.a))
+        discard;
+
+    // Gamma correction
+    // TODO: fix? this is probably because textures are unorm
+    albedo.rgb = pow(albedo.rgb, vec3(2.2f));
+
+    vec3 emissive = GetEmissive(material, inTexCoord, vec4(0.f));
+    vec3 normal = GetNormal(inTangent, inBitangent, inNormal, material, inTexCoord, vec4(0.f));
+    vec2 metalnessRoughness = GetMetalnessRoughness(material, inTexCoord, vec4(0.f));
+    float occlusion = GetOcclusion(material, inTexCoord, vec4(0.f));
+    float metalness = metalnessRoughness.r;
+    float roughness = metalnessRoughness.g;
+
     if (constants.storeEntityIds == 1)
         outEntityId = float(inEntityId);
 
@@ -56,7 +73,7 @@ void WriteOutputs(vec3 normal, vec3 albedo, vec3 emissive, float roughness, floa
 
     if (constants.storeColorAndEmissive == 1)
     {
-        outColorData = PackColorData(albedo, metalness, clamp(roughness, MIN_ROUGHNESS, MAX_ROUGHNESS));
+        outColorData = PackColorData(albedo.rgb, metalness, clamp(roughness, MIN_ROUGHNESS, MAX_ROUGHNESS));
         outEmissiveData = vec4(emissive, occlusion);
     }
 }

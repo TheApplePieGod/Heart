@@ -145,8 +145,15 @@ namespace Heart::RenderPlugins
             };
             batchData.IndirectBuffer->SetElements(&command, 1, commandIndex);
 
-            // Contiguiously set the instance data for each entity associated with this batch
+            // Sort the batch by material to help with cache coherency
             auto& entityList = batchData.EntityListPool[pair.second.EntityListIndex];
+            std::sort(
+                entityList.begin(),
+                entityList.end(),
+                [](const EntityListEntry& a, const EntityListEntry& b){ return a.MaterialIndex < b.MaterialIndex; }
+            );
+
+            // Contiguiously set the instance data for each entity associated with this batch
             for (auto& entity : entityList)
             {
                 if (!entity.IncludeInPrepass) continue;

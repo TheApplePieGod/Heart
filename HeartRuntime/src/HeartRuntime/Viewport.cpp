@@ -8,6 +8,7 @@
 #include "Heart/Scene/Components.h"
 #include "Heart/Scene/Entity.h"
 #include "Heart/Renderer/DesktopSceneRenderer.h"
+#include "Heart/Renderer/MobileSceneRenderer.h"
 #include "Flourish/Api/Context.h"
 #include "Flourish/Api/Texture.h"
 
@@ -15,7 +16,12 @@ namespace HeartRuntime
 {
     Viewport::Viewport()
     {
+        // TODO: allow the project to select renderer
+        #ifdef HE_PLATFORM_ANDROID
+        m_SceneRenderer = Heart::CreateScope<Heart::MobileSceneRenderer>(false);
+        #else
         m_SceneRenderer = Heart::CreateScope<Heart::DesktopSceneRenderer>(false);
+        #endif
     }
 
     void Viewport::Shutdown()

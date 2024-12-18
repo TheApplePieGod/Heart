@@ -1,6 +1,11 @@
 #ifndef CLUSTER_BUFFER
 #define CLUSTER_BUFFER
 
+#define CLUSTER_GROUP_X 16
+#define CLUSTER_GROUP_Y 8
+#define CLUSTER_GROUP_Z 4
+#define CLUSTER_GROUP_SIZE (CLUSTER_GROUP_X * CLUSTER_GROUP_Y * CLUSTER_GROUP_Z)
+
 #include "../util/Misc.glsl"
 
 struct Cluster {

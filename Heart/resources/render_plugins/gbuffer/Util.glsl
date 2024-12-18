@@ -5,9 +5,7 @@ uvec4 PackColorData(vec3 albedo, float metalness, float roughness)
 {
     uvec4 colorOutput = uvec4(0);
 
-    // Compensate for gamma correction
-    // TODO: fix? this is probably because textures are unorm
-    colorOutput.rgb = uvec3(clamp(pow(albedo, vec3(2.2f)), 0.f, 1.f) * 255.f) & 0xFC;
+    colorOutput.rgb = uvec3(clamp(albedo, 0.f, 1.f) * 255.f) & 0xFC;
 
     // Pack metalness/roughness
     uint qMetal = clamp(uint(metalness * 127.f), 0, 127);

@@ -15,16 +15,15 @@
 #define CLUSTER_BUFFER_WRITE
 #include "ClusterBuffer.glsl"
 
-#include "Common.glsl"
 #include "../util/Misc.glsl"
 
-layout(local_size_x = GROUP_X, local_size_y = GROUP_Y, local_size_z = GROUP_Z) in;
+layout(local_size_x = CLUSTER_GROUP_X, local_size_y = CLUSTER_GROUP_Y, local_size_z = CLUSTER_GROUP_Z) in;
 
 layout(binding = 5) buffer BuildData {
     uint clusterIndex;
 } buildData;
 
-shared Light lights[GROUP_SIZE];
+shared Light lights[CLUSTER_GROUP_SIZE];
 
 #define MAX_LIGHTS_PER_CLUSTER 100
 
@@ -62,7 +61,7 @@ void main()
     uint lightOffset = 0;
     while (lightOffset < lightCount)
     {
-        uint batchSize = min(GROUP_SIZE, lightCount - lightOffset);
+        uint batchSize = min(CLUSTER_GROUP_SIZE, lightCount - lightOffset);
 
         if (uint(gl_LocalInvocationIndex) < batchSize)
         {

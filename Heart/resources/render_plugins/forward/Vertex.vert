@@ -21,17 +21,18 @@ layout(location = 5) out vec3 outWorldPos;
 void main() {
     int objectId = gl_InstanceIndex;
 
-    vec4 worldPos = GET_OBJECT(objectId).model * vec4(inPosition, 1.0);
+    ObjectData object = GET_OBJECT(objectId);
+
+    vec4 worldPos = object.model * vec4(inPosition, 1.0);
     outWorldPos = worldPos.xyz;
 
-    vec4 viewPos = frameBuffer.data.view * worldPos;
-    gl_Position = frameBuffer.data.proj * viewPos;
+    gl_Position = frameBuffer.data.viewProj * worldPos;
     
     outTexCoord = inTexCoord;
-    outMaterialId = GET_OBJECT(objectId).materialId;
+    outMaterialId = object.materialId;
 
     // Convert to world space
-    mat3 tangentToWorld = mat3(GET_OBJECT(objectId).model);
+    mat3 tangentToWorld = mat3(object.model);
     outNormal = tangentToWorld * inNormal;
     outTangent = tangentToWorld * inTangent.xyz;
     outBitangent = cross(inTangent.xyz, inNormal);
