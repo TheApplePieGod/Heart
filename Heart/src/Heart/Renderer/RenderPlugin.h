@@ -70,7 +70,7 @@ namespace Heart
         inline UUID GetUUID() const { return m_UUID; }
         inline Flourish::CommandBuffer* GetCommandBuffer() const { return m_CommandBuffer.get(); }
         inline const Ref<Flourish::Texture>& GetOutputTexture() const { return m_OutputTexture; }
-        inline const auto GetDebugTextures() const { return m_DebugTextures; }
+        inline const auto& GetDebugTextures() const { return m_DebugTextures; }
         inline const auto& GetGraphNodeBuilder() const { return m_GPUGraphNodeBuilder; }
         inline const auto& GetInitDependencies() const { return m_InitDependencies; }
     
