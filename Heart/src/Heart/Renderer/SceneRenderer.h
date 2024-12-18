@@ -77,7 +77,9 @@ namespace Heart
         template<typename Plugin>
         inline Plugin* GetPlugin(const HString8& name)
         {
-            return static_cast<Plugin*>(m_Plugins[name].get());
+            auto found = m_Plugins.find(name);
+            if (found == m_Plugins.end()) return nullptr;
+            return static_cast<Plugin*>(found->second.get());
         }
 
         inline void QueueGraphRebuild() { m_ShouldRebuild = true; }
