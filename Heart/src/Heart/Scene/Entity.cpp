@@ -205,7 +205,12 @@ namespace Heart
 
     bool Entity::HasRuntimeComponent(s64 typeId) const
     {
-        return m_Scene->GetRegistry().storage<RuntimeComponent>(typeId).contains(m_EntityHandle);
+        // Special handling for runtime components. We need to get their unique storage associated
+        // with their type id. However, we need to ensure we dont accidentally create it
+        // if it doesn't exist, otherwise this could cause a race
+        auto storage = m_Scene->GetRegistry().storage(typeId);
+        if (!storage) return false;
+        return storage->contains(m_EntityHandle);
     }
 
     void Entity::AddRuntimeComponent(s64 typeId, uptr objectHandle)

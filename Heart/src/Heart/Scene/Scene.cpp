@@ -557,8 +557,9 @@ namespace Heart
 
     Entity Scene::GetEntityFromUUID(UUID uuid)
     {
-        if (m_UUIDMap.find(uuid) == m_UUIDMap.end()) return Entity();
-        return GetEntityFromUUIDUnchecked(uuid);
+        auto found = m_UUIDMap.find(uuid);
+        if (found == m_UUIDMap.end()) return Entity();
+        return { this, found->second };
     }
     Entity Scene::GetEntityFromName(const HStringView8& name)
     {
@@ -580,7 +581,7 @@ namespace Heart
     
     Entity Scene::GetEntityFromUUIDUnchecked(UUID uuid)
     {
-        return { this, m_UUIDMap[uuid] };
+        return { this, m_UUIDMap.at(uuid) };
     }
 
     void Scene::CacheDirtyTransforms()
@@ -626,9 +627,9 @@ namespace Heart
 
     void Scene::CollisionStartCallback(UUID id0, UUID id1)
     {
-        auto ent0 = GetEntityFromUUIDUnchecked(id0);
-        auto ent1 = GetEntityFromUUIDUnchecked(id1);
-        
+        auto ent0 = GetEntityFromUUID(id0);
+        auto ent1 = GetEntityFromUUID(id1);
+
         if (ent0.IsValid() && ent0.HasComponent<ScriptComponent>())
             ent0.GetComponent<ScriptComponent>().Instance.OnCollisionStarted(ent1);
         if (ent1.IsValid() && ent1.HasComponent<ScriptComponent>())
@@ -637,8 +638,8 @@ namespace Heart
 
     void Scene::CollisionEndCallback(UUID id0, UUID id1)
     {
-        auto ent0 = GetEntityFromUUIDUnchecked(id0);
-        auto ent1 = GetEntityFromUUIDUnchecked(id1);
+        auto ent0 = GetEntityFromUUID(id0);
+        auto ent1 = GetEntityFromUUID(id1);
         
         if (ent0.IsValid() && ent0.HasComponent<ScriptComponent>())
             ent0.GetComponent<ScriptComponent>().Instance.OnCollisionEnded(ent1);
