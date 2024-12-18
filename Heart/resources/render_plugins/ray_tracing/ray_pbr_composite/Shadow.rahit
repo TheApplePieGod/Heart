@@ -36,6 +36,7 @@ void main()
     VertexBuffer vertexBuffer = VertexBuffer(GET_OBJECT(objectId).vertexAddress);
     IndexBuffer indexBuffer = IndexBuffer(GET_OBJECT(objectId).indexAddress);
     uint materialId = uint(GET_OBJECT(objectId).data.r);
+    MaterialInfo material = GET_MATERIAL(materialId);
   
     // Hit triangle
     uvec3 ind = indexBuffer.data[gl_PrimitiveID];
@@ -46,7 +47,7 @@ void main()
     vec3 bary = GetBarycentricCoordinates(hitAttributes);
     vec2 texCoord = GetTexCoord(v0, v1, v2, bary);
     
-    vec4 albedo = GetAlbedo(materialId, texCoord, vec4(0.f));
-    if (AlphaClip(materialId, albedo.a))
+    vec4 albedo = GetAlbedo(material, texCoord, vec4(0.f));
+    if (AlphaClip(material, albedo.a))
         ignoreIntersectionEXT;
 }
