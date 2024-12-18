@@ -118,7 +118,6 @@ namespace Heart
             pbrComposite->AddDependency(tlas->GetName(), GraphDependencyType::CPU);
             pbrComposite->AddDependency(clusteredLighting->GetName(), GraphDependencyType::CPU);
             pbrComposite->AddDependency(clusteredLighting->GetName(), GraphDependencyType::GPU);
-            pbrComposite->AddInitDependency(svgf->GetName());
             pbrComposite->AddInitDependency(gBuffer->GetName());
             pbrComposite->AddInitDependency(clusteredLighting->GetName());
             pbrComposite->AddInitDependency(ssao->GetName());
@@ -211,7 +210,7 @@ namespace Heart
             texCreateInfo.MipCount = 1;
             texCreateInfo.Usage = Flourish::TextureUsageFlags::Compute;
             texCreateInfo.Format = Flourish::ColorFormat::RGBA16_FLOAT;
-            m_RayReflectionsTexture = Flourish::Texture::Create(texCreateInfo);
+            Flourish::Texture::Replace(m_RayReflectionsTexture, texCreateInfo);
         }
     }
 }

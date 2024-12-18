@@ -7,24 +7,6 @@ layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 layout(binding = 0) uniform sampler2D srcTex;
 layout(binding = 1, rgba16f) writeonly uniform image2D dstTex;
 
-// Quadratic color thresholding
-// curve = (threshold - knee, knee * 2, 0.25 / knee)
-// https://github.com/Unity-Technologies/Graphics/blob/master/com.unity.postprocessing/PostProcessing/Shaders/Colors.hlsl
-vec3 QuadraticThreshold(vec3 color, float threshold, vec3 curve)
-{
-    // Pixel brightness
-    float br = max(color.r, max(color.g, color.b));
-
-    // Under-threshold part: quadratic curve
-    float rq = clamp(br - curve.x, 0.0, curve.y);
-    rq = curve.z * rq * rq;
-
-    // Combine and apply the brightness response curve.
-    color *= max(rq, br - threshold) / max(br, 1.0e-4);
-
-    return color;
-}
-
 // https://learnopengl.com/Guest-Articles/2022/Phys.-Based-Bloom
 void main()
 {
@@ -62,13 +44,7 @@ void main()
     downsample += (j + k + l + m) * 0.125;
 
     if (constants.prefilter == 1)
-    {
-        downsample = QuadraticThreshold(
-            downsample,
-            constants.threshold,
-            vec3(constants.threshold - constants.knee, constants.knee * 2.0, 0.25 / constants.knee)
-        );
-    }
+        downsample = QuadraticThreshold(downsample);
     
     imageStore(dstTex, coord, vec4(downsample, 1.f));
 }

@@ -51,24 +51,22 @@ namespace Heart::RenderPlugins
     void Bloom::ResizeInternal()
     {
         Flourish::TextureCreateInfo texCreateInfo;
-        texCreateInfo.Width = m_Renderer->GetRenderWidth();
-        texCreateInfo.Height = m_Renderer->GetRenderHeight();
+        texCreateInfo.Width = m_Renderer->GetRenderWidth() / 2;
+        texCreateInfo.Height = m_Renderer->GetRenderHeight() / 2;
         texCreateInfo.ArrayCount = 1;
-        texCreateInfo.MipCount = 7; // TODO: parameterize?
+        texCreateInfo.MipCount = 6; // TODO: parameterize?
         texCreateInfo.Format = Flourish::ColorFormat::RGBA16_FLOAT;
         texCreateInfo.Usage = Flourish::TextureUsageFlags::Compute;
         texCreateInfo.SamplerState.UVWWrap = { Flourish::SamplerWrapMode::ClampToEdge, Flourish::SamplerWrapMode::ClampToEdge, Flourish::SamplerWrapMode::ClampToEdge };
         m_DownsampleTexture = Flourish::Texture::Create(texCreateInfo);
-        texCreateInfo.Width /= 2;
-        texCreateInfo.Height /= 2;
-        texCreateInfo.MipCount = 6; // TODO: parameterize?
+        texCreateInfo.MipCount--; // TODO: parameterize?
         m_UpsampleTexture = Flourish::Texture::Create(texCreateInfo);
         
         m_MipCount = m_DownsampleTexture->GetMipCount();
 
         m_GPUGraphNodeBuilder.Reset()
             .SetCommandBuffer(m_CommandBuffer.get());
-        for (u32 i = 1; i < m_MipCount; i++)
+        for (u32 i = 0; i < m_MipCount; i++)
         {
             m_GPUGraphNodeBuilder.AddEncoderNode(Flourish::GPUWorkloadType::Compute)
                 .EncoderAddTextureRead(m_DownsampleTexture.get())
@@ -104,7 +102,7 @@ namespace Heart::RenderPlugins
 
         if (!data.Settings.BloomEnable)
         {
-            for (u32 i = 1; i < m_MipCount; i++)
+            for (u32 i = 0; i < m_MipCount; i++)
                 m_CommandBuffer->EncodeComputeCommands()->EndEncoding();
             for (int i = m_MipCount - 2; i >= 0; i--)
                 m_CommandBuffer->EncodeComputeCommands()->EndEncoding();
@@ -113,24 +111,24 @@ namespace Heart::RenderPlugins
         }
 
         // Downsample
-        for (u32 i = 1; i < m_MipCount; i++)
+        for (u32 i = 0; i < m_MipCount; i++)
         {
             m_PushData = {
                 {
-                    i == 1 ? m_Renderer->GetRenderWidth() : m_DownsampleTexture->GetMipWidth(i - 1),
-                    i == 1 ? m_Renderer->GetRenderHeight() : m_DownsampleTexture->GetMipHeight(i - 1),
+                    i == 0 ? m_Info.InputTexture->GetWidth() : m_DownsampleTexture->GetMipWidth(i - 1),
+                    i == 0 ? m_Info.InputTexture->GetHeight() : m_DownsampleTexture->GetMipHeight(i - 1),
                 },
                 { m_DownsampleTexture->GetMipWidth(i), m_DownsampleTexture->GetMipHeight(i) },
                 data.Settings.BloomThreshold,
                 data.Settings.BloomKnee,
                 data.Settings.BloomSampleScale,
-                i == 1
+                i == 0
             };
 
             // TODO: shouldn't force all bindings to be rewritten?
             auto encoder = m_CommandBuffer->EncodeComputeCommands();
             encoder->BindComputePipeline(m_DownsamplePipeline.get());
-            if (i == 1)
+            if (i == 0)
             {
                 encoder->WriteTimestamp(0);
                 m_DownsampleResourceSet->BindTexture(0, m_Info.InputTexture.get());
@@ -157,7 +155,7 @@ namespace Heart::RenderPlugins
                 data.Settings.BloomThreshold,
                 data.Settings.BloomKnee,
                 data.Settings.BloomSampleScale,
-                false
+                i == 0
             };
 
             auto encoder = m_CommandBuffer->EncodeComputeCommands();
@@ -166,7 +164,10 @@ namespace Heart::RenderPlugins
                 m_UpsampleResourceSet->BindTextureLayer(0, m_DownsampleTexture.get(), 0, i + 1);
             else
                 m_UpsampleResourceSet->BindTextureLayer(0, m_UpsampleTexture.get(), 0, i + 1);
-            m_UpsampleResourceSet->BindTextureLayer(1, m_DownsampleTexture.get(), 0, i);
+            if (i == 0)
+                m_UpsampleResourceSet->BindTextureLayer(1, m_Info.InputTexture.get(), 0, 0);
+            else
+                m_UpsampleResourceSet->BindTextureLayer(1, m_DownsampleTexture.get(), 0, i);
             m_UpsampleResourceSet->BindTextureLayer(2, m_UpsampleTexture.get(), 0, i);
             m_UpsampleResourceSet->FlushBindings();
 
