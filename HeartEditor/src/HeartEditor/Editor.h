@@ -70,6 +70,8 @@ namespace HeartEditor
 
         static bool IsDirty();
 
+        static void PushSerialQueue(std::function<void()>&& func);
+
         static void PushStatus(const StatusElement& elem);
         static void UpdateStatus(const StatusElement& newStatus);
         inline static void LockStatus() { s_StatusLock.lock(); }
@@ -117,7 +119,9 @@ namespace HeartEditor
         inline static std::unordered_map<Heart::HString8, Heart::Ref<Widget>> s_Windows;
         inline static std::mutex s_WindowsLock;
         inline static std::mutex s_StatusLock;
+        inline static std::mutex s_SerialQueueLock;
         inline static bool s_ImGuiDemoOpen;
+        inline static Heart::HVector<std::function<void()>> s_SerialQueue;
         inline static SceneState s_SceneState;
         inline static Heart::HString8 s_ConfigDirectory;
 

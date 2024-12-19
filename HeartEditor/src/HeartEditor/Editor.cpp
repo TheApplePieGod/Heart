@@ -51,6 +51,13 @@ namespace HeartEditor
 
     void Editor::OnUpdate(Heart::Timestep ts)
     {
+        // Iterate the serial queue
+        s_SerialQueueLock.lock();
+        for (const auto& func : s_SerialQueue)
+            func();
+        s_SerialQueue.Clear();
+        s_SerialQueueLock.unlock();
+
         // Tick status elements
         s_StatusLock.lock();
         for (u32 i = 0; i < s_EditorState.StatusElements.Count(); i++)
@@ -317,22 +324,27 @@ namespace HeartEditor
         buildStatus.Text = "Compiling scripts...";
         Editor::PushStatus(buildStatus);
 
+        // Create a task so the compilation is non-blocking
         Heart::UUID statusId = buildStatus.Id;
         Heart::TaskManager::Schedule(
             [statusId]()
             {
                 bool success = s_EditorState.ActiveProject->BuildScripts(true);
-                if (success)
-                    s_EditorState.ActiveProject->LoadScriptsPlugin();
 
-                s_EditorState.IsCompilingScripts = false;
+                // Finalize in serial to prevent issues reloading the plugin
+                PushSerialQueue([success, statusId](){
+                    if (success)
+                        s_EditorState.ActiveProject->LoadScriptsPlugin();
 
-                StatusElement buildStatus;
-                buildStatus.Id = statusId;
-                buildStatus.Duration = 4000.f;
-                buildStatus.Type = success ? StatusElementType::Success : StatusElementType::Error;
-                buildStatus.Text = success ? "Compilation successful!" : "Compilation failed, check logs";
-                UpdateStatus(buildStatus);
+                    s_EditorState.IsCompilingScripts = false;
+
+                    StatusElement buildStatus;
+                    buildStatus.Id = statusId;
+                    buildStatus.Duration = 4000.f;
+                    buildStatus.Type = success ? StatusElementType::Success : StatusElementType::Error;
+                    buildStatus.Text = success ? "Compilation successful!" : "Compilation failed, check logs";
+                    UpdateStatus(buildStatus);
+                });
             },
             Heart::Task::Priority::Medium,
             "Script compilation"
@@ -345,6 +357,12 @@ namespace HeartEditor
             if (pair.second->IsDirty())
                 return true;
         return false;
+    }
+
+    void Editor::PushSerialQueue(std::function<void()>&& func)
+    {
+        std::lock_guard lock(s_SerialQueueLock);
+        s_SerialQueue.Add(func);
     }
 
     void Editor::PushStatus(const StatusElement& elem)
