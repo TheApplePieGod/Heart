@@ -330,10 +330,19 @@ namespace HeartEditor
 
         auto timer = Heart::Timer("Client plugin build");
         
+        Heart::HString8 command;
+        #ifndef HE_PLATFORM_WINDOWS
+            command += "sh ";
+        #endif
+
+        command += "\"";
+        command += Heart::AssetManager::GetDotDirectory();
+        command += "/BuildScripts";
+
         #ifdef HE_PLATFORM_WINDOWS
-            Heart::HString8 command = "\".heart/BuildScripts.bat\" ";
+            command += ".bat\" ";
         #else
-            Heart::HString8 command = "sh \".heart/BuildScripts.sh\" ";
+            command += ".sh\" ";
         #endif
         
         if (debug)

@@ -76,11 +76,12 @@ namespace Widgets
             )
             {
                 // Root (exclude unnecessary folders)
-                Heart::HString filename = entry.path().filename().generic_u8string();
+                Heart::HString8 filename = entry.path().filename().generic_u8string();
                 if ((isRoot && (
                     filename == ".vs" ||
                     filename == "bin" ||
-                    filename == "obj"
+                    filename == "obj" ||
+                    filename == Heart::AssetManager::GetDotDirectory()
                 )) || (
                     filename == ".DS_Store"
                 ))
