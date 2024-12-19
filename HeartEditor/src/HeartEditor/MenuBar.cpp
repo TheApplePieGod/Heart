@@ -37,26 +37,26 @@ namespace HeartEditor
                 {
                     Project* activeProject = Editor::GetState().ActiveProject.get();
 
+                    bool scriptsCompiling = Editor::GetState().IsCompilingScripts;
+                    bool scriptsInUse = isRuntime || scriptsCompiling;
+
                     if (activeProject)
                     {
-                        if (isRuntime)
+                        if (scriptsInUse)
                             ImGui::BeginDisabled();
                         if (ImGui::MenuItem("Reload Client Scripts"))
                             activeProject->LoadScriptsPlugin();
                         if (ImGui::MenuItem("Build & Load Client Scripts", "Ctrl+B"))
-                        {
-                            if (activeProject->BuildScripts(true))
-                                activeProject->LoadScriptsPlugin();
-                        }
-                        if (isRuntime)
+                            Editor::StartScriptCompilation();
+                        if (scriptsInUse)
                             ImGui::EndDisabled();
                         ImGui::Separator();
                     }
 
                     if (activeProject && ImGui::MenuItem("Save Project", "Ctrl+S"))
-                        activeProject->SaveToDisk();
+                        Editor::SaveProject();
                     
-                    if (isRuntime)
+                    if (scriptsInUse)
                         ImGui::BeginDisabled();
                     if (activeProject && ImGui::BeginMenu("Export Project"))
                     {
@@ -79,9 +79,11 @@ namespace HeartEditor
 
                         ImGui::EndMenu();
                     }
-                    if (isRuntime)
+                    if (scriptsInUse)
                         ImGui::EndDisabled();
 
+                    if (scriptsCompiling)
+                        ImGui::BeginDisabled();
                     if (ImGui::MenuItem("New Project"))
                         newProjectModalOpened = true;
 
@@ -91,9 +93,13 @@ namespace HeartEditor
                         if (!path.IsEmpty())
                             Project::LoadFromPath(path);
                     }
+                    if (scriptsCompiling)
+                        ImGui::EndDisabled();
 
                     ImGui::Separator();
 
+                    if (scriptsInUse)
+                        ImGui::BeginDisabled();
                     if (Editor::GetEditorSceneAsset() && ImGui::MenuItem("Save Scene", "Ctrl+S"))
                         Editor::SaveScene();
                         
@@ -121,6 +127,8 @@ namespace HeartEditor
                             Editor::OpenSceneFromAsset(assetId);
                         }
                     }
+                    if (scriptsInUse)
+                        ImGui::EndDisabled();
 
                     ImGui::Separator();
 

@@ -16,6 +16,7 @@
 #include "Heart/Events/KeyEvents.h"
 #include "Heart/Events/ButtonEvents.h"
 #include "Heart/Scripting/ScriptingEngine.h"
+#include "imgui.h"
 #include "imgui/imgui_internal.h"
 
 namespace HeartEditor
@@ -55,6 +56,8 @@ namespace HeartEditor
     void EditorLayer::OnUpdate(Heart::Timestep ts)
     {
         HE_PROFILE_FUNCTION();
+
+        Editor::OnUpdate(ts);
 
         auto& viewport = (Widgets::Viewport&)Editor::GetWindow("Viewport");
 
@@ -98,6 +101,8 @@ namespace HeartEditor
         // TODO: replace this system with a more streamlined 'render group' system
         Editor::RenderWindowsPostSceneUpdate();
 
+        m_StatusBar.OnImGuiRender();
+
         ImGui::End();
 
         ImGui::PopStyleVar(2);
@@ -126,18 +131,20 @@ namespace HeartEditor
         }
         else if (event.GetKeyCode() == Heart::KeyCode::F11)
             EditorApp::Get().GetWindow().ToggleFullscreen();
-        else if (event.GetKeyCode() == Heart::KeyCode::S && Heart::Input::IsKeyPressed(Heart::KeyCode::LeftCtrl))
-        {
-            Editor::GetState().ActiveProject->SaveToDisk();
+        else if (
+            event.GetKeyCode() == Heart::KeyCode::S &&
+            Heart::Input::IsKeyPressed(Heart::KeyCode::LeftCtrl) &&
+            !Editor::GetState().IsCompilingScripts
+        ) {
+            Editor::SaveProject();
             Editor::SaveScene();
         }
         else if (
             event.GetKeyCode() == Heart::KeyCode::B &&
             Heart::Input::IsKeyPressed(Heart::KeyCode::LeftCtrl) &&
-            Editor::GetSceneState() != SceneState::Playing)
-        {
-            if (Editor::GetState().ActiveProject->BuildScripts(true))
-                Editor::GetState().ActiveProject->LoadScriptsPlugin();
+            Editor::GetSceneState() != SceneState::Playing
+        ) {
+            Editor::StartScriptCompilation();
         }
             
         return true;

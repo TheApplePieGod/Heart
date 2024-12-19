@@ -2,6 +2,7 @@
 
 #include "HeartEditor/Toolbar.h"
 #include "HeartEditor/MenuBar.h"
+#include "HeartEditor/StatusBar.h"
 #include "Heart/Core/Layer.h"
 
 namespace Heart
@@ -35,5 +36,6 @@ namespace HeartEditor
         Heart::HString8 m_WindowName;
         Toolbar m_Toolbar;
         MenuBar m_MenuBar;
+        StatusBar m_StatusBar;
     };
 }

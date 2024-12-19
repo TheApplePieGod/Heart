@@ -49,6 +49,23 @@ namespace HeartEditor
         s_RenderScene.Cleanup();
     }
 
+    void Editor::OnUpdate(Heart::Timestep ts)
+    {
+        // Tick status elements
+        s_StatusLock.lock();
+        for (u32 i = 0; i < s_EditorState.StatusElements.Count(); i++)
+        {
+            auto& elem = s_EditorState.StatusElements[i];
+
+            if (elem.Duration <= 0.f)
+                s_EditorState.StatusElements.Remove(i--);
+
+            // Subtract after so that we get one extra frame on screen
+            elem.Duration -= ts.StepMilliseconds();
+        }
+        s_StatusLock.unlock();
+    }
+
     void Editor::CreateWindows()
     {
         Heart::TaskGroup taskGroup;
@@ -179,15 +196,41 @@ namespace HeartEditor
         SaveEditorConfig();
     }
 
+    void Editor::SaveProject()
+    {
+        // TODO: can this actually fail?
+        s_EditorState.ActiveProject->SaveToDisk();
+
+        StatusElement buildStatus;
+        buildStatus.Duration = 2000.f;
+        buildStatus.Type = StatusElementType::Success;
+        buildStatus.Text = "Project saved";
+        Editor::PushStatus(buildStatus);
+    }
+
     void Editor::SaveScene()
     {
         if (!s_EditorSceneAsset) return;
+
+        StatusElement buildStatus;
+        buildStatus.Duration = 2000.f;
         
         auto asset = Heart::AssetManager::RetrieveAsset<Heart::SceneAsset>(s_EditorSceneAsset);
         if (asset)
+        {
+            // TODO: can this actually fail?
             asset->Save(s_EditorScene.get());
+
+            buildStatus.Type = StatusElementType::Success;
+            buildStatus.Text = "Scene saved";
+            Editor::PushStatus(buildStatus);
+        }
         else
-            HE_ENGINE_LOG_ERROR("Failed to save scene");
+        {
+            buildStatus.Type = StatusElementType::Error;
+            buildStatus.Text = "Failed to save scene";
+            Editor::PushStatus(buildStatus);
+        }
     }
 
     void Editor::OpenScene(const Heart::Ref<Heart::Scene>& scene)
@@ -262,11 +305,73 @@ namespace HeartEditor
         viewport.ResetEditorCamera();
     }
 
+    void Editor::StartScriptCompilation()
+    {
+        if (s_EditorState.IsCompilingScripts) return;
+
+        s_EditorState.IsCompilingScripts = true;
+
+        StatusElement buildStatus;
+        buildStatus.Duration = std::numeric_limits<f32>::max();
+        buildStatus.Type = StatusElementType::Loading;
+        buildStatus.Text = "Compiling scripts...";
+        Editor::PushStatus(buildStatus);
+
+        Heart::UUID statusId = buildStatus.Id;
+        Heart::TaskManager::Schedule(
+            [statusId]()
+            {
+                bool success = s_EditorState.ActiveProject->BuildScripts(true);
+                if (success)
+                    s_EditorState.ActiveProject->LoadScriptsPlugin();
+
+                s_EditorState.IsCompilingScripts = false;
+
+                StatusElement buildStatus;
+                buildStatus.Id = statusId;
+                buildStatus.Duration = 4000.f;
+                buildStatus.Type = success ? StatusElementType::Success : StatusElementType::Error;
+                buildStatus.Text = success ? "Compilation successful!" : "Compilation failed, check logs";
+                UpdateStatus(buildStatus);
+            },
+            Heart::Task::Priority::Medium,
+            "Script compilation"
+        );
+    }
+
     bool Editor::IsDirty()
     {
         for (auto& pair : s_Windows)
             if (pair.second->IsDirty())
                 return true;
         return false;
+    }
+
+    void Editor::PushStatus(const StatusElement& elem)
+    {
+        switch (elem.Type)
+        {
+            default: break;
+            case StatusElementType::Info: { HE_LOG_INFO("{}", elem.Text.Data()); } break;
+            case StatusElementType::Warn: { HE_LOG_WARN("{}", elem.Text.Data()); } break;
+            case StatusElementType::Error: { HE_LOG_ERROR("{}", elem.Text.Data()); } break;
+        }
+
+        std::lock_guard lock(s_StatusLock);
+        s_EditorState.StatusElements.Add(elem);
+    }
+
+    void Editor::UpdateStatus(const StatusElement& newStatus)
+    {
+        std::lock_guard lock(s_StatusLock);
+
+        for (u32 i = 0; i < s_EditorState.StatusElements.Count(); i++)
+        {
+            if (s_EditorState.StatusElements[i].Id == newStatus.Id)
+            {
+                s_EditorState.StatusElements[i] = newStatus;
+                return;
+            }
+        }
     }
 }

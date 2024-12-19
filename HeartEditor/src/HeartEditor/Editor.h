@@ -1,11 +1,13 @@
 #pragma once
 
+#include "Heart/Container/HVector.hpp"
 #include "Heart/Scene/Entity.h"
 #include "Heart/Scene/RenderScene.h"
 #include "Heart/Renderer/SceneRenderer.h"
 #include "Heart/Container/HString8.h"
 #include "Heart/Task/TaskManager.h"
 #include "HeartEditor/Project.h"
+#include "HeartEditor/StatusBar.h"
 
 namespace HeartEditor
 {
@@ -20,6 +22,10 @@ namespace HeartEditor
         Heart::Ref<Project> ActiveProject;
         Heart::Entity SelectedEntity;
         Heart::SceneRenderSettings RenderSettings;
+        Heart::HVector<StatusElement>StatusElements;
+
+        // State flags
+        bool IsCompilingScripts = false;
     };
 
     struct ProjectDescriptor
@@ -41,6 +47,7 @@ namespace HeartEditor
     public:
         static void Initialize();
         static void Shutdown();
+        static void OnUpdate(Heart::Timestep ts);
         static void CreateWindows();
         static void DestroyWindows();
         static void RenderWindows();
@@ -50,6 +57,7 @@ namespace HeartEditor
         static void SaveEditorConfig();
 
         static void SetActiveProject(Heart::Ref<Project>& project);
+        static void SaveProject();
 
         static void SaveScene();
         static void OpenScene(const Heart::Ref<Heart::Scene>& scene);
@@ -58,7 +66,14 @@ namespace HeartEditor
         static void PlayScene();
         static void StopScene();
 
+        static void StartScriptCompilation();
+
         static bool IsDirty();
+
+        static void PushStatus(const StatusElement& elem);
+        static void UpdateStatus(const StatusElement& newStatus);
+        inline static void LockStatus() { s_StatusLock.lock(); }
+        inline static void UnlockStatus() { s_StatusLock.unlock(); }
 
         inline static EditorConfig& GetConfig() { return s_EditorConfig; }
         inline static EditorState& GetState() { return s_EditorState; }
@@ -101,6 +116,7 @@ namespace HeartEditor
         inline static Heart::UUID s_EditorSceneAsset;
         inline static std::unordered_map<Heart::HString8, Heart::Ref<Widget>> s_Windows;
         inline static std::mutex s_WindowsLock;
+        inline static std::mutex s_StatusLock;
         inline static bool s_ImGuiDemoOpen;
         inline static SceneState s_SceneState;
         inline static Heart::HString8 s_ConfigDirectory;

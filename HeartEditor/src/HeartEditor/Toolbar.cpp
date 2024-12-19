@@ -20,6 +20,10 @@ namespace HeartEditor
 
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(spacing, 0.f));
         ImGui::SetCursorPosX(maxWidth * 0.5f - buttonSize * 0.5f - spacing * (numButtons - 1));
+
+        if (Editor::GetState().IsCompilingScripts)
+            ImGui::BeginDisabled();
+        
         if (ImGui::ImageButton(
             Heart::AssetManager::RetrieveAsset(
                 Editor::GetSceneState() == SceneState::Editing ? "editor/play.png" : "editor/stop.png", true
@@ -32,6 +36,10 @@ namespace HeartEditor
             else
                 Editor::StopScene();
         }
+
+        if (Editor::GetState().IsCompilingScripts)
+            ImGui::EndDisabled();
+
         ImGui::PopStyleVar();
 
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.f, 1.f));
