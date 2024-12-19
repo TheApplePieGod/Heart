@@ -9,7 +9,7 @@ namespace Heart
 {
     void ScriptComponentInstance::Instantiate()
     {
-        if (!HasScriptClass()) return;
+        HE_ENGINE_ASSERT(IsInstantiable());
         Destroy();
         m_ObjectHandle = ScriptingEngine::InstantiateScriptComponent(
             GetScriptClassObject().GetFullName()

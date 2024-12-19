@@ -111,7 +111,7 @@ namespace Widgets
 
             m_FilteredEntries.Insert(m_ProcessingEntries, 0);
             if (m_FilteredEntries.Count() > m_MaxEntries)
-                m_FilteredEntries.Resize(m_MaxEntries);
+                m_FilteredEntries.Trim(m_MaxEntries);
 
             if (m_FilteredEntries.Count() > 0)
             {

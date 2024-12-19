@@ -133,7 +133,7 @@ namespace Heart
 				} break;
 				case GLFW_RELEASE:
 				{
-                    Input::AddButtonEvent(buttonCode, true);
+                    Input::AddButtonEvent(buttonCode, false);
 					ButtonReleasedEvent event(buttonCode);
 					data.DataPtr->EmitEvent(event);
 				} break;

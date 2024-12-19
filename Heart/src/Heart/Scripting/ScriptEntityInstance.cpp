@@ -12,7 +12,7 @@ namespace Heart
 {
     void ScriptEntityInstance::Instantiate(Entity owner)
     {
-        if (!HasScriptClass()) return;
+        HE_ENGINE_ASSERT(IsInstantiable());
         Destroy();
         m_ObjectHandle = ScriptingEngine::InstantiateScriptEntity(
             GetScriptClassObject().GetFullName(),

@@ -149,6 +149,7 @@ namespace Heart
         
         inline void Reserve(u32 allocCount) { m_Container.Reserve(allocCount); }
         inline void Clear(bool shrink = false) { m_Container.Clear(shrink); }
+        inline void Trim(u32 newCount) { m_Container.Trim(newCount); }
         inline void Resize(u32 elemCount, bool construct = true) { m_Container.Resize(elemCount, construct); }
         inline HVector Clone() const { return HVector(m_Container.Clone()); }
         inline HVector& CloneInPlace() { m_Container = Container(Data(), Count()); return *this; }

@@ -16,11 +16,13 @@ namespace Heart
     template <>
     void Scene::CopyComponent<ScriptComponent>(entt::entity src, Entity dst)
     {
-        if (m_Registry.any_of<ScriptComponent>(src))
-        {
-            auto& oldComp = m_Registry.get<ScriptComponent>(src);
-            ScriptComponent newComp = oldComp;
+        if (!m_Registry.any_of<ScriptComponent>(src)) return;
 
+        auto& oldComp = m_Registry.get<ScriptComponent>(src);
+        ScriptComponent newComp = oldComp;
+
+        if (newComp.Instance.IsInstantiable())
+        {
             // Reinstantiate a new object with copied fields
             // TODO: binary serialization will likely be faster
             newComp.Instance.ClearObjectHandle();
@@ -29,9 +31,9 @@ namespace Heart
             newComp.Instance.OnConstruct();
             if (m_IsRuntime)
                 newComp.Instance.OnPlayStart();
-
-            dst.AddComponent<ScriptComponent>(newComp);
         }
+
+        dst.AddComponent<ScriptComponent>(newComp);
     }
 
     template <>
