@@ -254,6 +254,38 @@ TEST_CASE("Testing HVector")
         CHECK(DataStructsAllocated == 0);
         CHECK(DataStructsDeallocated == 0);
     }
+    SUBCASE("Insert - beginning")
+    {
+        Heart::HVector<DataStruct> vTest2 = {
+            DataStruct(4),
+            DataStruct(5),
+            DataStruct(6),
+            DataStruct(7),
+            DataStruct(8)
+        };
+
+        vTest2.Insert(vData, 0);
+
+        CHECK(vTest2.Count() == 8);
+        CHECK(vTest2[0].Value == 1);
+        CHECK(vTest2[2].Value == 3);
+        CHECK(vTest2[3].Value == 4);
+        CHECK(vTest2[5].Value == 6);
+        CHECK(vTest2[7].Value == 8);
+    }
+    SUBCASE("Insert - middle")
+    {
+        Heart::HVector<DataStruct> vTest2 = vData;
+
+        vTest2.Insert(vData, 1);
+
+        CHECK(vTest2.Count() == vData.Count() * 2);
+        CHECK(vTest2[0].Value == 1);
+        CHECK(vTest2[1].Value == 1);
+        CHECK(vTest2[3].Value == 3);
+        CHECK(vTest2[4].Value == 2);
+        CHECK(vTest2[5].Value == 3);
+    }
     SUBCASE("Append (shallow = false)")
     {
         Heart::HVector<DataStruct> vTest2 = {
@@ -271,6 +303,10 @@ TEST_CASE("Testing HVector")
         CHECK(vTest2.Data() == oldData);
         CHECK(vTest2.Front().Value == 1);
         CHECK(vTest2.Back() == vData.Back());
+        CHECK(vTest2[0].Value == 1);
+        CHECK(vTest2[2].Value == 3);
+        CHECK(vTest2[3].Value == 1);
+        CHECK(vTest2[5].Value == 3);
         CHECK(vTest2.Front().GetRefCount() == 1);
         CHECK(vTest2.Back().GetRefCount() == 2);
         CHECK(DataStructsAllocated == 0);
@@ -293,6 +329,10 @@ TEST_CASE("Testing HVector")
         CHECK(vTest2.Data() == oldData);
         CHECK(vTest2.Front().Value == 1);
         CHECK(vTest2.Back() == vData.Back());
+        CHECK(vTest2[0].Value == 1);
+        CHECK(vTest2[2].Value == 3);
+        CHECK(vTest2[3].Value == 1);
+        CHECK(vTest2[5].Value == 3);
         CHECK(vTest2.Front().GetRefCount() == 1);
         CHECK(vTest2.Back().GetRefCount() == 1);
         CHECK(DataStructsAllocated == 0);

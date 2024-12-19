@@ -17,11 +17,13 @@ namespace Heart
     struct LogListEntry
     {
         LogListEntry(
+            u64 id,
             LogLevel level,
             spdlog::string_view_t timestamp,
             spdlog::string_view_t source,
             spdlog::string_view_t message)
-            : Level(level),
+            : Id(id),
+              Level(level),
               Timestamp(timestamp.begin(), timestamp.size()),
               Source(source.begin(), source.size()),
               Message(message.begin(), message.size())
@@ -31,6 +33,7 @@ namespace Heart
             "Trace", "Debug", "Info", "Warn", "Error", "Critical"
         };
 
+        u64 Id;
         LogLevel Level;
         std::string Timestamp;
         std::string Source;
@@ -47,12 +50,14 @@ namespace Heart
         inline static auto& GetLogList() { return s_LogList; }
         inline static void LockLogList() { s_LogListLock.lock(); }
         inline static void UnlockLogList() { s_LogListLock.unlock(); }
+        inline static u64 GetNextLogId() { return s_LogId++; }
 
     private:
         inline static Ref<spdlog::logger> s_EngineLogger;
         inline static Ref<spdlog::logger> s_ClientLogger;
         inline static std::vector<LogListEntry> s_LogList;
         inline static std::mutex s_LogListLock;
+        inline static u64 s_LogId = 1;
     };
 }
 

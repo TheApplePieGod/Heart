@@ -21,13 +21,15 @@ namespace Widgets
         ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(4.f, 4.f));
         if (ImGui::BeginTable("RegistryTable", 4, ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_SizingFixedFit))
         {
+            bool shouldRebuild = false;
+
             ImGui::TableNextColumn();
             ImGui::Text("Timestamp");
-            Heart::ImGuiUtils::DrawTextFilter(m_TimestampFilter, "##tsfilter");
+            shouldRebuild |= Heart::ImGuiUtils::DrawTextFilter(m_TimestampFilter, "##tsfilter");
 
             ImGui::TableNextColumn();
             ImGui::Text("Level");
-            Heart::ImGuiUtils::DrawStringDropdownFilter(
+            shouldRebuild |= Heart::ImGuiUtils::DrawStringDropdownFilter(
                 Heart::LogListEntry::TypeStrings,
                 HE_ARRAY_SIZE(Heart::LogListEntry::TypeStrings),
                 m_LevelFilter,
@@ -36,23 +38,40 @@ namespace Widgets
 
             ImGui::TableNextColumn();
             ImGui::Text("Source");
-            Heart::ImGuiUtils::DrawTextFilter(m_SourceFilter, "##srcfilter");
+            shouldRebuild |= Heart::ImGuiUtils::DrawTextFilter(m_SourceFilter, "##srcfilter");
 
             const float messageContentPadding = 50.f;
             ImGui::TableNextColumn();
             ImGui::Text("Message");
             float messageContentSize = std::max(ImGui::GetContentRegionAvail().x, 1.f);
-            Heart::ImGuiUtils::DrawTextFilter(m_MessageFilter, "##msgfilter");
+            shouldRebuild |= Heart::ImGuiUtils::DrawTextFilter(m_MessageFilter, "##msgfilter");
+
+            // Also rebuild if we resize the widget.
+            // TODO: this is scuffed, and we really should just figure out how to properly
+            // support multiline logs 
+            shouldRebuild |= fabsf(messageContentSize - m_LastWidth) > 10.f;
+
+            if (shouldRebuild)
+            {
+                m_FilteredEntries.Clear();
+                m_LastWidth = messageContentSize;
+            }
 
             Heart::Logger::LockLogList();
-            m_FilteredEntries.Clear();
             auto& logList = Heart::Logger::GetLogList();
+
+            m_ProcessingEntries.Clear();
             for (int i = logList.size() - 1; i >= 0; i--)
             {
-                if (m_FilteredEntries.Count() >= 5000)
+                auto& entry = logList[i];
+
+                // Sorted by newest first first
+                if (!m_FilteredEntries.IsEmpty() && entry.Id <= m_FilteredEntries.Front().Entry.Id)
                     break;
 
-                auto& entry = logList[i];
+                if (m_ProcessingEntries.Count() >= m_MaxEntries)
+                    break;
+
                 if (!PassLevelFilter((u32)entry.Level) ||
                     !m_TimestampFilter.PassFilter(entry.Timestamp.c_str()) ||
                     !m_SourceFilter.PassFilter(entry.Source.c_str()) ||
@@ -73,12 +92,13 @@ namespace Widgets
                     {
                         auto substr = line.Substr(charCount * i, charCount);
                         Heart::LogListEntry partialEntry(
+                            entry.Id,
                             entry.Level,
                             lineIndex == 0 ? entry.Timestamp : "",
                             lineIndex == 0 ? entry.Source : "",
                             std::string_view(substr.Data(), substr.Count())
                         );
-                        m_FilteredEntries.Add(
+                        m_ProcessingEntries.Add(
                             { std::move(partialEntry), lineIndex != 0 }
                         );
                     
@@ -86,7 +106,12 @@ namespace Widgets
                     }
                 }
             }
+
             Heart::Logger::UnlockLogList();
+
+            m_FilteredEntries.Insert(m_ProcessingEntries, 0);
+            if (m_FilteredEntries.Count() > m_MaxEntries)
+                m_FilteredEntries.Resize(m_MaxEntries);
 
             if (m_FilteredEntries.Count() > 0)
             {

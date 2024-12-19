@@ -102,7 +102,7 @@ namespace Heart
             u32 oldCount = Count();
             ResizeExplicit(elemCount, GetNextPowerOfTwo(elemCount), construct);
             // We want to zero out the memory if the default constructors were not run
-            if (!m_ShouldConstruct || (!construct && elemCount > oldCount))
+            if (elemCount > oldCount && (!m_ShouldConstruct || !construct))
                 memset(m_Data + oldCount, 0, (elemCount - oldCount) * sizeof(T));
         }
 

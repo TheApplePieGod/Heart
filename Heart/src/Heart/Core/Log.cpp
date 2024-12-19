@@ -40,6 +40,7 @@ namespace Heart
 
             Logger::LockLogList();
             Logger::GetLogList().emplace_back(
+                Logger::GetNextLogId(),
                 (LogLevel)msg.level,
                 fmt::to_string(formatted),
                 msg.logger_name,

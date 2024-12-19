@@ -78,39 +78,57 @@ namespace Heart
         }
     }
 
-    void ImGuiUtils::DrawTextFilter(ImGuiTextFilter& filter, const char* popupName)
+    bool ImGuiUtils::DrawTextFilter(ImGuiTextFilter& filter, const char* popupName)
     {
+        bool modified = false;
+
         DrawFilterPopup(
             popupName,
             true,
-            [&filter] ()
+            [&filter, &modified] ()
             {
                 if (filter.Draw())
+                {
                     ImGui::SetKeyboardFocusHere(-1);
+                    modified = true;
+                }
             },
-            [&filter] ()
+            [&filter, &modified] ()
             {
                 filter.Clear();
+                modified = true;
             }
         );
+
+        return modified;
     }
 
-    void ImGuiUtils::DrawStringDropdownFilter(const char* const* options, u32 optionCount, u32& selected, const char* popupName)
+    bool ImGuiUtils::DrawStringDropdownFilter(const char* const* options, u32 optionCount, u32& selected, const char* popupName)
     {
+        bool modified = false;
+
         ImGuiUtils::DrawFilterPopup(
             popupName,
             false,
-            [&selected, options, optionCount] ()
+            [&selected, &modified, options, optionCount] ()
             {
                 for (u32 i = 0; i < optionCount; i++)
+                {
                     if (ImGui::Selectable(options[i], selected == i))
+                    {
                         selected = i;
+                        modified = true;
+                    }
+                }
             },
-            [&selected] ()
+            [&selected, &modified] ()
             {
                 selected = 0;
+                modified = true;
             }
         );
+
+        return modified;
     }
 
     void ImGuiUtils::AssetDropTarget(Asset::Type typeFilter, std::function<void(const HString8&)>&& dropCallback)

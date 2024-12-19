@@ -331,9 +331,9 @@ namespace HeartEditor
         auto timer = Heart::Timer("Client plugin build");
         
         #ifdef HE_PLATFORM_WINDOWS
-            Heart::HString8 command = ".heart/BuildScripts.bat ";
+            Heart::HString8 command = "\".heart/BuildScripts.bat\" ";
         #else
-            Heart::HString8 command = "sh .heart/BuildScripts.sh ";
+            Heart::HString8 command = "sh \".heart/BuildScripts.sh\" ";
         #endif
         
         if (debug)
@@ -673,7 +673,7 @@ namespace HeartEditor
     Heart::HString8 Project::RunCommandInProjectDirectory(Heart::HStringView8 command, int& outResult)
     {
         #ifdef HE_PLATFORM_WINDOWS
-            Heart::HString8 prefix = "/k cd ";
+            Heart::HString8 prefix = "/C cd ";
         #else
             Heart::HString8 prefix = "cd ";
         #endif
