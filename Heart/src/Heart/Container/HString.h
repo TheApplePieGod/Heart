@@ -280,8 +280,8 @@ namespace Heart
 
     private:
         HString::Encoding m_Encoding = HString::Encoding::UTF8;
-        const void* m_Data;
-        u32 m_Count;
+        const void* m_Data = nullptr;
+        u32 m_Count = 0;
 
         friend class HString;
     };

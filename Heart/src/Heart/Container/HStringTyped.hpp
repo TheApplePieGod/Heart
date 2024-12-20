@@ -144,8 +144,8 @@ namespace Heart
         inline constexpr const T& operator[](u32 index) const { return m_Data[index]; }
 
     protected:
-        const T* m_Data;
-        u32 m_Count;
+        const T* m_Data = nullptr;
+        u32 m_Count = 0;
 
         friend class HStringView;
     };
