@@ -2,6 +2,7 @@
 #include "hepch.h"
 #include "ShaderRegistry.h"
 
+#include "HeartEditor/Editor.h"
 #include "Heart/Container/HString8.h"
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Util/ImGuiUtils.h"
@@ -91,7 +92,16 @@ namespace Widgets
                     Heart::HString8 buttonName = Heart::HStringView8("Reload") + Heart::HStringView8(id1);
                     ImGui::TableNextColumn();
                     if (ImGui::Button(buttonName.Data()))
-                        asset->GetShader()->Reload();
+                    {
+                        // TODO: async?
+                        bool success = asset->GetShader()->Reload();
+                        
+                        StatusElement status;
+                        status.Duration = 4000.f;
+                        status.Type = success ? StatusElementType::Success : StatusElementType::Error;
+                        status.Text = success ? "Shader reload successful!" : "Shader reload failed, check logs";
+                        Editor::PushStatus(status);
+                    }
                 }
             }
 
