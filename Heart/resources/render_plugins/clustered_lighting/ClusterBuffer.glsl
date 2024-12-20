@@ -84,7 +84,7 @@ layout(
 
 uint GetClusterZIndex(float screenDepth, float nearPlane, float farPlane, float scale, float bias)
 {
-    float eyeDepth = nearPlane * farPlane / (farPlane + nearPlane - screenDepth * (farPlane - nearPlane));
+    float eyeDepth = farPlane * nearPlane / (farPlane + screenDepth * (nearPlane - farPlane));
     uint zIndex = uint(max(log(eyeDepth) * scale + bias, 0.0));
     return zIndex;
 }
