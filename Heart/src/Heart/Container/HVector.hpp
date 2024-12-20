@@ -15,6 +15,10 @@ namespace Heart
             : m_Container(other.m_Container)
         {}
 
+        HVector(HVector&& other)
+            : m_Container(std::move(other.m_Container))
+        {}
+
         HVector(u32 elemCount, bool fill = true)
             : m_Container(elemCount, fill)
         {}

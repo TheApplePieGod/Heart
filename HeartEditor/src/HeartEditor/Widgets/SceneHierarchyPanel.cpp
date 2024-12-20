@@ -58,7 +58,7 @@ namespace Widgets
                     nodes.Add({ child.GetUUID(), (void*)child.GetHandle(), child.HasChildren() });
                 }
 
-                return nodes;
+                return std::move(nodes);
             }
         );
 

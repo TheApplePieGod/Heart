@@ -10,7 +10,15 @@ namespace Heart
         Container() = default;
 
         Container(const Container<T>& other, bool shallow = false)
-        { Copy(other, shallow); }
+        {
+            Copy(other, shallow);
+        }
+
+        Container(Container<T>&& other)
+        {
+            Copy(other, true);
+            other.Cleanup();
+        }
 
         Container(u32 elemCount, bool fill = true)
         {
