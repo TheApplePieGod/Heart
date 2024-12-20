@@ -3,6 +3,8 @@
 
 #include "HeartEditor/Editor.h"
 #include "HeartEditor/EditorApp.h"
+#include "Heart/Asset/AssetManager.h"
+#include "Heart/Asset/TextureAsset.h"
 #include "Heart/Container/HString.h"
 #include "Heart/Scene/Components.h"
 #include "Heart/Scene/Entity.h"
@@ -29,19 +31,15 @@ namespace Widgets
 
         // Order by name
         m_RootNodes.Clear();
+        m_SortingPairs.Clear();
         for (auto handle : view)
+            m_SortingPairs.Add({ view.get<Heart::NameComponent>(handle).Name, handle });
+        std::sort(m_SortingPairs.Begin(), m_SortingPairs.End());
+        for (auto& pair : m_SortingPairs)
         {
-            Heart::Entity entity(&activeScene, handle);
-            m_RootNodes.Add({ entity.GetUUID(), (void*)handle, entity.HasChildren() });
+            Heart::Entity entity(&activeScene, pair.second);
+            m_RootNodes.Add({ entity.GetUUID(), (void*)pair.second, entity.HasChildren() });
         }
-        std::sort(
-            m_RootNodes.Begin(),
-            m_RootNodes.End(),
-            [&view](const auto& a, const auto& b)
-            {
-                return view.get<Heart::NameComponent>((entt::entity)(uintptr_t)a.UserData).Name < view.get<Heart::NameComponent>((entt::entity)(uintptr_t)b.UserData).Name;
-            }
-        );
 
         m_Tree.Rebuild(
             m_RootNodes,
@@ -63,7 +61,7 @@ namespace Widgets
         );
 
         ImGui::BeginChild("HierarchyChild");
-        const float nodeHeight = 18.f;
+        const float nodeHeight = 14.f;
         m_Tree.OnImGuiRender(
             nodeHeight,
             Editor::GetState().SelectedEntity.IsValid() ? Editor::GetState().SelectedEntity.GetUUID() : Heart::UUID(0),
@@ -120,6 +118,35 @@ namespace Widgets
                 ImGui::PopID();
 
                 ImGui::BeginHorizontal("helem", { -1.f, nodeHeight }, 0.5f);
+
+                // Icons (TODO: more dynamic system)
+                Heart::HStringView8 icon;
+                if (entity.HasComponent<Heart::CameraComponent>())
+                    icon = "editor/entity/camera.png";
+                else if (entity.HasComponent<Heart::LightComponent>())
+                    icon = "editor/entity/light.png";
+                else if (entity.HasComponent<Heart::TextComponent>())
+                    icon = "editor/entity/text.png";
+                else if (entity.HasComponent<Heart::ScriptComponent>())
+                    icon = "editor/entity/script.png";
+                else if (entity.HasComponent<Heart::MeshComponent>())
+                    icon = "editor/entity/cube.png";
+
+                if (!icon.IsEmpty())
+                {
+                    ImGui::Image(
+                        Heart::AssetManager::RetrieveAsset(Heart::HString8(icon), true)
+                            ->EnsureValid<Heart::TextureAsset>()
+                            ->GetTexture()
+                            ->GetImGuiHandle(),
+                        { nodeHeight, nodeHeight },
+                        { 0, 0 }, { 1, 1 },
+                        { 0.25f, 0.5f, 1.f, 1.f }
+                    );
+                }
+                else
+                    ImGui::Dummy({ nodeHeight, nodeHeight });
+
                 ImGui::Text("%s", deleted ? "<Deleted>" : name.DataUTF8());
                 ImGui::EndHorizontal();
             },

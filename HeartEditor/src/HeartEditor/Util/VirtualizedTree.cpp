@@ -14,6 +14,8 @@ namespace HeartEditor
         const Heart::HVector<Node>& rootNodes,
         std::function<Heart::HVector<Node>(const Node&)>&& getChildren
     ) {
+        HE_PROFILE_FUNCTION();
+
         m_Nodes.Clear();
         m_NewExpandedNodes.clear();
 
