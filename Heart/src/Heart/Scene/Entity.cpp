@@ -118,6 +118,11 @@ namespace Heart
             comp.Dirty = true;
     }
 
+    bool Entity::HasChildren()
+    {
+        return HasComponent<ChildrenComponent>() && GetComponent<ChildrenComponent>().Children.Count() > 0;
+    }
+
     const HVector<UUID>& Entity::GetChildren()
     {
         if (!HasComponent<ChildrenComponent>())

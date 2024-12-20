@@ -1,5 +1,6 @@
 #pragma once
 
+#include "HeartEditor/Util/VirtualizedTree.h"
 #include "HeartEditor/Widgets/Widget.h"
 #include "Heart/Scene/Entity.h"
 
@@ -17,7 +18,8 @@ namespace Widgets
         void OnImGuiRender() override;
 
     private:
-        bool RenderEntity(entt::entity entity);
+        Heart::HVector<VirtualizedTree::Node> m_RootNodes;
+        VirtualizedTree m_Tree;
     };
 }
 }
