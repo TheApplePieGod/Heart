@@ -39,7 +39,7 @@ namespace HeartEditor
         ImVec2 windowPos = ImGui::GetMainViewport()->Pos;
         ImGui::SetNextWindowPos({ windowPos.x + windowSize.x / 4, windowPos.y + windowSize.y / 4 });
         ImGui::SetNextWindowSize(popupSize);
-        ImGuiWindowFlags popupFlags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollWithMouse;
+        ImGuiWindowFlags popupFlags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollWithMouse;
         if (ImGui::BeginPopupModal(popupName.Data(), 0, popupFlags))
         {
             open = true;
@@ -52,6 +52,9 @@ namespace HeartEditor
             ImGuiID tableId = ImGui::GetID("PickerTable");
             if (ImGui::BeginTable("PickerTable", colCount, tableFlags))
             {
+                ImGui::TableNextColumn();
+                renderHeader();
+
                 ImGuiListClipper clipper;
                 clipper.Begin(rowCount);
                 while (clipper.Step())
