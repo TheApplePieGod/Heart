@@ -2,6 +2,7 @@
 #include "PlatformUtils.h"
 
 #include "Heart/Container/HString8.h"
+#include "tinyfd/tinyfiledialogs.h"
 
 #ifdef HE_PLATFORM_MACOS
 #include "Heart/Platform/MacOS/Utils.h"
@@ -174,5 +175,25 @@ namespace Heart
         #ifdef HE_PLATFORM_WINDOWS
             CoUninitialize();
         #endif
+    }
+
+    void PlatformUtils::ShowMessageBox(HStringView8 title, HStringView8 message, HStringView8 iconType)
+    {
+        tinyfd_messageBox(title.Data(), message.Data(), "ok", iconType.Data(), 0);
+    }
+
+    int PlatformUtils::ShowMessageBoxCancel(HStringView8 title, HStringView8 message, HStringView8 iconType)
+    {
+        return tinyfd_messageBox(title.Data(), message.Data(), "okcancel", iconType.Data(), 0);
+    }
+
+    int PlatformUtils::ShowMessageBoxYesNo(HStringView8 title, HStringView8 message, HStringView8 iconType)
+    {
+        return tinyfd_messageBox(title.Data(), message.Data(), "yesno", iconType.Data(), 0);
+    }
+
+    int PlatformUtils::ShowMessageBoxYesNoCancel(HStringView8 title, HStringView8 message, HStringView8 iconType)
+    {
+        return tinyfd_messageBox(title.Data(), message.Data(), "yesnocancel", iconType.Data(), 0);
     }
 }

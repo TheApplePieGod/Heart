@@ -16,5 +16,11 @@ namespace Heart
         static void* GetCurrentModuleHandle();
         static int ExecuteCommand(HStringView8 command);
         static int ExecuteCommandWithOutput(HStringView8 command, HString8& output);
+
+        // Icon type: info, warning, error, question
+        static void ShowMessageBox(HStringView8 title, HStringView8 message, HStringView8 iconType);
+        static int ShowMessageBoxCancel(HStringView8 title, HStringView8 message, HStringView8 iconType);
+        static int ShowMessageBoxYesNo(HStringView8 title, HStringView8 message, HStringView8 iconType);
+        static int ShowMessageBoxYesNoCancel(HStringView8 title, HStringView8 message, HStringView8 iconType);
     };
 }

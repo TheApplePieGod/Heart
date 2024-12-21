@@ -24,11 +24,12 @@ extern void* NativeCallbacks[];
 
 namespace Heart
 {
-    hostfxr_initialize_for_dotnet_command_line_fn s_CmdInitFunc;
-    hostfxr_initialize_for_runtime_config_fn s_ConfigInitFunc;
-    hostfxr_get_runtime_delegate_fn s_GetDelegateFunc;
-    hostfxr_close_fn s_CloseFunc;
-    void* s_HostFXRHandle;
+    hostfxr_initialize_for_dotnet_command_line_fn s_CmdInitFunc = nullptr;
+    hostfxr_initialize_for_runtime_config_fn s_ConfigInitFunc = nullptr;
+    hostfxr_get_runtime_delegate_fn s_GetDelegateFunc = nullptr;
+    hostfxr_get_dotnet_environment_info_fn s_GetEnvInfoFunc = nullptr;
+    hostfxr_close_fn s_CloseFunc = nullptr;
+    void* s_HostFXRHandle = nullptr;
 
     using InitializeFn = bool (*)(void*, BridgeManagedCallbacks*);
 
@@ -109,13 +110,18 @@ namespace Heart
                 s_HostFXRHandle,
                 "hostfxr_get_runtime_delegate"
             );
+        s_GetEnvInfoFunc = (hostfxr_get_dotnet_environment_info_fn)
+            PlatformUtils::GetDynamicLibraryExport(
+                s_HostFXRHandle,
+                "hostfxr_get_dotnet_environment_info"
+            );
         s_CloseFunc = (hostfxr_close_fn)
             PlatformUtils::GetDynamicLibraryExport(
                 s_HostFXRHandle,
                 "hostfxr_close"
             );
 
-        return (s_CmdInitFunc && s_ConfigInitFunc && s_GetDelegateFunc && s_CloseFunc);
+        return s_CmdInitFunc && s_ConfigInitFunc && s_GetDelegateFunc && s_GetEnvInfoFunc && s_CloseFunc;
     }
 
     void InitHostFXRForCmdline(const char_t* assemblyPath, load_assembly_and_get_function_pointer_fn& outLoadAssemblyFunc)
@@ -143,18 +149,15 @@ namespace Heart
         outLoadAssemblyFunc = (load_assembly_and_get_function_pointer_fn)loadAssemblyFunc;
     }
 
-    void InitHostFXRWithConfig(const char_t* configPath, load_assembly_and_get_function_pointer_fn& outLoadAssemblyFunc)
+    void InitHostFXRWithConfig(HStringView8 dotnetRoot, const char_t* configPath, load_assembly_and_get_function_pointer_fn& outLoadAssemblyFunc)
     {
-        // We use config settings when developing. For now, we will assume the DOTNET_SDK path is set.
-        // In the future, we could find this automatically.
         hostfxr_initialize_parameters params{};
         params.size = sizeof(hostfxr_initialize_parameters);
         #ifdef HE_PLATFORM_WINDOWS
-        // Wchar :(
-        HString16 root = HString8(std::getenv("DOTNET_SDK")).ToUTF16();
+        HString16 root = dotnetRoot.ToUTF16();
         params.dotnet_root = (const wchar_t*)root.Data();
         #else
-        params.dotnet_root = std::getenv("DOTNET_SDK");
+        params.dotnet_root = root.Data();
         #endif
 
         hostfxr_handle ctx = nullptr;
@@ -173,10 +176,66 @@ namespace Heart
         outLoadAssemblyFunc = (load_assembly_and_get_function_pointer_fn)loadAssemblyFunc;
     }
 
-    void ScriptingEngine::Initialize()
+    void ScriptingEngine::FindDotnetInstallations()
+    {
+        // Does not need to be set
+        #ifdef HE_PLATFORM_WINDOWS
+        HString16 root = HString8(std::getenv("DOTNET_SDK")).ToUTF16();
+        #else
+        HString8 root(std::getenv("DOTNET_SDK"));
+        #endif
+
+        const auto resultFn = [](
+            const struct hostfxr_dotnet_environment_info* info,
+            void* result_context
+        ) {
+            HString8 bestVersion;
+            HString8 bestPath;
+            for (u32 i = 0; i < info->sdk_count; i++)
+            {
+                #ifdef HE_PLATFORM_WINDOWS
+                HString8 version = HString16((const char16_t*)info->sdks[i].version).ToUTF8();
+                HString8 path = HString16((const char16_t*)info->sdks[i].path).ToUTF8();
+                #else
+                HString8 version((const char*)info->sdks[i].version);
+                HString8 path((const char*)info->sdks[i].path);
+                #endif
+
+                HE_ENGINE_LOG_TRACE("Found dotnet sdk {} @ {}", version.Data(), path.Data());
+
+                // TODO: don't hardcode this somehow
+                auto nums = version.Split(".");
+                if (nums[0] != "8") continue;
+
+                // TODO: pick latest version, for now this is fine
+                bestVersion = version;
+                bestPath = path;
+
+                break;
+            }
+
+            // Set the actual path to the root dotnet executable rather than the SDK location itself
+            s_DotnetPath = std::filesystem::path(bestPath.Data()).parent_path().parent_path().u8string();
+
+            HE_ENGINE_LOG_INFO("Using dotnet executable @ {}", s_DotnetPath.Data());
+        };
+
+        s_GetEnvInfoFunc(
+            nullptr,//(const char_t*)root.Data(),
+            nullptr,
+            resultFn,
+            nullptr
+        );
+    }
+
+    bool ScriptingEngine::Initialize()
     {
         bool result = LoadHostFXR();
-        HE_ENGINE_ASSERT(result, "Failed to load hostfxr");
+        if (!result)
+        {
+            HE_ENGINE_LOG_ERROR("Failed to load hostfxr");
+            return false;
+        }
 
         #ifdef HE_PLATFORM_ANDROID
             HString8 bridgePathStr(AndroidApp::App->activity->internalDataPath);
@@ -187,13 +246,31 @@ namespace Heart
             const char_t* bridgePath = HOSTFXR_STR("scripting/BridgeScripts.dll");
         #endif
 
-        load_assembly_and_get_function_pointer_fn loadAssemblyWithPtrFunc;
+        load_assembly_and_get_function_pointer_fn loadAssemblyWithPtrFunc = nullptr;
         #ifdef HE_DIST
             InitHostFXRForCmdline(bridgePath, loadAssemblyWithPtrFunc);
         #else
-            InitHostFXRWithConfig(HOSTFXR_STR("scripting/BridgeScripts.runtimeconfig.json"), loadAssemblyWithPtrFunc);
+            FindDotnetInstallations();
+
+            if (s_DotnetPath.IsEmpty())
+            {
+                HE_ENGINE_LOG_ERROR("Unable to locate suitable dotnet installations");
+                return false;
+            }
+
+            InitHostFXRWithConfig(
+                s_DotnetPath,
+                HOSTFXR_STR("scripting/BridgeScripts.runtimeconfig.json"),
+                loadAssemblyWithPtrFunc
+            );
         #endif
-        HE_ENGINE_ASSERT(loadAssemblyWithPtrFunc, "Failed to initialize hostfxr");
+
+        if (!loadAssemblyWithPtrFunc)
+        {
+            HE_ENGINE_LOG_ERROR("Failed to initialize hostfxr");
+            return false;
+        }
+
         HE_ENGINE_LOG_DEBUG(".NET hostfxr initialized");
 
         InitializeFn initFunc = nullptr;
@@ -205,17 +282,29 @@ namespace Heart
             nullptr,
             (void**)&initFunc
         );
-        HE_ENGINE_ASSERT(rc == 0, "Failed to load scripting entrypoint func");
 
-        bool res = initFunc(PlatformUtils::GetCurrentModuleHandle(), &s_BridgeCallbacks);
-        HE_ENGINE_ASSERT(res, "Failed to initialize bridge scripts");
+        if (rc != 0)
+        {
+            HE_ENGINE_LOG_ERROR("Failed to load scripting entrypoint func");
+            return false;
+        }
 
-        res = s_BridgeCallbacks.EntryPoint_LoadCorePlugin(&s_CoreCallbacks);
-        HE_ENGINE_ASSERT(res, "Failed to load core plugin");
+        if (!initFunc(PlatformUtils::GetCurrentModuleHandle(), &s_BridgeCallbacks))
+        {
+            HE_ENGINE_LOG_ERROR("Failed to initialize bridge scripts");
+            return false;
+        }
+
+        if (!s_BridgeCallbacks.EntryPoint_LoadCorePlugin(&s_CoreCallbacks))
+        {
+            HE_ENGINE_LOG_ERROR("Failed to load core plugin");
+        }
 
         s_CoreCallbacks.UnmanagedCallbacks_PopulateCallbacks(NativeCallbacks);
 
         HE_ENGINE_LOG_DEBUG("Scripts ready");
+
+        return true;
     }
 
     void ScriptingEngine::Shutdown()

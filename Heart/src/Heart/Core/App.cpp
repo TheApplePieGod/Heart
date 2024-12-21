@@ -39,7 +39,16 @@ namespace Heart
         TaskManager::Initialize(taskThreads);
 
         // Run on main thread, since some platforms have issues otherwise
-        ScriptingEngine::Initialize();
+        if (!ScriptingEngine::Initialize())
+        {
+            PlatformUtils::ShowMessageBox(
+                ".NET Initialization Failed!",
+                "Unable to start the .NET SDK.\n\nPlease ensure it is installed on your system.\n\nhttps://dotnet.microsoft.com/en-us/download/dotnet/8.0",
+                "error"
+            );
+
+            throw std::exception();
+        }
         
         // TODO: put in a task?
         InitializeGraphicsApi();
@@ -188,11 +197,14 @@ namespace Heart
 
     void App::CloseWithConfirmation()
     {
-        #ifdef HE_PLATFORM_WINDOWS
-            int selection = MessageBox(HWND_DESKTOP, "Are you sure you want to quit? You may have unsaved changes.", "Confirmation", MB_OKCANCEL | WS_POPUP);
-            if (selection != 1)
-               return;
-        #endif
+        int selection = PlatformUtils::ShowMessageBoxCancel(
+            "Are you sure?",
+            "Are you sure you want to quit? You may have unsaved changes.",
+            "warning"
+        );
+
+        if (selection != 1)
+            return;
 
         m_Running = false;
     }

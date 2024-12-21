@@ -14,7 +14,7 @@ namespace Heart
     class ScriptingEngine
     {
     public:
-        static void Initialize();
+        static bool Initialize();
         static void Shutdown();
 
         static bool LoadClientPlugin(const HStringView8& absolutePath);
@@ -41,6 +41,9 @@ namespace Heart
         inline static void SetScriptInputEnabled(bool enabled) { s_ScriptInputEnabled = enabled; }
 
     private:
+        static void FindDotnetInstallations();
+
+    private:
         inline static BridgeManagedCallbacks s_BridgeCallbacks;
         inline static CoreManagedCallbacks s_CoreCallbacks;
         inline static bool s_ClientPluginLoaded = false;
@@ -48,6 +51,7 @@ namespace Heart
         inline static std::unordered_map<s64, ScriptClass> s_EntityClasses;
         inline static std::unordered_map<s64, ScriptClass> s_ComponentClasses;
         inline static bool s_ScriptInputEnabled = true;
+        inline static HString8 s_DotnetPath;
 
         friend class ScriptClass;
     };
