@@ -122,10 +122,8 @@ namespace Heart::RenderPlugins
         m_CommandBuffer = Flourish::CommandBuffer::Create(cbCreateInfo);
 
         Flourish::ResourceSetCreateInfo dsCreateInfo;
-        dsCreateInfo.Writability = Flourish::ResourceSetWritability::MultiPerFrame;
         m_StandardResourceSet = standardPipeline->CreateResourceSet(0, dsCreateInfo);
         m_TextResourceSet = textPipeline->CreateResourceSet(2, dsCreateInfo);
-        dsCreateInfo.Writability = Flourish::ResourceSetWritability::PerFrame;
         m_EnvMapResourceSet = envMapPipeline->CreateResourceSet(0, dsCreateInfo);
         m_PostProcessResourceSet = postProcessPipeline->CreateResourceSet(0, dsCreateInfo);
 

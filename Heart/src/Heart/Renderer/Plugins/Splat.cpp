@@ -101,11 +101,9 @@ namespace Heart::RenderPlugins
         m_CommandBuffer = Flourish::CommandBuffer::Create(cbCreateInfo);
 
         Flourish::ResourceSetCreateInfo dsCreateInfo;
-        dsCreateInfo.Writability = Flourish::ResourceSetWritability::MultiPerFrame;
         m_ResourceSet = pipeline->CreateResourceSet(0, dsCreateInfo);
         m_RadixResourceSet = m_RadixPipeline->CreateResourceSet(1, dsCreateInfo);
         m_HistorgramResourceSet = m_HistogramPipeline->CreateResourceSet(0, dsCreateInfo);
-        dsCreateInfo.Writability = Flourish::ResourceSetWritability::PerFrame;
         m_KeysResourceSet = m_KeysPipeline->CreateResourceSet(0, dsCreateInfo);
 
         ResizeInternal();

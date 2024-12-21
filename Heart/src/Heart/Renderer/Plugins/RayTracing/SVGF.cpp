@@ -48,10 +48,8 @@ namespace Heart::RenderPlugins
         m_CommandBuffer = Flourish::CommandBuffer::Create(cbCreateInfo);
 
         Flourish::ResourceSetCreateInfo dsCreateInfo;
-        dsCreateInfo.Writability = Flourish::ResourceSetWritability::PerFrame;
         m_TemporalResourceSet = m_TemporalPipeline->CreateResourceSet(0, dsCreateInfo);
         m_UpsampleResourceSet = m_UpsamplePipeline->CreateResourceSet(0, dsCreateInfo);
-        dsCreateInfo.Writability = Flourish::ResourceSetWritability::MultiPerFrame;
         m_ATrousResourceSet = m_ATrousPipeline->CreateResourceSet(0, dsCreateInfo);
 
         ResizeInternal();

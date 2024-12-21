@@ -35,7 +35,6 @@ namespace Heart::RenderPlugins
         m_CommandBuffer = Flourish::CommandBuffer::Create(cbCreateInfo);
 
         Flourish::ResourceSetCreateInfo dsCreateInfo;
-        dsCreateInfo.Writability = Flourish::ResourceSetWritability::PerFrame;
         m_BuildResourceSet = m_BuildPipeline->CreateResourceSet(0, dsCreateInfo);
         m_CullResourceSet = m_CullPipeline->CreateResourceSet(0, dsCreateInfo);
 

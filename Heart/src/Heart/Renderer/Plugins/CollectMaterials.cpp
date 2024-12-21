@@ -35,7 +35,6 @@ namespace Heart::RenderPlugins
         };
         auto setAllocator = Flourish::ResourceSetAllocator::Create(setAllocCreateInfo);
         Flourish::ResourceSetCreateInfo setCreateInfo;
-        setCreateInfo.Writability = Flourish::ResourceSetWritability::PerFrame;
         m_TexturesSet = setAllocator->Allocate(setCreateInfo);
     }
 

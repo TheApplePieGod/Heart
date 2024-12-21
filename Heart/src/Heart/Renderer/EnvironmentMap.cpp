@@ -158,7 +158,6 @@ namespace Heart
             auto pipeline = m_RenderPass->CreatePipeline("cubemap", pipelineCreateInfo);
 
             Flourish::ResourceSetCreateInfo dsCreateInfo;
-            dsCreateInfo.Writability = Flourish::ResourceSetWritability::PerFrame;
             m_EnvironmentMap.ResourceSet = pipeline->CreateResourceSet(0, dsCreateInfo);
         }
 
@@ -189,7 +188,6 @@ namespace Heart
             auto pipeline = m_RenderPass->CreatePipeline("irradiance", pipelineCreateInfo);
 
             Flourish::ResourceSetCreateInfo dsCreateInfo;
-            dsCreateInfo.Writability = Flourish::ResourceSetWritability::OnceStaticData;
             m_IrradianceMap.ResourceSet = pipeline->CreateResourceSet(0, dsCreateInfo);
         }
 
@@ -225,7 +223,6 @@ namespace Heart
             auto pipeline = m_RenderPass->CreatePipeline("prefilter", pipelineCreateInfo);
 
             Flourish::ResourceSetCreateInfo dsCreateInfo;
-            dsCreateInfo.Writability = Flourish::ResourceSetWritability::OnceStaticData;
             m_PrefilterMaps[0].ResourceSet = pipeline->CreateResourceSet(0, dsCreateInfo);
         }
 
@@ -254,7 +251,6 @@ namespace Heart
             auto pipeline = m_BRDFRenderPass->CreatePipeline("brdf", pipelineCreateInfo);
 
             Flourish::ResourceSetCreateInfo dsCreateInfo;
-            dsCreateInfo.Writability = Flourish::ResourceSetWritability::OnceStaticData;
             m_BRDFTexture.ResourceSet = pipeline->CreateResourceSet(0, dsCreateInfo);
         }
     }
