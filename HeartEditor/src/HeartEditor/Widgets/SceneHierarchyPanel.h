@@ -18,6 +18,9 @@ namespace Widgets
         void OnImGuiRender() override;
 
     private:
+        void CreateEmptyEntity();
+
+    private:
         Heart::HVector<std::pair<Heart::HStringView, entt::entity>> m_SortingPairs;
         Heart::HVector<VirtualizedTree::Node> m_RootNodes;
         VirtualizedTree m_Tree;

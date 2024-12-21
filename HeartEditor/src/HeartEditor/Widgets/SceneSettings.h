@@ -1,5 +1,6 @@
 #pragma once
 
+#include "HeartEditor/AssetPicker.h"
 #include "HeartEditor/Widgets/Widget.h"
 #include "imgui/imgui.h"
 
@@ -18,6 +19,7 @@ namespace Widgets
 
     private:
         ImGuiTextFilter m_EnvMapTextFilter;
+        AssetPicker m_AssetPicker;
     };
 }
 }

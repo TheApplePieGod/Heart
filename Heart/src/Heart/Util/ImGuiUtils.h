@@ -32,23 +32,5 @@ namespace Heart
             std::function<void()>&& window1Contents,
             std::function<void()>&& window2Contents
         );
-        static void AssetPicker(
-            Asset::Type assetType,
-            UUID selectedAsset,
-            const HStringView8& nullSelectionText,
-            const HStringView8& widgetId,
-            ImGuiTextFilter& textFilter,
-            std::function<void()>&& contextMenuCallback,
-            std::function<void(UUID)>&& selectCallback
-        );
-        static void StringPicker(
-            const HVector<HString8>& options,
-            const HStringView8& selected,
-            const HStringView8& nullSelectionText,
-            const HStringView8& widgetId,
-            ImGuiTextFilter& textFilter,
-            std::function<void()>&& contextMenuCallback,
-            std::function<void(u32)>&& selectCallback
-        );
     };
 }

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "HeartEditor/AssetPicker.h"
+#include "HeartEditor/ScriptPicker.h"
 #include "HeartEditor/Widgets/Widget.h"
 #include "HeartEditor/Editor.h"
 #include "Heart/Scene/Entity.h"
@@ -60,11 +62,11 @@ namespace Widgets
         }
     
     private:
-        ImGuiTextFilter m_MeshTextFilter;
-        ImGuiTextFilter m_SplatTextFilter;
-        ImGuiTextFilter m_MaterialTextFilter;
-        ImGuiTextFilter m_ScriptTextFilter;
-        ImGuiTextFilter m_FontTextFilter;
+        AssetPicker m_MeshAssetPicker;
+        AssetPicker m_SplatAssetPicker;
+        AssetPicker m_MaterialAssetPicker;
+        AssetPicker m_FontAssetPicker;
+        ScriptPicker m_ScriptPicker;
     };
 }
 }

@@ -46,7 +46,7 @@ namespace Widgets
         inline Heart::Camera& GetActiveCamera() { return *m_ActiveCamera; }
         inline glm::vec3 GetActiveCameraPosition() const { return m_ActiveCameraPos; }
         inline glm::vec3 GetActiveCameraRotation() const { return m_ActiveCameraRot; }
-        inline EditorCamera& GetEditorCamera() { return *m_EditorCamera; }
+        inline glm::vec3 GetActiveCameraForward() const { return m_ActiveCameraForward; }
         inline const Heart::Task& GetSceneRendererUpdateTask() const { return m_SceneRendererUpdateTask; }
 
     private:
@@ -56,6 +56,7 @@ namespace Widgets
         Heart::Ref<EditorCamera> m_EditorCamera;
         glm::vec3 m_ActiveCameraPos;
         glm::vec3 m_ActiveCameraRot;
+        glm::vec3 m_ActiveCameraForward;
         glm::vec3 m_StoredCameraPos;
         glm::vec3 m_StoredCameraRot;
         bool m_AttachCamera = true;

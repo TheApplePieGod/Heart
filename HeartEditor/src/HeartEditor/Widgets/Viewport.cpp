@@ -328,6 +328,7 @@ namespace Widgets
                 m_ActiveCameraPos = primaryCamEnt.GetWorldPosition();
                 m_ActiveCameraRot = primaryCamEnt.GetWorldRotation();
                 m_ActiveCamera->UpdateViewMatrix(m_ActiveCameraPos, m_ActiveCameraRot);
+                m_ActiveCameraForward = m_ActiveCamera->GetForwardVector();
                 m_EditorCamera->SetPosition(m_ActiveCameraPos);
                 m_EditorCamera->SetRotation(m_ActiveCameraRot);
                     
@@ -339,6 +340,7 @@ namespace Widgets
         m_EditorCamera->UpdateAspectRatio(m_AspectRatio);
         m_ActiveCameraPos = m_EditorCamera->GetPosition();
         m_ActiveCameraRot = { m_EditorCamera->GetRotation().x, m_EditorCamera->GetRotation().y, 0.f };
+        m_ActiveCameraForward = m_EditorCamera->GetForwardVector();
         if (Editor::GetSceneState() != SceneState::Playing)
         {
             m_StoredCameraPos = m_ActiveCameraPos;

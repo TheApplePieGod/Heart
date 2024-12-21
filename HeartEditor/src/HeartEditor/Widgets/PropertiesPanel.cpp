@@ -148,12 +148,11 @@ namespace Widgets
                 // Mesh picker
                 ImGui::Text("Mesh Asset:");
                 ImGui::SameLine();
-                Heart::ImGuiUtils::AssetPicker(
-                    Heart::Asset::Type::Mesh,
+                ImGui::PushID("mesh");
+                m_MeshAssetPicker.OnImGuiRender(
                     meshComp.Mesh,
-                    "NULL",
-                    "MeshSelect",
-                    m_MeshTextFilter,
+                    Heart::Asset::Type::Mesh,
+                    "Select Asset...",
                     [&meshComp]()
                     {
                         if (!meshComp.Mesh)
@@ -172,6 +171,7 @@ namespace Widgets
                             meshComp.Materials.Resize(meshAsset->GetMaxMaterials(), false);
                     }
                 );
+                ImGui::PopID();
 
                 // Assign mesh on drop
                 Heart::ImGuiUtils::AssetDropTarget(
@@ -206,12 +206,11 @@ namespace Widgets
                         // Material picker
                         ImGui::Text(entryName.Data(), index);
                         ImGui::SameLine();
-                        Heart::ImGuiUtils::AssetPicker(
-                            Heart::Asset::Type::Material,
+                        ImGui::PushID(entryName.Data());
+                        m_MaterialAssetPicker.OnImGuiRender(
                             materialId,
-                            "DEFAULT",
-                            entryName,
-                            m_MaterialTextFilter,
+                            Heart::Asset::Type::Material,
+                            "<Derived>",
                             [&materialId, &meshAsset, index]()
                             {
                                 // Context menu per material
@@ -250,6 +249,7 @@ namespace Widgets
                             },
                             [&materialId](Heart::UUID selected) { materialId = selected; }
                         );
+                        ImGui::PopID();
 
                         // Assign material on drop
                         Heart::ImGuiUtils::AssetDropTarget(
@@ -284,12 +284,11 @@ namespace Widgets
                 // Mesh picker
                 ImGui::Text("Splat Asset:");
                 ImGui::SameLine();
-                Heart::ImGuiUtils::AssetPicker(
-                    Heart::Asset::Type::Splat,
+                ImGui::PushID("splat");
+                m_SplatAssetPicker.OnImGuiRender(
                     splatComp.Splat,
-                    "NULL",
-                    "SplatSelect",
-                    m_MeshTextFilter,
+                    Heart::Asset::Type::Splat,
+                    "Select Asset...",
                     [&splatComp]()
                     {
                         if (!splatComp.Splat)
@@ -303,6 +302,7 @@ namespace Widgets
                         splatComp.Splat = selected;
                     }
                 );
+                ImGui::PopID();
 
                 // Assign mesh on drop
                 Heart::ImGuiUtils::AssetDropTarget(
@@ -379,27 +379,15 @@ namespace Widgets
                 Heart::UUID uuid = selectedEntity.GetUUID();
                 auto& scriptComp = selectedEntity.GetComponent<Heart::ScriptComponent>();
 
-                // Get instantiable entity classes (names)
-                auto& classDict = Heart::ScriptingEngine::GetEntityClasses();
-                Heart::HVector<Heart::HString8> classes(classDict.size(), false);
-                Heart::HVector<s64> ids(classDict.size(), false);
-                for (auto& pair : classDict)
-                {
-                    classes.Add(pair.second.GetFullName().ToUTF8());
-                    ids.Add(pair.first);
-                }
-
                 ImGui::Indent();
 
                 // Show possible assemblies
                 ImGui::Text("Class:");
                 ImGui::SameLine();
-                Heart::ImGuiUtils::StringPicker(
-                    classes,
-                    scriptComp.Instance.GetScriptClassObject().GetFullName().GetViewUTF8(),
-                    "None",
-                    "Script",
-                    m_ScriptTextFilter,
+                ImGui::PushID("script");
+                m_ScriptPicker.OnImGuiRender(
+                    scriptComp.Instance.GetScriptClassId(),
+                    "Select Script...",
                     [&scriptComp]()
                     {
                         if (!scriptComp.Instance.HasScriptClass())
@@ -408,9 +396,9 @@ namespace Widgets
                         if (ImGui::MenuItem("Clear"))
                             scriptComp.Instance.Clear();
                     },
-                    [&scriptComp, &ids, selectedEntity](u32 index)
+                    [&scriptComp, selectedEntity](s64 id)
                     {
-                        scriptComp.Instance.SetScriptClassId(ids[index]);
+                        scriptComp.Instance.SetScriptClassId(id);
                         scriptComp.Instance.Instantiate(selectedEntity);
                         scriptComp.Instance.OnConstruct();
 
@@ -418,6 +406,7 @@ namespace Widgets
                         Editor::GetActiveScene().CacheDirtyTransforms();
                     }
                 );
+                ImGui::PopID();
 
                 if (scriptComp.Instance.IsAlive())
                 {
@@ -613,12 +602,10 @@ namespace Widgets
                 // Font picker
                 ImGui::Text("Font Asset:");
                 ImGui::SameLine();
-                Heart::ImGuiUtils::AssetPicker(
-                    Heart::Asset::Type::Font,
+                m_SplatAssetPicker.OnImGuiRender(
                     textComp.Font,
-                    "NULL",
-                    "FontSelect",
-                    m_FontTextFilter,
+                    Heart::Asset::Type::Font,
+                    "Select Asset...",
                     [&textComp]()
                     {
                         if (!textComp.Font)
@@ -660,12 +647,11 @@ namespace Widgets
                 // Material picker
                 ImGui::Text("Material:");
                 ImGui::SameLine();
-                Heart::ImGuiUtils::AssetPicker(
-                    Heart::Asset::Type::Material,
+                ImGui::PushID("textmat");
+                m_MaterialAssetPicker.OnImGuiRender(
                     textComp.Material,
-                    "DEFAULT",
-                    "texMat",
-                    m_MaterialTextFilter,
+                    Heart::Asset::Type::Material,
+                    "Default Material",
                     [&textComp]()
                     {
                         // Context menu per material
@@ -679,6 +665,7 @@ namespace Widgets
                     },
                     [&textComp](Heart::UUID selected) { textComp.Material = selected; }
                 );
+                ImGui::PopID();
 
                 // Assign material on drop
                 Heart::ImGuiUtils::AssetDropTarget(
@@ -725,7 +712,7 @@ namespace Widgets
 
     void PropertiesPanel::RenderScriptField(const Heart::HString& fieldName, Heart::ScriptInstance* instance)
     {
-        ImGui::Text(fieldName.DataUTF8());
+        ImGui::Text("%s", fieldName.DataUTF8());
         ImGui::SameLine();
 
         bool dirty = false;
@@ -823,7 +810,7 @@ namespace Widgets
         for (u32 i = 0; i < 3; i++)
         {
             bool set = mask & HE_BIT(i);
-            ImGui::Text(names[i]);
+            ImGui::Text("%s", names[i]);
             ImGui::SameLine();
             modified |= ImGui::Checkbox((idStart + std::to_string(i)).Data(), &set);
             if (set)
@@ -835,7 +822,7 @@ namespace Widgets
         for (auto& pair : Heart::PhysicsBody::GetCustomCollisionChannels())
         {
             bool set = mask & pair.second;
-            ImGui::Text(pair.first.Data());
+            ImGui::Text("%s", pair.first.Data());
             ImGui::SameLine();
             modified |= ImGui::Checkbox((idStart + pair.first).Data(), &set);
             if (set)

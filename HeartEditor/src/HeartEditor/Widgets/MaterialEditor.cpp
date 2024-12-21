@@ -255,12 +255,11 @@ namespace Widgets
             // ---------------------------------
             ImGui::Text("Albedo:");
             ImGui::SameLine();
-            Heart::ImGuiUtils::AssetPicker(
-                Heart::Asset::Type::Texture,
+            ImGui::PushID("albedo");
+            m_AssetPicker.OnImGuiRender(
                 editingMaterial.GetAlbedoTexture(),
-                "NULL",
-                "AlbedoSelect",
-                m_TextureTextFilter,
+                Heart::Asset::Type::Texture,
+                "None",
                 [&]()
                 {
                     if (!canEdit) return;
@@ -279,6 +278,7 @@ namespace Widgets
                     m_Dirty = true;
                 }
             );
+            ImGui::PopID();
             auto albedoAsset = Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>(editingMaterial.GetAlbedoTexture());
             if (albedoAsset && albedoAsset->Load(false)->IsValid())
                 ImGui::Image(albedoAsset->GetTexture()->GetImGuiHandle(0), { previewSize, previewSize });
@@ -290,12 +290,11 @@ namespace Widgets
             // ---------------------------------
             ImGui::Text("Metallic Roughness:");
             ImGui::SameLine();
-            Heart::ImGuiUtils::AssetPicker(
-                Heart::Asset::Type::Texture,
+            ImGui::PushID("mr");
+            m_AssetPicker.OnImGuiRender(
                 editingMaterial.GetMetallicRoughnessTexture(),
-                "NULL",
-                "MRSelect",
-                m_TextureTextFilter,
+                Heart::Asset::Type::Texture,
+                "None",
                 [&]()
                 {
                     if (!canEdit) return;
@@ -314,6 +313,7 @@ namespace Widgets
                     m_Dirty = true;
                 }
             );
+            ImGui::PopID();
             auto mrAsset = Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>(editingMaterial.GetMetallicRoughnessTexture());
             if (mrAsset && mrAsset->Load(false)->IsValid())
                 ImGui::Image(mrAsset->GetTexture()->GetImGuiHandle(0), { previewSize, previewSize });
@@ -325,12 +325,11 @@ namespace Widgets
             // ---------------------------------
             ImGui::Text("Normal:");
             ImGui::SameLine();
-            Heart::ImGuiUtils::AssetPicker(
-                Heart::Asset::Type::Texture,
+            ImGui::PushID("normal");
+            m_AssetPicker.OnImGuiRender(
                 editingMaterial.GetNormalTexture(),
-                "NULL",
-                "NormalSelect",
-                m_TextureTextFilter,
+                Heart::Asset::Type::Texture,
+                "None",
                 [&]()
                 {
                     if (!canEdit) return;
@@ -349,6 +348,7 @@ namespace Widgets
                     m_Dirty = true;
                 }
             );
+            ImGui::PopID();
             auto normalAsset = Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>(editingMaterial.GetNormalTexture());
             if (normalAsset && normalAsset->Load(false)->IsValid())
                 ImGui::Image(normalAsset->GetTexture()->GetImGuiHandle(0), { previewSize, previewSize });
@@ -360,12 +360,11 @@ namespace Widgets
             // ---------------------------------
             ImGui::Text("Emissive:");
             ImGui::SameLine();
-            Heart::ImGuiUtils::AssetPicker(
-                Heart::Asset::Type::Texture,
+            ImGui::PushID("emiss");
+            m_AssetPicker.OnImGuiRender(
                 editingMaterial.GetEmissiveTexture(),
-                "NULL",
-                "EmissiveSelect",
-                m_TextureTextFilter,
+                Heart::Asset::Type::Texture,
+                "None",
                 [&]()
                 {
                     if (!canEdit) return;
@@ -384,6 +383,7 @@ namespace Widgets
                     m_Dirty = true;
                 }
             );
+            ImGui::PopID();
             auto emAsset = Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>(editingMaterial.GetEmissiveTexture());
             if (emAsset && emAsset->Load(false)->IsValid())
                 ImGui::Image(emAsset->GetTexture()->GetImGuiHandle(0), { previewSize, previewSize });
@@ -395,12 +395,11 @@ namespace Widgets
             // ---------------------------------
             ImGui::Text("Occlusion:");
             ImGui::SameLine();
-            Heart::ImGuiUtils::AssetPicker(
-                Heart::Asset::Type::Texture,
+            ImGui::PushID("occ");
+            m_AssetPicker.OnImGuiRender(
                 editingMaterial.GetOcclusionTexture(),
-                "NULL",
-                "OCSelect",
-                m_TextureTextFilter,
+                Heart::Asset::Type::Texture,
+                "None",
                 [&]()
                 {
                     if (!canEdit) return;
@@ -419,6 +418,7 @@ namespace Widgets
                     m_Dirty = true;
                 }
             );
+            ImGui::PopID();
             auto ocAsset = Heart::AssetManager::RetrieveAsset<Heart::TextureAsset>(editingMaterial.GetOcclusionTexture());
             if (ocAsset && ocAsset->Load(false)->IsValid())
                 ImGui::Image(ocAsset->GetTexture()->GetImGuiHandle(0), { previewSize, previewSize });

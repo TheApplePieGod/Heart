@@ -3,6 +3,7 @@
 
 #include "HeartEditor/Editor.h"
 #include "HeartEditor/EditorApp.h"
+#include "HeartEditor/Widgets/Viewport.h"
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/TextureAsset.h"
 #include "Heart/Container/HString.h"
@@ -96,6 +97,8 @@ namespace Widgets
                 ImGui::PushID((void*)(uintptr_t)node.Id);
                 if (ImGui::BeginPopupContextItem())
                 {
+                    if (ImGui::MenuItem("Create Empty Entity"))
+                        CreateEmptyEntity();
                     if (ImGui::MenuItem("Create Child Entity"))
                     {
                         auto newEntity = Editor::GetActiveScene().CreateEntity("New Entity");
@@ -120,7 +123,7 @@ namespace Widgets
                 ImGui::BeginHorizontal("helem", { -1.f, nodeHeight }, 0.5f);
 
                 // Icons (TODO: more dynamic system)
-                Heart::HStringView8 icon;
+                Heart::HStringView8 icon = "editor/entity/empty.png";
                 if (entity.HasComponent<Heart::CameraComponent>())
                     icon = "editor/entity/camera.png";
                 else if (entity.HasComponent<Heart::LightComponent>())
@@ -171,13 +174,24 @@ namespace Widgets
         if (ImGui::BeginPopupContextItem("SceneHierarchyPopup", ImGuiPopupFlags_NoOpenOverExistingPopup | ImGuiPopupFlags_MouseButtonRight))
         {
             if (ImGui::MenuItem("Create Entity"))
-                Editor::GetState().SelectedEntity = Editor::GetActiveScene().CreateEntity("New Entity");
+                CreateEmptyEntity();
 
             ImGui::EndPopup();
         }
 
         ImGui::End();
         ImGui::PopStyleVar();
+    }
+
+    void SceneHierarchyPanel::CreateEmptyEntity()
+    {
+        Heart::Entity entity = Editor::GetActiveScene().CreateEntity("New Entity", false);
+        Editor::GetState().SelectedEntity = entity;
+
+        // Position in front of camera
+        Widgets::Viewport& viewport = (Widgets::Viewport&)Editor::GetWindow("Viewport");
+        glm::vec3 pos = viewport.GetActiveCameraPosition() + viewport.GetActiveCameraForward();
+        entity.SetPosition(pos);
     }
 }
 }
