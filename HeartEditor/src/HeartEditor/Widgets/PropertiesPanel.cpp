@@ -66,10 +66,11 @@ namespace Widgets
                     ImGui::EndMenu();
                 }
 
-                if (ImGui::BeginMenu("Scripts"))
+                auto& compClasses = Heart::ScriptingEngine::GetComponentClasses();
+                if (!compClasses.empty() && ImGui::BeginMenu("Scripts"))
                 {
                     // TODO: separate display name
-                    for (auto& pair : Heart::ScriptingEngine::GetComponentClasses())
+                    for (auto& pair : compClasses)
                         if (ImGui::MenuItem(pair.second.GetName().DataUTF8()))
                             selectedEntity.AddRuntimeComponent(pair.first);
 

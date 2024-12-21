@@ -110,7 +110,7 @@ WARNING: It has not been updated in quite a while. It is also not particularly u
 
 # License
 
-Copyright (C) 2023 [Evan Thompson](https://evanthompson.site/)
+Copyright (C) 2024 [Evan Thompson](https://evanthompson.site/)
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

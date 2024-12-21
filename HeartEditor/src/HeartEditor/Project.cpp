@@ -682,7 +682,7 @@ namespace HeartEditor
     Heart::HString8 Project::RunCommandInProjectDirectory(Heart::HStringView8 command, int& outResult)
     {
         #ifdef HE_PLATFORM_WINDOWS
-            Heart::HString8 prefix = "/C cd ";
+            Heart::HString8 prefix = "/C cd /d ";
         #else
             Heart::HString8 prefix = "cd ";
         #endif

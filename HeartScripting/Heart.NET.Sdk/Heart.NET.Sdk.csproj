@@ -4,6 +4,7 @@
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
     <OutputPath>../bin</OutputPath>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../SourceGenerators/SourceGenerators.csproj" />
@@ -11,6 +12,7 @@
     <ProjectReference Include="../BridgeScripts/BridgeScripts.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="docs\README.md" Pack="true" PackagePath="\"/>
     <None Include="Sdk\Sdk.props" Pack="true" PackagePath="Sdk" />
   </ItemGroup>
   <ItemGroup>

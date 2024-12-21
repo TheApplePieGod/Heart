@@ -2,15 +2,17 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
     <metadata>
         <id>Heart.NET.Sdk</id>
-        <version>1.0.0</version>
+        <version>0.0.1</version>
         <description>Full C# .NET Sdk for Heart Engine development</description>
         <authors>TheApplePieGod</authors>
         <dependencies>
-            <group targetFramework="net6.0" />
+            <group targetFramework="net8.0" />
         </dependencies>
+        <readme>docs\README.md</readme>
     </metadata>
     <files>
+        <file src="docs/README.md" target="docs\" />
         <file src="../bin/SourceGenerators.dll" target="analyzers\dotnet\cs" />
-        <file src="../bin/CoreScripts.dll" target="lib\net6.0" />
+        <file src="../bin/CoreScripts.dll" target="lib\net8.0" />
     </files>
 </package>

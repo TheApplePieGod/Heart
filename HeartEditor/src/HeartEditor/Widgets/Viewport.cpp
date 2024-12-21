@@ -32,7 +32,7 @@ namespace Widgets
     {
         m_SceneRenderer = Heart::CreateRef<Heart::DesktopSceneRenderer>(true);
         m_ActiveCamera = Heart::CreateRef<Heart::Camera>(70.f, 0.1f, 500.f, 1.f);
-        m_EditorCamera = Heart::CreateRef<EditorCamera>(70.f, 0.1f, 500.f, 1.f, glm::vec3(0.f, 1.f, 0.f));
+        m_EditorCamera = Heart::CreateRef<EditorCamera>(70.f, 0.1f, 500.f, 1.f, glm::vec3(0.f, 2.f, -1.f));
     }
 
     void Viewport::OnImGuiRenderPostSceneUpdate()
