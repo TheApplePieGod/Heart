@@ -23,6 +23,6 @@ namespace HeartEditor
         );
 
     private:
-
+        float m_ItemsHeight = -1.f;
     };
 }

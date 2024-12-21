@@ -56,7 +56,7 @@ namespace HeartEditor
                 renderHeader();
 
                 ImGuiListClipper clipper;
-                clipper.Begin(rowCount);
+                clipper.Begin(rowCount, m_ItemsHeight);
                 while (clipper.Step())
                 {
                     for (u32 i = clipper.DisplayStart; i < clipper.DisplayEnd; i++)
@@ -69,9 +69,9 @@ namespace HeartEditor
                         ImVec2 rowMin = ImGui::GetCursorScreenPos();
                         rowMin.y -= padding.y;
 
-                        if (clipper.ItemsHeight != -1.f)
+                        if (m_ItemsHeight != -1.f)
                         {
-                            ImVec2 rowMax = { rowMin.x + popupSize.x, rowMin.y + clipper.ItemsHeight };
+                            ImVec2 rowMax = { rowMin.x + popupSize.x, rowMin.y + m_ItemsHeight };
                             bool hovered = mousePos.x >= rowMin.x && mousePos.x <= rowMax.x &&
                                 mousePos.y >= rowMin.y && mousePos.y <= rowMax.y;
 
@@ -91,6 +91,8 @@ namespace HeartEditor
                         ImGui::PopID();
                     }
                 }
+
+                m_ItemsHeight = clipper.ItemsHeight;
 
                 ImGui::EndTable();
             }
