@@ -25,7 +25,7 @@ namespace HeartEditor
 
     protected:
         Heart::HString8 m_Name;
-        bool m_Open;
+        bool m_Open = false;
         bool m_Dirty = false;
     };
 }

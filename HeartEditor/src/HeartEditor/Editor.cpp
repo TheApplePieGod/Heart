@@ -150,6 +150,10 @@ namespace HeartEditor
                 entry.Path = project["path"];
                 entry.Name = project["name"];
 
+                // Remove stale entries
+                if (!std::filesystem::exists(entry.Path.Data()))
+                    continue;
+
                 s_EditorConfig.RecentProjects.AddInPlace(entry);
             }
         }
