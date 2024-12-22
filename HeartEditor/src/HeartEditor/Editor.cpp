@@ -71,6 +71,18 @@ namespace HeartEditor
             elem.Duration -= ts.StepMilliseconds();
         }
         s_StatusLock.unlock();
+
+        // Useful for debugging reinstantiation of the scene renderer
+        /*
+        if (EditorApp::Get().GetFrameCount() % 17 == 0)
+        {
+            s_Windows.erase("Material Editor");
+            PushWindow<Widgets::MaterialEditor>("Material Editor", true).Wait();
+            auto& window = (Widgets::MaterialEditor&)GetWindow("Material Editor");
+            window.SetSelectedMaterial(Heart::AssetManager::GetAssetUUID("engine/DefaultMaterial.hemat", true));
+            window.SetDirty(true);
+        }
+        */
     }
 
     void Editor::CreateWindows()
