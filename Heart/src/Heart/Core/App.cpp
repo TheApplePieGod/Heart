@@ -72,6 +72,10 @@ namespace Heart
 
     App::~App()
     {
+        // Ensure all jobs are completed
+        TaskManager::Shutdown();
+        JobManager::Shutdown();
+        
         // Shutdown services
         ScriptingEngine::Shutdown();
         AssetManager::Shutdown();
@@ -80,9 +84,6 @@ namespace Heart
             layer->OnDetach();
 
         ShutdownGraphicsApi();
-        
-        TaskManager::Shutdown();
-        JobManager::Shutdown();
         
         PlatformUtils::ShutdownPlatform();
 
