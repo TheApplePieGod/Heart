@@ -60,7 +60,7 @@ Ensure the requirements for [Flourish](https://github.com/TheApplePieGod/flouris
 
 1. Clone the repo using the `--recursive` flag to ensure all submodules are downloaded
 2. Make sure the VulkanSDK is accessable via the `${VULKAN_SDK}` environment variable
-3. Make sure the .NET SDK is accessable via the `${DOTNET_SDK}` environment variable
+3. Make sure `dotnet` is accessable via the PATH
 4. Create a `build` directory in the project root
 
 ```

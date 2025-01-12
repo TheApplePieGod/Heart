@@ -9,7 +9,7 @@ add_custom_target(BuildScripts ALL
   VERBATIM
   COMMAND
     ${PREBUILD_COMMANDS}
-    "$ENV{DOTNET_SDK}/dotnet"
+    "dotnet"
     "build"
     "${CMAKE_CURRENT_SOURCE_DIR}/Heart.NET.Sdk/Heart.NET.Sdk.csproj"
     "-c" "${CMAKE_BUILD_TYPE}"

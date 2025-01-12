@@ -1,13 +1,19 @@
 import sys
 import os
+import shutil
 import platform
 import subprocess
+from pathlib import Path
 
-if "DOTNET_SDK" not in os.environ:
-    sys.stderr.write("DOTNET_SDK path not configured")
-    exit(1)
-SDK_PATH = os.environ["DOTNET_SDK"]
+DOTNET_BIN = shutil.which("dotnet")
 DOTNET_MIN_VER = "8.0"
+
+if DOTNET_BIN is None:
+    sys.stderr.write("'dotnet' executable not found, try adding to PATH")
+    exit(1)
+
+
+SDK_PATH = Path(DOTNET_BIN).parent
 
 def get_platform_info():
     system = platform.system()
@@ -91,4 +97,5 @@ def configure():
 
     sys.stdout.write(runtime_dir + ";" + hostfxr_path + ";" + runtime_str)
 
-configure()
+if __name__ == "__main__":
+    configure()

@@ -79,7 +79,7 @@ if(Python3_FOUND)
   message("Dotnet runtime str: ${DOTNET_RUNTIME_STR}")
 
   if (DOTNET_RUNTIME_DIR STREQUAL "")
-    message(FATAL_ERROR "Dotnet SDK not found (ensure DOTNET_SDK is set)")
+    message(FATAL_ERROR "Dotnet SDK not found ensure it is installed and in PATH")
   endif()
 else()
   message(FATAL_ERROR "Python must be installed to configure Heart") 
