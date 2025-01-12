@@ -157,7 +157,7 @@ namespace Heart
         HString16 root = dotnetRoot.ToUTF16();
         params.dotnet_root = (const wchar_t*)root.Data();
         #else
-        params.dotnet_root = root.Data();
+        params.dotnet_root = dotnetRoot.Data();
         #endif
 
         hostfxr_handle ctx = nullptr;
