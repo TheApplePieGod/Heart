@@ -8,7 +8,7 @@
 #include "spdlog/details/fmt_helper.h"
 #include "spdlog/details/os.h"
 
-#if defined(HE_PLATFORM_MACOS) && defined(HE_DIST)
+#if defined(HE_PLATFORM_MACOS)
 #include "Heart/Platform/MacOS/Utils.h"
 #endif
 
@@ -110,17 +110,25 @@ namespace Heart
 
     void Logger::Initialize(const char* appName)
     {
-        #if defined(HE_PLATFORM_MACOS) && defined(HE_DIST)
-            std::string logPath = MacOS::Utils::GetApplicationSupportDirectory();
-            logPath += "/";
-            logPath += appName;
-            logPath += "_Heart/";
-            if (!std::filesystem::exists(logPath))
-                std::filesystem::create_directory(logPath);
+        std::string logPath;
+        #if defined(HE_PLATFORM_MACOS)
+            bool isPackaged = MacOS::Utils::IsAppPackaged();
+            if (isPackaged)
+            {
+                // If the app is bundled, we cannot write logs there, so put
+                // them somewhere else.
+                logPath = MacOS::Utils::GetApplicationSupportDirectory();
+                logPath += "/";
+                logPath += appName;
+                logPath += "_Heart/";
+                if (!std::filesystem::exists(logPath))
+                    std::filesystem::create_directory(logPath);
+            }
+
             logPath += appName;
             logPath += ".log";
         #else
-            std::string logPath = appName;
+            logPath = appName;
             logPath += ".log";
         #endif
         
@@ -158,6 +166,7 @@ namespace Heart
             s_ClientLogger->flush_on(spdlog::level::info);
         #endif
 
-        HE_LOG_INFO("Logger initialized");
+        HE_ENGINE_LOG_INFO("Logger initialized");
+        HE_ENGINE_LOG_INFO("Log Directory: '{}'", logPath);
     }
 }
