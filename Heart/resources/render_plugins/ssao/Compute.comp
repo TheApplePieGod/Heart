@@ -29,7 +29,7 @@ layout(binding = 5) uniform sampler2D normalTex;
 vec3 ComputePosition(vec2 uv, float depth)
 {
     float x = uv.x * 2.0f - 1.0f;
-    float y = (1.0 - uv.y) * 2.0f - 1.0f;
+    float y = uv.y * 2.0f - 1.0f;
     vec4 positionS = vec4(x, y, depth, 1.0f);
     vec4 positionV = frameBuffer.data.invProj * positionS;
     return positionV.xyz / positionV.w;
@@ -50,7 +50,6 @@ void main()
 
     // Convert into view space (stored in world space)
     normal = normalize((frameBuffer.data.view * vec4(normal, 0.0)).xyz);
-    normal.y *= -1.f;
     
     vec2 noiseScale = constants.renderSize * 0.25;
     vec3 randomVec = normalize(texture(noiseTex, texCoord * noiseScale).xyz);
@@ -59,19 +58,23 @@ void main()
     mat3 TBN = mat3(tangent, bitangent, normal);
 
     // Compute total occlusion factor
-    float occlusion = 0.0;
+    float occlusion = 0.f;
+    float sampleCount = 0.f;
     for(int i = 0; i < constants.kernelSize; i++)
     {
         // Get sample position
         vec3 samplePos = TBN * sampleBuffer.samples[i].xyz; // from tangent to view-space
         samplePos = position + samplePos * constants.radius; 
+
+        // Skip sample if the chance of self-intersection is too high
+        if (dot(normalize(samplePos - position), normal) <= 0.2)
+            continue;
         
         // Project sample position (to sample texture) (to get position on screen/texture)
         vec4 offset = vec4(samplePos, 1.0);
         offset = frameBuffer.data.proj * offset;
         offset.xyz /= offset.w;
         offset.xyz = offset.xyz * 0.5 + 0.5;
-        offset.y = 1 - offset.y; // Invert y tex coordinate
         
         // Get sample depth
         float sampleDepth = textureLod(depthTex, offset.xy, 0).r;
@@ -80,8 +83,9 @@ void main()
         // Range check & accumulate
         float rangeCheck = smoothstep(0.0, 1.0, constants.radius / abs(position.z - sampleDepth));
         occlusion += (sampleDepth >= samplePos.z + constants.bias ? 1.0 : 0.0) * rangeCheck;           
+        sampleCount += 1.f;
     }
-    occlusion = 1.0 - (occlusion / constants.kernelSize);
+    occlusion = 1.0 - (occlusion / max(sampleCount, 1.f));
 
     imageStore(outColor, coord, vec4(occlusion, 0.f, 0.f, 0.f));
 }
