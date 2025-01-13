@@ -237,7 +237,13 @@ namespace Widgets
                                             exportingMaterial = &materialAsset->GetMaterial();
                                     }
 
-                                    Heart::HString8 path = Heart::FilesystemUtils::SaveAsDialog(Heart::AssetManager::GetAssetsDirectory(), "Export Material", "Material", "hemat");
+                                    Heart::HString8 path = Heart::FilesystemUtils::SaveAsDialog(
+                                        Heart::AssetManager::GetAssetsDirectory(),
+                                        "Export Material",
+                                        "Material",
+                                        "hemat",
+                                        "hemat"
+                                    );
                                     if (!path.IsEmpty())
                                     {
                                         Heart::MaterialAsset::SerializeMaterial(path, *exportingMaterial);

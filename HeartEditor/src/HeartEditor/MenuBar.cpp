@@ -108,7 +108,13 @@ namespace HeartEditor
 
                     if (ImGui::MenuItem("Save Scene As"))
                     {
-                        Heart::HString8 path = Heart::FilesystemUtils::SaveAsDialog(Heart::AssetManager::GetAssetsDirectory(), "Save Scene As", "Scene", "hescn");
+                        Heart::HString8 path = Heart::FilesystemUtils::SaveAsDialog(
+                            Heart::AssetManager::GetAssetsDirectory(),
+                            "Save Scene As",
+                            "Scene",
+                            "hescn",
+                            "hescn"
+                        );
                         if (!path.IsEmpty())
                         {
                             Heart::SceneAsset::SerializeScene(path, &Editor::GetEditorScene());

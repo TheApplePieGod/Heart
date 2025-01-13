@@ -134,12 +134,6 @@ namespace Heart
         return std::filesystem::path(path.Data()).parent_path().generic_u8string();
     }
 
-    HString8 FilesystemUtils::SaveAsDialog(const HStringView8& initialPath, const HStringView8& title, const HStringView8& defaultFileName, const HStringView8& _filter)
-    {
-        const char* filter = _filter.Data();
-        return tinyfd_saveFileDialog(title.Data(), initialPath.Data(), 1, &filter, nullptr);
-    }
-
     HString8 FilesystemUtils::OpenFileDialog(const HStringView8& initialPath, const HStringView8& title, const HStringView8& _filter)
     {
         const char* filter = _filter.Data();
@@ -150,4 +144,25 @@ namespace Heart
     {
         return tinyfd_selectFolderDialog(title.Data(), initialPath.Data());
     }
+
+    HString8 FilesystemUtils::SaveAsDialog(
+        const HStringView8& initialPath,
+        const HStringView8& title,
+        const HStringView8& defaultFileName,
+        const HStringView8& _filter,
+        const HStringView8& enforceExtension
+    ) {
+        const char* filter = _filter.Data();
+        char* result = tinyfd_saveFileDialog(title.Data(), initialPath.Data(), 1, &filter, nullptr);
+
+        if (!result || enforceExtension.IsEmpty())
+            return result;
+
+        // Ensure that the path has the requested extension
+        std::filesystem::path path(result);
+        path.replace_extension(std::filesystem::path(enforceExtension.Data()));
+
+        return path.generic_u8string();
+    }
+
 }
