@@ -36,6 +36,7 @@ namespace Heart
 
         inline static const auto& GetEntityClasses() { return s_EntityClasses; }
         inline static const auto& GetComponentClasses() { return s_ComponentClasses; }
+        inline static const HStringView8 GetDotnetPath() { return s_DotnetPath; }
 
         inline static bool IsScriptInputEnabled() { return s_ScriptInputEnabled; }
         inline static void SetScriptInputEnabled(bool enabled) { s_ScriptInputEnabled = enabled; }

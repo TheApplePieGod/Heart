@@ -332,19 +332,10 @@ namespace HeartEditor
         auto timer = Heart::Timer("Client plugin build");
         
         Heart::HString8 command;
-        #ifndef HE_PLATFORM_WINDOWS
-            command += "sh ";
-        #endif
-
-        command += "\"";
-        command += Heart::AssetManager::GetDotDirectory();
-        command += "/BuildScripts";
-
-        #ifdef HE_PLATFORM_WINDOWS
-            command += ".bat\" ";
-        #else
-            command += ".sh\" ";
-        #endif
+        command += Heart::ScriptingEngine::GetDotnetPath();
+        command += "/dotnet build \"";
+        command += m_Name;
+        command += ".csproj\" -c ";
         
         if (debug)
             command += "Debug";
@@ -373,11 +364,11 @@ namespace HeartEditor
 
         auto timer = Heart::Timer("Client plugin publish");
         
-        #ifdef HE_PLATFORM_WINDOWS
-            Heart::HString8 command = ".heart/PublishScripts.bat ";
-        #else
-            Heart::HString8 command = "sh .heart/PublishScripts.sh ";
-        #endif
+        Heart::HString8 command;
+        command += Heart::ScriptingEngine::GetDotnetPath();
+        command += "/dotnet publish \"";
+        command += m_Name;
+        command += ".csproj\" -c Release --self-contained -r ";
         
         auto runtimeId = GetDotnetRuntimeIdentifier(platform);
         if (runtimeId.IsEmpty())
