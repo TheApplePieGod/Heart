@@ -51,6 +51,8 @@ namespace Heart
         const char* hostfxrName = "scripting/libhostfxr.so";
         #endif
 
+        HE_ENGINE_LOG_DEBUG("Loading hostfxr from path '{}'", hostfxrName);
+
         #ifdef HE_PLATFORM_ANDROID
         // Check to see if the files exist in local storage or not. If not, we need
         // to copy them over from assets so we can properly load them.

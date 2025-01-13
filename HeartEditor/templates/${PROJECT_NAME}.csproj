@@ -10,7 +10,7 @@
 		<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
 	</PropertyGroup>
 	<ItemGroup>
-		<PackageReference Include="Heart.NET.Sdk" Version="0.0.1" />
+		<PackageReference Include="Heart.NET.Sdk" Version="0.0.2" />
 	</ItemGroup>
 	<ItemGroup>
 	  	<Folder Include="Scripts/" />

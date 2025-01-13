@@ -41,11 +41,20 @@ namespace Heart
         // Run on main thread, since some platforms have issues otherwise
         if (!ScriptingEngine::Initialize())
         {
-            PlatformUtils::ShowMessageBox(
-                ".NET Initialization Failed!",
-                "Unable to start the .NET SDK.\n\nPlease ensure it is installed on your system.\n\nhttps://dotnet.microsoft.com/en-us/download/dotnet/8.0",
-                "error"
-            );
+            // Show a different message in dist bc dotnet doesn't actually need to be installed
+            #ifdef HE_DIST
+                PlatformUtils::ShowMessageBox(
+                    ".NET Initialization Failed!",
+                    "Unable to initialize the scripting backend",
+                    "error"
+                );
+            #else
+                PlatformUtils::ShowMessageBox(
+                    ".NET Initialization Failed!",
+                    "Unable to start the .NET SDK.\n\nPlease ensure it is installed on your system.\n\nhttps://dotnet.microsoft.com/en-us/download/dotnet/8.0",
+                    "error"
+                );
+            #endif
 
             throw std::exception();
         }
