@@ -33,6 +33,7 @@ namespace HeartEditor
          */
         nlohmann::json j;
         j["name"] = name;
+        j["loadedScene"] = "Assets/Scenes/DefaultScene.hescn";
 
         // Skip creation if project file already exists
         std::filesystem::path mainProjectFilePath = std::filesystem::path(finalPath).append(filename.Data());
