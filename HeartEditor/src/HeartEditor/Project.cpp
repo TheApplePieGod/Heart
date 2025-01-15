@@ -332,8 +332,9 @@ namespace HeartEditor
         auto timer = Heart::Timer("Client plugin build");
         
         Heart::HString8 command;
+        command += "\"";
         command += Heart::ScriptingEngine::GetDotnetPath();
-        command += "/dotnet build \"";
+        command += "/dotnet\" build \"";
         command += m_Name;
         command += ".csproj\" -c ";
         
@@ -365,8 +366,9 @@ namespace HeartEditor
         auto timer = Heart::Timer("Client plugin publish");
         
         Heart::HString8 command;
+        command += "\"";
         command += Heart::ScriptingEngine::GetDotnetPath();
-        command += "/dotnet publish \"";
+        command += "/dotnet\" publish \"";
         command += m_Name;
         command += ".csproj\" -c Release --self-contained -r ";
         

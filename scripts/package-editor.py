@@ -21,7 +21,6 @@ is_unix = platform_info[0] != "Windows"
 
 def zip_directory_with_symlinks(directory, zip_filename):
     """Zips a directory while preserving symbolic links."""
-    assert is_unix
     root_dir_name = os.path.basename(os.path.abspath(directory))
     with zipfile.ZipFile(zip_filename, 'w', zipfile.ZIP_DEFLATED) as zipf:
         for root, dirs, files in os.walk(directory, followlinks=False):
@@ -29,6 +28,7 @@ def zip_directory_with_symlinks(directory, zip_filename):
                 filepath = os.path.join(root, name)
                 arcname = os.path.join(root_dir_name, os.path.relpath(filepath, directory))
                 if os.path.islink(filepath):
+                    assert is_unix
                     link_target = os.readlink(filepath)
                     zip_info = zipfile.ZipInfo(arcname)
                     zip_info.create_system = 3
@@ -38,7 +38,38 @@ def zip_directory_with_symlinks(directory, zip_filename):
                     zipf.write(filepath, arcname)
 
 
-def bundle_macos(out_dir, build_dir):
+def bundle_windows(out_dir, build_dir, debug):
+    out_dir_parent = out_dir
+    out_dir = f"{out_dir}/Editor"
+
+    if not os.path.exists(out_dir):
+        os.makedirs(out_dir)
+
+    # Copy exe out directory
+    print("Copying Executable...")
+    shutil.copy(f"{build_dir}/Editor.exe", out_dir)
+
+    # Copy resource files
+    print("Copying Resource Files...")
+    shutil.copytree(f"{build_dir}/resources", f"{out_dir}/resources", symlinks=False, dirs_exist_ok=True)
+    shutil.copytree(f"{build_dir}/scripting", f"{out_dir}/scripting", symlinks=False, dirs_exist_ok=True)
+    shutil.copytree(f"{build_dir}/templates", f"{out_dir}/templates", symlinks=False, dirs_exist_ok=True)
+
+    # Copy shared libraries
+    print("Copying Shared Libraries...")
+    if args.debug:
+        shutil.copy(f"{build_dir}/shaderc_sharedd.dll", out_dir)
+        shutil.copy(f"{build_dir}/spirv-cross-c-sharedd.dll", out_dir)
+    else:
+        shutil.copy(f"{build_dir}/shaderc_shared.dll", out_dir)
+        shutil.copy(f"{build_dir}/spirv-cross-c-shared.dll", out_dir)
+
+    # Zip final result
+    print("Zipping Bundle...")
+    zip_directory_with_symlinks(out_dir, f"{out_dir_parent}/Editor.zip")
+
+
+def bundle_macos(out_dir, build_dir, debug):
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
 
@@ -66,7 +97,7 @@ def bundle_macos(out_dir, build_dir):
         os.symlink("libMoltenVK.dylib", symlink_path)
 
     # Zip final result
-    print("Zipping bundle...")
+    print("Zipping Bundle...")
     zip_directory_with_symlinks(f"{out_dir}/Editor.app", f"{out_dir}/Editor.zip")
 
 
@@ -92,11 +123,11 @@ def package_editor(args):
     out_dir = f"../build/Packaged/{'Debug' if args.debug else 'Release'}"
     build_dir = f"../build/bin/{'Debug' if args.debug else 'Release'}"
     if platform_info[0] == "Windows":
-        raise NotImplementedError
+        bundle_windows(out_dir, build_dir, args.debug)
     elif platform_info[0] == "Linux":
         raise NotImplementedError
     else:
-        bundle_macos(out_dir, build_dir)
+        bundle_macos(out_dir, build_dir, args.debug)
 
     print("\n\n======== Success ========\n\n")
     print(f"Wrote results to {out_dir}\n\n")
