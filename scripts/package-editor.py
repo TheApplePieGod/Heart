@@ -105,18 +105,28 @@ def package_editor(args):
     print("\n\n======== Configuring Project ========\n\n")
 
     configure_script = "ConfigureDistDebug.bat" if args.debug else "ConfigureDistRelease.bat"
-    if is_unix:
-        out = subprocess.check_output(["sh", configure_script])
-    else:
-        out = subprocess.check_output([configure_script])
+    try:
+        if is_unix:
+            out = subprocess.check_output(["sh", configure_script])
+        else:
+            out = subprocess.check_output([configure_script])
+    except subprocess.CalledProcessError as e:
+        print("Failed to configure project. See output below.\n\n")
+        print(e.output.decode('utf-8'))
+        exit(1)
 
     print("\n\n======== Building Project ========\n\n")
 
     build_script = "BuildDebug.bat" if args.debug else "BuildRelease.bat"
-    if is_unix:
-        out = subprocess.check_output(["sh", build_script])
-    else:
-        out = subprocess.check_output([build_script])
+    try:
+        if is_unix:
+            out = subprocess.check_output(["sh", build_script])
+        else:
+            out = subprocess.check_output([build_script])
+    except subprocess.CalledProcessError as e:
+        print("Failed to build project. See output below.\n\n")
+        print(e.output.decode('utf-8'))
+        exit(1)
 
     print("\n\n======== Bundling Project Files ========\n\n")
 
