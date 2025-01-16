@@ -146,14 +146,19 @@ namespace Heart
 
         logSinks[0]->set_pattern("[%T] [%l] %n: %v");
 
+        // Special override mechanism for enabling trace logs
+        spdlog::level::level_enum defaultLevel = spdlog::level::info;
+        if (std::filesystem::exists("ENABLE_DEBUG"))
+            defaultLevel = spdlog::level::trace;
+
         s_EngineLogger = CreateRef<spdlog::logger>("ENGINE", logSinks.Begin(), logSinks.End());
         spdlog::register_logger(s_EngineLogger);
         #ifdef HE_DEBUG
             s_EngineLogger->set_level(spdlog::level::trace);
             s_EngineLogger->flush_on(spdlog::level::trace);
         #else
-            s_EngineLogger->set_level(spdlog::level::info);
-            s_EngineLogger->flush_on(spdlog::level::info);
+            s_EngineLogger->set_level(defaultLevel);
+            s_EngineLogger->flush_on(defaultLevel);
         #endif
 
         s_ClientLogger = CreateRef<spdlog::logger>("CLIENT", logSinks.Begin(), logSinks.End());
@@ -162,8 +167,8 @@ namespace Heart
             s_ClientLogger->set_level(spdlog::level::trace);
             s_ClientLogger->flush_on(spdlog::level::trace);
         #else
-            s_ClientLogger->set_level(spdlog::level::info);
-            s_ClientLogger->flush_on(spdlog::level::info);
+            s_ClientLogger->set_level(defaultLevel);
+            s_ClientLogger->flush_on(defaultLevel);
         #endif
 
         HE_ENGINE_LOG_INFO("Logger initialized");
