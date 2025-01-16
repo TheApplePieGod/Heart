@@ -57,12 +57,8 @@ def bundle_windows(out_dir, build_dir, debug):
 
     # Copy shared libraries
     print("Copying Shared Libraries...")
-    if args.debug:
-        shutil.copy(f"{build_dir}/shaderc_sharedd.dll", out_dir)
-        shutil.copy(f"{build_dir}/spirv-cross-c-sharedd.dll", out_dir)
-    else:
-        shutil.copy(f"{build_dir}/shaderc_shared.dll", out_dir)
-        shutil.copy(f"{build_dir}/spirv-cross-c-shared.dll", out_dir)
+    shutil.copy(f"{build_dir}/shaderc_shared.dll", out_dir)
+    shutil.copy(f"{build_dir}/spirv-cross-c-shared.dll", out_dir)
 
     # Zip final result
     print("Zipping Bundle...")

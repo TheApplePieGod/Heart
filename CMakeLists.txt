@@ -42,6 +42,11 @@ elseif(MSVC)
     if(${CMAKE_BUILD_TYPE} MATCHES Debug)
         add_compile_definitions(_ITERATOR_DEBUG_LEVEL=1)
     endif()
+
+    # https://github.com/actions/runner-images/issues/10004#issuecomment-2156109231
+    # https://github.com/YehudaKremer/msix/issues/272
+    add_compile_definitions(_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR)
+
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
 endif()
 
