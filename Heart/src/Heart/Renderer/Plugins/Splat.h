@@ -55,13 +55,15 @@ namespace Heart::RenderPlugins
     private:
         SplatCreateInfo m_Info;
 
-        // Sort params
+        // Params
+        const u32 m_MaxInstances = 10;
+        const u32 m_TimestampsPerInstance = 3;
         const u32 m_MaxSplats = 10000000;
         const u32 m_NumBlocksPerWorkgroup = 500;
         const u32 m_WorkgroupSize = 256;
         const u32 m_BinCount = 256;
 
-        u32 m_LastSplatCount = 0;
+        u32 m_LastInstanceCount = 0;
 
         Ref<Flourish::ResourceSet> m_ResourceSet;
         Ref<Flourish::ResourceSet> m_RadixResourceSet;

@@ -175,7 +175,7 @@ namespace Heart
         if (!m_Initialized) return;
 
         if (!willRecreate)
-        { HE_LOG_DEBUG("Fully leaning up ImGuiInstance"); }
+            HE_LOG_DEBUG("Fully cleaning up ImGuiInstance");
 
         // Special case when we want to cleanup/recreate in the middle of an imgui frame.
         // End frame prematurely so that old draw data does not get rendered with new device

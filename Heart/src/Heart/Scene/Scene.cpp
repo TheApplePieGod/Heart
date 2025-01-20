@@ -166,6 +166,7 @@ namespace Heart
         CopyComponent<CameraComponent>(source.GetHandle(), newEntity);
         CopyComponent<CollisionComponent>(source.GetHandle(), newEntity);
         CopyComponent<TextComponent>(source.GetHandle(), newEntity);
+        CopyComponent<SplatComponent>(source.GetHandle(), newEntity);
         CopyComponent<RuntimeComponent>(source.GetHandle(), newEntity);
 
         CacheEntityTransform(newEntity);

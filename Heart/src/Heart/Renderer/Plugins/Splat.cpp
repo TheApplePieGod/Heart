@@ -97,7 +97,7 @@ namespace Heart::RenderPlugins
         Flourish::CommandBufferCreateInfo cbCreateInfo;
         cbCreateInfo.FrameRestricted = true;
         cbCreateInfo.DebugName = m_Name.Data();
-        cbCreateInfo.MaxTimestamps = 3;
+        cbCreateInfo.MaxTimestamps = m_TimestampsPerInstance * m_MaxInstances;
         m_CommandBuffer = Flourish::CommandBuffer::Create(cbCreateInfo);
 
         Flourish::ResourceSetCreateInfo dsCreateInfo;
@@ -119,7 +119,7 @@ namespace Heart::RenderPlugins
         fbCreateInfo.DepthAttachments.push_back({ m_Info.OutputDepthTexture });
         m_Framebuffer = Flourish::Framebuffer::Create(fbCreateInfo);
 
-        RebuildGraph(m_LastSplatCount);
+        RebuildGraph(m_LastInstanceCount);
     }
 
     void Splat::RebuildGraph(u32 splatCount)
@@ -166,10 +166,19 @@ namespace Heart::RenderPlugins
         HE_PROFILE_FUNCTION();
         auto timer = AggregateTimer("RenderPlugins::Splat");
 
+        // Compute last frame stats
+        float sortTime = 0.f;
+        float renderTime = 0.f;
+        for (u32 i = 0; i < m_LastInstanceCount; i++)
+        {
+            u32 timestampIdx = i * m_TimestampsPerInstance;
+            sortTime += (float)(m_CommandBuffer->ComputeTimestampDifference(timestampIdx, timestampIdx + 1) * 1e-6);
+            renderTime += (float)(m_CommandBuffer->ComputeTimestampDifference(timestampIdx + 1, timestampIdx + 2) * 1e-6);
+        }
         m_Stats["GPU Time (Sort)"].Type = StatType::TimeMS;
-        m_Stats["GPU Time (Sort)"].Data.Float = (float)(m_CommandBuffer->ComputeTimestampDifference(0, 1) * 1e-6);
+        m_Stats["GPU Time (Sort)"].Data.Float = sortTime;
         m_Stats["GPU Time (Render)"].Type = StatType::TimeMS;
-        m_Stats["GPU Time (Render)"].Data.Float = (float)(m_CommandBuffer->ComputeTimestampDifference(1, 2) * 1e-6);
+        m_Stats["GPU Time (Render)"].Data.Float = renderTime;
 
         auto frameDataPlugin = m_Renderer->GetPlugin<RenderPlugins::FrameData>(m_Info.FrameDataPluginName);
         auto frameDataBuffer = frameDataPlugin->GetBuffer();
@@ -183,6 +192,9 @@ namespace Heart::RenderPlugins
         auto splatView = data.Scene->GetRegistry().view<SplatComponent>();
         for (entt::entity entity : splatView)
         {
+            if (totalSplatInstances >= m_MaxInstances)
+                break;
+
             const auto& splatComp = splatView.get<SplatComponent>(entity);
             const auto& transformData = data.Scene->GetCachedTransforms().at(entity);
             auto splatAsset = AssetManager::RetrieveAsset<SplatAsset>(splatComp.Splat);
@@ -190,13 +202,14 @@ namespace Heart::RenderPlugins
                 continue;
 
             totalSplatInstances++;
-            if (totalSplatInstances > m_LastSplatCount)
+            if (totalSplatInstances > m_LastInstanceCount)
             {
                 // Need to stop early since we have to rebuild the graph
                 // before we can render
                 continue;
             }
 
+            u32 instanceIdx = totalSplatInstances - 1;
             u32 splatCount = splatAsset->GetDataBuffer()->GetAllocatedCount();
             u32 radixInvocationCount = splatCount / m_NumBlocksPerWorkgroup;
             radixInvocationCount += splatCount % m_NumBlocksPerWorkgroup ? 1 : 0;
@@ -237,7 +250,7 @@ namespace Heart::RenderPlugins
                 m_HistorgramResourceSet->FlushBindings();
                 auto compEncoder = m_CommandBuffer->EncodeComputeCommands();
                 if (i == 0)
-                    compEncoder->WriteTimestamp(0);
+                    compEncoder->WriteTimestamp(instanceIdx * m_TimestampsPerInstance);
                 compEncoder->BindComputePipeline(m_HistogramPipeline.get());
                 compEncoder->BindResourceSet(m_HistorgramResourceSet.get(), 0);
                 compEncoder->FlushResourceSet(0);
@@ -264,7 +277,7 @@ namespace Heart::RenderPlugins
                 compEncoder->PushConstants(0, sizeof(RadixPushConstants), &radixPush);
                 compEncoder->Dispatch(workgroupCount, 1, 1);
                 if (i == 3)
-                    compEncoder->WriteTimestamp(1);
+                    compEncoder->WriteTimestamp(instanceIdx * m_TimestampsPerInstance + 1);
                 compEncoder->EndEncoding();
             }
 
@@ -285,13 +298,13 @@ namespace Heart::RenderPlugins
             glm::mat4 MV = data.Camera->GetViewMatrix() * transformData.Transform;
             encoder->PushConstants(0, sizeof(glm::mat4), &MV);
             encoder->DrawIndexedIndirect(m_IndirectBuffer.get(), 0, 1);
-            encoder->WriteTimestamp(2);
+            encoder->WriteTimestamp(instanceIdx * m_TimestampsPerInstance + 2);
             encoder->EndEncoding();
 
             totalSplatCount += splatCount;
         }
 
-        for (u32 remaining = totalSplatInstances; remaining < m_LastSplatCount; remaining++)
+        for (u32 remaining = totalSplatInstances; remaining < m_LastInstanceCount; remaining++)
         {
             auto compEncoder = m_CommandBuffer->EncodeComputeCommands();
             compEncoder->EndEncoding();
@@ -308,13 +321,13 @@ namespace Heart::RenderPlugins
             encoder->EndEncoding();
         }
 
-        if (totalSplatInstances != m_LastSplatCount)
+        if (totalSplatInstances != m_LastInstanceCount)
         {
             RebuildGraph(totalSplatInstances);
             m_Renderer->QueueGraphRebuild();
         }
 
-        m_LastSplatCount = totalSplatInstances;
+        m_LastInstanceCount = totalSplatInstances;
         m_Stats["Instance Count"] = {
             StatType::Int,
             (int)totalSplatInstances
