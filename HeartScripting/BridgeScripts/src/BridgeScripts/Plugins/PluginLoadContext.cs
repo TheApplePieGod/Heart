@@ -53,6 +53,12 @@ namespace BridgeScripts.Plugins
 
             protected override IntPtr LoadUnmanagedDll(string unmanagedDllName)
             {
+                // Try to use custom dll import resolver first
+                // TODO: the passed assembly is probably not what it should be
+                IntPtr loaded = EntryPoint.DllImportResolver.OnResolveDllImport(unmanagedDllName, Assembly.GetExecutingAssembly(), null);
+                if (loaded != IntPtr.Zero)
+                    return loaded;
+
                 string libPath = _resolver.ResolveUnmanagedDllToPath(unmanagedDllName);
                 if (libPath != null)
                     return LoadUnmanagedDllFromPath(libPath);

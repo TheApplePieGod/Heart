@@ -86,7 +86,7 @@ namespace Heart.NativeBridge
                 func.Invoke(gcHandle.Target, argsArray.ToObjectArray());
             } catch (Exception e)
             {
-                Log.Error("Function '{0}' threw an exception: {1}", funcName, e.InnerException.Message);
+                Log.Error("Function '{0}' threw an exception: {1}", funcName, e.InnerException?.Message);
                 return InteropBool.False;
             }
             

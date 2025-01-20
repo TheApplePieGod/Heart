@@ -13,6 +13,12 @@ namespace BridgeScripts
     {
         private static PluginLoadContext _clientLoadContext;
         private static PluginLoadContext _coreLoadContext;
+        private static DllImportResolver _dllImportResolver;
+
+        public static DllImportResolver DllImportResolver
+        {
+            get => _dllImportResolver;
+        }
 
         public static Assembly CoreAssembly
         {
@@ -35,6 +41,8 @@ namespace BridgeScripts
         [UnmanagedCallersOnly]
         internal static unsafe byte Initialize(IntPtr dllHandle, ManagedCallbacks* managedCallbacks)
         {
+            _dllImportResolver = new DllImportResolver(dllHandle);
+
             // Should be registered as shared even though it is not loaded by default
             PluginManager.SharedAssemblies.Add("CoreScripts");
 
@@ -52,6 +60,9 @@ namespace BridgeScripts
             {
                 // Update the main load context to be the core because all client assemblies should reference the same core plugin
                 PluginManager.MainLoadContext = AssemblyLoadContext.GetLoadContext(_coreLoadContext.LoadedAssembly);
+
+                // Update dll import resolver for future use
+                NativeLibrary.SetDllImportResolver(_coreLoadContext.LoadedAssembly, _dllImportResolver.OnResolveDllImport);
 
                 // Update the opaque managed callbacks handle
                 _coreLoadContext.LoadedAssembly
@@ -83,7 +94,10 @@ namespace BridgeScripts
 
             (bool success, _clientLoadContext) = PluginManager.LoadPlugin(assemblyPath);
             if (success)
+            {
+                NativeLibrary.SetDllImportResolver(_clientLoadContext.LoadedAssembly, _dllImportResolver.OnResolveDllImport);
                 UpdateCoreClientReference(_clientLoadContext.LoadedAssembly);
+            }
 
             return (byte)(success ? 1 : 0);
         }
