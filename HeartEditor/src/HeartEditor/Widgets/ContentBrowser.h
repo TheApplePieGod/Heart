@@ -22,9 +22,9 @@ namespace Widgets
     private:
         void ScanDirectory();
         void RenderFileCard(const std::filesystem::directory_entry& entry);
-        void RenderDirectoryNode(const Heart::HStringView8& path, u32 depth = 0);
+        void RenderDirectoryNode(const Heart::HString8& path, u32 depth = 0);
         void RenderFileList();
-        void PushDirectoryStack(const Heart::HStringView8& entry);
+        void PushDirectoryStack(const Heart::HString8& entry);
         void FileTransferDropTarget(const std::filesystem::path& destination);
 
     private:

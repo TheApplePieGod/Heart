@@ -16,17 +16,19 @@ namespace Heart
          * @param path The path of the asset relative to the project directory.
          * @param absolutePath The absolute filesystem path of the asset.
          */
-        FontAsset(const HStringView8& path, const HStringView8& absolutePath)
+        FontAsset(const HString8& path, const HString8& absolutePath)
             : Asset(path, absolutePath)
         { m_Type = Type::Font; }
-
-        void Load(bool async = false) override;
-        void Unload() override;
 
         inline Flourish::Texture* GetAtlasTexture() { return m_AtlasTexture.get(); }
         inline const auto& GetFontGeometry() const { return m_FontGeometry; }
         inline float GetPixelRange() const { return m_PixelRange; }
         inline float GetGlyphScale() const { return m_GlyphScale; }
+
+    protected:
+        void LoadInternal() override;
+        void UnloadInternal() override;
+        bool ShouldUnload() override;
         
     private:
         Ref<Flourish::Texture> m_AtlasTexture;

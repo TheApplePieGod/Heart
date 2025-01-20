@@ -8,12 +8,14 @@
 #include "Common.glsl"
 #include "../../util/BRDF.glsl"
 #include "../../util/Misc.glsl"
+#include "../../gbuffer/Util.glsl"
 #include "../util/RayCone.glsl"
 
 layout(binding = 1) uniform accelerationStructureEXT tlas;
 layout(binding = 3, rgba16f) uniform writeonly image2D outImage;
-layout(binding = 4) uniform sampler2D gBuffer2;
-layout(binding = 5) uniform sampler2D gBufferDepth;
+layout(binding = 4) uniform sampler2D gBufferNormals;
+layout(binding = 5) uniform usampler2D gBufferColor;
+layout(binding = 6) uniform sampler2D gBufferDepth;
 
 layout(location = 0) rayPayloadEXT HitPayload payload;
 
@@ -57,9 +59,14 @@ void main()
         return;
     }
 
-    float roughness = texelFetch(gBuffer2, currentCoord, 0).a; 
+    const uvec4 colorData = texelFetch(gBufferColor, currentCoord, 0);
+    float roughness = UnpackRoughness(colorData);
+
+    const vec4 normalData = texelFetch(gBufferNormals, currentCoord, 0);
+    const vec3 normal = OctahedronDecode(normalData.rg);
+
     vec3 P = ComputeWorldPositionFromDepth(texCoord, depth, frameBuffer.data.invViewProj);
-    vec3 N = texelFetch(gBuffer2, currentCoord, 0).rgb;
+    vec3 N = normal;
     vec3 V = normalize(frameBuffer.data.cameraPos.xyz - P);
 
     // Mirror reflections by default

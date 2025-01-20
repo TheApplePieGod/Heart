@@ -14,21 +14,15 @@
 #include "Heart/Scripting/ManagedIterator.h"
 #include "Heart/Scripting/EntityView.h"
 
-#define HE_INTEROP_EXPORT_BASE extern "C" [[maybe_unused]]
-#ifdef HE_PLATFORM_WINDOWS
-    #define HE_INTEROP_EXPORT HE_INTEROP_EXPORT_BASE __declspec(dllexport)
-#elif defined(HE_PLATFORM_LINUX)
-    #define HE_INTEROP_EXPORT HE_INTEROP_EXPORT_BASE __attribute__((visibility("default")))
-#else
-    #define HE_INTEROP_EXPORT HE_INTEROP_EXPORT_BASE
-#endif
+#define HE_INTEROP_EXPORT extern "C" [[maybe_unused]]
 
 // https://stackoverflow.com/questions/56097222/keywords-in-out-ref-vs-attributes-in-out-in-out
 // https://docs.microsoft.com/en-us/dotnet/standard/native-interop/best-practices
 
-HE_INTEROP_EXPORT void Native_Log(int level, const char* message)
+HE_INTEROP_EXPORT void Native_Log(int level, const char16* message, u32 messageLen)
 {
-    Heart::Logger::GetClientLogger().log(spdlog::source_loc{}, static_cast<spdlog::level::level_enum>(level), message);
+    auto converted = Heart::HStringView16(message, messageLen).ToUTF8();
+    Heart::Logger::GetClientLogger().log(spdlog::source_loc{}, static_cast<spdlog::level::level_enum>(level), converted.Data());
 }
 
 /*
@@ -108,19 +102,32 @@ HE_INTEROP_EXPORT bool Native_Input_IsKeyPressed(Heart::KeyCode key)
     return Heart::Input::IsKeyPressed(key);
 }
 
-HE_INTEROP_EXPORT bool Native_Input_IsMouseButtonPressed(Heart::MouseCode button)
+HE_INTEROP_EXPORT bool Native_Input_IsButtonPressed(Heart::ButtonCode button)
 {
     if (!Heart::ScriptingEngine::IsScriptInputEnabled()) return false;
-    return Heart::Input::IsMouseButtonPressed(button);
+    return Heart::Input::IsButtonPressed(button);
+}
+
+HE_INTEROP_EXPORT bool Native_Input_GetAxisValue(Heart::AxisCode axis)
+{
+    if (!Heart::ScriptingEngine::IsScriptInputEnabled()) return false;
+    return Heart::Input::GetAxisValue(axis);
+}
+
+HE_INTEROP_EXPORT bool Native_Input_GetAxisDelta(Heart::AxisCode axis)
+{
+    if (!Heart::ScriptingEngine::IsScriptInputEnabled()) return false;
+    return Heart::Input::GetAxisDelta(axis);
 }
 
 /*
  * Scene Functions
  */
 
-HE_INTEROP_EXPORT void Native_Scene_CreateEntity(Heart::Scene* sceneHandle, const char* name, u32* entityHandle)
+HE_INTEROP_EXPORT void Native_Scene_CreateEntity(Heart::Scene* sceneHandle, const char16* name, u32 nameLen, u32* entityHandle)
 {
-    *entityHandle = (u32)sceneHandle->CreateEntity(name, false).GetHandle();
+    auto converted = Heart::HStringView16(name, nameLen).ToUTF8();
+    *entityHandle = (u32)sceneHandle->CreateEntity(converted, false).GetHandle();
 }
 
 HE_INTEROP_EXPORT void Native_Scene_GetEntityFromUUID(Heart::Scene* sceneHandle, Heart::UUID uuid, u32* entityHandle)
@@ -128,9 +135,10 @@ HE_INTEROP_EXPORT void Native_Scene_GetEntityFromUUID(Heart::Scene* sceneHandle,
     *entityHandle = (u32)sceneHandle->GetEntityFromUUID(uuid).GetHandle();
 }
 
-HE_INTEROP_EXPORT void Native_Scene_GetEntityFromName(Heart::Scene* sceneHandle, const char* name, u32* entityHandle)
+HE_INTEROP_EXPORT void Native_Scene_GetEntityFromName(Heart::Scene* sceneHandle, const char16* name, u32 nameLen, u32* entityHandle)
 {
-    *entityHandle = (u32)sceneHandle->GetEntityFromName(name).GetHandle();
+    auto converted = Heart::HStringView16(name, nameLen).ToUTF8();
+    *entityHandle = (u32)sceneHandle->GetEntityFromName(converted).GetHandle();
 }
 
 HE_INTEROP_EXPORT bool Native_Scene_RaycastSingle(Heart::Scene* sceneHandle, const Heart::RaycastInfo* info, Heart::RaycastResult* result)
@@ -157,9 +165,10 @@ HE_INTEROP_EXPORT bool Native_Entity_IsValid(u32 entityHandle, Heart::Scene* sce
  * Asset manager functions
  */
 
-HE_INTEROP_EXPORT void Native_AssetManager_GetAssetUUID(const char* path, bool isResource, Heart::UUID* outId)
+HE_INTEROP_EXPORT void Native_AssetManager_GetAssetUUID(const char16* path, u32 pathLen, bool isResource, Heart::UUID* outId)
 {
-    *outId = Heart::AssetManager::GetAssetUUID(path, isResource);
+    auto converted = Heart::HStringView16(path, pathLen).ToUTF8();
+    *outId = Heart::AssetManager::GetAssetUUID(converted, isResource);
 }
 
 /*
@@ -217,6 +226,14 @@ HE_INTEROP_EXPORT void Native_SchedulableIter_Schedule(
                 "Entity HasComponent check failed for " #compName \
             ); \
         }
+    #define ASSERT_ENTITY_HAS_RUNTIME_COMPONENT(id) \
+        { \
+            Heart::Entity entity(sceneHandle, entityHandle); \
+            HE_ENGINE_ASSERT( \
+                entity.HasRuntimeComponent(id), \
+                "Entity HasRuntimeComponent check failed" \
+            ); \
+        }
     #define ASSERT_ENTITY_IS_VALID() \
         { \
             Heart::Entity entity(sceneHandle, entityHandle); \
@@ -227,6 +244,7 @@ HE_INTEROP_EXPORT void Native_SchedulableIter_Schedule(
         }
 #else
     #define ASSERT_ENTITY_HAS_COMPONENT(compName)
+    #define ASSERT_ENTITY_HAS_RUNTIME_COMPONENT(id)
     #define ASSERT_ENTITY_IS_VALID()
 #endif
 
@@ -404,14 +422,34 @@ HE_INTEROP_EXPORT void Native_MeshComponent_RemoveMaterial(u32 entityHandle, Hea
 EXPORT_COMPONENT_BASIC_FNS(LightComponent);
 
 // Script component
-EXPORT_COMPONENT_BASIC_FNS(ScriptComponent);
+EXPORT_COMPONENT_EXISTS_FN(ScriptComponent);
+EXPORT_COMPONENT_ADD_FN(ScriptComponent);
+EXPORT_COMPONENT_REMOVE_FN(ScriptComponent);
 
-HE_INTEROP_EXPORT void Native_ScriptComponent_SetScriptClass(u32 entityHandle, Heart::Scene* sceneHandle, const char* value)
+HE_INTEROP_EXPORT void Native_ScriptComponent_GetObjectHandle(u32 entityHandle, Heart::Scene* sceneHandle, uptr* outValue)
 {
     ASSERT_ENTITY_IS_VALID();
     ASSERT_ENTITY_HAS_COMPONENT(ScriptComponent);
     Heart::Entity entity(sceneHandle, entityHandle);
-    entity.GetComponent<Heart::ScriptComponent>().Instance.SetScriptClass(value);
+    *outValue = entity.GetComponent<Heart::ScriptComponent>().Instance.GetObjectHandle();
+}
+
+HE_INTEROP_EXPORT void Native_ScriptComponent_GetScriptClass(u32 entityHandle, Heart::Scene* sceneHandle, const Heart::HString** outValue)
+{
+    ASSERT_ENTITY_IS_VALID();
+    ASSERT_ENTITY_HAS_COMPONENT(ScriptComponent);
+    Heart::Entity entity(sceneHandle, entityHandle);
+    *outValue = &entity.GetComponent<Heart::ScriptComponent>().Instance.GetScriptClassObject().GetFullName();
+}
+
+HE_INTEROP_EXPORT void Native_ScriptComponent_SetScriptClass(u32 entityHandle, Heart::Scene* sceneHandle, const char16* value, u32 valueLen)
+{
+    ASSERT_ENTITY_IS_VALID();
+    ASSERT_ENTITY_HAS_COMPONENT(ScriptComponent);
+    Heart::Entity entity(sceneHandle, entityHandle);
+    Heart::HStringView view(value, valueLen);
+    s64 typeId = Heart::ScriptingEngine::GetClassIdFromName(view.Convert(Heart::HString::Encoding::UTF8));
+    entity.GetComponent<Heart::ScriptComponent>().Instance.SetScriptClassId(typeId);
 }
 
 HE_INTEROP_EXPORT void Native_ScriptComponent_InstantiateScript(u32 entityHandle, Heart::Scene* sceneHandle)
@@ -547,12 +585,13 @@ HE_INTEROP_EXPORT void Native_CollisionComponent_UseCapsuleShape(u32 entityHandl
 // Text component
 EXPORT_COMPONENT_BASIC_FNS(TextComponent);
 
-HE_INTEROP_EXPORT void Native_TextComponent_SetText(u32 entityHandle, Heart::Scene* sceneHandle, const char* text)
+HE_INTEROP_EXPORT void Native_TextComponent_SetText(u32 entityHandle, Heart::Scene* sceneHandle, const char16* text, u32 textLen)
 {
     ASSERT_ENTITY_IS_VALID();
     ASSERT_ENTITY_HAS_COMPONENT(TextComponent);
+    auto converted = Heart::HStringView16(text, textLen).ToUTF8();
     Heart::Entity entity(sceneHandle, entityHandle);
-    entity.SetText(text);
+    entity.SetText(converted);
 }
 
 HE_INTEROP_EXPORT void Native_TextComponent_ClearRenderData(u32 entityHandle, Heart::Scene* sceneHandle)
@@ -563,6 +602,125 @@ HE_INTEROP_EXPORT void Native_TextComponent_ClearRenderData(u32 entityHandle, He
     entity.GetComponent<Heart::TextComponent>().ClearRenderData();
 }
 
-// We need this in order to ensure that the dllexports inside the engine static lib
-// do not get removed
-void* exportVariable = nullptr;
+// Runtime components
+// Special implementations required here 
+HE_INTEROP_EXPORT void Native_RuntimeComponent_Get(u32 entityHandle, Heart::Scene* sceneHandle, s64 typeId, uptr* outComp)
+{
+    ASSERT_ENTITY_IS_VALID();
+    ASSERT_ENTITY_HAS_RUNTIME_COMPONENT(typeId);
+    Heart::Entity entity(sceneHandle, entityHandle);
+    *outComp = entity.GetRuntimeComponent(typeId).Instance.GetObjectHandle();
+}
+
+HE_INTEROP_EXPORT bool Native_RuntimeComponent_Exists(u32 entityHandle, Heart::Scene* sceneHandle, s64 typeId)
+{
+    ASSERT_ENTITY_IS_VALID();
+    Heart::Entity entity(sceneHandle, entityHandle);
+    return entity.HasRuntimeComponent(typeId);
+}
+
+HE_INTEROP_EXPORT void Native_RuntimeComponent_Add(u32 entityHandle, Heart::Scene* sceneHandle, s64 typeId, uptr objectHandle)
+{
+    ASSERT_ENTITY_IS_VALID();
+    Heart::Entity entity(sceneHandle, entityHandle);
+    entity.AddRuntimeComponent(typeId, objectHandle);
+}
+
+HE_INTEROP_EXPORT void Native_RuntimeComponent_Remove(u32 entityHandle, Heart::Scene* sceneHandle, s64 typeId)
+{
+    ASSERT_ENTITY_IS_VALID();
+    Heart::Entity entity(sceneHandle, entityHandle);
+    entity.RemoveRuntimeComponent(typeId);
+}
+
+// TODO: codegen? It's a bit complicated since the class names have to be in alphabetical order
+void* NativeCallbacks[] = {
+    (void*)&Native_AssetManager_GetAssetUUID,
+    (void*)&Native_CameraComponent_Get,
+    (void*)&Native_CameraComponent_Exists,
+    (void*)&Native_CameraComponent_Add,
+    (void*)&Native_CameraComponent_Remove,
+    (void*)&Native_CameraComponent_SetPrimary,
+    (void*)&Native_PrimaryCameraComponent_Exists,
+    (void*)&Native_ChildrenComponent_Get,
+    (void*)&Native_ChildrenComponent_AddChild,
+    (void*)&Native_ChildrenComponent_RemoveChild,
+    (void*)&Native_CollisionComponent_Get,
+    (void*)&Native_CollisionComponent_Add,
+    (void*)&Native_CollisionComponent_Remove,
+    (void*)&Native_CollisionComponent_Exists,
+    (void*)&Native_CollisionComponent_GetInfo,
+    (void*)&Native_CollisionComponent_GetShapeType,
+    (void*)&Native_CollisionComponent_UpdateType,
+    (void*)&Native_CollisionComponent_UpdateMass,
+    (void*)&Native_CollisionComponent_UpdateCollisionChannels,
+    (void*)&Native_CollisionComponent_UpdateCollisionMask,
+    (void*)&Native_CollisionComponent_UseBoxShape,
+    (void*)&Native_CollisionComponent_UseSphereShape,
+    (void*)&Native_CollisionComponent_UseCapsuleShape,
+    (void*)&Native_Entity_Destroy,
+    (void*)&Native_Entity_IsValid,
+    (void*)&Native_EntityView_Init,
+    (void*)&Native_EntityView_Destroy,
+    (void*)&Native_EntityView_GetNext,
+    (void*)&Native_HArray_Init,
+    (void*)&Native_HArray_Destroy,
+    (void*)&Native_HArray_Copy,
+    (void*)&Native_HArray_Add,
+    (void*)&Native_HString_Init,
+    (void*)&Native_HString_Destroy,
+    (void*)&Native_HString_Copy,
+    (void*)&Native_IdComponent_Get,
+    (void*)&Native_Input_IsKeyPressed,
+    (void*)&Native_Input_IsButtonPressed,
+    (void*)&Native_Input_GetAxisValue,
+    (void*)&Native_Input_GetAxisDelta,
+    (void*)&Native_LightComponent_Get,
+    (void*)&Native_LightComponent_Add,
+    (void*)&Native_LightComponent_Remove,
+    (void*)&Native_LightComponent_Exists,
+    (void*)&Native_Log,
+    (void*)&Native_MeshComponent_Get,
+    (void*)&Native_MeshComponent_Exists,
+    (void*)&Native_MeshComponent_Add,
+    (void*)&Native_MeshComponent_Remove,
+    (void*)&Native_MeshComponent_AddMaterial,
+    (void*)&Native_MeshComponent_RemoveMaterial,
+    (void*)&Native_NameComponent_Get,
+    (void*)&Native_NameComponent_SetName,
+    (void*)&Native_ParentComponent_Get,
+    (void*)&Native_ParentComponent_SetParent,
+    (void*)&Native_RuntimeComponent_Exists,
+    (void*)&Native_RuntimeComponent_Add,
+    (void*)&Native_RuntimeComponent_Remove,
+    (void*)&Native_RuntimeComponent_Get,
+    (void*)&Native_Scene_CreateEntity,
+    (void*)&Native_Scene_GetEntityFromUUID,
+    (void*)&Native_Scene_GetEntityFromName,
+    (void*)&Native_Scene_RaycastSingle,
+    (void*)&Native_SchedulableIter_Schedule,
+    (void*)&Native_ScriptComponent_Exists,
+    (void*)&Native_ScriptComponent_Add,
+    (void*)&Native_ScriptComponent_Remove,
+    (void*)&Native_ScriptComponent_GetObjectHandle,
+    (void*)&Native_ScriptComponent_GetScriptClass,
+    (void*)&Native_ScriptComponent_SetScriptClass,
+    (void*)&Native_ScriptComponent_InstantiateScript,
+    (void*)&Native_ScriptComponent_DestroyScript,
+    (void*)&Native_TextComponent_Get,
+    (void*)&Native_TextComponent_Exists,
+    (void*)&Native_TextComponent_Add,
+    (void*)&Native_TextComponent_Remove,
+    (void*)&Native_TextComponent_SetText,
+    (void*)&Native_TextComponent_ClearRenderData,
+    (void*)&Native_TransformComponent_Get,
+    (void*)&Native_TransformComponent_SetPosition,
+    (void*)&Native_TransformComponent_SetRotation,
+    (void*)&Native_TransformComponent_SetScale,
+    (void*)&Native_TransformComponent_SetTransform,
+    (void*)&Native_TransformComponent_ApplyRotation,
+    (void*)&Native_TransformComponent_GetForwardVector,
+    (void*)&Native_Variant_Destroy,
+    (void*)&Native_Variant_FromHArray,
+    (void*)&Native_Variant_FromHString,
+};

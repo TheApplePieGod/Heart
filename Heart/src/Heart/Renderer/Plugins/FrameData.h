@@ -18,6 +18,7 @@ namespace Heart::RenderPlugins
         {
             glm::mat4 Proj;
             glm::mat4 View;
+            glm::mat4 ViewProj;
             glm::mat4 PrevViewProj;
             glm::mat4 InvProj;
             glm::mat4 InvView;

@@ -1,7 +1,6 @@
 #include "hepch.h"
 #include "EnvironmentMap.h"
 
-#include "Heart/Core/App.h"
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/TextureAsset.h"
 #include "Heart/Asset/ShaderAsset.h"
@@ -17,6 +16,7 @@
 #include "Flourish/Api/RenderPass.h"
 #include "Flourish/Api/CommandBuffer.h"
 #include "Flourish/Api/GraphicsCommandEncoder.h"
+#include "Flourish/Api/TransferCommandEncoder.h"
 #include "Flourish/Api/RenderCommandEncoder.h"
 #include "Flourish/Api/GraphicsPipeline.h"
 #include "Flourish/Api/Buffer.h"
@@ -38,23 +38,41 @@ namespace Heart
 
     void EnvironmentMap::Initialize()
     {
+        // Queue shader loads 
+        auto mapVertShader = AssetManager::RetrieveAsset("engine/EnvironmentMap.vert", true);
+        auto envMapFrag = AssetManager::RetrieveAsset("engine/CalcEnvironmentMap.frag", true);
+        auto irrMapFrag = AssetManager::RetrieveAsset("engine/CalcIrradianceMap.frag", true);
+        auto prefilterMapFrag = AssetManager::RetrieveAsset("engine/CalcPrefilterMap.frag", true);
+        auto brdfVert = AssetManager::RetrieveAsset("engine/BRDFQuad.vert", true);
+        auto brdfFrag = AssetManager::RetrieveAsset("engine/CalcBRDF.frag", true);
+        Asset::LoadMany(
+            { mapVertShader, envMapFrag, irrMapFrag, prefilterMapFrag, brdfVert, brdfFrag },
+            false
+        );
+
         // Create texture & cubemap targets
         Flourish::TextureCreateInfo texCreateInfo;
         texCreateInfo.Width = 512;
         texCreateInfo.Height = 512;
         texCreateInfo.Format = Flourish::ColorFormat::RGBA16_FLOAT;
         texCreateInfo.Usage = Flourish::TextureUsageFlags::Graphics | Flourish::TextureUsageFlags::Transfer;
-        texCreateInfo.Writability = Flourish::TextureWritability::Once;
         texCreateInfo.ArrayCount = 6;
         texCreateInfo.MipCount = 0;
         texCreateInfo.SamplerState.UVWWrap = {
             Flourish::SamplerWrapMode::ClampToEdge, Flourish::SamplerWrapMode::ClampToEdge, Flourish::SamplerWrapMode::ClampToEdge
         };
         m_EnvironmentMap.Texture = Flourish::Texture::Create(texCreateInfo);
+        if (m_GenerateBRDF)
+        {
+            texCreateInfo.Usage = Flourish::TextureUsageFlags::Graphics | Flourish::TextureUsageFlags::Transfer;
+            texCreateInfo.Format = Flourish::ColorFormat::RG16_FLOAT;
+            texCreateInfo.ArrayCount = 1;
+            texCreateInfo.MipCount = 1;
+            m_BRDFTexture.Texture = Flourish::Texture::Create(texCreateInfo);
+        }
         texCreateInfo.Usage = Flourish::TextureUsageFlags::Graphics;
-        texCreateInfo.ArrayCount = 1;
+        texCreateInfo.Format = Flourish::ColorFormat::RGBA16_FLOAT;
         texCreateInfo.MipCount = 1;
-        m_BRDFTexture.Texture = Flourish::Texture::Create(texCreateInfo);
         texCreateInfo.ArrayCount = 6;
         m_IrradianceMap.Texture = Flourish::Texture::Create(texCreateInfo);
         texCreateInfo.MipCount = 5;
@@ -77,15 +95,21 @@ namespace Heart
 
         // Create the cubemap data buffer to hold data for each face render
         Flourish::BufferCreateInfo bufCreateInfo;
-        bufCreateInfo.Type = Flourish::BufferType::Storage;
-        bufCreateInfo.Usage = Flourish::BufferUsageType::DynamicOneFrame;
-        bufCreateInfo.Layout = {
-            { Flourish::BufferDataType::Mat4 },
-            { Flourish::BufferDataType::Mat4 },
-            { Flourish::BufferDataType::Float4 }
-        };
+        bufCreateInfo.MemoryType = Flourish::BufferMemoryType::CPUWrite;
+        bufCreateInfo.Usage = Flourish::BufferUsageFlags::Storage;
+        bufCreateInfo.Stride = sizeof(CubemapData);
         bufCreateInfo.ElementCount = 100;
         m_CubemapDataBuffer = Flourish::Buffer::Create(bufCreateInfo);
+
+        // Create the CPU buffer to transfer BRDF texture data 
+        if (m_GenerateBRDF)
+        {
+            bufCreateInfo.MemoryType = Flourish::BufferMemoryType::CPURead;
+            bufCreateInfo.Usage = Flourish::BufferUsageFlags::Generic;
+            bufCreateInfo.Stride = sizeof(u16);
+            bufCreateInfo.ElementCount = m_BRDFTexture.Texture->GetWidth() * m_BRDFTexture.Texture->GetHeight() * 2;
+            m_BRDFTexBuffer = Flourish::Buffer::Create(bufCreateInfo);
+        }
 
         // Create renderpass
         Flourish::RenderPassCreateInfo rpCreateInfo;
@@ -98,19 +122,14 @@ namespace Heart
         m_RenderPass = Flourish::RenderPass::Create(rpCreateInfo);
 
         // Create BRDF renderpass
-        rpCreateInfo.ColorAttachments = { { m_BRDFTexture.Texture->GetColorFormat() } };
-        rpCreateInfo.Subpasses = { { {}, { { Flourish::SubpassAttachmentType::Color, 0 } } } };
-        m_BRDFRenderPass = Flourish::RenderPass::Create(rpCreateInfo);
+        if (m_GenerateBRDF)
+        {
+            rpCreateInfo.ColorAttachments = { { m_BRDFTexture.Texture->GetColorFormat() } };
+            rpCreateInfo.Subpasses = { { {}, { { Flourish::SubpassAttachmentType::Color, 0 } } } };
+            m_BRDFRenderPass = Flourish::RenderPass::Create(rpCreateInfo);
+        }
 
         std::array<float, 4> clearColor = { 0.f, 0.f, 0.f, 0.f };
-
-        // Queue shader loads 
-        AssetManager::RetrieveAsset<ShaderAsset>("engine/EnvironmentMap.vert", true, true, true);
-        AssetManager::RetrieveAsset<ShaderAsset>("engine/CalcEnvironmentMap.frag", true, true, true);
-        AssetManager::RetrieveAsset<ShaderAsset>("engine/CalcIrradianceMap.frag", true, true, true);
-        AssetManager::RetrieveAsset<ShaderAsset>("engine/CalcPrefilterMap.frag", true, true, true);
-        AssetManager::RetrieveAsset<ShaderAsset>("engine/BRDFQuad.vert", true, true, true);
-        AssetManager::RetrieveAsset<ShaderAsset>("engine/CalcBRDF.frag", true, true, true);
 
         // ------------------------------------------------------------------
         // Environment map framebuffer: convert loaded image into a cubemap
@@ -125,8 +144,8 @@ namespace Heart
             m_EnvironmentMap.Framebuffer = Flourish::Framebuffer::Create(fbCreateInfo);
 
             Flourish::GraphicsPipelineCreateInfo pipelineCreateInfo;
-            pipelineCreateInfo.VertexShader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/EnvironmentMap.vert", true)->GetShader() };
-            pipelineCreateInfo.FragmentShader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/CalcEnvironmentMap.frag", true)->GetShader() };
+            pipelineCreateInfo.VertexShader = { mapVertShader->EnsureValid<ShaderAsset>()->GetShader() };
+            pipelineCreateInfo.FragmentShader = { envMapFrag->EnsureValid<ShaderAsset>()->GetShader() };
             pipelineCreateInfo.VertexInput = true;
             pipelineCreateInfo.VertexTopology = Flourish::VertexTopology::TriangleList;
             pipelineCreateInfo.VertexLayout = Heart::Mesh::GetVertexLayout();
@@ -139,7 +158,6 @@ namespace Heart
             auto pipeline = m_RenderPass->CreatePipeline("cubemap", pipelineCreateInfo);
 
             Flourish::ResourceSetCreateInfo dsCreateInfo;
-            dsCreateInfo.Writability = Flourish::ResourceSetWritability::PerFrame;
             m_EnvironmentMap.ResourceSet = pipeline->CreateResourceSet(0, dsCreateInfo);
         }
 
@@ -156,8 +174,8 @@ namespace Heart
             m_IrradianceMap.Framebuffer = Flourish::Framebuffer::Create(fbCreateInfo);
 
             Flourish::GraphicsPipelineCreateInfo pipelineCreateInfo;
-            pipelineCreateInfo.VertexShader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/EnvironmentMap.vert", true)->GetShader() };
-            pipelineCreateInfo.FragmentShader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/CalcIrradianceMap.frag", true)->GetShader() };
+            pipelineCreateInfo.VertexShader = { mapVertShader->EnsureValid<ShaderAsset>()->GetShader() };
+            pipelineCreateInfo.FragmentShader = { irrMapFrag->EnsureValid<ShaderAsset>()->GetShader() };
             pipelineCreateInfo.VertexInput = true;
             pipelineCreateInfo.VertexTopology = Flourish::VertexTopology::TriangleList;
             pipelineCreateInfo.VertexLayout = Heart::Mesh::GetVertexLayout();
@@ -170,7 +188,6 @@ namespace Heart
             auto pipeline = m_RenderPass->CreatePipeline("irradiance", pipelineCreateInfo);
 
             Flourish::ResourceSetCreateInfo dsCreateInfo;
-            dsCreateInfo.Writability = Flourish::ResourceSetWritability::OnceStaticData;
             m_IrradianceMap.ResourceSet = pipeline->CreateResourceSet(0, dsCreateInfo);
         }
 
@@ -192,8 +209,8 @@ namespace Heart
             }
 
             Flourish::GraphicsPipelineCreateInfo pipelineCreateInfo;
-            pipelineCreateInfo.VertexShader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/EnvironmentMap.vert", true)->GetShader() };
-            pipelineCreateInfo.FragmentShader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/CalcPrefilterMap.frag", true)->GetShader() };
+            pipelineCreateInfo.VertexShader = { mapVertShader->EnsureValid<ShaderAsset>()->GetShader() };
+            pipelineCreateInfo.FragmentShader = { prefilterMapFrag->EnsureValid<ShaderAsset>()->GetShader() };
             pipelineCreateInfo.VertexInput = true;
             pipelineCreateInfo.VertexTopology = Flourish::VertexTopology::TriangleList;
             pipelineCreateInfo.VertexLayout = Heart::Mesh::GetVertexLayout();
@@ -206,13 +223,13 @@ namespace Heart
             auto pipeline = m_RenderPass->CreatePipeline("prefilter", pipelineCreateInfo);
 
             Flourish::ResourceSetCreateInfo dsCreateInfo;
-            dsCreateInfo.Writability = Flourish::ResourceSetWritability::OnceStaticData;
             m_PrefilterMaps[0].ResourceSet = pipeline->CreateResourceSet(0, dsCreateInfo);
         }
 
         // -----------------------------------------------------------------------------------------------------------------------
         // BRDF framebuffer: solve the BRDF integral and store it in a texture (TODO: store this somewhere because it is constant)
         // ----------------------------------------------------------------------------------------------------------------------
+        if (m_GenerateBRDF)
         {
             Flourish::FramebufferCreateInfo fbCreateInfo;
             fbCreateInfo.RenderPass = m_BRDFRenderPass;
@@ -222,8 +239,8 @@ namespace Heart
             m_BRDFTexture.Framebuffer = Flourish::Framebuffer::Create(fbCreateInfo);
 
             Flourish::GraphicsPipelineCreateInfo pipelineCreateInfo;
-            pipelineCreateInfo.VertexShader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/BRDFQuad.vert", true)->GetShader() };
-            pipelineCreateInfo.FragmentShader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/CalcBRDF.frag", true)->GetShader() };
+            pipelineCreateInfo.VertexShader = { brdfVert->EnsureValid<ShaderAsset>()->GetShader() };
+            pipelineCreateInfo.FragmentShader = { brdfFrag->EnsureValid<ShaderAsset>()->GetShader() };
             pipelineCreateInfo.VertexInput = false;
             pipelineCreateInfo.BlendStates = { { false } };
             pipelineCreateInfo.DepthConfig.DepthTest = false;
@@ -234,7 +251,6 @@ namespace Heart
             auto pipeline = m_BRDFRenderPass->CreatePipeline("brdf", pipelineCreateInfo);
 
             Flourish::ResourceSetCreateInfo dsCreateInfo;
-            dsCreateInfo.Writability = Flourish::ResourceSetWritability::OnceStaticData;
             m_BRDFTexture.ResourceSet = pipeline->CreateResourceSet(0, dsCreateInfo);
         }
     }
@@ -251,11 +267,12 @@ namespace Heart
 
                 // Retrieve the basic cube mesh
                 auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>("engine/DefaultCube.gltf", true);
+                meshAsset->EnsureValid();
                 auto& meshData = meshAsset->GetSubmesh(0);
 
                 // Retrieve the associated env map asset
                 auto mapAsset = AssetManager::RetrieveAsset<TextureAsset>(m_MapAsset);
-                if (!mapAsset || !mapAsset->IsValid())
+                if (!mapAsset || !mapAsset->Load()->IsValid())
                 {
                     HE_ENGINE_LOG_ERROR("Could not calculate environment map, cannot retrieve map asset");
                     return;
@@ -298,7 +315,7 @@ namespace Heart
 
                         rcEncoder->BindPipeline("cubemap");  
                         rcEncoder->BindResourceSet(m_EnvironmentMap.ResourceSet.get(), 0);
-                        rcEncoder->UpdateDynamicOffset(0, 0, i * sizeof(CubemapData));
+                        rcEncoder->UpdateDynamicOffset(0, 0, i * m_CubemapDataBuffer->GetStride());
                         rcEncoder->FlushResourceSet(0);
 
                         rcEncoder->BindVertexBuffer(meshData.GetVertexBuffer());
@@ -336,7 +353,7 @@ namespace Heart
 
                         rcEncoder->BindPipeline("irradiance");  
                         rcEncoder->BindResourceSet(m_IrradianceMap.ResourceSet.get(), 0);
-                        rcEncoder->UpdateDynamicOffset(0, 0, i * sizeof(CubemapData));
+                        rcEncoder->UpdateDynamicOffset(0, 0, i * m_CubemapDataBuffer->GetStride());
                         rcEncoder->FlushResourceSet(0);
 
                         rcEncoder->BindVertexBuffer(meshData.GetVertexBuffer());
@@ -379,7 +396,7 @@ namespace Heart
                         };
                         m_CubemapDataBuffer->SetElements(&mapData, 1, cubeDataIndex);
                         rcEncoder->BindResourceSet(m_PrefilterMaps[0].ResourceSet.get(), 0);
-                        rcEncoder->UpdateDynamicOffset(0, 0, cubeDataIndex * sizeof(CubemapData));
+                        rcEncoder->UpdateDynamicOffset(0, 0, cubeDataIndex * m_CubemapDataBuffer->GetStride());
                         rcEncoder->FlushResourceSet(0);
 
                         rcEncoder->BindVertexBuffer(meshData.GetVertexBuffer());
@@ -398,6 +415,7 @@ namespace Heart
                 // ------------------------------------------------------------------
                 // Precalculate the BRDF texture
                 // ------------------------------------------------------------------
+                if (m_GenerateBRDF)
                 {
                     if (!m_SetsWritten)
                     {
@@ -422,6 +440,11 @@ namespace Heart
 
                     rcEncoder->EndEncoding();
 
+                    auto xferEncoder = m_BRDFTexture.CommandBuffer->EncodeTransferCommands();
+                    xferEncoder->CopyTextureToBuffer(m_BRDFTexture.Texture.get(), m_BRDFTexBuffer.get());
+                    xferEncoder->FlushBuffer(m_BRDFTexBuffer.get());
+                    xferEncoder->EndEncoding();
+
                     cubeDataIndex++;
                 }
 
@@ -442,10 +465,16 @@ namespace Heart
                         .EncoderAddTextureWrite(m_IrradianceMap.Texture.get())
                         .EncoderAddTextureRead(m_EnvironmentMap.Texture.get())
                         .AddToGraph();
-                    m_RenderGraph->ConstructNewNode(m_BRDFTexture.CommandBuffer.get())
-                        .AddEncoderNode(Flourish::GPUWorkloadType::Graphics)
-                        .EncoderAddTextureWrite(m_BRDFTexture.Texture.get())
-                        .AddToGraph();
+                    if (m_GenerateBRDF)
+                    {
+                        m_RenderGraph->ConstructNewNode(m_BRDFTexture.CommandBuffer.get())
+                            .AddEncoderNode(Flourish::GPUWorkloadType::Graphics)
+                            .EncoderAddTextureWrite(m_BRDFTexture.Texture.get())
+                            .AddEncoderNode(Flourish::GPUWorkloadType::Transfer)
+                            .EncoderAddTextureRead(m_BRDFTexture.Texture.get())
+                            .EncoderAddBufferWrite(m_BRDFTexBuffer.get())
+                            .AddToGraph();
+                    }
                     for (u32 i = 0; i < m_PrefilterMaps.Count(); i++)
                     {
                         m_RenderGraph->ConstructNewNode(m_PrefilterMaps[i].CommandBuffer.get())
@@ -458,13 +487,43 @@ namespace Heart
                     m_RenderGraph->Build();
                 }
 
-                Flourish::Context::PushRenderGraph(m_RenderGraph.get());
+                if (!m_GenerateBRDF)
+                    Flourish::Context::PushRenderGraph(m_RenderGraph.get());
+                else
+                {
+                    Flourish::Context::ExecuteRenderGraph(m_RenderGraph.get());
+
+                    u16* value = new u16[m_BRDFTexBuffer->GetAllocatedCount()];
+                    m_BRDFTexBuffer->ReadBytes(value, m_BRDFTexBuffer->GetAllocatedSize(), 0);
+
+                    TextureAsset::HeartTextureHeader header{};
+                    header.Width = m_BRDFTexture.Texture->GetWidth();
+                    header.Height = m_BRDFTexture.Texture->GetHeight();
+                    header.Channels = 2;
+                    header.DataType = 'f';
+                    header.Precision = 2;
+                    header.MipLevels = 1;
+
+                    std::ofstream file("./BRDFTexture.hetex", std::ios::binary);
+                    file.write((char*)&header, sizeof(TextureAsset::HeartTextureHeader));
+                    file.write((char*)value, m_BRDFTexBuffer->GetAllocatedSize());
+                    file.close();
+                }
             },
             Task::Priority::Medium
         );
 
-        // TODO: don't need to wait here. Need to fix framebuffers first
+        // Wait here so that this GPU work gets scheduled first. This way frame rendering
+        // will execute one this is done, so there arent frozen frames of strange outputs
         task.Wait();
+
         return task;
+    }
+
+    const Flourish::Texture* EnvironmentMap::GetBRDFTexture() const
+    {
+        return AssetManager::RetrieveAsset("engine/BRDFTexture.hetex", true)
+            ->EnsureValid<TextureAsset>()
+            ->GetTexture().get();
     }
 }

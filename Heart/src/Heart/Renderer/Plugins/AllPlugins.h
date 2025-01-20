@@ -2,6 +2,7 @@
 
 #include "Empty.h"
 
+#include "BlitTexture.h"
 #include "FrameData.h"
 #include "LightingData.h"
 #include "ComputeMeshBatches.h"
@@ -16,7 +17,9 @@
 #include "EntityIds.h"
 #include "ComputeTextBatches.h"
 #include "PBRComposite.h"
+#include "Forward.h"
 #include "ClusteredLighting.h"
+#include "Splat.h"
 
 #include "RayTracing/TLAS.h"
 #include "RayTracing/RayReflections.h"

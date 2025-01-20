@@ -19,13 +19,14 @@ namespace Heart::RenderPlugins
     void ClusteredLighting::InitializeInternal()
     {
         // Queue shader loads 
-        AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/clustered_lighting/Build.comp", true, true, true);
-        AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/clustered_lighting/Cull.comp", true, true, true);
+        auto buildAsset = AssetManager::RetrieveAsset("engine/render_plugins/clustered_lighting/Build.comp", true);
+        auto cullAsset = AssetManager::RetrieveAsset("engine/render_plugins/clustered_lighting/Cull.comp", true);
+        Asset::LoadMany({ buildAsset, cullAsset }, false);
 
         Flourish::ComputePipelineCreateInfo compCreateInfo;
-        compCreateInfo.Shader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/clustered_lighting/Build.comp", true)->GetShader() };
+        compCreateInfo.Shader = { buildAsset->EnsureValid<ShaderAsset>()->GetShader() };
         m_BuildPipeline = Flourish::ComputePipeline::Create(compCreateInfo);
-        compCreateInfo.Shader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/clustered_lighting/Cull.comp", true)->GetShader() };
+        compCreateInfo.Shader = { cullAsset->EnsureValid<ShaderAsset>()->GetShader() };
         m_CullPipeline = Flourish::ComputePipeline::Create(compCreateInfo);
 
         Flourish::CommandBufferCreateInfo cbCreateInfo;
@@ -34,7 +35,6 @@ namespace Heart::RenderPlugins
         m_CommandBuffer = Flourish::CommandBuffer::Create(cbCreateInfo);
 
         Flourish::ResourceSetCreateInfo dsCreateInfo;
-        dsCreateInfo.Writability = Flourish::ResourceSetWritability::PerFrame;
         m_BuildResourceSet = m_BuildPipeline->CreateResourceSet(0, dsCreateInfo);
         m_CullResourceSet = m_CullPipeline->CreateResourceSet(0, dsCreateInfo);
 
@@ -46,8 +46,8 @@ namespace Heart::RenderPlugins
         m_PushData.ClusterDims = { xClusters, yClusters, zClusters, 0 };
 
         Flourish::BufferCreateInfo bufCreateInfo;
-        bufCreateInfo.Usage = Flourish::BufferUsageType::DynamicOneFrame;
-        bufCreateInfo.Type = Flourish::BufferType::Storage;
+        bufCreateInfo.MemoryType = Flourish::BufferMemoryType::GPUOnly;
+        bufCreateInfo.Usage = Flourish::BufferUsageFlags::Storage;
         bufCreateInfo.Stride = sizeof(Cluster);
         bufCreateInfo.ElementCount = clusterCount;
         m_ClusterBuffer = Flourish::Buffer::Create(bufCreateInfo);
@@ -57,7 +57,8 @@ namespace Heart::RenderPlugins
         m_LightIndicesBuffer = Flourish::Buffer::Create(bufCreateInfo);
         bufCreateInfo.ElementCount = 1;
         m_BuildData = Flourish::Buffer::Create(bufCreateInfo);
-        bufCreateInfo.Type = Flourish::BufferType::Uniform;
+        bufCreateInfo.MemoryType = Flourish::BufferMemoryType::CPUWriteFrame;
+        bufCreateInfo.Usage = Flourish::BufferUsageFlags::Uniform;
         bufCreateInfo.Stride = sizeof(ClusterData);
         m_ClusterData = Flourish::Buffer::Create(bufCreateInfo);
 

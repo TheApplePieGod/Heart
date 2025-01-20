@@ -18,7 +18,8 @@ namespace Heart::RenderPlugins
 {
     struct BloomCreateInfo
     {
-
+        Ref<Flourish::Texture> InputTexture;
+        Ref<Flourish::Texture> OutputTexture;
     };
 
     class Bloom : public RenderPlugin
@@ -34,7 +35,7 @@ namespace Heart::RenderPlugins
         void ResizeInternal() override;
 
     private:
-        struct PushData
+        struct SamplePushData
         {
             glm::vec2 SrcResolution;
             glm::vec2 DstResolution;
@@ -44,20 +45,26 @@ namespace Heart::RenderPlugins
             u32 Prefilter;
         };
 
+        struct CompositePushData
+        {
+            glm::vec2 SrcResolution;
+            glm::vec2 DstResolution;
+            float Strength;
+        };
+
     private:
         BloomCreateInfo m_Info;
 
         Ref<Flourish::ComputePipeline> m_UpsamplePipeline;
         Ref<Flourish::ComputePipeline> m_DownsamplePipeline;
+        Ref<Flourish::ComputePipeline> m_CompositePipeline;
         Ref<Flourish::Texture> m_DownsampleTexture;
         Ref<Flourish::Texture> m_UpsampleTexture;
         Ref<Flourish::ResourceSet> m_UpsampleResourceSet;
         Ref<Flourish::ResourceSet> m_DownsampleResourceSet;
         Ref<Flourish::ResourceSet> m_CompositeResourceSet;
-        Ref<Flourish::RenderPass> m_RenderPass;
-        Ref<Flourish::Framebuffer> m_Framebuffer;
 
         u32 m_MipCount;
-        PushData m_PushData;
+        SamplePushData m_PushData;
     };
 }

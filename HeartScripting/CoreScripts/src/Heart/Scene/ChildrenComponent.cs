@@ -1,20 +1,16 @@
 ﻿using Heart.Container;
 using Heart.NativeInterop;
+using Heart.NativeBridge;
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace Heart.Scene
 {
-    public class ChildrenComponent : Component
+    public partial class ChildrenComponent : IComponent
     {
-        public ChildrenComponent()
-            : base(Entity.InvalidEntityHandle, IntPtr.Zero)
-        { }
-
-        internal ChildrenComponent(uint entityHandle, IntPtr sceneHandle)
-            : base(entityHandle, sceneHandle)
-        { }
+        internal uint _entityHandle = Entity.InvalidEntityHandle;
+        internal IntPtr _sceneHandle = IntPtr.Zero;
 
         public uint Count
         {
@@ -50,13 +46,25 @@ namespace Heart.Scene
         public void RemoveChild(UUID uuid)
             => ComponentUtils.RemoveChild(_entityHandle, _sceneHandle, uuid);
 
-        [DllImport("__Internal")]
-        internal static extern unsafe void Native_ChildrenComponent_Get(uint entityHandle, IntPtr sceneHandle, out UUID* comp);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static InteropBool NativeExists(uint entityHandle, IntPtr sceneHandle)
+            => InteropBool.True;
 
-        [DllImport("__Internal")]
-        internal static extern void Native_ChildrenComponent_AddChild(uint entityHandle, IntPtr sceneHandle, UUID uuid);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void NativeAdd(uint entityHandle, IntPtr sceneHandle)
+            => throw new InvalidOperationException("Cannot add a children component");
 
-        [DllImport("__Internal")]
-        internal static extern void Native_ChildrenComponent_RemoveChild(uint entityHandle, IntPtr sceneHandle, UUID uuid);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void NativeRemove(uint entityHandle, IntPtr sceneHandle)
+            => throw new InvalidOperationException("Cannot remove a children component");
+
+        [UnmanagedCallback]
+        internal static unsafe partial void Native_ChildrenComponent_Get(uint entityHandle, IntPtr sceneHandle, out UUID* comp);
+
+        [UnmanagedCallback]
+        internal static partial void Native_ChildrenComponent_AddChild(uint entityHandle, IntPtr sceneHandle, UUID uuid);
+
+        [UnmanagedCallback]
+        internal static partial void Native_ChildrenComponent_RemoveChild(uint entityHandle, IntPtr sceneHandle, UUID uuid);
     }
 }

@@ -2,23 +2,17 @@
 #include "FontAsset.h"
 
 #include "Heart/Asset/AssetManager.h"
+#include "Heart/Util/FilesystemUtils.h"
 
 namespace Heart
 {
-    void FontAsset::Load(bool async)
+    void FontAsset::LoadInternal()
     {
         HE_PROFILE_FUNCTION();
 
-        const std::lock_guard<std::mutex> lock(m_LoadLock);
-        
-        if (m_Loaded || m_Loading) return;
-        m_Loading = true;
-        
         auto failedFunc = [&]()
         {
             HE_ENGINE_LOG_ERROR("Failed to load font at path {0}", m_AbsolutePath.Data());
-            m_Loaded = true;
-            m_Loading = false;
         };
         
         // Init freetype
@@ -28,11 +22,21 @@ namespace Heart
             failedFunc();
             return;
         }
+
+        // Read font data
+        u32 fileLength;
+        unsigned char* data = FilesystemUtils::ReadFile(m_AbsolutePath, fileLength);
+        if (!data)
+        {
+            failedFunc();
+            return;
+        }
         
         // Load font file
-        msdfgen::FontHandle* font = msdfgen::loadFont(ft, m_AbsolutePath.Data());
+        msdfgen::FontHandle* font = msdfgen::loadFontData(ft, data, fileLength);
         if (!font)
         {
+            delete[] data;
             failedFunc();
             return;
         }
@@ -49,7 +53,7 @@ namespace Heart
         
         // Compute atlas layout
         msdf_atlas::TightAtlasPacker packer;
-        packer.setDimensionsConstraint(msdf_atlas::TightAtlasPacker::DimensionsConstraint::SQUARE);
+        packer.setDimensionsConstraint(msdf_atlas::DimensionsConstraint::SQUARE);
         packer.setMinimumScale(24.0);
         packer.setPixelRange(2.0);
         packer.setMiterLimit(1.0);
@@ -59,7 +63,7 @@ namespace Heart
         int width = 0, height = 0;
         packer.getDimensions(width, height);
         m_GlyphScale = (float)packer.getScale();
-        m_PixelRange = (float)packer.getPixelRange();
+        m_PixelRange = (packer.getPixelRange().upper - packer.getPixelRange().lower);
         
         // Generate output atlas
         msdf_atlas::ImmediateAtlasGenerator<
@@ -91,20 +95,10 @@ namespace Heart
             static_cast<u32>(height),
             Flourish::ColorFormat::RGBA8_UNORM,
             Flourish::TextureUsageFlags::Readonly,
-            Flourish::TextureWritability::Once,
             1, 1,
             Flourish::TextureSamplerState(),
             pixels.data(),
-            static_cast<u32>(width * height * 4),
-            async,
-            [this]()
-            {
-                if (!AssetManager::IsInitialized()) return;
-
-                m_Loaded = true;
-                m_Loading = false;
-                m_Valid = true;
-            }
+            static_cast<u32>(width * height * 4)
         };
         m_AtlasTexture = Flourish::Texture::Create(createInfo);
             
@@ -112,20 +106,21 @@ namespace Heart
         msdfgen::destroyFont(font);
         msdfgen::deinitializeFreetype(ft);
         
-        m_Loaded = true;
-        m_Loading = false;
+        delete[] data;
         m_Valid = true;
     }
 
-    void FontAsset::Unload()
+    void FontAsset::UnloadInternal()
     {
-        if (!m_Loaded) return;
-        m_Loaded = false;
-
         m_AtlasTexture.reset();
         m_Glyphs.clear();
         m_FontGeometry = msdf_atlas::FontGeometry();
         m_Data = nullptr;
-        m_Valid = false;
+    }
+
+    bool FontAsset::ShouldUnload()
+    {
+        // This is the only remaining reference
+        return m_AtlasTexture.use_count() == 1;
     }
 }

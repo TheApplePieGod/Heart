@@ -30,8 +30,10 @@ namespace Heart
         HStringTyped(const std::basic_string<T>& str)
         { Allocate(str.data(), str.length()); }
         
-        HStringTyped(const HStringViewTyped<T>& other);
+        explicit HStringTyped(const HStringViewTyped<T>& other);
 
+        inline bool StartsWith(const HStringViewTyped<T>& value) const
+        { return HStringViewTyped<T>(*this).StartsWith(value); }
         inline u32 Find(const HStringViewTyped<T>& value) const
         { return HStringViewTyped<T>(*this).Find(value); }
         inline u32 Find(T value) const
@@ -117,6 +119,7 @@ namespace Heart
             : m_Data(str), m_Count(len)
         {}
 
+        constexpr bool StartsWith(const HStringViewTyped<T>& value) const;
         constexpr u32 Find(const HStringViewTyped<T>& value) const;
         constexpr u32 Find(T value) const;
         constexpr int Compare(StringComparison type, const HStringViewTyped<T>& other) const;
@@ -141,8 +144,8 @@ namespace Heart
         inline constexpr const T& operator[](u32 index) const { return m_Data[index]; }
 
     protected:
-        const T* m_Data;
-        u32 m_Count;
+        const T* m_Data = nullptr;
+        u32 m_Count = 0;
 
         friend class HStringView;
     };
@@ -231,6 +234,12 @@ namespace Heart
         }
 
         return HString(data, lens, 2);
+    }
+
+    template <typename T>
+    constexpr bool HStringViewTyped<T>::StartsWith(const HStringViewTyped<T>& value) const
+    {
+        return StringUtils::Find(Data(), std::min(Count(), value.Count()), value.Data(), value.Count()) != StringUtils::InvalidIndex;
     }
 
     template <typename T>

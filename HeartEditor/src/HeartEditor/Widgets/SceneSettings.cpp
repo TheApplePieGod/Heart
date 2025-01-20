@@ -27,12 +27,10 @@ namespace Widgets
             mapId = activeScene.GetEnvironmentMap()->GetMapAsset();
         ImGui::Text("Environment map:");
         ImGui::SameLine();
-        Heart::ImGuiUtils::AssetPicker(
-            Heart::Asset::Type::Texture,
+        m_AssetPicker.OnImGuiRender(
             mapId,
-            "NULL",
-            "EnvMapSelect",
-            m_EnvMapTextFilter,
+            Heart::Asset::Type::Texture,
+            "None",
             [&]()
             {
                 if (!mapId)

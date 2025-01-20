@@ -18,15 +18,18 @@ namespace Widgets
 
     private:
         void DrawIsResourceFilter();
+        void DrawIsLoadedFilter();
 
         bool PassAssetTypeFilter(u32 type);
         bool PassIsResourceFilter(bool isResource);
+        bool PassIsLoadedFilter(bool isLoaded);
 
     private:
         ImGuiTextFilter m_UUIDFilter;
         ImGuiTextFilter m_PathFilter;
         u32 m_AssetTypeFilter = 0;
         int m_IsResourceFilter = 0;
+        int m_IsLoadedFilter = 0;
     };
 }
 }

@@ -17,16 +17,34 @@ namespace Heart.NativeBridge
         internal static Assembly _clientAssembly;
 #pragma warning restore CS0649
 
-        internal static List<string> GetInstantiableClasses()
+        internal static List<(string, Int64)> GetScriptEntityClasses()
         {
             if (_clientAssembly == null) return null;
 
             Type scriptEntityType = typeof(ScriptEntity);
-            List<string> names = new();
-            var types = _clientAssembly.GetTypes().Where(t => t.IsAssignableTo(scriptEntityType));
+            var names = _clientAssembly.GetTypes()
+                .Where(t =>
+                    t.IsAssignableTo(scriptEntityType) &&
+                    t.GetField("GENERATED_UniqueId") != null
+                )
+                .Select(t => (t.FullName, (Int64)t.GetField("GENERATED_UniqueId").GetValue(null)))
+                .ToList();
 
-            foreach (var type in types)
-                names.Add(type.FullName);
+            return names;
+        }
+
+        internal static List<(string, Int64)> GetScriptComponentClasses()
+        {
+            if (_clientAssembly == null) return null;
+
+            var names = _clientAssembly.GetTypes()
+                .Where(t =>
+                    t.IsClass &&
+                    t.GetInterfaces().Any(i => i.FullName.StartsWith("Heart.Scene.IComponent")) &&
+                    t.GetField("GENERATED_UniqueId") != null
+                )
+                .Select(t => (t.FullName, (Int64)t.GetField("GENERATED_UniqueId").GetValue(null)))
+                .ToList();
 
             return names;
         }
@@ -42,9 +60,10 @@ namespace Heart.NativeBridge
             if (type == null) return names;
 
             var fields = type.GetFields()
-                            .Where(f => f.IsPublic || f.CustomAttributes
-                                                        .Where(a => a.AttributeType == serializeType)
-                                                        .Any());
+                .Where(f => (f.IsPublic || f.CustomAttributes
+                    .Where(a => a.AttributeType == serializeType)
+                    .Any()) && !f.Name.StartsWith("GENERATED_")
+                );
 
             foreach (var field in fields)
                 names.Add(field.Name);
@@ -59,13 +78,34 @@ namespace Heart.NativeBridge
         }
 
         [UnmanagedCallersOnly]
-        internal static unsafe void GetClientInstantiableClasses(HArrayInternal* outClasses)
+        internal static unsafe void GetClientInstantiableClasses(HArrayInternal* outArgs)
         {
             if (_clientAssembly == null) return;
 
-            var instantiableClasses = GetInstantiableClasses();
-            using var arr = new HArray(instantiableClasses);
-            arr.CopyTo(outClasses);
+            using var outArr = new HArray();
+            using var ecNameArr = new HArray();
+            using var ecIdArr = new HArray();
+            using var scNameArr = new HArray();
+            using var scIdArr = new HArray();
+
+            foreach (var res in GetScriptEntityClasses())
+            {
+                ecNameArr.Add(res.Item1);
+                ecIdArr.Add(res.Item2);
+            }
+
+            foreach (var res in GetScriptComponentClasses())
+            {
+                scNameArr.Add(res.Item1);
+                scIdArr.Add(res.Item2);
+            }
+
+            outArr.Add(ecNameArr);
+            outArr.Add(ecIdArr);
+            outArr.Add(scNameArr);
+            outArr.Add(scIdArr);
+
+            outArr.CopyTo(outArgs);
         }
 
         [UnmanagedCallersOnly]

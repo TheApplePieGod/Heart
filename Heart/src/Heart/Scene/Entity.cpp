@@ -3,6 +3,7 @@
 
 #include "Heart/Container/HString.h"
 #include "Heart/Container/Variant.h"
+#include "Heart/Scripting/ScriptingEngine.h"
 
 namespace Heart
 {
@@ -117,6 +118,11 @@ namespace Heart
             comp.Dirty = true;
     }
 
+    bool Entity::HasChildren()
+    {
+        return HasComponent<ChildrenComponent>() && GetComponent<ChildrenComponent>().Children.Count() > 0;
+    }
+
     const HVector<UUID>& Entity::GetChildren()
     {
         if (!HasComponent<ChildrenComponent>())
@@ -152,13 +158,13 @@ namespace Heart
         m_Scene->AssignRelationship(parent, *this, cache);
     }
 
-    Variant Entity::GetScriptProperty(const HStringView8& name) const
+    Variant Entity::GetScriptProperty(const HString& name) const
     {
         auto& comp = GetComponent<ScriptComponent>();
         return comp.Instance.GetFieldValue(name);
     }
 
-    void Entity::SetScriptProperty(const HStringView8& name, const Variant& value)
+    void Entity::SetScriptProperty(const HString& name, const Variant& value)
     {
         auto& comp = GetComponent<ScriptComponent>();
         comp.Instance.SetFieldValue(name, value, true);
@@ -194,5 +200,43 @@ namespace Heart
         auto& comp = GetComponent<TextComponent>();
         comp.Text = text;
         comp.ClearRenderData();
+    }
+
+    RuntimeComponent& Entity::GetRuntimeComponent(s64 typeId) const
+    {
+        HE_ENGINE_ASSERT(HasRuntimeComponent(typeId), "Cannot get, entity does not have specified runtime component");
+        return m_Scene->GetRegistry().storage<RuntimeComponent>(typeId).get(m_EntityHandle);
+    }
+
+    bool Entity::HasRuntimeComponent(s64 typeId) const
+    {
+        // Special handling for runtime components. We need to get their unique storage associated
+        // with their type id. However, we need to ensure we dont accidentally create it
+        // if it doesn't exist, otherwise this could cause a race
+        auto storage = m_Scene->GetRegistry().storage(typeId);
+        if (!storage) return false;
+        return storage->contains(m_EntityHandle);
+    }
+
+    void Entity::AddRuntimeComponent(s64 typeId, uptr objectHandle)
+    {
+        ScriptComponentInstance* instance;
+        if (HasRuntimeComponent(typeId))
+        {
+            instance = &m_Scene->GetRegistry().storage<RuntimeComponent>(typeId).get(m_EntityHandle).Instance;
+            instance->SetScriptClassId(typeId);
+        }
+        else
+            instance = &m_Scene->GetRegistry().storage<RuntimeComponent>(typeId).emplace(m_EntityHandle, typeId).Instance;
+
+        if (objectHandle == 0)
+            instance->Instantiate();
+        else
+            instance->ConsumeHandle(objectHandle);
+    }
+
+    void Entity::RemoveRuntimeComponent(s64 typeId)
+    {
+        m_Scene->GetRegistry().storage<RuntimeComponent>(typeId).remove(m_EntityHandle);
     }
 }

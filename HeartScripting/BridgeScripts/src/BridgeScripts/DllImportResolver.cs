@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Reflection;
 using System.Runtime.InteropServices;
 
@@ -17,8 +17,8 @@ namespace BridgeScripts
         {
             // __Internal refers to exports from the main native process whose handle
             // was passed in via the constructor
-            if (libraryName == "__Internal")
-                return _nativeDllHandle;
+            //if (libraryName == "__Internal")
+            //    return _nativeDllHandle;
 
             return IntPtr.Zero;
         }

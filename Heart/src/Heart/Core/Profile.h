@@ -1,6 +1,6 @@
 #pragma once
 
-#if defined(HE_DEBUG) && !defined(HE_DIST)
+#if defined(HE_ENABLE_TRACY)
 
 #include "tracy/Tracy.hpp"
 

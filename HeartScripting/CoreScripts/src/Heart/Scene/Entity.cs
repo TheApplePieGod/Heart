@@ -9,7 +9,7 @@ using System.Runtime.InteropServices;
 
 namespace Heart.Scene
 {
-    public class Entity
+    public partial class Entity
     {
         internal Entity()
         { }
@@ -129,19 +129,19 @@ namespace Heart.Scene
             => ComponentUtils.GetForwardVector(_entityHandle, _sceneHandle);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public T GetComponent<T>() where T : Component, new()
+        public T GetComponent<T>() where T : class, IComponent, new()
             => ComponentUtils.GetComponent<T>(_entityHandle, _sceneHandle);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool HasComponent<T>() where T : Component, new()
+        public bool HasComponent<T>() where T : class, IComponent, new()
             => ComponentUtils.HasComponent<T>(_entityHandle, _sceneHandle);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public T AddComponent<T>() where T : Component, new()
+        public T AddComponent<T>() where T : class, IComponent, new()
             => ComponentUtils.AddComponent<T>(_entityHandle, _sceneHandle);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void RemoveComponent<T>() where T : Component, new()
+        public void RemoveComponent<T>() where T : class, IComponent, new()
             => ComponentUtils.RemoveComponent<T>(_entityHandle, _sceneHandle);
 
         public void Destroy()
@@ -155,10 +155,10 @@ namespace Heart.Scene
         internal uint _entityHandle = InvalidEntityHandle;
         internal IntPtr _sceneHandle = IntPtr.Zero;
 
-        [DllImport("__Internal")]
-        internal static extern void Native_Entity_Destroy(uint entityHandle, IntPtr sceneHandle);
+        [UnmanagedCallback]
+        internal static partial void Native_Entity_Destroy(uint entityHandle, IntPtr sceneHandle);
 
-        [DllImport("__Internal")]
-        internal static extern InteropBool Native_Entity_IsValid(uint entityHandle, IntPtr sceneHandle);
+        [UnmanagedCallback]
+        internal static partial InteropBool Native_Entity_IsValid(uint entityHandle, IntPtr sceneHandle);
     }
 }

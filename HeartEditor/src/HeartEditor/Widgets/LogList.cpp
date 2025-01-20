@@ -21,13 +21,15 @@ namespace Widgets
         ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(4.f, 4.f));
         if (ImGui::BeginTable("RegistryTable", 4, ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_SizingFixedFit))
         {
+            bool shouldRebuild = false;
+
             ImGui::TableNextColumn();
             ImGui::Text("Timestamp");
-            Heart::ImGuiUtils::DrawTextFilter(m_TimestampFilter, "##tsfilter");
+            shouldRebuild |= Heart::ImGuiUtils::DrawTextFilter(m_TimestampFilter, "##tsfilter");
 
             ImGui::TableNextColumn();
             ImGui::Text("Level");
-            Heart::ImGuiUtils::DrawStringDropdownFilter(
+            shouldRebuild |= Heart::ImGuiUtils::DrawStringDropdownFilter(
                 Heart::LogListEntry::TypeStrings,
                 HE_ARRAY_SIZE(Heart::LogListEntry::TypeStrings),
                 m_LevelFilter,
@@ -36,63 +38,91 @@ namespace Widgets
 
             ImGui::TableNextColumn();
             ImGui::Text("Source");
-            Heart::ImGuiUtils::DrawTextFilter(m_SourceFilter, "##srcfilter");
+            shouldRebuild |= Heart::ImGuiUtils::DrawTextFilter(m_SourceFilter, "##srcfilter");
 
-            float messageContentSize = 0.f;
+            const float messageContentPadding = 50.f;
             ImGui::TableNextColumn();
             ImGui::Text("Message");
-            messageContentSize = ImGui::GetContentRegionMax().x;
-            Heart::ImGuiUtils::DrawTextFilter(m_MessageFilter, "##msgfilter");
+            float messageContentSize = std::max(ImGui::GetContentRegionAvail().x, 1.f);
+            shouldRebuild |= Heart::ImGuiUtils::DrawTextFilter(m_MessageFilter, "##msgfilter");
+
+            // Also rebuild if we resize the widget.
+            // TODO: this is scuffed, and we really should just figure out how to properly
+            // support multiline logs 
+            shouldRebuild |= fabsf(messageContentSize - m_LastWidth) > 10.f;
+
+            if (shouldRebuild)
+            {
+                m_FilteredEntries.Clear();
+                m_LastWidth = messageContentSize;
+            }
 
             Heart::Logger::LockLogList();
             auto& logList = Heart::Logger::GetLogList();
-            Heart::HVector<ListEntry> filteredEntries;
+
+            m_ProcessingEntries.Clear();
             for (int i = logList.size() - 1; i >= 0; i--)
             {
                 auto& entry = logList[i];
-                if (PassLevelFilter((u32)entry.Level) &&
-                    m_TimestampFilter.PassFilter(entry.Timestamp.c_str()) &&
-                    m_SourceFilter.PassFilter(entry.Source.c_str()) &&
-                    m_MessageFilter.PassFilter(entry.Message.c_str())
+
+                // Sorted by newest first first
+                if (!m_FilteredEntries.IsEmpty() && entry.Id <= m_FilteredEntries.Front().Entry.Id)
+                    break;
+
+                if (m_ProcessingEntries.Count() >= m_MaxEntries)
+                    break;
+
+                if (!PassLevelFilter((u32)entry.Level) ||
+                    !m_TimestampFilter.PassFilter(entry.Timestamp.c_str()) ||
+                    !m_SourceFilter.PassFilter(entry.Source.c_str()) ||
+                    !m_MessageFilter.PassFilter(entry.Message.c_str())
                 )
+                    continue;
+
+                u32 lineIndex = 0;
+                auto lines = Heart::HStringView8(entry.Message.data(), entry.Message.size()).Split("\n");
+                for (auto line : lines)
                 {
-                    u32 lineIndex = 0;
-                    auto lines = Heart::HStringView8(entry.Message.data(), entry.Message.size()).Split("\n");
-                    for (auto line : lines)
+                    float textWidth = ImGui::CalcTextSize(line.Data(), line.Data() + line.Count()).x + messageContentPadding;
+                    if (textWidth == 0.f) continue;
+                    int lineCount = (textWidth / messageContentSize) + 1;
+                    int charCount = (int)line.Count() / lineCount;
+                    
+                    for (int i = 0; i < lineCount; i++)
                     {
-                        float textWidth = ImGui::CalcTextSize(line.Data(), line.Data() + line.Count()).x;
-                        if (textWidth == 0.f) continue;
-                        int lineCount = (int)pow(2.f, ceil(textWidth / messageContentSize)) - 1;
-                        int charCount = (int)line.Count() / lineCount;
-                        
-                        for (int i = 0; i < lineCount; i++)
-                        {
-                            auto substr = line.Substr(charCount * i, charCount);
-                            Heart::LogListEntry partialEntry(
-                                entry.Level,
-                                lineIndex == 0 ? entry.Timestamp : "",
-                                lineIndex == 0 ? entry.Source : "",
-                                std::string_view(substr.Data(), substr.Count())
-                            );
-                            filteredEntries.Add({ partialEntry, lineIndex != 0 });
-                        
-                            lineIndex++;
-                        }
+                        auto substr = line.Substr(charCount * i, charCount);
+                        Heart::LogListEntry partialEntry(
+                            entry.Id,
+                            entry.Level,
+                            lineIndex == 0 ? entry.Timestamp : "",
+                            lineIndex == 0 ? entry.Source : "",
+                            std::string_view(substr.Data(), substr.Count())
+                        );
+                        m_ProcessingEntries.Add(
+                            { std::move(partialEntry), lineIndex != 0 }
+                        );
+                    
+                        lineIndex++;
                     }
                 }
             }
+
             Heart::Logger::UnlockLogList();
 
-            if (filteredEntries.Count() > 0)
+            m_FilteredEntries.Insert(m_ProcessingEntries, 0);
+            if (m_FilteredEntries.Count() > m_MaxEntries)
+                m_FilteredEntries.Trim(m_MaxEntries);
+
+            if (m_FilteredEntries.Count() > 0)
             {
                 ImGuiListClipper clipper; // For virtualizing the list
-                clipper.Begin(filteredEntries.Count());
+                clipper.Begin(m_FilteredEntries.Count());
                 while (clipper.Step())
                 {
                     for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++)
                     {
-                        if (i >= filteredEntries.Count()) break;
-                        auto& entry = filteredEntries[i];
+                        if (i >= m_FilteredEntries.Count()) break;
+                        auto& entry = m_FilteredEntries[i];
 
                         ImVec4 rowColor = { 1.f, 1.f, 1.f, 0.5f };
                         switch (entry.Entry.Level)

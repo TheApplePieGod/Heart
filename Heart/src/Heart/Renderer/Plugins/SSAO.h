@@ -8,8 +8,7 @@ namespace Flourish
 {
     class Texture;
     class Buffer;
-    class RenderPass;
-    class Framebuffer;
+    class ComputePipeline;
     class ResourceSet;
 }
 
@@ -18,22 +17,13 @@ namespace Heart::RenderPlugins
     struct SSAOCreateInfo
     {
         HString8 FrameDataPluginName;
-        HString8 RenderMeshBatchesPluginName;
+
+        Ref<Flourish::Texture> InputDepthTexture;
+        Ref<Flourish::Texture> InputNormalsTexture;
     };
 
     class SSAO : public RenderPlugin
     {
-    public:
-        struct SSAOData
-        {
-            glm::vec4 Samples[64];
-            u32 KernelSize;
-            float Radius;
-            float Bias;
-            float Padding;
-            glm::vec2 RenderSize;
-        };
-
     public:
         SSAO(SceneRenderer* renderer, HStringView8 name, const SSAOCreateInfo& createInfo)
             : RenderPlugin(renderer, name), m_Info(createInfo)
@@ -47,14 +37,22 @@ namespace Heart::RenderPlugins
         void ResizeInternal() override;
 
     private:
+        struct PushConstants
+        {
+            u32 KernelSize;
+            float Radius;
+            float Bias;
+            float Padding;
+            glm::vec2 RenderSize;
+        };
+
+    private:
         SSAOCreateInfo m_Info;
 
-        SSAOData m_Data;
-        Ref<Flourish::Buffer> m_DataBuffer;
+        PushConstants m_PushConstants;
+        Ref<Flourish::Buffer> m_SampleBuffer;
         Ref<Flourish::Texture> m_NoiseTexture;
-        Ref<Flourish::Texture> m_OutputTexture;
         Ref<Flourish::ResourceSet> m_ResourceSet;
-        Ref<Flourish::RenderPass> m_RenderPass;
-        Ref<Flourish::Framebuffer> m_Framebuffer;
+        Ref<Flourish::ComputePipeline> m_Pipeline;
     };
 }

@@ -4,6 +4,8 @@
 #define MATERIAL_TEXTURES_SET 1
 #include "../collect_materials/MaterialBuffer.glsl"
 
+#include "./Util.glsl"
+
 layout(location = 0) in vec2 inTexCoord;
 layout(location = 1) in vec3 inNormal;
 layout(location = 2) in vec3 inTangent;
@@ -13,10 +15,17 @@ layout(location = 5) in flat uint inEntityId;
 layout(location = 6) in vec4 inClipPos;
 layout(location = 7) in vec4 inPrevClipPos;
 
-layout(location = 0) out vec4 outGBuffer1; // RGB: Albedo, A: Metallic
-layout(location = 1) out vec4 outGBuffer2; // RGB: WSNormal, A: Roughness
-layout(location = 2) out vec4 outGBuffer3; // RG: Motion Vector
+layout(location = 0) out vec4 outNormalData; // RG: NormalWS, BA: Motion vector
+layout(location = 1) out uvec4 outColorData; // RGBA: Packed color data
+layout(location = 2) out vec4 outEmissiveData; // RGB: emissive, A: occlusion
 layout(location = 3) out float outEntityId;
+
+layout(push_constant) uniform PushConstants
+{
+    uint storeMotionVectors;
+    uint storeColorAndEmissive;
+    uint storeEntityIds;
+} constants;
 
 #define MIN_ROUGHNESS 0.001
 #define MAX_ROUGHNESS 0.75
@@ -34,29 +43,37 @@ vec2 ComputeMotionVector(vec4 prevPos, vec4 newPos)
     return prev2d - new2d;
 }
 
-void WriteOutputs(vec3 albedo, vec3 normal, float roughness, float metalness)
+void WriteFinalColor()
 {
-    outEntityId = float(inEntityId);
+    MaterialInfo material = GET_MATERIAL(inMaterialId);
 
-    // Compensate for gamma correction
+    vec4 albedo = GetAlbedo(material, inTexCoord, vec4(0.f));
+    if (AlphaClip(material, albedo.a))
+        discard;
+
+    // Gamma correction
     // TODO: fix? this is probably because textures are unorm
-    outGBuffer1.rgb = pow(albedo, vec3(2.2)); 
+    albedo.rgb = pow(albedo.rgb, vec3(2.2f));
 
-    outGBuffer2.rgb = normal;
+    vec3 emissive = GetEmissive(material, inTexCoord, vec4(0.f));
+    vec3 normal = GetNormal(inTangent, inBitangent, inNormal, material, inTexCoord, vec4(0.f));
+    vec2 metalnessRoughness = GetMetalnessRoughness(material, inTexCoord, vec4(0.f));
+    float occlusion = GetOcclusion(material, inTexCoord, vec4(0.f));
+    float metalness = metalnessRoughness.r;
+    float roughness = metalnessRoughness.g;
 
-    outGBuffer1.a = metalness;
-    outGBuffer2.a = clamp(roughness, MIN_ROUGHNESS, MAX_ROUGHNESS);
+    if (constants.storeEntityIds == 1)
+        outEntityId = float(inEntityId);
 
-    float linearZ = gl_FragCoord.z / gl_FragCoord.w;
-    outGBuffer3.rg = ComputeMotionVector(inPrevClipPos, inClipPos);
-    outGBuffer3.b = linearZ;
-    outGBuffer3.a = 1.0;
+    vec4 normalOutput = vec4(0.f);
+    normalOutput.rg = OctahedronEncode(normal);
+    if (constants.storeMotionVectors == 1)
+        normalOutput.ba = ComputeMotionVector(inPrevClipPos, inClipPos);
+    outNormalData = normalOutput;
 
-    // TODO: revisit this. Potentially might just have to store materialId
-    // in gbuffer and sample these later. Mid because sampling here allows
-    // for proper miplevels
-    /*
-    vec3 emissive = GetEmissive(inMaterialId, inTexCoord);
-    float occlusion = GetOcclusion(inMaterialId, inTexCoord);
-    */
+    if (constants.storeColorAndEmissive == 1)
+    {
+        outColorData = PackColorData(albedo.rgb, metalness, clamp(roughness, MIN_ROUGHNESS, MAX_ROUGHNESS));
+        outEmissiveData = vec4(emissive, occlusion);
+    }
 }

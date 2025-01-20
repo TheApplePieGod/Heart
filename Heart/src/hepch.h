@@ -25,6 +25,7 @@
 #include <new>
 #include <locale>
 #include <atomic>
+#include <cstdlib>
 #include <condition_variable>
 
 #include <string>
@@ -47,6 +48,11 @@
 	#include <Windows.h>
 	#include <ShlObj.h>
 	#include <comdef.h>
+#elif defined(HE_PLATFORM_LINUX)
+    #include <dlfcn.h>
 #elif defined(HE_PLATFORM_MACOS)
-	#include <dlfcn.h>
+    #include <dlfcn.h>
+#elif defined(HE_PLATFORM_ANDROID)
+    #include <android/native_activity.h>
+    #include <dlfcn.h>
 #endif

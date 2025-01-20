@@ -2,6 +2,7 @@
 #include "MeshAsset.h"
 
 #include "Heart/Util/FilesystemUtils.h"
+#include "Heart/Util/StringUtils.hpp"
 #include "Heart/Asset/AssetManager.h"
 #include "Heart/Asset/MaterialAsset.h"
 #include "Heart/Asset/TextureAsset.h"
@@ -12,14 +13,9 @@
 
 namespace Heart
 {
-    void MeshAsset::Load(bool async)
+    void MeshAsset::LoadInternal()
     {
         HE_PROFILE_FUNCTION();
-
-        const std::lock_guard<std::mutex> lock(m_LoadLock);
-        
-        if (m_Loaded || m_Loading) return;
-        m_Loading = true;
 
         u32 fileLength;
         unsigned char* data = nullptr;
@@ -30,33 +26,31 @@ namespace Heart
             if (!data)
                 throw std::exception();
             if (/*m_Extension == ".glb" ||*/ m_Extension == ".gltf") // TODO: glb support
-                ParseGLTF(data, async);
+                ParseGLTF(data);
         }
         catch (std::exception e)
         {
             HE_ENGINE_LOG_ERROR("Failed to load mesh at path {0}", m_AbsolutePath.Data());
-            m_Loaded = true;
-            m_Loading = false;
             return;
         }
 
         delete[] data;
-        m_Loaded = true;
-        m_Loading = false;
         m_Valid = true;
     }
 
-    void MeshAsset::Unload()
+    void MeshAsset::UnloadInternal()
     {
-        if (!m_Loaded) return;
-        m_Loaded = false;
-
         m_Submeshes.Clear(true);
         m_DefaultMaterials.Clear(true);
-        m_Valid = false;
+        m_Data = nullptr;
     }
 
-    void MeshAsset::ParseGLTF(unsigned char* data, bool async)
+    bool MeshAsset::ShouldUnload()
+    {
+        return true;
+    }
+
+    void MeshAsset::ParseGLTF(unsigned char* data)
     {
         auto j = nlohmann::json::parse(data);
         
@@ -68,7 +62,9 @@ namespace Heart
             if (uri.Find("base64") != HString8::InvalidIndex)
             {
                 HStringView8 base64 = uri.Substr(uri.Find(',') + 1);
-                buffers.AddInPlace(Base64Decode(base64));
+                buffers.AddInPlace(
+                    StringUtils::Base64Decode(base64.Data(), base64.Count())
+                );
             }
             else if (uri.Find(".bin") != HString8::InvalidIndex)
             {

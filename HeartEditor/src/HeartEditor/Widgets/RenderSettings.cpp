@@ -56,6 +56,10 @@ namespace Widgets
         ImGui::SameLine();
         ImGui::DragFloat("##BBSS", &Editor::GetState().RenderSettings.BloomSampleScale, 0.1f, 0.f, 10.f);
 
+        ImGui::Text("Tonemap Enable");
+        ImGui::SameLine();
+        ImGui::Checkbox("##TonemapEnable", &Editor::GetState().RenderSettings.TonemapEnable);
+
         ImGui::Text("Cull Enable");
         ImGui::SameLine();
         ImGui::Checkbox("##CullEnable", &Editor::GetState().RenderSettings.CullEnable);

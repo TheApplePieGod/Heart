@@ -20,8 +20,12 @@ namespace Heart
         if (Recomputing) return;
         Recomputing = true;
         
-        auto fontAsset = AssetManager::RetrieveAsset<FontAsset>(Font, true);
-        if (!fontAsset || !fontAsset->IsValid()) return;
+        auto fontAsset = AssetManager::RetrieveAsset<FontAsset>(Font);
+        if (!fontAsset || !fontAsset->Load(false)->IsValid())
+            return;
+
+        if (Text.GetEncoding() != HString::Encoding::UTF8)
+            return;
 
         HVector<Mesh::Vertex> vertices;
         HVector<u32> indices;

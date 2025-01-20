@@ -5,6 +5,26 @@
 
 namespace MacOS
 {
+    bool Utils::IsAppPackaged()
+    {
+        NSBundle* main = [NSBundle mainBundle];
+        if (main == nullptr)
+            return false;
+
+        NSString* execPath = [main executablePath];
+
+        NSArray<NSString*>* pathComponents = execPath.pathComponents;
+
+        // Check for ".app/Contents/MacOS"
+        NSUInteger count = pathComponents.count;
+        return (
+            count >= 4 &&
+            [pathComponents[count - 4] hasSuffix:@".app"] &&
+            [pathComponents[count - 3] isEqualToString:@"Contents"] &&
+            [pathComponents[count - 2] isEqualToString:@"MacOS"]
+        );
+    }
+
     void Utils::SetCorrectWorkingDirectory()
     {
         NSBundle* main = [NSBundle mainBundle];

@@ -9,10 +9,9 @@
 #define CLUSTER_BUFFER_WRITE
 #include "ClusterBuffer.glsl"
 
-#include "Common.glsl"
 #include "../util/Misc.glsl"
 
-layout(local_size_x = GROUP_X, local_size_y = GROUP_Y, local_size_z = GROUP_Z) in;
+layout(local_size_x = CLUSTER_GROUP_X, local_size_y = CLUSTER_GROUP_Y, local_size_z = CLUSTER_GROUP_Z) in;
 
 layout(push_constant) uniform PushConstants
 {

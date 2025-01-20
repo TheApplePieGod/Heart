@@ -13,9 +13,11 @@ namespace Heart::RenderPlugins
 {
     struct PBRCompositeCreateInfo
     {
+        Ref<Flourish::Texture> OutputTexture;
         HString8 FrameDataPluginName;
         HString8 LightingDataPluginName;
         HString8 GBufferPluginName;
+        HString8 SSAOPluginName;
         HString8 ClusteredLightingPluginName;
     };
 
@@ -32,7 +34,15 @@ namespace Heart::RenderPlugins
         void ResizeInternal() override;
 
     private:
+        struct PushConstants
+        {
+            u32 SSAOEnable; 
+        };
+
+    private:
         PBRCompositeCreateInfo m_Info;
+
+        PushConstants m_PushConstants;
 
         Ref<Flourish::ResourceSet> m_ResourceSet;
         Ref<Flourish::ComputePipeline> m_Pipeline;

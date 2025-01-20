@@ -1,14 +1,12 @@
-﻿using Heart.Container;
+using Heart.Container;
 using Heart.Core;
 using Heart.NativeInterop;
 using Heart.Scene;
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using System.Runtime.Serialization;
+using System.Runtime.CompilerServices;
 
 namespace Heart.NativeBridge
 {
@@ -22,7 +20,7 @@ namespace Heart.NativeBridge
             if (objectType == null) return IntPtr.Zero;
 
             // Instantiate uninitialized object
-            var instance = FormatterServices.GetUninitializedObject(objectType);
+            var instance = RuntimeHelpers.GetUninitializedObject(objectType);
 
             // Find default parameterless constructor
             var constructor = objectType
@@ -38,6 +36,18 @@ namespace Heart.NativeBridge
             ((ScriptEntity)instance)._entityHandle = entityHandle;
             ((ScriptEntity)instance)._sceneHandle = sceneHandle;
 
+            var handle = ManagedGCHandle.AllocStrong(instance);
+            return handle.ToIntPtr();
+        }
+
+        [UnmanagedCallersOnly]
+        internal static unsafe IntPtr InstantiateClientScriptComponent(HStringInternal* objectTypeStr)
+        {
+            string typeStr = NativeMarshal.HStringInternalToString(*objectTypeStr);
+            Type objectType = ClientReflection.GetClientType(typeStr);
+            if (objectType == null) return IntPtr.Zero;
+
+            var instance = Activator.CreateInstance(objectType);
             var handle = ManagedGCHandle.AllocStrong(instance);
             return handle.ToIntPtr();
         }
@@ -76,7 +86,7 @@ namespace Heart.NativeBridge
                 func.Invoke(gcHandle.Target, argsArray.ToObjectArray());
             } catch (Exception e)
             {
-                Log.Error("Function '{0}' threw an exception: {1}", funcName, e.InnerException.Message);
+                Log.Error("Function '{0}' threw an exception: {1}", funcName, e.InnerException?.Message);
                 return InteropBool.False;
             }
             
@@ -109,9 +119,9 @@ namespace Heart.NativeBridge
             if (gcHandle != null && !gcHandle.IsAlive) return InteropBool.False;
 
             string fieldName = NativeMarshal.HStringInternalToString(*fieldNameStr);
-            bool result = ((ScriptEntity)gcHandle.Target).GENERATED_SetField(fieldName, value);
+            bool result = ((IUnmanagedFields)gcHandle.Target).SetFieldValue(fieldName, value);
             if (invokeCallback == InteropBool.True && result)
-                ((ScriptEntity)gcHandle.Target).OnScriptFieldChanged(fieldName, value);
+                ((IUnmanagedFields)gcHandle.Target).ScriptFieldChangedCallback(fieldName, value);
         
             return NativeMarshal.BoolToInteropBool(result);
         }

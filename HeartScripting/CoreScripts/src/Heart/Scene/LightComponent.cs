@@ -1,6 +1,7 @@
 ﻿using Heart.Container;
 using Heart.Math;
 using Heart.NativeInterop;
+using Heart.NativeBridge;
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -21,17 +22,11 @@ namespace Heart.Scene
         [FieldOffset(20)] public float Radius;
     }
 
-    public class LightComponent : Component
+    public partial class LightComponent : IComponent
     {
         internal unsafe LightComponentInternal* _internalValue;
-
-        public LightComponent()
-            : base(Entity.InvalidEntityHandle, IntPtr.Zero)
-        { }
-
-        internal LightComponent(uint entityHandle, IntPtr sceneHandle)
-            : base(entityHandle, sceneHandle)
-        { }
+        internal uint _entityHandle = Entity.InvalidEntityHandle;
+        internal IntPtr _sceneHandle = IntPtr.Zero;
 
         private unsafe void RefreshPtr()
         {
@@ -106,16 +101,28 @@ namespace Heart.Scene
             }
         }
 
-        [DllImport("__Internal")]
-        internal static extern unsafe void Native_LightComponent_Get(uint entityHandle, IntPtr sceneHandle, out LightComponentInternal* comp);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static InteropBool NativeExists(uint entityHandle, IntPtr sceneHandle)
+            => Native_LightComponent_Exists(entityHandle, sceneHandle);
 
-        [DllImport("__Internal")]
-        internal static extern void Native_LightComponent_Add(uint entityHandle, IntPtr sceneHandle);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void NativeAdd(uint entityHandle, IntPtr sceneHandle)
+            => Native_LightComponent_Add(entityHandle, sceneHandle);
 
-        [DllImport("__Internal")]
-        internal static extern void Native_LightComponent_Remove(uint entityHandle, IntPtr sceneHandle);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void NativeRemove(uint entityHandle, IntPtr sceneHandle)
+            => Native_LightComponent_Remove(entityHandle, sceneHandle);
 
-        [DllImport("__Internal")]
-        internal static extern InteropBool Native_LightComponent_Exists(uint entityHandle, IntPtr sceneHandle);
+        [UnmanagedCallback]
+        internal static unsafe partial void Native_LightComponent_Get(uint entityHandle, IntPtr sceneHandle, out LightComponentInternal* comp);
+
+        [UnmanagedCallback]
+        internal static partial void Native_LightComponent_Add(uint entityHandle, IntPtr sceneHandle);
+
+        [UnmanagedCallback]
+        internal static partial void Native_LightComponent_Remove(uint entityHandle, IntPtr sceneHandle);
+
+        [UnmanagedCallback]
+        internal static partial InteropBool Native_LightComponent_Exists(uint entityHandle, IntPtr sceneHandle);
     }
 }

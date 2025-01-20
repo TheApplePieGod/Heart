@@ -14,13 +14,15 @@ namespace Heart
          * @param path The path of the asset relative to the project directory.
          * @param absolutePath The absolute filesystem path of the asset.
          */
-        ShaderAsset(const HStringView8& path, const HStringView8& absolutePath);
-
-        void Load(bool async = false) override;
-        void Unload() override;
+        ShaderAsset(const HString8& path, const HString8& absolutePath);
 
         /*! @brief Get the shader stored in this asset. */
         inline Ref<Flourish::Shader> GetShader() { return m_Shader; }
+
+    protected:
+        void LoadInternal() override;
+        void UnloadInternal() override;
+        bool ShouldUnload() override;
 
     private:
         Ref<Flourish::Shader> m_Shader;

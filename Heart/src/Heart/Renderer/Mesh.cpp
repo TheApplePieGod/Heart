@@ -18,8 +18,8 @@ namespace Heart
 
         auto uploadEncoder = uploadBuf->EncodeTransferCommands();
         Flourish::BufferCreateInfo bufCreateInfo;
-        bufCreateInfo.Type = Flourish::BufferType::Vertex;
-        bufCreateInfo.Usage = Flourish::BufferUsageType::Static;
+        bufCreateInfo.MemoryType = Flourish::BufferMemoryType::GPUOnly;
+        bufCreateInfo.Usage = Flourish::BufferUsageFlags::Vertex;
         bufCreateInfo.Layout = s_VertexLayout;
         bufCreateInfo.ElementCount = vertices.Count();
         bufCreateInfo.InitialData = vertices.Data();
@@ -27,16 +27,21 @@ namespace Heart
         bufCreateInfo.UploadEncoder = uploadEncoder;
         if (Flourish::Context::FeatureTable().RayTracing)
         {
-            bufCreateInfo.CanCreateAccelerationStructure = true;
+            bufCreateInfo.Usage |= Flourish::BufferUsageFlags::AccelerationStructureBuild;
             bufCreateInfo.ExposeGPUAddress = true;
         }
         m_VertexBuffer = Flourish::Buffer::Create(bufCreateInfo);
 
-        bufCreateInfo.Type = Flourish::BufferType::Index;
+        bufCreateInfo.Usage = Flourish::BufferUsageFlags::Index;
         bufCreateInfo.Layout = s_IndexLayout;
         bufCreateInfo.ElementCount = indices.Count();
         bufCreateInfo.InitialData = indices.Data();
         bufCreateInfo.InitialDataSize = sizeof(u32) * indices.Count();
+        if (Flourish::Context::FeatureTable().RayTracing)
+        {
+            bufCreateInfo.Usage |= Flourish::BufferUsageFlags::AccelerationStructureBuild;
+            bufCreateInfo.ExposeGPUAddress = true;
+        }
         m_IndexBuffer = Flourish::Buffer::Create(bufCreateInfo);
         uploadEncoder->EndEncoding();
 

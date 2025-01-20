@@ -1,4 +1,6 @@
 ﻿using Heart.Math;
+using Heart.NativeInterop;
+using Heart.NativeBridge;
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -13,15 +15,10 @@ namespace Heart.Scene
         [FieldOffset(24)] public Vec3Internal Scale;
     }
 
-    public class TransformComponent : Component
+    public partial class TransformComponent : IComponent
     {
-        public TransformComponent()
-            : base(Entity.InvalidEntityHandle, IntPtr.Zero)
-        {}
-
-        internal TransformComponent(uint entityHandle, IntPtr sceneHandle)
-            : base(entityHandle, sceneHandle)
-        {}
+        internal uint _entityHandle = Entity.InvalidEntityHandle;
+        internal IntPtr _sceneHandle = IntPtr.Zero;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vec3 GetPosition()
@@ -59,25 +56,37 @@ namespace Heart.Scene
         public Vec3 GetForwardVector()
             => ComponentUtils.GetForwardVector(_entityHandle, _sceneHandle);
 
-        [DllImport("__Internal")]
-        internal static extern unsafe void Native_TransformComponent_Get(uint entityHandle, IntPtr sceneHandle, out TransformComponentInternal* comp);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static InteropBool NativeExists(uint entityHandle, IntPtr sceneHandle)
+            => InteropBool.True;
 
-        [DllImport("__Internal")]
-        internal static extern void Native_TransformComponent_SetPosition(uint entityHandle, IntPtr sceneHandle, Vec3Internal value);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void NativeAdd(uint entityHandle, IntPtr sceneHandle)
+            => throw new InvalidOperationException("Cannot add a transform component");
 
-        [DllImport("__Internal")]
-        internal static extern void Native_TransformComponent_SetRotation(uint entityHandle, IntPtr sceneHandle, Vec3Internal value);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void NativeRemove(uint entityHandle, IntPtr sceneHandle)
+            => throw new InvalidOperationException("Cannot remove a transform component");
 
-        [DllImport("__Internal")]
-        internal static extern void Native_TransformComponent_SetScale(uint entityHandle, IntPtr sceneHandle, Vec3Internal value);
+        [UnmanagedCallback]
+        internal static unsafe partial void Native_TransformComponent_Get(uint entityHandle, IntPtr sceneHandle, out TransformComponentInternal* comp);
 
-        [DllImport("__Internal")]
-        internal static extern void Native_TransformComponent_SetTransform(uint entityHandle, IntPtr sceneHandle, Vec3Internal pos, Vec3Internal rot, Vec3Internal scale);
+        [UnmanagedCallback]
+        internal static partial void Native_TransformComponent_SetPosition(uint entityHandle, IntPtr sceneHandle, Vec3Internal value);
 
-        [DllImport("__Internal")]
-        internal static extern void Native_TransformComponent_ApplyRotation(uint entityHandle, IntPtr sceneHandle, Vec3Internal value);
+        [UnmanagedCallback]
+        internal static partial void Native_TransformComponent_SetRotation(uint entityHandle, IntPtr sceneHandle, Vec3Internal value);
 
-        [DllImport("__Internal")]
-        internal static extern void Native_TransformComponent_GetForwardVector(uint entityHandle, IntPtr sceneHandle, out Vec3Internal value);
+        [UnmanagedCallback]
+        internal static partial void Native_TransformComponent_SetScale(uint entityHandle, IntPtr sceneHandle, Vec3Internal value);
+
+        [UnmanagedCallback]
+        internal static partial void Native_TransformComponent_SetTransform(uint entityHandle, IntPtr sceneHandle, Vec3Internal pos, Vec3Internal rot, Vec3Internal scale);
+
+        [UnmanagedCallback]
+        internal static partial void Native_TransformComponent_ApplyRotation(uint entityHandle, IntPtr sceneHandle, Vec3Internal value);
+
+        [UnmanagedCallback]
+        internal static partial void Native_TransformComponent_GetForwardVector(uint entityHandle, IntPtr sceneHandle, out Vec3Internal value);
     }
 }

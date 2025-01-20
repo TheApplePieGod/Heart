@@ -11,6 +11,10 @@
 #include "Heart/Util/FilesystemUtils.h"
 #include "nlohmann/json.hpp"
 
+#ifdef HE_PLATFORM_ANDROID
+#include "Heart/Platform/Android/AndroidApp.h"
+#endif
+
 namespace HeartRuntime
 {
     RuntimeLayer::RuntimeLayer(const std::filesystem::path& projectPath)
@@ -48,17 +52,12 @@ namespace HeartRuntime
 
     void RuntimeLayer::OnUpdate(Heart::Timestep ts)
     {
-        m_SceneUpdateTask.Wait();
-
         m_RenderScene.CopyFromScene(m_RuntimeScene.get());
         
-        m_SceneUpdateTask = Heart::TaskManager::Schedule([this, ts]()
-        {
-            m_RuntimeScene->OnUpdateRuntime(ts);
-        }, Task::Priority::High, "SceneUpdate task");
+        m_RuntimeScene->OnUpdateRuntime(ts);
 
-        m_Viewport.OnImGuiRender(m_RuntimeScene.get(), m_RenderSettings);
-        m_DevPanel.OnImGuiRender(m_RuntimeScene.get(), m_RenderSettings);
+        m_Viewport.OnImGuiRender(&m_RenderScene, m_RuntimeScene.get(), m_RenderSettings);
+        m_DevPanel.OnImGuiRender(&m_Viewport, m_RuntimeScene.get(), m_RenderSettings);
     }
 
     void RuntimeLayer::OnEvent(Heart::Event& event)
@@ -70,7 +69,8 @@ namespace HeartRuntime
     {
         if (event.GetKeyCode() == Heart::KeyCode::F11)
             RuntimeApp::Get().GetWindow().ToggleFullscreen();
-        if (event.GetKeyCode() == Heart::KeyCode::F12)
+        if (event.GetKeyCode() == Heart::KeyCode::F12 ||
+            event.GetKeyCode() == Heart::KeyCode::Back) // Android devices
         {
             if (m_DevPanel.IsOpen())
             {
@@ -83,12 +83,14 @@ namespace HeartRuntime
                 m_DevPanel.SetOpen(true);
             }
         }
-        
+
         return true;
     }
 
     void RuntimeLayer::LoadProject()
     {
+        HE_LOG_TRACE("Loading project '{0}'", m_ProjectPath.generic_u8string());
+
         u32 fileLength;
         unsigned char* data = Heart::FilesystemUtils::ReadFile(m_ProjectPath.generic_u8string(), fileLength);
         if (!data)
@@ -97,31 +99,42 @@ namespace HeartRuntime
             throw std::exception();
         }
 
-        auto assemblyPath = std::filesystem::path("project")
-            .append("bin")
-            .append("ClientScripts.dll");
+        #ifdef HE_PLATFORM_ANDROID
+            auto assemblyPath = std::filesystem::path(Heart::AndroidApp::App->activity->internalDataPath)
+                .append("ClientScripts.dll");
+        #else
+            auto assemblyPath = std::filesystem::path("scripting/ClientScripts.dll");
+        #endif
+
         if (!std::filesystem::exists(assemblyPath))
         {
-            HE_LOG_ERROR("Project assembly not found");
+            HE_LOG_ERROR("Project assembly not found @ {0}", assemblyPath.generic_u8string().c_str());
             throw std::exception();
         }
         
-        Heart::AssetManager::UpdateAssetsDirectory("project");
-        Heart::ScriptingEngine::LoadClientPlugin(assemblyPath.u8string());
+        Heart::ScriptingEngine::LoadClientPlugin(assemblyPath.generic_u8string());
 
         RuntimeApp::Get().GetImGuiInstance().OverrideImGuiConfig(Heart::AssetManager::GetAssetsDirectory());
         RuntimeApp::Get().GetImGuiInstance().ReloadImGuiConfig();
 
         // TODO: eventually switch from loadedScene to default scene or something like that
         auto j = nlohmann::json::parse(data);
-        if (!j.contains("loadedScene") || j["loadedScene"].empty())
+
+        if (j.contains("loadedScene") && !j["loadedScene"].empty())
         {
-            HE_LOG_ERROR("Unable to load scene");
-            throw std::exception();
+            HE_LOG_INFO("Loaded runtime scene: {}", std::string(j["loadedScene"]));
+            Heart::UUID sceneAssetId = Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Scene, j["loadedScene"]);
+            m_RuntimeScene = Heart::AssetManager::RetrieveAsset(sceneAssetId)
+                ->EnsureValid<Heart::SceneAsset>()
+                ->GetScene()
+                ->Clone();
+        }
+        else
+        {
+            HE_LOG_WARN("Runtime project has no scene configured");
+            m_RuntimeScene = Heart::CreateRef<Heart::Scene>();
         }
 
-        Heart::UUID sceneAssetId = Heart::AssetManager::RegisterAsset(Heart::Asset::Type::Scene, j["loadedScene"]);
-        m_RuntimeScene = Heart::AssetManager::RetrieveAsset<Heart::SceneAsset>(sceneAssetId)->GetScene()->Clone();
         m_RuntimeScene->StartRuntime();
 
         RuntimeApp::Get().GetWindow().DisableCursor();

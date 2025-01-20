@@ -1,7 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<OutputType>Library</OutputType>
-		<TargetFramework>net6.0</TargetFramework>
+		<TargetFramework>net8.0</TargetFramework>
+        <LangVersion>11.0</LangVersion>
 		<OutputPath>bin</OutputPath>
 		<AssemblyName>ClientScripts</AssemblyName>
 		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
@@ -9,7 +10,7 @@
 		<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
 	</PropertyGroup>
 	<ItemGroup>
-		<PackageReference Include="Heart.NET.Sdk" Version="1.0.0" />
+		<PackageReference Include="Heart.NET.Sdk" Version="0.0.2" />
 	</ItemGroup>
 	<ItemGroup>
 	  	<Folder Include="Scripts/" />

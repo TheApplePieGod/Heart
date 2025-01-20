@@ -2,6 +2,7 @@
 #include "PlatformUtils.h"
 
 #include "Heart/Container/HString8.h"
+#include "tinyfd/tinyfiledialogs.h"
 
 #ifdef HE_PLATFORM_MACOS
 #include "Heart/Platform/MacOS/Utils.h"
@@ -14,7 +15,7 @@ namespace Heart
         #ifdef HE_PLATFORM_WINDOWS
             HMODULE lib = LoadLibraryA(path.Data());
             return (void*)lib;
-        #elif defined(HE_PLATFORM_LINUX) || defined(HE_PLATFORM_MACOS)
+        #else
             void* lib = dlopen(path.Data(), RTLD_LAZY | RTLD_LOCAL);
             return lib;
         #endif
@@ -26,7 +27,7 @@ namespace Heart
     {
         #ifdef HE_PLATFORM_WINDOWS
             FreeLibrary((HMODULE)lib);
-        #elif defined(HE_PLATFORM_LINUX) || defined(HE_PLATFORM_MACOS)
+        #else
             dlclose(lib);
         #endif
     }
@@ -36,7 +37,7 @@ namespace Heart
         #ifdef HE_PLATFORM_WINDOWS
             void* func = GetProcAddress((HMODULE)lib, name.Data());
             return func;
-        #elif defined(HE_PLATFORM_LINUX) || defined(HE_PLATFORM_MACOS)
+        #else
             void* func = dlsym(lib, name.Data());
             return func;
         #endif
@@ -48,7 +49,7 @@ namespace Heart
     {
         #ifdef HE_PLATFORM_WINDOWS
             return ".dll";
-        #elif defined(HE_PLATFORM_LINUX)
+        #elif defined(HE_PLATFORM_LINUX) || defined(HE_PLATFORM_ANDROID)
             return ".so";
         #elif defined(HE_PLATFORM_MACOS)
             return ".dylib";
@@ -61,7 +62,7 @@ namespace Heart
     {
         #ifdef HE_PLATFORM_WINDOWS
             return GetModuleHandleA(0);
-        #elif defined(HE_PLATFORM_LINUX) || defined(HE_PLATFORM_MACOS)
+        #else
             return dlopen(nullptr, RTLD_NOW);
         #endif
 
@@ -174,5 +175,25 @@ namespace Heart
         #ifdef HE_PLATFORM_WINDOWS
             CoUninitialize();
         #endif
+    }
+
+    void PlatformUtils::ShowMessageBox(HStringView8 title, HStringView8 message, HStringView8 iconType)
+    {
+        tinyfd_messageBox(title.Data(), message.Data(), "ok", iconType.Data(), 0);
+    }
+
+    int PlatformUtils::ShowMessageBoxCancel(HStringView8 title, HStringView8 message, HStringView8 iconType)
+    {
+        return tinyfd_messageBox(title.Data(), message.Data(), "okcancel", iconType.Data(), 0);
+    }
+
+    int PlatformUtils::ShowMessageBoxYesNo(HStringView8 title, HStringView8 message, HStringView8 iconType)
+    {
+        return tinyfd_messageBox(title.Data(), message.Data(), "yesno", iconType.Data(), 0);
+    }
+
+    int PlatformUtils::ShowMessageBoxYesNoCancel(HStringView8 title, HStringView8 message, HStringView8 iconType)
+    {
+        return tinyfd_messageBox(title.Data(), message.Data(), "yesnocancel", iconType.Data(), 0);
     }
 }

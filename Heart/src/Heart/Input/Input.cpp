@@ -2,57 +2,49 @@
 #include "Input.h"
 
 #include "Heart/Core/App.h"
-#include "Heart/Core/Window.h"
-#include "GLFW/glfw3.h"
 
 namespace Heart
 {
-    bool Input::IsKeyPressed(KeyCode key)
+    void Input::AddKeyEvent(KeyCode key, bool pressed)
     {
-        GLFWwindow* window = static_cast<GLFWwindow*>(App::Get().GetWindow().GetWindowHandle());
-		int state = glfwGetKey(window, static_cast<int>(key));
-		return state == GLFW_PRESS || state == GLFW_REPEAT;
-    }
-    
-    bool Input::IsMouseButtonPressed(MouseCode button)
-    {
-        GLFWwindow* window = static_cast<GLFWwindow*>(App::Get().GetWindow().GetWindowHandle());
-		int state = glfwGetMouseButton(window, static_cast<int>(button));
-		return state == GLFW_PRESS;
-    }
-    
-    glm::vec2 Input::GetScreenMousePos()
-    {
-        GLFWwindow* window = static_cast<GLFWwindow*>(App::Get().GetWindow().GetWindowHandle());
-		double xPos, yPos;
-		glfwGetCursorPos(window, &xPos, &yPos);
-		return { (f32)xPos, (f32)yPos };
+        auto& state = GetKeyStateMut(key);
+        state.Pressed = pressed;
+        state.LastPressFrame = App::Get().GetFrameCount();
     }
 
-    void Input::SetMousePosition(double newX, double newY)
+    void Input::AddButtonEvent(ButtonCode button, bool pressed)
     {
-        s_LastMousePosX = newX;
-        s_LastMousePosY = newY;
+        auto& state = GetButtonStateMut(button);
+        state.Pressed = pressed;
+        state.LastPressFrame = App::Get().GetFrameCount();
     }
 
-    void Input::UpdateMousePosition(double newX, double newY)
+    void Input::AddAxisEvent(AxisCode axis, double value, bool accumulate, bool skipDelta)
     {
-        s_MouseDeltaX += newX - s_LastMousePosX;
-        s_MouseDeltaY += newY - s_LastMousePosY;
-        SetMousePosition(newX, newY);
+        auto& state = GetAxisStateMut(axis);
+        if (accumulate)
+        {
+            state.Value += value;
+            if (!skipDelta)
+                state.Delta += value;
+        }
+        else
+        {
+            state.Value = value;
+            if (!skipDelta)
+                state.Delta = state.Value - state.OldValue;
+        }
+        state.LastInteractionFrame = App::Get().GetFrameCount();
     }
 
-    void Input::UpdateScrollOffset(double newX, double newY)
+    void Input::EndFrame()
     {
-        s_ScrollOffsetX += newX;
-        s_ScrollOffsetY += newY;
-    }
-
-    void Input::ClearDeltas()
-    {
-        s_MouseDeltaX = 0.0;
-        s_MouseDeltaY = 0.0;
-        s_ScrollOffsetX = 0.0;
-        s_ScrollOffsetY = 0.0;
+        // Clear deltas
+        for (u32 i = 0; i < m_AxisStates.size(); i++)
+        {
+            auto& state = m_AxisStates[i];
+            state.OldValue = state.Value;
+            state.Delta = 0.0;
+        }
     }
 }

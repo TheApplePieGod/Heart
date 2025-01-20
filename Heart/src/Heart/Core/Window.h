@@ -9,7 +9,6 @@ namespace Flourish
     class CommandBuffer;
 }
 
-class GLFWwindow;
 namespace Heart
 {
     /*! @brief Window creation settings. */
@@ -38,44 +37,46 @@ namespace Heart
         Window(const WindowCreateInfo& createInfo);
 
         /*! @brief Default destructor. */
-        ~Window();
+        virtual ~Window();
 
-        /*! @brief Begin the window's frame. */
-        void BeginFrame();
-
-        /*! @brief Poll the window for various input/misc events. */
-        void PollEvents();
+        /** 
+         * @brief Poll the window for various input/misc events.
+         * @return true if the window was recreated for any reason
+         */
+        virtual bool PollEvents() = 0;
 
         /*! @brief End the window's frame. */
-        void EndFrame();
+        virtual void EndFrame() = 0;
 
         /*! @brief Disable the cursor while this window is focused. */
-        void DisableCursor();
+        virtual void DisableCursor() = 0;
 
         /*! @brief Enable the cursor while this window is focused. */
-        void EnableCursor();
+        virtual void EnableCursor() = 0;
 
         /*! @brief Updates the window's title. */
-        void SetWindowTitle(const char* newTitle);
+        virtual void SetWindowTitle(const char* newTitle) = 0;
 
         /**
          * @brief Set the fullscreen status of the window.
          * 
          * @param fullscreen True if the window should be fullscreen and false otherwise.
          */
-        void SetFullscreen(bool fullscreen);
+        virtual void SetFullscreen(bool fullscreen) = 0;
 
         /*! @brief Toggle the current fullscreen status of the window. */
-        void ToggleFullscreen();
+        virtual void ToggleFullscreen() = 0;
 
         /*! @brief Get the current fullscreen status of the window. */
-        bool IsFullscreen();
+        virtual bool IsFullscreen() const = 0;
+
+        virtual float GetDPIScale() const = 0;
 
         /*! @brief Get the window's graphics context. */
         inline Flourish::RenderContext* GetRenderContext() const { return m_RenderContext.get(); }
 
-        /*! @brief Get the window's underlying GLFW handle. */
-        inline GLFWwindow* GetWindowHandle() const { return m_Window; }
+        /*! @brief Get the window's underlying handle. */
+        inline void* GetWindowHandle() const { return m_Window; }
 
         /*! @brief Get the current width of the window. */
         inline u32 GetWidth() const { return m_WindowData.Width; }
@@ -85,9 +86,6 @@ namespace Heart
 
         /*! @brief Get the window's current title. */
         inline HString8 GetTitle() const { return m_WindowData.Title; }
-
-        /*! @brief Get the window's elapsed lifetime in milliseconds. */
-        double GetWindowTime();
 
     public:
         /**
@@ -112,7 +110,7 @@ namespace Heart
             s_MainWindow = newWindow;
         }
 
-    private:
+    protected:
         struct WindowData
         {
             HString8 Title = "";
@@ -121,20 +119,20 @@ namespace Heart
             EventCallbackFunction EmitEvent;
         };
 
-    private:
-        void EmitEvent(Event& event);
-        bool OnWindowResize(WindowResizeEvent& event);
-
-    private:
+    protected:
         inline static int s_WindowCount = 0;
         inline static Ref<Window> s_MainWindow = nullptr;
 
-    private:
+    protected:
         Ref<Flourish::RenderContext> m_RenderContext;
         int m_SavedWindowSizeAndPosition[4]; // used when toggling fullscreen
         WindowData m_WindowData;
-        GLFWwindow* m_Window;
+        void* m_Window;
 
         friend class App;
+
+    private:
+        void EmitEvent(Event& event);
+        bool OnWindowResize(WindowResizeEvent& event);
     };
 }

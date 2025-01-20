@@ -8,7 +8,7 @@ namespace Heart
         None = 0,
         WindowResize, WindowClose,
         Key, KeyPressed, KeyReleased,
-        MouseButton, MouseButtonPressed, MouseButtonReleased
+        Button, ButtonPressed, ButtonReleased
     };
 
     class Event

@@ -19,11 +19,16 @@ namespace Heart::RenderPlugins
 {
     void RenderEnvironmentMap::InitializeInternal()
     {
+        // Queue shader loads 
+        auto vertShader = AssetManager::RetrieveAsset("engine/render_plugins/render_environment_map/Vertex.vert", true);
+        auto fragShader = AssetManager::RetrieveAsset("engine/render_plugins/render_environment_map/Fragment.frag", true);
+        Asset::LoadMany({ vertShader, fragShader }, false);
+
         Flourish::RenderPassCreateInfo rpCreateInfo;
         rpCreateInfo.SampleCount = Flourish::MsaaSampleCount::None;
         rpCreateInfo.ColorAttachments.push_back({
-            m_Renderer->GetRenderTexture()->GetColorFormat(),
-            Flourish::AttachmentInitialization::None,
+            m_Info.OutputTexture->GetColorFormat(),
+            m_Info.ClearOutput ? Flourish::AttachmentInitialization::Clear : Flourish::AttachmentInitialization::Preserve,
             true
         });
         rpCreateInfo.Subpasses.push_back({
@@ -33,8 +38,8 @@ namespace Heart::RenderPlugins
         m_RenderPass = Flourish::RenderPass::Create(rpCreateInfo);
 
         Flourish::GraphicsPipelineCreateInfo pipelineCreateInfo;
-        pipelineCreateInfo.FragmentShader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/render_environment_map/Fragment.frag", true)->GetShader() };
-        pipelineCreateInfo.VertexShader = { AssetManager::RetrieveAsset<ShaderAsset>("engine/render_plugins/render_environment_map/Vertex.vert", true)->GetShader() };
+        pipelineCreateInfo.VertexShader = { vertShader->EnsureValid<ShaderAsset>()->GetShader() };
+        pipelineCreateInfo.FragmentShader = { fragShader->EnsureValid<ShaderAsset>()->GetShader() };
         pipelineCreateInfo.VertexTopology = Flourish::VertexTopology::TriangleList;
         pipelineCreateInfo.VertexLayout = Mesh::GetVertexLayout();
         pipelineCreateInfo.VertexInput = true;
@@ -48,10 +53,10 @@ namespace Heart::RenderPlugins
         Flourish::CommandBufferCreateInfo cbCreateInfo;
         cbCreateInfo.FrameRestricted = true;
         cbCreateInfo.DebugName = m_Name.Data();
+        cbCreateInfo.MaxTimestamps = 2;
         m_CommandBuffer = Flourish::CommandBuffer::Create(cbCreateInfo);
 
         Flourish::ResourceSetCreateInfo dsCreateInfo;
-        dsCreateInfo.Writability = Flourish::ResourceSetWritability::PerFrame;
         m_ResourceSet = pipeline->CreateResourceSet(0, dsCreateInfo);
 
         ResizeInternal();
@@ -61,9 +66,9 @@ namespace Heart::RenderPlugins
     {
         Flourish::FramebufferCreateInfo fbCreateInfo;
         fbCreateInfo.RenderPass = m_RenderPass;
-        fbCreateInfo.Width = m_Renderer->GetRenderWidth();
-        fbCreateInfo.Height = m_Renderer->GetRenderHeight();
-        fbCreateInfo.ColorAttachments.push_back({ { 0.f, 0.f, 0.f, 1.f }, m_Renderer->GetRenderTexture() });
+        fbCreateInfo.Width = m_Info.OutputTexture->GetWidth();
+        fbCreateInfo.Height = m_Info.OutputTexture->GetHeight();
+        fbCreateInfo.ColorAttachments.push_back({ { 0.f, 0.f, 0.f, 1.f }, m_Info.OutputTexture });
         m_Framebuffer = Flourish::Framebuffer::Create(fbCreateInfo);
 
         m_GPUGraphNodeBuilder.Reset()
@@ -76,6 +81,9 @@ namespace Heart::RenderPlugins
     {
         HE_PROFILE_FUNCTION();
         auto timer = AggregateTimer("RenderPlugins::RenderEnvironmentMap");
+
+        m_Stats["GPU Time"].Type = StatType::TimeMS;
+        m_Stats["GPU Time"].Data.Float = (float)(m_CommandBuffer->ComputeTimestampDifference(0, 1) * 1e-6);
 
         if (!data.EnvMap)
         {
@@ -94,11 +102,13 @@ namespace Heart::RenderPlugins
         m_ResourceSet->FlushBindings();
         
         auto encoder = m_CommandBuffer->EncodeRenderCommands(m_Framebuffer.get());
+        encoder->WriteTimestamp(0);
         encoder->BindPipeline("main");
         encoder->BindResourceSet(m_ResourceSet.get(), 0);
         encoder->FlushResourceSet(0);
 
         auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>("engine/DefaultCube.gltf", true);
+        meshAsset->EnsureValid();
         auto& meshData = meshAsset->GetSubmesh(0);
 
         encoder->BindVertexBuffer(meshData.GetVertexBuffer());
@@ -108,6 +118,7 @@ namespace Heart::RenderPlugins
             0, 0, 1, 0
         );
 
+        encoder->WriteTimestamp(1);
         encoder->EndEncoding();
     }
 }

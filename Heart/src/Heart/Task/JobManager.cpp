@@ -7,6 +7,14 @@ namespace Heart
 {
     void JobManager::Initialize(u32 numWorkers)
     {
+        if (numWorkers == 0)
+        {
+            s_SingleThreaded = true;
+            s_Initialized = true;
+
+            return;
+        }
+
         // Populate initial data to prevent resizing
         s_JobList.Resize(5000);
         s_HandleFreeList.Reserve(s_JobList.Count());
@@ -14,12 +22,10 @@ namespace Heart
             s_HandleFreeList.Add(i);
             
         s_Initialized = true;
-        
+
+        s_ExecuteQueues.Resize(numWorkers);
         for (u32 i = 0; i < numWorkers; i++)
-        {
-            s_ExecuteQueues.AddInPlace();
             s_WorkerThreads.AddInPlace(&JobManager::ProcessQueue, i);
-        }
     }
 
     void JobManager::Shutdown()
@@ -52,6 +58,14 @@ namespace Heart
 
     u32 JobManager::ScheduleInternal(const HVector<size_t>& indices, std::function<void(size_t)>&& job, std::function<bool(size_t)>&& check)
     {
+        if (s_SingleThreaded)
+        {
+            for (size_t i = 0; i < indices.Count(); i++)
+                job(indices[i]);
+            
+            return 0;
+        }
+
         u32 handle = CreateJob();
 
         JobData& data = s_JobList[handle];
@@ -88,6 +102,7 @@ namespace Heart
     bool JobManager::Wait(const Job& job, u32 timeout)
     {
         if (job.GetHandle() == Job::InvalidHandle) return false;
+        if (s_SingleThreaded) return true;
 
         HE_PROFILE_FUNCTION();
         
@@ -122,12 +137,14 @@ namespace Heart
 
     void JobManager::IncrementRefCount(u32 handle)
     {
+        if (!s_Initialized || s_SingleThreaded) return;
+
         s_JobList[handle].RefCount++;
     }
 
     void JobManager::DecrementRefCount(u32 handle)
     {
-        if (!s_Initialized) return;
+        if (!s_Initialized || s_SingleThreaded) return;
 
         auto& data = s_JobList[handle];
         if (--data.RefCount == 0)
@@ -157,7 +174,6 @@ namespace Heart
             
             if (!s_Initialized) break;
             
-            // lock already locked by wait()
             auto executeData = std::move(queue.Queue.front());
             queue.Queue.pop();
             lock.unlock();

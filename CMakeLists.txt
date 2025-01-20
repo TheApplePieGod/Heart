@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.23)
+cmake_minimum_required(VERSION 3.22)
 
 project(
     Heart
@@ -7,9 +7,11 @@ project(
 )
 
 option(HEART_BUILD_DOCS "Build documentation" OFF)
-option(HEART_BUILD_EDITOR "Build the editor" ON)
+option(HEART_BUILD_EDITOR "Build the editor" OFF)
 option(HEART_BUILD_RUNTIME "Build the standalone runtime" OFF)
 option(HEART_BUILD_TESTS "Build the tests" OFF)
+
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 if(HEART_BUILD_DOCS)
     find_package(Doxygen)
@@ -40,6 +42,11 @@ elseif(MSVC)
     if(${CMAKE_BUILD_TYPE} MATCHES Debug)
         add_compile_definitions(_ITERATOR_DEBUG_LEVEL=1)
     endif()
+
+    # https://github.com/actions/runner-images/issues/10004#issuecomment-2156109231
+    # https://github.com/YehudaKremer/msix/issues/272
+    add_compile_definitions(_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR)
+
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
 endif()
 
@@ -77,10 +84,16 @@ if(Python3_FOUND)
   message("Dotnet runtime str: ${DOTNET_RUNTIME_STR}")
 
   if (DOTNET_RUNTIME_DIR STREQUAL "")
-    message(FATAL_ERROR "Dotnet SDK not found (ensure DOTNET_SDK is set)")
+    message(FATAL_ERROR "Dotnet SDK not found ensure it is installed and in PATH")
   endif()
 else()
   message(FATAL_ERROR "Python must be installed to configure Heart") 
+endif()
+
+if (HEART_BUILD_RUNTIME)
+    message("Building the runtime")
+    add_compile_definitions(HE_DIST)
+#   add_subdirectory("HeartRuntime")
 endif()
 
 add_subdirectory("Heart")
@@ -88,10 +101,6 @@ add_subdirectory("HeartScripting")
 if (HEART_BUILD_EDITOR)
     message("Building the editor")
     add_subdirectory("HeartEditor")
-endif()
-if (HEART_BUILD_RUNTIME)
-    message("Building the runtime")
-    add_subdirectory("HeartRuntime")
 endif()
 if (HEART_BUILD_TESTS)
     message("Building the tests")

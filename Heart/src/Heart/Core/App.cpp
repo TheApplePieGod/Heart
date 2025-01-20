@@ -4,6 +4,7 @@
 #include "Heart/Core/Layer.h"
 #include "Heart/Core/Window.h"
 #include "Heart/Core/Timing.h"
+#include "Heart/Input/Input.h"
 #include "Heart/ImGui/ImGuiInstance.h"
 #include "Heart/Physics/PhysicsWorld.h"
 #include "Heart/Events/WindowEvents.h"
@@ -13,18 +14,17 @@
 #include "Heart/Task/TaskManager.h"
 #include "Heart/Task/JobManager.h"
 #include "Heart/Util/PlatformUtils.h"
+#include "Heart/Util/FilesystemUtils.h"
 #include "Flourish/Api/Context.h"
 #include "Flourish/Api/RenderContext.h"
 #include "Flourish/Core/Log.h"
 
 namespace Heart
 {
-    App::App(const HStringView8& windowName)
+    App::App()
     {
         if (s_Instance) return;
         s_Instance = this;
-
-        Heart::Logger::Initialize(windowName.Data());
 
         Timer timer = Timer("App initialization");
         #ifdef HE_DEBUG
@@ -37,9 +37,30 @@ namespace Heart
         HE_ENGINE_LOG_INFO("Using {0} task & job worker threads", taskThreads);
         JobManager::Initialize(taskThreads);
         TaskManager::Initialize(taskThreads);
+
+        // Run on main thread, since some platforms have issues otherwise
+        if (!ScriptingEngine::Initialize())
+        {
+            // Show a different message in dist bc dotnet doesn't actually need to be installed
+            #ifdef HE_DIST
+                PlatformUtils::ShowMessageBox(
+                    ".NET Initialization Failed!",
+                    "Unable to initialize the scripting backend",
+                    "error"
+                );
+            #else
+                PlatformUtils::ShowMessageBox(
+                    ".NET Initialization Failed!",
+                    "Unable to start the .NET SDK.\n\nPlease ensure it is installed on your system.\n\nhttps://dotnet.microsoft.com/en-us/download/dotnet/8.0",
+                    "error"
+                );
+            #endif
+
+            throw std::exception();
+        }
         
-        WindowCreateInfo windowCreateInfo = WindowCreateInfo(windowName);
-        InitializeGraphicsApi(windowCreateInfo);
+        // TODO: put in a task?
+        InitializeGraphicsApi();
         HE_ENGINE_LOG_DEBUG("Graphics ready");
 
         // Init services
@@ -52,10 +73,6 @@ namespace Heart
             [](){ AssetManager::Initialize(); },
             Task::Priority::High, "AssetManager Init")
         );
-        initServices.AddTask(TaskManager::Schedule(
-            [](){ ScriptingEngine::Initialize(); },
-            Task::Priority::High, "Scripts Init")
-        );
         
         initServices.Wait();
 
@@ -64,6 +81,10 @@ namespace Heart
 
     App::~App()
     {
+        // Ensure all jobs are completed
+        TaskManager::Shutdown();
+        JobManager::Shutdown();
+        
         // Shutdown services
         ScriptingEngine::Shutdown();
         AssetManager::Shutdown();
@@ -73,12 +94,21 @@ namespace Heart
 
         ShutdownGraphicsApi();
         
-        TaskManager::Shutdown();
-        JobManager::Shutdown();
-        
         PlatformUtils::ShutdownPlatform();
 
         HE_ENGINE_LOG_INFO("Shutdown complete");
+    }
+
+    void App::OpenWindow(const WindowCreateInfo& windowInfo)
+    {
+        m_Window = Window::Create(windowInfo);
+        SubscribeToEmitter(&GetWindow());
+        Window::SetMainWindow(m_Window);
+
+        if (m_ImGuiInstance)
+            m_ImGuiInstance->UpdateWindow(m_Window);
+        else
+            m_ImGuiInstance = CreateRef<ImGuiInstance>(m_Window);
     }
 
     void App::PushLayer(const Ref<Layer>& layer)
@@ -87,12 +117,20 @@ namespace Heart
         layer->OnAttach();
     }
 
-    void App::SwitchAssetsDirectory(const HStringView8& newDirectory)
+    void App::PopLayer()
+    {
+        if (m_Layers.IsEmpty()) return;
+
+        m_Layers.Back()->OnDetach();
+        m_Layers.Pop();
+    }
+
+    void App::SwitchAssetsDirectory(const HString8& newDirectory)
     {
         m_SwitchingAssetsDirectory = newDirectory;
     }
 
-    void App::InitializeGraphicsApi(const WindowCreateInfo& windowCreateInfo)
+    void App::InitializeGraphicsApi()
     {
         Flourish::Logger::SetLogFunction([](Flourish::LogLevel level, const char* message)
         {
@@ -106,15 +144,10 @@ namespace Heart
         initInfo.UseReversedZBuffer = true;
         initInfo.RequestedFeatures.IndependentBlend = true;
         initInfo.RequestedFeatures.SamplerAnisotropy = true;
-        initInfo.RequestedFeatures.RayTracing = false;
+        initInfo.RequestedFeatures.RayTracing = true;
         initInfo.RequestedFeatures.PartiallyBoundResourceSets = true;
+        initInfo.ReadFile = FilesystemUtils::ReadFile;
         Flourish::Context::Initialize(initInfo);
-
-        m_Window = Window::Create(windowCreateInfo);
-        SubscribeToEmitter(&GetWindow());
-        Window::SetMainWindow(m_Window);
-
-        m_ImGuiInstance = CreateRef<ImGuiInstance>(m_Window);
     }
 
     void App::ShutdownGraphicsApi()
@@ -174,11 +207,14 @@ namespace Heart
 
     void App::CloseWithConfirmation()
     {
-        #ifdef HE_PLATFORM_WINDOWS
-            int selection = MessageBox(HWND_DESKTOP, "Are you sure you want to quit? You may have unsaved changes.", "Confirmation", MB_OKCANCEL | WS_POPUP);
-            if (selection != 1)
-               return;
-        #endif
+        int selection = PlatformUtils::ShowMessageBoxCancel(
+            "Are you sure?",
+            "Are you sure you want to quit? You may have unsaved changes.",
+            "warning"
+        );
+
+        if (selection != 1)
+            return;
 
         m_Running = false;
     }
@@ -189,8 +225,9 @@ namespace Heart
         {
             HE_PROFILE_FRAME();
 
-            double currentFrameTime = m_Window->GetWindowTime();
-            m_LastTimestep = Timestep(currentFrameTime - m_LastFrameTime);
+            auto currentFrameTime = std::chrono::steady_clock::now();
+            auto step = std::chrono::duration_cast<std::chrono::milliseconds>(currentFrameTime - m_LastFrameTime).count();
+            m_LastTimestep = Timestep(step);
             m_TimestepSamples[m_FrameCount % 5] = m_LastTimestep.StepMilliseconds();
             double averaged = 0.0;
             for (auto sample : m_TimestepSamples)
@@ -199,16 +236,21 @@ namespace Heart
             m_LastFrameTime = currentFrameTime;
 
             auto timer = AggregateTimer("App::Run - PollEvents");
-            m_Window->PollEvents();
+            if (m_Window->PollEvents())
+            {
+                // True here means the window was internally recreated, so we need to update objects
+                // that depend on window internals
+
+                m_ImGuiInstance->Recreate();
+            }
             timer.Finish();
 
             if (!m_Minimized && m_Window->GetRenderContext()->Validate())
             {
                 // Begin frame
                 timer = AggregateTimer("App::Run - Begin frame");
+                AssetManager::UnloadOldAssets();
                 Flourish::Context::BeginFrame();
-                AssetManager::OnUpdate();
-                m_Window->BeginFrame();
                 m_ImGuiInstance->BeginFrame();
                 timer.Finish();
 
@@ -222,6 +264,7 @@ namespace Heart
                 timer = AggregateTimer("App::Run - End frame");
                 m_ImGuiInstance->EndFrame();
                 m_Window->EndFrame();
+                Input::EndFrame();
                 Flourish::Context::EndFrame();
                 m_FrameCount++;
                 timer.Finish();

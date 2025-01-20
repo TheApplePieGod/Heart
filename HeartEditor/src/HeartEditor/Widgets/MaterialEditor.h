@@ -1,5 +1,6 @@
 #pragma once
 
+#include "HeartEditor/AssetPicker.h"
 #include "HeartEditor/Widgets/Widget.h"
 #include "Heart/Core/UUID.h"
 #include "Heart/Core/Camera.h"
@@ -27,7 +28,8 @@ namespace Widgets
         
         void Reset();
 
-        inline void SetSelectedMaterial(Heart::UUID material) { m_SelectedMaterial = material; }
+        void SetSelectedMaterial(Heart::UUID material);
+        void SetSelectedMaterial(const Heart::Material& material);
 
     private:
         void RenderSidebar();
@@ -49,7 +51,7 @@ namespace Widgets
         u32 m_RenderedFrames = 0;
         Heart::UUID m_LastMaterial = 0;
         Heart::UUID m_SelectedMaterial = 0;
-        ImGuiTextFilter m_TextureTextFilter;
+        AssetPicker m_AssetPicker;
     };
 }
 }

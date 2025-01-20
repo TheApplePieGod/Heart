@@ -8,6 +8,7 @@
 #include "Heart/Core/Timing.h"
 #include "Heart/Renderer/RenderPlugin.h"
 #include "imgui/imgui.h"
+#include "imgui/imgui_internal.h"
 
 #include "HeartEditor/Widgets/Viewport.h"
 #include "imgui_node_editor.h"
@@ -39,7 +40,6 @@ namespace Widgets
         ImGui::Begin(m_Name.Data(), &m_Open);
 
         ImVec2 startPos = ImGui::GetCursorPos();
-        ImGui::SetNextItemAllowOverlap();
         NodeEditor::SetCurrentEditor(m_EditorContext);
         NodeEditor::Begin("RGEditor");
 
@@ -80,15 +80,15 @@ namespace Widgets
             }
         }
 
+        ImGui::PushItemFlag(ImGuiItemFlags_AllowOverlap, true);
         NodeEditor::End();
+        ImGui::PopItemFlag();
         NodeEditor::SetCurrentEditor(nullptr);
 
         m_FirstRender = false;
 
-        // Need to do explicit hover check because overlapping is strange
         ImGui::SetCursorPos(startPos);
-        ImGui::Button(m_ViewType == Heart::GraphDependencyType::CPU ? "CPU View" : "GPU View");
-        if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+        if (ImGui::Button(m_ViewType == Heart::GraphDependencyType::CPU ? "CPU View" : "GPU View"))
         {
             m_ViewType = m_ViewType == Heart::GraphDependencyType::CPU ? Heart::GraphDependencyType::GPU : Heart::GraphDependencyType::CPU;
             m_FirstRender = true;
@@ -107,9 +107,10 @@ namespace Widgets
         NodeEditor::BeginNode((u64)plugin->GetUUID());
 
         Flourish::Texture* tex = plugin->GetOutputTexture().get();
+
         ImVec2 horizLayoutSize = { tex ? 0.f : 200.f , 0.f };
 
-        ImGui::Text(pluginName.Data());
+        ImGui::Text("%s", pluginName.Data());
         ImGui::BeginHorizontal(plugin->GetName().Data(), horizLayoutSize);
 
         // Add dependencies as incoming pins
@@ -127,10 +128,12 @@ namespace Widgets
         if (tex)
         {
             float aspect = (float)tex->GetWidth() / (float)tex->GetHeight();
+            ImGui::BeginVertical("img");
             ImGui::Image(
                 tex->GetImGuiHandle(),
                 { 500.f, std::max(150.f, 500.f / aspect) }
             );
+            ImGui::EndVertical();
         }
         else
             ImGui::Spring(1.0f, 0);

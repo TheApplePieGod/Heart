@@ -1,13 +1,19 @@
 import sys
 import os
+import shutil
 import platform
 import subprocess
+from pathlib import Path
 
-if "DOTNET_SDK" not in os.environ:
-    sys.stderr.write("DOTNET_SDK path not configured")
+DOTNET_BIN = shutil.which("dotnet")
+DOTNET_MIN_VER = "8.0"
+
+if DOTNET_BIN is None:
+    sys.stderr.write("'dotnet' executable not found, try adding to PATH")
     exit(1)
-SDK_PATH = os.environ["DOTNET_SDK"]
-DOTNET_MIN_VER = "6.0"
+
+
+SDK_PATH = Path(DOTNET_BIN).parent
 
 def get_platform_info():
     system = platform.system()
@@ -16,7 +22,7 @@ def get_platform_info():
     return (system, is_arm, is_64bit)
 
 def get_dotnet_version():
-    highest_ver = ""
+    highest_ver = (0, 0, 0)
     out = subprocess.check_output(["dotnet", "--list-runtimes"])
     for line in out.splitlines():
         line = line.decode("utf-8")
@@ -25,9 +31,10 @@ def get_dotnet_version():
         version_str = line.split(" ")[1]
         if not version_str.startswith(DOTNET_MIN_VER):
             continue
-        if version_str > highest_ver:
-            highest_ver = version_str
-    return highest_ver
+        versions = tuple(int(v) for v in version_str.split("."))
+        if versions > highest_ver:
+            highest_ver = versions
+    return ".".join(str(s) for s in highest_ver)
 
 def get_dotnet_runtime_string(platform_info):
     sys_map = {
@@ -90,4 +97,5 @@ def configure():
 
     sys.stdout.write(runtime_dir + ";" + hostfxr_path + ";" + runtime_str)
 
-configure()
+if __name__ == "__main__":
+    configure()

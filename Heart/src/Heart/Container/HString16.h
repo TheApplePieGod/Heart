@@ -38,7 +38,7 @@ namespace Heart
             : HStringTyped(str)
         {}
         
-        HString16(const HStringView16& other);
+        explicit HString16(const HStringView16& other);
 
         HString ToHString() const;
         HString8 ToUTF8() const;

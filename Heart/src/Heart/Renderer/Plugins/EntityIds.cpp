@@ -28,14 +28,13 @@ namespace Heart::RenderPlugins
         texCreateInfo.ArrayCount = 1;
         texCreateInfo.MipCount = 1;
         texCreateInfo.Usage = Flourish::TextureUsageFlags::Graphics | Flourish::TextureUsageFlags::Transfer;
-        texCreateInfo.Writability = Flourish::TextureWritability::PerFrame;
         texCreateInfo.SamplerState.UVWWrap = { Flourish::SamplerWrapMode::ClampToBorder, Flourish::SamplerWrapMode::ClampToBorder, Flourish::SamplerWrapMode::ClampToBorder };
         texCreateInfo.Format = Flourish::ColorFormat::R32_FLOAT;
         m_Texture = Flourish::Texture::Create(texCreateInfo);
 
         Flourish::BufferCreateInfo bufCreateInfo;
-        bufCreateInfo.Usage = Flourish::BufferUsageType::Dynamic;
-        bufCreateInfo.Type = Flourish::BufferType::Pixel;
+        bufCreateInfo.MemoryType = Flourish::BufferMemoryType::CPURead;
+        bufCreateInfo.Usage = Flourish::BufferUsageFlags::Generic;
         bufCreateInfo.Stride = sizeof(float);
         bufCreateInfo.ElementCount = m_Renderer->GetRenderWidth() * m_Renderer->GetRenderHeight();
         m_Buffer = Flourish::Buffer::Create(bufCreateInfo);

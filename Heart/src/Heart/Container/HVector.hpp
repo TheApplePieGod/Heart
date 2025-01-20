@@ -15,6 +15,10 @@ namespace Heart
             : m_Container(other.m_Container)
         {}
 
+        HVector(HVector&& other)
+            : m_Container(std::move(other.m_Container))
+        {}
+
         HVector(u32 elemCount, bool fill = true)
             : m_Container(elemCount, fill)
         {}
@@ -99,16 +103,26 @@ namespace Heart
             m_Container = Container(start, end - start);
         }
 
-        void Append(const HVector<T>& other, bool shallow = false)
+        void Insert(const HVector<T>& other, u32 index, bool shallow = false)
         {
             u32 oldCount = Count();
-            Resize(oldCount + other.Count(), false);
+            u32 otherCount = other.Count();
+            index = std::min(index, oldCount);
+
+            Resize(oldCount + otherCount, false);
+
+            memmove(
+                Begin() + index + otherCount,
+                Begin() + index,
+                sizeof(T) * oldCount - index
+            );
+            
             if (shallow)
-                memcpy(Data() + oldCount, other.Begin(), other.Count() * sizeof(T));
+                memcpy(Data() + index, other.Begin(), otherCount * sizeof(T));
             else
             {
                 for (u32 i = 0; i < other.Count(); i++)
-                    HE_PLACEMENT_NEW(Begin() + i + oldCount, T, other[i]);
+                    HE_PLACEMENT_NEW(Begin() + i + index, T, other[i]);
             }
         }
 
@@ -130,10 +144,16 @@ namespace Heart
             HE_PLACEMENT_NEW(Begin() + index, T, other);
         }
 
+        void Append(const HVector<T>& other, bool shallow = false)
+        {
+            Insert(other, Count(), shallow);
+        }
+
         // find
         
         inline void Reserve(u32 allocCount) { m_Container.Reserve(allocCount); }
         inline void Clear(bool shrink = false) { m_Container.Clear(shrink); }
+        inline void Trim(u32 newCount) { m_Container.Trim(newCount); }
         inline void Resize(u32 elemCount, bool construct = true) { m_Container.Resize(elemCount, construct); }
         inline HVector Clone() const { return HVector(m_Container.Clone()); }
         inline HVector& CloneInPlace() { m_Container = Container(Data(), Count()); return *this; }

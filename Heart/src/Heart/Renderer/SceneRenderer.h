@@ -24,6 +24,7 @@ namespace Heart
         float BloomKnee = 0.1f;
         float BloomSampleScale = 1.f;
         float BloomStrength = 0.3f;
+        bool TonemapEnable = true;
         bool CullEnable = true;
         bool AsyncAssetLoading = true;
         bool CopyEntityIdsTextureToCPU = false;
@@ -51,13 +52,12 @@ namespace Heart
         };
 
     public:
-        SceneRenderer();
-        ~SceneRenderer();
+        SceneRenderer(bool debug);
+        virtual ~SceneRenderer();
+
+        TaskGroup Render(const SceneRenderData& data);
 
         void OnEvent(Event& event) override;
-
-        void RebuildGraph();
-        TaskGroup Render(const SceneRenderData& data);
 
         GraphData& GetGraphData(GraphDependencyType depType);
 
@@ -77,39 +77,49 @@ namespace Heart
         template<typename Plugin>
         inline Plugin* GetPlugin(const HString8& name)
         {
-            return static_cast<Plugin*>(m_Plugins[name].get());
+            auto found = m_Plugins.find(name);
+            if (found == m_Plugins.end()) return nullptr;
+            return static_cast<Plugin*>(found->second.get());
         }
+
+        inline void QueueGraphRebuild() { m_ShouldRebuild = true; }
 
         inline const auto& GetPlugins() const { return m_Plugins; }
         inline u32 GetRenderWidth() const { return m_RenderWidth; }
         inline u32 GetRenderHeight() const { return m_RenderHeight; }
-        inline Ref<Flourish::Texture>& GetRenderTexture() { return m_RenderTexture; }
         inline Ref<Flourish::Texture>& GetOutputTexture() { return m_OutputTexture; }
-        inline Ref<Flourish::Texture>& GetDepthTexture() { return m_DepthTexture; }
         inline Flourish::Texture* GetDefaultEnvironmentMap() { return m_DefaultEnvironmentMap.get(); }
         inline Flourish::RenderGraph* GetRenderGraph() { return m_RenderGraph.get(); }
+        inline bool IsDebug() const { return m_Debug; }
+
+    protected:
+        virtual void RegisterPlugins() = 0;
+        virtual void CreateResources() = 0;
+
+    protected:
+        u32 m_RenderWidth, m_RenderHeight;
+
+        Ref<Flourish::Texture> m_OutputTexture;
+
+        // TODO: move this out further
+        Ref<Flourish::Texture> m_DefaultEnvironmentMap;
     
     private:
         bool OnWindowResize(WindowResizeEvent& event);
-        void InitializePlugins();
-        void CreateTextures();
+        void Initialize();
+        void InitializeRegisteredPlugins();
         void CreateDefaultResources();
         void Resize();
+        void RebuildGraph();
         void RebuildGraphInternal(GraphDependencyType depType);
 
     private:
         std::unordered_map<HString8, Ref<RenderPlugin>> m_Plugins;
-        u32 m_RenderWidth, m_RenderHeight;
         bool m_ShouldResize = false;
+        bool m_ShouldRebuild = false;
+        bool m_Debug = false;
         GraphData m_CPUGraphData;
         GraphData m_GPUGraphData;
-
-        Ref<Flourish::Texture> m_RenderTexture;
-        Ref<Flourish::Texture> m_OutputTexture;
-        Ref<Flourish::Texture> m_DepthTexture;
-
-        // TODO: move this out further
-        Ref<Flourish::Texture> m_DefaultEnvironmentMap;
 
         Ref<Flourish::RenderGraph> m_RenderGraph;
     };

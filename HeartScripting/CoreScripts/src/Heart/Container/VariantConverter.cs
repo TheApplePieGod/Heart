@@ -1,4 +1,5 @@
 ﻿using Heart.NativeInterop;
+using Heart.NativeBridge;
 using System;
 using System.Collections;
 using System.Runtime.CompilerServices;
@@ -6,14 +7,14 @@ using System.Runtime.InteropServices;
 
 namespace Heart.Container
 {
-    public static class VariantConverter
+    public static partial class VariantConverter
     {
         public static Variant ObjectToVariant(object obj)
         {
             switch (obj)
             {
                 case null:
-                     return new Variant();
+                    return new Variant();
                 case bool value:
                     return BoolToVariant(value);
                 case sbyte value:
@@ -112,10 +113,10 @@ namespace Heart.Container
             return HArrayToVariant(harr);
         }
 
-        [DllImport("__Internal")]
-        internal static extern void Native_Variant_FromHArray(out Variant variant, in HArrayInternal value);
+        [UnmanagedCallback]
+        internal static partial void Native_Variant_FromHArray(out Variant variant, in HArrayInternal value);
 
-        [DllImport("__Internal")]
-        internal static extern void Native_Variant_FromHString(out Variant variant, in HStringInternal value);
+        [UnmanagedCallback]
+        internal static partial void Native_Variant_FromHString(out Variant variant, in HStringInternal value);
     }
 }

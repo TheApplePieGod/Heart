@@ -6,17 +6,14 @@
 #include "nlohmann/json.hpp"
 #include "Heart/Scene/Scene.h"
 #include "Heart/Scene/Entity.h"
+#include "Heart/Scripting/ScriptClass.h"
+#include "Heart/Scripting/ScriptingEngine.h"
 
 namespace Heart
 {
-    void SceneAsset::Load(bool async)
+    void SceneAsset::LoadInternal()
     {
         HE_PROFILE_FUNCTION();
-
-        const std::lock_guard<std::mutex> lock(m_LoadLock);
-        
-        if (m_Loaded || m_Loading) return;
-        m_Loading = true;
 
         try
         {
@@ -25,26 +22,23 @@ namespace Heart
         catch (std::exception e)
         {
             HE_ENGINE_LOG_ERROR("Failed to load scene at path {0}", m_AbsolutePath.Data());
-            m_Loaded = true;
-            m_Loading = false;
             return;
         }
 
         m_Data = nullptr;
-        m_Loaded = true;
-        m_Loading = false;
         m_Valid = true;
     }
 
-    void SceneAsset::Unload()
+    void SceneAsset::UnloadInternal()
     {
-        if (!m_Loaded) return;
-        m_Loaded = false;
-
         m_Scene.reset();
-
         m_Data = nullptr;
-        m_Valid = false;
+    }
+
+    bool SceneAsset::ShouldUnload()
+    {
+        // This is the only remaining reference
+        return m_Scene.use_count() == 1;
     }
 
     void SceneAsset::Save(Scene* scene)
@@ -100,6 +94,14 @@ namespace Heart
                     for (auto& material : materials)
                         materialIds.AddInPlace(AssetManager::RegisterAsset(Asset::Type::Material, material["path"], false, material["engineResource"]));
                     entity.AddComponent<MeshComponent>(meshAsset, materialIds);
+                }
+
+                // Splat component
+                if (loaded.contains("splatComponent"))
+                {
+                    auto& compEntry = loaded["splatComponent"];
+                    UUID splatAsset = AssetManager::RegisterAsset(Asset::Type::Splat, compEntry["splat"]["path"], false, compEntry["splat"]["engineResource"]);
+                    entity.AddComponent<SplatComponent>(splatAsset);
                 }
 
                 // Light component
@@ -203,6 +205,32 @@ namespace Heart
                     
                     entity.AddComponent<TextComponent>(comp);
                 }
+
+                // Runtime components
+                if (loaded.contains("runtimeComponents"))
+                {
+                    auto& compEntry = loaded["runtimeComponents"];
+                    for (auto& j : compEntry)
+                    {
+                        ScriptComponentInstance instance;
+                        HString typeName = j["type"];
+                        s64 typeId = ScriptingEngine::GetClassIdFromName(typeName);
+                        instance.SetScriptClassId(typeId);
+                        if (!instance.IsInstantiable())
+                        {
+                            HE_ENGINE_LOG_WARN(
+                                "Component class '{0}' referenced in entity is no longer instantiable (id: {1}, name: {2})",
+                                typeName.DataUTF8(), id, entity.GetName().DataUTF8()
+                            );
+                        }
+                        else
+                        {
+                            instance.Instantiate();
+                            instance.LoadFieldsFromJson(j["fields"]);
+                            entity.AddRuntimeComponent(typeId, instance.GetObjectHandle());
+                        }
+                    }
+                }
             }
 
             // Load transform & script components once all entities have been parsed since their
@@ -227,15 +255,16 @@ namespace Heart
                 {
                     auto& compEntry = loaded["scriptComponent"];
                     ScriptComponent comp;
-                    HString8 scriptClass = compEntry["type"];
-                    comp.Instance = ScriptInstance(scriptClass.ToHString());
-                    if (comp.Instance.IsInstantiable())
+                    if (compEntry.contains("type"))
                     {
-                        if (!comp.Instance.ValidateClass())
+                        HString typeName = compEntry["type"];
+                        s64 typeId = ScriptingEngine::GetClassIdFromName(typeName);
+                        comp.Instance.SetScriptClassId(typeId);
+                        if (!comp.Instance.IsInstantiable())
                         {
                             HE_ENGINE_LOG_WARN(
-                                "Class '{0}' referenced in scene is no longer instantiable",
-                                scriptClass.Data()
+                                "Script class '{0}' referenced in entity is no longer instantiable (id: {1}, name: {2})",
+                                typeName.DataUTF8(), id, entity.GetName().DataUTF8()
                             );
                         }
                         else
@@ -281,7 +310,7 @@ namespace Heart
             auto& field = j["entities"];
             
             u32 index = 0;
-            scene->GetRegistry().each([scene, &index, &field](auto handle)
+            for (auto [handle] : scene->GetRegistry().storage<entt::entity>().each())
             {
                 nlohmann::json entry;
                 Entity entity = { scene, handle };
@@ -328,6 +357,15 @@ namespace Heart
                     }
                 }
 
+                // Splat component
+                if (entity.HasComponent<SplatComponent>())
+                {
+                    auto& compEntry = entry["splatComponent"];
+                    auto& comp = entity.GetComponent<SplatComponent>();
+                    compEntry["splat"]["path"] = AssetManager::GetPathFromUUID(comp.Splat);
+                    compEntry["splat"]["engineResource"] = AssetManager::IsAssetAResource(comp.Splat);
+                }
+
                 // Light component
                 if (entity.HasComponent<LightComponent>())
                 {
@@ -343,8 +381,11 @@ namespace Heart
                 {
                     auto& compEntry = entry["scriptComponent"];
                     auto& comp = entity.GetComponent<ScriptComponent>();
-                    compEntry["type"] = comp.Instance.GetScriptClass();
-                    compEntry["fields"] = comp.Instance.SerializeFieldsToJson();
+                    if (comp.Instance.HasScriptClass())
+                    {
+                        compEntry["type"] = comp.Instance.GetScriptClassObject().GetFullName();
+                        compEntry["fields"] = comp.Instance.SerializeFieldsToJson();
+                    }
                 }
 
                 // Camera component
@@ -407,8 +448,28 @@ namespace Heart
                     compEntry["lineHeight"] = comp.LineHeight;
                 }
 
+                // Runtime components
+                {
+                    nlohmann::json j;
+                    HVector<nlohmann::json> runComps;
+                    for (auto& pair : Heart::ScriptingEngine::GetComponentClasses())
+                    {
+                        if (!entity.HasRuntimeComponent(pair.first)) continue;
+
+                        auto& comp = entity.GetRuntimeComponent(pair.first);
+                        if (comp.Instance.HasScriptClass())
+                        {
+                            j["type"] = comp.Instance.GetScriptClassObject().GetFullName();
+                            j["fields"] = comp.Instance.SerializeFieldsToJson();
+                            runComps.AddInPlace(j);
+                        }
+                    }
+                    if (runComps.Count() > 0)
+                        entry["runtimeComponents"] = runComps;
+                }
+
                 field[index++] = entry;
-            });
+            }
         }
 
         // settings
@@ -428,7 +489,6 @@ namespace Heart
             }
         }
 
-        std::ofstream file(path.Data());
-        file << j;
+        FilesystemUtils::WriteFile(path, j);
     }
 }

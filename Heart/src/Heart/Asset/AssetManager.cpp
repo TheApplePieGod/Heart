@@ -3,25 +3,104 @@
 
 #include "Heart/Core/App.h"
 #include "Heart/Core/Timing.h"
+#include "Heart/Util/FilesystemUtils.h"
 #include "Heart/Task/TaskManager.h"
+#include "efsw/efsw.hpp"
 
 namespace Heart
 {
+#ifndef HE_PLATFORM_ANDROID
+    class UpdateListener : public efsw::FileWatchListener
+    {
+    public:
+        void handleFileAction(
+            efsw::WatchID watchid,
+            const std::string& dir,
+            const std::string& filename,
+            efsw::Action action,
+            std::string oldFilename
+        ) override
+        {
+            auto newPath = std::filesystem::path(dir).append(filename);
+            HString8 newPathStr = newPath.u8string();
+            newPathStr = AssetManager::GetRelativePath(newPathStr);
+
+            // Ignore actions that happen within the dotdir
+            if (newPathStr.StartsWith(AssetManager::GetDotDirectory()))
+                return;
+
+            // Ignore actions in build directories
+            if (newPathStr.StartsWith("obj") || newPathStr.StartsWith("bin"))
+                return;
+            
+            switch (action)
+            {
+                case efsw::Actions::Add:
+                {
+                    Asset::Type assetType = AssetManager::DeduceAssetTypeFromFile(newPathStr);
+                    if (assetType == Asset::Type::None) break;
+                    HE_ENGINE_LOG_DEBUG("Detected new asset '{}', registering", newPathStr.Data());
+                    AssetManager::RegisterAsset(assetType, newPathStr);
+                } break;
+                case efsw::Actions::Delete:
+                {
+                    UUID id = AssetManager::GetAssetUUID(newPathStr);
+                    if (!id) break;
+                    HE_ENGINE_LOG_DEBUG("Detected deletion '{}', unregistering", newPathStr.Data());
+                    AssetManager::UnregisterAsset(id);
+                } break;
+                case efsw::Actions::Modified:
+                {
+                    // TODO: reloading
+                } break;
+                case efsw::Actions::Moved:
+                {
+                    auto oldPath = std::filesystem::path(dir).append(oldFilename);
+                    HString8 oldPathStr = oldPath.u8string();
+                    oldPathStr = AssetManager::GetRelativePath(oldPathStr);
+                    HE_ENGINE_LOG_DEBUG("Detected rename '{}' -> '{}'", oldPathStr.Data(), newPathStr.Data());
+                    AssetManager::RenameAsset(oldPathStr, newPathStr);
+                } break;
+                default:
+                    break;
+            }
+        }
+    };
+
+    // esfw static variables
+    static int s_WatchId = 0;
+    static Scope<UpdateListener> s_UpdateListener = nullptr;
+    static Scope<efsw::FileWatcher> s_FileWatcher = nullptr;
+#endif
+
     void AssetManager::Initialize()
     {
-        auto timer = Heart::Timer("Registering resources", false);
-        RegisterAssetsInDirectory(s_ResourceDirectory, false, true);
-        timer.Log();
-
-        if (!s_AssetsDirectory.IsEmpty())
-        {
-            timer.SetName("Registering assets");
-            timer.Reset();
-            RegisterAssetsInDirectory(s_AssetsDirectory, false, false);
+        #ifdef HE_DIST
+            // Register from manifest if assets dir is set
+            if (!s_AssetsDirectory.IsEmpty())
+            {
+                auto timer = Heart::Timer("Registering asset manifest", false);
+                RegisterAssetsFromManifest(s_AssetsDirectory);
+                timer.Log();
+            }
+            else
+                HE_ENGINE_LOG_INFO("Assets directory not specified, skipping manifest registration");
+        #else
+            // Register from directories
+            auto timer = Heart::Timer("Registering resources", false);
+            RegisterAssetsInDirectory(s_ResourceDirectory, false, true);
             timer.Log();
-        }
-        else
-            HE_ENGINE_LOG_INFO("Assets directory not specified, skipping registration");
+
+            if (!s_AssetsDirectory.IsEmpty())
+            {
+                timer.SetName("Registering assets");
+                timer.Reset();
+                RegisterAssetsInDirectory(s_AssetsDirectory, false, false);
+                timer.Log();
+            }
+            else
+                HE_ENGINE_LOG_INFO("Assets directory not specified, skipping registration");
+        #endif
 
         s_Initialized = true;
 
@@ -32,9 +111,7 @@ namespace Heart
     {
         s_Initialized = false;
 
-        // Wait for tasks to finish
-        while (s_AsyncLoadsInProgress)
-        { std::this_thread::sleep_for(std::chrono::milliseconds(1)); }
+        auto lock = std::unique_lock(s_Mutex);
 
         // cleanup assets
         for (auto& pair : s_Registry)
@@ -45,68 +122,91 @@ namespace Heart
             pair.second.Asset.reset();
     }
 
-    // TODO: this could probably be a task
-    void AssetManager::OnUpdate()
+    Task AssetManager::UnloadOldAssets()
     {
         HE_PROFILE_FUNCTION();
 
-        // Check to see if assets should be unloaded
-        for (auto& pair : s_UUIDs)
+        if (s_UnloadTask.IsValid())
+            return s_UnloadTask;
+
+        return TaskManager::Schedule([]()
         {
-            auto& uuidEntry = pair.second;
-            auto& entry = uuidEntry.IsResource ? s_Resources[uuidEntry.Path] : s_Registry[uuidEntry.Path];
+            auto lock = std::shared_lock(s_Mutex);
 
-            if (entry.Persistent) continue;
-
-            if (App::Get().GetFrameCount() > entry.LoadedFrame + s_AssetFrameLimit)
+            // Check to see if assets should be unloaded
+            for (auto& pair : s_UUIDs)
             {
-                entry.LoadedFrame = std::numeric_limits<u64>::max() - s_AssetFrameLimit; // prevent extraneous unloading
+                auto& uuidEntry = pair.second;
+                auto& entry = GetRegistry(uuidEntry.IsResource)[uuidEntry.Path];
 
-                UUID uuid = pair.first;
-                s_AsyncLoadsInProgress++;
-                TaskManager::Schedule([uuid]()
+                if (entry.Persistent || !entry.Asset->IsLoaded()) continue;
+
+                bool notRecentlyUsed = App::Get().GetFrameCount() > entry.Asset->GetLoadedFrame() + s_AssetFrameLimit;
+                if (notRecentlyUsed && entry.Asset->ShouldUnload())
                 {
-                    auto& uuidEntry = s_UUIDs[uuid];
-                    auto& entry = uuidEntry.IsResource ? s_Resources[uuidEntry.Path] : s_Registry[uuidEntry.Path];
+                    UUID uuid = pair.first;
+                    TaskManager::Schedule([uuid]()
+                    {
+                        auto lock = std::shared_lock(s_Mutex);
 
-                    HE_ENGINE_LOG_TRACE(
-                        "Unloading {0} @ {1}",
-                        uuidEntry.IsResource ? "resource" : "asset", 
-                        entry.Asset->GetPath().Data()
-                    );
-                
-                    UnloadAsset(entry, true);
-                    s_AsyncLoadsInProgress--;
-                }, Task::Priority::Low, "Unload asset");
+                        auto found = s_UUIDs.find(uuid);
+                        if (found == s_UUIDs.end()) return;
+
+                        auto& entry = GetRegistry(found->second.IsResource)[found->second.Path];
+
+                        HE_ENGINE_LOG_TRACE(
+                            "Unloading {0} @ {1}",
+                            found->second.IsResource ? "resource" : "asset", 
+                            entry.Asset->GetPath().Data()
+                        );
+                    
+                        entry.Asset->Unload();
+                    }, Task::Priority::Low, "Unload asset");
+                }
             }
-        }
+
+            s_UnloadTask = Task();
+        }, Task::Priority::Low, "Check Asset Unloads"); 
     }
 
     void AssetManager::UnloadAllAssets()
     {
+        auto lock = std::unique_lock(s_Mutex);
+
         for (auto& pair : s_Registry)
-            UnloadAsset(pair.second);
+            pair.second.Asset->Unload();
     }
 
-    void AssetManager::LoadAllAssets()
+    void AssetManager::EnableFileWatcher()
     {
-        for (auto& pair : s_Registry)
-            LoadAsset(pair.second);
+        #ifndef HE_PLATFORM_ANDROID
+            if (s_FileWatcher) return;
+
+            s_FileWatcher = CreateScope<efsw::FileWatcher>();
+            s_UpdateListener = CreateScope<UpdateListener>();
+        #endif
     }
 
-    void AssetManager::LoadAsset(AssetEntry& entry, bool async)
+    void AssetManager::DisableFileWatcher()
     {
-        entry.LoadedFrame = App::Get().GetFrameCount();
-        entry.Asset->Load(async);
-    }
-    
-    void AssetManager::UnloadAsset(AssetEntry& entry, bool async)
-    {
-        entry.LoadedFrame = std::numeric_limits<u64>::max() - s_AssetFrameLimit; // prevent extraneous unloading
-        entry.Asset->Unload();
+        #ifndef HE_PLATFORM_ANDROID
+            s_FileWatcher.reset();
+            s_UpdateListener.reset();
+        #endif
     }
 
-    UUID AssetManager::RegisterAsset(Asset::Type type, const HStringView8& path, bool persistent, bool isResource)
+    void AssetManager::WatchAssetDirectory()
+    {
+        #ifndef HE_PLATFORM_ANDROID
+            s_WatchId = (int)s_FileWatcher->addWatch(
+                s_AssetsDirectory.Data(),
+                s_UpdateListener.get(),
+                true
+            );
+        #endif
+    }
+
+    UUID AssetManager::RegisterAsset(Asset::Type type, const HString8& path, bool persistent, bool isResource)
     {
         if (path.IsEmpty())
             return 0;
@@ -115,48 +215,46 @@ namespace Heart
         if (oldUUID != 0)
             return oldUUID;
 
+        HString8 absolutePath = isResource
+            ? std::filesystem::path(s_ResourceDirectory.Data()).append(path.Data()).generic_u8string()
+            : GetAbsolutePath(path);
+
         // Only register if the path exists (resources are assumed to exist)
-        if (!isResource && !std::filesystem::exists(GetAbsolutePath(path).Data()))
+        if (!isResource && !FilesystemUtils::FileExistsLocalized(absolutePath.Data()))
             return 0;
 
+        auto lock = std::unique_lock(s_Mutex);
+
         UUID newUUID = UUID();
-        if (isResource)
-        {
-            if (s_Resources.find(path) == s_Resources.end())
-            {  
-                HE_ENGINE_LOG_TRACE("Registering {0} resource @ {1}", HE_ENUM_TO_STRING(Asset, type), path.Data());
-                HString8 absolutePath = std::filesystem::path(s_ResourceDirectory.Data()).append(path.Data()).generic_u8string();
-                s_Resources[path] = { Asset::Create(type, path, absolutePath), std::numeric_limits<u64>::max() - s_AssetFrameLimit, persistent };
-            }
-            s_UUIDs[newUUID] = { path, isResource, type };
-        }
-        else
-        {
-            if (s_Registry.find(path) == s_Registry.end())
-            {
-                HE_ENGINE_LOG_TRACE("Registering {0} asset @ {1}", HE_ENUM_TO_STRING(Asset, type), path.Data());
-                HString8 absolutePath = std::filesystem::path(s_AssetsDirectory.Data()).append(path.Data()).generic_u8string();
-                s_Registry[path] = { Asset::Create(type, path, absolutePath), std::numeric_limits<u64>::max() - s_AssetFrameLimit, persistent };
-            }
-            s_UUIDs[newUUID] = { path, isResource, type };
-        }
+        HE_ENGINE_LOG_TRACE(
+            "Registering {0} {1} @ {2}",
+            HE_ENUM_TO_STRING(Asset, type),
+            isResource ? "resource" : "asset",
+            path.Data()
+        );
+        GetRegistry(isResource)[path] = {
+            Asset::Create(type, path, absolutePath),
+            persistent,
+            newUUID
+        };
+        s_UUIDs[newUUID] = { path, isResource, type };
 
         return newUUID;    
     }
 
     void AssetManager::UnregisterAsset(UUID uuid)
     {
-        if (s_UUIDs.find(uuid) == s_UUIDs.end()) return;
-        auto entry = s_UUIDs[uuid];
+        auto lock = std::unique_lock(s_Mutex);
+        auto found = s_UUIDs.find(uuid);
+        if (found == s_UUIDs.end()) return;
+        GetRegistry(found->second.IsResource).erase(found->second.Path);
         s_UUIDs.erase(uuid);
-        if (entry.IsResource)
-            s_Resources.erase(entry.Path);
-        else
-            s_Registry.erase(entry.Path);
     }
 
     UUID AssetManager::RegisterInMemoryAsset(Asset::Type type)
     {
+        auto lock = std::unique_lock(s_Mutex);
+
         UUID newUUID = UUID();
 
         // UUID as a string should be sufficient for a unique
@@ -171,8 +269,8 @@ namespace Heart
 
         // Register the 'loaded' asset as persistent so that it
         // never tries to unload itself 
-        s_Registry[idPath] = { newAsset, std::numeric_limits<u64>::max() - s_AssetFrameLimit, true };
-        s_UUIDs[newUUID] = { idPath, false, type };
+        s_Resources[idPath] = { newAsset, true };
+        s_UUIDs[newUUID] = { idPath, true, type };
 
         return newUUID;
     }
@@ -183,7 +281,12 @@ namespace Heart
         {
             for (const auto& entry : std::filesystem::directory_iterator(directory.Data()))
                 if (entry.is_directory())
+                {
+                    // Ignore files in the dotdir
+                    if (s_DotDir == entry.path().filename().generic_u8string())
+                        continue;
                     RegisterAssetsInDirectory(entry.path().generic_u8string(), persistent, isResource);
+                }
                 else
                 {
                     std::filesystem::path path = entry.path();
@@ -200,67 +303,102 @@ namespace Heart
         { return; }
     }
 
-    void AssetManager::RenameAsset(const HStringView8& oldPath, const HStringView8& newPath)
+    void AssetManager::RegisterAssetsFromManifest(const HStringView8& directory)
     {
-        bool entryFound = false;
-        for (auto& entry : s_UUIDs)
+        u32 fileLength;
+        auto path = std::filesystem::path(directory.Data()).append(s_ManifestFile.Data());
+        unsigned char* data = FilesystemUtils::ReadFile(path.generic_u8string(), fileLength);
+        if (!data)
         {
-            if (entry.second.Path == oldPath)
-            {
-                entry.second.Path = newPath;
-                entryFound = true;
-                break;
-            }
+            HE_LOG_ERROR("Failed to locate manifest file in {0}", path.generic_u8string());
+            return;
         }
 
-        if (!entryFound) return;
+        auto j = nlohmann::json::parse(data);
+        for (auto& entry : j)
+            RegisterAsset(entry["type"], entry["path"], false, entry["resource"]);
+    }
 
-        // don't even bother to check for resources because those shouldn't ever be renamed
+    // Non-resources only
+    void AssetManager::RenameAsset(const HString8& oldPath, const HString8& newPath)
+    {
+        auto lock = std::unique_lock(s_Mutex);
 
-        // change registry key
+        auto found = s_Registry.find(oldPath);
+        if (found == s_Registry.end()) return;
+
+        // Update UUID link
+        auto& uuidEntry = s_UUIDs[found->second.Id];
+        if (uuidEntry.IsResource) // Cannot update resources
+            return;
+        uuidEntry.Path = newPath;
+
+        // Update asset path
+        found->second.Asset->UpdatePath(newPath, GetAbsolutePath(newPath));
+
+        // Change registry key
         auto registryNode = s_Registry.extract(oldPath);
         registryNode.key() = newPath;
         s_Registry.insert(std::move(registryNode));
-
-        // change asset paths
-        s_Registry[newPath].Asset->UpdatePath(newPath, GetAbsolutePath(newPath));
     }
 
-    void AssetManager::UpdateAssetsDirectory(const HStringView8& directory)
+    void AssetManager::UpdateAssetsDirectory(const HString8& directory)
     {
-        // Wait for tasks to finish
-        while (s_AsyncLoadsInProgress)
-        { std::this_thread::sleep_for(std::chrono::milliseconds(1)); }
+        if (directory == s_AssetsDirectory)
+            return;
 
+        // (Locks internally)
         UnloadAllAssets();
+
+        s_Mutex.lock();
+
         s_AssetsDirectory = directory;
 
-        // clear all the registered assets
-        s_Registry.clear();
-
-        // remove all UUID entries that aren't resources
-        for (auto it = std::begin(s_UUIDs); it != std::end(s_UUIDs);)
+        if (!s_Initialized)
         {
-            if (!it->second.IsResource)
-                it = s_UUIDs.erase(it);
-            else
-                it++;
+            s_Mutex.unlock();
+            return;
         }
 
-        // scan the new directory
-        RegisterAssetsInDirectory(directory, false, false);
+        // Remove all registry UUIDs
+        for (auto& pair : s_Registry)
+            s_UUIDs.erase(pair.second.Id);
+
+        // Clear all the registered assets
+        s_Registry.clear();
+
+        s_Mutex.unlock();
+
+        // Scan the new directory
+        #ifdef HE_DIST
+            RegisterAssetsFromManifest(directory);
+        #else
+            RegisterAssetsInDirectory(directory, false, false);
+        #endif
+
+        #ifndef HE_PLATFORM_ANDROID
+            // Update file watcher to watch new directory
+            if (s_FileWatcher)
+            {
+                s_FileWatcher->removeWatch(s_WatchId);
+                WatchAssetDirectory();
+            }
+        #endif
     }
 
     Asset::Type AssetManager::DeduceAssetTypeFromFile(const HStringView8& path)
     {
-        auto extension = std::filesystem::path(path.Data()).extension().generic_u8string();
+        auto rawExtension = std::filesystem::path(path.Data()).extension().generic_u8string();
 
-        // convert the extension to lowercase
-        std::transform(extension.begin(), extension.end(), extension.begin(), [](unsigned char c) { return std::tolower(c); });
-        
+        // Convert the extension to lowercase
+        std::transform(rawExtension.begin(), rawExtension.end(), rawExtension.begin(), [](unsigned char c) { return std::tolower(c); });
+
+        HStringView8 extension(rawExtension);
+
         Asset::Type type = Asset::Type::None;
         if (extension == ".png" || extension == ".jpg" || extension == ".bmp" ||
-            extension == ".hdr" || extension == ".tiff" || extension == ".tif") // textures
+            extension == ".hdr" || extension == ".tiff" || extension == ".tif" ||
+            extension == ".hetex") // textures
             type = Asset::Type::Texture;
         else if (extension == ".gltf")
             type = Asset::Type::Mesh;
@@ -274,85 +412,81 @@ namespace Heart
             type = Asset::Type::Scene;
         else if (extension == ".ttf" || extension == ".otf")
             type = Asset::Type::Font;
+        else if (extension == ".splat")
+            type = Asset::Type::Splat;
 
         return type;
     }
 
-    UUID AssetManager::GetAssetUUID(const HStringView8& path, bool isResource)
+    UUID AssetManager::GetAssetUUID(const HString8& path, bool isResource)
     {
-        for (auto& entry : s_UUIDs)
-            if (isResource == entry.second.IsResource && entry.second.Path == path) return entry.first;
+        auto lock = std::shared_lock(s_Mutex);
+        auto& registry = GetRegistry(isResource);
+        auto found = registry.find(path);
+        if (found != registry.end())
+            return found->second.Id;
         return 0;
     }
 
     HString8 AssetManager::GetPathFromUUID(UUID uuid)
     {
         if (!uuid) return "";
-        if (s_UUIDs.find(uuid) == s_UUIDs.end()) return "";
-        return s_UUIDs[uuid].Path;
+        auto lock = std::shared_lock(s_Mutex);
+        auto found = s_UUIDs.find(uuid);
+        if (found == s_UUIDs.end()) return "";
+        return found->second.Path;
     }
 
     bool AssetManager::IsAssetAResource(UUID uuid)
     {
         if (!uuid) return false;
-        if (s_UUIDs.find(uuid) == s_UUIDs.end()) return false;
-        return s_UUIDs[uuid].IsResource;
+        auto lock = std::shared_lock(s_Mutex);
+        auto found = s_UUIDs.find(uuid);
+        if (found == s_UUIDs.end()) return "";
+        return found->second.IsResource;
     }
 
-    void AssetManager::QueueLoad(AssetEntry& entry, bool async)
-    {
-        // Ensure that we only load if the asset is unloaded and a task hasn't been started (i.e. when the loaded frame is this value)
-        if (entry.LoadedFrame == std::numeric_limits<u64>::max() - s_AssetFrameLimit)
-        {
-            if (async)
-            {
-                s_AsyncLoadsInProgress++;
-                TaskManager::Schedule([&entry]()
-                {
-                    LoadAsset(entry, true);
-                    s_AsyncLoadsInProgress--;
-                }, Task::Priority::Medium, "Load asset");
-            }
-            else
-                LoadAsset(entry);
-        }
-        else if (!async)
-        {
-            // Until we do the refactor, we need to wait until the asset is fully loaded
-            while (!entry.Asset->IsLoaded()) {}
-        }
-
-        entry.LoadedFrame = App::Get().GetFrameCount();
-    }
-
-    Asset* AssetManager::RetrieveAsset(const HStringView8& path, bool isResource, bool load, bool async)
+    Asset* AssetManager::RetrieveAsset(const HString8& path, bool isResource)
     {
         if (path.IsEmpty()) return nullptr;
-        if (isResource)
-        { if (s_Resources.find(path) == s_Resources.end()) return nullptr; }
-        else
-        { if (s_Registry.find(path) == s_Registry.end()) return nullptr; }
 
-        auto& entry = isResource ? s_Resources[path] : s_Registry[path];
-        if (load)
-            QueueLoad(entry, async);
+        auto lock = std::shared_lock(s_Mutex);
 
-        return entry.Asset.get();
+        auto& registry = GetRegistry(isResource);
+        auto found = registry.find(path);
+        if (found == registry.end()) return nullptr;
+
+        return found->second.Asset.get();
     }
 
-    Asset* AssetManager::RetrieveAsset(UUID uuid, bool load, bool async)
+    Asset* AssetManager::RetrieveAsset(UUID uuid)
     {
         HE_PROFILE_FUNCTION();
 
         if (!uuid) return nullptr;
-        if (s_UUIDs.find(uuid) == s_UUIDs.end()) return nullptr;
 
-        auto& uuidEntry = s_UUIDs[uuid];
-        auto& entry = uuidEntry.IsResource ? s_Resources[uuidEntry.Path] : s_Registry[uuidEntry.Path];
+        auto lock = std::shared_lock(s_Mutex);
 
-        if (load)
-            QueueLoad(entry, async);
-            
+        auto found = s_UUIDs.find(uuid);
+        if (found == s_UUIDs.end()) return nullptr;
+
+        auto& entry = GetRegistry(found->second.IsResource)[found->second.Path];
         return entry.Asset.get();
+    }
+
+    nlohmann::json AssetManager::GenerateManifest()
+    {
+        nlohmann::json j;
+
+        u32 size = 0;
+        for (auto& entry : s_UUIDs)
+        {
+            auto& elem = j[size++];
+            elem["path"] = entry.second.Path;
+            elem["type"] = entry.second.Type;
+            elem["resource"] = entry.second.IsResource;
+        }
+
+        return j;
     }
 }

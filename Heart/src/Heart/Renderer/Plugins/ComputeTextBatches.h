@@ -47,7 +47,7 @@ namespace Heart::RenderPlugins
         {}
 
         inline u32 GetMaxObjects() const { return m_MaxObjects; }
-        inline const auto& GetBatchData() const { return m_BatchData[m_RenderFrameIndex]; }
+        inline const auto& GetBatchData() const { return m_BatchData; }
 
     protected:
         void InitializeInternal() override;
@@ -56,9 +56,7 @@ namespace Heart::RenderPlugins
 
     private:
         ComputeTextBatchesCreateInfo m_Info;
-        std::array<BatchData, Flourish::Context::MaxFrameBufferCount> m_BatchData;
-        u32 m_UpdateFrameIndex = 0;
-        u32 m_RenderFrameIndex = 0;
+        BatchData m_BatchData;
         u32 m_MaxObjects = 3000; // TODO: parameterize
         u32 m_MaxMaterials = 3000;
     };

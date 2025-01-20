@@ -1,24 +1,16 @@
 #include "hepch.h"
 #include "ScriptInstance.h"
 
-#include "Heart/Core/Timestep.h"
-#include "Heart/Scene/Scene.h"
-#include "Heart/Scene/Entity.h"
 #include "Heart/Container/Variant.h"
 #include "Heart/Container/HArray.h"
 #include "Heart/Scripting/ScriptingEngine.h"
 
 namespace Heart
 {
-    void ScriptInstance::Instantiate(Entity owner)
+    void ScriptInstance::ConsumeHandle(uptr newHandle)
     {
-        if (!IsInstantiable()) return;
-        if (IsAlive()) Destroy();
-        m_ObjectHandle = ScriptingEngine::InstantiateObject(
-            m_ScriptClass,
-            (u32)owner.GetHandle(),
-            owner.GetScene()
-        );
+        Destroy();
+        m_ObjectHandle = newHandle;
     }
 
     void ScriptInstance::Destroy()
@@ -30,55 +22,16 @@ namespace Heart
 
     void ScriptInstance::Clear()
     {
-        if (IsAlive()) Destroy();
-        m_ScriptClass.Clear();
+        Destroy();
+        m_ScriptClassId = 0;
     }
 
-    void ScriptInstance::OnConstruct()
-    {
-        if (!IsAlive()) return;
-        HArray args;
-        ScriptingEngine::InvokeFunction(m_ObjectHandle, "OnConstruct", args);
-    }
-
-    void ScriptInstance::OnPlayStart()
-    {
-        if (!IsAlive()) return;
-        HArray args;
-        ScriptingEngine::InvokeFunction(m_ObjectHandle, "OnPlayStart", args);
-    }
-
-    void ScriptInstance::OnPlayEnd()
-    {
-        if (!IsAlive()) return;
-        HArray args;
-        ScriptingEngine::InvokeFunction(m_ObjectHandle, "OnPlayEnd", args);
-    }
-
-    void ScriptInstance::OnUpdate(Timestep ts)
-    {
-        if (!IsAlive()) return;
-        ScriptingEngine::InvokeEntityOnUpdate(m_ObjectHandle, ts);
-    }
-
-    void ScriptInstance::OnCollisionStarted(Entity other)
-    {
-        if (!IsAlive()) return;
-        ScriptingEngine::InvokeEntityOnCollisionStarted(m_ObjectHandle, other);
-    }
-
-    void ScriptInstance::OnCollisionEnded(Entity other)
-    {
-        if (!IsAlive()) return;
-        ScriptingEngine::InvokeEntityOnCollisionEnded(m_ObjectHandle, other);
-    }
-    
     nlohmann::json ScriptInstance::SerializeFieldsToJson()
     {
         nlohmann::json j;
         if (!IsAlive()) return j;
 
-        auto& scriptClassObj = ScriptingEngine::GetInstantiableClass(m_ScriptClass);
+        auto& scriptClassObj = GetScriptClassObject();
         auto& fields = scriptClassObj.GetSerializableFields();
 
         for (u32 i = 0; i < fields.Count(); i++)
@@ -95,7 +48,7 @@ namespace Heart
     {
         if (!IsAlive()) return nullptr;
 
-        auto& scriptClassObj = ScriptingEngine::GetInstantiableClass(m_ScriptClass);
+        auto& scriptClassObj = GetScriptClassObject();
         auto& fields = scriptClassObj.GetSerializableFields();
 
         HE_ENGINE_ASSERT(false, "Not implemented");
@@ -121,29 +74,30 @@ namespace Heart
         HE_ENGINE_ASSERT(false, "Not implemented");
     }
 
-    bool ScriptInstance::ValidateClass()
+    bool ScriptInstance::IsInstantiable()
     {
-        return Heart::ScriptingEngine::IsClassInstantiable(m_ScriptClass);
+        if (!HasScriptClass()) return false;
+        return Heart::ScriptingEngine::IsClassIdInstantiable(m_ScriptClassId);
     }
 
-    Variant ScriptInstance::GetFieldValue(const HStringView& fieldName) const
+    Variant ScriptInstance::GetFieldValue(const HString& fieldName) const
     {
         if (!IsAlive()) return Variant();
         return GetFieldValueUnchecked(fieldName);
     }
 
-    bool ScriptInstance::SetFieldValue(const HStringView& fieldName, const Variant& value, bool invokeCallback)
+    bool ScriptInstance::SetFieldValue(const HString& fieldName, const Variant& value, bool invokeCallback)
     {
         if (!IsAlive()) return false;
         return SetFieldValueUnchecked(fieldName, value, invokeCallback);
     }
     
-    Variant ScriptInstance::GetFieldValueUnchecked(const HStringView& fieldName) const
+    Variant ScriptInstance::GetFieldValueUnchecked(const HString& fieldName) const
     {
         return ScriptingEngine::GetFieldValue(m_ObjectHandle, fieldName);
     }
 
-    bool ScriptInstance::SetFieldValueUnchecked(const HStringView& fieldName, const Variant& value, bool invokeCallback)
+    bool ScriptInstance::SetFieldValueUnchecked(const HString& fieldName, const Variant& value, bool invokeCallback)
     {
         return ScriptingEngine::SetFieldValue(m_ObjectHandle, fieldName, value, invokeCallback);
     }

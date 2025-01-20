@@ -1,15 +1,21 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup Label="Globals">
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
     <OutputPath>../bin</OutputPath>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
   <ItemGroup>
-      <ProjectReference Include="../SourceGenerators/SourceGenerators.csproj" />
-      <ProjectReference Include="../CoreScripts/CoreScripts.csproj" />
+    <ProjectReference Include="../SourceGenerators/SourceGenerators.csproj" />
+    <ProjectReference Include="../CoreScripts/CoreScripts.csproj" />
+    <ProjectReference Include="../BridgeScripts/BridgeScripts.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="NuGet.CommandLine" Version="6.2.1" PrivateAssets="all" />
+    <None Include="docs\README.md" Pack="true" PackagePath="\"/>
+    <None Include="Sdk\Sdk.props" Pack="true" PackagePath="Sdk" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="NuGet.CommandLine" Version="6.11.0" PrivateAssets="all" />
   </ItemGroup>
 </Project>

@@ -1,0 +1,4 @@
+build/
+.gradle/
+.cxx/
+app/src/main/assets

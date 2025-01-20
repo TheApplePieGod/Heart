@@ -41,7 +41,11 @@ void main()
     upsample += (a + c + g + i);
     upsample *= 1.0 / 16.0;
 
-    upsample += texture(srcMix, texCoord).rgb;
+    vec3 mix = texture(srcMix, texCoord).rgb;
+    if (constants.prefilter == 1)
+        mix = QuadraticThreshold(mix);
+
+    upsample += mix;
 
     imageStore(dstTex, coord, vec4(upsample, 1.f));
 }

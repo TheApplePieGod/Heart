@@ -7,13 +7,21 @@
 #include "Heart/Input/Input.h"
 #include "Heart/Scene/Components.h"
 #include "Heart/Scene/Entity.h"
+#include "Heart/Renderer/DesktopSceneRenderer.h"
+#include "Heart/Renderer/MobileSceneRenderer.h"
+#include "Flourish/Api/Context.h"
 #include "Flourish/Api/Texture.h"
 
 namespace HeartRuntime
 {
     Viewport::Viewport()
     {
-        m_SceneRenderer = Heart::CreateScope<Heart::SceneRenderer>();
+        // TODO: allow the project to select renderer
+        #ifdef HE_PLATFORM_ANDROID
+        m_SceneRenderer = Heart::CreateScope<Heart::MobileSceneRenderer>(false);
+        #else
+        m_SceneRenderer = Heart::CreateScope<Heart::DesktopSceneRenderer>(false);
+        #endif
     }
 
     void Viewport::Shutdown()
@@ -21,7 +29,10 @@ namespace HeartRuntime
         m_SceneRenderer.reset();
     }
 
-    void Viewport::OnImGuiRender(Heart::Scene* sceneContext, const Heart::SceneRenderSettings& settings)
+    void Viewport::OnImGuiRender(
+            Heart::RenderScene* renderScene,
+            Heart::Scene* sceneContext,
+            const Heart::SceneRenderSettings& settings)
     {
         HE_PROFILE_FUNCTION();
 
@@ -65,8 +76,9 @@ namespace HeartRuntime
             if (Heart::Input::IsKeyPressed(Heart::KeyCode::S))
                 m_DebugCameraPos -= (m_Camera.GetForwardVector() * moveSpeed * static_cast<f32>(ts.StepSeconds()));
 
-            m_DebugCameraRot.y += mouseScale * static_cast<f32>(Heart::Input::GetMouseDeltaX());
-            m_DebugCameraRot.x += mouseScale * static_cast<f32>(Heart::Input::GetMouseDeltaY());
+            glm::vec2 mouseDelta = Heart::Input::GetMouseDelta();
+            m_DebugCameraRot.y += mouseScale * static_cast<f32>(mouseDelta.x);
+            m_DebugCameraRot.x += mouseScale * static_cast<f32>(mouseDelta.y);
 
             m_Camera = Heart::Camera(
                 70.f,
@@ -78,13 +90,18 @@ namespace HeartRuntime
             cameraPosition = m_DebugCameraPos;
         }
 
-        m_SceneRenderer->RenderScene(
-            sceneContext,
-            m_Camera,
+        auto renderGroup = m_SceneRenderer->Render({
+            renderScene,
+            sceneContext->GetEnvironmentMap(),
+            &m_Camera,
             cameraPosition,
             settings
-        );
-        RuntimeApp::Get().GetWindow().PushDependencyBuffers(m_SceneRenderer->GetRenderBuffers());
+        });
+
+        // TODO: don't need to wait right away
+        renderGroup.Wait();
+
+        Flourish::Context::PushFrameRenderGraph(m_SceneRenderer->GetRenderGraph());
 
         // draw the viewport background
         ImGui::GetWindowDrawList()->AddRectFilled(
@@ -94,7 +111,7 @@ namespace HeartRuntime
         );
 
         ImGui::Image(
-            m_SceneRenderer->GetFinalTexture()->GetImGuiHandle(),
+            m_SceneRenderer->GetOutputTexture()->GetImGuiHandle(),
             viewportSize
         );
 

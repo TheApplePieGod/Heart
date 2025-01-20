@@ -14,21 +14,17 @@ namespace Heart::RenderPlugins
     void ComputeMeshBatches::InitializeInternal()
     {
         Flourish::BufferCreateInfo bufCreateInfo;
+        bufCreateInfo.MemoryType = Flourish::BufferMemoryType::CPUWriteFrame;
+        bufCreateInfo.Usage = Flourish::BufferUsageFlags::Storage;
+        bufCreateInfo.Stride = sizeof(ObjectData);
+        bufCreateInfo.ElementCount = m_MaxObjects;
+        m_BatchData.ObjectDataBuffer = Flourish::Buffer::Create(bufCreateInfo);
 
-        for (u32 i = 0; i < Flourish::Context::FrameBufferCount(); i++)
-        {
-            bufCreateInfo.Usage = Flourish::BufferUsageType::DynamicOneFrame;
-            bufCreateInfo.Type = Flourish::BufferType::Storage;
-            bufCreateInfo.Stride = sizeof(ObjectData);
-            bufCreateInfo.ElementCount = m_MaxObjects;
-            m_BatchData[i].ObjectDataBuffer = Flourish::Buffer::Create(bufCreateInfo);
-
-            bufCreateInfo.Usage = Flourish::BufferUsageType::DynamicOneFrame;
-            bufCreateInfo.Type = Flourish::BufferType::Indirect;
-            bufCreateInfo.Stride = sizeof(IndexedIndirectCommand);
-            bufCreateInfo.ElementCount = m_MaxObjects;
-            m_BatchData[i].IndirectBuffer = Flourish::Buffer::Create(bufCreateInfo);
-        }
+        bufCreateInfo.MemoryType = Flourish::BufferMemoryType::CPUWriteFrame;
+        bufCreateInfo.Usage = Flourish::BufferUsageFlags::Indirect;
+        bufCreateInfo.Stride = sizeof(IndexedIndirectCommand);
+        bufCreateInfo.ElementCount = m_MaxObjects;
+        m_BatchData.IndirectBuffer = Flourish::Buffer::Create(bufCreateInfo);
     }
 
     void ComputeMeshBatches::RenderInternal(const SceneRenderData& data)
@@ -38,14 +34,9 @@ namespace Heart::RenderPlugins
 
         auto materialsPlugin = m_Renderer->GetPlugin<RenderPlugins::CollectMaterials>(m_Info.CollectMaterialsPluginName);
         const auto& materialMap = materialsPlugin->GetMaterialMap();
-        
-        // TODO: revisit this. Disabling previous-frame batch rendering for now because there is a lot of nuance in terms of
-        // ghosting, culling, etc. that really isn't worth it right now
-        m_UpdateFrameIndex = App::Get().GetFrameCount() % Flourish::Context::FrameBufferCount();
-        m_RenderFrameIndex = m_UpdateFrameIndex;//(App::Get().GetFrameCount() - 1) % Flourish::Context::FrameBufferCount();
 
         bool async = data.Settings.AsyncAssetLoading;
-        auto& batchData = m_BatchData[m_UpdateFrameIndex];
+        auto& batchData = m_BatchData;
 
         // Clear previous data
         batchData.Batches.clear();
@@ -69,12 +60,8 @@ namespace Heart::RenderPlugins
             float maxScale = std::max(std::max(scale.x, scale.y), scale.z);
 
             // Skip invalid meshes
-            auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>(
-                meshComp.Mesh,
-                true,
-                async
-            );
-            if (!meshAsset || !meshAsset->IsValid()) continue;
+            auto meshAsset = AssetManager::RetrieveAsset<MeshAsset>(meshComp.Mesh);
+            if (!meshAsset || !meshAsset->Load(!async)->IsValid()) continue;
 
             for (u32 i = 0; i < meshAsset->GetSubmeshCount(); i++)
             {
@@ -113,12 +100,10 @@ namespace Heart::RenderPlugins
                 if (meshData.GetMaterialIndex() < meshComp.Materials.Count())
                 {
                     auto materialAsset = AssetManager::RetrieveAsset<MaterialAsset>(
-                        meshComp.Materials[meshData.GetMaterialIndex()],
-                        true,
-                        async
+                        meshComp.Materials[meshData.GetMaterialIndex()]
                     );
 
-                    if (materialAsset && materialAsset->IsValid())
+                    if (materialAsset && materialAsset->Load(!async)->IsValid())
                         selectedMaterial = &materialAsset->GetMaterial();
                 }
                 bool usePrepass = selectedMaterial->GetTransparencyMode() != TransparencyMode::AlphaBlend;
@@ -160,8 +145,15 @@ namespace Heart::RenderPlugins
             };
             batchData.IndirectBuffer->SetElements(&command, 1, commandIndex);
 
-            // Contiguiously set the instance data for each entity associated with this batch
+            // Sort the batch by material to help with cache coherency
             auto& entityList = batchData.EntityListPool[pair.second.EntityListIndex];
+            std::sort(
+                entityList.begin(),
+                entityList.end(),
+                [](const EntityListEntry& a, const EntityListEntry& b){ return a.MaterialIndex < b.MaterialIndex; }
+            );
+
+            // Contiguiously set the instance data for each entity associated with this batch
             for (auto& entity : entityList)
             {
                 if (!entity.IncludeInPrepass) continue;

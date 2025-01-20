@@ -78,44 +78,62 @@ namespace Heart
         }
     }
 
-    void ImGuiUtils::DrawTextFilter(ImGuiTextFilter& filter, const char* popupName)
+    bool ImGuiUtils::DrawTextFilter(ImGuiTextFilter& filter, const char* popupName)
     {
+        bool modified = false;
+
         DrawFilterPopup(
             popupName,
             true,
-            [&filter] ()
+            [&filter, &modified] ()
             {
                 if (filter.Draw())
+                {
                     ImGui::SetKeyboardFocusHere(-1);
+                    modified = true;
+                }
             },
-            [&filter] ()
+            [&filter, &modified] ()
             {
                 filter.Clear();
+                modified = true;
             }
         );
+
+        return modified;
     }
 
-    void ImGuiUtils::DrawStringDropdownFilter(const char** options, u32 optionCount, u32& selected, const char* popupName)
+    bool ImGuiUtils::DrawStringDropdownFilter(const char* const* options, u32 optionCount, u32& selected, const char* popupName)
     {
+        bool modified = false;
+
         ImGuiUtils::DrawFilterPopup(
             popupName,
             false,
-            [&selected, options, optionCount] ()
+            [&selected, &modified, options, optionCount] ()
             {
                 for (u32 i = 0; i < optionCount; i++)
+                {
                     if (ImGui::Selectable(options[i], selected == i))
+                    {
                         selected = i;
+                        modified = true;
+                    }
+                }
             },
-            [&selected] ()
+            [&selected, &modified] ()
             {
                 selected = 0;
+                modified = true;
             }
         );
+
+        return modified;
     }
 
-    void ImGuiUtils::AssetDropTarget(Asset::Type typeFilter, std::function<void(const HStringView8&)>&& dropCallback)
+    void ImGuiUtils::AssetDropTarget(Asset::Type typeFilter, std::function<void(const HString8&)>&& dropCallback)
     {
-        if (AssetManager::GetAssetsDirectory().IsEmpty());
+        if (AssetManager::GetAssetsDirectory().IsEmpty())
             return;
 
         if (ImGui::BeginDragDropTarget())
@@ -148,7 +166,7 @@ namespace Heart
             ImU32 textColor = ImGui::GetColorU32(ImVec4(0.f, 0.0f, 0.0f, 1.f));
 
             ImGui::TableSetColumnIndex(0);
-            ImGui::Text(name.Data());
+            ImGui::Text("%s", name.Data());
 
             ImGui::TableSetColumnIndex(1);
             ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, xColor);
@@ -236,94 +254,5 @@ namespace Heart
 
         ImGui::EndChild();
         ImGui::PopStyleVar();
-    }
-
-    void ImGuiUtils::AssetPicker(
-        Asset::Type assetType,
-        UUID selectedAsset,
-        const HStringView8& nullSelectionText,
-        const HStringView8& widgetId,
-        ImGuiTextFilter& textFilter,
-        std::function<void()>&& contextMenuCallback,
-        std::function<void(UUID)>&& selectCallback
-    )
-    {
-        const auto& UUIDRegistry = AssetManager::GetUUIDRegistry();
-
-        bool valid = selectedAsset && UUIDRegistry.find(selectedAsset) != UUIDRegistry.end();
-
-        HString8 buttonNullSelection = nullSelectionText + HStringView8("##") + widgetId;
-        HString8 popupName = widgetId + HStringView8("AP");
-        bool popupOpened = ImGui::Button(valid ? UUIDRegistry.at(selectedAsset).Path.Data() : buttonNullSelection.Data());
-        if (popupOpened)
-            ImGui::OpenPopup(popupName.Data());
-        
-        // right click menu
-        if (contextMenuCallback && ImGui::BeginPopupContextItem((widgetId + HStringView8("ctx")).Data()))
-        {
-            contextMenuCallback();
-            ImGui::EndPopup();
-        }
-
-        ImGui::SetNextWindowSize({ 500.f, std::min(ImGui::GetMainViewport()->Size.y - ImGui::GetCursorScreenPos().y, 500.f) });
-        if (ImGui::BeginPopup(popupName.Data(), ImGuiWindowFlags_HorizontalScrollbar))
-        {
-            if (textFilter.Draw() || popupOpened)
-                ImGui::SetKeyboardFocusHere(-1);
-            ImGui::Separator();
-            for (auto& pair : UUIDRegistry)
-            {
-                if (pair.second.Type == assetType && textFilter.PassFilter(pair.second.Path.Data()))
-                {
-                    if (ImGui::MenuItem(pair.second.Path.Data()))
-                    {
-                        selectCallback(pair.first);
-                        ImGui::CloseCurrentPopup();
-                    }
-                }
-            }
-            ImGui::EndPopup();
-        }
-    }
-    
-    void ImGuiUtils::StringPicker(
-        const HVector<HString8>& options,
-        const HStringView8& selected,
-        const HStringView8& nullSelectionText,
-        const HStringView8& widgetId,
-        ImGuiTextFilter& textFilter,
-        std::function<void()>&& contextMenuCallback,
-        std::function<void(u32)>&& selectCallback
-    )
-    {
-        HString8 buttonNullSelection = nullSelectionText + HStringView8("##") + widgetId;
-        HString8 popupName = widgetId + HStringView8("SP");
-        bool popupOpened = ImGui::Button(selected.IsEmpty() ? buttonNullSelection.Data() : selected.Data());
-        if (popupOpened)
-            ImGui::OpenPopup(popupName.Data());
-        
-        // right click menu
-        if (contextMenuCallback && ImGui::BeginPopupContextItem((widgetId + HStringView8("ctx")).Data()))
-        {
-            contextMenuCallback();
-            ImGui::EndPopup();
-        }
-
-        ImGui::SetNextWindowSize({ 500.f, std::min(ImGui::GetMainViewport()->Size.y - ImGui::GetCursorScreenPos().y, 500.f) });
-        if (ImGui::BeginPopup(popupName.Data(), ImGuiWindowFlags_HorizontalScrollbar))
-        {
-            if (textFilter.Draw() || popupOpened)
-                ImGui::SetKeyboardFocusHere(-1);
-            ImGui::Separator();
-            for (u32 i = 0; i < options.Count(); i++)
-            {
-                if (textFilter.PassFilter(options[i].Data()) && ImGui::MenuItem(options[i].Data()))
-                {
-                    selectCallback(i);
-                    ImGui::CloseCurrentPopup();
-                }
-            }
-            ImGui::EndPopup();
-        }
     }
 }

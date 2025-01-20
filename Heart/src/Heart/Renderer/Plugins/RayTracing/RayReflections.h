@@ -16,11 +16,16 @@ namespace Heart::RenderPlugins
 {
     struct RayReflectionsCreateInfo
     {
+        Ref<Flourish::Texture> OutputTexture;
         HString8 FrameDataPluginName;
         HString8 TLASPluginName;
         HString8 LightingDataPluginName;
         HString8 GBufferPluginName;
         HString8 CollectMaterialsPluginName;
+
+        // Useful when storing traced results on a larger texture
+        f32 TraceWidth = 1.f;
+        f32 TraceHeight = 1.f;
     };
 
     class RayReflections : public RenderPlugin

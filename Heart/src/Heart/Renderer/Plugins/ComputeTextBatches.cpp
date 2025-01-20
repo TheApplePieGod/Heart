@@ -17,21 +17,17 @@ namespace Heart::RenderPlugins
     void ComputeTextBatches::InitializeInternal()
     {
         Flourish::BufferCreateInfo bufCreateInfo;
+        bufCreateInfo.MemoryType = Flourish::BufferMemoryType::CPUWriteFrame;
+        bufCreateInfo.Usage = Flourish::BufferUsageFlags::Storage;
+        bufCreateInfo.Stride = sizeof(ComputeMeshBatches::ObjectData);
+        bufCreateInfo.ElementCount = m_MaxObjects;
+        m_BatchData.ObjectDataBuffer = Flourish::Buffer::Create(bufCreateInfo);
 
-        for (u32 i = 0; i < Flourish::Context::FrameBufferCount(); i++)
-        {
-            bufCreateInfo.Usage = Flourish::BufferUsageType::DynamicOneFrame;
-            bufCreateInfo.Type = Flourish::BufferType::Storage;
-            bufCreateInfo.Stride = sizeof(ComputeMeshBatches::ObjectData);
-            bufCreateInfo.ElementCount = m_MaxObjects;
-            m_BatchData[i].ObjectDataBuffer = Flourish::Buffer::Create(bufCreateInfo);
-
-            bufCreateInfo.Usage = Flourish::BufferUsageType::DynamicOneFrame;
-            bufCreateInfo.Type = Flourish::BufferType::Indirect;
-            bufCreateInfo.Stride = sizeof(ComputeMeshBatches::IndexedIndirectCommand);
-            bufCreateInfo.ElementCount = m_MaxObjects;
-            m_BatchData[i].IndirectBuffer = Flourish::Buffer::Create(bufCreateInfo);
-        }
+        bufCreateInfo.MemoryType = Flourish::BufferMemoryType::CPUWriteFrame;
+        bufCreateInfo.Usage = Flourish::BufferUsageFlags::Indirect;
+        bufCreateInfo.Stride = sizeof(ComputeMeshBatches::IndexedIndirectCommand);
+        bufCreateInfo.ElementCount = m_MaxObjects;
+        m_BatchData.IndirectBuffer = Flourish::Buffer::Create(bufCreateInfo);
     }
 
     void ComputeTextBatches::RenderInternal(const SceneRenderData& data)
@@ -41,14 +37,9 @@ namespace Heart::RenderPlugins
 
         auto materialsPlugin = m_Renderer->GetPlugin<RenderPlugins::CollectMaterials>(m_Info.CollectMaterialsPluginName);
         const auto& materialMap = materialsPlugin->GetMaterialMap();
-        
-        // TODO: revisit this. Disabling previous-frame batch rendering for now because there is a lot of nuance in terms of
-        // ghosting, culling, etc. that really isn't worth it right now
-        m_UpdateFrameIndex = App::Get().GetFrameCount() % Flourish::Context::FrameBufferCount();
-        m_RenderFrameIndex = m_UpdateFrameIndex;//(App::Get().GetFrameCount() - 1) % Flourish::Context::FrameBufferCount();
 
         bool async = data.Settings.AsyncAssetLoading;
-        auto& newComputedData = m_BatchData[m_UpdateFrameIndex];
+        auto& newComputedData = m_BatchData;
         
         // Clear previous data
         newComputedData.Batches.Clear();
@@ -68,12 +59,12 @@ namespace Heart::RenderPlugins
             const auto& transformData = data.Scene->GetCachedTransforms().at(entity);
 
             auto fontAsset = AssetManager::RetrieveAsset<FontAsset>(textComp.Font);
-            if (!fontAsset || !fontAsset->IsValid())
+            if (!fontAsset || !fontAsset->Load(!async)->IsValid())
                 continue;
 
             Material* selectedMaterial = nullptr;
             auto materialAsset = AssetManager::RetrieveAsset<MaterialAsset>(textComp.Material);
-            if (materialAsset && materialAsset->IsValid())
+            if (materialAsset && materialAsset->Load(!async)->IsValid())
                 selectedMaterial = &materialAsset->GetMaterial();
 
             u64 materialId = (u64)selectedMaterial;

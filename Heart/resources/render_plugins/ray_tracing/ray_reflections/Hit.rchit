@@ -64,6 +64,7 @@ void main()
     VertexBuffer vertexBuffer = VertexBuffer(GET_OBJECT(objectId).vertexAddress);
     IndexBuffer indexBuffer = IndexBuffer(GET_OBJECT(objectId).indexAddress);
     uint materialId = uint(GET_OBJECT(objectId).data.r);
+    MaterialInfo material = GET_MATERIAL(materialId);
   
     // Hit triangle
     uvec3 ind = indexBuffer.data[gl_PrimitiveID];
@@ -91,11 +92,12 @@ void main()
         mat3x3(gl_ObjectToWorldEXT)
     );
 
-    vec4 albedo = GetAlbedo(materialId, texCoord, mip);
+    vec4 albedo = GetAlbedo(material, texCoord, mip);
     albedo.rgb = pow(albedo.rgb, vec3(2.2)); 
-    N = GetNormal(T.xyz, B, N, materialId, texCoord, mip);
-    float metalness = GetMetalness(materialId, texCoord, mip);
-    float roughness = GetRoughness(materialId, texCoord, mip);
+    N = GetNormal(T.xyz, B, N, material, texCoord, mip);
+    vec2 metalnessRoughness = GetMetalnessRoughness(material, texCoord, mip);
+    float metalness = metalnessRoughness.r;
+    float roughness = metalnessRoughness.g;
     vec3 F0 = mix(vec3(0.04), albedo.rgb, metalness);
     vec3 diffuse = mix(albedo.rgb * (vec3(1.0) - F0), vec3(0.0), metalness);
 

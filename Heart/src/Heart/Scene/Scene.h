@@ -52,6 +52,8 @@ namespace Heart
         glm::vec3 GetEntityCachedScale(Entity entity);
         glm::vec3 GetEntityCachedForwardVec(Entity entity);
 
+        u32 GetAliveEntityCount();
+
         Ref<Scene> Clone();
         void ClearScene();
         void SetEnvironmentMap(UUID mapAsset);
@@ -64,6 +66,7 @@ namespace Heart
         inline PhysicsWorld& GetPhysicsWorld() { return m_PhysicsWorld; }
         inline EnvironmentMap* GetEnvironmentMap() { return m_EnvironmentMap.get(); }
         inline const auto& GetCachedTransforms() const { return m_CachedTransforms; }
+        inline decltype(auto) GetEntityIterator() { return m_Registry.storage<entt::entity>().each(); }
         
         template<typename Component>
         void ClearComponent()

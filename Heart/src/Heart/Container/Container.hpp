@@ -10,7 +10,15 @@ namespace Heart
         Container() = default;
 
         Container(const Container<T>& other, bool shallow = false)
-        { Copy(other, shallow); }
+        {
+            Copy(other, shallow);
+        }
+
+        Container(Container<T>&& other)
+        {
+            Copy(other, true);
+            other.Cleanup();
+        }
 
         Container(u32 elemCount, bool fill = true)
         {
@@ -79,14 +87,7 @@ namespace Heart
                 return;
             }
 
-            // Destruct removed elements
-            if constexpr (m_ShouldDestruct)
-            {
-                for (u32 i = 0; i < Count(); i++)
-                    m_Data[i].~T();
-            }
-
-            SetCount(0);
+            Trim(0);
         }
 
         void Reserve(u32 allocCount)
@@ -97,13 +98,28 @@ namespace Heart
         }
 
         // This WILL shrink the memory
-        inline void Resize(u32 elemCount, bool construct = true)
+        void Resize(u32 elemCount, bool construct = true)
         {
             u32 oldCount = Count();
             ResizeExplicit(elemCount, GetNextPowerOfTwo(elemCount), construct);
             // We want to zero out the memory if the default constructors were not run
-            if (!m_ShouldConstruct || (!construct && elemCount > oldCount))
+            if (elemCount > oldCount && (!m_ShouldConstruct || !construct))
                 memset(m_Data + oldCount, 0, (elemCount - oldCount) * sizeof(T));
+        }
+
+        // Shrink the count without shrinking memory 
+        void Trim(u32 newCount)
+        {
+            if (newCount >= Count()) return;
+            
+            // Destruct removed elements
+            if constexpr (m_ShouldDestruct)
+            {
+                for (u32 i = newCount; i < Count(); i++)
+                    m_Data[i].~T();
+            }
+
+            SetCount(newCount);
         }
 
         inline Container Clone() const { return Container(m_Data, Count()); }
@@ -176,7 +192,7 @@ namespace Heart
                 if (m_Data)
                 {
                     // TODO: check if trivially copyable
-                    memcpy(newData, m_Data, oldCount * sizeof(T));
+                    memcpy(newData, m_Data, std::min(elemCount, oldCount) * sizeof(T));
                     FreeMemory();
                 }
                 

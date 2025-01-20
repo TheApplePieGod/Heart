@@ -7,14 +7,9 @@
 
 namespace Heart
 {
-    void MaterialAsset::Load(bool async)
+    void MaterialAsset::LoadInternal()
     {
         HE_PROFILE_FUNCTION();
-
-        const std::lock_guard<std::mutex> lock(m_LoadLock);
-        
-        if (m_Loaded || m_Loading) return;
-        m_Loading = true;
 
         try
         {
@@ -23,26 +18,21 @@ namespace Heart
         catch (std::exception e)
         {
             HE_ENGINE_LOG_ERROR("Failed to load material at path {0}", m_AbsolutePath.Data());
-            m_Loaded = true;
-            m_Loading = false;
             return;
         }
 
-        m_Data = nullptr;
-        m_Loaded = true;
-        m_Loading = false;
         m_Valid = true;
     }
 
-    void MaterialAsset::Unload()
+    void MaterialAsset::UnloadInternal()
     {
-        if (!m_Loaded) return;
-        m_Loaded = false;
-
         m_Material = Material();
-
         m_Data = nullptr;
-        m_Valid = false;
+    }
+
+    bool MaterialAsset::ShouldUnload()
+    {
+        return true;
     }
 
     void MaterialAsset::Save(const Material& material)

@@ -23,14 +23,22 @@
 #include "../../util/Colormap.glsl"
 #include "../../util/Lighting.glsl"
 #include "../../util/BRDF.glsl"
+#include "../../gbuffer/Util.glsl"
 
-layout(binding = 5) uniform sampler2D newGBuffer1;
-layout(binding = 6) uniform sampler2D newGBuffer2;
-layout(binding = 7) uniform sampler2D newGBufferDepth;
-layout(binding = 8) uniform sampler2D brdfTex;
-layout(binding = 9, rgba16f) uniform writeonly image2D outColor;
-layout(binding = 10) uniform sampler2D reflectionsTex;
-layout(binding = 11) uniform accelerationStructureEXT tlas;
+layout(push_constant) uniform PushConstants
+{
+    uint ssaoEnable;
+} constants;
+
+layout(binding = 5) uniform sampler2D newGBufferNormals;
+layout(binding = 6) uniform usampler2D newGBufferColors;
+layout(binding = 7) uniform sampler2D newGBufferEmissive;
+layout(binding = 8) uniform sampler2D newGBufferDepth;
+layout(binding = 9) uniform sampler2D brdfTex;
+layout(binding = 10, rgba16f) uniform writeonly image2D outColor;
+layout(binding = 11) uniform sampler2D reflectionsTex;
+layout(binding = 12) uniform accelerationStructureEXT tlas;
+layout(binding = 13) uniform sampler2D ssao;
 
 layout(location = 0) rayPayloadEXT HitPayload prd;
 
@@ -56,15 +64,26 @@ void main()
     if (depth == 1.0 - float(frameBuffer.data.reverseDepth))
         return;
 
-    vec4 gbuf1 = texelFetch(newGBuffer1, coord, 0);
-    vec4 gbuf2 = texelFetch(newGBuffer2, coord, 0);
+    // === Unpack GBuffer data ===
+
+    vec3 albedo;
+    float metalness, roughness;
+    uvec4 colorData = texelFetch(newGBufferColors, coord, 0);
+    UnpackColorData(colorData, albedo, metalness, roughness);
+
+    vec4 normalData = texelFetch(newGBufferNormals, coord, 0);
+    vec3 normal = OctahedronDecode(normalData.rg);
+    vec2 motionVector = normalData.ba;
+
+    vec4 emissiveData = texelFetch(newGBufferEmissive, coord, 0);
+    vec3 emissive = emissiveData.rgb;
+    float occlusion = emissiveData.a;
+
+    // ============================
 
     vec3 P = ComputeWorldPositionFromDepth(texCoord, depth, frameBuffer.data.invViewProj);
-    vec3 N = gbuf2.rgb;
+    vec3 N = normal;
     vec3 V = normalize(frameBuffer.data.cameraPos.xyz - P);
-    vec3 albedo = gbuf1.rgb;
-    float metalness = gbuf1.a;
-    float roughness = gbuf2.a;
 
     vec3 F0 = mix(vec3(0.04), albedo.rgb, metalness);
     vec3 diffuse = mix(albedo.rgb * (vec3(1.0) - F0), vec3(0.0), metalness);
@@ -123,9 +142,13 @@ void main()
         vec2 brdf = texture(brdfTex, vec2(max(dot(N, V), 0.0), roughness)).rg;
         vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);
 
-        float occlusion = 1.0;
-        finalContribution += (kD * diffuse + specular) * occlusion;
+        float finalOcclusion = occlusion;
+        if (constants.ssaoEnable == 1)
+            finalOcclusion *= texture(ssao, texCoord).r;
+        finalContribution += (kD * diffuse + specular) * finalOcclusion;
     }
+
+    finalContribution += emissive * albedo;
 
     //finalContribution = textureLod(reflectionsTex, texCoord, 0.0f).rgb;
     //finalContribution = TurboColormap(float(grid.lightCount) / 100);

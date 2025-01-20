@@ -21,12 +21,14 @@ namespace Heart
          * 
          * @param windowName The initial name of the window.
          */
-        App(const HStringView8& windowName = "Heart Engine");
+        App();
 
         /*! @brief Default destructor. */
         ~App();
 
         void Run();
+
+        void OpenWindow(const WindowCreateInfo& windowInfo);
 
         /**
          * @brief Append a new layer to the top of the layer stack.
@@ -34,6 +36,8 @@ namespace Heart
          * @param layer The layer to push. 
          */
         void PushLayer(const Ref<Layer>& layer);
+
+        void PopLayer();
         
         /**
          * @brief Switch the root assets directory that is currently being used by the engine.
@@ -44,7 +48,7 @@ namespace Heart
          * 
          * @param newDirectory The absolute path of the new assets directory. 
          */
-        void SwitchAssetsDirectory(const HStringView8& newDirectory);
+        void SwitchAssetsDirectory(const HString8& newDirectory);
 
         /**
          * @brief Stop running and close the application.
@@ -89,13 +93,13 @@ namespace Heart
         bool m_Running = true;
         bool m_Minimized = false;
         u64 m_FrameCount = 1;
-        double m_LastFrameTime = 0.0;
+        std::chrono::time_point<std::chrono::steady_clock> m_LastFrameTime;
         std::array<double, 5> m_TimestepSamples;
         Timestep m_AveragedTimestep;
         Timestep m_LastTimestep;
 
     private:
-        void InitializeGraphicsApi(const WindowCreateInfo& windowCreateInfo);
+        void InitializeGraphicsApi();
         void ShutdownGraphicsApi();
         void CheckForAssetsDirectorySwitch();
         void OnEvent(Event& event) override;

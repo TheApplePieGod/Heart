@@ -35,36 +35,55 @@ namespace HeartEditor
             {
                 if (ImGui::BeginMenu("File"))
                 {
-                    if (Project::GetActiveProject())
+                    Project* activeProject = Editor::GetState().ActiveProject.get();
+
+                    bool scriptsCompiling = Editor::GetState().IsCompilingScripts;
+                    bool scriptsInUse = isRuntime || scriptsCompiling;
+
+                    if (activeProject)
                     {
-                        if (isRuntime)
+                        if (scriptsInUse)
                             ImGui::BeginDisabled();
                         if (ImGui::MenuItem("Reload Client Scripts"))
-                            Project::GetActiveProject()->LoadScriptsPlugin();
+                            activeProject->LoadScriptsPlugin();
                         if (ImGui::MenuItem("Build & Load Client Scripts", "Ctrl+B"))
-                        {
-                            if (Project::GetActiveProject()->BuildScripts(true))
-                                Project::GetActiveProject()->LoadScriptsPlugin();
-                        }
-                        if (isRuntime)
+                            Editor::StartScriptCompilation();
+                        if (scriptsInUse)
                             ImGui::EndDisabled();
                         ImGui::Separator();
                     }
 
-                    if (Project::GetActiveProject() && ImGui::MenuItem("Save Project", "Ctrl+S"))
-                        Project::GetActiveProject()->SaveToDisk();
+                    if (activeProject && ImGui::MenuItem("Save Project", "Ctrl+S"))
+                        Editor::SaveProject();
                     
-                    if (isRuntime)
+                    if (scriptsInUse)
                         ImGui::BeginDisabled();
-                    if (Project::GetActiveProject() && ImGui::MenuItem("Export Project"))
+                    if (activeProject && ImGui::BeginMenu("Export Project"))
                     {
-                        Heart::HString8 path = Heart::FilesystemUtils::OpenFolderDialog(Project::GetActiveProject()->GetPath(), "Export Parent Directory");
-                        if (!path.IsEmpty())
-                            Project::GetActiveProject()->Export(path);
+                        ExportPlatform platform = ExportPlatform::None;
+                        if (ImGui::MenuItem("Current Platform"))
+                            platform = ExportPlatform::CurrentPlatform;
+                        if (ImGui::MenuItem("Windows"))
+                            platform = ExportPlatform::Windows;
+                        if (ImGui::MenuItem("MacOS"))
+                            platform = ExportPlatform::MacOS;
+                        if (ImGui::MenuItem("Android"))
+                            platform = ExportPlatform::Android;
+
+                        if (platform != ExportPlatform::None)
+                        {
+                            Heart::HString8 path = Heart::FilesystemUtils::OpenFolderDialog(activeProject->GetPath(), "Export Parent Directory");
+                            if (!path.IsEmpty())
+                                activeProject->Export(path, platform);
+                        }
+
+                        ImGui::EndMenu();
                     }
-                    if (isRuntime)
+                    if (scriptsInUse)
                         ImGui::EndDisabled();
 
+                    if (scriptsCompiling)
+                        ImGui::BeginDisabled();
                     if (ImGui::MenuItem("New Project"))
                         newProjectModalOpened = true;
 
@@ -74,9 +93,13 @@ namespace HeartEditor
                         if (!path.IsEmpty())
                             Project::LoadFromPath(path);
                     }
+                    if (scriptsCompiling)
+                        ImGui::EndDisabled();
 
                     ImGui::Separator();
 
+                    if (scriptsInUse)
+                        ImGui::BeginDisabled();
                     if (Editor::GetEditorSceneAsset() && ImGui::MenuItem("Save Scene", "Ctrl+S"))
                         Editor::SaveScene();
                         
@@ -85,7 +108,13 @@ namespace HeartEditor
 
                     if (ImGui::MenuItem("Save Scene As"))
                     {
-                        Heart::HString8 path = Heart::FilesystemUtils::SaveAsDialog(Heart::AssetManager::GetAssetsDirectory(), "Save Scene As", "Scene", "hescn");
+                        Heart::HString8 path = Heart::FilesystemUtils::SaveAsDialog(
+                            Heart::AssetManager::GetAssetsDirectory(),
+                            "Save Scene As",
+                            "Scene",
+                            "hescn",
+                            "hescn"
+                        );
                         if (!path.IsEmpty())
                         {
                             Heart::SceneAsset::SerializeScene(path, &Editor::GetEditorScene());
@@ -104,6 +133,8 @@ namespace HeartEditor
                             Editor::OpenSceneFromAsset(assetId);
                         }
                     }
+                    if (scriptsInUse)
+                        ImGui::EndDisabled();
 
                     ImGui::Separator();
 
@@ -138,32 +169,46 @@ namespace HeartEditor
             ImGui::End();
         }
 
-        if (newProjectModalOpened)
+        if (RenderNewProjectDialog(newProjectModalOpened, m_NewProjectPath, m_NewProjectName))
+            Project::CreateAndLoad(m_NewProjectPath, m_NewProjectName);
+
+        ImGui::PopStyleVar(2);
+    }
+
+    bool MenuBar::RenderNewProjectDialog(
+        bool openDialog,
+        Heart::HString8& newPath,
+        Heart::HString8& newName)
+    {
+        bool created = false;
+
+        if (openDialog)
             ImGui::OpenPopup("New Project");
+
         ImVec2 center = ImGui::GetMainViewport()->GetCenter();
         ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
         if (ImGui::BeginPopupModal("New Project", NULL, ImGuiWindowFlags_AlwaysAutoResize))
         {
             ImGui::Text("Path (new folder will be created inside):");
             ImGui::BeginDisabled();
-            ImGui::InputText("##ProjPath", (char*)m_NewProjectPath.Data(), m_NewProjectPath.Count(), ImGuiInputTextFlags_ReadOnly);
+            ImGui::InputText("##ProjPath", (char*)newPath.Data(), newPath.Count(), ImGuiInputTextFlags_ReadOnly);
             ImGui::EndDisabled();
             ImGui::SameLine();
             if (ImGui::Button("...##ProjPathSelect"))
-                m_NewProjectPath = Heart::FilesystemUtils::OpenFolderDialog("", "Select Project Parent Directory");
+                newPath = Heart::FilesystemUtils::OpenFolderDialog("", "Select Project Parent Directory");
 
             ImGui::Spacing();
             ImGui::Text("Name");
-            Heart::ImGuiUtils::InputText("##ProjName", m_NewProjectName);
+            Heart::ImGuiUtils::InputText("##ProjName", newName);
 
             ImGui::Spacing();
             ImGui::Separator();
 
-            bool disabled = m_NewProjectPath.IsEmpty() || m_NewProjectName.IsEmpty();
+            bool disabled = newPath.IsEmpty() || newName.IsEmpty();
             if (disabled) ImGui::BeginDisabled();
             if (ImGui::Button("Create", ImVec2(120, 0)))
             {
-                Project::CreateAndLoad(m_NewProjectPath, m_NewProjectName);
+                created = true;
                 ImGui::CloseCurrentPopup();
             }
             if (disabled) ImGui::EndDisabled();
@@ -176,6 +221,6 @@ namespace HeartEditor
             ImGui::EndPopup();
         }
 
-        ImGui::PopStyleVar(2);
+        return created;
     }
 }

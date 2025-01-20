@@ -59,7 +59,7 @@ namespace Heart
             : m_Encoding(Encoding::UTF16)
         { Allocate<char16>(str.data(), str.length()); }
 
-        HString(const HStringView& other);
+        explicit HString(const HStringView& other);
 
         u32 Count() const;
         HString Convert(Encoding encoding) const;
@@ -226,7 +226,7 @@ namespace Heart
         {}
 
         constexpr HStringView(const char16* str)
-            : m_Encoding(HString::Encoding::UTF8), m_Data(str), m_Count(StringUtils::StrLen(str))
+            : m_Encoding(HString::Encoding::UTF16), m_Data(str), m_Count(StringUtils::StrLen(str))
         {}
 
         constexpr HStringView(const char8* str, u32 len)
@@ -234,10 +234,11 @@ namespace Heart
         {}
 
         constexpr HStringView(const char16* str, u32 len)
-            : m_Encoding(HString::Encoding::UTF8), m_Data(str), m_Count(len)
+            : m_Encoding(HString::Encoding::UTF16), m_Data(str), m_Count(len)
         {}
 
         constexpr int Compare(StringComparison type, const HStringView& other) const;
+        HString Convert(HString::Encoding encoding) const;
 
         inline HString8 ToUTF8() const { return HString8(DataUTF8(), CountUTF8()); }
         inline HString16 ToUTF16() const { return HString16(DataUTF16(), CountUTF16()); }
@@ -279,8 +280,8 @@ namespace Heart
 
     private:
         HString::Encoding m_Encoding = HString::Encoding::UTF8;
-        const void* m_Data;
-        u32 m_Count;
+        const void* m_Data = nullptr;
+        u32 m_Count = 0;
 
         friend class HString;
     };

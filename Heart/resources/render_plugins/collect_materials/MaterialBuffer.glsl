@@ -1,6 +1,8 @@
 #ifndef MATERIAL_BUFFER
 #define MATERIAL_BUFFER
 
+#extension GL_EXT_nonuniform_qualifier : require
+
 struct MaterialData {
     vec4 baseColor;
     vec4 emissiveFactor;
@@ -35,77 +37,85 @@ layout(
 
 #define GET_MATERIAL(materialId) materialBuffer.data[materialId]
 
-vec4 SampleMaterialTexture(uint textureId, uint materialId, vec2 texCoord, vec4 lod)
+vec4 SampleMaterialTexture(uint textureId, MaterialData matData, vec2 texCoord, vec4 lod)
 {
+    //return vec4(float(textureId), float(materialId), texCoord.x, texCoord.y);
     #ifdef MATERIAL_EXPLICIT_LOD
     return textureGrad(
     #else
     return texture(
     #endif
-        materialTextures[textureId],
-        (texCoord + materialBuffer.data[materialId].data.texCoordTransform.zw)
-           * materialBuffer.data[materialId].data.texCoordTransform.xy
+        nonuniformEXT(materialTextures[textureId]),
+        (texCoord + matData.texCoordTransform.zw)
+           * matData.texCoordTransform.xy
     #ifdef MATERIAL_EXPLICIT_LOD
         , lod.xy, lod.zw
     #endif
     );
 }
 
-vec4 GetAlbedo(uint materialId, vec2 texCoord, vec4 lod)
+vec4 GetAlbedo(MaterialInfo material, vec2 texCoord, vec4 lod)
 {
-    vec4 color = GET_MATERIAL(materialId).data.baseColor;
-    if (GET_MATERIAL(materialId).albedoIndex != -1)
-        color *= SampleMaterialTexture(GET_MATERIAL(materialId).albedoIndex, materialId, texCoord, lod);
+    vec4 color = material.data.baseColor;
+    #ifndef MATERIAL_DISABLE_ALBEDO_TEX
+    if (material.albedoIndex != -1)
+        color *= SampleMaterialTexture(material.albedoIndex, material.data, texCoord, lod);
+    #endif
     return color;
 }
 
-float GetMetalness(uint materialId, vec2 texCoord, vec4 lod)
+vec2 GetMetalnessRoughness(MaterialInfo material, vec2 texCoord, vec4 lod)
 {
-    float metalness = GET_MATERIAL(materialId).data.scalars[0];
-    if (GET_MATERIAL(materialId).metallicRoughnessIndex != -1)
-        metalness *= SampleMaterialTexture(GET_MATERIAL(materialId).metallicRoughnessIndex, materialId, texCoord, lod).b;
-    return metalness;
+    float metalness = material.data.scalars[0];
+    float roughness = material.data.scalars[1];
+    #ifndef MATERIAL_DISABLE_MR_TEX
+    if (material.metallicRoughnessIndex != -1)
+    {
+        vec4 sampled = SampleMaterialTexture(material.metallicRoughnessIndex, material.data, texCoord, lod);
+        metalness *= sampled.b;
+        roughness *= sampled.g;
+    }
+    #endif
+    return vec2(metalness, roughness);
 }
     
-float GetRoughness(uint materialId, vec2 texCoord, vec4 lod)
+vec3 GetEmissive(MaterialInfo material, vec2 texCoord, vec4 lod)
 {
-    float roughness = GET_MATERIAL(materialId).data.scalars[1];
-    if (GET_MATERIAL(materialId).metallicRoughnessIndex != -1)
-        roughness *= SampleMaterialTexture(GET_MATERIAL(materialId).metallicRoughnessIndex, materialId, texCoord, lod).g;
-    return roughness;
-}
-
-vec3 GetEmissive(uint materialId, vec2 texCoord, vec4 lod)
-{
-    vec3 emissive = GET_MATERIAL(materialId).data.emissiveFactor.xyz;
-    if (GET_MATERIAL(materialId).emissiveIndex != -1)
-        emissive *= SampleMaterialTexture(GET_MATERIAL(materialId).emissiveIndex, materialId, texCoord, lod).xyz;
+    vec3 emissive = material.data.emissiveFactor.xyz;
+    #ifndef MATERIAL_DISABLE_EMISSIVE_TEX
+    if (material.emissiveIndex != -1)
+        emissive *= SampleMaterialTexture(material.emissiveIndex, material.data, texCoord, lod).xyz;
+    #endif
     return emissive;
 }
 
-float GetOcclusion(uint materialId, vec2 texCoord, vec4 lod)
+float GetOcclusion(MaterialInfo material, vec2 texCoord, vec4 lod)
 {
     float occlusion = 1.f;
-    if (GET_MATERIAL(materialId).occlusionIndex != -1)
-        occlusion = SampleMaterialTexture(GET_MATERIAL(materialId).occlusionIndex, materialId, texCoord, lod).r;
+    #ifndef MATERIAL_DISABLE_OCCLUSION_TEX
+    if (material.occlusionIndex != -1)
+        occlusion = SampleMaterialTexture(material.occlusionIndex, material.data, texCoord, lod).r;
+    #endif
     return occlusion;
 }
 
-vec3 GetNormal(vec3 tangent, vec3 bitangent, vec3 normal, uint materialId, vec2 texCoord, vec4 lod)
+vec3 GetNormal(vec3 tangent, vec3 bitangent, vec3 normal, MaterialInfo material, vec2 texCoord, vec4 lod)
 {
-    if (GET_MATERIAL(materialId).normalIndex != -1)
+    #ifndef MATERIAL_DISABLE_NORMAL_TEX
+    if (material.normalIndex != -1)
     {
         mat3 tbn = mat3(normalize(tangent), normalize(bitangent), normalize(normal));
         return normalize(tbn * (
-            SampleMaterialTexture(GET_MATERIAL(materialId).normalIndex, materialId, texCoord, lod).xyz * 2.0 - 1.0
+            SampleMaterialTexture(material.normalIndex, material.data, texCoord, lod).xyz * 2.0 - 1.0
         ));
     }
+    #endif
     return normalize(normal);
 }
 
-bool AlphaClip(uint materialId, float alpha)
+bool AlphaClip(MaterialInfo material, float alpha)
 {
-    return alpha <= GET_MATERIAL(materialId).data.scalars[2];
+    return alpha <= material.data.scalars[2];
 }
 
 #endif
