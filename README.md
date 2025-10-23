@@ -12,12 +12,13 @@ Heart is a cross-platform C++ 3D renderer and game engine which is centered arou
 
 - [Screenshots](#Screenshots)
 - [Introduction](#Introduction)
+    - [Key Features](#Key-Features)
 - [Getting Started](#Getting-Started)
     - [Requirements](#Requirements)
-    - [Setup](#General-Setup)
-- [Scripting](#Scripting)
     - [Setup](#Setup)
+- [Scripting](#Scripting)
     - [Usage](#Usage)
+    - [Dev Setup](#Dev-Setup)
 - [Documentation](#Documentation)
 - [License](#License)
 
@@ -40,10 +41,34 @@ Heart is a cross-platform C++ 3D renderer and game engine which is centered arou
 
 # Introduction
 
+Heart is a modern, flexible 3D game engine built on a plugin-based rendering architecture.
+
 - Platforms (64 bit): `Windows`, `MacOS`, `Android`
     - Coming soon: `Linux`
 
 Tested on Windows 10, Windows 11, MacOS arm64, Android arm64, Quest 2
+
+## Key Features
+
+### Rendering
+- **Deferred & Forward Rendering**: PBR (physically-based rendering) with metallic-roughness workflow
+- **Clustered Lighting**: Efficient light culling
+- **Hardware Ray Tracing**: Optional GPU-accelerated reflections with SVGF (Spatiotemporal Variance Guided Filtering) denoising
+- **3D Gaussian Splatting**: Native support for real-time rendering of 3D Gaussian splats (up to 10M primitives)
+- **Post-Processing**: Bloom, SSAO, color grading, tonemapping, and order-independent transparency
+
+### Architecture
+- **Plugin-Based Rendering**: Modular render graph system allowing custom render passes
+- **Task System**: CPU task scheduling for parallel processing
+- **Entity-Component System**: Powered by EnTT for efficient scene management
+- **C# Scripting**: Full game scripting support with hot-reload functionality
+- **Cross-Platform**: Vulkan graphics backend, powered by the Flourish graphics library
+
+### Asset Pipeline
+- Asynchronous asset loading with lazy unloading
+- Support for standard formats: PNG, JPG, TIFF, glTF
+- Texture compression (BC1-BC7) and automatic mipmap generation
+- Material editor with real-time preview
 
 # Getting Started
 
